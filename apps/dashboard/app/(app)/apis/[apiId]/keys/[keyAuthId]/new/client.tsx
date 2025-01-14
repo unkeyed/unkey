@@ -85,13 +85,18 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.limit?.refill?.interval !== "none" && !values.limit?.refill?.amount) {
+    if (
+      values.limitEnabled &&
+      values.limit?.refill?.interval !== "none" &&
+      !values.limit?.refill?.amount
+    ) {
       form.setError("limit.refill.amount", {
         type: "manual",
         message: "Please enter a value if interval is selected",
       });
       return;
     }
+
     if (!values.expireEnabled) {
       delete values.expires;
     }

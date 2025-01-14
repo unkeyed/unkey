@@ -279,6 +279,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         })) ?? null
       );
     });
+
     if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
@@ -350,10 +351,12 @@ export const registerV1KeysCreateKey = (app: App) =>
           apiId: api.id,
         });
       }
+
       const secret = new KeyV1({
-        byteLength: req.byteLength ?? 16,
-        prefix: req.prefix,
+        byteLength: req.byteLength ?? api.keyAuth?.defaultBytes ?? 16,
+        prefix: req.prefix ?? (api.keyAuth?.defaultPrefix as string | undefined),
       }).toString();
+
       const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
       const kId = newId("key");
       const hash = await sha256(secret.toString());

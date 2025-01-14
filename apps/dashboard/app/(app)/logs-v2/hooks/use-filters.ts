@@ -1,40 +1,15 @@
 import { type Parser, parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
-
-export const STATUSES = [200, 400, 500] as const;
-export const METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"] as const;
-
-export type ResponseStatus = (typeof STATUSES)[number];
-export type HttpMethod = (typeof METHODS)[number];
-
-type FilterUrlValue = {
-  value: string | number;
-  operator: FilterOperator;
-};
-
-export type QuerySearchParams = {
-  host: FilterUrlValue | null;
-  requestId: FilterUrlValue | null;
-  methods: FilterUrlValue[] | null;
-  paths: FilterUrlValue[] | null;
-  status: FilterUrlValue[] | null;
-  startTime?: number | null;
-  endTime?: number | null;
-};
-
-export type FilterField = keyof QuerySearchParams;
-export type FilterOperator = "is" | "contains" | "startsWith" | "endsWith";
-
-export interface FilterValue {
-  id: string;
-  field: FilterField;
-  operator: FilterOperator;
-  value: string | number | ResponseStatus | HttpMethod;
-  metadata?: {
-    colorClass?: string;
-    icon?: React.ReactNode;
-  };
-}
+import { filterFieldConfig } from "../filters.schema";
+import type {
+  FilterField,
+  FilterOperator,
+  FilterUrlValue,
+  FilterValue,
+  HttpMethod,
+  QuerySearchParams,
+  ResponseStatus,
+} from "../filters.type";
 
 const parseAsFilterValue: Parser<FilterUrlValue | null> = {
   parse: (str: string | null) => {
@@ -107,47 +82,6 @@ export const queryParamsPayload = {
   endTime: parseAsInteger,
 } as const;
 
-export const filterFieldConfig = {
-  status: {
-    type: "number",
-    operators: ["is"] as const,
-    getColorClass: (value: number) => {
-      if (value >= 500) {
-        return "bg-error-9";
-      }
-      if (value >= 400) {
-        return "bg-warning-8";
-      }
-      return "bg-success-9";
-    },
-  },
-  methods: {
-    type: "string",
-    operators: ["is"] as const,
-    validValues: METHODS,
-  },
-  paths: {
-    type: "string",
-    operators: ["is", "contains", "startsWith", "endsWith"] as const,
-  },
-  host: {
-    type: "string",
-    operators: ["is", "contains"] as const,
-  },
-  requestId: {
-    type: "string",
-    operators: ["is"] as const,
-  },
-  startTime: {
-    type: "number",
-    operators: ["is"] as const,
-  },
-  endTime: {
-    type: "number",
-    operators: ["is"] as const,
-  },
-} as const;
-
 export const useFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload);
 
@@ -161,7 +95,7 @@ export const useFilters = () => {
         operator: status.operator,
         value: status.value as ResponseStatus,
         metadata: {
-          colorClass: filterFieldConfig.status.getColorClass(status.value as number),
+          colorClass: filterFieldConfig.status.getColorClass?.(status.value as number),
         },
       });
     });
@@ -305,7 +239,7 @@ export const useFilters = () => {
         metadata:
           field === "status"
             ? {
-                colorClass: filterFieldConfig.status.getColorClass(value as number),
+                colorClass: filterFieldConfig.status.getColorClass?.(value as number),
               }
             : undefined,
       };
