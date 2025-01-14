@@ -22,6 +22,7 @@ import { Empty } from "@unkey/ui";
 import { Check, X } from "lucide-react";
 import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
+import Loading from "../../loading";
 import { navigation } from "../constants";
 import { Filters } from "./filter";
 import { Menu } from "./menu";
@@ -99,15 +100,7 @@ export default async function AuditPage(props: Props) {
 
         <div className="flex flex-col gap-8 mt-8">
           <Filters />
-          <Suspense
-            fallback={
-              <Empty>
-                <Empty.Icon />
-                <Empty.Title>Loading</Empty.Title>
-                <Empty.Description>Loading logs.</Empty.Description>
-              </Empty>
-            }
-          >
+          <Suspense fallback={<Loading />}>
             <AuditLogTable
               workspaceId={namespace.workspace.id}
               namespaceId={namespace.id}
