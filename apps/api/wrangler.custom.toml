@@ -14,6 +14,7 @@ route = { pattern = "__CUSTOM_DOMAIN__", custom_domain = true }
 
 [durable_objects]
 bindings = [
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
   { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
 ]
 
@@ -27,6 +28,10 @@ tag = "v2"
 deleted_classes = ["DurableObjectRatelimiter"]
 
 
+[[migrations]]
+tag = "v3"
+new_classes = ["DurableObjectRatelimiter"]
+
 
 [[unsafe.bindings]]
 # The nameing scheme is important, because we're dynamically constructing
@@ -39,53 +44,50 @@ deleted_classes = ["DurableObjectRatelimiter"]
 name = "RL_10_60s"
 type = "ratelimit"
 namespace_id = "99001060"
-simple = { limit = 10, period = 60}
+simple = { limit = 10, period = 60 }
 
 [[unsafe.bindings]]
 name = "RL_30_60s"
 type = "ratelimit"
 namespace_id = "99003060"
-simple = { limit = 30, period = 60}
+simple = { limit = 30, period = 60 }
 
 [[unsafe.bindings]]
 name = "RL_50_60s"
 type = "ratelimit"
 namespace_id = "99005060"
-simple = { limit = 50, period = 60}
+simple = { limit = 50, period = 60 }
 
 
 [[unsafe.bindings]]
 name = "RL_200_60s"
 type = "ratelimit"
 namespace_id = "990020060"
-simple = { limit = 200, period = 60}
+simple = { limit = 200, period = 60 }
 
 
 [[unsafe.bindings]]
 name = "RL_600_60s"
 type = "ratelimit"
 namespace_id = "990060060"
-simple = { limit = 600, period = 60}
-
+simple = { limit = 600, period = 60 }
 
 
 [[unsafe.bindings]]
 name = "RL_1_10s"
 type = "ratelimit"
 namespace_id = "9900110"
-simple = { limit = 1, period = 10}
+simple = { limit = 1, period = 10 }
 
 
 [[unsafe.bindings]]
 name = "RL_500_10s"
 type = "ratelimit"
 namespace_id = "990050010"
-simple = { limit = 500, period = 10}
+simple = { limit = 500, period = 10 }
 
 [[unsafe.bindings]]
 name = "RL_200_10s"
 type = "ratelimit"
 namespace_id = "990020010"
-simple = { limit = 200, period = 10}
-
-
+simple = { limit = 200, period = 10 }

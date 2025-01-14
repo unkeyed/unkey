@@ -10,7 +10,11 @@ type Params = {};
 // <docs-tag name="workflow-entrypoint">
 export class CountKeys extends WorkflowEntrypoint<Env, Params> {
   async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
-    const now = event.timestamp.getTime();
+    let now = Date.now();
+    try {
+      // cf stopped sending valid `Date` objects for some reason, so we fall back to Date.now()
+      now = event.timestamp.getTime();
+    } catch {}
 
     const db = createConnection({
       host: this.env.DATABASE_HOST,
