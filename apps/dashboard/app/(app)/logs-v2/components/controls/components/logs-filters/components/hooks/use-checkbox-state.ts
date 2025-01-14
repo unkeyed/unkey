@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
 import type { FilterValue } from "@/app/(app)/logs-v2/filters.type";
+import { useCallback, useState } from "react";
 
 type UseCheckboxStateProps<TItem> = {
   options: Array<{ id: number } & TItem>;
   filters: FilterValue[];
   filterField: string;
-  valuePath: "value"; // Specify which field to get from filter
   checkPath: keyof TItem; // Specify which field to get from checkbox item
 };
 
@@ -14,23 +13,17 @@ export const useCheckboxState = <TItem extends Record<string, any>>({
   filters,
   filterField,
   checkPath,
-  valuePath,
 }: UseCheckboxStateProps<TItem>) => {
-  const [checkboxes, setCheckboxes] = useState(options);
-
-  // Modified hook implementation
-  useEffect(() => {
+  const [checkboxes, setCheckboxes] = useState<TItem[]>(() => {
     const activeFilters = filters
       .filter((f) => f.field === filterField)
-      .map((f) => f[valuePath]);
+      .map((f) => String(f.value));
 
-    setCheckboxes((prev) =>
-      prev.map((checkbox) => ({
-        ...checkbox,
-        checked: activeFilters.includes(checkbox[checkPath]),
-      }))
-    );
-  }, [filters, filterField, valuePath, checkPath]);
+    return options.map((checkbox) => ({
+      ...checkbox,
+      checked: activeFilters.includes(String(checkbox[checkPath])),
+    }));
+  });
 
   const handleCheckboxChange = (index: number): void => {
     setCheckboxes((prevCheckboxes) => {
@@ -61,18 +54,13 @@ export const useCheckboxState = <TItem extends Record<string, any>>({
         handleSelectAll();
       }
     },
-    [handleCheckboxChange, handleSelectAll]
+    [handleCheckboxChange, handleSelectAll],
   );
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLLabelElement>, index?: number) => {
       // Handle checkbox toggle
-      if (
-        event.key === " " ||
-        event.key === "Enter" ||
-        event.key === "h" ||
-        event.key === "l"
-      ) {
+      if (event.key === " " || event.key === "Enter" || event.key === "h" || event.key === "l") {
         event.preventDefault();
         handleToggle(index);
       }
@@ -86,11 +74,9 @@ export const useCheckboxState = <TItem extends Record<string, any>>({
       ) {
         event.preventDefault();
         const elements = document.querySelectorAll('label[role="checkbox"]');
-        const currentIndex = Array.from(elements).findIndex(
-          (el) => el === event.currentTarget
-        );
+        const currentIndex = Array.from(elements).findIndex((el) => el === event.currentTarget);
 
-        let nextIndex;
+        let nextIndex: number;
         if (event.key === "ArrowDown" || event.key === "j") {
           nextIndex = currentIndex < elements.length - 1 ? currentIndex + 1 : 0;
         } else {
@@ -100,7 +86,7 @@ export const useCheckboxState = <TItem extends Record<string, any>>({
         (elements[nextIndex] as HTMLElement).focus();
       }
     },
-    [handleToggle]
+    [handleToggle],
   );
 
   return {

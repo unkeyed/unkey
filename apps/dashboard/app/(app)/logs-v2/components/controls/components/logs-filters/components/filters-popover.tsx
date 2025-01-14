@@ -18,7 +18,7 @@ type FilterItemConfig = {
 
 const FILTER_ITEMS: FilterItemConfig[] = [
   {
-    id: "responseStatus",
+    id: "status",
     label: "Status",
     shortcut: "s",
     component: <StatusFilter />,
