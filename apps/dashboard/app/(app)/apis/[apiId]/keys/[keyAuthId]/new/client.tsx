@@ -68,6 +68,14 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       limitEnabled: false,
       metaEnabled: false,
       ratelimitEnabled: false,
+      limit:{
+        remaining: undefined,
+        refill:{
+          interval: "none",
+          amount: undefined,
+          refillDay: undefined,
+        },
+      }
     },
   });
 
@@ -111,12 +119,11 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     }
     const refill = values.limit?.refill;
     if (refill?.interval === "daily") {
-      refill?.refillDay === undefined;
+      refill.refillDay = undefined;
     }
     if (refill?.interval === "monthly" && !refill.refillDay) {
       refill.refillDay = 1;
     }
-
     await key.mutateAsync({
       keyAuthId,
       ...values,
@@ -518,7 +525,8 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                     <FormLabel>Refill Rate</FormLabel>
                                     <Select
                                       onValueChange={field.onChange}
-                                      value={field.value || "none"}
+                                      defaultValue="none"
+                                      value={field.value}
                                     >
                                       <SelectTrigger>
                                         <SelectValue />
