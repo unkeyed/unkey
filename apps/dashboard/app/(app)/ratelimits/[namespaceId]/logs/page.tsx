@@ -161,7 +161,7 @@ const AuditLogTable: React.FC<{
         {isFiltered ? (
           <div className="flex flex-col items-center gap-2">
             <Empty.Description>
-              No events matched these filters, try changing them.{" "}
+              No events matched these filters, try changing them.
             </Empty.Description>
           </div>
         ) : (
