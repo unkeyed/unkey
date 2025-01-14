@@ -100,7 +100,13 @@ export default async function AuditPage(props: Props) {
 
         <div className="flex flex-col gap-8 mt-8">
           <Filters />
-          <Suspense fallback={<Loading />}>
+          <Suspense
+            fallback={
+              <div className="flex justify-center item-center mx-auto">
+                <Loading />
+              </div>
+            }
+          >
             <AuditLogTable
               workspaceId={namespace.workspace.id}
               namespaceId={namespace.id}
