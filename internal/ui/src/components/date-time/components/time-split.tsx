@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { Clock } from "lucide-react";
 import { useState, useContext } from "react";
-import { DateTimeContext } from "../date-time";
+import { useDateTimeContext } from "../date-time";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 
@@ -31,7 +31,7 @@ const TimeInput: React.FC<TimeInputProps> = ({
     className,
 }) => {
 
-    const {startTime, endTime,date, onStartTimeChange, onEndTimeChange} = useContext(DateTimeContext);
+    const { startTime, endTime, date, onStartTimeChange, onEndTimeChange } = useDateTimeContext();
     const [focus, setFocus] = useState(false);
     
     const normalizeTimeUnit = (time: TimeUnit): TimeUnit => ({

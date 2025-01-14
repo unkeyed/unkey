@@ -9,7 +9,8 @@ export const DateTimeExample: React.FC = () => {
   const [startTime, setStartTime] = useState<string>("09:00");
   const [endTime, setEndTime] = useState<string>("17:00");
 
-  const handleChange = () => {
+  const handleChange = (date: Range) => {
+    setDate(date);
     console.log("New Date:", date);
     console.log("New Start Time:", startTime);
     console.log("New End Time:", endTime);
@@ -17,7 +18,7 @@ export const DateTimeExample: React.FC = () => {
   return (
     <RenderComponentWithSnippet>
       <Row>
-        <div>
+        <div className="w-full">
           <p>
             From Date: <span>{date?.from?.toLocaleDateString() ?? "no date"}</span>
           </p>
@@ -25,7 +26,7 @@ export const DateTimeExample: React.FC = () => {
             To Date: <span>{date?.to?.toLocaleDateString() ?? "no date"}</span>
           </p>
           <DateTime onChange={handleChange}>
-            <DateTime.Calendar mode="range" />
+            <DateTime.Calendar mode="range"/>
             <div className="flex flex-col gap-4">
               {/* <DateTime.TimeInput type="start" />
             <DateTime.TimeInput type="end" /> */}
