@@ -525,7 +525,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                     <FormLabel>Refill Rate</FormLabel>
                                     <Select
                                       onValueChange={field.onChange}
-                                      defaultValue="none"
                                       value={field.value}
                                     >
                                       <SelectTrigger>

@@ -77,7 +77,7 @@ export const formSchema = z.object({
             .int()
             .min(1)
             .max(31)
-            .default(1).optional(),
+            .optional(),
         })
         .optional(),
     })
