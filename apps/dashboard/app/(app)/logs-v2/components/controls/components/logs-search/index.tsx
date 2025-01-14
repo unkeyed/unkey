@@ -58,7 +58,7 @@ export const LogsSearch = () => {
           "group-data-[state=open]:bg-gray-4 px-2 group-data-[state=open]:ring-gray-12 group-data-[state=open]:ring-2 flex items-center gap-2 w-full",
           "focus-within:ring-2 focus-within:ring-gray-12 focus-within:bg-gray-4",
           "transition-all duration-200",
-          searchText.length > 0 ? "ring-2 ring-gray-12 bg-gray-4" : "",
+          searchText.length > 0 ? "bg-gray-4" : "",
           isLoading ? "bg-gray-4 ring-2 ring-accent-8" : "",
         )}
         disabled={isLoading}
