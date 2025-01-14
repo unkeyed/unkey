@@ -28,4 +28,4 @@ export * from "./icons/xmark";
 export * from "./icons/grid";
 export * from "./icons/caret-right";
 export * from "./icons/circle-info-sparkle";
-export * from "./icons/caret-right-outline.tsx";
+export * from "./icons/caret-right-outline";
