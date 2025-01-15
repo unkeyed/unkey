@@ -1,4 +1,4 @@
-import { type MagicAuth, WorkOS } from "@workos-inc/node";
+import { WorkOS } from "@workos-inc/node";
 import { OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams, OrgInvite, Invitation, OrgInvitation, UpdateMembershipParams, SessionValidationResult, SessionData, AuthProviderError, AuthErrorCode } from "./types";
 import { env } from "@/lib/env";
 import { getCookie, updateCookie } from "./cookies";
@@ -273,7 +273,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         firstName,
         lastName,
         email
-      });
+      }); 
   
       await WorkOSAuthProvider.provider.userManagement.createMagicAuth({ email });
     }
