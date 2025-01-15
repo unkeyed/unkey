@@ -43,6 +43,10 @@ export const LogsSearch = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      (document.activeElement as HTMLElement)?.blur();
+    }
     if (e.key === "Enter") {
       e.preventDefault();
       handleSearch(searchText);
@@ -60,7 +64,7 @@ export const LogsSearch = () => {
     <div className="group relative">
       <div
         className={cn(
-          "group-data-[state=open]:bg-gray-4 px-2 group-data-[state=open]:ring-gray-12 group-data-[state=open]:ring-2 flex items-center gap-2 w-full border rounded-lg py-1 h-8 border-none cursor-pointer hover:bg-gray-3",
+          "group-data-[state=open]:bg-gray-4 px-2 flex items-center gap-2 w-full border rounded-lg py-1 h-8 border-none cursor-pointer hover:bg-gray-3",
           "focus-within:bg-gray-4",
           "transition-all duration-200",
           searchText.length > 0 ? "bg-gray-4" : "",

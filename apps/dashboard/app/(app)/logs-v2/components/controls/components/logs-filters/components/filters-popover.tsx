@@ -1,20 +1,10 @@
 import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import {
-  type KeyboardEvent,
-  type PropsWithChildren,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type KeyboardEvent, type PropsWithChildren, useEffect, useRef, useState } from "react";
 import { MethodsFilter } from "./methods-filter";
 import { PathsFilter } from "./paths-filter";
 import { StatusFilter } from "./status-filter";
@@ -30,7 +20,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
   {
     id: "status",
     label: "Status",
-    shortcut: "s",
+    shortcut: "e",
     component: <StatusFilter />,
   },
   {
@@ -53,6 +43,7 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   // Clean up activeFilter to prevent unnecessary render when opening and closing
+  // biome-ignore lint/correctness/useExhaustiveDependencies(a): without clean up doesn't work properly
   useEffect(() => {
     return () => {
       setActiveFilter(null);
@@ -81,9 +72,7 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
       case "ArrowDown":
       case "j":
         e.preventDefault();
-        setFocusedIndex((prev) =>
-          prev === null ? 0 : (prev + 1) % FILTER_ITEMS.length
-        );
+        setFocusedIndex((prev) => (prev === null ? 0 : (prev + 1) % FILTER_ITEMS.length));
         break;
       case "ArrowUp":
       case "k":
@@ -91,7 +80,7 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
         setFocusedIndex((prev) =>
           prev === null
             ? FILTER_ITEMS.length - 1
-            : (prev - 1 + FILTER_ITEMS.length) % FILTER_ITEMS.length
+            : (prev - 1 + FILTER_ITEMS.length) % FILTER_ITEMS.length,
         );
         break;
       case "Enter":
@@ -176,7 +165,7 @@ export const FilterItem = ({
     () => {
       setOpen(true);
     },
-    { preventDefault: true }
+    { preventDefault: true },
   );
 
   // Focus the element when isFocused changes
@@ -194,7 +183,7 @@ export const FilterItem = ({
     if (isActive && open && contentRef.current) {
       // Focus the first focusable element in the sub-popover
       const focusableElements = contentRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
       if (focusableElements.length > 0) {
         (focusableElements[0] as HTMLElement).focus();
@@ -225,9 +214,7 @@ export const FilterItem = ({
                 title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
               />
             )}
-            <span className="text-[13px] text-accent-12 font-medium">
-              {label}
-            </span>
+            <span className="text-[13px] text-accent-12 font-medium">{label}</span>
           </div>
           <div className="flex items-center gap-1.5">
             {filters.filter((filter) => filter.field === id).length > 0 && (
@@ -235,12 +222,7 @@ export const FilterItem = ({
                 {filters.filter((filter) => filter.field === id).length}
               </div>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              tabIndex={-1}
-              className="size-5 [&_svg]:size-2"
-            >
+            <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
               <CaretRight className="text-gray-7 group-hover:text-gray-10" />
             </Button>
           </div>
