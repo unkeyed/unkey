@@ -100,6 +100,7 @@ export default async function AuditPage(props: Props) {
 
         <div className="flex flex-col gap-8 mt-8">
           <Filters />
+
           <Suspense
             fallback={
               <EmptyPlaceholder>
