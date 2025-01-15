@@ -21,9 +21,7 @@ interface BaseCheckboxFilterProps<TCheckbox extends BaseCheckboxOption> {
   scrollContainerRef?: React.RefObject<HTMLDivElement>;
   renderBottomGradient?: () => React.ReactNode;
   renderOptionContent?: (option: TCheckbox) => React.ReactNode;
-  createFilterValue: (
-    option: TCheckbox
-  ) => Pick<FilterValue, "value" | "metadata">;
+  createFilterValue: (option: TCheckbox) => Pick<FilterValue, "value" | "metadata">;
 }
 
 export const FilterCheckbox = <TCheckbox extends BaseCheckboxOption>({
@@ -38,18 +36,15 @@ export const FilterCheckbox = <TCheckbox extends BaseCheckboxOption>({
   renderBottomGradient,
 }: BaseCheckboxFilterProps<TCheckbox>) => {
   const { filters, updateFilters } = useFilters();
-  const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } =
-    useCheckboxState({
-      options,
-      filters,
-      filterField,
-      checkPath,
-    });
+  const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState({
+    options,
+    filters,
+    filterField,
+    checkPath,
+  });
 
   const handleApplyFilter = useCallback(() => {
-    const selectedValues = checkboxes
-      .filter((c) => c.checked)
-      .map((c) => createFilterValue(c));
+    const selectedValues = checkboxes.filter((c) => c.checked).map((c) => createFilterValue(c));
 
     const otherFilters = filters.filter((f) => f.field !== filterField);
     const newFilters: FilterValue[] = selectedValues.map((filterValue) => ({
@@ -68,7 +63,7 @@ export const FilterCheckbox = <TCheckbox extends BaseCheckboxOption>({
         className={cn(
           "flex flex-col gap-2 font-mono px-2 py-2",
           showScroll &&
-            "max-h-64 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            "max-h-64 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
         )}
         ref={scrollContainerRef}
       >
@@ -87,9 +82,7 @@ export const FilterCheckbox = <TCheckbox extends BaseCheckboxOption>({
               onClick={handleSelectAll}
             />
             <span className="text-xs text-accent-12">
-              {checkboxes.every((checkbox) => checkbox.checked)
-                ? "Unselect All"
-                : "Select All"}
+              {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
             </span>
           </label>
         </div>

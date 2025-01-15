@@ -94,17 +94,15 @@ export const PathsFilter = () => {
   const [isAtBottom, setIsAtBottom] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } =
-    useCheckboxState({
-      options,
-      filters,
-      filterField: "paths",
-      checkPath: "path",
-    });
+  const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState({
+    options,
+    filters,
+    filterField: "paths",
+    checkPath: "path",
+  });
   const handleScroll = useCallback(() => {
     if (scrollContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } =
-        scrollContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
       const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 1;
       setIsAtBottom(isBottom);
     }
@@ -122,9 +120,7 @@ export const PathsFilter = () => {
   }, [handleScroll]);
 
   const handleApplyFilter = useCallback(() => {
-    const selectedPaths = checkboxes
-      .filter((c) => c.checked)
-      .map((c) => c.path);
+    const selectedPaths = checkboxes.filter((c) => c.checked).map((c) => c.path);
 
     // Keep all non-paths filters and add new path filters
     const otherFilters = filters.filter((f) => f.field !== "paths");
@@ -153,9 +149,7 @@ export const PathsFilter = () => {
           onClick={handleSelectAll}
         />
         <span className="text-xs text-accent-12">
-          {checkboxes.every((checkbox) => checkbox.checked)
-            ? "Unselect All"
-            : "Select All"}
+          {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
         </span>
       </label>
       <div className="relative px-2">
@@ -177,9 +171,7 @@ export const PathsFilter = () => {
                 className="size-4 rounded border-gray-4 [&_svg]:size-3"
                 onClick={() => handleCheckboxChange(index)}
               />
-              <div className="text-accent-12 text-xs truncate">
-                {checkbox.path}
-              </div>
+              <div className="text-accent-12 text-xs truncate">{checkbox.path}</div>
             </label>
           ))}
         </div>
