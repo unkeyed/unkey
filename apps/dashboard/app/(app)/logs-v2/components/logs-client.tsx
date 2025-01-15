@@ -7,6 +7,7 @@ import { ControlCloud } from "./control-cloud";
 import { LogsControls } from "./controls";
 import { LogDetails } from "./table/log-details";
 import { LogsTable } from "./table/logs-table";
+import { LogsProvider } from "../context/logs";
 
 export const LogsClient = () => {
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
@@ -21,7 +22,7 @@ export const LogsClient = () => {
   }, []);
 
   return (
-    <>
+    <LogsProvider>
       <LogsControls />
       <ControlCloud />
       <LogsChart onMount={handleDistanceToTop} />
@@ -31,6 +32,6 @@ export const LogsClient = () => {
         onClose={() => handleLogSelection(null)}
         distanceToTop={tableDistanceToTop}
       />
-    </>
+    </LogsProvider>
   );
 };
