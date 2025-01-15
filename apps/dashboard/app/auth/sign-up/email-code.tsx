@@ -1,6 +1,5 @@
 "use client";
 
-import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -16,13 +15,15 @@ type Props = {
 
 export const EmailCode: React.FC<Props> = ({ setError }) => {
   const router = useRouter();
-  const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [_timeLeft, _setTimeLeft] = React.useState(0);
 
+  // TODO: move the verification to a route handler
+  // because I need to set cookies for the sealed session
+  // re-use route with invitation, sign-in with email/magic auth
   const verifyCode = async (otp: string) => {
-    if (!signUpLoaded || typeof otp !== "string") {
+    if (typeof otp !== "string") {
       return null;
     }
     setIsLoading(true);

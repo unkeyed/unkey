@@ -22,7 +22,7 @@ export abstract class BaseAuthProvider implements AuthProvider {
   abstract validateSession(token: string): Promise<SessionValidationResult>;
   abstract getCurrentUser(): Promise<User | null>;
   abstract listMemberships(userId?: string): Promise<OrgMembership>;
-  abstract signUpViaEmail(email: string): Promise<any>;
+  abstract signUpViaEmail({firstName, lastName, email}): Promise<any>;
   abstract signInViaOAuth(options: SignInViaOAuthOptions): string;
   abstract completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;
   abstract signIn(orgId?: string): Promise<any>;

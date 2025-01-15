@@ -1,6 +1,5 @@
 "use client";
 
-import { useSignUp } from "@clerk/nextjs";
 import * as React from "react";
 
 import { Loading } from "@/components/dashboard/loading";
@@ -8,76 +7,17 @@ import { FadeInStagger } from "@/components/landing/fade-in";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
+import { signUpViaEmail } from "@/lib/auth/actions";
+import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 
 type Props = {
   setError: (e: string | null) => void;
   setVerification: (b: boolean) => void;
 };
 
-export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
-  const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
+export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
 
   const [isLoading, setIsLoading] = React.useState(false);
-  const [_transferLoading, setTransferLoading] = React.useState(true);
-  const router = useRouter();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: effect must be called once if sign-up is loaded
-  React.useEffect(() => {
-    const signUpFromParams = async () => {
-      if (!signUpLoaded) {
-        return;
-      }
-
-      const ticket = new URL(window.location.href).searchParams.get("__clerk_ticket");
-      const emailParam = new URL(window.location.href).searchParams.get("email");
-      if (!ticket && !emailParam) {
-        return;
-      }
-      if (ticket) {
-        await signUp
-          ?.create({
-            strategy: "ticket",
-            ticket,
-          })
-          .then((result) => {
-            if (result.status === "complete" && result.createdSessionId) {
-              setActive({ session: result.createdSessionId }).then(() => {
-                router.push("/apis");
-              });
-            }
-          })
-          .catch((err) => {
-            setTransferLoading(false);
-            setError((err as Error).message);
-            console.error(err);
-          });
-      }
-
-      if (emailParam) {
-        setVerification(true);
-        await signUp
-          ?.create({
-            emailAddress: emailParam,
-          })
-          .then(async () => {
-            await signUp.prepareEmailAddressVerification();
-            // set verification to true so we can show the code input
-            setVerification(true);
-            setTransferLoading(false);
-          })
-          .catch((err) => {
-            setTransferLoading(false);
-            if (err.errors[0].code === "form_identifier_exists") {
-              toast.error("It looks like you have an account. Please use sign in");
-            } else {
-            }
-          });
-      }
-    };
-
-    signUpFromParams();
-    setTransferLoading(false);
-  }, [signUpLoaded]);
 
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,7 +26,6 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
     const last = new FormData(e.currentTarget).get("last");
 
     if (
-      !signUpLoaded ||
       typeof email !== "string" ||
       typeof first !== "string" ||
       typeof last !== "string"
@@ -96,26 +35,22 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
 
     try {
       setIsLoading(true);
-      await signUp
-        .create({
-          emailAddress: email,
-          firstName: first,
-          lastName: last,
-        })
-        .then(async () => {
-          await signUp.prepareEmailAddressVerification();
-          setIsLoading(false);
-          // set verification to true so we can show the code input
-          setVerification(true);
-        })
-        .catch((err) => {
-          setIsLoading(false);
-          if (err.errors[0].code === "form_identifier_exists") {
-            toast.error("It looks like you have an account. Please use sign in");
-          } else {
-            toast.error("We couldn't sign you up. Please try again later");
-          }
-        });
+      await signUpViaEmail({
+        email: email,
+        firstName: first,
+        lastName: last,
+      })
+      .then(async () => {
+        setIsLoading(false);
+        setVerification(true);
+      })
+      .catch((err) => {
+        setIsLoading(false);
+        
+        const errorCode = err.message as AuthErrorCode;
+        
+        toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
+      });
     } catch (error) {
       setIsLoading(false);
       console.error(error);
