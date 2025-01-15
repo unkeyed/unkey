@@ -1,11 +1,11 @@
-import { format, getTime } from "date-fns";
+import { format } from "date-fns";
 
 import { TimeClock } from "@unkey/icons";
-import { useState, useContext } from "react";
-import { useDateTimeContext } from "../date-time";
+import { useState } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 import { cn } from "../../../lib/utils";
+import { useDateTimeContext } from "../date-time";
 
 export type TimeUnit = {
     HH: string;
@@ -20,26 +20,18 @@ type TimeSplitInputProps = {
     className?: string;
     inputClassNames?: string;
     type: TimeInputType;
-    
-}
+};
 const MAX_VALUES = {
     HH: 23,
     mm: 59,
     ss: 59,
 } as const;
 
-const TimeSplitInput: React.FC<TimeSplitInputProps> = ({
-    type,
-    className,
-}) => {
-
+const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type, className }) => {
     const { startTime, endTime, date, onStartTimeChange, onEndTimeChange } = useDateTimeContext();
     const [focus, setFocus] = useState(false);
     const [time, setTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
-    const [startDate, setStartDate] = useState<Date>(date?.from || new Date());
-    const [endDate, setEndDate] = useState<Date>(date?.to || new Date());
-    const [newStartTime, setNewStartTime] = useState<TimeUnit>(startTime || { HH: "09", mm: "00", ss: "00" });
-    const [newEndTime, setNewEndTime] = useState<TimeUnit>(endTime || { HH: "17", mm: "00", ss: "00" });
+
     const normalizeTimeUnit = (time: TimeUnit): TimeUnit => ({
         HH: time.HH.padStart(2, "0") || "00",
         mm: time.mm.padStart(2, "0") || "00",
@@ -47,32 +39,27 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({
     });
 
     const isSameDay = (date1: Date, date2: Date) =>
-        format(new Date(date1), "dd/MM/yyyy") ===
-        format(new Date(date2), "dd/MM/yyyy");
+        format(new Date(date1), "dd/MM/yyyy") === format(new Date(date2), "dd/MM/yyyy");
 
     const compareTimeUnits = (time1: TimeUnit, time2: TimeUnit): number => {
-        const t1 =
-            Number(time1.HH) * 3600 + Number(time1.mm) * 60 + Number(time1.ss);
-        const t2 =
-            Number(time2.HH) * 3600 + Number(time2.mm) * 60 + Number(time2.ss);
+        const t1 = Number(time1.HH) * 3600 + Number(time1.mm) * 60 + Number(time1.ss);
+        const t2 = Number(time2.HH) * 3600 + Number(time2.mm) * 60 + Number(time2.ss);
         return t1 - t2;
     };
 
     const handleTimeConflicts = (normalizedTime: TimeUnit) => {
         // Only handle conflicts if start and end are on the same day
-        if (!isSameDay(startDate, endDate)) return;
-
+        if (date && date.from && date.to) {
+            if (!isSameDay(date.from, date?.to)) return;
+        }
         // If this is a start time and it's later than the end time,
         // push the end time forward to match the start time
-        if (type === "start" && compareTimeUnits(normalizedTime, newEndTime) > 0) {
+        if (type === "start" && endTime && compareTimeUnits(normalizedTime, endTime) > 0) {
             onStartTimeChange(normalizedTime);
         }
         // If this is an end time and it's earlier than the start time,
         // pull the start time backward to match the end time
-        else if (
-            type === "end" &&
-            compareTimeUnits(normalizedTime, newStartTime) < 0
-        ) {
+        else if (type === "end" && startTime && compareTimeUnits(normalizedTime, startTime) < 0) {
             onEndTimeChange(normalizedTime);
         }
     };
@@ -81,11 +68,13 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({
         const normalizedTime = normalizeTimeUnit(time);
         setTime(normalizedTime);
         handleTimeConflicts(normalizedTime);
-        if(type === "start") {
+        if (type === "start") {
             onStartTimeChange(normalizedTime);
+            console.log("New Start Time:", normalizedTime);
         }
-        if(type === "end") {
+        if (type === "end") {
             onEndTimeChange(normalizedTime);
+            console.log("New End Time:", normalizedTime);
         }
         setFocus(false);
     };
@@ -95,12 +84,8 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({
 
         const numValue = Number(value);
         if (value && numValue > MAX_VALUES[field]) return;
-        if (type === "start") {
-            onStartTimeChange({ ...time, [field]: value });
-        }
-        if (type === "end") {
-            onEndTimeChange({ ...time, [field]: value });
-        }
+        setTime({ ...time, [field]: value });
+        console.log("New Start Time:", time);
     };
 
     const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
@@ -130,12 +115,15 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({
 
     return (
         <div
-            className={cn(className, `
+            className={cn(
+                className,
+                `
         flex h-7 w-fit items-center justify-center px-4
         gap-0 rounded border border-strong
         text-xs text-foreground-light
         ${focus ? "border-stronger outline outline-2 outline-border" : ""}
-      `)}
+      `,
+            )}
         >
             <div className="text-gray-9 mr-2">
                 <TimeClock className="size-2.5" />
@@ -145,7 +133,8 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({
             {renderTimeInput("mm", "Minutes")}
             <span className="text-foreground-lighter">:</span>
             {renderTimeInput("ss", "Seconds")}
-            <span className="text-foreground-lighter">{" "}</span>
+            <span className="text-foreground-lighter"> </span>
+            {/* AM/PM and timezone still needs to be implemented */}
             {/* {renderTimeInput("")} */}
         </div>
     );

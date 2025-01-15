@@ -1,10 +1,11 @@
 "use client";
 
-import { format, sub } from "date-fns";
+import { sub } from "date-fns";
 import { createContext, useContext, useState } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import React from "react";
-import { type DateRange } from "react-day-picker";
+import type { DateRange } from "react-day-picker";
+import { DateTimeActions } from "./components/actions";
 import { Calendar } from "./components/calendar";
 import { TimeSplitInput } from "./components/time-split";
 
@@ -47,63 +48,40 @@ type DateTimeRootProps = {
   value?: FullDateTime;
   minDate?: Date;
   maxDate?: Date;
-  onChange: (value: DateRange) => void;
+  onChange: (
+    value: DateRange | undefined,
+    start: TimeUnit | undefined,
+    end: TimeUnit | undefined,
+  ) => void;
 };
 
 function DateTime({ children, className, value, minDate, maxDate, onChange }: DateTimeRootProps) {
-
-  // const [interimDate, setInterimDate] = useState<DateRange>({
-  //     from: new Date(),
-  //     to: new Date(),
-  // });
-  // const [finalDate, setFinalDate] = useState<DateRange>();
   const today = new Date();
   const [minDateRange, setMinDate] = useState<Date>(minDate ?? sub(today, { years: 1 }));
   const [maxDateRange, setMaxDate] = useState<Date>(maxDate ?? today);
   const [date, setDate] = useState<DateRange>();
-  const [startTime, setStartTime] = useState<TimeUnit>(value?.startTime || { HH: "00", mm: "00", ss: "00" });
-  const [endTime, setEndTime] = useState<TimeUnit>(value?.endTime || { HH: "00", mm: "00", ss: "00" });
+  const [startTime, setStartTime] = useState<TimeUnit>(
+    value?.startTime || { HH: "00", mm: "00", ss: "00" },
+  );
+  const [endTime, setEndTime] = useState<TimeUnit>(
+    value?.endTime || { HH: "00", mm: "00", ss: "00" },
+  );
 
-  
   const handleDateChange = (newRange: DateRange) => {
     setDate(newRange);
-    onChange(newRange);
+    onChange(newRange, startTime, endTime);
   };
 
   const handleStartTimeChange = (newTime: TimeUnit) => {
     setStartTime(newTime);
+    onChange(date, newTime, endTime);
   };
 
   const handleEndTimeChange = (newTime: TimeUnit) => {
     setEndTime(newTime);
-  };
-  const isSameDay = (date1: Date, date2: Date) =>
-    format(new Date(date1), "dd/MM/yyyy") === format(new Date(date2), "dd/MM/yyyy");
-
-  const compareTimeUnits = (time1: TimeUnit, time2: TimeUnit): number => {
-    const t1 = Number(time1.HH) * 3600 + Number(time1.mm) * 60 + Number(time1.ss);
-    const t2 = Number(time2.HH) * 3600 + Number(time2.mm) * 60 + Number(time2.ss);
-    return t1 - t2;
+    onChange(date, startTime, newTime);
   };
 
-  // const handleTimeConflicts = (normalizedTime: TimeUnit) => {
-  //     // Only handle conflicts if start and end are on the same day
-  //     if (!isSameDay(date?.from, date?.to)) return;
-
-  //     // If this is a start time and it's later than the end time,
-  //     // push the end time forward to match the start time
-  //     if (type === "start" && compareTimeUnits(normalizedTime, endTime) > 0) {
-  //         setEndTime(normalizedTime);
-  //     }
-  //     // If this is an end time and it's earlier than the start time,
-  //     // pull the start time backward to match the end time
-  //     else if (
-  //         type === "end" &&
-  //         compareTimeUnits(normalizedTime, startTime) < 0
-  //     ) {
-  //         setStartTime(normalizedTime);
-  //     }
-  // };
   return (
     <div className={`flex flex-col gap-3 ${className}`}>
       <DateTimeContext.Provider
@@ -131,5 +109,8 @@ DateTime.Calendar.displayName = "DateTime.Calendar";
 
 DateTime.TimeInput = TimeSplitInput;
 DateTime.TimeInput.displayName = "DateTime.TimeInput";
+
+DateTime.Actions = DateTimeActions;
+DateTime.Actions.displayName = "DateTime.Actions";
 
 export { DateTime, useDateTimeContext };
