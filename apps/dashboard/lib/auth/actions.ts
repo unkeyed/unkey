@@ -176,3 +176,8 @@ export async function revokeOrgInvitation(params: {invitationId: string, orgId: 
   await requireOrgAdmin(params.orgId, user.id);
   return await auth.revokeOrgInvitation(params.invitationId);
 }
+
+export async function signUpViaEmail(params: {firstName: string, lastName: string, email: string}): Promise<any> {
+  // public function
+  return await auth.signUpViaEmail(params);
+}
