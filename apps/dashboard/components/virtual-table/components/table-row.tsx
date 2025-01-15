@@ -1,6 +1,6 @@
-import type { VirtualItem } from "@tanstack/react-virtual";
 import { cn } from "@/lib/utils";
-import { Column } from "../types";
+import type { VirtualItem } from "@tanstack/react-virtual";
+import type { Column } from "../types";
 
 const calculateGridTemplateColumns = (columns: Column<any>[]) => {
   return columns
@@ -79,7 +79,7 @@ export const TableRow = <T,>({
         if (event.key === "ArrowDown" || event.key === "j") {
           event.preventDefault();
           const nextElement = document.querySelector(
-            `[data-index="${virtualRow.index + 1}"]`
+            `[data-index="${virtualRow.index + 1}"]`,
           ) as HTMLElement;
           if (nextElement) {
             nextElement.focus();
@@ -89,7 +89,7 @@ export const TableRow = <T,>({
         if (event.key === "ArrowUp" || event.key === "k") {
           event.preventDefault();
           const prevElement = document.querySelector(
-            `[data-index="${virtualRow.index - 1}"]`
+            `[data-index="${virtualRow.index - 1}"]`,
           ) as HTMLElement;
           if (prevElement) {
             prevElement.focus();
@@ -104,7 +104,7 @@ export const TableRow = <T,>({
         "transition-all duration-75 ease-in-out",
         "group",
         rowClassName?.(item),
-        selectedClassName?.(item, isSelected)
+        selectedClassName?.(item, isSelected),
       )}
       style={{
         gridTemplateColumns,
@@ -118,7 +118,7 @@ export const TableRow = <T,>({
           className={cn(
             "flex items-center h-full",
             "min-w-0", // Essential for truncation
-            !column.noTruncate && "overflow-hidden" // Allow disabling truncation
+            !column.noTruncate && "overflow-hidden", // Allow disabling truncation
           )}
           style={{
             minWidth: column.minWidth,

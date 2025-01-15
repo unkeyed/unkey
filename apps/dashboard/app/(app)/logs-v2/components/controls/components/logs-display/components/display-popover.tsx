@@ -1,15 +1,14 @@
-import {
-  isDisplayProperty,
-  useLogsContext,
-} from "@/app/(app)/logs-v2/context/logs";
+import { isDisplayProperty, useLogsContext } from "@/app/(app)/logs-v2/context/logs";
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { type PropsWithChildren, useState } from "react";
+  type KeyboardEvent,
+  type PropsWithChildren,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 const DISPLAY_PROPERTIES = [
   { id: "time", label: "Time" },
@@ -29,36 +28,112 @@ const DisplayPropertyItem = ({
   label,
   selected,
   onClick,
+  isFocused,
+  index,
 }: {
   label: string;
   selected: boolean;
   onClick: () => void;
+  isFocused: boolean;
+  index: number;
 }) => (
   <div
+    data-item-index={index}
     className={`font-medium text-xs p-1.5 rounded-md hover:bg-gray-4 cursor-pointer whitespace-nowrap
-      ${selected ? "bg-gray-4 text-gray-12" : "text-gray-9"}`}
+      ${selected ? "bg-gray-4 text-gray-12" : "text-gray-9"}
+      ${isFocused ? "ring-2 ring-accent-7" : ""}`}
     onClick={onClick}
+    tabIndex={isFocused ? 0 : -1}
+    role="button"
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick();
+      }
+    }}
   >
     {label}
   </div>
 );
 
-const PopoverHeader = () => {
-  return (
-    <div className="flex w-full justify-between items-center px-1 py-1">
-      <span className="text-gray-9 text-[13px]">Display Properties...</span>
-      <KeyboardButton shortcut="D" />
-    </div>
-  );
-};
+const PopoverHeader = () => (
+  <div className="flex w-full justify-between items-center px-1 py-1">
+    <span className="text-gray-9 text-[13px]">Display Properties...</span>
+    <KeyboardButton shortcut="D" />
+  </div>
+);
 
 export const DisplayPopover = ({ children }: PropsWithChildren) => {
   const [open, setOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const { displayProperties, toggleDisplayProperty } = useLogsContext();
 
   useKeyboardShortcut("d", () => {
     setOpen((prev) => !prev);
+    if (!open) {
+      setFocusedIndex(0);
+    }
   });
+
+  const handleKeyNavigation = useCallback(
+    (e: KeyboardEvent) => {
+      const itemsPerRow = Math.floor(384 / 120); // Approximate width / item width
+      const totalItems = DISPLAY_PROPERTIES.length;
+      const currentRow = Math.floor((focusedIndex ?? 0) / itemsPerRow);
+      const currentCol = (focusedIndex ?? 0) % itemsPerRow;
+
+      const moveToIndex = (newIndex: number) => {
+        e.preventDefault();
+        setFocusedIndex(Math.max(0, Math.min(newIndex, totalItems - 1)));
+      };
+
+      switch (e.key) {
+        case "ArrowRight":
+        case "l": {
+          moveToIndex((focusedIndex ?? -1) + 1);
+          break;
+        }
+        case "ArrowLeft":
+        case "h": {
+          moveToIndex((focusedIndex ?? 1) - 1);
+          break;
+        }
+        case "ArrowDown":
+        case "j": {
+          const nextRowIndex = (currentRow + 1) * itemsPerRow + currentCol;
+          if (nextRowIndex < totalItems) {
+            moveToIndex(nextRowIndex);
+          }
+          break;
+        }
+        case "ArrowUp":
+        case "k": {
+          const prevRowIndex = (currentRow - 1) * itemsPerRow + currentCol;
+          if (prevRowIndex >= 0) {
+            moveToIndex(prevRowIndex);
+          }
+          break;
+        }
+        case "Enter":
+        case " ": {
+          if (focusedIndex !== null) {
+            const prop = DISPLAY_PROPERTIES[focusedIndex];
+            if (isDisplayProperty(prop.id)) {
+              toggleDisplayProperty(prop.id);
+            }
+          }
+          break;
+        }
+      }
+    },
+    [focusedIndex, toggleDisplayProperty],
+  );
+
+  useEffect(() => {
+    if (!open) {
+      setFocusedIndex(null);
+    }
+  }, [open]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -66,11 +141,12 @@ export const DisplayPopover = ({ children }: PropsWithChildren) => {
       <PopoverContent
         className="bg-gray-1 dark:bg-black drop-shadow-2xl p-2 border-gray-6 rounded-lg w-96"
         align="start"
+        onKeyDown={handleKeyNavigation}
       >
         <div className="flex flex-col gap-2">
           <PopoverHeader />
           <div className="flex flex-wrap gap-2">
-            {DISPLAY_PROPERTIES.map((prop) => (
+            {DISPLAY_PROPERTIES.map((prop, index) => (
               <DisplayPropertyItem
                 key={prop.id}
                 label={prop.label}
@@ -80,6 +156,8 @@ export const DisplayPopover = ({ children }: PropsWithChildren) => {
                     toggleDisplayProperty(prop.id);
                   }
                 }}
+                isFocused={focusedIndex === index}
+                index={index}
               />
             ))}
           </div>
