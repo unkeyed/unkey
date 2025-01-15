@@ -27,11 +27,11 @@ const formatValue = (value: string | number): string => {
     const statusFamily = Math.floor(Number.parseInt(value) / 100);
     switch (statusFamily) {
       case 5:
-        return "5XX (Error)";
+        return "5xx (Error)";
       case 4:
-        return "4XX (Warning)";
+        return "4xx (Warning)";
       case 2:
-        return "2XX (Success)";
+        return "2xx (Success)";
       default:
         return `${statusFamily}xx`;
     }
