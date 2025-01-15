@@ -117,11 +117,40 @@ export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
   loginPath: '/auth/sign-in'
 };
 
+export interface AuthProviderError extends Error {
+  message: string;
+  status?: number;
+  requestID?: string; 
+  code?: string;
+  errors?: Array<{
+    code: string;
+    message: string;
+  }>;
+}
+
+export enum AuthErrorCode {
+  EMAIL_ALREADY_EXISTS = 'EMAIL_ALREADY_EXISTS',
+  MISSING_REQUIRED_FIELDS = 'MISSING_REQUIRED_FIELDS',
+  USER_CREATION_FAILED = 'USER_CREATION_FAILED',
+  INVALID_EMAIL = 'INVALID_EMAIL',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
+}
+
+export const errorMessages: Record<AuthErrorCode, string> = {
+  [AuthErrorCode.EMAIL_ALREADY_EXISTS]: "This email address is already registered. Please sign in instead.",
+  [AuthErrorCode.MISSING_REQUIRED_FIELDS]: "Please fill in all required fields.",
+  [AuthErrorCode.USER_CREATION_FAILED]: "Unable to create your account. Please try again later.",
+  [AuthErrorCode.INVALID_EMAIL]: "Please enter a valid email address.",
+  [AuthErrorCode.NETWORK_ERROR]: "Connection error. Please check your internet and try again.",
+  [AuthErrorCode.UNKNOWN_ERROR]: "Something went wrong. Please try again later.",
+};
+
 export interface AuthProvider<T = any> {
   validateSession(token: string): Promise<SessionValidationResult>;
   getCurrentUser(): Promise<any | null>;
   listMemberships(userId?: string): Promise<OrgMembership>;
-  signUpViaEmail(email: string): Promise<any>;
+  signUpViaEmail({firstName, lastName, email}): Promise<any>;
   signIn(orgId?: string): Promise<T>;
   signInViaOAuth(options: SignInViaOAuthOptions): String;
   completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;
