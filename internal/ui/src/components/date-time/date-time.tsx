@@ -1,23 +1,25 @@
 "use client";
 
-import { format, addDays, sub } from "date-fns";
+import { format, sub } from "date-fns";
 import { createContext, useContext, useState } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import React from "react";
-import { addToRange, isDateRange, isDayPickerDefault, isDayPickerRange, Matcher, type DateRange } from "react-day-picker";
+import { type DateRange } from "react-day-picker";
 import { Calendar } from "./components/calendar";
-// import { TimeInput } from "./components/time-split";
+import { TimeSplitInput } from "./components/time-split";
 
 export type DateTimeContextType = {
+  minDateRange?: Date;
+  maxDateRange?: Date;
   date?: DateRange;
-  startTime?: string;
-  endTime?: string;
+  startTime?: TimeUnit;
+  endTime?: TimeUnit;
   onDateChange: (newDate: DateRange) => void;
-  onStartTimeChange: (newTime: string) => void;
-  onEndTimeChange: (newTime: string) => void;
+  onStartTimeChange: (newTime: TimeUnit) => void;
+  onEndTimeChange: (newTime: TimeUnit) => void;
 };
 export type Range = DateRange;
-type TimeUnit = {
+export type TimeUnit = {
   HH: string;
   mm: string;
   ss: string;
@@ -35,26 +37,32 @@ const useDateTimeContext = () => {
 
 type FullDateTime = {
   date: DateRange | undefined;
-  startTime: string | undefined;
-  endTime: string | undefined;
+  startTime: TimeUnit | undefined;
+  endTime: TimeUnit | undefined;
 };
 // Root Component
 type DateTimeRootProps = {
   children: React.ReactNode;
   className?: string;
   value?: FullDateTime;
+  minDate?: Date;
+  maxDate?: Date;
   onChange: (value: DateRange) => void;
 };
 
-function DateTime({ children, className, value, onChange }: DateTimeRootProps) {
+function DateTime({ children, className, value, minDate, maxDate, onChange }: DateTimeRootProps) {
+
   // const [interimDate, setInterimDate] = useState<DateRange>({
   //     from: new Date(),
   //     to: new Date(),
   // });
   // const [finalDate, setFinalDate] = useState<DateRange>();
+  const today = new Date();
+  const [minDateRange, setMinDate] = useState<Date>(minDate ?? sub(today, { years: 1 }));
+  const [maxDateRange, setMaxDate] = useState<Date>(maxDate ?? today);
   const [date, setDate] = useState<DateRange>();
-  const [startTime, setStartTime] = useState(value?.startTime || "09:00");
-  const [endTime, setEndTime] = useState(value?.endTime || "17:00");
+  const [startTime, setStartTime] = useState<TimeUnit>(value?.startTime || { HH: "00", mm: "00", ss: "00" });
+  const [endTime, setEndTime] = useState<TimeUnit>(value?.endTime || { HH: "00", mm: "00", ss: "00" });
 
   
   const handleDateChange = (newRange: DateRange) => {
@@ -62,11 +70,11 @@ function DateTime({ children, className, value, onChange }: DateTimeRootProps) {
     onChange(newRange);
   };
 
-  const handleStartTimeChange = (newTime: string) => {
+  const handleStartTimeChange = (newTime: TimeUnit) => {
     setStartTime(newTime);
   };
 
-  const handleEndTimeChange = (newTime: string) => {
+  const handleEndTimeChange = (newTime: TimeUnit) => {
     setEndTime(newTime);
   };
   const isSameDay = (date1: Date, date2: Date) =>
@@ -101,6 +109,8 @@ function DateTime({ children, className, value, onChange }: DateTimeRootProps) {
       <DateTimeContext.Provider
         value={{
           date,
+          minDateRange,
+          maxDateRange,
           startTime,
           endTime,
           onDateChange: handleDateChange,
@@ -119,7 +129,7 @@ DateTime.displayName = "DateTime.root";
 DateTime.Calendar = Calendar;
 DateTime.Calendar.displayName = "DateTime.Calendar";
 
-// DateTime.TimeInput = TimeInput;
-// DateTime.TimeInput.displayName = "DateTime.TimeInput";
+DateTime.TimeInput = TimeSplitInput;
+DateTime.TimeInput.displayName = "DateTime.TimeInput";
 
 export { DateTime, useDateTimeContext };

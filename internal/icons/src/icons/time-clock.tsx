@@ -14,14 +14,14 @@ import type { IconProps } from "../props";
 
 export const TimeClock: React.FC<IconProps> = (props) => {
 	return (
-		<svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+		<svg{...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
 			<g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
-				<line fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="1.5" x1="12" x2="12" y1="2.25" y2="4" />
-				<line fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="1.5" x1="21.75" x2="20" y1="12" y2="12" />
-				<line fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="1.5" x1="12" x2="12" y1="21.75" y2="20" />
-				<line fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="1.5" x1="2.25" x2="4" y1="12" y2="12" />
-				<circle cx="12" cy="12" fill="none" r="10" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="1.5" />
-				<polyline fill="none" points="8 7 12 12 16 12" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="1.5" />
+				<path d="M9 1.69v1.31" fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="2" />
+				<path d="M16.31 9h-1.31" fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="2" />
+				<path d="M9 16.31v-1.31" fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="2" />
+				<path d="M1.69 9h1.31" fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="2" />
+				<path d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z" fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="2" />
+				<path d="M6 5.25l3 3.75h3" fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit="10" strokeWidth="2" />
 			</g>
 		</svg>
 	);
