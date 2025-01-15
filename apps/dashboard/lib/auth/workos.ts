@@ -1,5 +1,5 @@
 import { type MagicAuth, WorkOS } from "@workos-inc/node";
-import { OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams, OrgInvite, Invitation, OrgInvitation, UpdateMembershipParams, SessionValidationResult, SessionData } from "./types";
+import { OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams, OrgInvite, Invitation, OrgInvitation, UpdateMembershipParams, SessionValidationResult, SessionData, AuthProviderError, AuthErrorCode } from "./types";
 import { env } from "@/lib/env";
 import { getCookie, updateCookie } from "./cookies";
 import { BaseAuthProvider } from "./base-provider"
@@ -259,12 +259,45 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       metadata: memberships.listMetadata || {}
     };
   }
-
-  async signUpViaEmail(email: string): Promise<MagicAuth> {
-    if (!email) {
-      throw new Error("No email address provided.");
+  
+  async signUpViaEmail(params: { firstName: string, lastName: string, email: string }): Promise<void> {
+    const { email, firstName, lastName} = params;
+    if (!email || !firstName || !lastName) {
+      throw new Error(AuthErrorCode.MISSING_REQUIRED_FIELDS);
     }
-    return WorkOSAuthProvider.provider.userManagement.createMagicAuth({ email });
+  
+    try {
+      // create the user with the user details
+      // email will be unverified until they respond to the magic auth prompt
+      await WorkOSAuthProvider.provider.userManagement.createUser({
+        firstName,
+        lastName,
+        email
+      });
+  
+      await WorkOSAuthProvider.provider.userManagement.createMagicAuth({ email });
+    }
+    catch (error) {
+      const authError = error as AuthProviderError;
+      
+      // account exists
+      if (authError.errors?.some(detail => detail.code === 'email_not_available')) {
+        throw new Error(AuthErrorCode.EMAIL_ALREADY_EXISTS);
+      }
+
+      // malformed email
+      if (authError.message.includes("email_required")) {
+        throw new Error(AuthErrorCode.INVALID_EMAIL);
+      }
+  
+      // generic WorkOS error
+      if (authError.code === 'user_creation_error') {
+        throw new Error(AuthErrorCode.USER_CREATION_FAILED);
+      }
+  
+      // Generic error fallback
+      throw new Error(AuthErrorCode.UNKNOWN_ERROR);
+    }
   }
 
   async signIn(orgId?: string): Promise<void> {
