@@ -106,6 +106,10 @@ export const ControlCloud = () => {
     updateFilters([]);
   });
 
+  useKeyboardShortcut({ key: "c", meta: true }, () => {
+    setFocusedIndex(0);
+  });
+
   const handleRemoveFilter = useCallback(
     (id: string) => {
       removeFilter(id);
@@ -192,7 +196,7 @@ export const ControlCloud = () => {
 
   return (
     <div
-      className="px-3 py-2 w-full flex items-center min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap"
+      className="px-3 py-2 w-full flex items-start min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap"
       onKeyDown={handleKeyDown}
     >
       {filters.map((filter, index) => (
@@ -206,8 +210,16 @@ export const ControlCloud = () => {
         />
       ))}
       <div className="flex items-center px-2 py-1 gap-1 ml-auto">
-        <span className="text-gray-9 text-[13px]">Clear filters</span>
-        <KeyboardButton shortcut="d" modifierKey="⌘" />
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-end gap-2">
+            <span className="text-gray-9 text-[13px]">Clear filters</span>
+            <KeyboardButton shortcut="d" modifierKey="⌘" />
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <span className="text-gray-9 text-[13px]">Focus filters</span>
+            <KeyboardButton shortcut="c" modifierKey="⌘" />
+          </div>
+        </div>
       </div>
     </div>
   );
