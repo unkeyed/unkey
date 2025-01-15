@@ -1,15 +1,30 @@
+import { transformStructuredOutputToFilters } from "@/app/(app)/logs-v2/filters.schema";
+import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { CaretRightOutline, CircleInfoSparkle, Magnifier, Refresh3 } from "@unkey/icons";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip";
 import { useRef, useState } from "react";
 
 export const LogsSearch = () => {
+  const { filters, updateFilters } = useFilters();
   const queryLLMForStructuredOutput = trpc.logs.llmSearch.useMutation({
     onSuccess(data) {
-      console.info("OUTPUT", data);
+      if (data) {
+        const transformedFilters = transformStructuredOutputToFilters(data, filters);
+        updateFilters(transformedFilters);
+      } else {
+        toast.error("Try to be more descriptive about your query", {
+          duration: 8000,
+          important: true,
+          position: "top-right",
+          style: {
+            whiteSpace: "pre-line",
+          },
+        });
+      }
     },
     onError(error) {
       toast.error(error.message, {
