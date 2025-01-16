@@ -9,10 +9,13 @@ export const getLogsClickhousePayload = z.object({
   endTime: z.number().int(),
   path: z.string().optional().nullable(),
   host: z.string().optional().nullable(),
-  requestId: z.string().optional().nullable(),
   method: z.string().optional().nullable(),
+  requestId: z.string().optional().nullable(),
   responseStatus: z.array(z.number().int()).nullable(),
+  cursorTime: z.number().int().nullable(),
+  cursorRequestId: z.string().nullable(),
 });
+
 export const log = z.object({
   request_id: z.string(),
   time: z.number().int(),
@@ -51,7 +54,7 @@ export function getLogs(ch: Querier) {
       error,
       service_latency
     FROM metrics.raw_api_requests_v1
-        WHERE workspace_id = {workspaceId: String}
+   WHERE workspace_id = {workspaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
         AND (CASE
                 WHEN {host: String} != '' THEN host = {host: String}
@@ -88,24 +91,15 @@ export function getLogs(ch: Querier) {
                     )
                 ELSE TRUE
             END)
-    ORDER BY time DESC
+      AND (CASE
+        WHEN {cursorTime: Nullable(UInt64)} IS NOT NULL AND {cursorRequestId: Nullable(String)} IS NOT NULL THEN
+          (time, request_id) < ({cursorTime: Nullable(UInt64)}, {cursorRequestId: Nullable(String)})
+        ELSE TRUE
+      END)
+    ORDER BY time DESC, request_id DESC
     LIMIT {limit: Int}`,
       params: getLogsClickhousePayload,
-      schema: z.object({
-        request_id: z.string(),
-        time: z.number().int(),
-        workspace_id: z.string(),
-        host: z.string(),
-        method: z.string(),
-        path: z.string(),
-        request_headers: z.array(z.string()),
-        request_body: z.string(),
-        response_status: z.number().int(),
-        response_headers: z.array(z.string()),
-        response_body: z.string(),
-        error: z.string(),
-        service_latency: z.number().int(),
-      }),
+      schema: log,
     });
     return query(args);
   };

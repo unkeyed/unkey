@@ -6,12 +6,10 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { CircleCarretRight, TriangleWarning2 } from "@unkey/icons";
+import { TriangleWarning2 } from "@unkey/icons";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
-import { generateMockLogs } from "./utils";
-
-const logs = generateMockLogs(50);
+import { useLogsQuery } from "./hooks/use-logs-query";
 
 type StatusStyle = {
   base: string;
@@ -27,7 +25,7 @@ type StatusStyle = {
 const STATUS_STYLES = {
   success: {
     base: "text-accent-9",
-    hover: "hover:text-accent-11 dark:hover:text-accent-12",
+    hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-accent-3",
     selected: "text-accent-11 bg-accent-3 dark:text-accent-12",
     badge: {
       default: "bg-accent-4 text-accent-11 group-hover:bg-accent-5",
@@ -119,6 +117,7 @@ const additionalColumns: Column<Log>[] = [
 
 export const LogsTable = () => {
   const { displayProperties, setSelectedLog, selectedLog } = useLogsContext();
+  const { logs, isLoading, isLoadingMore, loadMore } = useLogsQuery();
 
   const getRowClassName = (log: Log) => {
     const style = getStatusStyle(log.response_status);
@@ -229,18 +228,21 @@ export const LogsTable = () => {
   return (
     <VirtualTable
       data={logs ?? []}
+      isLoading={isLoading}
+      isFetchingNextPage={isLoadingMore}
+      onLoadMore={loadMore}
       columns={visibleColumns}
       onRowClick={setSelectedLog}
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
       rowClassName={getRowClassName}
       selectedClassName={getSelectedClassName}
-      renderBottomContent={
-        <div className="h-6 bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-          <CircleCarretRight className="size-3" />
-          Live
-        </div>
-      }
+      // renderBottomContent={
+      //   <div className="h-6 bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
+      //     <CircleCarretRight className="size-3" />
+      //     Live
+      //   </div>
+      // }
     />
   );
 };
