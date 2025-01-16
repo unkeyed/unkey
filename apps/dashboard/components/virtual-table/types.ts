@@ -42,4 +42,5 @@ export type VirtualTableProps<T> = {
   selectedItem?: T | null;
   isFetchingNextPage?: boolean;
   renderDetails?: (item: T, onClose: () => void, distanceToTop: number) => React.ReactNode;
+  renderBottomContent?: React.ReactNode;
 };

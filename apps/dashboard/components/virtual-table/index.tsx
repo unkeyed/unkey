@@ -25,6 +25,7 @@ export function VirtualTable<T>({
   selectedItem,
   renderDetails,
   isFetchingNextPage,
+  renderBottomContent,
 }: VirtualTableProps<T>) {
   const config = { ...DEFAULT_CONFIG, ...userConfig };
   const parentRef = useRef<HTMLDivElement>(null);
@@ -138,6 +139,8 @@ export function VirtualTable<T>({
           })}
         </div>
 
+        {/* Render optional bottom components like Live separator row on logs page */}
+        {renderBottomContent}
         {isFetchingNextPage && <LoadingIndicator />}
 
         {selectedItem &&

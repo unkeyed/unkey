@@ -6,7 +6,7 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { TriangleWarning2 } from "@unkey/icons";
+import { CircleCarretRight, TriangleWarning2 } from "@unkey/icons";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
 import { generateMockLogs } from "./utils";
@@ -235,6 +235,12 @@ export const LogsTable = () => {
       keyExtractor={(log) => log.request_id}
       rowClassName={getRowClassName}
       selectedClassName={getSelectedClassName}
+      renderBottomContent={
+        <div className="h-6 bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
+          <CircleCarretRight className="size-3" />
+          Live
+        </div>
+      }
     />
   );
 };
