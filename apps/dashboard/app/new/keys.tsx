@@ -1,7 +1,6 @@
 "use client";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -16,6 +15,7 @@ import {
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc/client";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
@@ -121,10 +121,8 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
           <AsideContent />
         </aside>
         {step.step === "CREATE_ROOT_KEY" ? (
-          <EmptyPlaceholder>
-            <EmptyPlaceholder.Description>
-              Let's begin by creating a root key
-            </EmptyPlaceholder.Description>
+          <Empty>
+            <Empty.Description>Let's begin by creating a root key</Empty.Description>
 
             <Button
               disabled={rootKey.isLoading}
@@ -132,7 +130,7 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
             >
               {rootKey.isLoading ? <Loading /> : "Create Root Key"}
             </Button>
-          </EmptyPlaceholder>
+          </Empty>
         ) : step.step === "CREATE_KEY" ? (
           <Card>
             <CardHeader>
