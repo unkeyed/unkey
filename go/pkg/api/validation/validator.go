@@ -1,17 +1,19 @@
 package validation
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/ctxutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
-	"github.com/unkeyed/unkey/go/pkg/api/openapi"
+	"github.com/unkeyed/unkey/go/pkg/api/ctxutil"
+	"github.com/unkeyed/unkey/go/pkg/openapi"
+	"github.com/unkeyed/unkey/go/pkg/util"
 )
 
 type OpenAPIValidator interface {
@@ -46,28 +48,51 @@ func New() (*Validator, error) {
 // The body is closed after reading.
 // Returns a ValidationError if the body is invalid that should be marshalled and returned to the client.
 // The second return value is a boolean that is true if the body is valid.
-func (v *Validator) Body(body []byte, dest any) (openapi.ValidationError, bool) {
-	v.validator.ValidateHttpRequest(request * http.Request)
-	valid, errors := v.validator.ValidateHttpRequest(body)
+func (v *Validator) Body(r *http.Request, dest any) (openapi.ValidationError, bool) {
+
+	bodyBytes, err := io.ReadAll(r.Body)
+	r.Body.Close()
+	if err != nil {
+		return openapi.ValidationError{
+			Title:  "Bad Request",
+			Detail: "Failed to read request body",
+			Errors: []openapi.ValidationErrorDetail{{
+				Location: "body",
+				Message:  err.Error(),
+			}},
+			Instance:  "https://errors.unkey.com/todo",
+			Status:    http.StatusBadRequest,
+			RequestId: ctxutil.GetRequestId(r.Context()),
+		}, false
+	}
+	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+	valid, errors := v.validator.ValidateHttpRequest(r)
 	if !valid {
 		valErr := openapi.ValidationError{
 			Title:     "Bad Request",
 			Detail:    "One or more fields failed validation",
-			Instance:  "https://errors.unkey.com/todo",
+			Instance:  "",
 			Status:    http.StatusBadRequest,
 			RequestId: ctxutil.GetRequestId(r.Context()),
-			Type:      "TODO docs link",
+			Type:      "https://unkey.com/docs/api-reference/errors/TODO",
 			Errors:    []openapi.ValidationErrorDetail{},
 		}
-		for _, e := range errors {
-			fmt.Printf("valerr: %+v\n", e)
+		if len(errors) >= 1 {
+			error := errors[0]
 
-			for _, schemaValidationError := range e.SchemaValidationErrors {
+			valErr.Title = error.Message
+			valErr.Detail = error.HowToFix
+
+			for _, e := range error.SchemaValidationErrors {
+
 				valErr.Errors = append(valErr.Errors, openapi.ValidationErrorDetail{
-					Location: schemaValidationError.Location,
-					Message:  schemaValidationError.Reason,
+					Message:  e.Reason,
+					Location: e.AbsoluteLocation,
+					Fix:      &error.HowToFix,
 				})
 			}
+
 		}
 		return valErr, false
 	}

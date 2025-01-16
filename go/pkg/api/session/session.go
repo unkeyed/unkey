@@ -2,6 +2,8 @@ package session
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -27,17 +29,14 @@ type Request[TBody any] interface {
 
 	// Parse and validate the incoming body as json according to the openapi
 	// validation rules.
-	//
-	// Errors out if the Content-Type is not application/json
-	// If an error is encountered, it is handled and the session ends.
-	Parse() TBody
+	Parse() (TBody, error)
 
 	// Reads the body as bytes
 	//
 	// If an error is encountered, it is handled and the session ends.
 	//
 	// You must not modify the returned slice, make a copy if you have to.
-	Read() []byte
+	Read() ([]byte, error)
 
 	// The url of the request
 	URL() *url.URL
@@ -52,9 +51,7 @@ type Request[TBody any] interface {
 }
 
 type request[TRequest any] struct {
-	r *http.Request
-
-	body  []byte
+	r     *http.Request
 	query url.Values
 }
 
@@ -83,8 +80,11 @@ func (r *request[TRequest]) Method() string {
 	return r.r.Method
 }
 
-func (r *request[TRequest]) Parse() TRequest {
-	panic("IMPLEMENT ME")
+func (r *request[TRequest]) Parse() (TRequest, error) {
+	var body TRequest
+	err := json.NewDecoder(r.r.Body).Decode(&body)
+
+	return body, err
 }
 func (r *request[TRequest]) URL() *url.URL {
 	return r.r.URL
@@ -94,8 +94,8 @@ func (r *request[TRequest]) Raw() *http.Request {
 	return r.r
 }
 
-func (r *request[TRequest]) Read() []byte {
-	return r.body
+func (r *request[TRequest]) Read() ([]byte, error) {
+	return io.ReadAll(r.r.Body)
 }
 
 type Session[TRequest any, TResponse any] interface {
@@ -123,22 +123,24 @@ type Session[TRequest any, TResponse any] interface {
 }
 
 type session[TRequest any, TResponse any] struct {
-	requestID string
-	w         http.ResponseWriter
-	r         *http.Request
+	requestID   string
+	requestBody TRequest
 
-	validate func() (TRequest, error)
+	w http.ResponseWriter
+	r *http.Request
 }
 
 var _ Session[any, any] = &session[any, any]{}
 
-func New[TRequest any, TResponse any](w http.ResponseWriter, r *http.Request) Session[TRequest, TResponse] {
+func New[TRequest any, TResponse any](requestID string, w http.ResponseWriter, r *http.Request) Session[TRequest, TResponse] {
 
-	return &session[TRequest, TResponse]{
-		requestID: "TODO",
+	sess := &session[TRequest, TResponse]{
+		requestID: requestID,
 		w:         w,
 		r:         r,
 	}
+
+	return sess
 
 }
 
@@ -155,14 +157,6 @@ func (s *session[TRequest, TResponse]) ResponseWriter() http.ResponseWriter {
 
 func (s *session[TRequest, TResponse]) Request() Request[TRequest] {
 	panic("IMPLEMENT ME")
-}
-
-func (s *session[TRequest, TResponse]) ParseBody() TRequest {
-	b, err := s.validator()
-	if err != nil {
-		panic("HANDLE ME")
-	}
-	return b
 }
 
 func (s *session[TRequest, TResponse]) WriteHeader(key, val string) {

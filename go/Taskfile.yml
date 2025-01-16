@@ -1,0 +1,38 @@
+version: '3'
+
+tasks:
+  install:
+    cmd:
+      go mod tidy
+  fmt:
+    cmds:
+      - go fmt ./...
+      - task: lint
+  test:
+    cmds:
+      - go test -cover -json -failfast ./... | tparse -all -progress
+
+  build:
+    cmds:
+      - go build -o unkey ./cmd/main.go
+
+
+  lint:
+    cmds:
+      - golangci-lint run
+
+  generate:
+    cmds:
+      - go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
+      - mkdir -p ./pkg/openapi
+      - go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=./pkg/openapi/config.yaml ./pkg/openapi/openapi.json
+
+      - task: generate-sqlc
+
+
+  generate-sqlc:
+    internal: true
+    dir: ./pkg/database
+    cmds:
+      - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+      - sqlc generate
