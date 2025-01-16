@@ -19,9 +19,7 @@
       "maxElapsedTime": 30000,
       "exponent": 1.5
     },
-    "statusCodes": [
-      "5XX"
-    ],
+    "statusCodes": ["5XX"],
     "retryConnectionErrors": true
   },
   "components": {
@@ -49,10 +47,7 @@
             "description": "The number of rows that were quarantined"
           }
         },
-        "required": [
-          "successful_rows",
-          "quarantined_rows"
-        ]
+        "required": ["successful_rows", "quarantined_rows"]
       },
       "Encrypted": {
         "additionalProperties": false,
@@ -64,10 +59,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "encrypted",
-          "keyId"
-        ],
+        "required": ["encrypted", "keyId"],
         "type": "object"
       },
       "ValidationErrorDetail": {
@@ -87,10 +79,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "message",
-          "location"
-        ]
+        "required": ["message", "location"]
       },
       "ValidationError": {
         "additionalProperties": false,
@@ -110,9 +99,7 @@
             "items": {
               "$ref": "#/components/schemas/ValidationErrorDetail"
             },
-            "type": [
-              "array"
-            ]
+            "type": ["array"]
           },
           "instance": {
             "description": "A URI reference that identifies the specific occurrence of the problem.",
@@ -140,14 +127,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "requestId",
-          "detail",
-          "instance",
-          "status",
-          "title",
-          "type"
-        ]
+        "required": ["requestId", "detail", "instance", "status", "title", "type"]
       },
       "BaseError": {
         "additionalProperties": false,
@@ -188,15 +168,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "requestId",
-          "detail",
-          "instance",
-          "status",
-          "title",
-          "type",
-          "errors"
-        ]
+        "required": ["requestId", "detail", "instance", "status", "title", "type", "errors"]
       },
       "Item": {
         "additionalProperties": false,
@@ -222,11 +194,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "identifier",
-          "limit",
-          "duration"
-        ],
+        "required": ["identifier", "limit", "duration"],
         "type": "object"
       },
       "Lease": {
@@ -243,10 +211,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "cost",
-          "timeout"
-        ],
+        "required": ["cost", "timeout"],
         "type": "object"
       },
       "SingleRatelimitResponse": {
@@ -277,13 +242,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "limit",
-          "remaining",
-          "reset",
-          "success",
-          "current"
-        ],
+        "required": ["limit", "remaining", "reset", "success", "current"],
         "type": "object"
       },
       "V1DecryptRequestBody": {
@@ -306,10 +265,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "keyring",
-          "encrypted"
-        ],
+        "required": ["keyring", "encrypted"],
         "type": "object"
       },
       "V1DecryptResponseBody": {
@@ -327,9 +283,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "plaintext"
-        ],
+        "required": ["plaintext"],
         "type": "object"
       },
       "V1EncryptBulkRequestBody": {
@@ -348,18 +302,13 @@
             },
             "maxItems": 1000,
             "minItems": 1,
-            "type": [
-              "array"
-            ]
+            "type": ["array"]
           },
           "keyring": {
             "type": "string"
           }
         },
-        "required": [
-          "keyring",
-          "data"
-        ],
+        "required": ["keyring", "data"],
         "type": "object"
       },
       "V1EncryptBulkResponseBody": {
@@ -376,14 +325,10 @@
             "items": {
               "$ref": "#/components/schemas/Encrypted"
             },
-            "type": [
-              "array"
-            ]
+            "type": ["array"]
           }
         },
-        "required": [
-          "encrypted"
-        ],
+        "required": ["encrypted"],
         "type": "object"
       },
       "V1EncryptRequestBody": {
@@ -406,10 +351,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "keyring",
-          "data"
-        ],
+        "required": ["keyring", "data"],
         "type": "object"
       },
       "V1EncryptResponseBody": {
@@ -431,10 +373,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "encrypted",
-          "keyId"
-        ],
+        "required": ["encrypted", "keyId"],
         "type": "object"
       },
       "V1LivenessResponseBody": {
@@ -453,9 +392,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "type": "object"
       },
       "V1RatelimitCommitLeaseRequestBody": {
@@ -478,10 +415,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "lease",
-          "cost"
-        ],
+        "required": ["lease", "cost"],
         "type": "object"
       },
       "V1RatelimitMultiRatelimitRequestBody": {
@@ -499,14 +433,10 @@
             "items": {
               "$ref": "#/components/schemas/Item"
             },
-            "type": [
-              "array"
-            ]
+            "type": ["array"]
           }
         },
-        "required": [
-          "ratelimits"
-        ],
+        "required": ["ratelimits"],
         "type": "object"
       },
       "V1RatelimitMultiRatelimitResponseBody": {
@@ -524,14 +454,10 @@
             "items": {
               "$ref": "#/components/schemas/SingleRatelimitResponse"
             },
-            "type": [
-              "array"
-            ]
+            "type": ["array"]
           }
         },
-        "required": [
-          "ratelimits"
-        ],
+        "required": ["ratelimits"],
         "type": "object"
       },
       "V1RatelimitRatelimitRequestBody": {
@@ -569,11 +495,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "identifier",
-          "limit",
-          "duration"
-        ],
+        "required": ["identifier", "limit", "duration"],
         "type": "object"
       },
       "V1RatelimitRatelimitResponseBody": {
@@ -593,9 +515,7 @@
           },
           "lease": {
             "description": "The lease to use when committing the request.",
-            "type": [
-              "string"
-            ]
+            "type": ["string"]
           },
           "limit": {
             "description": "The maximum number of requests allowed.",
@@ -617,14 +537,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "limit",
-          "remaining",
-          "reset",
-          "success",
-          "current",
-          "lease"
-        ],
+        "required": ["limit", "remaining", "reset", "success", "current", "lease"],
         "type": "object"
       }
     }
@@ -677,9 +590,7 @@
             "description": "Error"
           }
         },
-        "tags": [
-          "events"
-        ]
+        "tags": ["events"]
       }
     },
     "/ratelimit.v1.RatelimitService/MultiRatelimit": {
@@ -727,9 +638,7 @@
             "description": "Error"
           }
         },
-        "tags": [
-          "ratelimit"
-        ]
+        "tags": ["ratelimit"]
       }
     },
     "/ratelimit.v1.RatelimitService/Ratelimit": {
@@ -777,9 +686,7 @@
             "description": "Error"
           }
         },
-        "tags": [
-          "ratelimit"
-        ]
+        "tags": ["ratelimit"]
       }
     },
     "/v1/liveness": {
@@ -809,9 +716,7 @@
           }
         },
         "summary": "Liveness check",
-        "tags": [
-          "liveness"
-        ]
+        "tags": ["liveness"]
       }
     },
     "/v1/ratelimit.commitLease": {
@@ -852,9 +757,7 @@
             "description": "Error"
           }
         },
-        "tags": [
-          "ratelimit"
-        ]
+        "tags": ["ratelimit"]
       }
     },
     "/vault.v1.VaultService/Decrypt": {
@@ -902,9 +805,7 @@
             "description": "Error"
           }
         },
-        "tags": [
-          "vault"
-        ]
+        "tags": ["vault"]
       }
     },
     "/vault.v1.VaultService/Encrypt": {
@@ -952,9 +853,7 @@
             "description": "Error"
           }
         },
-        "tags": [
-          "vault"
-        ]
+        "tags": ["vault"]
       }
     },
     "/vault.v1.VaultService/EncryptBulk": {
@@ -1002,9 +901,7 @@
             "description": "Error"
           }
         },
-        "tags": [
-          "vault"
-        ]
+        "tags": ["vault"]
       }
     }
   }

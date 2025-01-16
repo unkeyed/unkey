@@ -8,6 +8,8 @@ import (
 	"net/url"
 
 	apierrors "github.com/unkeyed/unkey/go/pkg/api/errors"
+	"github.com/unkeyed/unkey/go/pkg/api/validation"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 type Request[TBody any] interface {
@@ -123,19 +125,17 @@ type Session[TRequest any, TResponse any] interface {
 }
 
 type session[TRequest any, TResponse any] struct {
-	requestID   string
-	requestBody TRequest
+	requestID string
 
-	w http.ResponseWriter
-	r *http.Request
+	validator validation.OpenAPIValidator
+	w         http.ResponseWriter
+	r         *http.Request
 }
 
-var _ Session[any, any] = &session[any, any]{}
-
-func New[TRequest any, TResponse any](requestID string, w http.ResponseWriter, r *http.Request) Session[TRequest, TResponse] {
+func New[TRequest any, TResponse any](w http.ResponseWriter, r *http.Request) Session[TRequest, TResponse] {
 
 	sess := &session[TRequest, TResponse]{
-		requestID: requestID,
+		requestID: uid.Request(),
 		w:         w,
 		r:         r,
 	}
