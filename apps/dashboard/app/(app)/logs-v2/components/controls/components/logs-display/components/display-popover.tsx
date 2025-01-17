@@ -1,14 +1,7 @@
-import {
-  isDisplayProperty,
-  useLogsContext,
-} from "@/app/(app)/logs-v2/context/logs";
+import { isDisplayProperty, useLogsContext } from "@/app/(app)/logs-v2/context/logs";
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   type KeyboardEvent,
   type PropsWithChildren,
@@ -132,7 +125,7 @@ export const DisplayPopover = ({ children }: PropsWithChildren) => {
         }
       }
     },
-    [focusedIndex, toggleDisplayProperty]
+    [focusedIndex, toggleDisplayProperty],
   );
 
   useEffect(() => {
