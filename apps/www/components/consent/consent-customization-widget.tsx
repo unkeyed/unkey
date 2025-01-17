@@ -88,6 +88,8 @@ const ConsentCustomizationWidget = React.forwardRef<
             <div className="flex items-center justify-between py-4">
               <div
                 className="flex-grow"
+                role="button"
+                tabIndex={0}
                 onClick={() => toggleAccordion(consent.name)}
                 onKeyUp={(e) => e.key === "Enter" && toggleAccordion(consent.name)}
                 onKeyDown={(e) => e.key === "Enter" && toggleAccordion(consent.name)}
