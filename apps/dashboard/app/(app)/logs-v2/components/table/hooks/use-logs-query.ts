@@ -19,7 +19,7 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
       startTime: Date.now() - 24 * 60 * 60 * 1000,
       endTime: Date.now(),
     }),
-    [],
+    []
   );
 
   const queryParams = useMemo(() => {
@@ -48,15 +48,7 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
           }
           // Convert string status to number and handle ranges (2xx, 4xx, 5xx)
           const status = Number.parseInt(filter.value as string);
-          if (status === 200) {
-            params.responseStatus.push(...Array.from({ length: 100 }, (_, i) => 200 + i));
-          } else if (status === 400) {
-            params.responseStatus.push(...Array.from({ length: 100 }, (_, i) => 400 + i));
-          } else if (status === 500) {
-            params.responseStatus.push(...Array.from({ length: 100 }, (_, i) => 500 + i));
-          } else {
-            params.responseStatus.push(status);
-          }
+          params.responseStatus.push(status);
           break;
         }
 
