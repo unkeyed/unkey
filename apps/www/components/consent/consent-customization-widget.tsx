@@ -4,9 +4,10 @@ import * as React from "react";
 
 import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
-import { useConsentManager } from "@koroflow/core-react";
+import { type AllConsentNames, useConsentManager } from "@koroflow/core-react";
 import { ChevronDown } from "lucide-react";
 import { PrimaryButton, SecondaryButton } from "../button";
+import { usePostHog } from "posthog-js/react";
 
 interface ConsentCustomizationWidgetProps extends React.HTMLAttributes<HTMLDivElement> {
   onSave?: () => void;
@@ -16,6 +17,8 @@ const ConsentCustomizationWidget = React.forwardRef<
   HTMLDivElement,
   ConsentCustomizationWidgetProps
 >(({ onSave, ...props }, ref) => {
+  const posthog = usePostHog();
+
   const { consents, setConsent, saveConsents, getDisplayedConsents } = useConsentManager();
   const [openItems, setOpenItems] = React.useState<string[]>([]);
 
@@ -27,14 +30,19 @@ const ConsentCustomizationWidget = React.forwardRef<
 
   const handleSaveConsents = React.useCallback(() => {
     saveConsents("custom");
+    posthog.capture("consent", {
+      consent: "custom",
+	  consents,
+    });
+
     if (onSave) {
       onSave();
     }
-  }, [saveConsents, onSave]);
+  }, [saveConsents, posthog, consents, onSave]);
 
   const handleConsentChange = React.useCallback(
-    (name: string, checked: boolean) => {
-      setConsent(name as any, checked);
+    (name: AllConsentNames, checked: boolean) => {
+      setConsent(name, checked);
     },
     [setConsent],
   );
@@ -45,17 +53,23 @@ const ConsentCustomizationWidget = React.forwardRef<
       setConsent(consentName, true);
     }
     saveConsents("all");
+    posthog.capture("consent", {
+      consent: "all",
+    });
     if (onSave) {
       onSave();
     }
-  }, [consents, setConsent, onSave, saveConsents]);
+  }, [consents, setConsent, posthog, onSave, saveConsents]);
 
   const rejectAll = React.useCallback(() => {
     saveConsents("necessary");
+    posthog.capture("consent", {
+      consent: "necessary",
+    });
     if (onSave) {
       onSave();
     }
-  }, [saveConsents, onSave]);
+  }, [saveConsents, posthog, onSave]);
 
   return (
     <div className="space-y-6 pt-8" ref={ref} {...props}>

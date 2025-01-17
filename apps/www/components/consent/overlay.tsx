@@ -11,6 +11,8 @@ export const Overlay: React.FC<OverlayProps> = ({ show }) => {
       {show && (
         <motion.div
           className="fixed inset-0 bg-black/50 z-40"
+          role="presentation"
+          aria-hidden="true"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

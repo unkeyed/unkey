@@ -2,13 +2,20 @@
 
 import { Overlay } from "@/components/consent/overlay";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useConsentManager } from "@koroflow/core-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 import ConsentCustomizationWidget from "./consent-customization-widget";
+import { usePostHog } from "posthog-js/react";
 
 export interface ConsentCustomizationDialogProps {
   children?: React.ReactNode;
@@ -48,15 +55,11 @@ const ConsentCustomizationCard = ({
   handleSave: () => void;
   ref: React.RefObject<HTMLDivElement>;
 }) => {
-  console.log("Card rendered with props:", { showCloseButton, onClose, handleSave }); // Debug render
-
   const onSaveWrapper = React.useCallback(() => {
-    console.log("onSaveWrapper called");
     handleSave();
   }, [handleSave]);
 
   const onCloseWrapper = React.useCallback(() => {
-    console.log("onCloseWrapper called");
     onClose();
   }, [onClose]);
 
@@ -79,8 +82,8 @@ const ConsentCustomizationCard = ({
         )}
         <CardTitle id="privacy-settings-title">Privacy Settings</CardTitle>
         <CardDescription>
-          Customize your privacy settings here. You can choose which types of cookies and tracking
-          technologies you allow.
+          Customize your privacy settings here. You can choose which types of
+          cookies and tracking technologies you allow.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -94,7 +97,10 @@ export const ConsentCustomizationDialog = React.forwardRef<
   HTMLDivElement,
   ConsentCustomizationDialogProps
 >(({ showCloseButton = false }, ref) => {
-  const { isPrivacyDialogOpen, setIsPrivacyDialogOpen, saveConsents } = useConsentManager();
+  const posthog = usePostHog();
+
+  const { isPrivacyDialogOpen, setIsPrivacyDialogOpen, saveConsents } =
+    useConsentManager();
   const [isMounted, setIsMounted] = React.useState(false);
   const contentRef = React.useRef<HTMLDivElement>(null);
 
@@ -105,8 +111,11 @@ export const ConsentCustomizationDialog = React.forwardRef<
 
   const handleSave = React.useCallback(() => {
     saveConsents("custom");
+    posthog.capture("consent", {
+      consent: "custom",
+    });
     setIsPrivacyDialogOpen(false);
-  }, [setIsPrivacyDialogOpen, saveConsents]);
+  }, [setIsPrivacyDialogOpen, saveConsents, posthog]);
 
   const handleClose = React.useCallback(() => {
     setIsPrivacyDialogOpen(false);

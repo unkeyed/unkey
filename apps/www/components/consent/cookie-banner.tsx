@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PrimaryButton, SecondaryButton } from "../button";
+import { usePostHog } from "posthog-js/react";
 
 type HorizontalPosition = "left" | "center" | "right";
 type VerticalPosition = "top" | "bottom";
@@ -46,6 +47,7 @@ const CookieBanner = React.forwardRef<HTMLDivElement, PrivacyPopupProps>(
       hasConsented,
       consents,
     } = useConsentManager();
+	const posthog = usePostHog();
 
     const bannerShownRef = React.useRef(false);
     const [isMounted, setIsMounted] = React.useState(false);
@@ -72,11 +74,17 @@ const CookieBanner = React.forwardRef<HTMLDivElement, PrivacyPopupProps>(
         setConsent(consentName, true);
       }
       saveConsents("all");
-    }, [consents, setConsent, saveConsents]);
+	  posthog.capture("consent", {
+		consent: "necessary",
+      });
+    }, [consents, setConsent, saveConsents, posthog]);
 
     const rejectAll = React.useCallback(() => {
       saveConsents("necessary");
-    }, [saveConsents]);
+	  posthog.capture("consent", {
+		consent: "necessary",
+      });
+    }, [saveConsents, posthog]);
 
     const handleClose = React.useCallback(() => {
       setShowPopup(false);
