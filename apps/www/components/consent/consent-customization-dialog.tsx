@@ -44,17 +44,11 @@ const contentVariants = {
   },
 };
 
-const ConsentCustomizationCard = ({
-  onClose,
-  showCloseButton,
-  handleSave,
-  ref,
-}: {
+const ConsentCustomizationCard = React.forwardRef<HTMLDivElement, {
   onClose: () => void;
   showCloseButton: boolean;
   handleSave: () => void;
-  ref: React.RefObject<HTMLDivElement>;
-}) => {
+}>(({ onClose, showCloseButton, handleSave }, ref) => {
   const onSaveWrapper = React.useCallback(() => {
     handleSave();
   }, [handleSave]);
@@ -91,7 +85,7 @@ const ConsentCustomizationCard = ({
       </CardContent>
     </Card>
   );
-};
+});
 
 export const ConsentCustomizationDialog = React.forwardRef<
   HTMLDivElement,
