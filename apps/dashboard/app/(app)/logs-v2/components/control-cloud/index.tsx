@@ -209,17 +209,12 @@ export const ControlCloud = () => {
           index={index}
         />
       ))}
-      <div className="flex items-center px-2 py-1 gap-1 ml-auto">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-end gap-2">
-            <span className="text-gray-9 text-[13px]">Clear filters</span>
-            <KeyboardButton shortcut="d" modifierKey="⌘" />
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            <span className="text-gray-9 text-[13px]">Focus filters</span>
-            <KeyboardButton shortcut="c" modifierKey="⌘" />
-          </div>
-        </div>
+      <div className="flex items-center px-2 py-1 gap-2 ml-auto">
+        <span className="text-gray-9 text-[13px]">Clear filters</span>
+        <KeyboardButton shortcut="d" modifierKey="⌘" />
+        <div className="w-px h-4 bg-gray-4" />
+        <span className="text-gray-9 text-[13px]">Focus filters</span>
+        <KeyboardButton shortcut="c" modifierKey="⌘" />
       </div>
     </div>
   );
