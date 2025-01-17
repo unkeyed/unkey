@@ -90,7 +90,7 @@ const WarningIcon = ({ status }: { status: number }) => (
       WARNING_ICON_STYLES.base,
       status < 300 && "invisible",
       status >= 400 && status < 500 && WARNING_ICON_STYLES.warning,
-      status >= 500 && WARNING_ICON_STYLES.error,
+      status >= 500 && WARNING_ICON_STYLES.error
     )}
   />
 );
@@ -111,7 +111,9 @@ const additionalColumns: Column<Log>[] = [
     .join(" "),
   width: "1fr",
   render: (log: Log) => (
-    <div className="font-mono whitespace-nowrap truncate">{log[key as keyof Log]}</div>
+    <div className="font-mono whitespace-nowrap truncate">
+      {log[key as keyof Log]}
+    </div>
   ),
 }));
 
@@ -133,7 +135,7 @@ export const LogsTable = () => {
       selectedLog && {
         "opacity-50 z-0": !isSelected,
         "opacity-100 z-10": isSelected,
-      },
+      }
     );
   };
 
@@ -152,7 +154,9 @@ export const LogsTable = () => {
               value={log.time}
               className={cn(
                 "font-mono group-hover:underline decoration-dotted",
-                selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
+                selectedLog &&
+                  selectedLog.request_id !== log.request_id &&
+                  "pointer-events-none"
               )}
             />
           </div>
@@ -170,7 +174,7 @@ export const LogsTable = () => {
             <Badge
               className={cn(
                 "uppercase px-[6px] rounded-md font-mono",
-                isSelected ? style.badge.selected : style.badge.default,
+                isSelected ? style.badge.selected : style.badge.default
               )}
             >
               {log.response_status}
@@ -186,7 +190,12 @@ export const LogsTable = () => {
         render: (log) => {
           const isSelected = selectedLog?.request_id === log.request_id;
           return (
-            <Badge className={cn(METHOD_BADGE.base, isSelected && METHOD_BADGE.selected)}>
+            <Badge
+              className={cn(
+                METHOD_BADGE.base,
+                isSelected && METHOD_BADGE.selected
+              )}
+            >
               {log.method}
             </Badge>
           );
@@ -199,12 +208,13 @@ export const LogsTable = () => {
         render: (log) => <div className="font-mono">{log.path}</div>,
       },
     ],
-    [selectedLog?.request_id],
+    [selectedLog?.request_id]
   );
 
   const visibleColumns = useMemo(() => {
     const filtered = [...basicColumns, ...additionalColumns].filter(
-      (column) => isDisplayProperty(column.key) && displayProperties.has(column.key),
+      (column) =>
+        isDisplayProperty(column.key) && displayProperties.has(column.key)
     );
 
     // If we have visible columns

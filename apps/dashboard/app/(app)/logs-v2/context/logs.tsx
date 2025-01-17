@@ -1,7 +1,12 @@
 "use client";
 
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { type PropsWithChildren, createContext, useContext, useState } from "react";
+import {
+  type PropsWithChildren,
+  createContext,
+  useContext,
+  useState,
+} from "react";
 
 type DisplayProperty =
   | "time"
@@ -10,7 +15,6 @@ type DisplayProperty =
   | "path"
   | "response_body"
   | "request_id"
-  | "workspace_id"
   | "host"
   | "request_headers"
   | "request_body"
@@ -35,9 +39,9 @@ const LogsContext = createContext<LogsContextType | null>(null);
 
 export const LogsProvider = ({ children }: PropsWithChildren) => {
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
-  const [displayProperties, setDisplayProperties] = useState<Set<DisplayProperty>>(
-    new Set(DEFAULT_DISPLAY_PROPERTIES),
-  );
+  const [displayProperties, setDisplayProperties] = useState<
+    Set<DisplayProperty>
+  >(new Set(DEFAULT_DISPLAY_PROPERTIES));
 
   const toggleDisplayProperty = (property: DisplayProperty) => {
     setDisplayProperties((prev) => {
@@ -81,7 +85,6 @@ export const isDisplayProperty = (value: string): value is DisplayProperty => {
     "path",
     "response_body",
     "request_id",
-    "workspace_id",
     "host",
     "request_headers",
     "request_body",

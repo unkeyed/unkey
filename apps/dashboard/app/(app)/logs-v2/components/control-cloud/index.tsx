@@ -2,7 +2,13 @@ import { KeyboardButton } from "@/components/keyboard-button";
 import { cn } from "@/lib/utils";
 import { XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { FilterValue } from "../../filters.type";
 import { useFilters } from "../../hooks/use-filters";
 import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
@@ -47,7 +53,13 @@ type ControlPillProps = {
   index: number;
 };
 
-const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPillProps) => {
+const ControlPill = ({
+  filter,
+  onRemove,
+  isFocused,
+  onFocus,
+  index,
+}: ControlPillProps) => {
   const { field, operator, value, metadata } = filter;
   const pillRef = useRef<HTMLDivElement>(null);
 
@@ -78,7 +90,9 @@ const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPil
           <div className={cn("size-2 rounded-[2px]", metadata.colorClass)} />
         )}
         {metadata?.icon}
-        <span className="text-accent-12 text-xs font-mono">{formatValue(value)}</span>
+        <span className="text-accent-12 text-xs font-mono">
+          {formatValue(value)}
+        </span>
       </div>
       <div ref={pillRef} className="contents">
         <Button
@@ -88,7 +102,7 @@ const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPil
           tabIndex={0}
           className={cn(
             "bg-gray-3 rounded-none rounded-r-md py-[2px] px-2 [&_svg]:stroke-[2px] [&_svg]:size-3 flex items-center border-none h-auto focus:ring-2 focus:ring-accent-7 focus:outline-none",
-            isFocused && "bg-gray-4",
+            isFocused && "bg-gray-4"
           )}
         >
           <XMark className={cn("text-gray-9", isFocused && "text-gray-11")} />
@@ -120,7 +134,7 @@ export const ControlCloud = () => {
         }
       }
     },
-    [removeFilter, filters.length, focusedIndex],
+    [removeFilter, filters.length, focusedIndex]
   );
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -168,13 +182,17 @@ export const ControlCloud = () => {
       case "ArrowRight":
       case "l":
         e.preventDefault();
-        setFocusedIndex((prev) => (prev === null ? 0 : (prev + 1) % filters.length));
+        setFocusedIndex((prev) =>
+          prev === null ? 0 : (prev + 1) % filters.length
+        );
         break;
       case "ArrowLeft":
       case "h":
         e.preventDefault();
         setFocusedIndex((prev) =>
-          prev === null ? filters.length - 1 : (prev - 1 + filters.length) % filters.length,
+          prev === null
+            ? filters.length - 1
+            : (prev - 1 + filters.length) % filters.length
         );
         break;
       case "ArrowDown":
@@ -209,17 +227,12 @@ export const ControlCloud = () => {
           index={index}
         />
       ))}
-      <div className="flex items-center px-2 py-1 gap-1 ml-auto">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-end gap-2">
-            <span className="text-gray-9 text-[13px]">Clear filters</span>
-            <KeyboardButton shortcut="d" modifierKey="⌘" />
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            <span className="text-gray-9 text-[13px]">Focus filters</span>
-            <KeyboardButton shortcut="c" modifierKey="⌘" />
-          </div>
-        </div>
+      <div className="flex items-center px-2 py-1 gap-2 ml-auto">
+        <span className="text-gray-9 text-[13px]">Clear filters</span>
+        <KeyboardButton shortcut="d" modifierKey="⌘" />
+        <div className="w-px h-4 bg-gray-4" />
+        <span className="text-gray-9 text-[13px]">Focus filters</span>
+        <KeyboardButton shortcut="c" modifierKey="⌘" />
       </div>
     </div>
   );

@@ -11,13 +11,15 @@ type Params = {};
 // <docs-tag name="workflow-entrypoint">
 export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
   async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
+    let now = new Date();
+    try {
+      // cf stopped sending valid `Date` objects for some reason, so we fall back to Date.now()
+      now = event.timestamp;
+    } catch {}
+
     // Set up last day of month so if refillDay is after last day of month, Key will be refilled today.
-    const lastDayOfMonth = new Date(
-      event.timestamp.getFullYear(),
-      event.timestamp.getMonth() + 1,
-      0,
-    ).getDate();
-    const today = event.timestamp.getUTCDate();
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const today = now.getUTCDate();
     const db = createConnection({
       host: this.env.DATABASE_HOST,
       username: this.env.DATABASE_USERNAME,
@@ -80,7 +82,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
             .update(schema.keys)
             .set({
               remaining: key.refillAmount,
-              lastRefillAt: event.timestamp,
+              lastRefillAt: now,
             })
             .where(eq(schema.keys.id, key.id));
 
@@ -89,7 +91,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
             id: auditLogId,
             workspaceId: key.workspaceId,
             bucketId: bucketId,
-            time: event.timestamp.getTime(),
+            time: now.getTime(),
             event: "key.update",
             actorId: "trigger",
             actorType: "system",

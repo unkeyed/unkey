@@ -4,8 +4,18 @@ import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shor
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { CaretRightOutline, CircleInfoSparkle, Magnifier, Refresh3 } from "@unkey/icons";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip";
+import {
+  CaretRightOutline,
+  CircleInfoSparkle,
+  Magnifier,
+  Refresh3,
+} from "@unkey/icons";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "components/ui/tooltip";
 import { useRef, useState } from "react";
 
 export const LogsSearch = () => {
@@ -13,7 +23,10 @@ export const LogsSearch = () => {
   const queryLLMForStructuredOutput = trpc.logs.llmSearch.useMutation({
     onSuccess(data) {
       if (data) {
-        const transformedFilters = transformStructuredOutputToFilters(data, filters);
+        const transformedFilters = transformStructuredOutputToFilters(
+          data,
+          filters
+        );
         updateFilters(transformedFilters);
       } else {
         toast.error("Try to be more descriptive about your query", {
@@ -83,20 +96,24 @@ export const LogsSearch = () => {
           "focus-within:bg-gray-4",
           "transition-all duration-200",
           searchText.length > 0 ? "bg-gray-4" : "",
-          isLoading ? "bg-gray-4" : "",
+          isLoading ? "bg-gray-4" : ""
         )}
       >
-        <div className="flex items-center gap-2 relative">
-          {isLoading ? (
-            <>
+        <div className="flex items-center gap-2 w-48">
+          <div className="flex-shrink-0">
+            {isLoading ? (
               <Refresh3 className="text-accent-10 size-4 animate-spin" />
-              <span className="text-accent-11 text-sm animate-pulse">
-                AI consults the Palantír...
-              </span>
-            </>
-          ) : (
-            <>
+            ) : (
               <Magnifier className="text-accent-9 size-4" />
+            )}
+          </div>
+
+          <div className="flex-1">
+            {isLoading ? (
+              <div className="text-accent-11 text-sm animate-pulse">
+                AI consults the Palantír...
+              </div>
+            ) : (
               <input
                 ref={inputRef}
                 type="text"
@@ -104,11 +121,11 @@ export const LogsSearch = () => {
                 onKeyDown={handleKeyDown}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Search and filter with AI…"
-                className="text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6"
+                className="text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6 w-full"
                 disabled={isLoading}
               />
-            </>
-          )}
+            )}
+          </div>
         </div>
         <TooltipProvider>
           <Tooltip delayDuration={150}>
@@ -121,7 +138,9 @@ export const LogsSearch = () => {
               <div>
                 <div className="font-medium mb-2 flex items-center gap-2 text-[13px]">
                   <span>Try queries like:</span>
-                  <span className="text-[11px] text-gray-11">(click to use)</span>
+                  <span className="text-[11px] text-gray-11">
+                    (click to use)
+                  </span>
                 </div>
                 <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
                   <li className="flex items-center gap-2">
@@ -129,7 +148,9 @@ export const LogsSearch = () => {
                     <button
                       type="button"
                       className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                      onClick={() => handlePresetQuery("Show failed requests today")}
+                      onClick={() =>
+                        handlePresetQuery("Show failed requests today")
+                      }
                     >
                       "Show failed requests today"
                     </button>
@@ -139,7 +160,9 @@ export const LogsSearch = () => {
                     <button
                       type="button"
                       className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                      onClick={() => handlePresetQuery("auth errors in the last 3h")}
+                      onClick={() =>
+                        handlePresetQuery("auth errors in the last 3h")
+                      }
                     >
                       "Auth errors in the last 3h"
                     </button>
@@ -150,7 +173,9 @@ export const LogsSearch = () => {
                       type="button"
                       className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
                       onClick={() =>
-                        handlePresetQuery("API calls from a path that includes /api/v1/oz")
+                        handlePresetQuery(
+                          "API calls from a path that includes /api/v1/oz"
+                        )
                       }
                     >
                       "API calls from a path that includes /api/v1/oz"
