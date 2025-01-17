@@ -110,6 +110,12 @@ export interface UpdateMembershipParams {
   role: string;
 }
 
+export interface UserData {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
   enabled: true,
   publicPaths: ['/auth/sign-in', '/auth/sign-up', '/favicon.ico'],
@@ -150,11 +156,16 @@ export interface AuthProvider<T = any> {
   validateSession(token: string): Promise<SessionValidationResult>;
   getCurrentUser(): Promise<any | null>;
   listMemberships(userId?: string): Promise<OrgMembership>;
-  signUpViaEmail({firstName, lastName, email}): Promise<any>;
+  signUpViaEmail({firstName, lastName, email}: UserData): Promise<any>;
   signIn(orgId?: string): Promise<T>;
   signInViaOAuth(options: SignInViaOAuthOptions): String;
   completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;
   getSignOutUrl(): Promise<T>;
   updateOrg({id, name}: UpdateOrgParams): Promise<Organization>;
   [key: string]: any;
+}
+export interface UserData {
+    firstName: string;
+    lastName: string;
+    email: string;
 }
