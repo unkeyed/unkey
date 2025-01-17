@@ -137,7 +137,7 @@ export const PathsFilter = () => {
   return (
     <div className="flex flex-col font-mono">
       <label
-        className="flex items-center gap-2 px-4 pb-2 pt-4 cursor-pointer"
+        className="flex items-center gap-4 px-4 pb-2 pt-4 cursor-pointer"
         // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
         role="checkbox"
         aria-checked={checkboxes.every((checkbox) => checkbox.checked)}
@@ -145,10 +145,10 @@ export const PathsFilter = () => {
       >
         <Checkbox
           checked={checkboxes.every((checkbox) => checkbox.checked)}
-          className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
+          className="size-4 rounded border-gray-4 [&_svg]:size-3"
           onClick={handleSelectAll}
         />
-        <span className="text-xs text-accent-12 ml-2">
+        <span className="text-xs text-accent-12">
           {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
         </span>
       </label>
@@ -160,7 +160,7 @@ export const PathsFilter = () => {
           {checkboxes.map((checkbox, index) => (
             <label
               key={checkbox.id}
-              className="flex gap-4 items-center py-1 cursor-pointer"
+              className="flex gap-[18px] items-center py-1 cursor-pointer"
               // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
               role="checkbox"
               aria-checked={checkbox.checked}
@@ -168,7 +168,7 @@ export const PathsFilter = () => {
             >
               <Checkbox
                 checked={checkbox.checked}
-                className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
+                className="size-4 rounded border-gray-4 [&_svg]:size-3"
                 onClick={() => handleCheckboxChange(index)}
               />
               <div className="text-accent-12 text-xs truncate">{checkbox.path}</div>

@@ -20,7 +20,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
   {
     id: "status",
     label: "Status",
-    shortcut: "s",
+    shortcut: "e",
     component: <StatusFilter />,
   },
   {
@@ -42,6 +42,14 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
+  // Clean up activeFilter to prevent unnecessary render when opening and closing
+  // biome-ignore lint/correctness/useExhaustiveDependencies(a): without clean up doesn't work properly
+  useEffect(() => {
+    return () => {
+      setActiveFilter(null);
+    };
+  }, [open]);
+
   useKeyboardShortcut("f", () => {
     setOpen((prev) => !prev);
   });
@@ -51,10 +59,12 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
       return;
     }
 
-    // If we have an active filter and press left, close it
-    if ((e.key === "ArrowLeft" || e.key === "h") && activeFilter) {
-      e.preventDefault();
-      setActiveFilter(null);
+    // Don't handle navigation in main popover if we have an active filter
+    if (activeFilter) {
+      if (e.key === "ArrowLeft" || e.key === "h") {
+        e.preventDefault();
+        setActiveFilter(null);
+      }
       return;
     }
 
@@ -80,13 +90,7 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
         if (focusedIndex !== null) {
           const selectedFilter = FILTER_ITEMS[focusedIndex];
           if (selectedFilter) {
-            // Find the filterItem component and trigger its open state
-            const filterRefs = document.querySelectorAll("[data-filter-id]");
-            const selectedRef = filterRefs[focusedIndex] as HTMLElement;
-            if (selectedRef) {
-              selectedRef.click();
-              setActiveFilter(selectedFilter.id);
-            }
+            setActiveFilter(selectedFilter.id);
           }
         }
         break;
@@ -108,7 +112,12 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
         <div className="flex flex-col gap-2">
           <PopoverHeader />
           {FILTER_ITEMS.map((item, index) => (
-            <FilterItem key={item.id} {...item} isFocused={focusedIndex === index} />
+            <FilterItem
+              key={item.id}
+              {...item}
+              isFocused={focusedIndex === index}
+              isActive={activeFilter === item.id}
+            />
           ))}
         </div>
       </PopoverContent>
@@ -127,12 +136,21 @@ const PopoverHeader = () => {
 
 type FilterItemProps = FilterItemConfig & {
   isFocused?: boolean;
+  isActive?: boolean;
 };
 
-export const FilterItem = ({ label, shortcut, id, component, isFocused }: FilterItemProps) => {
+export const FilterItem = ({
+  label,
+  shortcut,
+  id,
+  component,
+  isFocused,
+  isActive,
+}: FilterItemProps) => {
   const { filters } = useFilters();
   const [open, setOpen] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if ((e.key === "ArrowLeft" || e.key === "h") && open) {
@@ -157,6 +175,24 @@ export const FilterItem = ({ label, shortcut, id, component, isFocused }: Filter
     }
   }, [isFocused]);
 
+  // Handle focus transfer to sub-popover when active
+  useEffect(() => {
+    if (isActive && !open) {
+      setOpen(true);
+    }
+    if (isActive && open && contentRef.current) {
+      // Focus the first focusable element in the sub-popover
+      const focusableElements = contentRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusableElements.length > 0) {
+        (focusableElements[0] as HTMLElement).focus();
+      } else {
+        contentRef.current.focus();
+      }
+    }
+  }, [isActive, open]);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -167,7 +203,6 @@ export const FilterItem = ({ label, shortcut, id, component, isFocused }: Filter
             ${isFocused ? "bg-gray-3" : ""}`}
           tabIndex={0}
           role="button"
-          data-filter-id={id}
         >
           <div className="flex gap-2 items-center">
             {shortcut && (
@@ -194,11 +229,13 @@ export const FilterItem = ({ label, shortcut, id, component, isFocused }: Filter
         </div>
       </PopoverTrigger>
       <PopoverContent
+        ref={contentRef}
         className="w-60 bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg"
         side="right"
         align="start"
         sideOffset={12}
         onKeyDown={handleKeyDown}
+        tabIndex={-1}
       >
         {component}
       </PopoverContent>

@@ -1,6 +1,5 @@
 import { METHODS } from "@/app/(app)/logs-v2/constants";
 import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs-v2/filters.schema";
-import type { QuerySearchParams } from "@/app/(app)/logs-v2/filters.type";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
@@ -55,7 +54,7 @@ async function getStructuredSearchFromLLM(userSearchMsg: string) {
       });
     }
 
-    return transformFiltersToQuerySearchParams(completion.choices[0].message.parsed);
+    return completion.choices[0].message.parsed;
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
@@ -108,43 +107,6 @@ export const llmSearch = rateLimitedProcedure(ratelimit.update)
   });
 
 // HELPERS
-function transformFiltersToQuerySearchParams(
-  result: z.infer<typeof filterOutputSchema>,
-): QuerySearchParams {
-  const output: QuerySearchParams = {
-    host: null,
-    requestId: null,
-    methods: null,
-    paths: null,
-    status: null,
-  };
-
-  for (const filter of result.filters) {
-    const filterValues = filter.filters.map((f) => ({
-      operator: f.operator,
-      value: f.value,
-    }));
-
-    switch (filter.field) {
-      case "host":
-      case "requestId":
-        if (filter.filters.length > 0) {
-          output[filter.field] = filterValues[0];
-        }
-        break;
-
-      case "methods":
-      case "paths":
-      case "status":
-        if (filter.filters.length > 0) {
-          output[filter.field] = filterValues;
-        }
-        break;
-    }
-  }
-
-  return output;
-}
 
 const getSystemPrompt = () => {
   const operatorsByField = Object.entries(filterFieldConfig)
