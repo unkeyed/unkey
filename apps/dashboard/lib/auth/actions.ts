@@ -181,3 +181,16 @@ export async function signUpViaEmail(params: {firstName: string, lastName: strin
   // public function
   return await auth.signUpViaEmail(params);
 }
+
+export async function verifyAuthCode(params: {email: string, code: string;}) {
+  // TODO
+  return;
+}
+
+export async function resendAuthCode(email: string) {
+  if (!email) {
+    throw new Error("Email address is required.");
+  }
+  // TODO
+  return;
+}
