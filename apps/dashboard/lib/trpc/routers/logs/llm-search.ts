@@ -113,21 +113,19 @@ const getSystemPrompt = () => {
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
       let constraints = "";
-
       if (field === "methods") {
         constraints = ` and must be one of: ${METHODS.join(", ")}`;
       } else if (field === "status") {
-        constraints = " and must be between 100-599";
+        constraints = " and must be between 200-599";
       }
-
       return `- ${field} accepts ${operators} operator${
         config.operators.length > 1 ? "s" : ""
       }${constraints}`;
     })
     .join("\n");
+  return `You are an expert at converting natural language queries into filters. For queries with multiple conditions, output all relevant filters. We will process them in sequence to build the complete filter. For status codes, always return one for each variant like 200,400 or 500 instead of 200,201, etc... - the application will handle status code grouping internally.
 
-  return `You are an expert at converting natural language queries into filters. For queries with multiple conditions, output all relevant filters. We will process them in sequence to build the complete filter. Examples:
-
+Examples:
 Query: "path should start with /api/oz and method should be POST"
 Result: [
   { 
@@ -152,6 +150,22 @@ Result: [
       { operator: "is", value: "POST" },
       { operator: "is", value: "GET" }
     ]
+  }
+]
+
+Query: "show me all okay statuses"
+Result: [
+  {
+    field: "status",
+    filters: [{ operator: "is", value: 200 }]
+  }
+]
+
+Query: "get me request with ID req_3HagbMuvTs6gtGbijeHoqbU9Cijg"
+Result: [
+  {
+    field: "requestId",
+    filters: [{ operator: "is", value: "req_3HagbMuvTs6gtGbijeHoqbU9Cijg" }]
   }
 ]
 
