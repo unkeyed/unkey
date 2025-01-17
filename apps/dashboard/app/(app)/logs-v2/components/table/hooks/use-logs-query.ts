@@ -19,7 +19,7 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
       startTime: Date.now() - 24 * 60 * 60 * 1000,
       endTime: Date.now(),
     }),
-    []
+    [],
   );
 
   const queryParams = useMemo(() => {
@@ -27,11 +27,11 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
       limit,
       startTime: timestamps.startTime,
       endTime: timestamps.endTime,
-      host: null,
-      requestId: null,
-      method: null,
-      path: null,
-      responseStatus: [],
+      host: { filters: [] },
+      requestId: { filters: [] },
+      method: { filters: [] },
+      path: { filters: [] },
+      status: { filters: [] },
     };
 
     // Process each filter
@@ -43,37 +43,60 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
           break;
 
         case "status": {
-          if (!params.responseStatus) {
-            params.responseStatus = [];
-          }
-          // Convert string status to number and handle ranges (2xx, 4xx, 5xx)
-          const status = Number.parseInt(filter.value as string);
-          params.responseStatus.push(status);
+          params.status?.filters.push({
+            operator: "is",
+            value: Number.parseInt(filter.value as string),
+          });
           break;
         }
 
-        case "methods":
-          params.method = filter.value as string;
-          break;
-
-        case "paths":
-          if (filter.operator === "is") {
-            params.path = filter.value as string;
+        case "methods": {
+          if (typeof filter.value !== "string") {
+            console.error("Method filter value type has to be 'string'");
           }
-          // TODO: Other path operators (contains, startsWith, endsWith) would need backend support
-          break;
 
-        case "host":
-          if (filter.operator === "is") {
-            params.host = filter.value as string;
-          }
+          params.method?.filters.push({
+            operator: "is",
+            value: filter.value as string,
+          });
           break;
+        }
 
-        case "requestId":
-          if (filter.operator === "is") {
-            params.requestId = filter.value as string;
+        case "paths": {
+          if (typeof filter.value !== "string") {
+            console.error("Path filter value type has to be 'string'");
           }
+
+          params.path?.filters.push({
+            operator: filter.operator,
+            value: filter.value as string,
+          });
           break;
+        }
+
+        case "host": {
+          if (typeof filter.value !== "string") {
+            console.error("Host filter value type has to be 'string'");
+          }
+
+          params.host?.filters.push({
+            operator: "is",
+            value: filter.value as string,
+          });
+          break;
+        }
+
+        case "requestId": {
+          if (typeof filter.value !== "string") {
+            console.error("Request ID filter value type has to be 'string'");
+          }
+
+          params.requestId?.filters.push({
+            operator: "is",
+            value: filter.value as string,
+          });
+          break;
+        }
       }
     });
 

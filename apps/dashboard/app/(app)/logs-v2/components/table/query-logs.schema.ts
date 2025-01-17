@@ -1,14 +1,60 @@
 import { z } from "zod";
+import { filterOperatorEnum } from "../../filters.schema";
 
 export const queryLogsPayload = z.object({
   limit: z.number().int(),
   startTime: z.number().int(),
   endTime: z.number().int(),
-  path: z.string().optional().nullable(),
-  host: z.string().optional().nullable(),
-  method: z.string().optional().nullable(),
-  requestId: z.string().optional().nullable(),
-  responseStatus: z.array(z.number().int()).nullable(),
+  path: z
+    .object({
+      filters: z.array(
+        z.object({
+          operator: filterOperatorEnum,
+          value: z.string(),
+        }),
+      ),
+    })
+    .nullable(),
+  host: z
+    .object({
+      filters: z.array(
+        z.object({
+          operator: z.literal("is"),
+          value: z.string(),
+        }),
+      ),
+    })
+    .nullable(),
+  method: z
+    .object({
+      filters: z.array(
+        z.object({
+          operator: z.literal("is"),
+          value: z.string(),
+        }),
+      ),
+    })
+    .nullable(),
+  requestId: z
+    .object({
+      filters: z.array(
+        z.object({
+          operator: z.literal("is"),
+          value: z.string(),
+        }),
+      ),
+    })
+    .nullable(),
+  status: z
+    .object({
+      filters: z.array(
+        z.object({
+          operator: z.literal("is"),
+          value: z.number(),
+        }),
+      ),
+    })
+    .nullable(),
   cursor: z
     .object({
       requestId: z.string().nullable(),

@@ -83,7 +83,7 @@ export function VirtualTable<T>({
       <div
         ref={parentRef}
         data-table-container="true"
-        className="overflow-auto pb-10 px-1 scroll-smooth"
+        className="overflow-auto pb-2 px-1 scroll-smooth"
         style={{ height: `${fixedHeight}px` }}
       >
         <div

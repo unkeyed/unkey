@@ -3,7 +3,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
-import { log } from "@unkey/clickhouse/src/logs";
+import { type GetLogsClickhousePayload, log } from "@unkey/clickhouse/src/logs";
 import { z } from "zod";
 
 const LogsResponse = z.object({
@@ -18,6 +18,36 @@ const LogsResponse = z.object({
 });
 
 type LogsResponse = z.infer<typeof LogsResponse>;
+
+export function transformFilters(
+  params: z.infer<typeof queryLogsPayload>,
+): Omit<GetLogsClickhousePayload, "workspaceId"> {
+  // Transform path filters to include operators
+  const paths =
+    params.path?.filters.map((f) => ({
+      operator: f.operator,
+      value: f.value,
+    })) || [];
+
+  // Extract other filters as before
+  const requestIds = params.requestId?.filters.map((f) => f.value) || [];
+  const hosts = params.host?.filters.map((f) => f.value) || [];
+  const methods = params.method?.filters.map((f) => f.value) || [];
+  const statusCodes = params.status?.filters.map((f) => f.value) || [];
+
+  return {
+    limit: params.limit,
+    startTime: params.startTime,
+    endTime: params.endTime,
+    requestIds,
+    hosts,
+    methods,
+    paths,
+    statusCodes,
+    cursorTime: params.cursor?.time ?? null,
+    cursorRequestId: params.cursor?.requestId ?? null,
+  };
+}
 
 export const queryLogs = rateLimitedProcedure(ratelimit.update)
   .input(queryLogsPayload)
@@ -44,8 +74,9 @@ export const queryLogs = rateLimitedProcedure(ratelimit.update)
       });
     }
 
+    const transformedInputs = transformFilters(input);
     const result = await clickhouse.api.logs({
-      ...input,
+      ...transformedInputs,
       cursorRequestId: input.cursor?.requestId ?? null,
       cursorTime: input.cursor?.time ?? null,
       workspaceId: workspace.id,
