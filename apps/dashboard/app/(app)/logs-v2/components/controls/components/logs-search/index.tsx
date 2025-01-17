@@ -86,17 +86,21 @@ export const LogsSearch = () => {
           isLoading ? "bg-gray-4" : "",
         )}
       >
-        <div className="flex items-center gap-2 relative">
-          {isLoading ? (
-            <>
+        <div className="flex items-center gap-2 w-48">
+          <div className="flex-shrink-0">
+            {isLoading ? (
               <Refresh3 className="text-accent-10 size-4 animate-spin" />
-              <span className="text-accent-11 text-sm animate-pulse">
-                AI consults the Palantír...
-              </span>
-            </>
-          ) : (
-            <>
+            ) : (
               <Magnifier className="text-accent-9 size-4" />
+            )}
+          </div>
+
+          <div className="flex-1">
+            {isLoading ? (
+              <div className="text-accent-11 text-sm animate-pulse">
+                AI consults the Palantír...
+              </div>
+            ) : (
               <input
                 ref={inputRef}
                 type="text"
@@ -104,11 +108,11 @@ export const LogsSearch = () => {
                 onKeyDown={handleKeyDown}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Search and filter with AI…"
-                className="text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6"
+                className="text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6 w-full"
                 disabled={isLoading}
               />
-            </>
-          )}
+            )}
+          </div>
         </div>
         <TooltipProvider>
           <Tooltip delayDuration={150}>
