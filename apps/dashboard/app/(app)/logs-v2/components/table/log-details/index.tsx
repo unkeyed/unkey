@@ -1,8 +1,8 @@
 "use client";
 
-import type { Log } from "@unkey/clickhouse/src/logs";
 import { useMemo } from "react";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../../../constants";
+import { useLogsContext } from "../../../context/logs";
 import { extractResponseField, safeParseJson } from "../../../utils";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
@@ -21,27 +21,30 @@ const createPanelStyle = (distanceToTop: number) => ({
 });
 
 type Props = {
-  log: Log | null;
-  onClose: () => void;
   distanceToTop: number;
 };
 
-export const LogDetails = ({ log, onClose, distanceToTop }: Props) => {
+export const LogDetails = ({ distanceToTop }: Props) => {
+  const { setSelectedLog, selectedLog: log } = useLogsContext();
   const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
 
   if (!log) {
     return null;
   }
 
+  const handleClose = () => {
+    setSelectedLog(null);
+  };
+
   return (
     <ResizablePanel
       minW={PANEL_MIN_WIDTH}
       maxW={PANEL_MAX_WIDTH}
-      onClose={onClose}
+      onClose={handleClose}
       className="absolute right-0 bg-gray-1 dark:bg-black font-mono drop-shadow-2xl overflow-y-auto z-20 p-4"
       style={panelStyle}
     >
-      <LogHeader log={log} onClose={onClose} />
+      <LogHeader log={log} onClose={handleClose} />
 
       <LogSection details={log.request_headers} title="Request Header" />
       <LogSection

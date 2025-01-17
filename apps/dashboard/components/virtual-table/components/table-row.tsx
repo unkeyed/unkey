@@ -1,6 +1,43 @@
+import { cn } from "@/lib/utils";
 import type { VirtualItem } from "@tanstack/react-virtual";
-import { cn } from "@unkey/ui/src/lib/utils";
 import type { Column } from "../types";
+
+const calculateGridTemplateColumns = (columns: Column<any>[]) => {
+  return columns
+    .map((column) => {
+      if (typeof column.width === "number") {
+        return `${column.width}px`;
+      }
+
+      if (typeof column.width === "string") {
+        // Handle existing pixel and percentage values
+        if (column.width.endsWith("px") || column.width.endsWith("%")) {
+          return column.width;
+        }
+        if (column.width === "auto") {
+          return "minmax(min-content, auto)";
+        }
+        if (column.width === "min") {
+          return "min-content";
+        }
+        if (column.width === "1fr") {
+          return "1fr";
+        }
+      }
+
+      if (typeof column.width === "object") {
+        if ("min" in column.width && "max" in column.width) {
+          return `minmax(${column.width.min}px, ${column.width.max}px)`;
+        }
+        if ("flex" in column.width) {
+          return `${column.width.flex}fr`;
+        }
+      }
+
+      return "1fr"; // Default fallback
+    })
+    .join(" ");
+};
 
 export const TableRow = <T,>({
   item,
@@ -11,8 +48,8 @@ export const TableRow = <T,>({
   rowClassName,
   selectedClassName,
   onClick,
-  measureRef,
   onRowClick,
+  measureRef,
 }: {
   item: T;
   columns: Column<T>[];
@@ -24,60 +61,77 @@ export const TableRow = <T,>({
   onClick: () => void;
   onRowClick?: (item: T | null) => void;
   measureRef: (element: HTMLElement | null) => void;
-}) => (
-  <div
-    tabIndex={virtualRow.index}
-    data-index={virtualRow.index}
-    aria-selected={isSelected}
-    onKeyDown={(event) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onRowClick?.(null);
-        const activeElement = document.activeElement as HTMLElement;
-        activeElement?.blur();
-      }
+}) => {
+  const gridTemplateColumns = calculateGridTemplateColumns(columns);
 
-      if (event.key === "ArrowDown" || event.key === "j") {
-        event.preventDefault();
-        const nextElement = document.querySelector(
-          `[data-index="${virtualRow.index + 1}"]`,
-        ) as HTMLElement;
-        if (nextElement) {
-          nextElement.focus();
-          nextElement.click(); // This will trigger onClick which calls handleRowClick
+  return (
+    <div
+      tabIndex={virtualRow.index}
+      data-index={virtualRow.index}
+      aria-selected={isSelected}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          onRowClick?.(null);
+          const activeElement = document.activeElement as HTMLElement;
+          activeElement?.blur();
         }
-      }
-      if (event.key === "ArrowUp" || event.key === "k") {
-        event.preventDefault();
-        const prevElement = document.querySelector(
-          `[data-index="${virtualRow.index - 1}"]`,
-        ) as HTMLElement;
-        if (prevElement) {
-          prevElement.focus();
-          prevElement.click(); // This will trigger onClick which calls handleRowClick
+        if (event.key === "ArrowDown" || event.key === "j") {
+          event.preventDefault();
+          const nextElement = document.querySelector(
+            `[data-index="${virtualRow.index + 1}"]`,
+          ) as HTMLElement;
+          if (nextElement) {
+            nextElement.focus();
+            nextElement.click();
+          }
         }
-      }
-    }}
-    ref={measureRef}
-    onClick={onClick}
-    className={cn(
-      "grid text-xs cursor-pointer absolute top-0 left-0 w-full",
-      "transition-all duration-75 ease-in-out",
-      "hover:bg-accent-3 ",
-      "group rounded-md",
-      rowClassName?.(item),
-      selectedClassName?.(item, isSelected),
-    )}
-    style={{
-      gridTemplateColumns: columns.map((col) => col.width).join(" "),
-      height: `${rowHeight}px`,
-      top: `${virtualRow.start}px`,
-    }}
-  >
-    {columns.map((column) => (
-      <div key={column.key} className="truncate flex items-center h-full">
-        {column.render(item)}
-      </div>
-    ))}
-  </div>
-);
+        if (event.key === "ArrowUp" || event.key === "k") {
+          event.preventDefault();
+          const prevElement = document.querySelector(
+            `[data-index="${virtualRow.index - 1}"]`,
+          ) as HTMLElement;
+          if (prevElement) {
+            prevElement.focus();
+            prevElement.click();
+          }
+        }
+      }}
+      ref={measureRef}
+      onClick={onClick}
+      className={cn(
+        "grid text-xs cursor-pointer absolute top-0 left-0 w-full",
+        "transition-all duration-75 ease-in-out",
+        "group",
+        rowClassName?.(item),
+        selectedClassName?.(item, isSelected),
+      )}
+      style={{
+        gridTemplateColumns,
+        height: `${rowHeight}px`,
+        top: `${virtualRow.start}px`,
+      }}
+    >
+      {columns.map((column) => (
+        <div
+          key={column.key}
+          className={cn(
+            "flex items-center h-full",
+            "min-w-0", // Essential for truncation
+            !column.noTruncate && "overflow-hidden", // Allow disabling truncation
+          )}
+          style={{
+            minWidth: column.minWidth,
+            maxWidth: column.maxWidth,
+          }}
+        >
+          {column.noTruncate ? (
+            column.render(item)
+          ) : (
+            <div className="w-full overflow-hidden">{column.render(item)}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};

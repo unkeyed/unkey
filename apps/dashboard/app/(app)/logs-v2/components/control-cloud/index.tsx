@@ -27,11 +27,11 @@ const formatValue = (value: string | number): string => {
     const statusFamily = Math.floor(Number.parseInt(value) / 100);
     switch (statusFamily) {
       case 5:
-        return "5XX (Error)";
+        return "5xx (Error)";
       case 4:
-        return "4XX (Warning)";
+        return "4xx (Warning)";
       case 2:
-        return "2XX (Success)";
+        return "2xx (Success)";
       default:
         return `${statusFamily}xx`;
     }
@@ -104,6 +104,10 @@ export const ControlCloud = () => {
 
   useKeyboardShortcut({ key: "d", meta: true }, () => {
     updateFilters([]);
+  });
+
+  useKeyboardShortcut({ key: "c", meta: true }, () => {
+    setFocusedIndex(0);
   });
 
   const handleRemoveFilter = useCallback(
@@ -192,7 +196,7 @@ export const ControlCloud = () => {
 
   return (
     <div
-      className="px-3 py-2 w-full flex items-center min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap"
+      className="px-3 py-2 w-full flex items-start min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap"
       onKeyDown={handleKeyDown}
     >
       {filters.map((filter, index) => (
@@ -205,9 +209,12 @@ export const ControlCloud = () => {
           index={index}
         />
       ))}
-      <div className="flex items-center px-2 py-1 gap-1 ml-auto">
+      <div className="flex items-center px-2 py-1 gap-2 ml-auto">
         <span className="text-gray-9 text-[13px]">Clear filters</span>
         <KeyboardButton shortcut="d" modifierKey="⌘" />
+        <div className="w-px h-4 bg-gray-4" />
+        <span className="text-gray-9 text-[13px]">Focus filters</span>
+        <KeyboardButton shortcut="c" modifierKey="⌘" />
       </div>
     </div>
   );

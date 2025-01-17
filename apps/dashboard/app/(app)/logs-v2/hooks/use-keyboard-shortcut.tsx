@@ -33,6 +33,18 @@ export function useKeyboardShortcut(
       // Normalize the key to lowercase for comparison
       const keyMatch = e.key.toLowerCase() === combo.key.toLowerCase();
 
+      // Check if any modifier keys are pressed when they're not part of the shortcut
+      const hasUnwantedModifiers =
+        (combo.ctrl === undefined && e.ctrlKey) ||
+        (combo.meta === undefined && e.metaKey) ||
+        (combo.shift === undefined && e.shiftKey) ||
+        (combo.alt === undefined && e.altKey);
+
+      // If unwanted modifiers are pressed, don't trigger the shortcut
+      if (hasUnwantedModifiers) {
+        return;
+      }
+
       // Check modifier keys if specified
       const ctrlMatch = combo.ctrl === undefined || e.ctrlKey === combo.ctrl;
       const metaMatch = combo.meta === undefined || e.metaKey === combo.meta;

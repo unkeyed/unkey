@@ -1,9 +1,21 @@
+type ColumnWidth =
+  | number // Fixed pixel width
+  | string // CSS values like "165px", "15%", etc.
+  | "1fr" // Flex grow
+  | "min" // Minimum width based on content
+  | "auto" // Automatic width based on content
+  | { min: number; max: number } // Responsive range
+  | { flex: number }; // Flex grow ratio
+
 export type Column<T> = {
   key: string;
-  header: string;
+  header?: string;
+  width: ColumnWidth;
   headerClassName?: string;
-  width: string;
+  minWidth?: number;
+  maxWidth?: number;
   render: (item: T) => React.ReactNode;
+  noTruncate?: boolean; // Add this to disable truncation for specific columns
 };
 
 export type TableConfig = {
