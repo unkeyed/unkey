@@ -10,7 +10,7 @@ export default function PostHogPageView(): null {
   const searchParams = useSearchParams();
   const { consents } = useConsentManager();
   const posthog = usePostHog();
-  
+
   useEffect(() => {
     if (pathname && posthog && consents.measurement) {
       posthog.capture("$pageleave");
