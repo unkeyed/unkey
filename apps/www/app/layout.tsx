@@ -1,15 +1,15 @@
+import { ConsentCustomizationDialog } from "@/components/consent/consent-customization-dialog";
+import CookieBanner from "@/components/consent/cookie-banner";
 import { Footer } from "@/components/footer/footer";
 import { Navigation } from "@/components/navbar/navigation";
 import { env } from "@/lib/env";
 import { PHProvider } from "@/providers/posthog/PostHogProvider";
+import { ConsentManagerProvider } from "@koroflow/core-react";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import "./globals.css";
-import { ConsentManagerProvider } from "@koroflow/core-react";
-import CookieBanner from "@/components/consent/cookie-banner";
-import { ConsentCustomizationDialog } from "@/components/consent/consent-customization-dialog";
 
 const PostHogPageView = dynamic(() => import("@/providers/posthog/PostHogPageView"), {
   ssr: false,

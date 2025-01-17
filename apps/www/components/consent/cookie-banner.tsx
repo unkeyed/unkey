@@ -6,9 +6,9 @@ import { X } from "lucide-react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { PrimaryButton, SecondaryButton } from "../button";
 import { usePostHog } from "posthog-js/react";
 
