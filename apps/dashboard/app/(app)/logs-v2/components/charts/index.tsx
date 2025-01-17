@@ -33,7 +33,7 @@ const formatTimestampTooltip = (value: string | number) => {
   const date = new Date(value);
   const offset = new Date().getTimezoneOffset() * -1;
   const localDate = addMinutes(date, offset);
-  return format(localDate, "MMM dd HH:mm:ss.SS aa");
+  return format(localDate, "MMM dd HH:mm aa");
 };
 
 const formatTimestampLabel = (timestamp: string | number | Date) => {
