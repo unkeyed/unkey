@@ -10,7 +10,6 @@ type DisplayProperty =
   | "path"
   | "response_body"
   | "request_id"
-  | "workspace_id"
   | "host"
   | "request_headers"
   | "request_body"
@@ -81,7 +80,6 @@ export const isDisplayProperty = (value: string): value is DisplayProperty => {
     "path",
     "response_body",
     "request_id",
-    "workspace_id",
     "host",
     "request_headers",
     "request_body",

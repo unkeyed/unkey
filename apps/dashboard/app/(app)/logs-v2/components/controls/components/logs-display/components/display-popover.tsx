@@ -17,7 +17,6 @@ const DISPLAY_PROPERTIES = [
   { id: "path", label: "Path" },
   { id: "response_body", label: "Response Body" },
   { id: "request_id", label: "Request ID" },
-  { id: "workspace_id", label: "Workspace ID" },
   { id: "host", label: "Host" },
   { id: "request_headers", label: "Request Headers" },
   { id: "request_body", label: "Request Body" },
