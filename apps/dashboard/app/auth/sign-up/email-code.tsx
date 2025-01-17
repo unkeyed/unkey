@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { OTPInput, type SlotProps } from "input-otp";
 import { Minus } from "lucide-react";
+import { useSignUp } from "@/lib/auth/hooks/useSignUp";
 
 type Props = {
   setError: (e: string) => void;
@@ -15,29 +16,22 @@ type Props = {
 
 export const EmailCode: React.FC<Props> = ({ setError }) => {
   const router = useRouter();
-
+  const { handleVerification, verificationStatus, handleResendCode } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
   const [_timeLeft, _setTimeLeft] = React.useState(0);
 
-  // TODO: move the verification to a route handler
-  // because I need to set cookies for the sealed session
-  // re-use route with invitation, sign-in with email/magic auth
   const verifyCode = async (otp: string) => {
     if (typeof otp !== "string") {
       return null;
     }
     setIsLoading(true);
-    await signUp
-      .attemptEmailAddressVerification({
-        code: otp,
-      })
-      .then((result) => {
-        if (result.status === "complete" && result.createdSessionId) {
-          setActive({ session: result.createdSessionId }).then(() => {
+    await handleVerification(otp)
+      .then(() => {
+        if (verificationStatus.isVerified) {
             router.push("/new");
-          });
+          };
         }
-      })
+      )
       .catch((err) => {
         setIsLoading(false);
         setError(err.errors.at(0)?.longMessage ?? "Unknown error, pleae contact support@unkey.dev");
@@ -45,8 +39,11 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
   };
 
   const resendCode = async () => {
+    // If we're already verifying, don't start another request
+    if (verificationStatus.isVerifying) return;
+    
     try {
-      const p = signUp!.prepareEmailAddressVerification();
+      const p = handleResendCode();
       toast.promise(p, {
         loading: "Sending new code ...",
         success: "A new code has been sent to your email",
