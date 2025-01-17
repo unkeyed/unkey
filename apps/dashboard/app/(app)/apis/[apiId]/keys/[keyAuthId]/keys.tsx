@@ -1,10 +1,10 @@
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import BackButton from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { ChevronRight, Scan, User, VenetianMask } from "lucide-react";
+import { ChevronRight, User, VenetianMask } from "lucide-react";
 import Link from "next/link";
 
 type Props = {
@@ -59,19 +59,17 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
   return (
     <div className="flex flex-col gap-8 mb-20 ">
       {keys.length === 0 ? (
-        <EmptyPlaceholder>
-          <EmptyPlaceholder.Icon>
-            <Scan />
-          </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No keys found</EmptyPlaceholder.Title>
-          <EmptyPlaceholder.Description>Create your first key</EmptyPlaceholder.Description>
-          <div className="flex flex-row">
+        <Empty>
+          <Empty.Icon />
+          <Empty.Title>No keys found</Empty.Title>
+          <Empty.Description>Create your first key</Empty.Description>
+          <Empty.Actions>
             <CreateKeyButton apiId={apiId} keyAuthId={keyAuthId!} />
             <BackButton className="ml-4">Go Back</BackButton>
-          </div>
+          </Empty.Actions>
 
           {/* <CreateNewRole trigger={<Button variant="primary">Create New Role</Button>} /> */}
-        </EmptyPlaceholder>
+        </Empty>
       ) : (
         Object.entries(keysByOwnerId).map(([ownerId, ks]) => (
           <div className="flex flex-col gap-2">
