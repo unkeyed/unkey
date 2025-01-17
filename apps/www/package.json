@@ -12,6 +12,7 @@
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
     "@hookform/resolvers": "^3.3.4",
+    "@koroflow/core-react": "0.0.1-beta.1",
     "@next/bundle-analyzer": "^14.2.3",
     "@planetscale/database": "^1.11.0",
     "@radix-ui/react-accordion": "^1.2.0",
@@ -24,6 +25,7 @@
     "@radix-ui/react-separator": "^1.0.3",
     "@radix-ui/react-slider": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-switch": "^1.0.3",
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.0.7",
     "@unkey/db": "workspace:^",

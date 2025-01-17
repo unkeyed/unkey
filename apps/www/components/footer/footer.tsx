@@ -1,78 +1,29 @@
 "use client";
 import { cn } from "@/lib/utils";
+import { useConsentManager } from "@koroflow/core-react";
 import Link from "next/link";
 import { UnkeyLogo } from "./footer-svgs";
 import { Wordmark } from "./wordmark";
 
-type NavLink = {
-  title: string;
-  href: string;
-  external?: boolean;
-};
-const navigation = [
-  {
-    title: "Company",
-    links: [
-      { title: "About", href: "/about" },
-      { title: "Blog", href: "/blog" },
-      { title: "Changelog", href: "/changelog" },
-      { title: "Templates", href: "/templates" },
-      { title: "Roadmap", href: "/roadmap" },
-      { title: "Careers", href: "/careers" },
-      {
-        title: "Analytics",
-        href: "https://us.posthog.com/shared/HwZNjaKOLtgtpj6djuSo3fgOqrQm0Q?whitelabel",
-        external: true,
-      },
-      {
-        title: "Source Code",
-        href: "/github",
-        external: true,
-      },
-      {
-        title: "Docs",
-        href: "/docs",
-        external: true,
-      },
-      {
-        title: "Glossary",
-        href: "/glossary",
-      },
-      {
-        title: "Status Page",
-        href: "https://status.unkey.com",
-        external: true,
-      },
-    ],
-  },
-  {
-    title: "Connect",
-    links: [
-      { title: "X (Twitter)", href: "https://x.com/unkeydev", external: true },
-      { title: "Discord", href: "/discord", external: true },
-      { title: "GitHub", href: "/github", external: true },
-      { title: "OSS Friends", href: "/oss-friends" },
-      {
-        title: "Book a Call",
-        href: "https://cal.com/team/unkey/user-interview?utm_source=banner&utm_campaign=oss",
-        external: true,
-      },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { title: "Terms of Service", href: "/policies/terms" },
-      { title: "Privacy Policy", href: "/policies/privacy" },
-    ],
-  },
-] satisfies Array<{ title: string; links: Array<NavLink> }>;
+type NavLink =
+  | {
+      title: string;
+      href: string;
+      onClick?: never;
+      external?: boolean;
+    }
+  | {
+      title: string;
+      href?: never;
+      onClick: () => void;
+      external?: boolean;
+    };
 
-const Column: React.FC<{ title: string; links: Array<NavLink>; className?: string }> = ({
-  title,
-  links,
-  className,
-}) => {
+const Column: React.FC<{
+  title: string;
+  links: Array<NavLink>;
+  className?: string;
+}> = ({ title, links, className }) => {
   return (
     <div className={cn("flex flex-col gap-8   text-left ", className)}>
       <span className="w-full text-sm font-medium tracking-wider text-white font-display">
@@ -80,15 +31,26 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
       </span>
       <ul className="flex flex-col gap-4 md:gap-6">
         {links.map((link) => (
-          <li key={link.href}>
-            <Link
-              href={link.href}
-              target={link.external ? "_blank" : undefined}
-              rel={link.external ? "noopener noreferrer" : undefined}
-              className="text-sm font-normal transition hover:text-white/40 text-white/70"
-            >
-              {link.title}
-            </Link>
+          <li key={link?.href || link?.title}>
+            {link.href && (
+              <Link
+                href={link.href}
+                target={link.external ? "_blank" : undefined}
+                rel={link.external ? "noopener noreferrer" : undefined}
+                className="text-sm font-normal transition hover:text-white/40 text-white/70"
+              >
+                {link.title}
+              </Link>
+            )}
+            {link.onClick && (
+              <button
+                type="button"
+                onClick={link.onClick}
+                className="text-sm font-normal transition hover:text-white/40 text-white/70"
+              >
+                {link.title}
+              </button>
+            )}
           </li>
         ))}
       </ul>
@@ -97,6 +59,72 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
 };
 
 export function Footer() {
+  const { setIsPrivacyDialogOpen } = useConsentManager();
+
+  const navigation = [
+    {
+      title: "Company",
+      links: [
+        { title: "About", href: "/about" },
+        { title: "Blog", href: "/blog" },
+        { title: "Changelog", href: "/changelog" },
+        { title: "Templates", href: "/templates" },
+        { title: "Roadmap", href: "/roadmap" },
+        { title: "Careers", href: "/careers" },
+        {
+          title: "Analytics",
+          href: "https://us.posthog.com/shared/HwZNjaKOLtgtpj6djuSo3fgOqrQm0Q?whitelabel",
+          external: true,
+        },
+        {
+          title: "Source Code",
+          href: "/github",
+          external: true,
+        },
+        {
+          title: "Docs",
+          href: "/docs",
+          external: true,
+        },
+        {
+          title: "Glossary",
+          href: "/glossary",
+        },
+        {
+          title: "Status Page",
+          href: "https://status.unkey.com",
+          external: true,
+        },
+      ],
+    },
+    {
+      title: "Connect",
+      links: [
+        {
+          title: "X (Twitter)",
+          href: "https://x.com/unkeydev",
+          external: true,
+        },
+        { title: "Discord", href: "/discord", external: true },
+        { title: "GitHub", href: "/github", external: true },
+        { title: "OSS Friends", href: "/oss-friends" },
+        {
+          title: "Book a Call",
+          href: "https://cal.com/team/unkey/user-interview?utm_source=banner&utm_campaign=oss",
+          external: true,
+        },
+      ],
+    },
+    {
+      title: "Legal",
+      links: [
+        { title: "Terms of Service", href: "/policies/terms" },
+        { title: "Privacy Policy", href: "/policies/privacy" },
+        { title: "Change my consent", onClick: () => setIsPrivacyDialogOpen(true) },
+      ],
+    },
+  ] satisfies Array<{ title: string; links: Array<NavLink> }>;
+
   return (
     <div className="border-t border-white/20 blog-footer-radial-gradient">
       <footer className="container relative grid grid-cols-2 gap-8 pt-8 mx-auto overflow-hidden lg:gap-16 sm:grid-cols-3 xl:grid-cols-5 sm:pt-12 md:pt-16 lg:pt-24 xl:pt-32">
