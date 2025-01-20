@@ -114,7 +114,7 @@ function isStringConfig(config: FieldConfig): config is StringConfig {
   return config.type === "string";
 }
 
-function validateFieldValue(field: FilterField, value: string | number): boolean {
+export function validateFieldValue(field: FilterField, value: string | number): boolean {
   const config = filterFieldConfig[field];
 
   if (isStatusConfig(config) && typeof value === "number") {
@@ -152,7 +152,7 @@ export const filterFieldConfig: FilterFieldConfigs = {
       }
       return "bg-success-9";
     },
-    validate: (value) => value >= 100 && value <= 599,
+    validate: (value) => value >= 200 && value <= 599,
   },
   methods: {
     type: "string",
@@ -165,7 +165,7 @@ export const filterFieldConfig: FilterFieldConfigs = {
   },
   host: {
     type: "string",
-    operators: ["is", "contains"],
+    operators: ["is"],
   },
   requestId: {
     type: "string",

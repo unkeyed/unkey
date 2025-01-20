@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { LogsProvider } from "../context/logs";
 import { LogsChart } from "./charts";
-import { ControlCloud } from "./control-cloud";
+import { LogsControlCloud } from "./control-cloud";
 import { LogsControls } from "./controls";
 import { LogDetails } from "./table/log-details";
 import { LogsTable } from "./table/logs-table";
@@ -18,7 +18,7 @@ export const LogsClient = () => {
   return (
     <LogsProvider>
       <LogsControls />
-      <ControlCloud />
+      <LogsControlCloud />
       <LogsChart onMount={handleDistanceToTop} />
       <LogsTable />
       <LogDetails distanceToTop={tableDistanceToTop} />

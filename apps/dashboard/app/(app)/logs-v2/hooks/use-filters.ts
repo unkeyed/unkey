@@ -11,7 +11,7 @@ import type {
   ResponseStatus,
 } from "../filters.type";
 
-const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
+export const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
   parse: (str: string | null) => {
     if (!str) {
       return [];
@@ -197,33 +197,8 @@ export const useFilters = () => {
     [filters, updateFilters],
   );
 
-  const addFilter = useCallback(
-    (
-      field: FilterField,
-      operator: FilterOperator,
-      value: string | number | ResponseStatus | HttpMethod,
-    ) => {
-      const newFilter: FilterValue = {
-        id: crypto.randomUUID(),
-        field,
-        operator,
-        value,
-        metadata:
-          field === "status"
-            ? {
-                colorClass: filterFieldConfig.status.getColorClass?.(value as number),
-              }
-            : undefined,
-      };
-
-      updateFilters([...filters, newFilter]);
-    },
-    [filters, updateFilters],
-  );
-
   return {
     filters,
-    addFilter,
     removeFilter,
     updateFilters,
   };

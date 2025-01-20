@@ -98,7 +98,7 @@ const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPil
   );
 };
 
-export const ControlCloud = () => {
+export const LogsControlCloud = () => {
   const { filters, removeFilter, updateFilters } = useFilters();
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
