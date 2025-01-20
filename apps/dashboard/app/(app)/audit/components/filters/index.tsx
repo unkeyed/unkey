@@ -1,4 +1,3 @@
-import { DatePickerWithRange } from "@/app/(app)/logs/components/filters/components/custom-date-filter";
 import { DEFAULT_BUCKET_NAME } from "@/lib/trpc/routers/audit/fetch";
 import type { auditLogBucket, workspaces } from "@unkey/db/src/schema";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
@@ -10,6 +9,7 @@ import { ClearButton } from "./clear-button";
 import { Filter } from "./filter";
 import { RootKeyFilter } from "./root-key-filter";
 import { UserFilter } from "./user-filter";
+import { DatePickerWithRange } from "./datepicker-with-range";
 
 export type SelectWorkspace = typeof workspaces.$inferSelect & {
   auditLogBuckets: Pick<typeof auditLogBucket.$inferSelect, "id" | "name">[];
@@ -46,11 +46,15 @@ export const Filters = ({
         }
       />
       {selectedBucketName === DEFAULT_BUCKET_NAME ? (
-        <Suspense fallback={<Filter param="users" title="Users" options={[]} />}>
+        <Suspense
+          fallback={<Filter param="users" title="Users" options={[]} />}
+        >
           <UserFilter tenantId={workspace.tenantId} />
         </Suspense>
       ) : null}
-      <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
+      <Suspense
+        fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}
+      >
         <RootKeyFilter workspaceId={workspace.id} />
       </Suspense>
       <Button className="bg-transparent">
