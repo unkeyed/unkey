@@ -1,6 +1,6 @@
 "use client";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
@@ -61,16 +61,15 @@ export default function TeamPage() {
         <PageContent>
           <SubMenu navigation={navigation} segment="team" />
           <div className="mb-20 flex flex-col gap-8 mt-8">
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Title>This is a personal account</EmptyPlaceholder.Title>
-              <EmptyPlaceholder.Description>
-                You can only manage teams in paid workspaces.
-              </EmptyPlaceholder.Description>
-
-              <Link href="/new">
-                <Button>Create a new workspace</Button>
-              </Link>
-            </EmptyPlaceholder>
+            <Empty>
+              <Empty.Title>This is a personal account</Empty.Title>
+              <Empty.Description>You can only manage teams in paid workspaces.</Empty.Description>
+              <Empty.Actions>
+                <Link href="/new">
+                  <Button>Create a new workspace</Button>
+                </Link>
+              </Empty.Actions>
+            </Empty>
           </div>
         </PageContent>
       </div>
@@ -215,11 +214,11 @@ const Invitations: React.FC = () => {
 
   if (!invitationList || invitationList.length === 0) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>No pending invitations</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>Invite members to your team</EmptyPlaceholder.Description>
+      <Empty>
+        <Empty.Title>No pending invitations</Empty.Title>
+        <Empty.Description>Invite members to your team</Empty.Description>
         <InviteButton />
-      </EmptyPlaceholder>
+      </Empty>
     );
   }
 

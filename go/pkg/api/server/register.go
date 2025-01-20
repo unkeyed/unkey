@@ -1,28 +1,61 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/unkeyed/unkey/go/pkg/api"
+	apierrors "github.com/unkeyed/unkey/go/pkg/api/errors"
 	"github.com/unkeyed/unkey/go/pkg/api/routes"
+	v1RatelimitLimit "github.com/unkeyed/unkey/go/pkg/api/routes/v1_ratelimit_limit"
 	"github.com/unkeyed/unkey/go/pkg/api/session"
 )
 
-func register[TRequest any, TResponse any](mux *http.ServeMux, route routes.Route[TRequest, TResponse]) {
-	mux.HandleFunc(fmt.Sprintf("%s %s", route.Method(), route.Path()), func(w http.ResponseWriter, r *http.Request) {
+// here we register all of the routes
+// this function runs during startup
+func (s *Server) registerRoutes() {
+
+	svc := &api.Services{
+		Logger:    s.logger,
+		Validator: s.validator,
+	}
+
+	register(s, v1RatelimitLimit.New(svc))
+}
+
+// register registers a route on the http ServeMux
+//
+// this can not be receiver method on a struct, because routes are generic.
+func register[TRequest any, TResponse any](srv *Server, route routes.Route[TRequest, TResponse]) {
+	srv.mux.HandleFunc(fmt.Sprintf("%s %s", route.Method(), route.Path()), func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("REQ: %s %s\n", r.Method, r.URL.Path)
 
-		sess := session.New[TRequest, TResponse](w, r)
+		sess := srv.getSession().(session.Session[TRequest, TResponse])
+		defer srv.returnSession(sess)
+
+		sess.Init(w, r)
+
 		err := route.Handle(sess)
 
 		if err != nil {
-			panic("HANDLE ME")
+			base := apierrors.BaseError{}
+			if errors.As(err, &base) {
+
+				base.RequestID = sess.RequestID()
+				b, err := base.Marshal()
+				if err != nil {
+					panic(err)
+				}
+				_, err = w.Write(b)
+				if err != nil {
+					panic(err)
+				}
+				return
+			}
+
 		}
 
 	})
-}
-
-func (s *server) registerRoutes() {
-
 }

@@ -1,6 +1,12 @@
 package apierrors
 
+import "encoding/json"
+
 type Error interface {
+	// Conform with the std error interface
+	Error() string
+
+	// Serialize the error as json to be sent to the client.
 	Marshal() ([]byte, error)
 }
 
@@ -119,4 +125,12 @@ type BaseError struct {
 	// include it in their support ticket to retrieve detailed traces about this
 	// request later.
 	RequestID string `json:"requestId"`
+}
+
+func (e BaseError) Error() string {
+	panic("IMPLEMENT ME")
+}
+
+func (e BaseError) Marshal() ([]byte, error) {
+	return json.Marshal(e)
 }

@@ -1,12 +1,14 @@
 package api
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
 
+	"github.com/unkeyed/unkey/go/pkg/api/server"
 	"github.com/unkeyed/unkey/go/pkg/config"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -67,7 +69,21 @@ func run(c *cli.Context) error {
 
 	logger.Info(c.Context, "configration loaded", slog.String("file", configFile))
 
-	// TODO: start server
+	srv, err := server.New(server.Config{
+		NodeId:     cfg.NodeId,
+		Logger:     logger,
+		Clickhouse: nil,
+	})
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		listenErr := srv.Listen(c.Context, fmt.Sprintf(":%s", cfg.Port))
+		if listenErr != nil {
+			panic(listenErr)
+		}
+	}()
 
 	cShutdown := make(chan os.Signal, 1)
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)

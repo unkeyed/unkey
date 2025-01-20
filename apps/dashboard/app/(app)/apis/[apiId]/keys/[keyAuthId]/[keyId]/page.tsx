@@ -8,7 +8,6 @@ import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
@@ -20,8 +19,9 @@ import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { Nodes } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { BarChart, Minus } from "lucide-react";
+import { Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
 import PermissionTree from "./permission-list";
@@ -373,15 +373,11 @@ export default async function APIKeyDetailPage(props: {
                 </CardContent>
               </Card>
             ) : (
-              <EmptyPlaceholder>
-                <EmptyPlaceholder.Icon>
-                  <BarChart />
-                </EmptyPlaceholder.Icon>
-                <EmptyPlaceholder.Title>Not used</EmptyPlaceholder.Title>
-                <EmptyPlaceholder.Description>
-                  This key was not used in the last {interval}
-                </EmptyPlaceholder.Description>
-              </EmptyPlaceholder>
+              <Empty>
+                <Empty.Icon />
+                <Empty.Title>Not used</Empty.Title>
+                <Empty.Description>This key was not used in the last {interval}</Empty.Description>
+              </Empty>
             )}
 
             {latestVerifications.val && latestVerifications.val.length > 0 ? (

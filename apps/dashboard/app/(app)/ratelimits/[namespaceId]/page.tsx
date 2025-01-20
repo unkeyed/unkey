@@ -1,6 +1,5 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -14,7 +13,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db, eq, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { Gauge } from "@unkey/icons";
-import { BarChart } from "lucide-react";
+import { Empty } from "@unkey/ui";
 import ms from "ms";
 import { redirect } from "next/navigation";
 import { parseAsArrayOf, parseAsString, parseAsStringEnum } from "nuqs/server";
@@ -224,19 +223,15 @@ export default async function RatelimitNamespacePage(props: {
               </CardContent>
             </Card>
           ) : (
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Icon>
-                <BarChart />
-              </EmptyPlaceholder.Icon>
-              <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
-              <EmptyPlaceholder.Description>
-                Ratelimit something or change the range
-              </EmptyPlaceholder.Description>
+            <Empty>
+              <Empty.Icon />
+              <Empty.Title>No usage</Empty.Title>
+              <Empty.Description>Ratelimit something or change the range</Empty.Description>
               <Code className="flex items-start  gap-0 sm:gap-8 p-4 my-8  text-xs  sm:text-xxs text-start overflow-x-auto max-w-full">
                 {snippet}
                 <CopyButton value={snippet} />
               </Code>
-            </EmptyPlaceholder>
+            </Empty>
           )}
         </div>
       </PageContent>

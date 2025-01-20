@@ -2,17 +2,20 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/api/session"
 	"github.com/unkeyed/unkey/go/pkg/api/validation"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 )
 
 type Server struct {
 	sync.Mutex
+
 	logger      logging.Logger
 	isListening bool
 	mux         *http.ServeMux
@@ -20,6 +23,8 @@ type Server struct {
 
 	events    EventBuffer
 	validator validation.OpenAPIValidator
+
+	sessions sync.Pool
 }
 
 type Config struct {
@@ -50,14 +55,41 @@ func New(config Config) (*Server, error) {
 		WriteTimeout: 20 * time.Second,
 	}
 
+	validator, err := validation.New()
+	if err != nil {
+		return nil, fmt.Errorf("unable to create validator: %w", err)
+	}
+
 	s := &Server{
 		logger:      config.Logger,
 		isListening: false,
 		mux:         mux,
 		srv:         srv,
+		sessions: sync.Pool{
+			New: func() any {
+				return session.New[any, any](validator)
+			},
+		},
 	}
-
 	return s, nil
+}
+
+// Get a fresh or reused session from the pool.
+//
+// You must return it to the pool when you are done via s.returnSession()
+//
+// Returning proper types is a bit annoying here, cause each session might have
+// different requets and response types, so we just return any.
+// You should immediately cast it to your desired type
+//
+// sess := s.getSession().(session.Session[MyRequest, MyResponse])
+func (s *Server) getSession() any {
+	return s.sessions.Get()
+}
+
+// Return the session to the sync pool.
+func (s *Server) returnSession(session any) {
+	s.sessions.Put(session)
 }
 
 // Calling this function multiple times will have no effect.
@@ -70,7 +102,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 	}
 	s.isListening = true
 	s.Unlock()
-	s.RegisterRoutes()
+	s.registerRoutes()
 
 	s.srv.Addr = addr
 

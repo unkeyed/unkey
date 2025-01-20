@@ -1,4 +1,3 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -6,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ShieldKey } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { ChevronRight, Scan } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
@@ -83,17 +83,17 @@ export default async function RolesPage() {
         <div className="mt-8 mb-20 overflow-x-auto">
           <div className="flex flex-col gap-8 mb-20 ">
             {workspace.roles.length === 0 ? (
-              <EmptyPlaceholder>
-                <EmptyPlaceholder.Icon>
-                  <Scan />
-                </EmptyPlaceholder.Icon>
-                <EmptyPlaceholder.Title>No roles found</EmptyPlaceholder.Title>
-                <EmptyPlaceholder.Description>Create your first role</EmptyPlaceholder.Description>
-                <CreateNewRole
-                  trigger={<Button variant="primary">Create New Role</Button>}
-                  permissions={workspace.permissions}
-                />
-              </EmptyPlaceholder>
+              <Empty>
+                <Empty.Icon />
+                <Empty.Title>No roles found</Empty.Title>
+                <Empty.Description>Create your first role</Empty.Description>
+                <Empty.Actions>
+                  <CreateNewRole
+                    trigger={<Button variant="primary">Create New Role</Button>}
+                    permissions={workspace.permissions}
+                  />
+                </Empty.Actions>
+              </Empty>
             ) : (
               <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border">
                 {workspace.roles.map((r) => (
