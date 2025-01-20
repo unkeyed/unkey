@@ -1,104 +1,33 @@
 import type { FilterValue } from "@/app/(app)/logs-v2/filters.type";
 import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
+import { trpc } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCheckboxState } from "./hooks/use-checkbox-state";
 
-interface CheckboxOption {
-  id: number;
-  path: string;
-  checked: boolean;
-}
-
-const options: CheckboxOption[] = [
-  {
-    id: 1,
-    path: "/v1/analytics.export",
-    checked: false,
-  },
-  {
-    id: 2,
-    path: "/v1/analytics.getDetails",
-    checked: false,
-  },
-  {
-    id: 3,
-    path: "/v1/analytics.getOverview",
-    checked: false,
-  },
-  {
-    id: 4,
-    path: "/v1/auth.login",
-    checked: false,
-  },
-  {
-    id: 5,
-    path: "/v1/auth.logout",
-    checked: false,
-  },
-  {
-    id: 6,
-    path: "/v1/auth.refreshToken",
-    checked: false,
-  },
-  {
-    id: 7,
-    path: "/v1/data.delete",
-    checked: false,
-  },
-  {
-    id: 8,
-    path: "/v1/data.fetch",
-    checked: false,
-  },
-  {
-    id: 9,
-    path: "/v1/data.submit",
-    checked: false,
-  },
-  {
-    id: 10,
-    path: "/v1/auth.login",
-    checked: false,
-  },
-  {
-    id: 11,
-    path: "/v1/auth.logout",
-    checked: false,
-  },
-  {
-    id: 12,
-    path: "/v1/auth.refreshToken",
-    checked: false,
-  },
-  {
-    id: 13,
-    path: "/v1/data.delete",
-    checked: false,
-  },
-  {
-    id: 14,
-    path: "/v1/data.fetch",
-    checked: false,
-  },
-  {
-    id: 15,
-    path: "/v1/data.submit",
-    checked: false,
-  },
-] as const;
-
 export const PathsFilter = () => {
+  const { data: paths, isLoading } = trpc.logs.queryDistinctPaths.useQuery(undefined, {
+    select(paths) {
+      return paths
+        ? paths.map((path, index) => ({
+            id: index + 1,
+            path,
+            checked: false,
+          }))
+        : [];
+    },
+  });
   const { filters, updateFilters } = useFilters();
   const [isAtBottom, setIsAtBottom] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState({
-    options,
+    options: paths ?? [],
     filters,
     filterField: "paths",
     checkPath: "path",
+    shouldSyncWithOptions: true,
   });
   const handleScroll = useCallback(() => {
     if (scrollContainerRef.current) {
@@ -133,6 +62,21 @@ export const PathsFilter = () => {
 
     updateFilters([...otherFilters, ...pathFilters]);
   }, [checkboxes, filters, updateFilters]);
+
+  if (isLoading) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center p-4"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="flex items-center gap-3">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent-11 border-t-transparent" />
+          <span className="text-sm text-accent-11">Loading paths...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col font-mono">

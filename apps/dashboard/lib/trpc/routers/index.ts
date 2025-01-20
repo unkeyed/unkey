@@ -21,6 +21,7 @@ import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { deleteLlmGateway } from "./llmGateway/delete";
 import { llmSearch } from "./logs/llm-search";
+import { queryDistinctPaths } from "./logs/query-distinct-paths";
 import { queryLogs } from "./logs/query-log";
 import { queryTimeseries } from "./logs/query-timeseries";
 import { createPlainIssue } from "./plain";
@@ -121,6 +122,7 @@ export const router = t.router({
   }),
   logs: t.router({
     queryLogs,
+    queryDistinctPaths,
     queryTimeseries,
     llmSearch,
   }),
