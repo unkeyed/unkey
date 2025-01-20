@@ -50,7 +50,10 @@ export const LogsSearch = () => {
     const query = search.trim();
     if (query) {
       try {
-        await queryLLMForStructuredOutput.mutateAsync(query);
+        await queryLLMForStructuredOutput.mutateAsync({
+          query,
+          timestamp: Date.now(),
+        });
       } catch (error) {
         console.error("Search failed:", error);
       }
@@ -86,7 +89,7 @@ export const LogsSearch = () => {
           isLoading ? "bg-gray-4" : "",
         )}
       >
-        <div className="flex items-center gap-2 w-48">
+        <div className="flex items-center gap-2 w-72">
           <div className="flex-shrink-0">
             {isLoading ? (
               <Refresh3 className="text-accent-10 size-4 animate-spin" />

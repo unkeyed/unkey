@@ -14,14 +14,14 @@ const openai = env().OPENAI_API_KEY
     })
   : null;
 
-async function getStructuredSearchFromLLM(userSearchMsg: string) {
+async function getStructuredSearchFromLLM(userSearchMsg: string, usersReferenceMS: number) {
   try {
     if (!openai) {
       return null; // Skip LLM processing in development environment when OpenAI API key is not configured
     }
     const completion = await openai.beta.chat.completions.parse({
       // Don't change the model only a few models allow structured outputs
-      model: "gpt-4o-2024-08-06",
+      model: "gpt-4o-mini",
       temperature: 0.2, // Range 0-2, lower = more focused/deterministic
       top_p: 0.1, // Alternative to temperature, controls randomness
       frequency_penalty: 0.5, // Range -2 to 2, higher = less repetition
@@ -30,7 +30,7 @@ async function getStructuredSearchFromLLM(userSearchMsg: string) {
       messages: [
         {
           role: "system",
-          content: getSystemPrompt(),
+          content: getSystemPrompt(usersReferenceMS),
         },
         {
           role: "user",
@@ -81,7 +81,7 @@ async function getStructuredSearchFromLLM(userSearchMsg: string) {
 }
 
 export const llmSearch = rateLimitedProcedure(ratelimit.update)
-  .input(z.string())
+  .input(z.object({ query: z.string(), timestamp: z.number() }))
   .mutation(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces
       .findFirst({
@@ -103,12 +103,12 @@ export const llmSearch = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    return await getStructuredSearchFromLLM(input);
+    return await getStructuredSearchFromLLM(input.query, input.timestamp);
   });
 
 // HELPERS
 
-const getSystemPrompt = () => {
+const getSystemPrompt = (usersReferenceMS: number) => {
   const operatorsByField = Object.entries(filterFieldConfig)
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
@@ -123,7 +123,7 @@ const getSystemPrompt = () => {
       }${constraints}`;
     })
     .join("\n");
-  return `You are an expert at converting natural language queries into filters. For queries with multiple conditions, output all relevant filters. We will process them in sequence to build the complete filter. For status codes, always return one for each variant like 200,400 or 500 instead of 200,201, etc... - the application will handle status code grouping internally.
+  return `You are an expert at converting natural language queries into filters. For queries with multiple conditions, output all relevant filters. We will process them in sequence to build the complete filter. For status codes, always return one for each variant like 200,400 or 500 instead of 200,201, etc... - the application will handle status code grouping internally. Always use this ${usersReferenceMS} timestamp when dealing with time related queries.
 
 Examples:
 Query: "path should start with /api/oz and method should be POST"
@@ -135,6 +135,35 @@ Result: [
   {
     field: "methods", 
     filters: [{ operator: "is", value: "POST" }]
+  }
+]
+
+Query: "give me the logs of last 10 minutes"
+Result: [
+  {
+    field: "startTime",
+    filters: [{ 
+      operator: "is", 
+      value: ${usersReferenceMS - 10 * 60 * 1000} // Current time - 10 minutes
+    }]
+  }
+]
+
+Query: "show logs between 2024-01-19 and 2024-01-20"
+Result: [
+  {
+    field: "startTime",
+    filters: [{ 
+      operator: "is", 
+      value: 1705622400000  // 2024-01-19 00:00:00
+    }]
+  },
+  {
+    field: "endTime",
+    filters: [{ 
+      operator: "is", 
+      value: 1705708800000  // 2024-01-20 00:00:00
+    }]
   }
 ]
 
@@ -190,5 +219,6 @@ Result: [
 ]
 
 Remember:
-${operatorsByField}`;
+${operatorsByField}
+- startTime and endTime accept is operator for filtering logs by time range`;
 };
