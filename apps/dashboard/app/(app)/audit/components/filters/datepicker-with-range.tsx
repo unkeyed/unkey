@@ -1,10 +1,6 @@
 "use client";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Button } from "@unkey/ui";
 import { format, setHours, setMinutes, setSeconds } from "date-fns";
@@ -14,18 +10,14 @@ import { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { TimeSplitInput } from "./timesplit-input";
 
-interface DatePickerWithRangeProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+interface DatePickerWithRangeProps extends React.HTMLAttributes<HTMLDivElement> {
   initialParams: {
     startTime: number | null;
     endTime: number | null;
   };
 }
 
-export function DatePickerWithRange({
-  className,
-  initialParams,
-}: DatePickerWithRangeProps) {
+export function DatePickerWithRange({ className, initialParams }: DatePickerWithRangeProps) {
   const [interimDate, setInterimDate] = useState<DateRange>({
     from: new Date(),
     to: new Date(),
@@ -100,7 +92,7 @@ export function DatePickerWithRange({
             id="date"
             className={cn(
               "justify-start text-left font-normal flex gap-2 items-center",
-              !finalDate && "text-muted-foreground"
+              !finalDate && "text-muted-foreground",
             )}
           >
             <div className="flex gap-2 items-center w-fit">
@@ -110,8 +102,7 @@ export function DatePickerWithRange({
               {finalDate?.from ? (
                 finalDate.to ? (
                   <div className="truncate">
-                    {format(finalDate.from, "LLL dd, y")} -{" "}
-                    {format(finalDate.to, "LLL dd, y")}
+                    {format(finalDate.from, "LLL dd, y")} - {format(finalDate.to, "LLL dd, y")}
                   </div>
                 ) : (
                   format(finalDate.from, "LLL dd, y")
@@ -167,10 +158,7 @@ export function DatePickerWithRange({
           </div>
           <div className="flex gap-2 p-2 w-full justify-end bg-background-subtle">
             <Button onClick={() => handleFinalDate(undefined)}>Clear</Button>
-            <Button
-              variant="primary"
-              onClick={() => handleFinalDate(interimDate)}
-            >
+            <Button variant="primary" onClick={() => handleFinalDate(interimDate)}>
               Apply
             </Button>
           </div>

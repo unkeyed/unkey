@@ -6,10 +6,10 @@ import { Suspense } from "react";
 import type { ParsedParams } from "../../actions";
 import { BucketSelect } from "./bucket-select";
 import { ClearButton } from "./clear-button";
+import { DatePickerWithRange } from "./datepicker-with-range";
 import { Filter } from "./filter";
 import { RootKeyFilter } from "./root-key-filter";
 import { UserFilter } from "./user-filter";
-import { DatePickerWithRange } from "./datepicker-with-range";
 
 export type SelectWorkspace = typeof workspaces.$inferSelect & {
   auditLogBuckets: Pick<typeof auditLogBucket.$inferSelect, "id" | "name">[];
@@ -46,15 +46,11 @@ export const Filters = ({
         }
       />
       {selectedBucketName === DEFAULT_BUCKET_NAME ? (
-        <Suspense
-          fallback={<Filter param="users" title="Users" options={[]} />}
-        >
+        <Suspense fallback={<Filter param="users" title="Users" options={[]} />}>
           <UserFilter tenantId={workspace.tenantId} />
         </Suspense>
       ) : null}
-      <Suspense
-        fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}
-      >
+      <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
         <RootKeyFilter workspaceId={workspace.id} />
       </Suspense>
       <Button className="bg-transparent">

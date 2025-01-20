@@ -1,5 +1,20 @@
 import type { Log } from "@unkey/clickhouse/src/logs";
-import type { ResponseBody } from "../logs/types";
+
+export type ResponseBody = {
+  keyId: string;
+  valid: boolean;
+  meta: Record<string, unknown>;
+  enabled: boolean;
+  permissions: string[];
+  code:
+    | "VALID"
+    | "RATE_LIMITED"
+    | "EXPIRED"
+    | "USAGE_EXCEEDED"
+    | "DISABLED"
+    | "FORBIDDEN"
+    | "INSUFFICIENT_PERMISSIONS";
+};
 
 class ResponseBodyParseError extends Error {
   constructor(
