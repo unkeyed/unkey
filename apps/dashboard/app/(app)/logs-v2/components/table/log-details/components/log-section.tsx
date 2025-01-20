@@ -28,14 +28,14 @@ export const LogSection = ({
         <span className="text-[13px] text-accent-9 font-sans">{title}</span>
       </div>
       <Card className="bg-gray-2 border-gray-4 rounded-lg">
-        <CardContent className="py-2 px-3 text-xs relative group">
-          <pre className="flex flex-col gap-1">
+        <CardContent className="py-2 px-3 text-xs relative group ">
+          <pre className="flex flex-col gap-1 whitespace-pre-wrap leading-relaxed">
             {Array.isArray(details)
               ? details.map((header) => {
                   const [key, ...valueParts] = header.split(":");
                   const value = valueParts.join(":").trim();
                   return (
-                    <div className="group flex items-center w-full p-[3px]">
+                    <div className="group flex items-center w-full p-[3px]" key={key}>
                       <span className="w-28 text-left truncate text-accent-9">{key}:</span>
                       <span className="ml-2 text-xs text-accent-12 ">{value}</span>
                     </div>
