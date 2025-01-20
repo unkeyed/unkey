@@ -126,6 +126,52 @@ const getSystemPrompt = (usersReferenceMS: number) => {
   return `You are an expert at converting natural language queries into filters. For queries with multiple conditions, output all relevant filters. We will process them in sequence to build the complete filter. For status codes, always return one for each variant like 200,400 or 500 instead of 200,201, etc... - the application will handle status code grouping internally. Always use this ${usersReferenceMS} timestamp when dealing with time related queries.
 
 Examples:
+Query: "show me failed requests"
+Result: [
+  {
+    field: "status",
+    filters: [
+      { operator: "is", value: 400 },
+      { operator: "is", value: 500 }
+    ]
+  }
+]
+
+Query: "show me failed requests today"
+Result: [
+  {
+    field: "status",
+    filters: [
+      { operator: "is", value: 400 },
+      { operator: "is", value: 500 }
+    ]
+  },
+  {
+    field: "startTime",
+    filters: [{ 
+      operator: "is", 
+      value: ${getDayStart(usersReferenceMS)} // Start of the current day
+    }]
+  }
+]
+
+Query: "show requests from yesterday"
+Result: [
+  {
+    field: "startTime",
+    filters: [{ 
+      operator: "is", 
+      value: ${getDayStart(usersReferenceMS - 24 * 60 * 60 * 1000)} // Start of previous day
+    }],
+  },
+  {
+    field: "endTime",
+    filters: [{ 
+      operator: "is", 
+      value: ${getDayStart(usersReferenceMS)} // Start of current day
+    }]
+  }
+]
 Query: "path should start with /api/oz and method should be POST"
 Result: [
   { 
@@ -220,5 +266,15 @@ Result: [
 
 Remember:
 ${operatorsByField}
-- startTime and endTime accept is operator for filtering logs by time range`;
+- startTime and endTime accept is operator for filtering logs by time range
+- For status codes, use ONLY:
+  • 200 for successful responses
+  • 400 for client errors (4XX series)
+  • 500 for server errors (5XX series)`;
 };
+
+function getDayStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}

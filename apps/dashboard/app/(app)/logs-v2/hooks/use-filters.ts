@@ -11,38 +11,6 @@ import type {
   ResponseStatus,
 } from "../filters.type";
 
-const parseAsFilterValue: Parser<FilterUrlValue | null> = {
-  parse: (str: string | null) => {
-    if (!str) {
-      return null;
-    }
-    try {
-      // Format: operator:value (e.g., "is:200" for {operator: "is", value: "200"})
-      const [operator, val] = str.split(/:(.+)/);
-      if (!operator || !val) {
-        return null;
-      }
-
-      if (!["is", "contains", "startsWith", "endsWith"].includes(operator)) {
-        return null;
-      }
-
-      return {
-        operator: operator as FilterOperator,
-        value: val,
-      };
-    } catch {
-      return null;
-    }
-  },
-  serialize: (value: FilterUrlValue | null) => {
-    if (!value) {
-      return "";
-    }
-    return `${value.operator}:${value.value}`;
-  },
-};
-
 const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
   parse: (str: string | null) => {
     if (!str) {
@@ -73,8 +41,8 @@ const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
 };
 
 export const queryParamsPayload = {
-  requestId: parseAsFilterValue,
-  host: parseAsFilterValue,
+  requestId: parseAsFilterValueArray,
+  host: parseAsFilterValueArray,
   methods: parseAsFilterValueArray,
   paths: parseAsFilterValueArray,
   status: parseAsFilterValueArray,
@@ -118,23 +86,23 @@ export const useFilters = () => {
       });
     });
 
-    if (searchParams.host) {
+    searchParams.host?.forEach((hostFilter) => {
       activeFilters.push({
         id: crypto.randomUUID(),
         field: "host",
-        operator: searchParams.host.operator,
-        value: searchParams.host.value,
+        operator: hostFilter.operator,
+        value: hostFilter.value,
       });
-    }
+    });
 
-    if (searchParams.requestId) {
+    searchParams.requestId?.forEach((requestIdFilter) => {
       activeFilters.push({
         id: crypto.randomUUID(),
         field: "requestId",
-        operator: searchParams.requestId.operator,
-        value: searchParams.requestId.value,
+        operator: requestIdFilter.operator,
+        value: requestIdFilter.value,
       });
-    }
+    });
 
     ["startTime", "endTime"].forEach((field) => {
       const value = searchParams[field as keyof QuerySearchParams];
@@ -167,6 +135,8 @@ export const useFilters = () => {
       const responseStatusFilters: FilterUrlValue[] = [];
       const methodFilters: FilterUrlValue[] = [];
       const pathFilters: FilterUrlValue[] = [];
+      const hostFilters: FilterUrlValue[] = [];
+      const requestIdFilters: FilterUrlValue[] = [];
 
       newFilters.forEach((filter) => {
         switch (filter.field) {
@@ -189,16 +159,16 @@ export const useFilters = () => {
             });
             break;
           case "host":
-            newParams.host = {
+            hostFilters.push({
               value: filter.value as string,
               operator: filter.operator,
-            };
+            });
             break;
           case "requestId":
-            newParams.requestId = {
+            requestIdFilters.push({
               value: filter.value as string,
               operator: filter.operator,
-            };
+            });
             break;
           case "startTime":
           case "endTime":
@@ -211,6 +181,8 @@ export const useFilters = () => {
       newParams.status = responseStatusFilters.length > 0 ? responseStatusFilters : null;
       newParams.methods = methodFilters.length > 0 ? methodFilters : null;
       newParams.paths = pathFilters.length > 0 ? pathFilters : null;
+      newParams.host = hostFilters.length > 0 ? hostFilters : null;
+      newParams.requestId = requestIdFilters.length > 0 ? requestIdFilters : null;
 
       setSearchParams(newParams);
     },

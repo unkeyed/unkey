@@ -47,13 +47,13 @@ export type FilterFieldConfigs = {
 export type AllowedOperators<F extends FilterField> = FilterFieldConfigs[F]["operators"][number];
 
 export type QuerySearchParams = {
-  host: FilterUrlValue | null;
-  requestId: FilterUrlValue | null;
   methods: FilterUrlValue[] | null;
   paths: FilterUrlValue[] | null;
   status: FilterUrlValue[] | null;
   startTime?: number | null;
   endTime?: number | null;
+  host: FilterUrlValue[] | null;
+  requestId: FilterUrlValue[] | null;
 };
 
 export interface FilterUrlValue {
