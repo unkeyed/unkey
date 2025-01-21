@@ -1,4 +1,5 @@
-import { cn } from "@unkey/ui/src/lib/utils";
+import { cn } from "@/lib/utils";
+import { CircleCarretRight } from "@unkey/icons";
 import { useCallback, useRef, useState } from "react";
 import { useScrollLock } from "usehooks-ts";
 import { EmptyState } from "./components/empty-state";
@@ -11,8 +12,11 @@ import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
 import type { VirtualTableProps } from "./types";
 
+const SEPARATOR_HEIGHT = 26;
+
 export function VirtualTable<T>({
-  data,
+  data: historicData,
+  realtimeData = [],
   columns,
   isLoading = false,
   config: userConfig,
@@ -25,7 +29,6 @@ export function VirtualTable<T>({
   selectedItem,
   renderDetails,
   isFetchingNextPage,
-  renderBottomContent,
 }: VirtualTableProps<T>) {
   const config = { ...DEFAULT_CONFIG, ...userConfig };
   const parentRef = useRef<HTMLDivElement>(null);
@@ -33,12 +36,19 @@ export function VirtualTable<T>({
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
   const fixedHeight = useTableHeight(containerRef, config.headerHeight, config.tableBorder);
-  const virtualizer = useVirtualData({
-    data,
+  const historicVirtualizer = useVirtualData({
+    data: historicData,
     isLoading,
     config,
     onLoadMore,
     isFetchingNextPage,
+    parentRef,
+  });
+
+  const realtimeVirtualizer = useVirtualData({
+    data: realtimeData,
+    isLoading: false,
+    config,
     parentRef,
   });
 
@@ -64,7 +74,7 @@ export function VirtualTable<T>({
     [onRowClick, config.tableBorder],
   );
 
-  if (!isLoading && data.length === 0) {
+  if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
     return (
       <div
         className="w-full h-full flex flex-col"
@@ -77,13 +87,19 @@ export function VirtualTable<T>({
     );
   }
 
+  // Calculate total height including both sections and separator if needed
+  const totalHeight =
+    realtimeVirtualizer.getTotalSize() +
+    historicVirtualizer.getTotalSize() +
+    (realtimeData.length > 0 ? SEPARATOR_HEIGHT : 0);
+
   return (
     <div className="w-full flex flex-col" ref={containerRef}>
       <TableHeader columns={columns} />
       <div
         ref={parentRef}
         data-table-container="true"
-        className="overflow-auto pb-2 px-1 scroll-smooth"
+        className="overflow-auto pb-2 px-1 scroll-smooth relative"
         style={{ height: `${fixedHeight}px` }}
       >
         <div
@@ -91,28 +107,14 @@ export function VirtualTable<T>({
             "opacity-40": isLoading,
           })}
           style={{
-            height: `${virtualizer.getTotalSize()}px`,
+            height: `${totalHeight}px`,
             width: "100%",
             position: "relative",
           }}
         >
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            if (isLoading) {
-              return (
-                <div
-                  key={virtualRow.key}
-                  style={{
-                    position: "absolute",
-                    top: `${virtualRow.start}px`,
-                    width: "100%",
-                  }}
-                >
-                  <LoadingRow columns={columns} />
-                </div>
-              );
-            }
-
-            const item = data[virtualRow.index];
+          {/* Render real-time data section */}
+          {realtimeVirtualizer.getVirtualItems().map((virtualRow) => {
+            const item = realtimeData[virtualRow.index];
             if (!item) {
               return null;
             }
@@ -129,23 +131,91 @@ export function VirtualTable<T>({
                 virtualRow={virtualRow}
                 rowHeight={config.rowHeight}
                 isSelected={isSelected}
+                selectedClassName={selectedClassName}
+                rowClassName={rowClassName}
+                onClick={() => handleRowClick(item)}
+                measureRef={realtimeVirtualizer.measureElement}
+                onRowClick={onRowClick}
+              />
+            );
+          })}
+
+          {/* Separator */}
+          {realtimeData.length > 0 && (
+            <div
+              className="w-full sticky"
+              style={{
+                top: `${realtimeVirtualizer.getTotalSize()}px`,
+                zIndex: 10,
+              }}
+            >
+              <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
+                <CircleCarretRight className="size-3" />
+                Live
+              </div>
+            </div>
+          )}
+
+          {/* Render historic data section */}
+          {historicVirtualizer.getVirtualItems().map((virtualRow) => {
+            if (isLoading) {
+              return (
+                <div
+                  key={virtualRow.key}
+                  style={{
+                    position: "absolute",
+                    top: `${
+                      virtualRow.start +
+                      realtimeVirtualizer.getTotalSize() +
+                      (realtimeData.length > 0 ? SEPARATOR_HEIGHT : 0)
+                    }px`,
+                    width: "100%",
+                  }}
+                >
+                  <LoadingRow columns={columns} />
+                </div>
+              );
+            }
+
+            const item = historicData[virtualRow.index];
+            if (!item) {
+              return null;
+            }
+
+            const isSelected = selectedItem
+              ? keyExtractor(selectedItem) === keyExtractor(item)
+              : false;
+
+            return (
+              <TableRow
+                key={virtualRow.key}
+                item={item}
+                columns={columns}
+                virtualRow={{
+                  ...virtualRow,
+                  start:
+                    virtualRow.start +
+                    (realtimeData.length > 0
+                      ? realtimeVirtualizer.getTotalSize() + SEPARATOR_HEIGHT
+                      : 0),
+                }}
+                rowHeight={config.rowHeight}
+                isSelected={isSelected}
                 rowClassName={rowClassName}
                 selectedClassName={selectedClassName}
                 onClick={() => handleRowClick(item)}
-                measureRef={virtualizer.measureElement}
+                measureRef={historicVirtualizer.measureElement}
                 onRowClick={onRowClick}
               />
             );
           })}
         </div>
 
-        {/* Render optional bottom components like Live separator row on logs page */}
-        {renderBottomContent}
         {isFetchingNextPage && <LoadingIndicator />}
 
         {selectedItem &&
           renderDetails &&
-          renderDetails(selectedItem, () => onRowClick?.(null as any), tableDistanceToTop)}
+          renderDetails(selectedItem, () => onRowClick?.(null), tableDistanceToTop)}
       </div>
     </div>
   );

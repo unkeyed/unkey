@@ -9,6 +9,10 @@ import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
 
 const formatFieldName = (field: string): string => {
   switch (field) {
+    case "startTime":
+      return "Start time";
+    case "endTime":
+      return "End time";
     case "status":
       return "Status";
     case "paths":
@@ -103,7 +107,23 @@ export const LogsControlCloud = () => {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
   useKeyboardShortcut({ key: "d", meta: true }, () => {
-    updateFilters([]);
+    const otherFilters = filters.filter((f) => !["endTime", "startTime"].includes(f.field));
+    const timestamp = Date.now();
+    updateFilters([
+      ...otherFilters,
+      {
+        field: "endTime",
+        value: timestamp,
+        id: crypto.randomUUID(),
+        operator: "is",
+      },
+      {
+        field: "startTime",
+        value: timestamp - 24 * 60 * 60 * 1000,
+        id: crypto.randomUUID(),
+        operator: "is",
+      },
+    ]);
   });
 
   useKeyboardShortcut({ key: "c", meta: true }, () => {

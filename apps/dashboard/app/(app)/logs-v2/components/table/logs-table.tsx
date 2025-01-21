@@ -116,8 +116,10 @@ const additionalColumns: Column<Log>[] = [
 }));
 
 export const LogsTable = () => {
-  const { displayProperties, setSelectedLog, selectedLog } = useLogsContext();
-  const { logs, isLoading, isLoadingMore, loadMore } = useLogsQuery();
+  const { displayProperties, setSelectedLog, selectedLog, isLive } = useLogsContext();
+  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore } = useLogsQuery({
+    startPolling: isLive,
+  });
 
   const getRowClassName = (log: Log) => {
     const style = getStatusStyle(log.response_status);
@@ -227,7 +229,8 @@ export const LogsTable = () => {
 
   return (
     <VirtualTable
-      data={logs ?? []}
+      data={historicalLogs}
+      realtimeData={realtimeLogs}
       isLoading={isLoading}
       isFetchingNextPage={isLoadingMore}
       onLoadMore={loadMore}
@@ -237,12 +240,6 @@ export const LogsTable = () => {
       keyExtractor={(log) => log.request_id}
       rowClassName={getRowClassName}
       selectedClassName={getSelectedClassName}
-      // renderBottomContent={
-      //   <div className="h-6 bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-      //     <CircleCarretRight className="size-3" />
-      //     Live
-      //   </div>
-      // }
     />
   );
 };

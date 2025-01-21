@@ -1,6 +1,7 @@
-import { Calendar, CircleCarretRight, Refresh3 } from "@unkey/icons";
+import { Calendar, Refresh3 } from "@unkey/icons";
 import { LogsDisplay } from "./components/logs-display";
 import { LogsFilters } from "./components/logs-filters";
+import { LogsLiveSwitch } from "./components/logs-live-switch";
 import { LogsSearch } from "./components/logs-search";
 
 export function LogsControls() {
@@ -21,9 +22,8 @@ export function LogsControls() {
         </div>
 
         <div className="flex gap-2">
-          <div className="flex gap-2 items-center px-2">
-            <CircleCarretRight className="text-accent-9 size-4" />
-            <span className="text-accent-12 font-medium text-[13px]">Live</span>
+          <div className="flex gap-2 items-center">
+            <LogsLiveSwitch />
           </div>
           <div className="flex gap-2 items-center px-2">
             <Refresh3 className="text-accent-9 size-4" />

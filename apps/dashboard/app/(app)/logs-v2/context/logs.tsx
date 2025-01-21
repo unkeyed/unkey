@@ -16,6 +16,8 @@ type DisplayProperty =
   | "response_headers";
 
 type LogsContextType = {
+  isLive: boolean;
+  toggleLive: () => void;
   selectedLog: Log | null;
   setSelectedLog: (log: Log | null) => void;
   displayProperties: Set<DisplayProperty>;
@@ -34,6 +36,7 @@ const LogsContext = createContext<LogsContextType | null>(null);
 
 export const LogsProvider = ({ children }: PropsWithChildren) => {
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
+  const [isLive, setIsLive] = useState(false);
   const [displayProperties, setDisplayProperties] = useState<Set<DisplayProperty>>(
     new Set(DEFAULT_DISPLAY_PROPERTIES),
   );
@@ -50,9 +53,15 @@ export const LogsProvider = ({ children }: PropsWithChildren) => {
     });
   };
 
+  const toggleLive = () => {
+    setIsLive((prev) => !prev);
+  };
+
   return (
     <LogsContext.Provider
       value={{
+        isLive,
+        toggleLive,
         selectedLog,
         setSelectedLog,
         displayProperties,

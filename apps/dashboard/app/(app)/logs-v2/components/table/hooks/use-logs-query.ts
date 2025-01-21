@@ -1,19 +1,26 @@
 import { trpc } from "@/lib/trpc/client";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
 import type { queryLogsPayload } from "../query-logs.schema";
 
-interface UseLogsQueryParams {
+type UseLogsQueryParams = {
   limit?: number;
-}
+  pollIntervalMs?: number;
+  startPolling?: boolean;
+};
 
-export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
-  const [logs, setLogs] = useState<Log[]>([]);
+export function useLogsQuery({
+  limit = 50,
+  pollIntervalMs = 5000,
+  startPolling = false,
+}: UseLogsQueryParams = {}) {
+  const [historicalLogs, setHistoricalLogs] = useState<Log[]>([]);
+  const [realtimeLogs, setRealtimeLogs] = useState<Log[]>([]);
   const { filters } = useFilters();
+  const queryClient = trpc.useUtils();
 
-  // Without this initial request happens twice
   const timestamps = useMemo(
     () => ({
       startTime: Date.now() - 24 * 60 * 60 * 1000,
@@ -34,7 +41,6 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
       status: { filters: [] },
     };
 
-    // Process each filter
     filters.forEach((filter) => {
       switch (filter.field) {
         case "startTime":
@@ -53,11 +59,11 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
         case "methods": {
           if (typeof filter.value !== "string") {
             console.error("Method filter value type has to be 'string'");
+            return;
           }
-
           params.method?.filters.push({
             operator: "is",
-            value: filter.value as string,
+            value: filter.value,
           });
           break;
         }
@@ -65,11 +71,11 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
         case "paths": {
           if (typeof filter.value !== "string") {
             console.error("Path filter value type has to be 'string'");
+            return;
           }
-
           params.path?.filters.push({
             operator: filter.operator,
-            value: filter.value as string,
+            value: filter.value,
           });
           break;
         }
@@ -77,11 +83,11 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
         case "host": {
           if (typeof filter.value !== "string") {
             console.error("Host filter value type has to be 'string'");
+            return;
           }
-
           params.host?.filters.push({
             operator: "is",
-            value: filter.value as string,
+            value: filter.value,
           });
           break;
         }
@@ -89,11 +95,11 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
         case "requestId": {
           if (typeof filter.value !== "string") {
             console.error("Request ID filter value type has to be 'string'");
+            return;
           }
-
           params.requestId?.filters.push({
             operator: "is",
-            value: filter.value as string,
+            value: filter.value,
           });
           break;
         }
@@ -118,67 +124,65 @@ export function useLogsQuery({ limit = 50 }: UseLogsQueryParams = {}) {
     refetchOnWindowFocus: false,
   });
 
-  // // Query for new logs (polling)
-  // const pollForNewLogs = async () => {
-  //   if (!isLive || !logs[0]) return;
-  //
-  //   const pollParams = {
-  //     ...queryParams,
-  //     limit: 10,
-  //     startTime: logs[0].time,
-  //     endTime: Date.now(),
-  //   };
-  //
-  //   const result = await queryClient.fetchQuery({
-  //     queryKey: trpc.logs.queryLogs.getQueryKey(pollParams),
-  //     queryFn: () => trpc.logs.queryLogs.fetch(pollParams),
-  //   });
-  //
-  //   if (result.logs.length > 0) {
-  //     const newLogs = result.logs.filter(
-  //       (newLog) =>
-  //         !logs.some(
-  //           (existingLog) => existingLog.request_id === newLog.request_id
-  //         )
-  //     );
-  //     if (newLogs.length > 0) {
-  //       setLogs((prev) => [...newLogs, ...prev]);
-  //     }
-  //   }
-  // };
-  //
+  // Query for new logs (polling)
+  const pollForNewLogs = useCallback(async () => {
+    try {
+      const result = await queryClient.logs.queryLogs.fetch({
+        ...queryParams,
+        startTime: [...realtimeLogs, ...historicalLogs][0]?.time ?? Date.now() - pollIntervalMs,
+        endTime: Date.now(),
+      });
+
+      if (result.logs.length > 0) {
+        const existingRequestIds = new Set(
+          [...realtimeLogs, ...historicalLogs].map((log) => log.request_id),
+        );
+
+        const newLogs = result.logs.filter((newLog) => !existingRequestIds.has(newLog.request_id));
+
+        if (newLogs.length > 0) {
+          setRealtimeLogs((prev) => {
+            const combined = [...newLogs, ...prev];
+            // Keep realtime logs limited to avoid memory issues
+            return combined.slice(0, Math.min(limit, 100));
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error polling for new logs:", error);
+    }
+  }, [realtimeLogs, historicalLogs, queryParams, queryClient, limit, pollIntervalMs]);
+
+  // Set up polling effect
+  useEffect(() => {
+    if (startPolling) {
+      const interval = setInterval(pollForNewLogs, pollIntervalMs);
+      return () => clearInterval(interval);
+    }
+  }, [startPolling, pollForNewLogs, pollIntervalMs]);
+
+  // Initialize historical logs from initial query
   useEffect(() => {
     if (initialData) {
       const allLogs = initialData.pages.flatMap((page) => page.logs);
-      setLogs(allLogs);
+      setHistoricalLogs(allLogs);
     }
   }, [initialData]);
 
-  // // Set up polling
-  // useEffect(() => {
-  //   if (isLive) {
-  //     pollInterval.current = window.setInterval(pollForNewLogs, 5000);
-  //   }
-  //
-  //   return () => {
-  //     if (pollInterval.current) {
-  //       clearInterval(pollInterval.current);
-  //     }
-  //   };
-  // }, [isLive, logs[0]?.time, queryParams]);
-  //
-  // const toggleLive = () => {
-  //   setIsLive((prev) => !prev);
-  //   if (!isLive) {
-  //     refetch();
-  //   }
-  // };
+  // Reset realtime logs and refetch first page of the historic data when polling is disabled
+  useEffect(() => {
+    if (!startPolling) {
+      setRealtimeLogs([]);
+    }
+  }, [startPolling]);
 
   return {
-    logs,
+    realtimeLogs,
+    historicalLogs,
     isLoading: isLoadingInitial,
     hasMore: hasNextPage,
     loadMore: fetchNextPage,
     isLoadingMore: isFetchingNextPage,
+    isPolling: startPolling,
   };
 }

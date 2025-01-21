@@ -29,6 +29,7 @@ export type TableConfig = {
 
 export type VirtualTableProps<T> = {
   data: T[];
+  realtimeData?: T[];
   columns: Column<T>[];
   isLoading?: boolean;
   config?: Partial<TableConfig>;
@@ -42,5 +43,4 @@ export type VirtualTableProps<T> = {
   selectedItem?: T | null;
   isFetchingNextPage?: boolean;
   renderDetails?: (item: T, onClose: () => void, distanceToTop: number) => React.ReactNode;
-  renderBottomContent?: React.ReactNode;
 };
