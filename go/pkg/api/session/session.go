@@ -16,7 +16,7 @@ import (
 // Session structs are reused to ease the load on the GC.
 // All references to sessions, request bodies or anything within must not be
 // used outside of the handler. Make a copy of them if you need to.
-type Session[TRequest any, TResponse any] interface {
+type Session[TRequest Redacter, TResponse Redacter] interface {
 	// Initialize the empty or reused session
 	Init(w http.ResponseWriter, r *http.Request)
 

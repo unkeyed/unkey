@@ -4,13 +4,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/api/session"
 )
 
-type Route[TRequest any, TResponse any] struct {
+type Route[TRequest session.Redacter, TResponse session.Redacter] struct {
 	method  string
 	path    string
 	handler func(session.Session[TRequest, TResponse]) error
 }
 
-func NewRoute[TRequest any, TResponse any](method string, path string, handler session.Handler[TRequest, TResponse]) Route[TRequest, TResponse] {
+func NewRoute[TRequest session.Redacter, TResponse session.Redacter](method string, path string, handler session.Handler[TRequest, TResponse]) Route[TRequest, TResponse] {
 	return Route[TRequest, TResponse]{
 		method:  method,
 		path:    path,
@@ -18,7 +18,7 @@ func NewRoute[TRequest any, TResponse any](method string, path string, handler s
 	}
 }
 
-type Middeware[TRequest any, TResponse any] func(session.Handler[TRequest, TResponse]) session.Handler[TRequest, TResponse]
+type Middeware[TRequest session.Redacter, TResponse session.Redacter] func(session.Handler[TRequest, TResponse]) session.Handler[TRequest, TResponse]
 
 func (r *Route[TRequest, TResponse]) WithMiddleware(mws ...Middeware[TRequest, TResponse]) *Route[TRequest, TResponse] {
 	for _, mw := range mws {

@@ -18,8 +18,7 @@ import (
 func (s *Server) registerRoutes() {
 
 	svc := &api.Services{
-		Logger:    s.logger,
-		Validator: s.validator,
+		Logger: s.logger,
 	}
 
 	register(s, v1RatelimitLimit.New(svc))
@@ -28,11 +27,14 @@ func (s *Server) registerRoutes() {
 // register registers a route on the http ServeMux
 //
 // this can not be receiver method on a struct, because routes are generic.
-func register[TRequest any, TResponse any](srv *Server, route routes.Route[TRequest, TResponse]) {
+func register[TRequest session.Redacter, TResponse session.Redacter](srv *Server, route routes.Route[TRequest, TResponse]) {
 	srv.mux.HandleFunc(fmt.Sprintf("%s %s", route.Method(), route.Path()), func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("REQ: %s %s\n", r.Method, r.URL.Path)
 
-		sess := srv.getSession().(session.Session[TRequest, TResponse])
+		sess, ok := srv.getSession().(session.Session[TRequest, TResponse])
+		if !ok {
+			panic("Unable to cast session")
+		}
 		defer srv.returnSession(sess)
 
 		sess.Init(w, r)

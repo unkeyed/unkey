@@ -14,6 +14,31 @@ type Querier interface {
 	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys`
 	//  WHERE hash = ?
 	GetKeyByHash(ctx context.Context, hash string) (Key, error)
+	//InsertOverride
+	//
+	//  INSERT INTO
+	//      `ratelimit_overrides` (
+	//          id,
+	//          workspace_id,
+	//          namespace_id,
+	//          identifier,
+	//          `limit`,
+	//          duration,
+	//          async,
+	//          created_at
+	//      )
+	//  VALUES
+	//      (
+	//          ?,
+	//          ?,
+	//          ?,
+	//          ?,
+	//          ?,
+	//          ?,
+	//          false,
+	//          now()
+	//      )
+	InsertOverride(ctx context.Context, arg InsertOverrideParams) error
 }
 
 var _ Querier = (*Queries)(nil)

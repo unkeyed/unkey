@@ -1,9 +1,17 @@
 package openapi
 
-func (b V1RatelimitRatelimitRequestBody) Redact() V1RatelimitRatelimitRequestBody {
-	return b
-}
-func (b V1RatelimitRatelimitResponseBody) Redact() V1RatelimitRatelimitResponseBody {
+func (b V2RatelimitLimitRequestBody) Redact() {
 	// nothing to redact
-	return b
+}
+func (b V2RatelimitLimitResponseBody) Redact() {
+	// nothing to redact
+
+}
+
+func (b V2RatelimitSetOverrideRequestBody) Redact() {
+	// nothing to redact
+}
+func (b V2RatelimitSetOverrideResponseBody) Redact() {
+	// nothing to redact
+
 }
