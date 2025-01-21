@@ -4,6 +4,7 @@ import type {
   FieldConfig,
   FilterField,
   FilterFieldConfigs,
+  FilterValue,
   HttpMethod,
   NumberConfig,
   StatusConfig,
@@ -51,6 +52,54 @@ export const filterOutputSchema = z.object({
       ),
   ),
 });
+
+// Required for transforming OpenAI structured outputs into our own Filter types
+export const transformStructuredOutputToFilters = (
+  data: z.infer<typeof filterOutputSchema>,
+  existingFilters: FilterValue[] = [],
+): FilterValue[] => {
+  const uniqueFilters = [...existingFilters];
+  const seenFilters = new Set(existingFilters.map((f) => `${f.field}-${f.operator}-${f.value}`));
+
+  for (const filterGroup of data.filters) {
+    filterGroup.filters.forEach((filter) => {
+      const baseFilter = {
+        field: filterGroup.field,
+        operator: filter.operator,
+        value: filter.value,
+      };
+
+      const filterKey = `${baseFilter.field}-${baseFilter.operator}-${baseFilter.value}`;
+
+      if (seenFilters.has(filterKey)) {
+        return;
+      }
+
+      if (filterGroup.field === "status") {
+        const numericValue =
+          typeof filter.value === "string" ? Number.parseInt(filter.value) : filter.value;
+
+        uniqueFilters.push({
+          id: crypto.randomUUID(),
+          ...baseFilter,
+          value: numericValue,
+          metadata: {
+            colorClass: filterFieldConfig.status.getColorClass?.(numericValue),
+          },
+        });
+      } else {
+        uniqueFilters.push({
+          id: crypto.randomUUID(),
+          ...baseFilter,
+        });
+      }
+
+      seenFilters.add(filterKey);
+    });
+  }
+
+  return uniqueFilters;
+};
 
 // Type guard for config types
 function isStatusConfig(config: FieldConfig): config is StatusConfig {
