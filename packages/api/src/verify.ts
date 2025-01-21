@@ -24,10 +24,12 @@ import type { paths } from "./openapi";
  * ```
  */
 export function verifyKey<TPermission extends string = string>(
-  req: string | Omit<
-    paths["/v1/keys.verifyKey"]["post"]["requestBody"]["content"]["application/json"],
-    "authorization"
-  > & { authorization?: { permissions: PermissionQuery<TPermission> } },
+  req:
+    | string
+    | (Omit<
+        paths["/v1/keys.verifyKey"]["post"]["requestBody"]["content"]["application/json"],
+        "authorization"
+      > & { authorization?: { permissions: PermissionQuery<TPermission> } }),
 ) {
   // yes this is empty to make typescript happy but we don't need a token for verifying keys
   // it's not the cleanest but it works for now :)
