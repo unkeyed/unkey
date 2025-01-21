@@ -24,7 +24,7 @@ import type { paths } from "./openapi";
  * ```
  */
 export function verifyKey<TPermission extends string = string>(
-  req: Omit<
+  req: string | Omit<
     paths["/v1/keys.verifyKey"]["post"]["requestBody"]["content"]["application/json"],
     "authorization"
   > & { authorization?: { permissions: PermissionQuery<TPermission> } },
