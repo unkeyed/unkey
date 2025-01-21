@@ -11,6 +11,31 @@ import type {
   ResponseStatus,
 } from "../filters.type";
 
+export const parseAsRelativeTime: Parser<string | null> = {
+  parse: (str: string | null) => {
+    if (!str) {
+      return null;
+    }
+
+    try {
+      // Validate the format matches one or more of: number + (h|d|m)
+      const isValid = /^(\d+[hdm])+$/.test(str);
+      if (!isValid) {
+        return null;
+      }
+      return str;
+    } catch {
+      return null;
+    }
+  },
+  serialize: (value: string | null) => {
+    if (!value) {
+      return "";
+    }
+    return value;
+  },
+};
+
 export const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
   parse: (str: string | null) => {
     if (!str) {
@@ -48,6 +73,7 @@ export const queryParamsPayload = {
   status: parseAsFilterValueArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
+  since: parseAsRelativeTime,
 } as const;
 
 export const useFilters = () => {
@@ -104,14 +130,14 @@ export const useFilters = () => {
       });
     });
 
-    ["startTime", "endTime"].forEach((field) => {
+    ["startTime", "endTime", "since"].forEach((field) => {
       const value = searchParams[field as keyof QuerySearchParams];
       if (value !== null && value !== undefined) {
         activeFilters.push({
           id: crypto.randomUUID(),
           field: field as FilterField,
           operator: "is",
-          value: value as number,
+          value: value as string | number,
         });
       }
     });
@@ -129,6 +155,7 @@ export const useFilters = () => {
         endTime: null,
         methods: null,
         status: null,
+        since: null,
       };
 
       // Group filters by field
@@ -173,6 +200,9 @@ export const useFilters = () => {
           case "startTime":
           case "endTime":
             newParams[filter.field] = filter.value as number;
+            break;
+          case "since":
+            newParams.since = filter.value as string;
             break;
         }
       });

@@ -42,6 +42,7 @@ export type FilterFieldConfigs = {
   requestId: StringConfig;
   startTime: NumberConfig;
   endTime: NumberConfig;
+  since: StringConfig;
 };
 
 export type AllowedOperators<F extends FilterField> = FilterFieldConfigs[F]["operators"][number];
@@ -52,6 +53,7 @@ export type QuerySearchParams = {
   status: FilterUrlValue[] | null;
   startTime?: number | null;
   endTime?: number | null;
+  since?: string | null;
   host: FilterUrlValue[] | null;
   requestId: FilterUrlValue[] | null;
 };

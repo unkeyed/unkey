@@ -21,6 +21,7 @@ export const filterFieldEnum = z.enum([
   "status",
   "startTime",
   "endTime",
+  "since",
 ]);
 
 export const filterOutputSchema = z.object({
@@ -177,6 +178,10 @@ export const filterFieldConfig: FilterFieldConfigs = {
   },
   endTime: {
     type: "number",
+    operators: ["is"],
+  },
+  since: {
+    type: "string",
     operators: ["is"],
   },
 } as const;

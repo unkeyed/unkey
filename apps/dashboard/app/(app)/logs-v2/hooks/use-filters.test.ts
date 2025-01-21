@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { useQueryStates } from "nuqs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { parseAsFilterValueArray, useFilters } from "./use-filters";
+import { parseAsFilterValueArray, parseAsRelativeTime, useFilters } from "./use-filters";
 
 vi.mock("nuqs", () => {
   const mockSetSearchParams = vi.fn();
@@ -80,6 +80,51 @@ describe("parseAsFilterValueArray", () => {
   });
 });
 
+describe("parseAsRelativeTime", () => {
+  it("should return null for null input", () => {
+    //@ts-expect-error ts yells for no reason
+    expect(parseAsRelativeTime.parse(null)).toBeNull();
+  });
+
+  it("should return null for empty string", () => {
+    expect(parseAsRelativeTime.parse("")).toBeNull();
+  });
+
+  it("should parse valid single unit formats", () => {
+    expect(parseAsRelativeTime.parse("1h")).toBe("1h");
+    expect(parseAsRelativeTime.parse("24h")).toBe("24h");
+    expect(parseAsRelativeTime.parse("7d")).toBe("7d");
+    expect(parseAsRelativeTime.parse("30m")).toBe("30m");
+  });
+
+  it("should parse valid multiple unit formats", () => {
+    expect(parseAsRelativeTime.parse("1h30m")).toBe("1h30m");
+    expect(parseAsRelativeTime.parse("2d5h")).toBe("2d5h");
+    expect(parseAsRelativeTime.parse("1d6h30m")).toBe("1d6h30m");
+  });
+
+  it("should return null for invalid formats", () => {
+    expect(parseAsRelativeTime.parse("1x")).toBeNull();
+    expect(parseAsRelativeTime.parse("h")).toBeNull();
+    expect(parseAsRelativeTime.parse("24")).toBeNull();
+    expect(parseAsRelativeTime.parse("-1h")).toBeNull();
+    expect(parseAsRelativeTime.parse("1h2")).toBeNull();
+    expect(parseAsRelativeTime.parse("1h 2d")).toBeNull();
+  });
+
+  it("should serialize null to empty string", () => {
+    //@ts-expect-error ts yells for no reason
+    expect(parseAsRelativeTime.serialize(null)).toBe("");
+  });
+
+  it("should serialize valid time strings correctly", () => {
+    //@ts-expect-error ts yells for no reason
+    expect(parseAsRelativeTime.serialize("1h")).toBe("1h");
+    //@ts-expect-error ts yells for no reason
+    expect(parseAsRelativeTime.serialize("2d5h30m")).toBe("2d5h30m");
+  });
+});
+
 describe("useFilters hook", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -90,6 +135,7 @@ describe("useFilters hook", () => {
         paths: null,
         host: null,
         requestId: null,
+        since: null,
         startTime: null,
         endTime: null,
       },
@@ -111,6 +157,7 @@ describe("useFilters hook", () => {
         host: null,
         requestId: null,
         startTime: null,
+        since: null,
         endTime: null,
       },
       mockSetSearchParams,
@@ -137,6 +184,7 @@ describe("useFilters hook", () => {
         host: null,
         requestId: null,
         startTime: null,
+        since: null,
         endTime: null,
       },
       mockSetSearchParams,
@@ -155,6 +203,7 @@ describe("useFilters hook", () => {
       host: null,
       requestId: null,
       startTime: null,
+      since: null,
       endTime: null,
     });
   });
@@ -187,6 +236,7 @@ describe("useFilters hook", () => {
       requestId: null,
       startTime: null,
       endTime: null,
+      since: null,
     });
   });
 
@@ -213,6 +263,7 @@ describe("useFilters hook", () => {
       requestId: null,
       startTime,
       endTime: null,
+      since: null,
     });
   });
 
@@ -233,6 +284,12 @@ describe("useFilters hook", () => {
           operator: "startsWith",
           value: "test",
         },
+        {
+          id: "test-uuid-3",
+          field: "since",
+          operator: "is",
+          value: "3h",
+        },
       ]);
     });
 
@@ -244,6 +301,7 @@ describe("useFilters hook", () => {
       requestId: null,
       startTime: null,
       endTime: null,
+      since: "3h",
     });
   });
 
@@ -257,6 +315,7 @@ describe("useFilters hook", () => {
         requestId: null,
         startTime: null,
         endTime: null,
+        since: null,
       },
       mockSetSearchParams,
     ]);
@@ -275,6 +334,7 @@ describe("useFilters hook", () => {
       requestId: null,
       startTime: null,
       endTime: null,
+      since: null,
     });
   });
 });

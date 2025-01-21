@@ -3,6 +3,7 @@ import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
+import { useTimeRange } from "../../../hooks/use-timerange";
 import type { queryLogsPayload } from "../query-logs.schema";
 
 type UseLogsQueryParams = {
@@ -19,14 +20,16 @@ export function useLogsQuery({
   const [historicalLogs, setHistoricalLogs] = useState<Log[]>([]);
   const [realtimeLogs, setRealtimeLogs] = useState<Log[]>([]);
   const { filters } = useFilters();
+  const timerange = useTimeRange(filters);
+
   const queryClient = trpc.useUtils();
 
   const timestamps = useMemo(
     () => ({
-      startTime: Date.now() - 24 * 60 * 60 * 1000,
-      endTime: Date.now(),
+      startTime: timerange.startTime ?? Date.now() - 24 * 60 * 60 * 1000,
+      endTime: timerange.endTime ?? Date.now(),
     }),
-    [],
+    [timerange.endTime, timerange.startTime],
   );
 
   const queryParams = useMemo(() => {
@@ -43,11 +46,6 @@ export function useLogsQuery({
 
     filters.forEach((filter) => {
       switch (filter.field) {
-        case "startTime":
-        case "endTime":
-          params[filter.field] = filter.value as number;
-          break;
-
         case "status": {
           params.status?.filters.push({
             operator: "is",
