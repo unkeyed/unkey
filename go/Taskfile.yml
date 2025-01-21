@@ -20,19 +20,3 @@ tasks:
   lint:
     cmds:
       - golangci-lint run
-
-  generate:
-    cmds:
-      - go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
-      - go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=./pkg/api/openapi/config.yaml ./pkg/api/openapi/openapi.json
-
-
-      - task: generate-sqlc
-
-
-  generate-sqlc:
-    internal: true
-    dir: ./pkg/database
-    cmds:
-      - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-      - sqlc generate

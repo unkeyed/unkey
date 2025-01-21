@@ -67,7 +67,7 @@ func New(config Config) (*Server, error) {
 		srv:         srv,
 		sessions: sync.Pool{
 			New: func() any {
-				return session.New[any, any](validator)
+				return session.New[session.Redacter, session.Redacter](validator)
 			},
 		},
 	}

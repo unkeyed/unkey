@@ -7,4 +7,6 @@ package session
 // - JSON
 // - Raw bytes
 // - Errors
-type Handler[TRequest Redacter, TResponse Redacter] func(sess Session[TRequest, TResponse]) error
+type Handler[TRequest Redacter, TResponse Redacter] interface {
+	Handle(sess Session[TRequest, TResponse]) error
+}

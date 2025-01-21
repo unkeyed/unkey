@@ -239,6 +239,26 @@
     "/v2/ratelimit.limit": {
       "post": {
         "operationId": "v1.ratelimit.limit",
+        "parameters": [
+          {
+            "name": "xxx",
+            "description": "xxx",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "required": false
+          },
+          {
+            "name": "yyy",
+            "description": "yyy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

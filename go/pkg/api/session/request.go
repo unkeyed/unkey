@@ -7,7 +7,7 @@ import (
 	"net/url"
 )
 
-type Request[TBody any] interface {
+type Request[TBody Redacter] interface {
 
 	// Get a value of a query
 	// Returns an empty string if the query does not exist
@@ -45,14 +45,25 @@ type Request[TBody any] interface {
 	//
 	// Body.Close() is called automatically. You do not need to close it manually.
 	Raw() *http.Request
+
+	// Redact sensitive information in the body
+	//
+	// This modifies the underlying data and must be performed after the request
+	// has been handled.
+	Redact()
 }
 
-type request[TRequest any] struct {
-	r *http.Request
+type request[TRequest Redacter] struct {
+	body TRequest
+	r    *http.Request
 }
 
-var _ Request[any] = &request[any]{}
+var _ Request[Redacter] = &request[Redacter]{}
 
+func (r *request[TRequest]) Redact() {
+	r.body.Redact()
+
+}
 func (r *request[TRequest]) Query(name string) string {
 	return r.URL().Query().Get(name)
 }
@@ -77,10 +88,9 @@ func (r *request[TRequest]) Method() string {
 }
 
 func (r *request[TRequest]) Parse() (TRequest, error) {
-	var body TRequest
-	err := json.NewDecoder(r.r.Body).Decode(&body)
+	err := json.NewDecoder(r.r.Body).Decode(&r.body)
 
-	return body, err
+	return r.body, err
 }
 func (r *request[TRequest]) URL() *url.URL {
 	return r.r.URL

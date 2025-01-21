@@ -44,11 +44,8 @@ type Session[TRequest Redacter, TResponse Redacter] interface {
 
 	Request() Request[TRequest]
 
-	// Send a response
-	Send(status int, body []byte) error
-
 	// Send a json response
-	JSON(body TResponse) error
+	JSON(status int, body TResponse) error
 
 	// Returns the underlying response writer as an escape hatch.
 	ResponseWriter() http.ResponseWriter
@@ -57,17 +54,37 @@ type Session[TRequest Redacter, TResponse Redacter] interface {
 	Error(apierrors.Error) error
 
 	Close()
+
+	// Reset sets all fields to their nil values to free up any references
+	//
+	// You do not need to call this manually.
+	Reset()
+
+	// Flush writes the statuscode, headers and body to the responseWriter
+	//
+	// Do not call this yourself, it'll be called automatically.
+	Flush() error
+
+	// Summary redacts sensitive data and returns all relevant io.
+	// This must never be called before or during the main handler.
+	//
+	// It should only be called in the metrics middleware.
+	Summary() (Summary, error)
 }
 
-type session[TRequest any, TResponse any] struct {
+type session[TRequest Redacter, TResponse Redacter] struct {
 	requestID string
 
 	validator validation.OpenAPIValidator
 	w         http.ResponseWriter
 	r         *http.Request
+
+	responseStatus int
+	responseHeader http.Header
+	responseBody   Redacter
 }
 
-func New[TRequest any, TResponse any](validator validation.OpenAPIValidator) *session[TRequest, TResponse] {
+func New[TRequest Redacter, TResponse Redacter](validator validation.OpenAPIValidator) *session[TRequest, TResponse] {
 	return &session[TRequest, TResponse]{
 		requestID: "",
 		validator: validator,
@@ -114,29 +131,91 @@ func (s *session[TRequest, TResponse]) ResponseWriter() http.ResponseWriter {
 	return s.w
 }
 
-func (s *session[TRequest, TResponse]) Request() Request[TRequest] {
+func (s *session[TRequest, TResponse]) Request() *request[TRequest] {
 	return &request[TRequest]{
 		r: s.r,
 	}
 }
 
 func (s *session[TRequest, TResponse]) WriteHeader(key, val string) {
-	s.w.Header().Add(key, val)
-}
-func (s *session[TRequest, TResponse]) Send(status int, body []byte) error {
-	s.w.WriteHeader(status)
-	_, err := s.w.Write(body)
-	if err != nil {
-		return err
-	}
-	return nil
+	s.responseHeader.Add(key, val)
 }
 
-func (s *session[TRequest, TResponse]) JSON(body TResponse) error {
-	panic("IMPLEMENT ME")
+func (s *session[TRequest, TResponse]) JSON(status int, body TResponse) error {
+
+	s.responseStatus = status
+	s.responseBody = body
+
+	return nil
+
 }
 func (s *session[TRequest, TResponse]) Error(e apierrors.Error) error {
-	b, err := e.Marshal()
+	s.responseStatus = e.HTTPStatus()
+	s.responseBody = e
+	return nil
+}
+func (s *session[TRequest, TResponse]) Close() {
+	panic("IMPLEMENT ME")
+}
+
+func (s *session[TRequest, TResponse]) Summary() (Summary, error) {
+
+	req := s.Request()
+	requestHeader := req.Headers()
+	for k := range requestHeader {
+		if k == "authorization" {
+			requestHeader.Del(k)
+		}
+	}
+
+	req.body.Redact()
+	requestBody, err := json.Marshal(req.body)
+	if err != nil {
+		return Summary{}, err
+	}
+
+	responseHeader := s.w.Header()
+
+	s.responseBody.Redact()
+	responseBody, err := json.Marshal(s.responseBody)
+	if err != nil {
+		return Summary{}, err
+	}
+
+	return Summary{
+		Host:           s.r.Host,
+		Method:         s.r.Method,
+		Path:           s.r.URL.Path,
+		RequestHeader:  requestHeader,
+		RequestBody:    requestBody,
+		ResponseStatus: s.responseStatus,
+		ResponseHeader: responseHeader,
+		ResponseBody:   responseBody,
+	}, nil
+
+}
+
+func (s *session[TRequest, TResponse]) Reset() {
+	s.requestID = ""
+
+	s.validator = nil
+	s.w = nil
+	s.r = nil
+
+	s.responseStatus = 0
+	s.responseHeader = http.Header{}
+	s.responseBody = nil
+}
+
+func (s *session[TRequest, TResponse]) Flush() error {
+	s.w.WriteHeader(s.responseStatus)
+	for k, vv := range s.responseHeader {
+		for _, v := range vv {
+			s.w.Header().Add(k, v)
+		}
+	}
+
+	b, err := json.Marshal(s.responseBody)
 	if err != nil {
 		return err
 	}
@@ -144,8 +223,6 @@ func (s *session[TRequest, TResponse]) Error(e apierrors.Error) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
-}
-func (s *session[TRequest, TResponse]) Close() {
-	panic("IMPLEMENT ME")
 }

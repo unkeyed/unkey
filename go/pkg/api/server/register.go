@@ -35,7 +35,10 @@ func register[TRequest session.Redacter, TResponse session.Redacter](srv *Server
 		if !ok {
 			panic("Unable to cast session")
 		}
-		defer srv.returnSession(sess)
+		defer func() {
+			sess.Reset()
+			srv.returnSession(sess)
+		}()
 
 		sess.Init(w, r)
 
@@ -48,15 +51,19 @@ func register[TRequest session.Redacter, TResponse session.Redacter](srv *Server
 				base.RequestID = sess.RequestID()
 				b, err := base.Marshal()
 				if err != nil {
-					panic(err)
+					panic(fmt.Errorf("unable to marshal error response: %w", err))
 				}
 				_, err = w.Write(b)
 				if err != nil {
-					panic(err)
+					panic(fmt.Errorf("unable to write error response: %w", err))
 				}
-				return
 			}
+			return
+		}
 
+		err = sess.Flush()
+		if err != nil {
+			panic(fmt.Errorf("unable to write http response: %w", err))
 		}
 
 	})

@@ -3,6 +3,10 @@ package apierrors
 import "encoding/json"
 
 type Error interface {
+	Redact()
+	// The HTTP status of the error
+	HTTPStatus() int
+
 	// Conform with the std error interface
 	Error() string
 
@@ -127,6 +131,12 @@ type BaseError struct {
 	RequestID string `json:"requestId"`
 }
 
+func (e BaseError) Redact() {
+	// Nothing to redact, errors should be safe for logging by default.
+}
+func (e BaseError) HTTPStatus() int {
+	return e.Status
+}
 func (e BaseError) Error() string {
 	panic("IMPLEMENT ME")
 }
