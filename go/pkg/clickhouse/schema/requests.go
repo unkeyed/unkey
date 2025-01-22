@@ -12,6 +12,7 @@ type ApiRequestV1 struct {
 	ResponseHeaders []string `ch:"response_headers"`
 	ResponseBody    string   `ch:"response_body"`
 	Error           string   `ch:"error"`
+	ServiceLatency  int64    `ch:"serviceLatency"`
 }
 
 type KeyVerificationRequestV1 struct {

@@ -1,15 +1,16 @@
-package server
+package httpApi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/go/pkg/api/session"
-	"github.com/unkeyed/unkey/go/pkg/api/validation"
+	apierrors "github.com/unkeyed/unkey/go/pkg/http_api/errors"
+	"github.com/unkeyed/unkey/go/pkg/http_api/validation"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 )
 
@@ -67,7 +68,13 @@ func New(config Config) (*Server, error) {
 		srv:         srv,
 		sessions: sync.Pool{
 			New: func() any {
-				return session.New[session.Redacter, session.Redacter](validator)
+				return &Session[Redacter, Redacter]{
+					requestID: "",
+					validator: validator,
+					w:         nil,
+					r:         nil,
+				}
+
 			},
 		},
 	}
@@ -102,12 +109,53 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 	}
 	s.isListening = true
 	s.Unlock()
-	s.registerRoutes()
 
 	s.srv.Addr = addr
 
 	s.logger.Info(ctx, "listening", slog.String("addr", addr))
 	return s.srv.ListenAndServe()
+}
+
+func (s *Server) RegisterRoute(route Route[Redacter, Redacter]) {
+
+	s.mux.HandleFunc(fmt.Sprintf("%s %s", route.Method(), route.Path()), func(w http.ResponseWriter, r *http.Request) {
+
+		sess, ok := s.getSession().(*Session[Redacter, Redacter])
+		if !ok {
+			panic("Unable to cast session")
+		}
+		defer func() {
+			sess.Reset()
+			s.returnSession(sess)
+		}()
+
+		sess.Init(w, r)
+
+		err := route.Handle(sess)
+
+		if err != nil {
+			base := apierrors.BaseError{}
+			if errors.As(err, &base) {
+
+				base.RequestID = sess.RequestID()
+				b, err := base.Marshal()
+				if err != nil {
+					panic(fmt.Errorf("unable to marshal error response: %w", err))
+				}
+				_, err = w.Write(b)
+				if err != nil {
+					panic(fmt.Errorf("unable to write error response: %w", err))
+				}
+			}
+			return
+		}
+
+		err = sess.Flush()
+		if err != nil {
+			panic(fmt.Errorf("unable to write http response: %w", err))
+		}
+
+	})
 }
 
 func (s *Server) Shutdown() error {

@@ -7,8 +7,8 @@ import (
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
-	"github.com/unkeyed/unkey/go/pkg/api/openapi"
 	"github.com/unkeyed/unkey/go/pkg/ctxutil"
+	"github.com/unkeyed/unkey/go/pkg/http_api/openapi"
 )
 
 type OpenAPIValidator interface {

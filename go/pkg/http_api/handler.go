@@ -1,4 +1,4 @@
-package session
+package httpApi
 
 // Handler receives a session and acts on it.
 // An error must be returned if anything goes wrong.
@@ -8,5 +8,7 @@ package session
 // - Raw bytes
 // - Errors
 type Handler[TRequest Redacter, TResponse Redacter] interface {
-	Handle(sess Session[TRequest, TResponse]) error
+	Handle(sess *Session[TRequest, TResponse]) error
 }
+
+type HandleFunc[TRequest Redacter, TResponse Redacter] func(sess *Session[TRequest, TResponse]) error

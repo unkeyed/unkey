@@ -1,4 +1,4 @@
-package api
+package httpApi
 
 import (
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"

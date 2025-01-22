@@ -1,4 +1,4 @@
-package session
+package httpApi
 
 import (
 	"encoding/json"
