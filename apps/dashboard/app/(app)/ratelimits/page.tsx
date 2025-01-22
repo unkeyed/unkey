@@ -1,5 +1,6 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@unkey/ui";
+
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
@@ -7,7 +8,7 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Gauge } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { BookOpen, Scan } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -69,28 +70,26 @@ export default async function RatelimitOverviewPage() {
             ))}
           </ul>
         ) : (
-          <EmptyPlaceholder className="my-4 ">
-            <EmptyPlaceholder.Icon>
-              <Scan />
-            </EmptyPlaceholder.Icon>
-            <EmptyPlaceholder.Title>No Namespaces found</EmptyPlaceholder.Title>
-            <EmptyPlaceholder.Description>
+          <Empty>
+            <Empty.Icon />
+            <Empty.Title>No Namespaces found</Empty.Title>
+            <Empty.Description>
               You haven&apos;t created any Namespaces yet. Create one by performing a limit request
               as shown below.
-            </EmptyPlaceholder.Description>
+            </Empty.Description>
             <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
               {snippet}
               <CopyButton value={snippet} />
             </Code>
-            <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
+            <Empty.Actions>
               <Link href="/docs/ratelimiting/introduction" target="_blank">
                 <Button className="items-center w-full gap-2 ">
                   <BookOpen className="w-4 h-4 " />
                   Read the docs
                 </Button>
               </Link>
-            </div>
-          </EmptyPlaceholder>
+            </Empty.Actions>
+          </Empty>
         )}
       </PageContent>
     </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { VirtualTable } from "@/components/virtual-table";
 import { trpc } from "@/lib/trpc/client";
+import { Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 import { useAuditLogParams } from "../../query-state";
@@ -78,17 +78,13 @@ export const AuditLogTableClient = () => {
 
   if (isError) {
     return (
-      <EmptyPlaceholder>
-        <div className="w-[400px] mx-auto flex gap-2 items-center flex-col">
-          <div className="text-center">
-            <div className="font-medium mb-1">Failed to load audit logs</div>
-            <div className="text-sm text-muted-foreground">
-              There was a problem fetching the audit logs. Please try refreshing the page or contact
-              support if the issue persists.
-            </div>
-          </div>
-        </div>
-      </EmptyPlaceholder>
+      <Empty>
+        <Empty.Title>Failed to load audit logs</Empty.Title>
+        <Empty.Description>
+          There was a problem fetching the audit logs. Please try refreshing the page or contact
+          support if the issue persists.
+        </Empty.Description>
+      </Empty>
     );
   }
 

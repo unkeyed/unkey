@@ -38,7 +38,7 @@ export interface paths {
     post: operations["updateRemaining"];
   };
   "/v1/keys.getVerifications": {
-    get: operations["getVerifications"];
+    get: operations["keys.getVerifications"];
   };
   "/v1/keys.addPermissions": {
     post: operations["addPermissions"];
@@ -132,6 +132,9 @@ export interface paths {
   };
   "/v1/identities.deleteIdentity": {
     post: operations["deleteIdentity"];
+  };
+  "/v1/analytics.getVerifications": {
+    get: operations["getVerifications"];
   };
   "/v1/keys": {
     post: operations["deprecated.createKey"];
@@ -620,6 +623,14 @@ export interface components {
       /** @description Perform RBAC checks */
       authorization?: {
         permissions?: components["schemas"]["PermissionQuery"];
+      };
+      /** @description Customize the behaviour of deducting remaining uses. When some of your endpoints are more expensive than others, you can set a custom `cost` for each. */
+      remaining?: {
+        /**
+         * @description How many tokens should be deducted from the current `remaining` value. Set it to 0, to make it free.
+         * @default 1
+         */
+        cost?: number;
       };
       /**
        * @deprecated
@@ -1596,7 +1607,7 @@ export interface operations {
       };
     };
   };
-  getVerifications: {
+  "keys.getVerifications": {
     parameters: {
       query?: {
         keyId?: string;
@@ -4438,6 +4449,116 @@ export interface operations {
       200: {
         content: {
           "application/json": Record<string, never>;
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
+  getVerifications: {
+    parameters: {
+      query: {
+        apiId: string;
+        externalId?: string;
+        keyId?: string | string[];
+        tag?: string | string[];
+        start?: number | null;
+        end?: number | null;
+        groupBy?:
+          | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")
+          | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")[];
+        limit?: number;
+        orderBy?:
+          | "time"
+          | "valid"
+          | "notFound"
+          | "forbidden"
+          | "usageExceeded"
+          | "rateLimited"
+          | "unauthorized"
+          | "disabled"
+          | "insufficientPermissions"
+          | "expired"
+          | "total";
+        order?: "asc" | "desc";
+      };
+    };
+    responses: {
+      /** @description Retrieve all required data to build end-user facing dashboards and drive your usage-based billing. */
+      200: {
+        content: {
+          "application/json": {
+            /** @description Unix timestamp in milliseconds of the start of the current time slice. */
+            time?: number;
+            valid?: number;
+            notFound?: number;
+            forbidden?: number;
+            usageExceeded?: number;
+            rateLimited?: number;
+            unauthorized?: number;
+            disabled?: number;
+            insufficientPermissions?: number;
+            expired?: number;
+            /** @description Total number of verifications in the current time slice, regardless of outcome. */
+            total: number;
+            /** @description Only available when grouping by tag. */
+            tag?: string;
+            /** @description Filter by one or multiple tags. If multiple tags are provided */
+            tags?: string[];
+            /**
+             * @description Only available when specifying groupBy=key in the query.
+             * In this case there would be one datapoint per time and groupBy target.
+             */
+            keyId?: string;
+            /**
+             * @description Only available when specifying groupBy=identity in the query.
+             * In this case there would be one datapoint per time and groupBy target.
+             */
+            identity?: {
+              id: string;
+              externalId: string;
+            };
+          }[];
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */

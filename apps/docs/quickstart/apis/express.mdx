@@ -62,6 +62,7 @@ dotenv.config();
 
 const app: Application = express();
 const port = process.env.PORT || 8000;
+const apiId = process.env.UNKEY_API_ID // copy this from the dashboard
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Welcome to Express & TypeScript Server');
@@ -75,7 +76,7 @@ app.get('/secret', async (req: Request, res: Response) => {
     return res.status(401).send("Unauthorized")
   }
 
-  const { result, error } = await verifyKey(key);
+  const { result, error } = await verifyKey({ key, apiId });
   if (error) {
     // This may happen on network errors
     // We already retry the request 5 times, but if it still fails, we return an error

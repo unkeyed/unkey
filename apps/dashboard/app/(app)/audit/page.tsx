@@ -1,8 +1,8 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
-import { InputSearch, Ufo } from "@unkey/icons";
+import { InputSearch } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { type SearchParams, getWorkspace, parseFilterParams } from "./actions";
 import { Filters } from "./components/filters";
 import { AuditLogTableClient } from "./components/table/audit-log-table-client";
@@ -38,16 +38,14 @@ export default async function AuditPage(props: Props) {
             <AuditLogTableClient />
           </main>
         ) : (
-          <EmptyPlaceholder>
-            <EmptyPlaceholder.Icon>
-              <Ufo />
-            </EmptyPlaceholder.Icon>
-            <EmptyPlaceholder.Title>No logs</EmptyPlaceholder.Title>
-            <EmptyPlaceholder.Description>
+          <Empty>
+            <Empty.Icon />
+            <Empty.Title>No logs</Empty.Title>
+            <Empty.Description>
               There are no audit logs available yet. Create a key or another resource and come back
               here.
-            </EmptyPlaceholder.Description>
-          </EmptyPlaceholder>
+            </Empty.Description>
+          </Empty>
         )}
       </PageContent>
     </div>

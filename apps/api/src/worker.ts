@@ -23,6 +23,8 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 
 // Export Durable Objects for cloudflare
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
+export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
+
 import { cors, init, metrics } from "@/pkg/middleware";
 import type { MessageBatch } from "@cloudflare/workers-types";
 import { ConsoleLogger } from "@unkey/worker-logging";

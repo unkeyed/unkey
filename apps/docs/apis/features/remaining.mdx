@@ -37,7 +37,8 @@ curl --request POST \
   --url https://api.unkey.dev/v1/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
-		"key": "<NEW_KEY>"
+      "apiId":"<API_ID>",
+      "key": "<NEW_KEY>"
 	}'
 ```
 
@@ -53,3 +54,31 @@ curl --request POST \
 The returned `remaining` value represents how many verifications are remaining after the current one.
 A value of 3, means you can verify the key successfully 3 more times.
 </Note>
+
+
+
+## Custom cost
+
+By default we deduct `1` from the remaining verifications, but in some cases you need to deduct more.
+
+You can override this in the request body. In this example unkey would deduct `4` for every valid verification.
+If a key would only have 3 remaining, the request would be rejected, as there is not enough remaining left.
+
+
+<Note>
+  There is a special case when you set `cost = 0`. In this case, the request will always be valid, but will not deduct anything.
+
+</Note>
+
+```bash {7-9}
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "apiId":"<API_ID>",
+    "key": "<NEW_KEY>",
+    "remaining": {
+      "cost": 4
+    }
+  }'
+```

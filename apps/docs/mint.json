@@ -180,7 +180,7 @@
         },
         {
           "group": "Analytics",
-          "pages": ["analytics/overview"]
+          "pages": ["analytics/overview", "analytics/quickstarts"]
         }
       ]
     },
@@ -277,6 +277,10 @@
             "api-reference/ratelimits/list-overrides",
             "api-reference/ratelimits/delete-override"
           ]
+        },
+        {
+          "group": "Analytics",
+          "pages": ["api-reference/analytics/get_verifications"]
         },
         {
           "group": "Migrations",

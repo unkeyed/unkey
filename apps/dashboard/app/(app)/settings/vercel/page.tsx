@@ -1,4 +1,3 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -7,6 +6,7 @@ import { getTenantId } from "@/lib/auth";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import { Gear } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
@@ -61,16 +61,14 @@ export default async function Page(props: Props) {
         <PageContent>
           <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />
-          <EmptyPlaceholder>
-            <EmptyPlaceholder.Title>
-              Vercel is not connected to this workspace
-            </EmptyPlaceholder.Title>
-            <EmptyPlaceholder.Description>
+          <Empty>
+            <Empty.Title>Vercel is not connected to this workspace</Empty.Title>
+            <Empty.Actions>
               <Link target="_blank" href="https://vercel.com/integrations/unkey">
                 <Button>Connect</Button>
               </Link>
-            </EmptyPlaceholder.Description>
-          </EmptyPlaceholder>
+            </Empty.Actions>
+          </Empty>
         </PageContent>
       </div>
     );
@@ -85,13 +83,15 @@ export default async function Page(props: Props) {
 
   if (err) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
+      <Empty>
+        <Empty.Title>Error</Empty.Title>
+        <Empty.Description>
           We couldn't load your projects from Vercel. Please try again or contact support.
-        </EmptyPlaceholder.Description>
-        <Code className="text-left">{JSON.stringify(err, null, 2)}</Code>
-      </EmptyPlaceholder>
+        </Empty.Description>
+        <Empty.Description>
+          <Code className="text-left">{JSON.stringify(err, null, 2)}</Code>
+        </Empty.Description>
+      </Empty>
     );
   }
 
