@@ -6,16 +6,14 @@ import { useFilters } from "../../../hooks/use-filters";
 
 export const LogsLiveSwitch = () => {
   const { isLive, toggleLive } = useLogsContext();
-  const { filters, updateFilters } = useFilters();
+  const { updateFilters } = useFilters();
 
   const handleSwitch = () => {
     toggleLive();
     // To able to refetch historic data again we have to update the endTime
     if (isLive) {
-      const otherFilters = filters.filter((f) => !["endTime", "startTime"].includes(f.field));
       const timestamp = Date.now();
       updateFilters([
-        ...otherFilters,
         {
           field: "endTime",
           value: timestamp,
@@ -39,7 +37,7 @@ export const LogsLiveSwitch = () => {
         "px-2 relative",
         isLive
           ? "bg-info-3 text-info-11 hover:bg-info-3 hover:text-info-11"
-          : "text-accent-12 [&_svg]:text-accent-9",
+          : "text-accent-12 [&_svg]:text-accent-9"
       )}
     >
       {isLive && (
