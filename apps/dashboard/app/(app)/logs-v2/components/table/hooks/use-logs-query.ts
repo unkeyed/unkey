@@ -17,12 +17,18 @@ export function useLogsQuery({
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseLogsQueryParams = {}) {
-  const [historicalLogs, setHistoricalLogs] = useState<Log[]>([]);
-  const [realtimeLogs, setRealtimeLogs] = useState<Log[]>([]);
+  const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, Log>());
+  const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, Log>());
+
   const { filters } = useFilters();
   const timerange = useTimeRange(filters);
-
   const queryClient = trpc.useUtils();
+
+  const realtimeLogs = useMemo(() => {
+    return Array.from(realtimeLogsMap.values());
+  }, [realtimeLogsMap]);
+
+  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   const timestamps = useMemo(
     () => ({
@@ -123,33 +129,46 @@ export function useLogsQuery({
   });
 
   // Query for new logs (polling)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: biome wants to everything as dep
   const pollForNewLogs = useCallback(async () => {
     try {
+      const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
       const result = await queryClient.logs.queryLogs.fetch({
         ...queryParams,
-        startTime: [...realtimeLogs, ...historicalLogs][0]?.time ?? Date.now() - pollIntervalMs,
+        startTime: latestTime ?? Date.now() - pollIntervalMs,
         endTime: Date.now(),
       });
 
-      if (result.logs.length > 0) {
-        const existingRequestIds = new Set(
-          [...realtimeLogs, ...historicalLogs].map((log) => log.request_id),
-        );
-
-        const newLogs = result.logs.filter((newLog) => !existingRequestIds.has(newLog.request_id));
-
-        if (newLogs.length > 0) {
-          setRealtimeLogs((prev) => {
-            const combined = [...newLogs, ...prev];
-            // Keep realtime logs limited to avoid memory issues
-            return combined.slice(0, Math.min(limit, 100));
-          });
-        }
+      if (result.logs.length === 0) {
+        return;
       }
+
+      setRealtimeLogsMap((prevMap) => {
+        const newMap = new Map(prevMap);
+        let added = 0;
+
+        for (const log of result.logs) {
+          // Skip if exists in either map
+          if (newMap.has(log.request_id) || historicalLogsMap.has(log.request_id)) {
+            continue;
+          }
+
+          newMap.set(log.request_id, log);
+          added++;
+
+          if (newMap.size > Math.min(limit, 100)) {
+            const oldestKey = Array.from(newMap.keys()).pop()!;
+            newMap.delete(oldestKey);
+          }
+        }
+
+        // If nothing was added, return old map to prevent re-render
+        return added > 0 ? newMap : prevMap;
+      });
     } catch (error) {
       console.error("Error polling for new logs:", error);
     }
-  }, [realtimeLogs, historicalLogs, queryParams, queryClient, limit, pollIntervalMs]);
+  }, [queryParams, queryClient, limit, pollIntervalMs, historicalLogsMap]);
 
   // Set up polling effect
   useEffect(() => {
@@ -159,18 +178,23 @@ export function useLogsQuery({
     }
   }, [startPolling, pollForNewLogs, pollIntervalMs]);
 
-  // Initialize historical logs from initial query
+  // Update historical logs effect
   useEffect(() => {
     if (initialData) {
-      const allLogs = initialData.pages.flatMap((page) => page.logs);
-      setHistoricalLogs(allLogs);
+      const newMap = new Map<string, Log>();
+      initialData.pages.forEach((page) => {
+        page.logs.forEach((log) => {
+          newMap.set(log.request_id, log);
+        });
+      });
+      setHistoricalLogsMap(newMap);
     }
   }, [initialData]);
 
-  // Reset realtime logs and refetch first page of the historic data when polling is disabled
+  // Reset realtime logs effect
   useEffect(() => {
     if (!startPolling) {
-      setRealtimeLogs([]);
+      setRealtimeLogsMap(new Map());
     }
   }, [startPolling]);
 

@@ -119,7 +119,6 @@ export const LogsTable = () => {
   const { displayProperties, setSelectedLog, selectedLog, isLive } = useLogsContext();
   const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore } = useLogsQuery({
     startPolling: isLive,
-    limit: 10,
     pollIntervalMs: 2000,
   });
 
