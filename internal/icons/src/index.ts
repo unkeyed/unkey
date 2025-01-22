@@ -32,9 +32,3 @@ export * from "./icons/triangle-warning-2";
 export * from "./icons/triangle-warning";
 export * from "./icons/ufo";
 export * from "./icons/xmark";
-
-
-
-
-
-
