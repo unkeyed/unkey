@@ -40,11 +40,7 @@ type DateTimeRootProps = {
   className?: string;
   minDate?: Date;
   maxDate?: Date;
-  onChange: (
-    date?: DateRange,
-    start?: TimeUnit,
-    end?: TimeUnit,
-  ) => void;
+  onChange: (date?: DateRange, start?: TimeUnit, end?: TimeUnit) => void;
 };
 
 function DateTime({ children, className, onChange }: DateTimeRootProps) {

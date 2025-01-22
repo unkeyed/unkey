@@ -14,7 +14,7 @@ export const DateTimeExample: React.FC = () => {
   const [date, setDate] = useState<Range>();
   const [startTime, setStartTime] = useState<TimeUnit>();
   const [endTime, setEndTime] = useState<TimeUnit>();
- 
+
   const handleApply = (newDate?: Range, newStartTime?: TimeUnit, newEndTime?: TimeUnit) => {
     newDate ? setDate(newDate) : null;
     newStartTime ? setStartTime(newStartTime) : null;
@@ -51,7 +51,11 @@ export const DateTimeExample: React.FC = () => {
               <DateTime.Calendar mode="range" />
               <DateTime.TimeInput type="range" />
               <DateTime.Actions>
-                <Button className="w-full" onClick={() => handleApply(date, startTime, endTime)} variant={"primary"}>
+                <Button
+                  className="w-full"
+                  onClick={() => handleApply(date, startTime, endTime)}
+                  variant={"primary"}
+                >
                   Apply Filter
                 </Button>
               </DateTime.Actions>

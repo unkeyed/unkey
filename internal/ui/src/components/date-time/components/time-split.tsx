@@ -26,7 +26,7 @@ const MAX_VALUES = {
   ss: 59,
 } as const;
 
-const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type}) => {
+const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   const { startTime, endTime, date, onStartTimeChange, onEndTimeChange } = useDateTimeContext();
   const [focus, setFocus] = useState(false);
   const [time, setTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
@@ -49,7 +49,9 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type}) => {
   const handleTimeConflicts = (normalizedTime: TimeUnit) => {
     // Only handle conflicts if start and end are on the same day
     if (date?.from && date.to) {
-      if (!isSameDay(date.from, date?.to)) { return; }
+      if (!isSameDay(date.from, date?.to)) {
+        return;
+      }
     }
     // If this is a start time and it's later than the end time,
     // push the end time forward to match the start time
@@ -80,10 +82,14 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type}) => {
   };
 
   const handleChange = (value: string, field: TimeField) => {
-    if (value.length > 2) { return; }
+    if (value.length > 2) {
+      return;
+    }
 
     const numValue = Number(value);
-    if (value && numValue > MAX_VALUES[field]) { return; }
+    if (value && numValue > MAX_VALUES[field]) {
+      return;
+    }
     setTime({ ...time, [field]: value });
   };
 
@@ -114,8 +120,9 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type}) => {
 
   return (
     <div
-      className={cn("flex h-7 w-fit items-center justify-center px-4 gap-0 rounded border border-[1px] border-gray-4 text-xs text-gray-12",
-        focus ? "border-[1.5px] border-gray-10" : ""
+      className={cn(
+        "flex h-7 w-fit items-center justify-center px-4 gap-0 rounded border border-[1px] border-gray-4 text-xs text-gray-12",
+        focus ? "border-[1.5px] border-gray-10" : "",
       )}
     >
       <div className="text-gray-9 mr-2">
@@ -135,11 +142,15 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type}) => {
 type TimeInputProps = {
   type: "range" | "single";
   className?: string;
-}
+};
 export const TimeInput: React.FC<TimeInputProps> = ({ type, className }) => {
-  
   return (
-    <div className={cn("w-full h-full flex flex-row items-center justify-center gap-4 mt-2 px-1", className)}>
+    <div
+      className={cn(
+        "w-full h-full flex flex-row items-center justify-center gap-4 mt-2 px-1",
+        className,
+      )}
+    >
       <TimeSplitInput type="start" />
       {type === "range" ? <TimeSplitInput type="end" /> : null}
     </div>
