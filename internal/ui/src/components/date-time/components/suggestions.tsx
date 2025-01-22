@@ -17,18 +17,19 @@ const DateTimeSuggestions: React.FC<SuggestionsProps> = ({ className, suggestion
     const startDate = new Date(endDate.getTime() - timeFromNow);
     const range = { from: startDate, to: endDate };
     const startTime = {
-      HH: startDate.getHours().toString(),
-      mm: startDate.getMinutes().toString(),
-      ss: startDate.getSeconds().toString(),
+      HH: startDate.getHours().toString().padStart(2, '0'),
+      mm: startDate.getMinutes().toString().padStart(2, '0'),
+      ss: startDate.getSeconds().toString().padStart(2, '0'),
     };
     const endTime = {
-      HH: endDate.getHours().toString(),
-      mm: endDate.getMinutes().toString(),
-      ss: endDate.getSeconds().toString(),
+      HH: endDate.getHours().toString().padStart(2, '0'),
+      mm: endDate.getMinutes().toString().padStart(2, '0'),
+      ss: endDate.getSeconds().toString().padStart(2, '0'),
     };
     onDateChange(range);
-    onStartTimeChange(startTime);
+    // Call time changes before date change to ensure latest state
     onEndTimeChange(endTime);
+    onStartTimeChange(startTime);
   };
   return (
     <div className={cn("flex flex-col items-center justify-center gap-4 mt-2", className)}>
