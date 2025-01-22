@@ -17,14 +17,14 @@ const DateTimeSuggestions: React.FC<SuggestionsProps> = ({ className, suggestion
     const startDate = new Date(endDate.getTime() - timeFromNow);
     const range = { from: startDate, to: endDate };
     const startTime = {
-      HH: startDate.getHours().toString().padStart(2, '0'),
-      mm: startDate.getMinutes().toString().padStart(2, '0'),
-      ss: startDate.getSeconds().toString().padStart(2, '0'),
+      HH: startDate.getHours().toString().padStart(2, "0"),
+      mm: startDate.getMinutes().toString().padStart(2, "0"),
+      ss: startDate.getSeconds().toString().padStart(2, "0"),
     };
     const endTime = {
-      HH: endDate.getHours().toString().padStart(2, '0'),
-      mm: endDate.getMinutes().toString().padStart(2, '0'),
-      ss: endDate.getSeconds().toString().padStart(2, '0'),
+      HH: endDate.getHours().toString().padStart(2, "0"),
+      mm: endDate.getMinutes().toString().padStart(2, "0"),
+      ss: endDate.getSeconds().toString().padStart(2, "0"),
     };
     onDateChange(range);
     // Call time changes before date change to ensure latest state
