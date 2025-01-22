@@ -17,35 +17,50 @@ const testCases: {
   rps: number;
   seconds: number;
 }[] = [
+  // Very short window, high throughput
+  {
+    limit: 50,
+    duration: 1000, // 1s window
+    rps: 200, // 4x the limit
+    seconds: 15, // 15 windows
+  },
+
+  // Short window, burst traffic
+  {
+    limit: 100,
+    duration: 5000, // 5s window
+    rps: 300, // 15x the limit
+    seconds: 65, // 13 windows
+  },
+
+  // Medium window, steady traffic
   {
     limit: 200,
-    duration: 60_000,
-    rps: 100,
-    seconds: 60,
+    duration: 30000, // 30s window
+    rps: 50, // 7.5x the limit
+    seconds: 420, // 14 windows
   },
+
+  // Edge case: tiny limit
   {
-    limit: 10,
-    duration: 60000,
-    rps: 10,
-    seconds: 60,
+    limit: 5,
+    duration: 10000, // 10s window
+    rps: 20, // 40x the limit
+    seconds: 140, // 14 windows
   },
+
+  // Edge case: high limit, short window
   {
-    limit: 500,
-    duration: 10000,
-    rps: 20,
-    seconds: 20,
-  },
-  {
-    limit: 500,
-    duration: 10000,
-    rps: 100,
-    seconds: 30,
+    limit: 1000,
+    duration: 15000, // 15s window
+    rps: 200, // 3x the limit
+    seconds: 180, // 12 windows
   },
 ];
 
 for (const { limit, duration, rps, seconds } of testCases) {
   const name = `[${limit} / ${duration / 1000}s], attacked with ${rps} rps for ${seconds}s`;
-  test(name, { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 }, async (t) => {
+  test(name, { skip: process.env.TEST_LOCAL, retry: 3, timeout: 1_800_000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
 
     const { key, keyId } = await h.createKey();
@@ -81,7 +96,7 @@ for (const { limit, duration, rps, seconds } of testCases) {
     }, 0);
 
     const exactLimit = Math.min(results.length, (limit / (duration / 1000)) * seconds);
-    const upperLimit = Math.round(exactLimit * 2.5);
+    const upperLimit = Math.round(exactLimit * 1.5);
     const lowerLimit = Math.round(exactLimit * 0.95);
     console.info({ name, passed, exactLimit, upperLimit, lowerLimit });
     t.expect(passed).toBeGreaterThanOrEqual(lowerLimit);

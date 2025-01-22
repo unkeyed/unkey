@@ -1,5 +1,4 @@
 "use client";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,6 +15,7 @@ import { toast } from "@/components/ui/toaster";
 import type { ClerkError } from "@/lib/clerk";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import type React from "react";
 import { useForm } from "react-hook-form";
@@ -44,9 +44,9 @@ export const UpdateUserName: React.FC = () => {
   });
   if (!user) {
     return (
-      <EmptyPlaceholder className="min-h-[200px]">
+      <Empty>
         <Loading />
-      </EmptyPlaceholder>
+      </Empty>
     );
   }
 

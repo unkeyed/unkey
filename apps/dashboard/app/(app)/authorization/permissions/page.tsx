@@ -1,4 +1,3 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -7,8 +6,9 @@ import { getTenantId } from "@/lib/auth";
 import { asc, db } from "@/lib/db";
 import { permissions } from "@unkey/db/src/schema";
 import { ShieldKey } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { ChevronRight, Scan } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
@@ -80,18 +80,16 @@ export default async function RolesPage() {
         <div className="mt-8 mb-20 overflow-x-auto">
           <div className="flex items-center justify-between flex-1 space-x-2 w-full">
             {workspace.permissions.length === 0 ? (
-              <EmptyPlaceholder className="w-full">
-                <EmptyPlaceholder.Icon>
-                  <Scan />
-                </EmptyPlaceholder.Icon>
-                <EmptyPlaceholder.Title>No permissions found</EmptyPlaceholder.Title>
-                <EmptyPlaceholder.Description>
-                  Create your first permission
-                </EmptyPlaceholder.Description>
-                <CreateNewPermission
-                  trigger={<Button variant="primary">Create New Permission</Button>}
-                />
-              </EmptyPlaceholder>
+              <Empty>
+                <Empty.Icon />
+                <Empty.Title>No permissions found</Empty.Title>
+                <Empty.Description>Create your first permission</Empty.Description>
+                <Empty.Actions>
+                  <CreateNewPermission
+                    trigger={<Button variant="primary">Create New Permission</Button>}
+                  />
+                </Empty.Actions>
+              </Empty>
             ) : (
               <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border w-full">
                 {workspace.permissions.map((p) => (

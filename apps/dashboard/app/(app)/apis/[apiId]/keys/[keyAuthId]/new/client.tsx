@@ -68,6 +68,14 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       limitEnabled: false,
       metaEnabled: false,
       ratelimitEnabled: false,
+      limit: {
+        remaining: undefined,
+        refill: {
+          interval: "none",
+          amount: undefined,
+          refillDay: undefined,
+        },
+      },
     },
   });
 
@@ -85,7 +93,18 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // make sure they aren't sent to the server if they are disabled.
+    if (
+      values.limitEnabled &&
+      values.limit?.refill?.interval !== "none" &&
+      !values.limit?.refill?.amount
+    ) {
+      form.setError("limit.refill.amount", {
+        type: "manual",
+        message: "Please enter a value if interval is selected",
+      });
+      return;
+    }
+
     if (!values.expireEnabled) {
       delete values.expires;
     }
@@ -100,12 +119,11 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     }
     const refill = values.limit?.refill;
     if (refill?.interval === "daily") {
-      refill?.refillDay === undefined;
+      refill.refillDay = undefined;
     }
     if (refill?.interval === "monthly" && !refill.refillDay) {
       refill.refillDay = 1;
     }
-
     await key.mutateAsync({
       keyAuthId,
       ...values,
@@ -505,11 +523,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                 render={({ field }) => (
                                   <FormItem className="">
                                     <FormLabel>Refill Rate</FormLabel>
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      defaultValue="none"
-                                      value={field.value}
-                                    >
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                       <SelectTrigger>
                                         <SelectValue />
                                       </SelectTrigger>
@@ -527,6 +541,10 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                               />
                               <FormField
                                 control={form.control}
+                                disabled={
+                                  !form.watch("limitEnabled") ||
+                                  form.watch("limit.refill.interval") === "none"
+                                }
                                 name="limit.refill.amount"
                                 render={({ field }) => (
                                   <FormItem className="mt-4">
@@ -538,7 +556,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                         type="number"
                                         {...field}
                                         value={
-                                          form.getValues("limitEnabled") ? field.value : undefined
+                                          form.getValues("limitEnabled") ? field.value : "undefined"
                                         }
                                       />
                                     </FormControl>
@@ -549,7 +567,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                   </FormItem>
                                 )}
                               />
-
                               <FormField
                                 control={form.control}
                                 disabled={

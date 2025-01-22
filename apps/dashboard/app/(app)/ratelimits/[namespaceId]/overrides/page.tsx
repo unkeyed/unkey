@@ -1,5 +1,4 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Navbar } from "@/components/navbar";
@@ -8,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Gauge } from "@unkey/icons";
-import { Scan } from "lucide-react";
+import { Empty } from "@unkey/ui";
 import { notFound } from "next/navigation";
 import { navigation } from "../constants";
 import { CreateNewOverride } from "./create-new-override";
@@ -97,15 +96,11 @@ export default async function OverridePage(props: Props) {
 
           <CreateNewOverride namespaceId={namespace.id} />
           {namespace.overrides.length === 0 ? (
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Icon>
-                <Scan />
-              </EmptyPlaceholder.Icon>
-              <EmptyPlaceholder.Title>No custom ratelimits found</EmptyPlaceholder.Title>
-              <EmptyPlaceholder.Description>
-                Create your first override below
-              </EmptyPlaceholder.Description>
-            </EmptyPlaceholder>
+            <Empty>
+              <Empty.Icon />
+              <Empty.Title>No custom ratelimits found</Empty.Title>
+              <Empty.Description>Create your first override below</Empty.Description>
+            </Empty>
           ) : (
             <Overrides
               workspaceId={namespace.workspace.id}

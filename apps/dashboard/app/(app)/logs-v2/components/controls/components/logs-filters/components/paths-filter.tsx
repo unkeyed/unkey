@@ -1,6 +1,9 @@
+import type { FilterValue } from "@/app/(app)/logs-v2/filters.type";
+import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useCheckboxState } from "./hooks/use-checkbox-state";
 
 interface CheckboxOption {
   id: number;
@@ -87,10 +90,16 @@ const options: CheckboxOption[] = [
 ] as const;
 
 export const PathsFilter = () => {
-  const [checkboxes, setCheckboxes] = useState<CheckboxOption[]>(options);
+  const { filters, updateFilters } = useFilters();
   const [isAtBottom, setIsAtBottom] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState({
+    options,
+    filters,
+    filterField: "paths",
+    checkPath: "path",
+  });
   const handleScroll = useCallback(() => {
     if (scrollContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
@@ -103,45 +112,45 @@ export const PathsFilter = () => {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer) {
       scrollContainer.addEventListener("scroll", handleScroll);
-      // Check initial scroll position
       handleScroll();
-
       return () => {
         scrollContainer.removeEventListener("scroll", handleScroll);
       };
     }
   }, [handleScroll]);
 
-  const handleCheckboxChange = (index: number): void => {
-    setCheckboxes((prevCheckboxes) => {
-      const newCheckboxes = [...prevCheckboxes];
-      newCheckboxes[index] = {
-        ...newCheckboxes[index],
-        checked: !newCheckboxes[index].checked,
-      };
-      return newCheckboxes;
-    });
-  };
+  const handleApplyFilter = useCallback(() => {
+    const selectedPaths = checkboxes.filter((c) => c.checked).map((c) => c.path);
 
-  const handleSelectAll = (): void => {
-    setCheckboxes((prevCheckboxes) => {
-      const allChecked = prevCheckboxes.every((checkbox) => checkbox.checked);
-      return prevCheckboxes.map((checkbox) => ({
-        ...checkbox,
-        checked: !allChecked,
-      }));
-    });
-  };
+    // Keep all non-paths filters and add new path filters
+    const otherFilters = filters.filter((f) => f.field !== "paths");
+    const pathFilters: FilterValue[] = selectedPaths.map((path) => ({
+      id: crypto.randomUUID(),
+      field: "paths",
+      operator: "is",
+      value: path,
+    }));
+
+    updateFilters([...otherFilters, ...pathFilters]);
+  }, [checkboxes, filters, updateFilters]);
 
   return (
     <div className="flex flex-col font-mono">
-      <label className="flex items-center gap-2 px-4 pb-2 pt-4 cursor-pointer">
+      <label
+        className="flex items-center gap-4 px-4 pb-2 pt-4 cursor-pointer"
+        // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
+        role="checkbox"
+        aria-checked={checkboxes.every((checkbox) => checkbox.checked)}
+        onKeyDown={handleKeyDown}
+      >
         <Checkbox
           checked={checkboxes.every((checkbox) => checkbox.checked)}
-          className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
+          className="size-4 rounded border-gray-4 [&_svg]:size-3"
           onClick={handleSelectAll}
         />
-        <span className="text-xs text-accent-12 ml-2">Select All</span>
+        <span className="text-xs text-accent-12">
+          {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
+        </span>
       </label>
       <div className="relative px-2">
         <div
@@ -149,10 +158,17 @@ export const PathsFilter = () => {
           className="flex flex-col gap-2 font-mono px-2 pb-2 max-h-64 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {checkboxes.map((checkbox, index) => (
-            <label key={checkbox.id} className="flex gap-4 items-center py-1 cursor-pointer">
+            <label
+              key={checkbox.id}
+              className="flex gap-[18px] items-center py-1 cursor-pointer"
+              // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
+              role="checkbox"
+              aria-checked={checkbox.checked}
+              onKeyDown={handleKeyDown}
+            >
               <Checkbox
                 checked={checkbox.checked}
-                className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
+                className="size-4 rounded border-gray-4 [&_svg]:size-3"
                 onClick={() => handleCheckboxChange(index)}
               />
               <div className="text-accent-12 text-xs truncate">{checkbox.path}</div>
@@ -170,10 +186,7 @@ export const PathsFilter = () => {
         <Button
           variant="primary"
           className="font-sans w-full h-9 rounded-md"
-          onClick={() => {
-            const selectedPaths = checkboxes.filter((c) => c.checked);
-            console.info("Selected Paths:", selectedPaths);
-          }}
+          onClick={handleApplyFilter}
         >
           Apply Filter
         </Button>

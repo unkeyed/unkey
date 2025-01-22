@@ -1,5 +1,17 @@
 # @unkey/api
 
+## 0.32.0
+
+### Minor Changes
+
+- a2f16f0: Add all options to verifyKey
+
+## 0.31.0
+
+### Minor Changes
+
+- 56ae5f6: feat: add analytics
+
 ## 0.30.0
 
 ### Minor Changes
