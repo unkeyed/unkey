@@ -4,11 +4,13 @@ export * from "./icons/book-bookmark";
 export * from "./icons/calendar";
 export * from "./icons/caret-right";
 export * from "./icons/caret-right-outline";
+export * from "./icons/caret-right-outline";
 export * from "./icons/check";
 export * from "./icons/chevron-expand-y";
 export * from "./icons/chevron-left";
 export * from "./icons/chevron-right";
 export * from "./icons/circle-carret-right";
+export * from "./icons/circle-info-sparkle";
 export * from "./icons/circle-info-sparkle";
 export * from "./icons/fingerprint";
 export * from "./icons/gauge";
@@ -32,4 +34,3 @@ export * from "./icons/triangle-warning";
 export * from "./icons/triangle-warning-2";
 export * from "./icons/ufo";
 export * from "./icons/xmark";
-
