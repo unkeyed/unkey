@@ -7,8 +7,8 @@ package httpApi
 // - JSON
 // - Raw bytes
 // - Errors
-type Handler[TRequest Redacter, TResponse Redacter] interface {
-	Handle(sess *Session[TRequest, TResponse]) error
+type Handler interface {
+	Handle(sess *Session) error
 }
 
-type HandleFunc[TRequest Redacter, TResponse Redacter] func(sess *Session[TRequest, TResponse]) error
+type HandleFunc func(sess *Session) error

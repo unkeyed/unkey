@@ -2,17 +2,16 @@ package v1RatelimitLimit
 
 import (
 	"github.com/unkeyed/unkey/go/pkg/database/gen"
-	httpApi "github.com/unkeyed/unkey/go/pkg/http_api"
-	apierrors "github.com/unkeyed/unkey/go/pkg/http_api/errors"
-	"github.com/unkeyed/unkey/go/pkg/http_api/openapi"
-	"github.com/unkeyed/unkey/go/pkg/http_api/routes"
+	zen "github.com/unkeyed/unkey/go/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/go/pkg/zen/errors"
+	"github.com/unkeyed/unkey/go/pkg/zen/openapi"
 )
 
 type Request = openapi.V2RatelimitSetOverrideRequestBody
 type Response = openapi.V2RatelimitSetOverrideResponseBody
 
-func New(svc *httpApi.Services) routes.Route[Request, Response] {
-	return routes.NewRoute("POST", "/v2/ratelimit.setOverride", func(s *httpApi.Session[Request, Response]) error {
+func New(svc *zen.Services) zen.Route {
+	return zen.NewRoute("POST", "/v2/ratelimit.setOverride", func(s *zen.Session) error {
 
 		err := svc.Database.InsertOverride(s.Context(), gen.InsertOverrideParams{})
 		if err != nil {

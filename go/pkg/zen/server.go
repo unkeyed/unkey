@@ -1,4 +1,4 @@
-package httpApi
+package zen
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	apierrors "github.com/unkeyed/unkey/go/pkg/http_api/errors"
-	"github.com/unkeyed/unkey/go/pkg/http_api/validation"
 	"github.com/unkeyed/unkey/go/pkg/logging"
+	apierrors "github.com/unkeyed/unkey/go/pkg/zen/errors"
+	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
 
 type Server struct {
@@ -68,7 +68,7 @@ func New(config Config) (*Server, error) {
 		srv:         srv,
 		sessions: sync.Pool{
 			New: func() any {
-				return &Session[Redacter, Redacter]{
+				return &Session{
 					requestID: "",
 					validator: validator,
 					w:         nil,
@@ -116,24 +116,28 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 	return s.srv.ListenAndServe()
 }
 
-func (s *Server) RegisterRoute(route Route[Redacter, Redacter]) {
+func (s *Server) RegisterRoute(route Route) {
 
 	s.mux.HandleFunc(fmt.Sprintf("%s %s", route.Method(), route.Path()), func(w http.ResponseWriter, r *http.Request) {
 
-		sess, ok := s.getSession().(*Session[Redacter, Redacter])
+		sess, ok := s.getSession().(*Session)
 		if !ok {
 			panic("Unable to cast session")
 		}
 		defer func() {
-			sess.Reset()
+			sess.reset()
 			s.returnSession(sess)
 		}()
 
-		sess.Init(w, r)
-
-		err := route.Handle(sess)
+		err := sess.Init(w, r)
+		if err != nil {
+			s.logger.Error(context.Background(), "failed to init session")
+			return
+		}
+		err = route.Handle(sess)
 
 		if err != nil {
+
 			base := apierrors.BaseError{}
 			if errors.As(err, &base) {
 
@@ -148,11 +152,6 @@ func (s *Server) RegisterRoute(route Route[Redacter, Redacter]) {
 				}
 			}
 			return
-		}
-
-		err = sess.Flush()
-		if err != nil {
-			panic(fmt.Errorf("unable to write http response: %w", err))
 		}
 
 	})

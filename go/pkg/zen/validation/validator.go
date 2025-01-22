@@ -8,7 +8,7 @@ import (
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
 	"github.com/unkeyed/unkey/go/pkg/ctxutil"
-	"github.com/unkeyed/unkey/go/pkg/http_api/openapi"
+	"github.com/unkeyed/unkey/go/pkg/zen/openapi"
 )
 
 type OpenAPIValidator interface {

@@ -1,4 +1,4 @@
-package httpApi
+package zen
 
 import (
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"

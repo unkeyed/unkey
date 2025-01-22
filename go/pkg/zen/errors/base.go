@@ -3,7 +3,6 @@ package apierrors
 import "encoding/json"
 
 type Error interface {
-	Redact()
 	// The HTTP status of the error
 	HTTPStatus() int
 

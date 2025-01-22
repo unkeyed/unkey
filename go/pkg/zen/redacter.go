@@ -1,4 +1,4 @@
-package httpApi
+package zen
 
 type Redacter interface {
 	// Redact replaces sensitive data with `<REDACTED>`
