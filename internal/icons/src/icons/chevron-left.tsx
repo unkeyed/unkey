@@ -16,7 +16,7 @@ import type { IconProps } from "../props";
 
 export const ChevronLeft: React.FC<IconProps> = (props: IconProps) => {
   return (
-    <svg height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
       <g fill="currentColor">
         <path
           d="M11.5 15.25L5.25 9L11.5 2.75"

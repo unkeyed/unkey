@@ -1,20 +1,19 @@
 "use client";
 
-import { sub } from "date-fns";
 import { createContext, useContext, useState } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import React from "react";
 import type { DateRange } from "react-day-picker";
 import { DateTimeActions } from "./components/actions";
 import { Calendar } from "./components/calendar";
-import { TimeSplitInput } from "./components/time-split";
-
+import { DateTimeSuggestions } from "./components/suggestions";
+import { TimeInput } from "./components/time-split";
 export type DateTimeContextType = {
   minDateRange?: Date;
   maxDateRange?: Date;
   date?: DateRange;
-  startTime?: TimeUnit;
-  endTime?: TimeUnit;
+  startTime: TimeUnit;
+  endTime: TimeUnit;
   onDateChange: (newDate: DateRange) => void;
   onStartTimeChange: (newTime: TimeUnit) => void;
   onEndTimeChange: (newTime: TimeUnit) => void;
@@ -36,59 +35,44 @@ const useDateTimeContext = () => {
   return context;
 };
 
-type FullDateTime = {
-  date: DateRange | undefined;
-  startTime: TimeUnit | undefined;
-  endTime: TimeUnit | undefined;
-};
 // Root Component
 type DateTimeRootProps = {
   children: React.ReactNode;
   className?: string;
-  value?: FullDateTime;
   minDate?: Date;
   maxDate?: Date;
   onChange: (
-    value: DateRange | undefined,
+    date: DateRange | undefined,
     start: TimeUnit | undefined,
     end: TimeUnit | undefined,
   ) => void;
 };
 
-function DateTime({ children, className, value, minDate, maxDate, onChange }: DateTimeRootProps) {
-  const today = new Date();
-  const [minDateRange, setMinDate] = useState<Date>(minDate ?? sub(today, { years: 1 }));
-  const [maxDateRange, setMaxDate] = useState<Date>(maxDate ?? today);
+function DateTime({ children, className, onChange }: DateTimeRootProps) {
   const [date, setDate] = useState<DateRange>();
-  const [startTime, setStartTime] = useState<TimeUnit>(
-    value?.startTime || { HH: "00", mm: "00", ss: "00" },
-  );
-  const [endTime, setEndTime] = useState<TimeUnit>(
-    value?.endTime || { HH: "00", mm: "00", ss: "00" },
-  );
+  const [startTime, setStartTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
+  const [endTime, setEndTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
 
   const handleDateChange = (newRange: DateRange) => {
     setDate(newRange);
-    onChange(newRange, startTime, endTime);
+    onChange(date, startTime, endTime);
   };
 
   const handleStartTimeChange = (newTime: TimeUnit) => {
     setStartTime(newTime);
-    onChange(date, newTime, endTime);
+    onChange(date, startTime, endTime);
   };
 
   const handleEndTimeChange = (newTime: TimeUnit) => {
     setEndTime(newTime);
-    onChange(date, startTime, newTime);
+    onChange(date, startTime, endTime);
   };
 
   return (
-    <div className={`flex flex-col gap-3 ${className}`}>
+    <div className={`flex flex-row w-fit gap-3 ${className}`}>
       <DateTimeContext.Provider
         value={{
           date,
-          minDateRange,
-          maxDateRange,
           startTime,
           endTime,
           onDateChange: handleDateChange,
@@ -107,10 +91,13 @@ DateTime.displayName = "DateTime.root";
 DateTime.Calendar = Calendar;
 DateTime.Calendar.displayName = "DateTime.Calendar";
 
-DateTime.TimeInput = TimeSplitInput;
+DateTime.TimeInput = TimeInput;
 DateTime.TimeInput.displayName = "DateTime.TimeInput";
 
 DateTime.Actions = DateTimeActions;
 DateTime.Actions.displayName = "DateTime.Actions";
+
+DateTime.Suggestions = DateTimeSuggestions;
+DateTime.Suggestions.displayName = "DateTime.Suggestions";
 
 export { DateTime, useDateTimeContext };

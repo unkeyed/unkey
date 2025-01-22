@@ -17,13 +17,17 @@ function CustomCaptionComponent(props: CaptionProps) {
   const { goToMonth, nextMonth, previousMonth } = useNavigation();
   return (
     <div className="flex flex-row w-full bg-transparent px-2">
-      <button disabled={!previousMonth} onClick={() => previousMonth && goToMonth(previousMonth)}>
+      <button
+        type="button"
+        disabled={!previousMonth}
+        onClick={() => previousMonth && goToMonth(previousMonth)}
+      >
         <IconLeft className="text-gray-12 size-2" />
       </button>
       <div className="w-full text-center text-gray-12 text-xs">
         {format(props.displayMonth, "MMMM yyy")}
       </div>
-      <button disabled={!nextMonth} onClick={() => nextMonth && goToMonth(nextMonth)}>
+      <button type="button" disabled={!nextMonth} onClick={() => nextMonth && goToMonth(nextMonth)}>
         <IconRight className="text-gray-12 size-2" />
       </button>
     </div>
