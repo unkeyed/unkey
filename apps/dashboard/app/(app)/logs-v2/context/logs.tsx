@@ -1,7 +1,12 @@
 "use client";
 
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { type PropsWithChildren, createContext, useContext, useState } from "react";
+import {
+  type PropsWithChildren,
+  createContext,
+  useContext,
+  useState,
+} from "react";
 
 type DisplayProperty =
   | "time"
@@ -17,7 +22,7 @@ type DisplayProperty =
 
 type LogsContextType = {
   isLive: boolean;
-  toggleLive: () => void;
+  toggleLive: (value?: boolean) => void;
   selectedLog: Log | null;
   setSelectedLog: (log: Log | null) => void;
   displayProperties: Set<DisplayProperty>;
@@ -37,9 +42,9 @@ const LogsContext = createContext<LogsContextType | null>(null);
 export const LogsProvider = ({ children }: PropsWithChildren) => {
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [isLive, setIsLive] = useState(false);
-  const [displayProperties, setDisplayProperties] = useState<Set<DisplayProperty>>(
-    new Set(DEFAULT_DISPLAY_PROPERTIES),
-  );
+  const [displayProperties, setDisplayProperties] = useState<
+    Set<DisplayProperty>
+  >(new Set(DEFAULT_DISPLAY_PROPERTIES));
 
   const toggleDisplayProperty = (property: DisplayProperty) => {
     setDisplayProperties((prev) => {
@@ -53,8 +58,8 @@ export const LogsProvider = ({ children }: PropsWithChildren) => {
     });
   };
 
-  const toggleLive = () => {
-    setIsLive((prev) => !prev);
+  const toggleLive = (value?: boolean) => {
+    setIsLive((prev) => (typeof value !== "undefined" ? value : !prev));
   };
 
   return (

@@ -1,7 +1,8 @@
-import { Calendar, Refresh3 } from "@unkey/icons";
+import { Calendar } from "@unkey/icons";
 import { LogsDisplay } from "./components/logs-display";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";
+import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
 export function LogsControls() {
@@ -17,7 +18,9 @@ export function LogsControls() {
           </div>
           <div className="flex gap-2 items-center px-2">
             <Calendar className="text-accent-9 size-4" />
-            <span className="text-accent-12 font-medium text-[13px]">Last 24 hours</span>
+            <span className="text-accent-12 font-medium text-[13px]">
+              Last 24 hours
+            </span>
           </div>
         </div>
 
@@ -25,9 +28,8 @@ export function LogsControls() {
           <div className="flex gap-2 items-center">
             <LogsLiveSwitch />
           </div>
-          <div className="flex gap-2 items-center px-2">
-            <Refresh3 className="text-accent-9 size-4" />
-            <span className="text-accent-12 font-medium text-[13px]">Refresh</span>
+          <div className="flex gap-2 items-center">
+            <LogsRefresh />
           </div>
           <div className="flex gap-2 items-center">
             <LogsDisplay />
