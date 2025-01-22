@@ -14,17 +14,7 @@ export const DateTimeExample: React.FC = () => {
   const [date, setDate] = useState<Range>();
   const [startTime, setStartTime] = useState<TimeUnit>();
   const [endTime, setEndTime] = useState<TimeUnit>();
-  const suggestions = [
-    { label: "Last 5 minutes", relativeTime: 5 * 60 * 1000 },
-    { label: "Last 15 minutes", relativeTime: 15 * 60 * 1000 },
-    { label: "Last 30 minutes", relativeTime: 30 * 60 * 1000 },
-    { label: "Last 1 hour", relativeTime: 60 * 60 * 1000 },
-    { label: "Last 3 hours", relativeTime: 3 * 60 * 60 * 1000 },
-    { label: "Last 6 hours", relativeTime: 6 * 60 * 60 * 1000 },
-    { label: "Last 12 hours", relativeTime: 12 * 60 * 60 * 1000 },
-    { label: "Last 24 hours", relativeTime: 24 * 60 * 60 * 1000 },
-    { label: "Last 2 days", relativeTime: 2 * 24 * 60 * 60 * 1000 },
-  ];
+ 
   const handleApply = (newDate?: Range, newStartTime?: TimeUnit, newEndTime?: TimeUnit) => {
     newDate ? setDate(newDate) : null;
     newStartTime ? setStartTime(newStartTime) : null;
@@ -52,35 +42,21 @@ export const DateTimeExample: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="flex w-full pt-12 justify-center items-center">
+          <div className="flex flex-col w-full pt-12 justify-center items-center">
             <DateTime
               onChange={(date?: Range, startTime?: TimeUnit, endTime?: TimeUnit) =>
                 handleChange(date, startTime, endTime)
               }
             >
-              <DateTime.Suggestions suggestions={suggestions} />
-              <div className="flex flex-col">
-                <DateTime.Calendar mode="range" />
-                <DateTime.TimeInput type="range" />
-                <DateTime.Actions>
-                  <Button className="w-full" onClick={() => handleApply} variant={"primary"}>
-                    Apply Filter
-                  </Button>
-                </DateTime.Actions>
-              </div>
+              <DateTime.Calendar mode="range" />
+              <DateTime.TimeInput type="range" />
+              <DateTime.Actions>
+                <Button className="w-full" onClick={() => handleApply(date, startTime, endTime)} variant={"primary"}>
+                  Apply Filter
+                </Button>
+              </DateTime.Actions>
             </DateTime>
           </div>
-          <ul>
-            <h4>List left to do:</h4>
-            <li>AM/PM in time component</li>
-            <li>Timezone text</li>
-            <li>Combine TimeInput components into a single row</li>
-            <li>Use same Mode as calendar "single" or "range"</li>
-            <li>Handle style inside component</li>
-            <li>Handle keyboard navigation inside time component</li>
-            <li>enter 2 digit auto move to next input</li>
-            <li>If single digit and : is used next input</li>
-          </ul>
         </div>
       </Row>
     </RenderComponentWithSnippet>

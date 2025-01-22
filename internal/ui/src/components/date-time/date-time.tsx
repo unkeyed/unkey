@@ -6,7 +6,6 @@ import React from "react";
 import type { DateRange } from "react-day-picker";
 import { DateTimeActions } from "./components/actions";
 import { Calendar } from "./components/calendar";
-import { DateTimeSuggestions } from "./components/suggestions";
 import { TimeInput } from "./components/time-split";
 export type DateTimeContextType = {
   minDateRange?: Date;
@@ -42,9 +41,9 @@ type DateTimeRootProps = {
   minDate?: Date;
   maxDate?: Date;
   onChange: (
-    date: DateRange | undefined,
-    start: TimeUnit | undefined,
-    end: TimeUnit | undefined,
+    date?: DateRange,
+    start?: TimeUnit,
+    end?: TimeUnit,
   ) => void;
 };
 
@@ -55,21 +54,21 @@ function DateTime({ children, className, onChange }: DateTimeRootProps) {
 
   const handleDateChange = (newRange: DateRange) => {
     setDate(newRange);
-    onChange(date, startTime, endTime);
+    onChange(newRange, startTime, endTime);
   };
 
   const handleStartTimeChange = (newTime: TimeUnit) => {
     setStartTime(newTime);
-    onChange(date, startTime, endTime);
+    onChange(date, newTime, endTime);
   };
 
   const handleEndTimeChange = (newTime: TimeUnit) => {
     setEndTime(newTime);
-    onChange(date, startTime, endTime);
+    onChange(date, startTime, newTime);
   };
 
   return (
-    <div className={`flex flex-row w-fit gap-3 ${className}`}>
+    <div className={`flex flex-col justify-center items-center w-fit gap-3 ${className}`}>
       <DateTimeContext.Provider
         value={{
           date,
@@ -96,8 +95,5 @@ DateTime.TimeInput.displayName = "DateTime.TimeInput";
 
 DateTime.Actions = DateTimeActions;
 DateTime.Actions.displayName = "DateTime.Actions";
-
-DateTime.Suggestions = DateTimeSuggestions;
-DateTime.Suggestions.displayName = "DateTime.Suggestions";
 
 export { DateTime, useDateTimeContext };

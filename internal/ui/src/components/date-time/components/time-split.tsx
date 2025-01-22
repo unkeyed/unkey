@@ -1,4 +1,3 @@
-"use client";
 import { format } from "date-fns";
 
 import { TimeClock } from "@unkey/icons";
@@ -14,265 +13,135 @@ export type TimeUnit = {
   ss: string;
 };
 
-export type TimeType = "HH" | "mm" | "ss";
+type TimeInputType = "start" | "end";
+type TimeField = keyof TimeUnit;
 
 type TimeSplitInputProps = {
-  type: "start" | "end";
+  inputClassNames?: string;
+  type: TimeInputType;
 };
+const MAX_VALUES = {
+  HH: 23,
+  mm: 59,
+  ss: 59,
+} as const;
 
-const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
-  const { date, startTime, endTime, onStartTimeChange, onEndTimeChange } = useDateTimeContext();
+const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type}) => {
+  const { startTime, endTime, date, onStartTimeChange, onEndTimeChange } = useDateTimeContext();
   const [focus, setFocus] = useState(false);
   const [time, setTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
 
-  function handleOnBlur() {
-    const _time = time;
+  const normalizeTimeUnit = (time: TimeUnit): TimeUnit => ({
+    HH: time.HH.padStart(2, "0") || "00",
+    mm: time.mm.padStart(2, "0") || "00",
+    ss: time.ss.padStart(2, "0") || "00",
+  });
 
-    if (_time.HH.length === 1) {
-      _time.HH = `0${_time.HH}`;
+  const isSameDay = (date1: Date, date2: Date) =>
+    format(new Date(date1), "dd/MM/yyyy") === format(new Date(date2), "dd/MM/yyyy");
+
+  const compareTimeUnits = (time1: TimeUnit, time2: TimeUnit): number => {
+    const t1 = Number(time1.HH) * 3600 + Number(time1.mm) * 60 + Number(time1.ss);
+    const t2 = Number(time2.HH) * 3600 + Number(time2.mm) * 60 + Number(time2.ss);
+    return t1 - t2;
+  };
+
+  const handleTimeConflicts = (normalizedTime: TimeUnit) => {
+    // Only handle conflicts if start and end are on the same day
+    if (date?.from && date.to) {
+      if (!isSameDay(date.from, date?.to)) { return; }
     }
-    if (_time.mm.length === 1) {
-      _time.mm = `0${_time.mm}`;
+    // If this is a start time and it's later than the end time,
+    // push the end time forward to match the start time
+    if (type === "start" && endTime && compareTimeUnits(normalizedTime, endTime) > 0) {
+      onStartTimeChange(normalizedTime);
     }
-    if (_time.ss.length === 1) {
-      _time.ss = `0${_time.ss}`;
+    // If this is an end time and it's earlier than the start time,
+    // pull the start time backward to match the end time
+    else if (type === "end" && startTime && compareTimeUnits(normalizedTime, startTime) < 0) {
+      onEndTimeChange(normalizedTime);
     }
+  };
 
-    if (!_time.HH) {
-      _time.HH = "00";
+  const handleBlur = (value: string, field: TimeField) => {
+    if (value !== time[field]) {
+      handleChange(value, field);
     }
-    if (!_time.mm) {
-      _time.mm = "00";
+    const normalizedTime = normalizeTimeUnit(time);
+    setTime(normalizedTime);
+    handleTimeConflicts(normalizedTime);
+    if (type === "start") {
+      onStartTimeChange(time);
     }
-    if (!_time.ss) {
-      _time.ss = "00";
+    if (type === "end") {
+      onEndTimeChange(time);
     }
-
-    let endTimeChanges = false;
-    const endTimePayload = endTime;
-
-    let startTimeChanges = false;
-    const startTimePayload = startTime;
-
-    // Only run time conflicts if
-    // startDate and endDate are the same date
-    if (date?.from && date?.to) {
-      const startDate = date?.from;
-      const endDate = date?.to;
-      if (format(new Date(startDate), "dd/mm/yyyy") === format(new Date(endDate), "dd/mm/yyyy")) {
-        // checks if start time is ahead of end time
-
-        if (type === "start") {
-          if (_time.HH && Number(_time.HH) > Number(endTime?.HH)) {
-            endTimePayload.HH = _time.HH;
-            endTimeChanges = true;
-          }
-
-          if (
-            // also check the hour
-            _time.HH &&
-            Number(_time.HH) >= Number(endTime.HH) &&
-            // check the minutes
-            _time.mm &&
-            Number(_time.mm) > Number(endTime.mm)
-          ) {
-            endTimePayload.mm = _time.mm;
-            endTimeChanges = true;
-          }
-
-          if (
-            // also check the hour
-            _time.HH &&
-            Number(_time.HH) >= Number(endTime.HH) &&
-            // check the minutes
-            _time.mm &&
-            Number(_time.mm) >= Number(endTime.mm) &&
-            // check the seconds
-            _time.ss &&
-            Number(_time.ss) > Number(endTime.ss)
-          ) {
-            endTimePayload.ss = _time.ss;
-            endTimeChanges = true;
-          }
-        }
-
-        if (type === "end") {
-          if (_time.HH && Number(_time.HH) < Number(startTime.HH)) {
-            startTimePayload.HH = _time.HH;
-            startTimeChanges = true;
-          }
-
-          if (
-            // also check the hour
-            _time.HH &&
-            Number(_time.HH) <= Number(startTime.HH) &&
-            // check the minutes
-            _time.mm &&
-            Number(_time.mm) < Number(startTime.mm)
-          ) {
-            startTimePayload.mm = _time.mm;
-            startTimeChanges = true;
-          }
-
-          if (
-            // also check the hour
-            _time.HH &&
-            Number(_time.HH) <= Number(startTime.HH) &&
-            // check the minutes
-            _time.mm &&
-            Number(_time.mm) <= Number(startTime.mm) &&
-            // check the seconds
-            _time.ss &&
-            Number(_time.ss) < Number(startTime.ss)
-          ) {
-            startTimePayload.ss = _time.ss;
-            startTimeChanges = true;
-          }
-        }
-      }
-    }
-
-    setTime({ ..._time });
-
-    if (endTimeChanges) {
-      onEndTimeChange({ ...endTimePayload });
-    }
-    if (startTimeChanges) {
-      onStartTimeChange({ ...startTimePayload });
-    }
-
     setFocus(false);
-  }
+  };
 
-  function handleOnChange(value: string, valueType: TimeType) {
-    const payload = {
-      HH: time.HH,
-      mm: time.mm,
-      ss: time.ss,
-    };
-    if (value.length > 2) {
-      return;
-    }
+  const handleChange = (value: string, field: TimeField) => {
+    if (value.length > 2) { return; }
 
-    switch (valueType) {
-      case "HH":
-        if (value && Number(value) > 23) {
-          return;
-        }
-        break;
-      case "mm":
-        if (value && Number(value) > 59) {
-          return;
-        }
-        break;
-      case "ss":
-        if (value && Number(value) > 59) {
-          return;
-        }
-        break;
-      default:
-        break;
-    }
-
-    payload[valueType] = value;
-    setTime({ ...payload });
-  }
+    const numValue = Number(value);
+    if (value && numValue > MAX_VALUES[field]) { return; }
+    setTime({ ...time, [field]: value });
+  };
 
   const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
     event.target.select();
     setFocus(true);
   };
 
+  const inputClassNames = `
+    w-4 p-0 
+    border-none bg-transparent
+    text-xs text-center text-foreground
+    outline-none ring-0 focus:ring-0
+  `;
+
+  const renderTimeInput = (field: TimeField, ariaLabel: string) => (
+    <input
+      type="text"
+      value={time[field]}
+      onChange={(e) => handleChange(e.target.value, field)}
+      onBlur={(e) => handleBlur(e.target.value, field)}
+      onFocus={handleFocus}
+      placeholder="00"
+      aria-label={ariaLabel}
+      className={inputClassNames}
+    />
+  );
+
   return (
     <div
-      className={`flex h-7 w-fit items-center justify-center px-4
-            gap-0 rounded border border-strong
-            text-xs text-foreground-light
-            ${focus ? "border-stronger outline outline-2 outline-border" : ""}
-                `}
+      className={cn("flex h-7 w-fit items-center justify-center px-4 gap-0 rounded border border-[1px] border-gray-4 text-xs text-gray-12",
+        focus ? "border-[1.5px] border-gray-10" : ""
+      )}
     >
       <div className="text-gray-9 mr-2">
-        <TimeClock className="size-2.5" />
+        <TimeClock className="size-3 stroke-1.5" />
       </div>
-      <input
-        type="text"
-        onBlur={() => handleOnBlur()}
-        onFocus={handleFocus}
-        pattern="[0-23]*"
-        placeholder="00"
-        onChange={(e) => handleOnChange(e.target.value, "HH")}
-        aria-label="Hours"
-        className="
-            ring-none
-            w-4
-            border-none
-            bg-transparent
-            p-0 text-center text-xs
-            text-foreground
-            outline-none
-            ring-0
-            focus:ring-0
-        "
-        value={time.HH}
-      />
-      <span className="text-foreground-lighter">:</span>
-      <input
-        type="text"
-        onBlur={() => handleOnBlur()}
-        onFocus={handleFocus}
-        pattern="[0-12]*"
-        placeholder="00"
-        onChange={(e) => handleOnChange(e.target.value, "mm")}
-        aria-label="Minutes"
-        className="
-            ring-none
-            w-4
-            border-none
-            bg-transparent
-            p-0 text-center text-xs
-            text-foreground
-            outline-none
-            ring-0
-            focus:ring-0
-        "
-        value={time.mm}
-      />
-      <span className="text-foreground-lighter">:</span>
-      <input
-        type="text"
-        onBlur={() => handleOnBlur()}
-        onFocus={handleFocus}
-        pattern="[0-59]*"
-        placeholder="00"
-        onChange={(e) => handleOnChange(e.target.value, "ss")}
-        aria-label="Seconds"
-        className="
-            ring-none
-            w-4
-            border-none
-            bg-transparent
-            p-0 text-center text-xs
-            text-foreground
-            outline-none
-            ring-0
-            focus:ring-0
-        "
-        value={time.ss}
-      />
+      {renderTimeInput("HH", "Hours")}
+      <span className="text-gray-12">:</span>
+      {renderTimeInput("mm", "Minutes")}
+      <span className="text-gray-12">:</span>
+      {renderTimeInput("ss", "Seconds")}
+      <span className="text-gray-12"> </span>
+      {/* AM/PM and timezone still needs to be implemented */}
+      {/* {renderTimeInput("")} */}
     </div>
   );
 };
-
 type TimeInputProps = {
-  type: "single" | "range";
+  type: "range" | "single";
   className?: string;
-};
-const TimeInput: React.FC<TimeInputProps> = ({ type, className }) => {
+}
+export const TimeInput: React.FC<TimeInputProps> = ({ type, className }) => {
+  
   return (
-    <div className={cn(className, "flex flex-row gap-4")}>
+    <div className={cn("w-full h-full flex flex-row items-center justify-center gap-4 mt-2 px-1", className)}>
       <TimeSplitInput type="start" />
-      {type === "range" && <TimeSplitInput type="end" />}
+      {type === "range" ? <TimeSplitInput type="end" /> : null}
     </div>
   );
 };
-export { TimeInput };
