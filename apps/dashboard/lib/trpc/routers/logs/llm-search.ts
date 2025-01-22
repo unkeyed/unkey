@@ -106,8 +106,6 @@ export const llmSearch = rateLimitedProcedure(ratelimit.update)
     return await getStructuredSearchFromLLM(input.query, input.timestamp);
   });
 
-// HELPERS
-
 const getSystemPrompt = (usersReferenceMS: number) => {
   const operatorsByField = Object.entries(filterFieldConfig)
     .map(([field, config]) => {
@@ -134,6 +132,39 @@ Result: [
       { operator: "is", value: 400 },
       { operator: "is", value: 500 }
     ]
+  }
+]
+
+Query: "show me logs from last 30m"
+Result: [
+  {
+    field: "since",
+    filters: [{ 
+      operator: "is", 
+      value: "30m"
+    }]
+  }
+]
+
+Query: "get logs from past 1h"
+Result: [
+  {
+    field: "startTime",
+    filters: [{ 
+      operator: "is", 
+      value: ${usersReferenceMS - 60 * 60 * 1000} // Current time - 1 hour
+    }]
+  }
+]
+
+Query: "show logs from last 1d"
+Result: [
+  {
+    field: "startTime",
+    filters: [{ 
+      operator: "is", 
+      value: ${usersReferenceMS - 24 * 60 * 60 * 1000} // Current time - 1 day
+    }]
   }
 ]
 
@@ -172,6 +203,7 @@ Result: [
     }]
   }
 ]
+
 Query: "path should start with /api/oz and method should be POST"
 Result: [
   { 
@@ -266,11 +298,15 @@ Result: [
 
 Remember:
 ${operatorsByField}
-- startTime and endTime accept is operator for filtering logs by time range
+- since and endTime accept is operator for filtering logs by time range
 - For status codes, use ONLY:
   • 200 for successful responses
   • 400 for client errors (4XX series)
-  • 500 for server errors (5XX series)`;
+  • 500 for server errors (5XX series)
+- For relative time queries, support:
+  • 30m (30 minutes)
+  • 1h (1 hour)
+  • 1d (1 day)`;
 };
 
 function getDayStart(timestamp: number): number {
