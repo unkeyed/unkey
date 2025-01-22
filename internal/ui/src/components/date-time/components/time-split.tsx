@@ -65,19 +65,23 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
     }
   };
 
-  const handleBlur = (value: string, field: TimeField) => {
-    if (value !== time[field]) {
-      handleChange(value, field);
-    }
-    const normalizedTime = normalizeTimeUnit(time);
+  const updateTimeState = (normalizedTime: TimeUnit) => {
     setTime(normalizedTime);
-    handleTimeConflicts(normalizedTime);
     if (type === "start") {
       onStartTimeChange(time);
     }
     if (type === "end") {
       onEndTimeChange(time);
     }
+  };
+
+  const handleBlur = (value: string, field: TimeField) => {
+    if (value !== time[field]) {
+      handleChange(value, field);
+    }
+    const normalizedTime = normalizeTimeUnit(time);
+    updateTimeState(normalizedTime);
+    handleTimeConflicts(normalizedTime);
     setFocus(false);
   };
 

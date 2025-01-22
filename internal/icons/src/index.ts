@@ -4,7 +4,6 @@ export * from "./icons/book-bookmark";
 export * from "./icons/calendar";
 export * from "./icons/caret-right";
 export * from "./icons/caret-right-outline";
-export * from "./icons/caret-right-outline";
 export * from "./icons/check";
 export * from "./icons/chevron-expand-y";
 export * from "./icons/chevron-left";

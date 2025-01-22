@@ -37,8 +37,8 @@ export const DateTimeExample: React.FC = () => {
                 <span>{date?.to?.toLocaleDateString() ?? "no date"}</span>
               </p>
               <p className="m-0 p-0">
-                Time Span: <span>{JSON.stringify(startTime)}</span> -{" "}
-                <span>{JSON.stringify(endTime)}</span>
+                Time Span: <span>{`${startTime?.HH}:${startTime?.mm}:${startTime?.ss}`}</span> -{" "}
+                <span>{`${endTime?.HH}:${endTime?.mm}:${endTime?.ss}`}</span>
               </p>
             </div>
           </div>
