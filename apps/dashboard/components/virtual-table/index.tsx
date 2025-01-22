@@ -8,13 +8,12 @@ import { LoadingRow } from "./components/loading-row";
 import { TableHeader } from "./components/table-header";
 import { TableRow } from "./components/table-row";
 import { DEFAULT_CONFIG } from "./constants";
+import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
 import type { VirtualTableProps } from "./types";
 
-const SEPARATOR_HEIGHT = 26;
-
-export function VirtualTable<T>({
+export function VirtualTable<TTableData>({
   data: historicData,
   realtimeData = [],
   columns,
@@ -29,26 +28,21 @@ export function VirtualTable<T>({
   selectedItem,
   renderDetails,
   isFetchingNextPage,
-}: VirtualTableProps<T>) {
+}: VirtualTableProps<TTableData>) {
   const config = { ...DEFAULT_CONFIG, ...userConfig };
   const parentRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
   const fixedHeight = useTableHeight(containerRef, config.headerHeight, config.tableBorder);
-  const historicVirtualizer = useVirtualData({
-    data: historicData,
+
+  const tableData = useTableData<TTableData>(realtimeData, historicData);
+  const virtualizer = useVirtualData({
+    totalDataLength: tableData.getTotalLength(),
     isLoading,
     config,
     onLoadMore,
     isFetchingNextPage,
-    parentRef,
-  });
-
-  const realtimeVirtualizer = useVirtualData({
-    data: realtimeData,
-    isLoading: false,
-    config,
     parentRef,
   });
 
@@ -61,7 +55,7 @@ export function VirtualTable<T>({
   });
 
   const handleRowClick = useCallback(
-    (item: T) => {
+    (item: TTableData) => {
       if (onRowClick) {
         onRowClick(item);
         setTableDistanceToTop(
@@ -87,12 +81,6 @@ export function VirtualTable<T>({
     );
   }
 
-  // Calculate total height including both sections and separator if needed
-  const totalHeight =
-    realtimeVirtualizer.getTotalSize() +
-    historicVirtualizer.getTotalSize() +
-    (realtimeData.length > 0 ? SEPARATOR_HEIGHT : 0);
-
   return (
     <div className="w-full flex flex-col" ref={containerRef}>
       <TableHeader columns={columns} />
@@ -107,68 +95,19 @@ export function VirtualTable<T>({
             "opacity-40": isLoading,
           })}
           style={{
-            height: `${totalHeight}px`,
+            height: `${virtualizer.getTotalSize()}px`,
             width: "100%",
             position: "relative",
           }}
         >
-          {/* Render real-time data section */}
-          {realtimeVirtualizer.getVirtualItems().map((virtualRow) => {
-            const item = realtimeData[virtualRow.index];
-            if (!item) {
-              return null;
-            }
-
-            const isSelected = selectedItem
-              ? keyExtractor(selectedItem) === keyExtractor(item)
-              : false;
-
-            return (
-              <TableRow
-                key={virtualRow.key}
-                item={item}
-                columns={columns}
-                virtualRow={virtualRow}
-                rowHeight={config.rowHeight}
-                isSelected={isSelected}
-                selectedClassName={selectedClassName}
-                rowClassName={rowClassName}
-                onClick={() => handleRowClick(item)}
-                measureRef={realtimeVirtualizer.measureElement}
-                onRowClick={onRowClick}
-              />
-            );
-          })}
-
-          {/* Separator */}
-          {realtimeData.length > 0 && (
-            <div
-              className="w-full sticky"
-              style={{
-                top: `${realtimeVirtualizer.getTotalSize()}px`,
-                zIndex: 10,
-              }}
-            >
-              <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-                <CircleCarretRight className="size-3" />
-                Live
-              </div>
-            </div>
-          )}
-
-          {/* Render historic data section */}
-          {historicVirtualizer.getVirtualItems().map((virtualRow) => {
+          {virtualizer.getVirtualItems().map((virtualRow) => {
             if (isLoading) {
               return (
                 <div
                   key={virtualRow.key}
                   style={{
                     position: "absolute",
-                    top: `${
-                      virtualRow.start +
-                      realtimeVirtualizer.getTotalSize() +
-                      (realtimeData.length > 0 ? SEPARATOR_HEIGHT : 0)
-                    }px`,
+                    top: `${virtualRow.start}px`,
                     width: "100%",
                   }}
                 >
@@ -177,34 +116,49 @@ export function VirtualTable<T>({
               );
             }
 
-            const item = historicData[virtualRow.index];
+            const item = tableData.getItemAt(virtualRow.index);
             if (!item) {
               return null;
             }
 
+            // Render separator
+            //@ts-expect-error This is our hacky way to separate live data from historic data. This separator acts as just another item in the data list to preserve the correct start position.
+            if ("isSeparator" in item && item.isSeparator) {
+              return (
+                <div
+                  key={virtualRow.key}
+                  className="w-full"
+                  style={{
+                    position: "absolute",
+                    top: `${virtualRow.start}px`,
+                  }}
+                >
+                  <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
+                    <CircleCarretRight className="size-3" />
+                    Live
+                  </div>
+                </div>
+              );
+            }
+
+            // Regular row
+            const typedItem = item as TTableData;
             const isSelected = selectedItem
-              ? keyExtractor(selectedItem) === keyExtractor(item)
+              ? keyExtractor(selectedItem) === keyExtractor(typedItem)
               : false;
 
             return (
               <TableRow
                 key={virtualRow.key}
-                item={item}
+                item={typedItem}
                 columns={columns}
-                virtualRow={{
-                  ...virtualRow,
-                  start:
-                    virtualRow.start +
-                    (realtimeData.length > 0
-                      ? realtimeVirtualizer.getTotalSize() + SEPARATOR_HEIGHT
-                      : 0),
-                }}
+                virtualRow={virtualRow}
                 rowHeight={config.rowHeight}
                 isSelected={isSelected}
-                rowClassName={rowClassName}
                 selectedClassName={selectedClassName}
-                onClick={() => handleRowClick(item)}
-                measureRef={historicVirtualizer.measureElement}
+                rowClassName={rowClassName}
+                onClick={() => handleRowClick(typedItem)}
+                measureRef={virtualizer.measureElement}
                 onRowClick={onRowClick}
               />
             );

@@ -37,7 +37,7 @@ export const LogsLiveSwitch = () => {
         "px-2 relative",
         isLive
           ? "bg-info-3 text-info-11 hover:bg-info-3 hover:text-info-11"
-          : "text-accent-12 [&_svg]:text-accent-9"
+          : "text-accent-12 [&_svg]:text-accent-9",
       )}
     >
       {isLive && (
