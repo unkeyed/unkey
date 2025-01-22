@@ -34,6 +34,7 @@ const DateTimeSuggestions: React.FC<SuggestionsProps> = ({ className, suggestion
     <div className={cn("flex flex-col items-center justify-center gap-4 mt-2", className)}>
       {suggestions.map(({ label, relativeTime }) => (
         <button
+          key={`${label}-${relativeTime}`}
           type="button"
           className="text-blue-10 text-xs font-medium"
           onClick={() => {
