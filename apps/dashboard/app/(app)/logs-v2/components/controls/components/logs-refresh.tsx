@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc/client";
 import { Refresh3 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -6,25 +7,14 @@ import { useFilters } from "../../../hooks/use-filters";
 
 export const LogsRefresh = () => {
   const { toggleLive } = useLogsContext();
-  const { filters, updateFilters } = useFilters();
+  const { filters } = useFilters();
+  const { logs } = trpc.useUtils();
 
   const hasRelativeFilter = filters.find((f) => f.field === "since");
 
   const handleSwitch = () => {
     toggleLive(false);
-
-    const activeFilters = filters.filter((f) => f.field !== "since");
-    if (hasRelativeFilter) {
-      updateFilters([
-        ...activeFilters,
-        {
-          field: "since",
-          value: hasRelativeFilter.value,
-          id: crypto.randomUUID(),
-          operator: "is",
-        },
-      ]);
-    }
+    logs.queryLogs.invalidate();
   };
   return (
     <Button

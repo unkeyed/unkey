@@ -3,7 +3,6 @@ import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
-import { useTimeRange } from "../../../hooks/use-timerange";
 import type { queryLogsPayload } from "../query-logs.schema";
 
 type UseLogsQueryParams = {
@@ -21,7 +20,6 @@ export function useLogsQuery({
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, Log>());
 
   const { filters } = useFilters();
-  const timerange = useTimeRange(filters);
   const queryClient = trpc.useUtils();
 
   const realtimeLogs = useMemo(() => {
@@ -30,24 +28,19 @@ export function useLogsQuery({
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
-  const timestamps = useMemo(
-    () => ({
-      startTime: timerange.startTime ?? Date.now() - 24 * 60 * 60 * 1000,
-      endTime: timerange.endTime ?? Date.now(),
-    }),
-    [timerange.endTime, timerange.startTime],
-  );
-
+  //Required for preventing double trpc call during initial render
+  const dateNow = useMemo(() => Date.now(), []);
   const queryParams = useMemo(() => {
     const params: z.infer<typeof queryLogsPayload> = {
       limit,
-      startTime: timestamps.startTime,
-      endTime: timestamps.endTime,
+      startTime: dateNow - 24 * 60 * 60 * 1000,
+      endTime: dateNow,
       host: { filters: [] },
       requestId: { filters: [] },
       method: { filters: [] },
       path: { filters: [] },
       status: { filters: [] },
+      since: "",
     };
 
     filters.forEach((filter) => {
@@ -107,11 +100,29 @@ export function useLogsQuery({
           });
           break;
         }
+
+        case "startTime":
+        case "endTime": {
+          if (typeof filter.value !== "number") {
+            console.error(`${filter.field}filter value type has to be 'string'`);
+            return;
+          }
+          params[filter.field] = filter.value;
+          break;
+        }
+        case "since": {
+          if (typeof filter.value !== "string") {
+            console.error("Since filter value type has to be 'string'");
+            return;
+          }
+          params.since = filter.value;
+          break;
+        }
       }
     });
 
     return params;
-  }, [filters, limit, timestamps]);
+  }, [filters, limit, dateNow]);
 
   // Main query for historical data
   const {
@@ -157,7 +168,7 @@ export function useLogsQuery({
           added++;
 
           if (newMap.size > Math.min(limit, 100)) {
-            const oldestKey = Array.from(newMap.keys()).pop()!;
+            const oldestKey = Array.from(newMap.keys()).shift()!;
             newMap.delete(oldestKey);
           }
         }

@@ -5,6 +5,7 @@ export const queryLogsPayload = z.object({
   limit: z.number().int(),
   startTime: z.number().int(),
   endTime: z.number().int(),
+  since: z.string(),
   path: z
     .object({
       filters: z.array(
