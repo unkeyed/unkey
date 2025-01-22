@@ -56,22 +56,22 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
     // If this is a start time and it's later than the end time,
     // push the end time forward to match the start time
     if (type === "start" && endTime && compareTimeUnits(normalizedTime, endTime) > 0) {
-      onStartTimeChange(normalizedTime);
+      onEndTimeChange(normalizedTime);
     }
     // If this is an end time and it's earlier than the start time,
     // pull the start time backward to match the end time
     else if (type === "end" && startTime && compareTimeUnits(normalizedTime, startTime) < 0) {
-      onEndTimeChange(normalizedTime);
+      onStartTimeChange(normalizedTime);
     }
   };
 
   const updateTimeState = (normalizedTime: TimeUnit) => {
     setTime(normalizedTime);
     if (type === "start") {
-      onStartTimeChange(time);
+      onStartTimeChange(normalizedTime);
     }
     if (type === "end") {
-      onEndTimeChange(time);
+      onEndTimeChange(normalizedTime);
     }
   };
 
