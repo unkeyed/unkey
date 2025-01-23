@@ -1,7 +1,9 @@
 import { KeyboardButton } from "@/components/keyboard-button";
+import { TimestampInfo } from "@/components/timestamp-info";
 import { cn } from "@/lib/utils";
 import { XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { format } from "date-fns";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { FilterValue } from "../../filters.type";
 import { useFilters } from "../../hooks/use-filters";
@@ -26,7 +28,7 @@ const formatFieldName = (field: string): string => {
   }
 };
 
-const formatValue = (value: string | number): string => {
+const formatValue = (value: string | number, field: string): string => {
   if (typeof value === "string" && /^\d+$/.test(value)) {
     const statusFamily = Math.floor(Number.parseInt(value) / 100);
     switch (statusFamily) {
@@ -39,6 +41,9 @@ const formatValue = (value: string | number): string => {
       default:
         return `${statusFamily}xx`;
     }
+  }
+  if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
+    return format(value, "MMM d, yyyy HH:mm:ss");
   }
   return String(value);
 };
@@ -70,7 +75,7 @@ const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPil
   };
 
   return (
-    <div className="flex gap-0.5 font-mono" data-pill-index={index}>
+    <div className="flex gap-0.5 font-mono group" data-pill-index={index}>
       <div className="bg-gray-3 px-2 rounded-l-md text-accent-12 font-medium py-[2px]">
         {formatFieldName(field)}
       </div>
@@ -82,7 +87,15 @@ const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPil
           <div className={cn("size-2 rounded-[2px]", metadata.colorClass)} />
         )}
         {metadata?.icon}
-        <span className="text-accent-12 text-xs font-mono">{formatValue(value)}</span>
+
+        {field === "endTime" || field === "startTime" ? (
+          <TimestampInfo
+            value={formatValue(value, field)}
+            className={cn("font-mono group-hover:underline decoration-dotted")}
+          />
+        ) : (
+          <span className="text-accent-12 text-xs font-mono">{formatValue(value, field)}</span>
+        )}
       </div>
       <div ref={pillRef} className="contents">
         <Button
