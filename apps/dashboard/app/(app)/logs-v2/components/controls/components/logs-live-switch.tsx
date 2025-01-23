@@ -3,10 +3,15 @@ import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
+import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 
 export const LogsLiveSwitch = () => {
   const { isLive, toggleLive } = useLogsContext();
   const { filters, updateFilters } = useFilters();
+
+  useKeyboardShortcut("l", () => {
+    handleSwitch();
+  });
 
   const handleSwitch = () => {
     toggleLive();

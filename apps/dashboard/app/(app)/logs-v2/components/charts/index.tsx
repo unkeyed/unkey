@@ -6,10 +6,13 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Grid } from "@unkey/icons";
-import { addMinutes, format } from "date-fns";
 import { useEffect, useRef } from "react";
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
-import { generateMockLogsData } from "./util";
+import { LogsChartError } from "./components/logs-chart-error";
+import { LogsChartLoading } from "./components/logs-chart-loading";
+import { useFetchTimeseries } from "./hooks/use-fetch-timeseries";
+import { calculateTimePoints } from "./utils/calculate-timepoints";
+import { formatTimestampLabel, formatTimestampTooltip } from "./utils/format-timestamp";
 
 const chartConfig = {
   success: {
@@ -29,40 +32,6 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const formatTimestampTooltip = (value: string | number) => {
-  const date = new Date(value);
-  const offset = new Date().getTimezoneOffset() * -1;
-  const localDate = addMinutes(date, offset);
-  return format(localDate, "MMM dd HH:mm aa");
-};
-
-const formatTimestampLabel = (timestamp: string | number | Date) => {
-  const date = new Date(timestamp);
-  return format(date, "MMM dd, h:mma").toUpperCase();
-};
-
-type Timeseries = {
-  x: number;
-  displayX: string;
-  originalTimestamp: string;
-  success: number;
-  error: number;
-  warning: number;
-  total: number;
-};
-
-const calculateTimePoints = (timeseries: Timeseries[]) => {
-  const startTime = timeseries[0].x;
-  const endTime = timeseries.at(-1)?.x;
-  const timeRange = endTime ?? 0 - startTime;
-  const timePoints = Array.from({ length: 5 }, (_, i) => {
-    return new Date(startTime + (timeRange * i) / 5);
-  });
-  return timePoints;
-};
-
-const timeseries = generateMockLogsData(24, 10);
-
 export function LogsChart({
   onMount,
 }: {
@@ -75,19 +44,39 @@ export function LogsChart({
     onMount(distanceToTop);
   }, [onMount]);
 
+  const { timeseries, isLoading, isError } = useFetchTimeseries();
+
+  if (isError) {
+    return <LogsChartError />;
+  }
+
+  if (isLoading) {
+    return <LogsChartLoading />;
+  }
+
   return (
     <div className="w-full relative" ref={chartRef}>
       <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
-        {calculateTimePoints(timeseries).map((time, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: use of index is acceptable here.
-          <div key={i} className="z-10">
-            {formatTimestampLabel(time)}
-          </div>
-        ))}
+        {timeseries
+          ? calculateTimePoints(
+              timeseries[0].originalTimestamp ?? Date.now(),
+              timeseries.at(-1)?.originalTimestamp ?? Date.now(),
+            ).map((time, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: use of index is acceptable here.
+              <div key={i} className="z-10">
+                {formatTimestampLabel(time)}
+              </div>
+            ))
+          : null}
       </div>
       <ResponsiveContainer width="100%" height={50} className="border-b border-gray-4">
         <ChartContainer config={chartConfig}>
-          <BarChart data={timeseries} barGap={2} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+          <BarChart
+            data={timeseries}
+            barGap={2}
+            barSize={8}
+            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          >
             <YAxis domain={[0, (dataMax: number) => dataMax * 1.5]} hide />
             <ChartTooltip
               position={{ y: 50 }}

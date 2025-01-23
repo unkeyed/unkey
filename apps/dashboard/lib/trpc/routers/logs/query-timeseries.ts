@@ -1,4 +1,5 @@
 import { queryTimeseriesPayload } from "@/app/(app)/logs-v2/components/charts/query-timeseries.schema";
+import { HOUR_IN_MS, WEEK_IN_MS } from "@/app/(app)/logs-v2/constants";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
@@ -43,12 +44,8 @@ export const queryTimeseries = rateLimitedProcedure(ratelimit.update)
         message: "Something went wrong when fetching data from clickhouse.",
       });
     }
-    return result.val;
+    return { timeseries: result.val, granularity };
   });
-
-export const HOUR_IN_MS = 60 * 60 * 1000;
-const DAY_IN_MS = 24 * HOUR_IN_MS;
-const WEEK_IN_MS = 7 * DAY_IN_MS;
 
 export type TimeseriesGranularity = "perMinute" | "perHour" | "perDay";
 type TimeseriesConfig = {

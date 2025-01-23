@@ -1,9 +1,9 @@
 import { trpc } from "@/lib/trpc/client";
+import type { TimeseriesGranularity } from "@/lib/trpc/routers/logs/query-timeseries";
 import { addMinutes, format } from "date-fns";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
-import type { TimeseriesGranularity } from "../../../utils";
 import type { queryTimeseriesPayload } from "../query-timeseries.schema";
 
 const formatTimestamp = (value: string | number, granularity: TimeseriesGranularity) => {
@@ -29,7 +29,7 @@ export const useFetchTimeseries = () => {
   const dateNow = useMemo(() => Date.now(), []);
   const queryParams = useMemo(() => {
     const params: z.infer<typeof queryTimeseriesPayload> = {
-      startTime: dateNow - 24 * 60 * 60 * 1000,
+      startTime: dateNow - 60 * 60 * 1000,
       endTime: dateNow,
       host: { filters: [] },
       method: { filters: [] },
@@ -107,15 +107,15 @@ export const useFetchTimeseries = () => {
     return params;
   }, [filters, dateNow]);
 
-  const { data, isLoading } = trpc.logs.queryTimeseries.useQuery(queryParams, {
+  const { data, isLoading, isError } = trpc.logs.queryTimeseries.useQuery(queryParams, {
     refetchInterval: queryParams.endTime ? false : 10_000,
   });
 
-  const timeseries = data.map((data) => ({
-    displayX: formatTimestamp(data.x, granularity),
-    originalTimestamp: data.x,
-    ...data.y,
+  const timeseries = data?.timeseries.map((ts) => ({
+    displayX: formatTimestamp(ts.x, data.granularity),
+    originalTimestamp: ts.x,
+    ...ts.y,
   }));
 
-  return { timeseries, isLoading };
+  return { timeseries, isLoading, isError };
 };

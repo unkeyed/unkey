@@ -243,35 +243,57 @@ function getLogsTimeseriesWhereClause(
 ): string {
   const conditions = [
     "workspace_id = {workspaceId: String}",
+    // Host filter
+    `(CASE
+        WHEN length({hosts: Array(String)}) > 0 THEN 
+          host IN {hosts: Array(String)}
+        ELSE TRUE
+      END)`,
+    // Method filter
+    `(CASE
+        WHEN length({methods: Array(String)}) > 0 THEN 
+          method IN {methods: Array(String)}
+        ELSE TRUE
+      END)`,
+    // Status code filter
     `(CASE 
-        WHEN {responseStatus: Array(UInt16)} IS NOT NULL AND length({responseStatus: Array(UInt16)}) > 0 
-        THEN response_status IN (
-          SELECT status 
-          FROM (
-            SELECT multiIf(
-              code = 200, arrayJoin(range(200, 300)),
-              code = 400, arrayJoin(range(400, 500)),
-              code = 500, arrayJoin(range(500, 600)),
-              code
-            ) as status 
+        WHEN length({statusCodes: Array(UInt16)}) > 0 THEN
+          response_status IN (
+            SELECT status 
             FROM (
-              SELECT arrayJoin({responseStatus: Array(UInt16)}) as code
+              SELECT multiIf(
+                code = 200, arrayJoin(range(200, 300)),
+                code = 400, arrayJoin(range(400, 500)),
+                code = 500, arrayJoin(range(500, 600)),
+                code
+              ) as status 
+              FROM (
+                SELECT arrayJoin({statusCodes: Array(UInt16)}) as code
+              )
             )
-          )
-        ) 
+          ) 
         ELSE TRUE 
       END)`,
     ...additionalConditions,
   ];
 
-  if (params.path) {
-    conditions.push("path = {path: String}");
-  }
-  if (params.host) {
-    conditions.push("host = {host: String}");
-  }
-  if (params.method) {
-    conditions.push("method = {method: String}");
+  // Path filter with operators
+  if (params.paths?.length) {
+    const pathConditions = params.paths
+      .map((p) => {
+        switch (p.operator) {
+          case "is":
+            return `path = '${p.value}'`;
+          case "startsWith":
+            return `startsWith(path, '${p.value}')`;
+          case "endsWith":
+            return `endsWith(path, '${p.value}')`;
+          case "contains":
+            return `like(path, '%${p.value}%')`;
+        }
+      })
+      .join(" OR ");
+    conditions.push(`(${pathConditions})`);
   }
 
   return conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
