@@ -9,14 +9,12 @@ import { cn } from "@/lib/utils";
 import { OTPInput, type SlotProps } from "input-otp";
 import { Minus } from "lucide-react";
 import { useSignUp } from "@/lib/auth/hooks/useSignUp";
+import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 
-type Props = {
-  setError: (e: string) => void;
-};
 
-export const EmailCode: React.FC<Props> = ({ setError }) => {
+export const EmailCode: React.FC = () => {
   const router = useRouter();
-  const { handleVerification, verificationStatus, handleResendCode } = useSignUp();
+  const { handleVerification, handleResendCode } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
   const [_timeLeft, _setTimeLeft] = React.useState(0);
 
@@ -26,22 +24,14 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
     }
     setIsLoading(true);
     await handleVerification(otp)
-      .then(() => {
-        if (verificationStatus.isVerified) {
-            router.push("/new");
-          };
-        }
-      )
       .catch((err) => {
         setIsLoading(false);
-        setError(err.errors.at(0)?.longMessage ?? "Unknown error, pleae contact support@unkey.dev");
+        const errorCode = err.message as AuthErrorCode;
+        toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       });
   };
 
-  const resendCode = async () => {
-    // If we're already verifying, don't start another request
-    if (verificationStatus.isVerifying) return;
-    
+  const resendCode = async () => {  
     try {
       const p = handleResendCode();
       toast.promise(p, {
@@ -51,7 +41,6 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
       await p;
     } catch (error) {
       setIsLoading(false);
-      setError((error as Error).message);
       console.error(error);
     }
   };
@@ -82,12 +71,7 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
           maxLength={6}
           render={({ slots }) => (
             <div className="flex items-center justify-between">
-              {slots.slice(0, 3).map((slot, idx) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: I have nothing better
-                <Slot key={idx} {...slot} />
-              ))}
-              <Minus className="w-6 h-6 text-white/15" />
-              {slots.slice(3).map((slot, idx) => (
+              {slots.slice(0, 6).map((slot, idx) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: I have nothing better
                 <Slot key={idx} {...slot} />
               ))}
