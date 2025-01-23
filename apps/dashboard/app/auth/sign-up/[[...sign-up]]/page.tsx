@@ -7,17 +7,17 @@ import { EmailSignUp } from "../email-signup";
 import { OAuthSignUp } from "../oauth-signup";
 
 import Link from "next/link";
+import { SignUpProvider } from "@/lib/auth/context/signup-context";
 
 export default function AuthenticationPage() {
-  const [error, setError] = React.useState<string | null>(null);
   const [verify, setVerify] = React.useState(false);
-  return (
-    <div className="flex flex-col justify-center space-y-6 ">
-      {error ? <ErrorBanner>{error}</ErrorBanner> : null}
 
+  return (
+    <SignUpProvider>
+    <div className="flex flex-col justify-center space-y-6">
       {!verify ? (
         <>
-          <div className="flex flex-col ">
+          <div className="flex flex-col">
             <h1 className="text-4xl text-white">Create new account</h1>
             <p className="mt-4 text-sm text-md text-white/50">
               Sign up to Unkey or?
@@ -36,14 +36,15 @@ export default function AuthenticationPage() {
                 <span className="px-2 bg-black text-white/50">or continue using email</span>
               </div>
             </div>
-            <EmailSignUp setError={setError} setVerification={setVerify} />
+            <EmailSignUp setVerification={setVerify} />
           </div>
         </>
       ) : (
         <FadeIn>
-          <EmailCode setError={(e: string) => setError(e)} />
+          <EmailCode />
         </FadeIn>
       )}
     </div>
+    </SignUpProvider>
   );
 }

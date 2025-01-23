@@ -300,8 +300,55 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async signIn(orgId?: string): Promise<void> {
-    throw new Error("Method not implemented.");
+  async signInViaEmail() {}
+
+  async verifyAuthCode(params: {email: string, code: string}): Promise<OAuthResult> {
+    const { email, code } = params;
+    if (!email) {
+      throw new Error("Email address is required.")
+    }
+    if (!code) {
+      throw new Error("Verification code is required.")
+    }
+
+    try {
+      const { sealedSession } = await WorkOSAuthProvider.provider.userManagement.authenticateWithMagicAuth({
+        clientId: WorkOSAuthProvider.clientId,
+        code,
+        email,
+        session: {
+          sealSession: true,
+          cookiePassword: env().WORKOS_COOKIE_PASSWORD
+        }
+      });
+  
+      if (!sealedSession) {
+        throw new Error('No sealed session returned from WorkOS');
+      }
+  
+      return {
+        success: true,
+        redirectTo: SIGN_IN_REDIRECT,
+        cookies: [{
+          name: UNKEY_SESSION_COOKIE,
+          value: sealedSession,
+          options: {
+            secure: true,
+            httpOnly: true,
+          }
+        }]
+      };
+    } catch (error) {
+      // TODO: better error handling
+      console.error("Verify magic auth failed", error);
+      return {
+        success: false,
+        redirectTo: SIGN_IN_URL,
+        cookies: [],
+        error: error instanceof Error ? error : new Error('Unknown error')
+      };
+    }
+
   }
 
   signInViaOAuth({ 
