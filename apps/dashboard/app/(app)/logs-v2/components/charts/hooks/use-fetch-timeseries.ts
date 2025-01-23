@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc/client";
-import type { TimeseriesGranularity } from "@/lib/trpc/routers/logs/query-timeseries";
+import type { TimeseriesGranularity } from "@/lib/trpc/routers/logs/query-timeseries/utils";
 import { addMinutes, format } from "date-fns";
 import { useMemo } from "react";
 import type { z } from "zod";

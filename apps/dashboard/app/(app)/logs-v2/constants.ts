@@ -10,7 +10,3 @@ export const RED_STATES = ["DISABLED", "FORBIDDEN", "INSUFFICIENT_PERMISSIONS"];
 
 export const METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"] as const;
 export const STATUSES = [200, 400, 500] as const;
-
-export const HOUR_IN_MS = 60 * 60 * 1000;
-export const DAY_IN_MS = 24 * HOUR_IN_MS;
-export const WEEK_IN_MS = 7 * DAY_IN_MS;

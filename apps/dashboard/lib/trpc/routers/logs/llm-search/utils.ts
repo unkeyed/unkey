@@ -1,20 +1,14 @@
 import { METHODS } from "@/app/(app)/logs-v2/constants";
 import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs-v2/filters.schema";
-import { db } from "@/lib/db";
-import { env } from "@/lib/env";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
-import OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
-import { z } from "zod";
+import type OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod.mjs";
 
-const openai = env().OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: env().OPENAI_API_KEY,
-    })
-  : null;
-
-async function getStructuredSearchFromLLM(userSearchMsg: string, usersReferenceMS: number) {
+export async function getStructuredSearchFromLLM(
+  openai: OpenAI | null,
+  userSearchMsg: string,
+  usersReferenceMS: number,
+) {
   try {
     if (!openai) {
       return null; // Skip LLM processing in development environment when OpenAI API key is not configured
@@ -79,34 +73,7 @@ async function getStructuredSearchFromLLM(userSearchMsg: string, usersReferenceM
     });
   }
 }
-
-export const llmSearch = rateLimitedProcedure(ratelimit.update)
-  .input(z.object({ query: z.string(), timestamp: z.number() }))
-  .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Failed to verify workspace access. Please try again or contact support@unkey.dev if this persists.",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
-      });
-    }
-
-    return await getStructuredSearchFromLLM(input.query, input.timestamp);
-  });
-
-const getSystemPrompt = (usersReferenceMS: number) => {
+export const getSystemPrompt = (usersReferenceMS: number) => {
   const operatorsByField = Object.entries(filterFieldConfig)
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
@@ -309,8 +276,8 @@ ${operatorsByField}
   • 1d (1 day)`;
 };
 
-function getDayStart(timestamp: number): number {
+const getDayStart = (timestamp: number): number => {
   const date = new Date(timestamp);
   date.setHours(0, 0, 0, 0);
   return date.getTime();
-}
+};
