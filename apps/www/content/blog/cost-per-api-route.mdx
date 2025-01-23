@@ -44,17 +44,17 @@ const verifyKeyWithCost = (cost: number) => createMiddleware(async (c, next) => 
   const key = c.req.header('X-API-Key');
   if (!key) {
     return c.json({ error: "No API key provided" }, 401);
- }
+  }
 
   const credits = await client.get(key);
   if (credits === null) {
- c.json({ error: "Internal server error" }, 500);
- }
+    c.json({ error: "Internal server error" }, 500);
+  }
 
   const remainingCredits = parseInt(credits) - cost;
   if (remainingCredits < 0) {
- c.json({ error: "API key usage exceeded" }, 429);
- }
+    c.json({ error: "API key usage exceeded" }, 429);
+  }
 
   await client.set(key, remainingCredits.toString());
   await next();
@@ -63,17 +63,17 @@ const verifyKeyWithCost = (cost: number) => createMiddleware(async (c, next) => 
 // Cheap endpoint (costs 1 credit)
 app.get('/cheap-endpoint', verifyKeyWithCost(1), (c) => {
   return c.json({
- message: "Accessed cheap endpoint",
- cost: 1,
- });
+    message: "Accessed cheap endpoint",
+    cost: 1,
+  });
 });
 
 // Expensive endpoint (costs 5 credits)
 app.get('/expensive-endpoint', verifyKeyWithCost(5), (c) => {
   return c.json({
- message: "Accessed expensive endpoint",
- cost: 5,
- });
+    message: "Accessed expensive endpoint",
+    cost: 5,
+  });
 });
 
 serve(app)
@@ -124,75 +124,79 @@ type UnkeyResult = Awaited<ReturnType<typeof verifyKey>>["result"];
 declare module "hono" {
   interface ContextVariableMap {
     unkey: UnkeyResult;
- }
+  }
 }
 
 // Middleware to verify API key with specified cost
 const verifyKeyWithCost = (cost: number) => createMiddleware(async (c, next) => {
-    const key = c.req.header("X-API-Key");
-    if (!key) {
-      return c.json({ error: "No API key provided" }, 401);
- }
+  const key = c.req.header("X-API-Key");
+  if (!key) {
+    return c.json({ error: "No API key provided" }, 401);
+  }
 
-    const { result, error } = await verifyKey({
- key,
- remaining: {
- cost,
- },
- apiId: "API_ID_FROM_UNKEY",
- });
+  const { result, error } = await verifyKey({
+    key,
+    remaining: {
+      cost,
+    },
+    apiId: "API_ID_FROM_UNKEY",
+  });
 
-    // Handle Unkey Errors
-    // We have others but not important for this example
-    if (error) {
-      switch (error.code) {
-        case "TOO_MANY_REQUESTS":
-          return c.json({ error: "Rate limit exceeded" }, 429);
-        case "BAD_REQUEST":
-          return c.json({ error: "Bad request" }, 400);
-        case "INTERNAL_SERVER_ERROR":
-          return c.json({ error: "Internal server error" }, 500);
-        default:
-          return c.json({ error: "Internal server error" }, 500);
- }
- }
-    // Handle Unkey Result if it's not valid such as 
-    // Ratelimited, disabled, expired or no remaining credits
-    // There are other errors but not needed for this example
-    if (!result.valid) {
-      switch (result.code) {
-        case "DISABLED":
-          return c.json({ error: "API key is disabled" }, 401);
-        case "USAGE_EXCEEDED":
-          return c.json({ error: "API key usage exceeded" }, 429);
-        case "NOT_FOUND":
-          return c.json({ error: "API key not found" }, 404);
-        default:
-          return c.json({ error: "Internal server error" }, 500);
- }
- }
-    // Add verification result to context for this example to show how Unkey works
-    // This can also be used in a route handler for additional business logic
- c.set("unkey", result);
-    await next();
- });
+  /**
+  * Handle Unkey Errors
+  * We have others but not important for this example
+  */
+  if (error) {
+    switch (error.code) {
+      case "TOO_MANY_REQUESTS":
+        return c.json({ error: "Rate limit exceeded" }, 429);
+      case "BAD_REQUEST":
+        return c.json({ error: "Bad request" }, 400);
+      case "INTERNAL_SERVER_ERROR":
+        return c.json({ error: "Internal server error" }, 500);
+      default:
+        return c.json({ error: "Internal server error" }, 500);
+    }
+  }
+  /** Handle Unkey Result if it's not valid such as 
+  * Ratelimited, disabled, expired or no remaining credits
+  * There are other errors but not needed for this example
+  **/
+  if (!result.valid) {
+    switch (result.code) {
+      case "DISABLED":
+        return c.json({ error: "API key is disabled" }, 401);
+      case "USAGE_EXCEEDED":
+        return c.json({ error: "API key usage exceeded" }, 429);
+      case "NOT_FOUND":
+        return c.json({ error: "API key not found" }, 404);
+      default:
+        return c.json({ error: "Internal server error" }, 500);
+    }
+  }
+  /** Add verification result to context for this example to show how Unkey works
+  * This can also be used in a route handler for additional business logic
+  **/
+  c.set("unkey", result);
+  await next();
+});
 
 // Cheap endpoint - costs 1 credit
 app.get("/cheap-endpoint", verifyKeyWithCost(1), (c) => {
   return c.json({
- message: "Accessed cheap endpoint",
- cost: 1,
- verificationResult: c.get("unkey")
- });
+    message: "Accessed cheap endpoint",
+    cost: 1,
+    verificationResult: c.get("unkey")
+  });
 });
 
 // Expensive endpoint - costs 5 credits
 app.get("/expensive-endpoint", verifyKeyWithCost(5), (c) => {
   return c.json({
- message: "Accessed expensive endpoint", 
- cost: 5,
- verificationResult: c.get("unkey")
- });
+    message: "Accessed expensive endpoint",
+    cost: 5,
+    verificationResult: c.get("unkey")
+  });
 });
 
 serve(app)
