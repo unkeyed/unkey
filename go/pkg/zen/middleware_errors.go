@@ -28,7 +28,7 @@ func WithErrorHandling() Middleware {
 			return s.JSON(500, openapi.InternalServerError{
 				Title:     "Internal Server Error",
 				Type:      "https://unkey.com/docs/errors/internal_server_error",
-				Detail:    "",
+				Detail:    fault.GetPublicMessage(err),
 				RequestId: s.requestID,
 				Status:    s.responseStatus,
 			})

@@ -1,5 +1,7 @@
 package fault
 
+import "fmt"
+
 // Wrapper is a function type that transforms one error into another.
 // It's used to build chains of error transformations while preserving
 // the original error context.
@@ -22,15 +24,30 @@ func Wrap(err error, wraps ...Wrapper) error {
 		return nil
 	}
 
-	// figure out if err is already withLocation or not
-	// If it doesn't, we need to capture the location
-	_, ok := err.(*withLocation)
-	if !ok {
-		err = &withLocation{err, getLocation()}
+	err = &wrapped{
+		err:      err,
+		location: getLocation(),
 	}
 	for _, w := range wraps {
 		err = w(err)
 	}
 
-	return &withLocation{err, getLocation()}
+	return err
+}
+
+func WithDesc(internal string, public string) Wrapper {
+
+	return func(err error) error {
+		if err == nil {
+			return nil
+		}
+
+		fmt.Printf("wrapping with %s, %s\n", internal, public)
+		return &wrapped{
+			err:      err,
+			internal: internal,
+			public:   public,
+		}
+	}
+
 }
