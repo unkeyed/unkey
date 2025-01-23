@@ -167,10 +167,17 @@ export const logsTimeseriesParams = z.object({
   workspaceId: z.string(),
   startTime: z.number().int(),
   endTime: z.number().int(),
-  path: z.string().optional().nullable(),
-  host: z.string().optional().nullable(),
-  method: z.string().optional().nullable(),
-  responseStatus: z.array(z.number().int()).nullable(),
+  paths: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "startsWith", "endsWith", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  hosts: z.array(z.string()).nullable(),
+  methods: z.array(z.string()).nullable(),
+  statusCodes: z.array(z.number().int()).nullable(),
 });
 
 export const logsTimeseriesDataPoint = z.object({

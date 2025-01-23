@@ -1,11 +1,14 @@
+import { queryTimeseriesPayload } from "@/app/(app)/logs-v2/components/charts/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
-import { logsTimeseriesParams } from "@unkey/clickhouse/src/logs";
+import type { LogsTimeseriesParams } from "@unkey/clickhouse/src/logs";
+import type { z } from "zod";
+import { getTimestampFromRelative } from "./utils/getTimestampFromRelative";
 
 export const queryTimeseries = rateLimitedProcedure(ratelimit.update)
-  .input(logsTimeseriesParams.omit({ workspaceId: true }))
+  .input(queryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces
       .findFirst({
@@ -28,15 +31,9 @@ export const queryTimeseries = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    const { startTime, endTime, granularity } = getTimeseriesGranularity(
-      input.startTime,
-      input.endTime,
-    );
-
+    const { params: transformedInputs, granularity } = transformFilters(input);
     const result = await clickhouse.api.timeseries[granularity]({
-      ...input,
-      startTime,
-      endTime,
+      ...transformedInputs,
       workspaceId: workspace.id,
     });
 
@@ -99,3 +96,34 @@ export const getTimeseriesGranularity = (
     endTime: effectiveEndTime,
   };
 };
+
+export function transformFilters(params: z.infer<typeof queryTimeseriesPayload>): {
+  params: Omit<LogsTimeseriesParams, "workspaceId">;
+  granularity: TimeseriesGranularity;
+} {
+  let timeConfig: TimeseriesConfig;
+
+  if (params.since !== "") {
+    const startTime = getTimestampFromRelative(params.since);
+    const endTime = Date.now();
+    timeConfig = getTimeseriesGranularity(startTime, endTime);
+  } else {
+    timeConfig = getTimeseriesGranularity(params.startTime, params.endTime);
+  }
+
+  return {
+    params: {
+      startTime: timeConfig.startTime,
+      endTime: timeConfig.endTime,
+      hosts: params.host?.filters.map((f) => f.value) || [],
+      methods: params.method?.filters.map((f) => f.value) || [],
+      paths:
+        params.path?.filters.map((f) => ({
+          operator: f.operator,
+          value: f.value,
+        })) || [],
+      statusCodes: params.status?.filters.map((f) => f.value) || [],
+    },
+    granularity: timeConfig.granularity,
+  };
+}

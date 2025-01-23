@@ -104,7 +104,7 @@ export function useLogsQuery({
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(`${filter.field}filter value type has to be 'string'`);
+            console.error(`${filter.field} filter value type has to be 'string'`);
             return;
           }
           params[filter.field] = filter.value;

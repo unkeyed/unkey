@@ -5,6 +5,7 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { type GetLogsClickhousePayload, log } from "@unkey/clickhouse/src/logs";
 import { z } from "zod";
+import { getTimestampFromRelative } from "./utils/getTimestampFromRelative";
 
 const LogsResponse = z.object({
   logs: z.array(log),
@@ -19,27 +20,6 @@ const LogsResponse = z.object({
 
 type LogsResponse = z.infer<typeof LogsResponse>;
 
-const getTimestampFromRelative = (relativeTime: string): number => {
-  let totalMilliseconds = 0;
-
-  for (const [, amount, unit] of relativeTime.matchAll(/(\d+)([hdm])/g)) {
-    const value = Number.parseInt(amount, 10);
-
-    switch (unit) {
-      case "h":
-        totalMilliseconds += value * 60 * 60 * 1000;
-        break;
-      case "d":
-        totalMilliseconds += value * 24 * 60 * 60 * 1000;
-        break;
-      case "m":
-        totalMilliseconds += value * 60 * 1000;
-        break;
-    }
-  }
-
-  return Date.now() - totalMilliseconds;
-};
 export function transformFilters(
   params: z.infer<typeof queryLogsPayload>,
 ): Omit<GetLogsClickhousePayload, "workspaceId"> {
