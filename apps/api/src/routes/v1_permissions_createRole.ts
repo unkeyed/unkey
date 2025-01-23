@@ -72,7 +72,7 @@ export const registerV1PermissionsCreateRole = (app: App) =>
     const { db } = c.get("services");
 
     const role = {
-      id: newId("test"),
+      id: newId("role"),
       workspaceId: auth.authorizedWorkspaceId,
       name: req.name,
       description: req.description,
