@@ -96,12 +96,12 @@ With Unkey, just a few lines of code, you can protect your API; the key holds al
 
 ```typescript
 const { result, error } = await verifyKey({
- key,
- remaining: {
- cost,
- },
- apiId: "API_ID_FROM_UNKEY",
- });
+  key,
+  remaining: {
+    cost,
+  },
+  apiId: "API_ID_FROM_UNKEY",
+});
 ```
 
 Below, we took the above implementation and removed the need for:
