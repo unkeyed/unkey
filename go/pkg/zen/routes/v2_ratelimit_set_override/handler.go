@@ -17,7 +17,7 @@ func New(svc *zen.Services) zen.Route {
 		if err != nil {
 			return fault.Wrap(err,
 				fault.WithTag(zen.DatabaseError),
-				fault.With("database failed", "The database is unavailable."),
+				fault.WithDesc("database failed", "The database is unavailable."),
 			)
 		}
 		return s.JSON(200, Response{})

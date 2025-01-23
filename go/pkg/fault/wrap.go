@@ -33,6 +33,42 @@ func Wrap(err error, wraps ...Wrapper) error {
 	return err
 }
 
+// WithDesc creates a new error Wrapper that adds both internal and public descriptions to an error.
+// The internal description is used for logging and debugging, while the public description
+// is safe for external exposure (e.g., API responses).
+//
+// The internal description will be included in the error chain when calling Error(),
+// while the public description can be retrieved separately (if implemented).
+//
+// If the input error is nil, WithDesc returns a nil-returning wrapper to maintain
+// error chain integrity.
+//
+// Example usage:
+//
+//	// Basic usage
+//	err := fault.New("database error",
+//		fault.WithDesc(
+//			"failed to connect to database at 192.168.1.1:5432",  // internal detail
+//			"service temporarily unavailable"                     // public message
+//		),
+//	)
+//
+//	// In an error chain
+//	baseErr := someDatabase.Connect()
+//	wrappedErr := fault.Wrap(baseErr,
+//		fault.WithTag(DATABASE_ERROR),
+//		fault.WithDesc(
+//			fmt.Sprintf("connection timeout after %v", timeout),  // internal detail
+//			"database is currently unavailable"                   // public message
+//		),
+//	)
+//
+// Parameters:
+//   - internal: Detailed error information for logging and debugging
+//   - public: User-safe message suitable for external communication
+//
+// Returns:
+//   - Wrapper: A function that wraps an error with the provided descriptions
 func WithDesc(internal string, public string) Wrapper {
 
 	return func(err error) error {

@@ -17,18 +17,23 @@ func WithErrorHandling() Middleware {
 
 			switch fault.GetTag(err) {
 			case NotFoundError:
-				return s.JSON(404, openapi.NotFoundError{})
+				return s.JSON(404, openapi.NotFoundError{
+					Title:     "Not Found",
+					Type:      "https://unkey.com/docs/errors/not_found",
+					Detail:    fault.UserFacingMessage(err),
+					RequestId: s.requestID,
+					Status:    s.responseStatus,
+				})
 
 			case DatabaseError:
-				{
-				}
+				// ...
 
 			}
 
 			return s.JSON(500, openapi.InternalServerError{
 				Title:     "Internal Server Error",
 				Type:      "https://unkey.com/docs/errors/internal_server_error",
-				Detail:    fault.GetPublicMessage(err),
+				Detail:    fault.UserFacingMessage(err),
 				RequestId: s.requestID,
 				Status:    s.responseStatus,
 			})

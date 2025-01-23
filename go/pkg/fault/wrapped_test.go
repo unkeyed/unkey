@@ -2,6 +2,7 @@ package fault
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -153,4 +154,64 @@ func TestErrorChainUnwrapping(t *testing.T) {
 	unwrapped = errors.Unwrap(unwrapped)
 	unwrapped = errors.Unwrap(unwrapped)
 	require.Nil(t, unwrapped)
+}
+func TestUserFacingMessage(t *testing.T) {
+
+	t.Run("basic error chain", func(t *testing.T) {
+		err := New("internal error",
+			WithDesc("retry failed", "Please try again later."),
+			WithDesc("db connection failed", "Service unavailable."),
+		)
+		msg := UserFacingMessage(err)
+		expected := "Service unavailable. Please try again later."
+		require.Equal(t, expected, msg)
+	})
+
+	t.Run("mixed public and internal messages", func(t *testing.T) {
+		err := New("base error")
+		err = Wrap(err,
+			WithDesc("internal detail 1", "Public message 1"),
+			WithTag("ERROR_TAG"),
+		)
+		err = Wrap(err, WithDesc("internal detail 2", "Public message 2"))
+
+		msg := UserFacingMessage(err)
+		require.Equal(t, "Public message 2 Public message 1", msg)
+	})
+
+	t.Run("edge cases", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			err      error
+			expected string
+		}{
+			{
+				name:     "nil error",
+				err:      nil,
+				expected: "",
+			},
+			{
+				name:     "non-wrapped error",
+				err:      fmt.Errorf("plain error"),
+				expected: "",
+			},
+			{
+				name:     "wrapped error without public message",
+				err:      New("internal only"),
+				expected: "",
+			},
+			{
+				name:     "empty public message",
+				err:      New("internal", WithDesc("internal detail", "")),
+				expected: "",
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				result := UserFacingMessage(tc.err)
+				require.Equal(t, tc.expected, result)
+			})
+		}
+	})
 }

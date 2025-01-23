@@ -25,21 +25,13 @@ Fault addresses common challenges in production error handling:
 Maintain separate internal and public error messages:
 ```go
 fault.Wrap(err,
-    fault.With(
+    fault.WithDesc(
         "database error: connection timeout", // internal message
-        "Service temporarily unavailable"     // public message
+        "Service temporarily unavailable."     // public message
     ),
 )
 ```
 
-### Error Chain Tracking
-Preserve complete error context with source locations:
-```go
-steps := fault.Unwind(err)
-for _, step := range steps {
-    fmt.Printf("Error at %s: %s\n", step.Location, step.Message)
-}
-```
 
 ### Error Classification
 Tag errors for consistent handling:
@@ -61,8 +53,8 @@ switch fault.GetTag(err) {
 ### Location Tracking
 Automatic capture of error locations:
 ```go
-err := fault.New("initial error")           // captures location
-err = fault.Wrap(err, fault.With(...))      // captures new location
+err := fault.New("initial error")         		  // captures location
+err = fault.Wrap(err, fault.WithDesc(...))      // captures new location
 ```
 
 ## Philosophy
@@ -83,7 +75,7 @@ func ProcessOrder(id string) error {
     if err != nil {
         return fault.Wrap(err,
             fault.WithTag(DATABASE_ERROR),
-            fault.With(
+            fault.WithDesc(
                 fmt.Sprintf("failed to find order %s", id),
                 "Order not found",
             ),

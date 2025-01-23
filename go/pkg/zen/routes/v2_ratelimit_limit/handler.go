@@ -16,7 +16,7 @@ func New(svc *zen.Services) zen.Route {
 		err := s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.With("binding failed", "We're unable to parse the request body as json."),
+				fault.WithDesc("binding failed", "We're unable to parse the request body as json."),
 			)
 		}
 

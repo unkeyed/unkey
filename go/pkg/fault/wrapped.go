@@ -35,9 +35,10 @@ type wrapped struct {
 	internal string
 }
 
-// New creates a new error with the given message. The message is stored as an internal error detail,
-// not exposed to end users. Optionally accepts a variadic list of Wrapper functions to modify the
-// error's behavior or add metadata.
+// New creates a new error with the given message. The message is stored as an
+// internal error detail, not exposed to end users. Optionally accepts a
+// variadic list of Wrapper functions to modify the error's behavior or add
+// metadata.
 //
 // Example:
 //
@@ -117,4 +118,78 @@ func getLocation() string {
 	f, _ := cf.Next()
 
 	return fmt.Sprintf("%s:%d", f.File, f.Line)
+}
+
+// UserFacingMessage extracts all public messages from an error chain and combines them
+// into a single user-safe message. It traverses the error chain from newest to oldest,
+// collecting only the public descriptions that were set using WithDesc.
+//
+// The function is designed to provide safe, user-friendly error messages that can be
+// returned in API responses or displayed to end users, without exposing sensitive
+// internal details about the error.
+//
+// The messages are joined with spaces rather than colons (unlike Error()) to create
+// a more readable user-facing message.
+//
+// Returns an empty string if:
+//   - The input error is nil
+//   - The error is not a wrapped error
+//   - No public messages were set in the error chain
+//
+// Example usage:
+//
+//	baseErr := fault.New("internal db error",
+//		fault.WithDesc(
+//			"connection timeout to db://internal.example.com",
+//			"The service is temporarily unavailable",
+//		))
+//	wrappedErr := fault.Wrap(baseErr,
+//		fault.WithDesc(
+//			"failed to process user request",
+//			"Please try again later",
+//		))
+//
+//	msg := fault.UserFacingMessage(wrappedErr)
+//	// msg = "Please try again later The service is temporarily unavailable"
+//
+// Note that only messages set with WithDesc's public parameter are included in
+// the result, maintaining a clear separation between internal error details and
+// user-safe messages.
+func UserFacingMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	current, ok := err.(*wrapped)
+	if !ok {
+		return ""
+	}
+
+	errs := []string{}
+
+	for current != nil {
+		if current.public != "" {
+			errs = append(errs, current.public)
+		}
+
+		// Check if there's a next error in the chain
+		if current.err == nil {
+			break
+		}
+
+		// Try to get the next wrapped error
+		next, ok := current.err.(*wrapped)
+		if !ok {
+			// If it's not a wrapped error, add the error string and break
+			msg := current.err.Error()
+			if msg != "" {
+				errs = append(errs, msg)
+			}
+			break
+		}
+		current = next
+	}
+
+	return strings.Join(errs, " ")
+
 }
