@@ -20,11 +20,13 @@ import {
   Invitation,
   OrgInvite,
   Organization,
-  OrgInvitation
+  OrgInvitation,
+  AuthErrorCode
 } from './types';
-import { deleteCookie } from './cookies';
+import { deleteCookie, setCookies } from './cookies';
 import { redirect } from 'next/navigation';
 import { db } from '../db';
+import { SIGN_IN_URL } from '@clerk/nextjs/server';
 
 // Helper function to check authentication
 async function requireAuth(): Promise<User> {
@@ -178,13 +180,35 @@ export async function revokeOrgInvitation(params: {invitationId: string, orgId: 
 }
 
 export async function signUpViaEmail(params: {firstName: string, lastName: string, email: string}): Promise<any> {
-  // public function
+  // public
   return await auth.signUpViaEmail(params);
 }
 
-export async function verifyAuthCode(params: {email: string, code: string;}) {
-  // TODO
-  return;
+export async function verifyAuthCode(params: {email: string, code: string}) {
+  try {
+    const result = await auth.verifyAuthCode(params);
+    
+    if (result.success) {
+      if (result.cookies?.length) {
+        await setCookies(result.cookies);
+      }
+      
+      // Redirect on success
+      redirect(result.redirectTo);
+    }
+    
+    // Return the error result if verification failed
+    return result;
+    
+  } catch (error) {
+    console.error('Auth code verification failed:', error);
+    return {
+      success: false,
+      redirectTo: SIGN_IN_URL,
+      cookies: [],
+      error: error instanceof Error ? error : new Error(AuthErrorCode.UNKNOWN_ERROR)
+    };
+  }
 }
 
 export async function resendAuthCode(email: string) {

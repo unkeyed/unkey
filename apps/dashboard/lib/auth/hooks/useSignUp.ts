@@ -1,98 +1,50 @@
-import { useState } from 'react';
-import { resendAuthCode, verifyAuthCode } from '../actions';
+"use client";
+
+import { resendAuthCode, signUpViaEmail, verifyAuthCode } from '../actions';
 import { UserData } from '../types';
+import { useSignUpContext } from '../context/signup-context';
 
-interface VerificationStatus {
-  isVerifying: boolean;
-  isVerified: boolean;
-  error: string | null;
-}
-
+  
 export function useSignUp() {
-    const [userData, setUserData] = useState<UserData>({
-      firstName: '',
-      lastName: '',
-      email: ''
-    });
-  
-    const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>({
-      isVerifying: false,
-      isVerified: false,
-      error: null
-    });
-  
-    const updateUserData = (newData: Partial<UserData>) => {
-      setUserData(prev => ({
-        ...prev,
-        ...newData
-      }));
-    };
-  
-    const clearUserData = () => {
-      setUserData({
-        firstName: '',
-        lastName: '',
-        email: ''
-      });
-      setVerificationStatus({
-        isVerifying: false,
-        isVerified: false,
-        error: null
-      });
-    };
-  
-    const handleVerification = async (code: string): Promise<void> => {
+  const { userData, updateUserData, clearUserData } = useSignUpContext();
+
+  const handleSignUpViaEmail = async ({ firstName, lastName, email }: UserData): Promise<void> => {
+      updateUserData({ email, firstName, lastName });
+      
       try {
-        setVerificationStatus(prev => ({
-          ...prev,
-          isVerifying: true,
-          error: null
-        }));
-  
-        await verifyAuthCode({
-          email: userData.email,
-          code
-        });
-        
-        setVerificationStatus({
-          isVerifying: false,
-          isVerified: true,
-          error: null
-        });
+          await signUpViaEmail({ email, firstName, lastName });
       } catch (error) {
-        setVerificationStatus({
-          isVerifying: false,
-          isVerified: false,
-          error: error instanceof Error ? error.message : 'Verification failed'
-        });
-        throw error;
+          console.error('Sign up failed:', error);
+          throw error;
       }
-    };
-  
-    const handleResendCode = async (): Promise<void> => {
+  };
+
+  const handleVerification = async (code: string): Promise<void> => {
+      console.log("verification email", userData);
+      try {        
+          await verifyAuthCode({
+              email: userData.email,
+              code
+          });
+      } catch (error) {
+          console.error('Verification error:', error);
+      }
+  };
+
+  const handleResendCode = async (): Promise<void> => {
       try {
-        await resendAuthCode(userData.email);
-        
-        setVerificationStatus({
-          isVerifying: false,
-          isVerified: false,
-          error: null
-        });
+          await resendAuthCode(userData.email);
       } catch (error) {
-        setVerificationStatus(prev => ({
-          ...prev,
-          error: error instanceof Error ? error.message : 'Failed to resend code'
-        }));
-        throw error;
+          throw error;
       }
-    };
-  
-    return {
+  };
+
+  return {
       userData,
-      verificationStatus,
       updateUserData,
       clearUserData,
       handleVerification,
-      handleResendCode
-    };
-  }
+      handleResendCode,
+      handleSignUpViaEmail,
+  };
+}

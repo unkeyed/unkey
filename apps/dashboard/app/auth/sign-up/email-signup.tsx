@@ -9,14 +9,14 @@ import { toast } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
 import { signUpViaEmail } from "@/lib/auth/actions";
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
+import { useSignUp } from "@/lib/auth/hooks/useSignUp";
 
-type Props = {
-  setError: (e: string | null) => void;
-  setVerification: (b: boolean) => void;
-};
+interface Props {
+  setVerification: (value: boolean) => void;
+}
 
 export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
-
+  const { handleSignUpViaEmail } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,25 +35,20 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
 
     try {
       setIsLoading(true);
-      await signUpViaEmail({
+      await handleSignUpViaEmail({
         email: email,
         firstName: first,
         lastName: last,
-      })
-      .then(async () => {
-        setIsLoading(false);
+      }).then(() => {
         setVerification(true);
-      })
-      .catch((err) => {
-        setIsLoading(false);
-        
-        const errorCode = err.message as AuthErrorCode;
-        
-        toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
-      });
-    } catch (error) {
+      }
+      );
+    } catch (err: any) {
+      const errorCode = err.message as AuthErrorCode;
+      toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
+      console.error(err);
+    } finally {
       setIsLoading(false);
-      console.error(error);
     }
   };
 

@@ -149,7 +149,7 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.USER_CREATION_FAILED]: "Unable to create your account. Please try again later.",
   [AuthErrorCode.INVALID_EMAIL]: "Please enter a valid email address.",
   [AuthErrorCode.NETWORK_ERROR]: "Connection error. Please check your internet and try again.",
-  [AuthErrorCode.UNKNOWN_ERROR]: "Something went wrong. Please try again later.",
+  [AuthErrorCode.UNKNOWN_ERROR]: "Something went wrong. Please try again later, or contact support@unkey.dev",
 };
 
 export interface AuthProvider<T = any> {
