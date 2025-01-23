@@ -39,12 +39,12 @@ export function LogsChart({
 }) {
   const chartRef = useRef<HTMLDivElement>(null);
 
+  const { timeseries, isLoading, isError } = useFetchTimeseries();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We need this
   useEffect(() => {
     const distanceToTop = chartRef.current?.getBoundingClientRect().top ?? 0;
     onMount(distanceToTop);
-  }, [onMount]);
-
-  const { timeseries, isLoading, isError } = useFetchTimeseries();
+  }, [onMount, isLoading, isError]);
 
   if (isError) {
     return <LogsChartError />;
@@ -135,7 +135,7 @@ export function LogsChart({
                 );
               }}
             />
-            {["success", "error", "warning"].map((key) => (
+            {["success", "warning", "error"].map((key) => (
               <Bar key={key} dataKey={key} stackId="a" fill={`var(--color-${key})`} />
             ))}
           </BarChart>
