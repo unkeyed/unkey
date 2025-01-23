@@ -1,7 +1,5 @@
 package fault
 
-import "fmt"
-
 // Wrapper is a function type that transforms one error into another.
 // It's used to build chains of error transformations while preserving
 // the original error context.
@@ -42,7 +40,6 @@ func WithDesc(internal string, public string) Wrapper {
 			return nil
 		}
 
-		fmt.Printf("wrapping with %s, %s\n", internal, public)
 		return &wrapped{
 			err:      err,
 			internal: internal,
