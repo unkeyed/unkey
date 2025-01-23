@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.32.0
+
+### Minor Changes
+
+- a2f16f0: Add all options to verifyKey
+
 ## 0.31.0
 
 ### Minor Changes
