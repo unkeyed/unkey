@@ -8,7 +8,8 @@ const (
 	request_id contextKey = "request_id"
 )
 
-// getValue returns the value for the given key from the context or its zero value if it doesn't exist.
+// getValue returns the value for the given key from the context or its zero
+// value if it doesn't exist.
 func getValue[T any](ctx context.Context, key contextKey) T {
 	val, ok := ctx.Value(key).(T)
 	if !ok {

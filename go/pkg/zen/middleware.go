@@ -1,3 +1,3 @@
-package httpApi
+package zen
 
-type Middleware func(handler Handler) Handler
+type Middleware func(handler HandleFunc) HandleFunc

@@ -69,19 +69,20 @@ func New(config Config) (*Clickhouse, error) {
 				}
 			},
 		}),
-		keyVerifications: batch.New[schema.KeyVerificationRequestV1](batch.Config[schema.KeyVerificationRequestV1]{
-			BatchSize:     1000,
-			BufferSize:    100000,
-			FlushInterval: time.Second,
-			Consumers:     4,
-			Flush: func(ctx context.Context, rows []schema.KeyVerificationRequestV1) {
-				table := "raw_key_verifications_v1"
-				err := flush(ctx, conn, table, rows)
-				if err != nil {
-					config.Logger.Error().Err(err).Str("table", table).Msg("failed to flush batch")
-				}
-			},
-		}),
+		keyVerifications: batch.New[schema.KeyVerificationRequestV1](
+			batch.Config[schema.KeyVerificationRequestV1]{
+				BatchSize:     1000,
+				BufferSize:    100000,
+				FlushInterval: time.Second,
+				Consumers:     4,
+				Flush: func(ctx context.Context, rows []schema.KeyVerificationRequestV1) {
+					table := "raw_key_verifications_v1"
+					err := flush(ctx, conn, table, rows)
+					if err != nil {
+						config.Logger.Error().Err(err).Str("table", table).Msg("failed to flush batch")
+					}
+				},
+			}),
 	}
 
 	// err = c.conn.Ping(context.Background())

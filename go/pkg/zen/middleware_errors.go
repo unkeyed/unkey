@@ -1,0 +1,38 @@
+package zen
+
+import (
+	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/zen/openapi"
+)
+
+func WithErrorHandling() Middleware {
+	return func(next HandleFunc) HandleFunc {
+
+		return func(s *Session) error {
+
+			err := next(s)
+			if err == nil {
+				return nil
+			}
+
+			switch fault.GetTag(err) {
+			case NotFoundError:
+				return s.JSON(404, openapi.NotFoundError{})
+
+			case DatabaseError:
+				{
+				}
+
+			}
+
+			return s.JSON(500, openapi.InternalServerError{
+				Title:     "Internal Server Error",
+				Type:      "https://unkey.com/docs/errors/internal_server_error",
+				Detail:    "",
+				RequestId: s.requestID,
+				Status:    s.responseStatus,
+			})
+
+		}
+	}
+}

@@ -2,7 +2,6 @@ package zen
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/logging"
-	apierrors "github.com/unkeyed/unkey/go/pkg/zen/errors"
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
 
@@ -23,9 +21,12 @@ type Server struct {
 	srv         *http.Server
 
 	events    EventBuffer
-	validator validation.OpenAPIValidator
+	validator *validation.Validator
 
-	sessions sync.Pool
+	// middlewares in the order of inner -> outer
+	// The last middleware in this slice will run first
+	middlewares []Middleware
+	sessions    sync.Pool
 }
 
 type Config struct {
@@ -56,11 +57,6 @@ func New(config Config) (*Server, error) {
 		WriteTimeout: 20 * time.Second,
 	}
 
-	validator, err := validation.New()
-	if err != nil {
-		return nil, fmt.Errorf("unable to create validator: %w", err)
-	}
-
 	s := &Server{
 		logger:      config.Logger,
 		isListening: false,
@@ -70,13 +66,13 @@ func New(config Config) (*Server, error) {
 			New: func() any {
 				return &Session{
 					requestID: "",
-					validator: validator,
 					w:         nil,
 					r:         nil,
 				}
 
 			},
 		},
+		middlewares: []Middleware{},
 	}
 	return s, nil
 }
@@ -116,45 +112,100 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 	return s.srv.ListenAndServe()
 }
 
+// SetGlobalMiddleware sets middleware that will be executed before every
+// route handler.
+// Global middleware are executed in the order they are added, before any
+// route-specific middleware.
+// Each middleware can execute code before and after the handler it wraps.
+//
+// Request/Response flow:
+// SetGlobalMiddleware(Middleware_1, Middleware_2)
+//
+//	                        │ REQUEST
+//		                      ▼
+//		┌──────────── Global Middleware 1 ────────────┐
+//		│                     │                       │
+//		│                     ▼                       │
+//		│      ┌────── Global Middleware 2 ─────┐     │
+//		│      │              │                 │     │
+//		│      │              ▼                 │     │
+//		│      │      ┌─── Route MW ────┐       │     │
+//		│      │      │       │         │       │     │
+//		│      │      │       ▼         │       │     │
+//		│      │      │   ┌──────────┐  │       │     │
+//		│      │      │   │ Handler  │  │       │     │
+//		│      │      │   └──────────┘  │       │     │
+//		│      │      │       │         │       │     │
+//		│      │      │       ▼         │       │     │
+//		│      │      └─────────────────┘       │     │
+//		│      │              │                 │     │
+//		│      │              ▼                 │     │
+//		│      └────────────────────────────────┘     │
+//		│                     │                       │
+//		│                     ▼                       │
+//		└─────────────────────────────────────────────┘
+//		                      │
+//		                      ▼ RESPONSE
+//
+// Example usage:
+//
+//	router.SetGlobalMiddleware(
+//	    logging.Middleware,    // logs all requests
+//	    auth.ValidateToken,    // validates auth tokens
+//	)
+//
+// Note: Global middleware cannot be removed once set. To modify global middleware,
+// you need to set all desired middleware again with a new call to SetGlobalMiddleware.
+func (s *Server) SetGlobalMiddleware(middlewares ...Middleware) {
+
+	n := len(middlewares)
+	if n == 0 {
+		return
+	}
+
+	// Reverses the middlewares to run in the desired order.
+	// If middlewares are [A, B, C], this writes [C, B, A] to s.middlewares.
+	s.middlewares = make([]Middleware, n)
+	for i, mw := range middlewares {
+		s.middlewares[n-i-1] = mw
+	}
+
+}
 func (s *Server) RegisterRoute(route Route) {
 
-	s.mux.HandleFunc(fmt.Sprintf("%s %s", route.Method(), route.Path()), func(w http.ResponseWriter, r *http.Request) {
+	s.mux.HandleFunc(
+		fmt.Sprintf("%s %s", route.Method(), route.Path()),
+		func(w http.ResponseWriter, r *http.Request) {
 
-		sess, ok := s.getSession().(*Session)
-		if !ok {
-			panic("Unable to cast session")
-		}
-		defer func() {
-			sess.reset()
-			s.returnSession(sess)
-		}()
-
-		err := sess.Init(w, r)
-		if err != nil {
-			s.logger.Error(context.Background(), "failed to init session")
-			return
-		}
-		err = route.Handle(sess)
-
-		if err != nil {
-
-			base := apierrors.BaseError{}
-			if errors.As(err, &base) {
-
-				base.RequestID = sess.RequestID()
-				b, err := base.Marshal()
-				if err != nil {
-					panic(fmt.Errorf("unable to marshal error response: %w", err))
-				}
-				_, err = w.Write(b)
-				if err != nil {
-					panic(fmt.Errorf("unable to write error response: %w", err))
-				}
+			sess, ok := s.getSession().(*Session)
+			if !ok {
+				panic("Unable to cast session")
 			}
-			return
-		}
+			defer func() {
+				sess.reset()
+				s.returnSession(sess)
+			}()
 
-	})
+			err := sess.Init(w, r)
+			if err != nil {
+				s.logger.Error(context.Background(), "failed to init session")
+				return
+			}
+
+			// Apply middleware
+			var handle HandleFunc = route.Handle
+
+			for _, mw := range s.middlewares {
+				handle = mw(handle)
+			}
+
+			err = handle(sess)
+
+			if err != nil {
+				panic(err)
+			}
+
+		})
 }
 
 func (s *Server) Shutdown() error {

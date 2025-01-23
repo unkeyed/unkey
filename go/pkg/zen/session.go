@@ -3,12 +3,9 @@ package zen
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/pkg/uid"
-	apierrors "github.com/unkeyed/unkey/go/pkg/zen/errors"
-	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
 
 // Session is a thin wrapper on top of go's standard library net/http
@@ -20,9 +17,8 @@ import (
 type Session struct {
 	requestID string
 
-	validator validation.OpenAPIValidator
-	w         http.ResponseWriter
-	r         *http.Request
+	w http.ResponseWriter
+	r *http.Request
 
 	requestBody    []byte
 	responseStatus int
@@ -34,16 +30,6 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request) error {
 	s.requestID = uid.Request()
 	s.w = w
 	s.r = r
-
-	err := s.validate()
-	if err != nil {
-		return err
-	}
-
-	s.requestBody, err = io.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
 
 	return nil
 
@@ -58,23 +44,6 @@ func (s *Session) Context() context.Context {
 // Do not store references or modify it outside of the handler function.
 func (s *Session) Request() *http.Request {
 	return s.r
-}
-func (s *Session) validate() error {
-	error, valid := s.validator.Validate(s.r)
-	if !valid {
-		error.RequestId = s.requestID
-		b, err := json.Marshal(error)
-		if err != nil {
-			return err
-		}
-		err = s.send(400, b)
-		if err != nil {
-
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (s *Session) RequestID() string {
@@ -121,9 +90,6 @@ func (s *Session) JSON(status int, body any) error {
 	return s.send(status, b)
 
 }
-func (s *Session) Error(e apierrors.Error) error {
-	return s.JSON(e.HTTPStatus(), e)
-}
 
 // reset is called automatically before the session is returned to the pool.
 // It resets all fields to their null value to prevent leaking data between
@@ -131,7 +97,6 @@ func (s *Session) Error(e apierrors.Error) error {
 func (s *Session) reset() {
 	s.requestID = ""
 
-	s.validator = nil
 	s.w = nil
 	s.r = nil
 

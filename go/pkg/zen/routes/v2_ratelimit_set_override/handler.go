@@ -1,9 +1,9 @@
-package v1RatelimitLimit
+package v2RatelimitLimit
 
 import (
 	"github.com/unkeyed/unkey/go/pkg/database/gen"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
-	apierrors "github.com/unkeyed/unkey/go/pkg/zen/errors"
 	"github.com/unkeyed/unkey/go/pkg/zen/openapi"
 )
 
@@ -15,7 +15,10 @@ func New(svc *zen.Services) zen.Route {
 
 		err := svc.Database.InsertOverride(s.Context(), gen.InsertOverrideParams{})
 		if err != nil {
-			return s.Error(apierrors.NewInternalServerError("unable to insert override", "detail"))
+			return fault.Wrap(err,
+				fault.WithTag(zen.DatabaseError),
+				fault.With("database failed", "The database is unavailable."),
+			)
 		}
 		return s.JSON(200, Response{})
 

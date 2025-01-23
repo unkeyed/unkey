@@ -8,11 +8,12 @@ import (
 	"runtime/debug"
 	"syscall"
 
-	"github.com/unkeyed/unkey/go/pkg/api/server"
 	"github.com/unkeyed/unkey/go/pkg/config"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/version"
+	"github.com/unkeyed/unkey/go/pkg/zen"
+	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 	"github.com/urfave/cli/v2"
 )
 
@@ -69,7 +70,7 @@ func run(c *cli.Context) error {
 
 	logger.Info(c.Context, "configration loaded", slog.String("file", configFile))
 
-	srv, err := server.New(server.Config{
+	srv, err := zen.New(zen.Config{
 		NodeId:     cfg.NodeId,
 		Logger:     logger,
 		Clickhouse: nil,
@@ -77,6 +78,19 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	validator, err := validation.New()
+	if err != nil {
+		return err
+	}
+
+	srv.SetGlobalMiddleware(
+		// metrics should always run first, so it can capture the latency of the entire request
+		zen.WithMetrics(nil), // TODO: add eventbuffer
+		zen.WithLogging(logger),
+		zen.WithErrorHandling(),
+		zen.WithValidation(validator),
+	)
 
 	go func() {
 		listenErr := srv.Listen(c.Context, fmt.Sprintf(":%s", cfg.Port))

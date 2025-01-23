@@ -1,4 +1,4 @@
-package httpApi
+package zen
 
 // Handler receives a session and acts on it.
 // An error must be returned if anything goes wrong.
