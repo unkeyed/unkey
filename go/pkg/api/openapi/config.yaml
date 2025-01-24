@@ -1,6 +1,0 @@
-package: openapi
-output: ./pkg/api/openapi/gen.go
-generate:
-  models: true
-output-options:
-  nullable-type: true

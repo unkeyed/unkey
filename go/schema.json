@@ -1,0 +1,74 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Make jsonschema happy"
+    },
+    "clickhouse": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": ["url"]
+    },
+    "database": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "type": "string"
+        },
+        "readonlyReplica": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["primary"]
+    },
+    "heartbeat": {
+      "type": "object",
+      "description": "Send heartbeat to a URL",
+      "properties": {
+        "interval": {
+          "type": "integer",
+          "description": "Interval in seconds to send heartbeat",
+          "format": "int32"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to send heartbeat to",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": ["url", "interval"]
+    },
+    "image": {
+      "type": "string",
+      "description": "The image this agent is running"
+    },
+    "nodeId": {
+      "type": "string",
+      "description": "A unique node id"
+    },
+    "platform": {
+      "type": "string",
+      "description": "The platform this agent is running on"
+    },
+    "port": {
+      "type": "string",
+      "description": "Port to listen on",
+      "default": "8080"
+    },
+    "region": {
+      "type": "string",
+      "description": "The region this agent is running in"
+    }
+  },
+  "additionalProperties": true,
+  "required": ["database"]
+}

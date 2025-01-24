@@ -13,6 +13,7 @@ func NewTestClock(now ...time.Time) *TestClock {
 	return &TestClock{now: now[0]}
 }
 
+// nolint:exhaustruct
 var _ Clock = &TestClock{}
 
 func (c *TestClock) Now() time.Time {

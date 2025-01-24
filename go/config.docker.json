@@ -1,0 +1,8 @@
+{
+  "$schema": "schema.json",
+  "port": "8080",
+  "nodeId": "node_1",
+  "database": {
+    "primary": "mysql://"
+  }
+}
