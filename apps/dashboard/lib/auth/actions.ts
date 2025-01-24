@@ -184,6 +184,10 @@ export async function signUpViaEmail(params: {firstName: string, lastName: strin
   return await auth.signUpViaEmail(params);
 }
 
+export async function signInViaEmail(email:string) {
+  return await auth.signInViaEmail(email);
+}
+
 export async function verifyAuthCode(params: {email: string, code: string}) {
   try {
     const result = await auth.verifyAuthCode(params);

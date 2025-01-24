@@ -140,7 +140,8 @@ export enum AuthErrorCode {
   USER_CREATION_FAILED = 'USER_CREATION_FAILED',
   INVALID_EMAIL = 'INVALID_EMAIL',
   NETWORK_ERROR = 'NETWORK_ERROR',
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
+  ACCOUNT_NOT_FOUND = 'ACCOUNT_NOT_FOUND'
 }
 
 export const errorMessages: Record<AuthErrorCode, string> = {
@@ -150,6 +151,7 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.INVALID_EMAIL]: "Please enter a valid email address.",
   [AuthErrorCode.NETWORK_ERROR]: "Connection error. Please check your internet and try again.",
   [AuthErrorCode.UNKNOWN_ERROR]: "Something went wrong. Please try again later, or contact support@unkey.dev",
+  [AuthErrorCode.ACCOUNT_NOT_FOUND]: "Account not found. Would you like to sign up?"
 };
 
 export interface AuthProvider<T = any> {
