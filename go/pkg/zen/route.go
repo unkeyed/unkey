@@ -13,7 +13,7 @@ type route struct {
 	handleFn HandleFunc
 }
 
-func NewRoute(method string, path string, handleFn func(*Session) error) Route {
+func NewRoute(method string, path string, handleFn func(*Session) error) *route {
 	return &route{
 		method:   method,
 		path:     path,
@@ -22,10 +22,9 @@ func NewRoute(method string, path string, handleFn func(*Session) error) Route {
 }
 
 func (r *route) WithMiddleware(mws ...Middleware) Route {
-
-	//for _, mw := range mws {
-	//r = mw(r)
-	//}
+	for _, mw := range mws {
+		r.handleFn = mw(r.handleFn)
+	}
 	return r
 }
 

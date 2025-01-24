@@ -2,15 +2,15 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 
 	"os"
 
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fmsg"
 	"github.com/danielgtaylor/huma/schema"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -21,21 +21,21 @@ import (
 func LoadFile[C any](config *C, path string) (err error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("Failed to read configuration file: %s", err)
+		return fmt.Errorf("Failed to read configuration file: %w", err)
 	}
 
 	expanded := os.ExpandEnv(string(content))
 
 	schema, err := GenerateJsonSchema(config)
 	if err != nil {
-		return fmt.Errorf("Failed to generate json schema: %s", err)
+		return fmt.Errorf("Failed to generate json schema: %w", err)
 	}
 
 	v, err := gojsonschema.Validate(
 		gojsonschema.NewStringLoader(schema),
 		gojsonschema.NewStringLoader(expanded))
 	if err != nil {
-		return fmt.Errorf("Failed to validate configuration: %s", err)
+		return fmt.Errorf("Failed to validate configuration: %w", err)
 	}
 
 	if !v.Valid() {
@@ -48,12 +48,14 @@ func LoadFile[C any](config *C, path string) (err error) {
 		lines = append(lines, "")
 		lines = append(lines, "Configuration received:")
 		lines = append(lines, expanded)
-		return fault.New(strings.Join(lines, "\n"))
+
+		message := strings.Join(lines, "\n")
+		return errors.New(message)
 	}
 
 	err = json.Unmarshal([]byte(expanded), config)
 	if err != nil {
-		return fault.Wrap(err, fmsg.WithDesc("bad_config", "Failed to unmarshal configuration"))
+		return fault.Wrap(err, fault.WithDesc("bad_config", "Failed to unmarshal configuration"))
 
 	}
 	return nil
@@ -65,18 +67,18 @@ func LoadFile[C any](config *C, path string) (err error) {
 func GenerateJsonSchema(cfg any, file ...string) (string, error) {
 	s, err := schema.Generate(reflect.TypeOf(cfg))
 	if err != nil {
-		return "", err
+		return "", fault.Wrap(err, fault.WithDesc("unable to generate schema", ""))
 	}
 	s.AdditionalProperties = true
 	b, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
-		return "", err
+		return "", fault.Wrap(err, fault.WithDesc("unable to marshal schema", ""))
 	}
 
 	if len(file) > 0 {
-		err = os.WriteFile(file[0], b, 0644)
+		err = os.WriteFile(file[0], b, 0600)
 		if err != nil {
-			return "", err
+			return "", fault.Wrap(err, fault.WithDesc("unable to write file", ""))
 		}
 	}
 

@@ -37,15 +37,18 @@ func TestWrapSingleWrapper(t *testing.T) {
 			err:            errors.New("base error"),
 			wrapper:        WithDesc("internal message", "public message"),
 			expectedErr:    errors.New("base error"),
+			expectedTag:    "",
 			expectedInt:    "internal message",
 			expectedPublic: "public message",
 		},
 		{
-			name:        "with tag",
-			err:         errors.New("base error"),
-			wrapper:     WithTag(Tag("TEST_TAG")),
-			expectedErr: errors.New("base error"),
-			expectedTag: Tag("TEST_TAG"),
+			name:           "with tag",
+			err:            errors.New("base error"),
+			wrapper:        WithTag(Tag("TEST_TAG")),
+			expectedErr:    errors.New("base error"),
+			expectedTag:    Tag("TEST_TAG"),
+			expectedPublic: "",
+			expectedInt:    "",
 		},
 	}
 

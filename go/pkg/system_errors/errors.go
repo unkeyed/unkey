@@ -30,7 +30,7 @@ const (
 // They consist of a fault, a service and a code and are created like so:
 // "EID:{Fault}:{Service}:{Code}"
 //
-// For example "EID:AWS:Route53:ACCESS_DENIED"
+// For example "EID:AWS:Route53:ACCESS_DENIED".
 type EID string
 
 type Error struct {

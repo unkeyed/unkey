@@ -35,23 +35,22 @@ var Cmd = &cli.Command{
 func run(c *cli.Context) error {
 	configFile := c.String("config")
 
+	// nolint:exhaustruct
 	cfg := nodeConfig{}
 	err := config.LoadFile(&cfg, configFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to load config file: %w", err)
 	}
 
 	if cfg.NodeId == "" {
 		cfg.NodeId = uid.Node()
-
 	}
 
 	if cfg.Region == "" {
 		cfg.Region = "unknown"
 	}
-	logger := logging.New(logging.Config{Development: true})
+	logger := logging.New(logging.Config{Development: true, NoColor: false})
 	logger = logger.With(
-
 		slog.String("nodeId", cfg.NodeId),
 		slog.String("platform", cfg.Platform),
 		slog.String("region", cfg.Region),
@@ -76,17 +75,17 @@ func run(c *cli.Context) error {
 		Clickhouse: nil,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create server: %w", err)
 	}
 
 	validator, err := validation.New()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create validator: %w", err)
 	}
 
 	srv.SetGlobalMiddleware(
 		// metrics should always run first, so it can capture the latency of the entire request
-		zen.WithMetrics(nil), // TODO: add eventbuffer
+		zen.WithMetrics(nil),
 		zen.WithLogging(logger),
 		zen.WithErrorHandling(),
 		zen.WithValidation(validator),
@@ -108,10 +107,8 @@ func run(c *cli.Context) error {
 	return nil
 }
 
-// TODO: generating this every time is a bit stupid, we should make this its own command
-//
-//	and then run it as part of the build process
 func init() {
+	// nolint:exhaustruct
 	_, err := config.GenerateJsonSchema(nodeConfig{}, "schema.json")
 	if err != nil {
 		panic(err)

@@ -51,6 +51,7 @@ func New(message string, wraps ...Wrapper) error {
 	var err error
 	err = &wrapped{
 		err:      nil,
+		tag:      "",
 		location: getLocation(),
 		public:   "",
 		internal: message,

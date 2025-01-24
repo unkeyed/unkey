@@ -21,17 +21,19 @@ type logger struct {
 func New(cfg Config) Logger {
 
 	var handler slog.Handler
-	if cfg.Development && !cfg.NoColor {
-
+	switch {
+	case cfg.Development && !cfg.NoColor:
 		handler = tint.NewHandler(os.Stdout, &tint.Options{
-			TimeFormat: time.StampMilli,
+			AddSource:   true,
+			Level:       slog.LevelInfo,
+			ReplaceAttr: nil,
+			TimeFormat:  time.StampMilli,
+			NoColor:     false,
 		})
-	} else if cfg.Development {
+	case cfg.Development:
 		handler = slog.NewTextHandler(os.Stdout, nil)
-
-	} else {
+	default:
 		handler = slog.NewJSONHandler(os.Stdout, nil)
-
 	}
 
 	l := slog.New(handler)

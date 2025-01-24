@@ -18,7 +18,7 @@ func New(prefix string) string {
 
 	id := ksuid.New().String()
 	if prefix != "" {
-		return strings.Join([]string{string(prefix), id}, "_")
+		return strings.Join([]string{prefix, id}, "_")
 	} else {
 		return id
 	}

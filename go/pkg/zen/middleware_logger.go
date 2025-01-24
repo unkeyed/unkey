@@ -8,9 +8,7 @@ import (
 )
 
 func WithLogging(logger logging.Logger) Middleware {
-
 	return func(next HandleFunc) HandleFunc {
-
 		return func(s *Session) error {
 			start := time.Now()
 			nextErr := next(s)
@@ -22,9 +20,7 @@ func WithLogging(logger logging.Logger) Middleware {
 				slog.Int("status", s.responseStatus),
 				slog.String("latency", serviceLatency.String()),
 			)
-
 			return nextErr
 		}
-
 	}
 }

@@ -24,7 +24,6 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 	}
 
 	return func(next HandleFunc) HandleFunc {
-
 		return func(s *Session) error {
 			start := time.Now()
 			nextErr := next(s)
@@ -59,6 +58,5 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 			})
 			return nextErr
 		}
-
 	}
 }

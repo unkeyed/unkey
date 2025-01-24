@@ -2,15 +2,16 @@ package clickhouse
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fmsg"
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
+	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/logging"
 )
 
 type Clickhouse struct {
@@ -27,21 +28,20 @@ type Config struct {
 }
 
 func New(config Config) (*Clickhouse, error) {
-
 	opts, err := ch.ParseDSN(config.URL)
 	if err != nil {
-		return nil, fault.Wrap(err, fmsg.With("parsing clickhouse DSN failed"))
+		return nil, fault.Wrap(err, fault.WithDesc("parsing clickhouse DSN failed", ""))
 	}
 
 	// opts.TLS = &tls.Config{}
 	opts.Debug = true
 	opts.Debugf = func(format string, v ...any) {
-		config.Logger.Debug().Msgf(format, v...)
+		config.Logger.Debug(context.Background(), fmt.Sprintf(format, v...))
 	}
-	config.Logger.Info().Interface("opts", opts.Addr).Msg("connecting to clickhouse")
+	config.Logger.Info(context.Background(), "connecting to clickhouse", slog.Any("opts", opts.Addr))
 	conn, err := ch.Open(opts)
 	if err != nil {
-		return nil, fault.Wrap(err, fmsg.With("opening clickhouse failed"))
+		return nil, fault.Wrap(err, fault.WithDesc("opening clickhouse failed", ""))
 	}
 
 	err = util.Retry(func() error {
@@ -50,13 +50,15 @@ func New(config Config) (*Clickhouse, error) {
 		return time.Duration(n) * time.Second
 	})
 	if err != nil {
-		return nil, fault.Wrap(err, fmsg.With("pinging clickhouse failed"))
+		return nil, fault.Wrap(err, fault.WithDesc("pinging clickhouse failed", ""))
 	}
 	c := &Clickhouse{
 		conn:   conn,
 		logger: config.Logger,
 
 		requests: batch.New[schema.ApiRequestV1](batch.Config[schema.ApiRequestV1]{
+			Name:          "api reqeusts",
+			Drop:          true,
 			BatchSize:     1000,
 			BufferSize:    100000,
 			FlushInterval: time.Second,
@@ -65,12 +67,17 @@ func New(config Config) (*Clickhouse, error) {
 				table := "raw_api_requests_v1"
 				err := flush(ctx, conn, table, rows)
 				if err != nil {
-					config.Logger.Error().Err(err).Str("table", table).Msg("failed to flush batch")
+					config.Logger.Error(ctx, "failed to flush batch",
+						slog.String("table", table),
+						slog.Any("err", err),
+					)
 				}
 			},
 		}),
 		keyVerifications: batch.New[schema.KeyVerificationRequestV1](
 			batch.Config[schema.KeyVerificationRequestV1]{
+				Name:          "key verifications",
+				Drop:          true,
 				BatchSize:     1000,
 				BufferSize:    100000,
 				FlushInterval: time.Second,
@@ -79,7 +86,9 @@ func New(config Config) (*Clickhouse, error) {
 					table := "raw_key_verifications_v1"
 					err := flush(ctx, conn, table, rows)
 					if err != nil {
-						config.Logger.Error().Err(err).Str("table", table).Msg("failed to flush batch")
+						config.Logger.Error(ctx, "failed to flush batch",
+							slog.String("table", table), slog.Any("err", err),
+						)
 					}
 				},
 			}),
@@ -87,14 +96,18 @@ func New(config Config) (*Clickhouse, error) {
 
 	// err = c.conn.Ping(context.Background())
 	// if err != nil {
-	// 	return nil, fault.Wrap(err, fmsg.With("pinging clickhouse failed"))
+	// 	return nil, fault.Wrap(err, fault.With("pinging clickhouse failed"))
 	// }
 	return c, nil
 }
 
 func (c *Clickhouse) Shutdown(ctx context.Context) error {
 	c.requests.Close()
-	return c.conn.Close()
+	err := c.conn.Close()
+	if err != nil {
+		return fault.Wrap(err, fault.WithDesc("clickhouse couldn't shut down", ""))
+	}
+	return nil
 }
 
 func (c *Clickhouse) BufferApiRequest(req schema.ApiRequestV1) {

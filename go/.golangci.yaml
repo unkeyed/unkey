@@ -66,6 +66,7 @@ linters-settings:
       - "^golang.org/x/tools/go/analysis.Analyzer$"
       - "^google.golang.org/protobuf/.+Options$"
       - "^gopkg.in/yaml.v3.Node$"
+      - "^github.com/urfave/cli/v2.*$"
 
   lll:
     line-length: 100
@@ -218,82 +219,81 @@ linters:
     - errcheck # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
     - gosimple # specializes in simplifying a code
     - govet # reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
-    # - ineffassign # detects when assignments to existing variables are not used
-    # - staticcheck # is a go vet on steroids, applying a ton of static analysis checks
-    # - typecheck # like the front-end of a Go compiler, parses and type-checks Go code
-    # - unused # checks for unused constants, variables, functions and types
-    # - bodyclose # checks whether HTTP response body is closed successfully
+    - ineffassign # detects when assignments to existing variables are not used
+    - staticcheck # is a go vet on steroids, applying a ton of static analysis checks
+    - typecheck # like the front-end of a Go compiler, parses and type-checks Go code
+    - unused # checks for unused constants, variables, functions and types
+    - bodyclose # checks whether HTTP response body is closed successfully
     #
     # - asasalint # checks for pass []any as any in variadic func(...any)
     # - asciicheck # checks that your code does not contain non-ASCII identifiers
     # - bidichk # checks for dangerous unicode character sequences
-    # - canonicalheader # checks whether net/http.Header uses canonical header
-    # - copyloopvar # detects places where loop variables are copied
+    - canonicalheader # checks whether net/http.Header uses canonical header
+    - copyloopvar # detects places where loop variables are copied
     # - cyclop # checks function and package cyclomatic complexity
     # - dupl # tool for code clone detection
     # - durationcheck # checks for two durations multiplied together
-    # - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
+    - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     # - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
-    # - exhaustive # checks exhaustiveness of enum switch statements
-    # - exportloopref # checks for pointers to enclosing loop variables
-    # - fatcontext # detects nested contexts in loops
-    # # - forbidigo # forbids identifiers
+    - exhaustive # checks exhaustiveness of enum switch statements
+    - fatcontext # detects nested contexts in loops
+    # - forbidigo # forbids identifiers
     # - funlen # tool for detection of long functions
     # - gocheckcompilerdirectives # validates go compiler directive comments (//go:)
     # - gochecknoglobals # checks that no global variables exist
     # # - gochecknoinits # checks that no init functions are present in Go code
-    # - gochecksumtype # checks exhaustiveness on Go "sum types"
-    # - gocognit # computes and checks the cognitive complexity of functions
-    # - goconst # finds repeated strings that could be replaced by a constant
-    # - gocritic # provides diagnostics that check for bugs, performance and style issues
+    - gochecksumtype # checks exhaustiveness on Go "sum types"
+    - gocognit # computes and checks the cognitive complexity of functions
+    - goconst # finds repeated strings that could be replaced by a constant
+    - gocritic # provides diagnostics that check for bugs, performance and style issues
     # - gocyclo # computes and checks the cyclomatic complexity of functions
     # - godot # checks if comments end in a period
     # - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt
     # - gomoddirectives # manages the use of 'replace', 'retract', and 'excludes' directives in go.mod
     # - gomodguard # allow and block lists linter for direct Go module dependencies. This is different from depguard where there are different block types for example version constraints and module recommendations
     # - goprintffuncname # checks that printf-like functions are named with f at the end
-    # - gosec # inspects source code for security problems
+    - gosec # inspects source code for security problems
     # - intrange # finds places where for loops could make use of an integer range
     - lll # reports long lines
-    # - loggercheck # checks key value pairs for common logger libraries (kitlog,klog,logr,zap)
+    - loggercheck # checks key value pairs for common logger libraries (kitlog,klog,logr,zap)
     # - makezero # finds slice declarations with non-zero initial length
     # - mirror # reports wrong mirror patterns of bytes/strings usage
     # - mnd # detects magic numbers
-    # - musttag # enforces field tags in (un)marshaled structs
+    - musttag # enforces field tags in (un)marshaled structs
     # - nakedret # finds naked returns in functions greater than a specified function length
-    # - nestif # reports deeply nested if statements
+    - nestif # reports deeply nested if statements
     # - nilerr # finds the code that returns nil even if it checks that the error is not nil
-    # - nilnil # checks that there is no simultaneous return of nil error and an invalid value
+    - nilnil # checks that there is no simultaneous return of nil error and an invalid value
     # - noctx # finds sending http request without context.Context
     # - nolintlint # reports ill-formed or insufficient nolint directives
     # - nosprintfhostport # checks for misuse of Sprintf to construct a host with port in a URL
     # - perfsprint # checks that fmt.Sprintf can be replaced with a faster alternative
-    # - predeclared # finds code that shadows one of Go's predeclared identifiers
-    # - promlinter # checks Prometheus metrics naming via promlint
-    # - protogetter # reports direct reads from proto message fields when getters should be used
-    # - reassign # checks that package variables are not reassigned
+    - predeclared # finds code that shadows one of Go's predeclared identifiers
+    - promlinter # checks Prometheus metrics naming via promlint
+    - protogetter # reports direct reads from proto message fields when getters should be used
+    - reassign # checks that package variables are not reassigned
     # - revive # fast, configurable, extensible, flexible, and beautiful linter for Go, drop-in replacement of golint
-    # - rowserrcheck # checks whether Err of rows is checked successfully
-    # - sloglint # ensure consistent code style when using log/slog
-    # - spancheck # checks for mistakes with OpenTelemetry/Census spans
-    # - sqlclosecheck # checks that sql.Rows and sql.Stmt are closed
+    - rowserrcheck # checks whether Err of rows is checked successfully
+    - sloglint # ensure consistent code style when using log/slog
+    - spancheck # checks for mistakes with OpenTelemetry/Census spans
+    - sqlclosecheck # checks that sql.Rows and sql.Stmt are closed
     # - stylecheck # is a replacement for golint
-    # - tenv # detects using os.Setenv instead of t.Setenv since Go1.17
+    - tenv # detects using os.Setenv instead of t.Setenv since Go1.17
     # - testableexamples # checks if examples are testable (have an expected output)
     # - testifylint # checks usage of github.com/stretchr/testify
-    # - tparallel # detects inappropriate usage of t.Parallel() method in your Go test codes
-    # - unconvert # removes unnecessary type conversions
-    # - unparam # reports unused function parameters
-    # - usestdlibvars # detects the possibility to use variables/constants from the Go standard library
-    # - wastedassign # finds wasted assignment statements
-    # - whitespace # detects leading and trailing whitespace
+    - tparallel # detects inappropriate usage of t.Parallel() method in your Go test codes
+    - unconvert # removes unnecessary type conversions
+    - unparam # reports unused function parameters
+    - usestdlibvars # detects the possibility to use variables/constants from the Go standard library
+    - wastedassign # finds wasted assignment statements
+    #- whitespace # detects leading and trailing whitespace
 
     ## you may want to enable
     #- decorder # checks declaration order and count of types, constants, variables and functions
-    #- exhaustruct # [highly recommend to enable] checks if all structure fields are initialized
+    - exhaustruct # [highly recommend to enable] checks if all structure fields are initialized
     #- gci # controls golang package import order and makes it always deterministic
     #- ginkgolinter # [if you use ginkgo/gomega] enforces standards of using ginkgo and gomega
-    #- godox # detects FIXME, TODO and other comment keywords
+    - godox # detects FIXME, TODO and other comment keywords
     #- goheader # checks is file header matches to pattern
     #- inamedparam # [great idea, but too strict, need to ignore a lot of cases by default] reports interfaces with unnamed method parameters
     #- interfacebloat # checks the number of methods inside an interface
@@ -301,7 +301,7 @@ linters:
     #- prealloc # [premature optimization, but can be used in some cases] finds slice declarations that could potentially be preallocated
     #- tagalign # checks that struct tags are well aligned
     #- varnamelen # [great idea, but too many false positives] checks that the length of a variable's name matches its scope
-    #- wrapcheck # checks that errors returned from external packages are wrapped
+    - wrapcheck # checks that errors returned from external packages are wrapped
     #- zerologlint # detects the wrong usage of zerolog that a user forgets to dispatch zerolog.Event
 
     ## disabled

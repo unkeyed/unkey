@@ -48,8 +48,11 @@ func WithTag(tag Tag) Wrapper {
 		}
 
 		return &wrapped{
-			err: err,
-			tag: tag,
+			err:      err,
+			tag:      tag,
+			location: "",
+			internal: "",
+			public:   "",
 		}
 	}
 }

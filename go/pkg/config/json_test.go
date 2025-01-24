@@ -13,7 +13,7 @@ func TestLoadFile_WithMissingRequired(t *testing.T) {
 
 	cfg := struct {
 		Hello string `json:"hello" required:"true"`
-	}{}
+	}{Hello: ""}
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")
@@ -31,7 +31,7 @@ func TestLoadFile_WritesValuesToPointer(t *testing.T) {
 
 	cfg := struct {
 		Hello string `json:"hello" required:"true"`
-	}{}
+	}{Hello: ""}
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")
@@ -49,7 +49,9 @@ func TestLoadFile_ExpandsEnv(t *testing.T) {
 
 	cfg := struct {
 		Hello string `json:"hello" required:"true"`
-	}{}
+	}{
+		Hello: "",
+	}
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")

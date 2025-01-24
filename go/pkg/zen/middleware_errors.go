@@ -7,9 +7,7 @@ import (
 
 func WithErrorHandling() Middleware {
 	return func(next HandleFunc) HandleFunc {
-
 		return func(s *Session) error {
-
 			err := next(s)
 			if err == nil {
 				return nil
@@ -23,11 +21,14 @@ func WithErrorHandling() Middleware {
 					Detail:    fault.UserFacingMessage(err),
 					RequestId: s.requestID,
 					Status:    s.responseStatus,
+					Instance:  nil,
 				})
 
 			case DatabaseError:
 				// ...
 
+			case fault.UNTAGGED:
+				break // fall through to default 500
 			}
 
 			return s.JSON(500, api.InternalServerError{
@@ -36,8 +37,8 @@ func WithErrorHandling() Middleware {
 				Detail:    fault.UserFacingMessage(err),
 				RequestId: s.requestID,
 				Status:    s.responseStatus,
+				Instance:  nil,
 			})
-
 		}
 	}
 }

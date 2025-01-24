@@ -8,20 +8,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/logging"
-	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
 
 type Server struct {
-	sync.Mutex
+	mu sync.Mutex
 
 	logger      logging.Logger
 	isListening bool
 	mux         *http.ServeMux
 	srv         *http.Server
-
-	events    EventBuffer
-	validator *validation.Validator
 
 	// middlewares in the order of inner -> outer
 	// The last middleware in this slice will run first
@@ -36,7 +33,6 @@ type Config struct {
 }
 
 func New(config Config) (*Server, error) {
-
 	mux := http.NewServeMux()
 	srv := &http.Server{
 		Handler: mux,
@@ -58,6 +54,7 @@ func New(config Config) (*Server, error) {
 	}
 
 	s := &Server{
+		mu:          sync.Mutex{},
 		logger:      config.Logger,
 		isListening: false,
 		mux:         mux,
@@ -65,11 +62,13 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
-					requestID: "",
-					w:         nil,
-					r:         nil,
+					requestID:      "",
+					w:              nil,
+					r:              nil,
+					requestBody:    []byte{},
+					responseStatus: 0,
+					responseBody:   []byte{},
 				}
-
 			},
 		},
 		middlewares: []Middleware{},
@@ -85,7 +84,7 @@ func New(config Config) (*Server, error) {
 // different requets and response types, so we just return any.
 // You should immediately cast it to your desired type
 //
-// sess := s.getSession().(session.Session[MyRequest, MyResponse])
+// sess := s.getSession().(session.Session[MyRequest, MyResponse]).
 func (s *Server) getSession() any {
 	return s.sessions.Get()
 }
@@ -97,19 +96,23 @@ func (s *Server) returnSession(session any) {
 
 // Calling this function multiple times will have no effect.
 func (s *Server) Listen(ctx context.Context, addr string) error {
-	s.Lock()
+	s.mu.Lock()
 	if s.isListening {
 		s.logger.Warn(ctx, "already listening")
-		s.Unlock()
+		s.mu.Unlock()
 		return nil
 	}
 	s.isListening = true
-	s.Unlock()
+	s.mu.Unlock()
 
 	s.srv.Addr = addr
 
 	s.logger.Info(ctx, "listening", slog.String("addr", addr))
-	return s.srv.ListenAndServe()
+	err := s.srv.ListenAndServe()
+	if err != nil {
+		return fault.Wrap(err, fault.WithDesc("listening failed", ""))
+	}
+	return nil
 }
 
 // SetGlobalMiddleware sets middleware that will be executed before every
@@ -157,7 +160,6 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 // Note: Global middleware cannot be removed once set. To modify global middleware,
 // you need to set all desired middleware again with a new call to SetGlobalMiddleware.
 func (s *Server) SetGlobalMiddleware(middlewares ...Middleware) {
-
 	n := len(middlewares)
 	if n == 0 {
 		return
@@ -169,14 +171,11 @@ func (s *Server) SetGlobalMiddleware(middlewares ...Middleware) {
 	for i, mw := range middlewares {
 		s.middlewares[n-i-1] = mw
 	}
-
 }
 func (s *Server) RegisterRoute(route Route) {
-
 	s.mux.HandleFunc(
 		fmt.Sprintf("%s %s", route.Method(), route.Path()),
 		func(w http.ResponseWriter, r *http.Request) {
-
 			sess, ok := s.getSession().(*Session)
 			if !ok {
 				panic("Unable to cast session")
@@ -204,13 +203,15 @@ func (s *Server) RegisterRoute(route Route) {
 			if err != nil {
 				panic(err)
 			}
-
 		})
 }
 
 func (s *Server) Shutdown() error {
-	s.Lock()
-	defer s.Unlock()
-	return s.srv.Close()
-
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	err := s.srv.Close()
+	if err != nil {
+		return fault.Wrap(err)
+	}
+	return nil
 }

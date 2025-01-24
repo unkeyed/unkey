@@ -2,7 +2,7 @@ package zen
 
 import "github.com/unkeyed/unkey/go/pkg/fault"
 
-// Error tags for common error scenarios
+// Error tags for common error scenarios.
 var (
 	NotFoundError = fault.Tag("NOT_FOUND_ERROR")
 

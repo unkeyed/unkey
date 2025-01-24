@@ -7,6 +7,7 @@ package zen
 // - JSON
 // - Raw bytes
 // - Errors
+// .
 type Handler interface {
 	Handle(sess *Session) error
 }

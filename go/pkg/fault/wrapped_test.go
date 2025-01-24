@@ -20,6 +20,7 @@ func TestNew(t *testing.T) {
 		{
 			name:     "basic message",
 			message:  "test error",
+			wrappers: []Wrapper{},
 			expected: "test error",
 		},
 		{
@@ -134,9 +135,6 @@ func TestErrorChainUnwrapping(t *testing.T) {
 	baseErr := errors.New("base error")
 	wrapped1 := Wrap(baseErr, WithDesc("level 1", ""))
 	wrapped2 := Wrap(wrapped1, WithDesc("level 2", ""))
-
-	// Test that errors.Is works through the chain
-	//require.True(t, errors.Is(wrapped2, baseErr))
 
 	// Test unwrapping at each level
 	unwrapped := errors.Unwrap(wrapped2)

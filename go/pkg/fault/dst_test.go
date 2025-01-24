@@ -21,13 +21,13 @@ var (
 	maxDepth     = 1_000
 	numTestCases = 10_000
 
-	// Component generation constants
+	// Component generation constants.
 	numTags       = 20
 	numInternals  = 30
 	numPublics    = 25
 	numBaseErrors = 15
 
-	// String generation constants
+	// String generation constants.
 	minWordLength  = 3
 	maxWordLength  = 12
 	minWordsPerMsg = 2
@@ -41,7 +41,7 @@ type ErrorComponents struct {
 	baseErrors []string
 }
 
-// Generator handles all random but deterministic generation
+// Generator handles all random but deterministic generation.
 type Generator struct {
 	rng *rand.Rand
 }
@@ -52,7 +52,7 @@ func NewGenerator(seed int64) *Generator {
 	}
 }
 
-// generateRandomWord creates a random word of given length
+// generateRandomWord creates a random word of given length.
 func (g *Generator) generateRandomWord(minLen, maxLen int) string {
 	consonants := "bcdfghjklmnpqrstvwxyz"
 	vowels := "aeiou"
@@ -73,7 +73,7 @@ func (g *Generator) generateRandomWord(minLen, maxLen int) string {
 	return word.String()
 }
 
-// generateRandomSentence creates a random sentence
+// generateRandomSentence creates a random sentence.
 func (g *Generator) generateRandomSentence() string {
 	wordCount := g.rng.Intn(maxWordsPerMsg-minWordsPerMsg+1) + minWordsPerMsg
 	words := make([]string, wordCount)
@@ -86,7 +86,7 @@ func (g *Generator) generateRandomSentence() string {
 	return strings.ToUpper(sentence[:1]) + sentence[1:] + "."
 }
 
-// generateRandomTag creates a random error tag
+// generateRandomTag creates a random error tag.
 func (g *Generator) generateRandomTag() fault.Tag {
 	words := []string{
 		g.generateRandomWord(4, 8),
@@ -95,7 +95,7 @@ func (g *Generator) generateRandomTag() fault.Tag {
 	return fault.Tag(strings.ToUpper(strings.Join(words, "_")))
 }
 
-// generateComponents creates a complete set of random components
+// generateComponents creates a complete set of random components.
 func (g *Generator) generateComponents() ErrorComponents {
 	components := ErrorComponents{
 		tags:       make([]fault.Tag, numTags),
@@ -127,7 +127,7 @@ func (g *Generator) generateComponents() ErrorComponents {
 	return components
 }
 
-// ErrorChainGenerator handles error chain generation using components
+// ErrorChainGenerator handles error chain generation using components.
 type ErrorChainGenerator struct {
 	rng        *rand.Rand
 	components ErrorComponents
