@@ -4,7 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 import { validation } from "@unkey/validation";
@@ -28,7 +28,8 @@ const route = createRoute({
             description: validation.description.optional().openapi({
               description:
                 "Explain what this role does. This is just for your team, your users will not see this.",
-              example: "dns.records.manager can read and write dns records for our domains.",
+              example:
+                "dns.records.manager can read and write dns records for our domains.",
             }),
           }),
         },
@@ -66,7 +67,7 @@ export const registerV1PermissionsCreateRole = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_role")),
+      buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_role"))
     );
 
     const { db } = c.get("services");
@@ -79,15 +80,53 @@ export const registerV1PermissionsCreateRole = (app: App) =>
     };
 
     await db.primary.transaction(async (tx) => {
-      await tx
-        .insert(schema.roles)
-        .values(role)
-        .onDuplicateKeyUpdate({
-          set: {
-            name: req.name,
-            description: req.description,
+      const currentRole = await tx.query.roles.findFirst({
+        where: (table, { and, eq }) =>
+          and(
+            eq(table.workspaceId, auth.authorizedWorkspaceId),
+            eq(table.name, req.name)
+          ),
+        columns: {
+          id: true,
+        },
+      });
+
+      if (currentRole) {
+        role.id = currentRole.id as `role_${string}`;
+
+        await tx
+          .update(schema.roles)
+          .set({ description: req.description })
+          .where(eq(schema.roles.id, role.id));
+
+        await insertUnkeyAuditLog(c, tx, {
+          workspaceId: auth.authorizedWorkspaceId,
+          event: "role.update",
+          actor: {
+            type: "key",
+            id: auth.key.id,
+          },
+          description: `Updated ${role.id}`,
+          resources: [
+            {
+              type: "role",
+              id: role.id,
+              meta: {
+                name: role.name,
+                description: role.description,
+              },
+            },
+          ],
+          context: {
+            location: c.get("location"),
+            userAgent: c.get("userAgent"),
           },
         });
+
+        return;
+      }
+
+      await tx.insert(schema.roles).values(role);
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
         event: "role.create",
@@ -106,7 +145,6 @@ export const registerV1PermissionsCreateRole = (app: App) =>
             },
           },
         ],
-
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
     });

@@ -6,7 +6,7 @@ import { validation } from "@unkey/validation";
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -29,7 +29,8 @@ const route = createRoute({
             description: validation.description.optional().openapi({
               description:
                 "Explain what this permission does. This is just for your team, your users will not see this.",
-              example: "record.write can create new dns records for our domains.",
+              example:
+                "record.write can create new dns records for our domains.",
             }),
           }),
         },
@@ -67,7 +68,7 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_permission")),
+      buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_permission"))
     );
 
     const { db } = c.get("services");
@@ -78,16 +79,55 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
       name: req.name,
       description: req.description,
     };
+
     await db.primary.transaction(async (tx) => {
-      await tx
-        .insert(schema.permissions)
-        .values(permission)
-        .onDuplicateKeyUpdate({
-          set: {
-            name: req.name,
-            description: req.description,
+      const currentPermission = await tx.query.permissions.findFirst({
+        where: (table, { and, eq }) =>
+          and(
+            eq(table.workspaceId, auth.authorizedWorkspaceId),
+            eq(table.name, req.name)
+          ),
+        columns: {
+          id: true,
+        },
+      });
+
+      if (currentPermission) {
+        permission.id = currentPermission.id as `perm_${string}`;
+
+        await tx
+          .update(schema.permissions)
+          .set({ description: req.description })
+          .where(eq(schema.permissions.id, permission.id));
+
+        await insertUnkeyAuditLog(c, tx, {
+          workspaceId: auth.authorizedWorkspaceId,
+          event: "permission.update",
+          actor: {
+            type: "key",
+            id: auth.key.id,
+          },
+          description: `Created ${permission.id}`,
+          resources: [
+            {
+              type: "permission",
+              id: permission.id,
+              meta: {
+                name: permission.name,
+                description: permission.description,
+              },
+            },
+          ],
+          context: {
+            location: c.get("location"),
+            userAgent: c.get("userAgent"),
           },
         });
+
+        return;
+      }
+
+      await tx.insert(schema.permissions).values(permission);
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
