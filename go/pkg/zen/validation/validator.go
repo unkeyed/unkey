@@ -7,8 +7,8 @@ import (
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
+	"github.com/unkeyed/unkey/go/api"
 	"github.com/unkeyed/unkey/go/pkg/ctxutil"
-	"github.com/unkeyed/unkey/go/pkg/zen/openapi"
 )
 
 type OpenAPIValidator interface {
@@ -18,7 +18,7 @@ type OpenAPIValidator interface {
 	// Returns a BadRequestError if the request is invalid that should be
 	// marshalled and returned to the client.
 	// The second return value is a boolean that is true if the request is valid.
-	Validate(r *http.Request) (openapi.BadRequestError, bool)
+	Validate(r *http.Request) (api.BadRequestError, bool)
 }
 
 type Validator struct {
@@ -27,7 +27,7 @@ type Validator struct {
 
 func New() (*Validator, error) {
 
-	document, err := libopenapi.NewDocument(openapi.Spec)
+	document, err := libopenapi.NewDocument(api.Spec)
 	if err != nil {
 		return nil, fault.Wrap(err, fmsg.With("failed to create OpenAPI document"))
 	}
@@ -44,18 +44,18 @@ func New() (*Validator, error) {
 		validator: v,
 	}, nil
 }
-func (v *Validator) Validate(r *http.Request) (openapi.BadRequestError, bool) {
+func (v *Validator) Validate(r *http.Request) (api.BadRequestError, bool) {
 
 	valid, errors := v.validator.ValidateHttpRequest(r)
 	if !valid {
-		valErr := openapi.BadRequestError{
+		valErr := api.BadRequestError{
 			Title:     "Bad Request",
 			Detail:    "One or more fields failed validation",
 			Instance:  nil,
 			Status:    http.StatusBadRequest,
 			RequestId: ctxutil.GetRequestId(r.Context()),
 			Type:      "https://unkey.com/docs/api-reference/errors/TODO",
-			Errors:    []openapi.ValidationError{},
+			Errors:    []api.ValidationError{},
 		}
 		if len(errors) >= 1 {
 			error := errors[0]
@@ -65,7 +65,7 @@ func (v *Validator) Validate(r *http.Request) (openapi.BadRequestError, bool) {
 
 			for _, e := range error.SchemaValidationErrors {
 
-				valErr.Errors = append(valErr.Errors, openapi.ValidationError{
+				valErr.Errors = append(valErr.Errors, api.ValidationError{
 					Message:  e.Reason,
 					Location: e.AbsoluteLocation,
 					Fix:      &error.HowToFix,
@@ -76,6 +76,6 @@ func (v *Validator) Validate(r *http.Request) (openapi.BadRequestError, bool) {
 		return valErr, false
 	}
 
-	return openapi.BadRequestError{}, true
+	return api.BadRequestError{}, true
 
 }

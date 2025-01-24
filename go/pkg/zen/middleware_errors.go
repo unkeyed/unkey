@@ -1,8 +1,8 @@
 package zen
 
 import (
+	"github.com/unkeyed/unkey/go/api"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/zen/openapi"
 )
 
 func WithErrorHandling() Middleware {
@@ -17,7 +17,7 @@ func WithErrorHandling() Middleware {
 
 			switch fault.GetTag(err) {
 			case NotFoundError:
-				return s.JSON(404, openapi.NotFoundError{
+				return s.JSON(404, api.NotFoundError{
 					Title:     "Not Found",
 					Type:      "https://unkey.com/docs/errors/not_found",
 					Detail:    fault.UserFacingMessage(err),
@@ -30,7 +30,7 @@ func WithErrorHandling() Middleware {
 
 			}
 
-			return s.JSON(500, openapi.InternalServerError{
+			return s.JSON(500, api.InternalServerError{
 				Title:     "Internal Server Error",
 				Type:      "https://unkey.com/docs/errors/internal_server_error",
 				Detail:    fault.UserFacingMessage(err),

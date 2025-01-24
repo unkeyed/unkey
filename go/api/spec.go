@@ -1,4 +1,4 @@
-package openapi
+package api
 
 import (
 	_ "embed"

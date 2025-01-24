@@ -13,8 +13,6 @@ RUN go build -o bin/unkey -ldflags "-X 'github.com/unkeyed/unkey/go/pkg/version.
 FROM golang:1.23-alpine
 WORKDIR  /usr/local/bin
 COPY --from=builder /go/src/github.com/unkeyed/unkey/go/bin/unkey .
-COPY --from=builder /go/src/github.com/unkeyed/unkey/go/config.local.json .
 COPY --from=builder /go/src/github.com/unkeyed/unkey/go/config.docker.json .
-COPY --from=builder /go/src/github.com/unkeyed/unkey/go/pkg/openapi/openapi.json ./pkg/openapi/openapi.json
 
 ENTRYPOINT [ "/usr/local/bin/unkey"]

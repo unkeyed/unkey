@@ -1,9 +1,9 @@
 package v2RatelimitLimit
 
 import (
+	openapi "github.com/unkeyed/unkey/go/api"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
-	"github.com/unkeyed/unkey/go/pkg/zen/openapi"
 )
 
 type Request = openapi.V2RatelimitLimitRequestBody

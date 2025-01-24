@@ -1,14 +1,14 @@
 package v2RatelimitLimit
 
 import (
+	"github.com/unkeyed/unkey/go/api"
 	"github.com/unkeyed/unkey/go/pkg/database/gen"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	zen "github.com/unkeyed/unkey/go/pkg/zen"
-	"github.com/unkeyed/unkey/go/pkg/zen/openapi"
+	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2RatelimitSetOverrideRequestBody
-type Response = openapi.V2RatelimitSetOverrideResponseBody
+type Request = api.V2RatelimitSetOverrideRequestBody
+type Response = api.V2RatelimitSetOverrideResponseBody
 
 func New(svc *zen.Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/ratelimit.setOverride", func(s *zen.Session) error {
