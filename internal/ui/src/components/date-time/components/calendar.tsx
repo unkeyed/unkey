@@ -10,7 +10,7 @@ import {
   useNavigation,
 } from "react-day-picker";
 import { cn } from "../../../lib/utils";
-import { format, sub } from "date-fns";
+import { format } from "date-fns";
 import { useDateTimeContext } from "../date-time";
 
 function CustomCaptionComponent(props: CaptionProps) {
@@ -36,7 +36,7 @@ function CustomCaptionComponent(props: CaptionProps) {
 
 const styleClassNames = {
   root: "flex justify-center p-0 m-0",
-  tbody: "flex flex-col bg-transparent gap-y-2 w-full text-gray-12 mt-2",
+  tbody: "flex flex-col bg-transparent gap-y-2 w-full text-gray-12 ",
   months: "flex flex-col sm:flex-row sm:space-x-4 sm:space-y-0 mt-0 pt-0",
   month: "w-full p-0 mt-0",
   caption: "flex justify-between px-2 relative items-center",
@@ -49,7 +49,7 @@ const styleClassNames = {
   nav_button_previous: "absolute left-1",
   nav_button_next: "absolute right-1",
   table: "w-full bg-transparent border-none m-0 pt-2",
-  head_row: "flex border-none h-8 mt-0 pt-0 gap-1.5",
+  head_row: "flex border-none h-8 mt-0 pt-0 gap-1.5 mt-4",
   head_cell: "w-8 h-8 font-normal text-xs text-gray-8 bg-transparent border-none",
   row: "flex w-full border-none gap-1.5",
   cell: "border-none h-8 w-8 text-center rounded rounded-md text-sm p-0 relative [&:has([aria-selected].day-outside)]:bg-gray-4 [&:has([aria-selected])]:bg-gray-4  focus-within:relative focus-within:z-20",
@@ -84,7 +84,6 @@ const Calendar: React.FC<CalendarProps> = ({
   ...props
 }) => {
   const { date, onDateChange, minDateRange, maxDateRange } = useDateTimeContext();
-  const today = new Date();
   const [singleDay, setSingleDay] = useState<Date | undefined>(date?.from);
   const handleChange = (newDate: DateRange) => {
     onDateChange(newDate);
@@ -96,7 +95,7 @@ const Calendar: React.FC<CalendarProps> = ({
   return mode === "range" ? (
     <DayPicker
       mode={mode}
-      disabled={{ before: minDateRange ?? sub(today, { years: 1 }), after: maxDateRange ?? today }}
+      disabled={minDateRange && { before: minDateRange, after: maxDateRange }}
       selected={date}
       onSelect={(range: DateRange | undefined) => (range ? handleChange(range) : undefined)}
       showOutsideDays={showOutsideDays}
@@ -113,7 +112,7 @@ const Calendar: React.FC<CalendarProps> = ({
   ) : (
     <DayPicker
       mode="single"
-      disabled={{ before: minDateRange ?? sub(today, { years: 1 }), after: maxDateRange ?? today }}
+      disabled={minDateRange && { before: minDateRange, after: maxDateRange }}
       selected={singleDay}
       onDayClick={(day: Date | undefined) => handleSingleChange(day)}
       showOutsideDays={showOutsideDays}
