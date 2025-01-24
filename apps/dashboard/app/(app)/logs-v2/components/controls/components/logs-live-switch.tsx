@@ -4,6 +4,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { useLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
 import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
+import { HISTORICAL_DATA_WINDOW } from "../../table/hooks/use-logs-query";
 
 export const LogsLiveSwitch = () => {
   const { isLive, toggleLive } = useLogsContext();
@@ -29,7 +30,7 @@ export const LogsLiveSwitch = () => {
         },
         {
           field: "startTime",
-          value: timestamp - 24 * 60 * 60 * 1000,
+          value: timestamp - HISTORICAL_DATA_WINDOW,
           id: crypto.randomUUID(),
           operator: "is",
         },
