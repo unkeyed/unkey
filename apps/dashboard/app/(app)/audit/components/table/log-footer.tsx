@@ -81,7 +81,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Description",
           description: (content) => (
-            <span className="text-[13px] font-mono text-end">{content}</span>
+            <span className="text-[13px] font-mono flex text-end">{content}</span>
           ),
           content: log.auditLog.description,
           tooltipContent: "Copy Description",

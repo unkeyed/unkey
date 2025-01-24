@@ -12,6 +12,32 @@ import { LogDetails } from "./table-details";
 import type { Data } from "./types";
 import { getEventType } from "./utils";
 
+const STATUS_STYLES: Record<
+  "create" | "update" | "delete" | "other",
+  { base: string; hover: string; selected: string }
+> = {
+  create: {
+    base: "text-accent-11 ",
+    hover: "hover:bg-accent-3",
+    selected: "bg-accent-3",
+  },
+  other: {
+    base: "text-accent-11 ",
+    hover: "hover:bg-accent-3",
+    selected: "bg-accent-3",
+  },
+  update: {
+    base: "text-warning-11 ",
+    hover: "hover:bg-warning-3",
+    selected: "bg-warning-3",
+  },
+  delete: {
+    base: "text-error-11",
+    hover: "hover:bg-error-3",
+    selected: "bg-error-3",
+  },
+};
+
 export const AuditLogTableClient = () => {
   const [selectedLog, setSelectedLog] = useState<Data | null>(null);
   const { setCursor, searchParams } = useAuditLogParams();
@@ -28,9 +54,7 @@ export const AuditLogTableClient = () => {
         endTime: searchParams.endTime,
       },
       {
-        getNextPageParam: (lastPage) => {
-          return lastPage.nextCursor;
-        },
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
         initialCursor: searchParams.cursor,
         staleTime: Number.POSITIVE_INFINITY,
         refetchOnMount: false,
@@ -42,38 +66,37 @@ export const AuditLogTableClient = () => {
 
   const handleLoadMore = () => {
     if (hasNextPage && !isFetchingNextPage && data?.pages.length) {
-      // Get the current last page before fetching next
       const currentLastPage = data.pages[data.pages.length - 1];
-
       fetchNextPage().then(() => {
-        // Set the cursor to the last page we had before fetching
         if (currentLastPage.nextCursor) {
           setCursor(currentLastPage.nextCursor);
         }
       });
     }
   };
+
   const getRowClassName = (item: Data) => {
     const eventType = getEventType(item.auditLog.event);
-    return cn({
-      "hover:bg-error-3": eventType === "delete",
-      "hover:bg-warning-3": eventType === "update",
-      "hover:bg-success-3": eventType === "create",
-    });
+    const style = STATUS_STYLES[eventType];
+
+    return cn(
+      style.base,
+      style.hover,
+      "group rounded-md",
+      "focus:outline-none focus:ring-1 focus:ring-opacity-40 px-1",
+      selectedLog && {
+        "opacity-50 z-0": selectedLog.auditLog.id !== item.auditLog.id,
+        "opacity-100 z-10": selectedLog.auditLog.id === item.auditLog.id,
+      },
+    );
   };
 
   const getSelectedClassName = (item: Data, isSelected: boolean) => {
     if (!isSelected) {
       return "";
     }
-
-    const eventType = getEventType(item.auditLog.event);
-    return cn({
-      "bg-error-3": eventType === "delete",
-      "bg-warning-3": eventType === "update",
-      "bg-success-3": eventType === "create",
-      "bg-accent-3": eventType === "other",
-    });
+    const style = STATUS_STYLES[getEventType(item.auditLog.event)];
+    return style.selected;
   };
 
   if (isError) {
