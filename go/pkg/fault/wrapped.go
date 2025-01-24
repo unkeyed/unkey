@@ -181,11 +181,8 @@ func UserFacingMessage(err error) string {
 		// Try to get the next wrapped error
 		next, ok := current.err.(*wrapped)
 		if !ok {
-			// If it's not a wrapped error, add the error string and break
-			msg := current.err.Error()
-			if msg != "" {
-				errs = append(errs, msg)
-			}
+			// if it's not a wrapepd error, then we don't have any more public messages
+			// and can stop looking.
 			break
 		}
 		current = next
