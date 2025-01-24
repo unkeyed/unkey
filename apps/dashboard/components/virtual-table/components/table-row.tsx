@@ -100,7 +100,7 @@ export const TableRow = <T,>({
       ref={measureRef}
       onClick={onClick}
       className={cn(
-        "grid text-xs cursor-pointer absolute top-0 left-0 w-full",
+        "grid text-xs cursor-pointer absolute top-0 left-0 w-full mt-1",
         "transition-all duration-75 ease-in-out",
         "group",
         rowClassName?.(item),
@@ -109,7 +109,7 @@ export const TableRow = <T,>({
       style={{
         gridTemplateColumns,
         height: `${rowHeight}px`,
-        top: `${virtualRow.start}px`,
+        top: `${virtualRow.start + virtualRow.index * 4}px`, // Add 4px gap per row
       }}
     >
       {columns.map((column) => (

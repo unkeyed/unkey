@@ -8,7 +8,7 @@ import { useFilters } from "../../../hooks/use-filters";
 import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 
 export const LogsRefresh = () => {
-  const { toggleLive } = useLogsContext();
+  const { toggleLive, isLive } = useLogsContext();
   const { filters } = useFilters();
   const { logs } = trpc.useUtils();
   const [isLoading, setIsLoading] = useState(false);
@@ -19,12 +19,17 @@ export const LogsRefresh = () => {
   });
 
   const handleSwitch = () => {
+    const isLiveBefore = Boolean(isLive);
     setIsLoading(true);
     toggleLive(false);
     logs.queryLogs.invalidate();
+    logs.queryTimeseries.invalidate();
 
     setTimeout(() => {
       setIsLoading(false);
+      if (isLiveBefore) {
+        toggleLive(true);
+      }
     }, 1000);
   };
 

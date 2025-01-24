@@ -40,7 +40,7 @@ export function LogsChart({
   const chartRef = useRef<HTMLDivElement>(null);
 
   const { timeseries, isLoading, isError } = useFetchTimeseries();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: We need this
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
   useEffect(() => {
     const distanceToTop = chartRef.current?.getBoundingClientRect().top ?? 0;
     onMount(distanceToTop);
@@ -89,7 +89,7 @@ export function LogsChart({
                 strokeOpacity: 0.7,
               }}
               content={({ active, payload, label }) => {
-                if (!active || !payload?.length) {
+                if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
                   return null;
                 }
 

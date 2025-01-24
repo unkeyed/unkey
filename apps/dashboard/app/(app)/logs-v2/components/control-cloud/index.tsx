@@ -227,7 +227,7 @@ export const LogsControlCloud = () => {
 
   return (
     <div
-      className="px-3 py-2 w-full flex items-start min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap"
+      className="px-3 py-2 w-full flex items-center min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap"
       onKeyDown={handleKeyDown}
     >
       {filters.map((filter, index) => (
