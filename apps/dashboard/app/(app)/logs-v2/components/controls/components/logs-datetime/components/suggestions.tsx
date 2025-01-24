@@ -1,28 +1,24 @@
 "use client";
 import { Check } from "@unkey/icons";
 import { cn } from "lib/utils";
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
-import * as React from "react";
+import type { PropsWithChildren } from "react";
 
 type SuggestionOption = {
   id: number;
-  value: string | number | undefined; //ms value represents by display name
+  value: string | number | undefined;
   display: string;
   checked: boolean;
 };
+
 export type OptionsType = SuggestionOption[];
-type SuggestionsProps = {
+
+interface SuggestionsProps extends PropsWithChildren {
   className?: string;
-  children?: React.ReactNode;
   options: Array<SuggestionOption>;
   onChange: (id: number) => void;
-};
+}
 
-export const DateTimeSuggestions: React.FC<SuggestionsProps> = ({
-  className,
-  options,
-  onChange,
-}) => {
+export const DateTimeSuggestions = ({ className, options, onChange }: SuggestionsProps) => {
   return (
     <div className={cn("flex flex-col justify-center gap-4 mt-2 p-2 ", className)}>
       {options.map(({ id, display, checked }) => (

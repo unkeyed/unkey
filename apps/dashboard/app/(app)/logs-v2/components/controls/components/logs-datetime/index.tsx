@@ -2,17 +2,15 @@ import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DatetimePopover } from "./components/datetime-popover";
 
 export const LogsDateTime = () => {
   const [title, setTitle] = useState<string>("Date Filter");
   const { filters } = useFilters();
-  const [dateFilterCount, setDateFilterCount] = useState<boolean>();
-  useEffect(() => {
-    const sorted = filters.filter((f) => ["endTime", "startTime", "since"].includes(f.field));
-    setDateFilterCount(sorted.length > 0);
-  }, [filters]);
+  const dateFilterCount = filters.filter((f) =>
+    ["endTime", "startTime", "since"].includes(f.field),
+  );
   return (
     <DatetimePopover setTitle={setTitle}>
       <div className="group">

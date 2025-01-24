@@ -4,8 +4,8 @@ import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
 import { type PropsWithChildren, useState } from "react";
+import { processTimeFilters } from "../utils/process-time";
 import { DateTimeSuggestions, type OptionsType } from "./suggestions";
-
 const options: OptionsType = [
   {
     id: 1,
@@ -68,31 +68,26 @@ const options: OptionsType = [
     checked: false,
   },
 ];
+const CUSTOM_DATE_TIME = 10;
 
 interface DatetimePopoverProps extends PropsWithChildren {
   setTitle: (value: string) => void;
 }
 
+type TimeRangeType = {
+  startTime?: number;
+  endTime?: number;
+};
+
 export const DatetimePopover = ({ children, setTitle }: DatetimePopoverProps) => {
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<OptionsType>(options);
   const { filters, updateFilters } = useFilters();
-  const [startEpoch, setStartEpoch] = useState<number | undefined>();
-  const [endEpoch, setEndEpoch] = useState<number | undefined>();
+  const [time, setTime] = useState<TimeRangeType>({ startTime: undefined, endTime: undefined });
+
   useKeyboardShortcut("t", () => {
     setOpen((prev) => !prev);
   });
-
-  //Process new Date and time filters to be added to the filters as time since epoch
-  const processTimeFilters = (date?: Date, newTime?: TimeUnit) => {
-    if (date) {
-      const hours = newTime?.HH ? Number.parseInt(newTime.HH) : 0;
-      const minutes = newTime?.mm ? Number.parseInt(newTime.mm) : 0;
-      const seconds = newTime?.ss ? Number.parseInt(newTime.ss) : 0;
-      date.setHours(hours, minutes, seconds, 0);
-      return date;
-    }
-  };
 
   const handleSuggestionChange = (id: number) => {
     const tempSuggestions = suggestions.map((suggestion) => {
@@ -105,19 +100,14 @@ export const DatetimePopover = ({ children, setTitle }: DatetimePopoverProps) =>
     setSuggestions(tempSuggestions);
   };
   const onDateTimeChange = (newRange?: Range, newStart?: TimeUnit, newEnd?: TimeUnit) => {
-    handleSuggestionChange(10); //Custom when selecting something in datetime
+    //Custom when selecting something in datetime picker
+    handleSuggestionChange(CUSTOM_DATE_TIME);
     const startTimestamp = processTimeFilters(newRange?.from, newStart)?.getTime();
     const endTimestamp = processTimeFilters(newRange?.to ?? newRange?.from, newEnd)?.getTime();
-    if (newRange?.from) {
-      setStartEpoch(startTimestamp);
-    } else {
-      setStartEpoch(undefined);
-    }
-    if (newRange?.to) {
-      setEndEpoch(endTimestamp);
-    } else {
-      setEndEpoch(undefined);
-    }
+    setTime({
+      startTime: startTimestamp,
+      endTime: endTimestamp,
+    });
   };
 
   const handleApplyFilter = () => {
@@ -139,19 +129,19 @@ export const DatetimePopover = ({ children, setTitle }: DatetimePopoverProps) =>
       ]);
       return;
     }
-    if (selected?.value === undefined && startEpoch) {
+    if (selected?.value === undefined && time.startTime) {
       setTitle("Custom");
       activeFilters.push({
         field: "startTime",
-        value: startEpoch,
+        value: time.startTime,
         id: crypto.randomUUID(),
         operator: "is",
       });
 
-      if (endEpoch) {
+      if (time.endTime) {
         activeFilters.push({
           field: "endTime",
-          value: endEpoch,
+          value: time.endTime,
           id: crypto.randomUUID(),
           operator: "is",
         });

@@ -16,7 +16,7 @@ export function LogsControls() {
           <div className="flex gap-2 items-center">
             <LogsFilters />
           </div>
-          <div className="flex gap-2 items-center px-2">
+          <div className="flex gap-2 items-center">
             <LogsDateTime />
           </div>
         </div>
