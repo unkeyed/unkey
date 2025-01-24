@@ -72,7 +72,6 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
 
     const { db } = c.get("services");
 
-
     const permission = {
       id: newId("permission"),
       workspaceId: auth.authorizedWorkspaceId,
@@ -80,10 +79,6 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
       description: req.description,
     };
     await db.primary.transaction(async (tx) => {
-
-
-
-
       await tx
         .insert(schema.permissions)
         .values(permission)
@@ -93,7 +88,6 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
             description: req.description,
           },
         });
-
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
