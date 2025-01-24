@@ -1,0 +1,20 @@
+{
+  "version": "2",
+  "sql": [
+    {
+      "engine": "mysql",
+      "queries": "./queries",
+      "schema": "schema.sql",
+      "gen": {
+        "go": {
+          "package": "gen",
+          "out": "gen",
+          "sql_package": "database/sql",
+          "emit_db_tags": true,
+          "emit_interface": true,
+          "emit_sql_as_comment": true
+        }
+      }
+    }
+  ]
+}

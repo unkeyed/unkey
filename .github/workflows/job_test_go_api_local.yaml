@@ -1,0 +1,25 @@
+name: Test GO API Local
+on:
+  workflow_call:
+
+
+
+jobs:
+  test_agent_local:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          go: true
+
+
+      - name: Build
+        run: task build
+        working-directory: go
+
+      - name: Test
+        run: go test -cover -json -timeout=60m -failfast ./... | tparse -all -progress
+        working-directory: go
