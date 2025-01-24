@@ -5,6 +5,8 @@ import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
 import type { queryLogsPayload } from "../query-logs.schema";
 
+// Duration in milliseconds for historical data fetch window (12 hours)
+const HISTORICAL_DATA_WINDOW = 12 * 60 * 60 * 1000;
 type UseLogsQueryParams = {
   limit?: number;
   pollIntervalMs?: number;
@@ -33,7 +35,7 @@ export function useLogsQuery({
   const queryParams = useMemo(() => {
     const params: z.infer<typeof queryLogsPayload> = {
       limit,
-      startTime: dateNow - 24 * 60 * 60 * 1000,
+      startTime: dateNow - HISTORICAL_DATA_WINDOW,
       endTime: dateNow,
       host: { filters: [] },
       requestId: { filters: [] },

@@ -6,7 +6,8 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { TriangleWarning2 } from "@unkey/icons";
+import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
+import { Button, Empty } from "@unkey/ui";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
 import { useLogsQuery } from "./hooks/use-logs-query";
@@ -133,13 +134,17 @@ export const LogsTable = () => {
       "focus:outline-none focus:ring-1 focus:ring-opacity-40",
       style.focusRing,
       isSelected && style.selected,
+      isLive &&
+        !realtimeLogs.some((realtime) => realtime.request_id === log.request_id) && [
+          "opacity-50",
+          "hover:opacity-100",
+        ],
       selectedLog && {
         "opacity-50 z-0": !isSelected,
         "opacity-100 z-10": isSelected,
       },
     );
   };
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: it's okay
   const basicColumns: Column<Log>[] = useMemo(
     () => [
@@ -241,6 +246,31 @@ export const LogsTable = () => {
       keyExtractor={(log) => log.request_id}
       rowClassName={getRowClassName}
       selectedClassName={getSelectedClassName}
+      emptyState={
+        <div className="w-full flex justify-center items-center h-full">
+          <Empty className="w-[400px] flex items-start">
+            <Empty.Icon className="w-auto" />
+            <Empty.Title>Logs</Empty.Title>
+            <Empty.Description className="text-left">
+              Keep track of all activity within your workspace. Logs automatically record key
+              actions like key creation, permission updates, and configuration changes, giving you a
+              clear history of resource requests.
+            </Empty.Description>
+            <Empty.Actions className="mt-4 justify-start">
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button>
+                  <BookBookmark />
+                  Documentation
+                </Button>
+              </a>
+            </Empty.Actions>
+          </Empty>
+        </div>
+      }
     />
   );
 };

@@ -6,6 +6,9 @@ import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
 import type { queryTimeseriesPayload } from "../query-timeseries.schema";
 
+// Duration in milliseconds for historical data fetch window (1 hours)
+const TIMESERIES_DATA_WINDOW = 60 * 60 * 1000;
+
 const formatTimestamp = (value: string | number, granularity: TimeseriesGranularity) => {
   const date = new Date(value);
   const offset = new Date().getTimezoneOffset() * -1;
@@ -29,7 +32,7 @@ export const useFetchTimeseries = () => {
   const dateNow = useMemo(() => Date.now(), []);
   const queryParams = useMemo(() => {
     const params: z.infer<typeof queryTimeseriesPayload> = {
-      startTime: dateNow - 60 * 60 * 1000,
+      startTime: dateNow - TIMESERIES_DATA_WINDOW,
       endTime: dateNow,
       host: { filters: [] },
       method: { filters: [] },

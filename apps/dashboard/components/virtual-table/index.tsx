@@ -127,10 +127,10 @@ export function VirtualTable<TTableData>({
               return (
                 <div
                   key={virtualRow.key}
-                  className="w-full"
+                  className="w-full mt-1"
                   style={{
                     position: "absolute",
-                    top: `${virtualRow.start}px`,
+                    top: `${virtualRow.start + virtualRow.index * 4}px`, // Add 4px gap per row
                   }}
                 >
                   <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
