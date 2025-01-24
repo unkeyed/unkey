@@ -1,74 +1,44 @@
 "use client";
 
-import { useSignIn } from "@clerk/nextjs";
 import { OTPInput, type SlotProps } from "input-otp";
 import { useRouter } from "next/navigation";
-import * as React from "react";
-
+import { useState } from "react";
 import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
-import { Minus } from "lucide-react";
+import { useSignIn } from "@/lib/auth/hooks";
 
-type Props = {
-  setError: (s: string) => void;
-};
-
-export const EmailCode: React.FC<Props> = ({ setError }) => {
+export const EmailCode = () => {
   const router = useRouter();
-  const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
-  const [isLoading, setIsLoading] = React.useState(false);
+  const { handleVerification, handleResendCode, setError } = useSignIn();
+  const [isLoading, setIsLoading] = useState(false);
+  const [otp, setOtp] = useState("");
 
-  const verifyCode = async (otp: string) => {
-    if (!signInLoaded || typeof otp !== "string") {
-      return null;
-    }
+  const verifyCode = async (code: string) => {
+    if (!code) return;
     setIsLoading(true);
-    await signIn
-      .attemptFirstFactor({
-        strategy: "email_code",
-        code: otp,
-      })
-      .then(async (result) => {
-        if (result.status === "complete" && result.createdSessionId) {
-          toast.success("Signed in", {
-            description: "redirecting...",
-          });
-          await setActive({ session: result.createdSessionId });
-          router.push("/apis");
-        }
-      })
-      .catch((err) => {
-        setError(err.errors.at(0)?.longMessage ?? "Unknown error, pleae contact support@unkey.dev");
+    try {
+      await handleVerification(code);
+      toast.success("Signed in", {
+        description: "redirecting...",
       });
+    } catch (err) {
+      setError((err as Error).message);
+    }
     setIsLoading(false);
   };
 
   const resendCode = async () => {
     try {
-      const firstFactor = signIn?.supportedFirstFactors.find((f) => f.strategy === "email_code") as
-        | { emailAddressId: string }
-        | undefined;
-      if (!firstFactor) {
-        return null;
-      }
-      const p = signIn!.prepareFirstFactor({
-        strategy: "email_code",
-        emailAddressId: firstFactor.emailAddressId,
-      });
-      toast.promise(p, {
+      await handleResendCode();
+      toast.promise(Promise.resolve(), {
         loading: "Sending new code ...",
         success: "A new code has been sent to your email",
       });
-      await p;
     } catch (error) {
-      setIsLoading(false);
       setError((error as Error).message);
-      console.error(error);
     }
   };
-
-  const [otp, setOtp] = React.useState("");
 
   return (
     <div className="flex flex-col max-w-sm mx-auto text-left">
@@ -94,12 +64,7 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
           maxLength={6}
           render={({ slots }) => (
             <div className="flex items-center justify-between">
-              {slots.slice(0, 3).map((slot, idx) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: I have nothing better
-                <Slot key={idx} {...slot} />
-              ))}
-              <Minus className="w-6 h-6 text-white/15" />
-              {slots.slice(3).map((slot, idx) => (
+              {slots.slice(0, 6).map((slot, idx) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: I have nothing better
                 <Slot key={idx} {...slot} />
               ))}
