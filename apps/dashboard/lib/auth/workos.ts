@@ -300,7 +300,39 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async signInViaEmail() {}
+  async signInViaEmail(email: string) {
+    try {
+      const { data } = await WorkOSAuthProvider.provider.userManagement.listUsers({
+        email
+      });
+
+      // user doesn't exist, they need to sign up first
+      if (data.length === 0) {
+        throw new Error(AuthErrorCode.ACCOUNT_NOT_FOUND)
+      }
+      
+      await WorkOSAuthProvider.provider.userManagement.createMagicAuth({ email });
+    }
+
+    catch(error) {
+      console.error("Sign in via email failed: ", error);
+      // TODO: research WorkOS magic auth errors
+      throw new Error(AuthErrorCode.UNKNOWN_ERROR);
+    }
+  }
+
+  async resendAuthCode(email: string) {
+    try {
+      await WorkOSAuthProvider.provider.userManagement.createMagicAuth({
+        email
+      });
+    }
+    catch(error) {
+      console.error("Resending auth code failed: ", error);
+      // TODO: research WorkOS magic auth errors
+      throw new Error(AuthErrorCode.UNKNOWN_ERROR);
+    }
+  }
 
   async verifyAuthCode(params: {email: string, code: string}): Promise<OAuthResult> {
     const { email, code } = params;
