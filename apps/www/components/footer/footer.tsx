@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { useConsentManager } from "@koroflow/core-react";
+import { useConsentManager } from "@koroflow/elements/headless";
 import Link from "next/link";
 import { UnkeyLogo } from "./footer-svgs";
 import { Wordmark } from "./wordmark";

@@ -8,8 +8,6 @@ type Props = {
   label: string;
   IconRight?: LucideIcon;
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
-  onKeyDown?: React.KeyboardEventHandler<HTMLButtonElement>;
-  onKeyUp?: React.KeyboardEventHandler<HTMLButtonElement>;
   shiny?: boolean;
 };
 
@@ -20,11 +18,9 @@ export const PrimaryButton: React.FC<Props> = ({
   label,
   IconRight,
   shiny = false,
-  ...props
 }) => {
   return (
-    //@ts-expect-error added props spread to add onClick, onKeyDown, onKeyUp
-    <div className="relative group/button" {...props}>
+    <div className="relative group/button">
       <div
         aria-hidden
         className="absolute -inset-0.5 bg-white rounded-lg blur-2xl group-hover/button:opacity-30 transition duration-300  opacity-0 "
@@ -54,44 +50,34 @@ export const PrimaryButton: React.FC<Props> = ({
   );
 };
 
-export const SecondaryButton: React.FC<Props> = ({
-  className,
-  IconLeft,
-  label,
-  IconRight,
-  ...props
-}) => {
+export const SecondaryButton: React.FC<Props> = ({ className, IconLeft, label, IconRight }) => {
   return (
-    <button
+    <div
       className={cn(
         "items-center gap-2 px-4 duration-500 text-white/70 hover:text-white h-10 flex",
         className,
       )}
-      type="button"
-      {...props}
     >
       {IconLeft ? <IconLeft className="w-4 h-4" /> : null}
       {label}
       {IconRight ? <IconRight className="w-4 h-4" /> : null}
-    </button>
+    </div>
   );
 };
 
-export const RainbowDarkButton: React.FC<Props> = ({ className, label, IconRight, ...props }) => {
+export const RainbowDarkButton: React.FC<Props> = ({ className, label, IconRight }) => {
   return (
-    <button
-      type="button"
+    <div
       className={cn(
         "p-[.75px] hero-hiring-gradient rounded-full w-fit mx-auto relative z-50 group",
         className,
       )}
-      {...props}
     >
       <div className="items-center gap-4 bg-black/90 group-hover:bg-black/70 duration-500 px-4 py-2 text-white rounded-full flex flex-block ">
         <SparkleIcon className="text-white" />
         {label}
         {IconRight ? <IconRight className="w-4 h-4" /> : null}
       </div>
-    </button>
+    </div>
   );
 };

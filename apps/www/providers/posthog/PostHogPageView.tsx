@@ -1,6 +1,6 @@
 "use client";
 
-import { useConsentManager } from "@koroflow/core-react";
+import { useConsentManager } from "@koroflow/elements/headless";
 import { usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { useEffect } from "react";

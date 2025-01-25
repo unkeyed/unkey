@@ -1,10 +1,10 @@
-import { ConsentCustomizationDialog } from "@/components/consent/consent-customization-dialog";
-import CookieBanner from "@/components/consent/cookie-banner";
 import { Footer } from "@/components/footer/footer";
 import { Navigation } from "@/components/navbar/navigation";
 import { env } from "@/lib/env";
 import { PHProvider } from "@/providers/posthog/PostHogProvider";
-import { ConsentManagerProvider } from "@koroflow/core-react";
+import { ConsentManagerProvider } from "@koroflow/elements/headless";
+
+import CookieBanner from "@/components/cookie-banner";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
@@ -74,7 +74,7 @@ export default function RootLayout({
             </div>
             <Footer />
             <CookieBanner />
-            <ConsentCustomizationDialog />
+            {/* <ConsentCustomizationDialog /> */}
           </body>
         </PHProvider>
       </ConsentManagerProvider>
