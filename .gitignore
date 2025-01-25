@@ -22,4 +22,3 @@ dist
 .react-email
 
 .secrets.json
-secrets.ts
