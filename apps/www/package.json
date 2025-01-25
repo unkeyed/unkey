@@ -12,7 +12,7 @@
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
     "@hookform/resolvers": "^3.3.4",
-    "@koroflow/elements": "0.0.1-beta.5",
+    "@koroflow/elements": "0.0.1-beta.6",
     "@next/bundle-analyzer": "^14.2.3",
     "@planetscale/database": "^1.11.0",
     "@radix-ui/react-accordion": "^1.2.0",
