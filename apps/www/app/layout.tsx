@@ -74,7 +74,6 @@ export default function RootLayout({
             </div>
             <Footer />
             <CookieBanner />
-            {/* <ConsentCustomizationDialog /> */}
           </body>
         </PHProvider>
       </ConsentManagerProvider>
