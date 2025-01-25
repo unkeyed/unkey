@@ -1,0 +1,22 @@
+version: '3'
+
+tasks:
+  install:
+    cmd:
+      go mod tidy
+  fmt:
+    cmds:
+      - go fmt ./...
+      - task: lint
+  test:
+    cmds:
+      - go test -cover -json -failfast ./... | tparse -all -progress
+
+  build:
+    cmds:
+      - go build -o unkey ./cmd/main.go
+
+
+  lint:
+    cmds:
+      - golangci-lint run
