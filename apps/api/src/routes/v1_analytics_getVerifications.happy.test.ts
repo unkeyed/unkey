@@ -68,7 +68,8 @@ describe.each([
       keys: Array.from({ length: 3 }).map(() => ({ keyId: newId("test") })),
     });
 
-    await h.ch.verifications.insert(verifications);
+    const insert = await h.ch.verifications.insert(verifications);
+    expect(insert.err).toEqual(undefined);
 
     const inserted = await h.ch.querier.query({
       query:
