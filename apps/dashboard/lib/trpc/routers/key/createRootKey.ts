@@ -25,7 +25,10 @@ export const createRootKey = t.procedure
     const unkeyApi = await db.query.apis
       .findFirst({
         where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(schema.apis.id, env().UNKEY_API_ID)),
+          and(
+            eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
+            eq(schema.apis.id, env().UNKEY_API_ID),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
