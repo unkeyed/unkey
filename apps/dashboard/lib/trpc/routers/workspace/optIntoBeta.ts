@@ -21,10 +21,6 @@ export const optWorkspaceIntoBeta = t.procedure
         ctx.workspace.betaFeatures.identities = true;
         break;
       }
-      case "ratelimit": {
-        ctx.workspace.betaFeatures.ratelimit = true;
-        break;
-      }
       case "logsPage": {
         ctx.workspace.betaFeatures.logsPage = true;
         break;
