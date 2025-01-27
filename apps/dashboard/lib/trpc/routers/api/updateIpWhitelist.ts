@@ -34,7 +34,6 @@ export const updateApiIpWhitelist = t.procedure
         where: (table, { eq, and, isNull }) =>
           and(
             eq(table.workspaceId, ctx.workspace.id),
-            eq(table.workspaceId, ctx.workspace.id),
             eq(table.id, input.apiId),
             isNull(table.deletedAt),
           ),
