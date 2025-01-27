@@ -11,20 +11,20 @@ export const deletePermission = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const permission = await db.query.permissions.findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.permissionId)),
-    });
-
-    if (!permission) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct permission. Please try again or contact support@unkey.dev.",
-      });
-    }
     await db
       .transaction(async (tx) => {
+        const permission = await tx.query.permissions.findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.permissionId)),
+        });
+
+        if (!permission) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message:
+              "We are unable to find the correct permission. Please try again or contact support@unkey.dev.",
+          });
+        }
         await tx
           .delete(schema.permissions)
           .where(
