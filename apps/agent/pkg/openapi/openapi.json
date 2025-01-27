@@ -623,9 +623,9 @@
         "tags": ["ratelimit"]
       }
     },
-    "/v1/ratelimit.limit": {
+    "/ratelimit.v1.RatelimitService/Ratelimit": {
       "post": {
-        "operationId": "v1.ratelimit.limit",
+        "operationId": "ratelimit.v1.ratelimit",
         "requestBody": {
           "content": {
             "application/json": {
