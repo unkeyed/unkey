@@ -7,18 +7,9 @@ author: oz
 tags: ["engineering"]
 ---
 
-LLMs now touch every aspect of our lives. We find them in our favorite websites, mobile apps, IDEs, and operating systems. We can debate their usefulness, since not every app or X (insert your favorite thing here) needs AI.
+Imagine this: You're tracking down an issue in your logs. The traditional approach feels like following a recipe - select the request status, choose the method, navigate to the date-time picker, set it to two hours ago, and keep adding more criteria. Click after click, filter after filter.
 
-LLMs excel at transforming boring, repetitive actions into human-readable formats, particularly in search tasks. These tools understand our imprecise queries better. They can interpret our ambiguous questions and provide relevant information. Thats why users increasingly choose ChatGPT, Claude, and Perplexity over Google.
-
-We were inspired to add AI-powered search to our newly refined logs page. While users can still apply traditional filters, expressing their needs in natural language offers a simpler approach.
-
-> Consider how you currently narrow down an issue on any logs page: you select
-> the request status, choose the method, pick the date-time from two hours ago
-> in the Date-time filter, and continue adding criteria. Now imagine typing "I
-> need requests with GET methods, success status that happened 2 hours ago." See
-> the difference? While filter selection works well, natural language provides a
-> more intuitive path to find what you need.
+Now imagine simply typing: "I need requests with GET methods, success status that happened 2 hours ago." That's it. No more menu diving, no more juggling multiple filters - just tell the system what you want, like you're asking a colleague.
 
 ## Implementation Journey
 
@@ -35,7 +26,7 @@ Example -> status=is:200,is:400
            path=startsWith:foo,endsWith:bar
 ```
 
-This pattern allows for incredible flexibility - you can chain multiple conditions while maintaining readability. To handle these parameters in our Unkey dashboard, we implemented a custom parser for Nuqs:
+This pattern allows for incredible flexibility - you can chain multiple conditions while maintaining readability. To handle these parameters in our Unkey dashboard, we implemented a custom parser for [nuqs]("https://nuqs.47ng.com/"):
 
 ```typescript
 export const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
@@ -117,23 +108,33 @@ This schema acts as a contract between natural language and our application's ex
 
 The magic happens in how we instruct the AI. Our system prompt is carefully crafted to ensure consistent, reliable outputs:
 
-```typescript
-return `You are an expert at converting natural language queries into filters. For queries with multiple conditions, output all relevant filters. We will process them in sequence to build the complete filter. For status codes, always return one for each variant like 200,400 or 500 instead of 200,201, etc... - the application will handle status code grouping internally. Always use this ${usersReferenceMS} timestamp when dealing with time related queries.
+```ts
+You are an expert at converting natural language queries into filters. For queries with multiple conditions, output all relevant filters. We will process them in sequence to build the complete filter. For status codes, always return one for each variant like 200,400 or 500 instead of 200,201, etc... - the application will handle status code grouping internally. Always use this ${usersReferenceMS} timestamp when dealing with time related queries.
 
 Query: "path should start with /api/oz and method should be POST"
 Result: [
-{
-field: "paths",
-filters: [{ operator: "startsWith", value: "/api/oz" }]
-},
-{
-field: "methods",
-filters: [{ operator: "is", value: "POST" }]
-}
-]`;
+  {
+    "field": "paths",
+    "filters": [
+      {
+        "operator": "startsWith",
+        "value": "/api/oz"
+      }
+    ]
+  },
+  {
+    "field": "methods",
+    "filters": [
+      {
+        "operator": "is",
+        "value": "POST"
+      }
+    ]
+  }
+]
 ```
 
-> In our prompt there are lots of examples for each search variation, but in here it's omitted for brevity. For the best result make sure prompt is as detailed as possible.
+> In our prompt there are lots of examples for each search variation, but in here it's omitted for brevity. For the best result make sure your prompt is as detailed as possible.
 
 ### OpenAI Configuration
 
@@ -157,7 +158,7 @@ const completion = await openai.beta.chat.completions.parse({
       content: userQuery,
     },
   ],
-  response_format: zodResponseFormat(filterOutputSchema, "randomNameHere"),
+  response_format: zodResponseFormat(filterOutputSchema, "searchQuery"),
 });
 ```
 
@@ -212,7 +213,7 @@ User
 Before implementing this feature in your own application, here are some crucial factors to consider:
 
 - Integrating LLMs into your application requires robust error handling. The OpenAI API might experience downtime or rate limiting, so implement fallback mechanisms or meaningful error message to show to user.
-- Each query consumes OpenAI API tokens - More AI search more money to burn
+- Each query consumes OpenAI API tokens - More AI search burns more money
 - Implement rate limiting - Without ratelimit users can abuse your AI-powered search
 
 ## Conclusion
