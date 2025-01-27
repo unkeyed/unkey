@@ -36,29 +36,10 @@ export const createKey = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to create a key for this API. Please try again or contact support@unkey.dev.",
-        });
-      });
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
-
     const keyAuth = await db.query.keyAuth
       .findFirst({
-        where: (table, { eq }) => eq(table.id, input.keyAuthId),
+        where: (table, { and, eq }) =>
+          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
         with: {
           api: true,
         },
@@ -70,7 +51,7 @@ export const createKey = t.procedure
             "We were unable to create a key for this API. Please try again or contact support@unkey.dev.",
         });
       });
-    if (!keyAuth || keyAuth.workspaceId !== workspace.id) {
+    if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -93,7 +74,7 @@ export const createKey = t.procedure
           start,
           ownerId: input.ownerId,
           meta: JSON.stringify(input.meta ?? {}),
-          workspaceId: workspace.id,
+          workspaceId: ctx.workspace.id,
           forWorkspaceId: null,
           expires: input.expires ? new Date(input.expires) : null,
           createdAt: new Date(),
@@ -109,8 +90,8 @@ export const createKey = t.procedure
           environment: input.environment,
         });
 
-        await insertAuditLogs(tx, {
-          workspaceId: workspace.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "key.create",
           description: `Created ${keyId}`,

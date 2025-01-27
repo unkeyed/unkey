@@ -20,6 +20,7 @@ export const CreateRatelimit: React.FC = async () => {
     user: {
       id: userId,
     },
+    workspace: undefined,
     tenant: {
       id: tenantId,
       role: "",

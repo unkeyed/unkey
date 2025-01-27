@@ -210,7 +210,17 @@ export default async function (props: Props) {
           subscriptions: null,
           createdAt: new Date(),
         });
-        await insertAuditLogs(tx, {
+
+        const bucketId = newId("auditLogBucket");
+        await tx.insert(schema.auditLogBucket).values({
+          id: bucketId,
+          workspaceId,
+          name: "unkey_mutations",
+          retentionDays: 30,
+          deleteProtection: true,
+        });
+
+        await insertAuditLogs(tx, bucketId, {
           workspaceId: workspaceId,
           event: "workspace.create",
           actor: {

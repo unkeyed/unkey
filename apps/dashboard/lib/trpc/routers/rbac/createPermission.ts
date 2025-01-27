@@ -21,26 +21,6 @@ export const createPermission = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to create permission. Please try again or contact support@unkey.dev",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
     const permissionId = newId("permission");
     await db
       .transaction(async (tx) => {
@@ -48,10 +28,10 @@ export const createPermission = t.procedure
           id: permissionId,
           name: input.name,
           description: input.description,
-          workspaceId: workspace.id,
+          workspaceId: ctx.workspace.id,
         });
-        await insertAuditLogs(tx, {
-          workspaceId: workspace.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           event: "permission.create",
           actor: {
             type: "user",

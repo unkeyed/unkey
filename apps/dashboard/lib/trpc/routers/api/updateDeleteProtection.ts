@@ -18,10 +18,11 @@ export const updateAPIDeleteProtection = t.procedure
     const api = await db.query.apis
       .findFirst({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.apiId), isNull(table.deletedAt)),
-        with: {
-          workspace: true,
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.apiId),
+            isNull(table.deletedAt),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -30,7 +31,7 @@ export const updateAPIDeleteProtection = t.procedure
             "We were unable to update the API. Please try again or contact support@unkey.dev",
         });
       });
-    if (!api || api.workspace.tenantId !== ctx.tenant.id) {
+    if (!api) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -53,8 +54,8 @@ export const updateAPIDeleteProtection = t.procedure
                 "We were unable to update the API. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, {
-          workspaceId: api.workspace.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,

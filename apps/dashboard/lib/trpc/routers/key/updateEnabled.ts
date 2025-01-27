@@ -50,7 +50,7 @@ export const updateKeyEnabled = t.procedure
                 "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
             });
           });
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: key.workspace.id,
           actor: {
             type: "user",

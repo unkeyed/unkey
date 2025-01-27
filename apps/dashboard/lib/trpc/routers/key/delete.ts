@@ -57,6 +57,7 @@ export const deleteKeys = t.procedure
           );
         insertAuditLogs(
           tx,
+          ctx.workspace.auditLogBucket.id,
           workspace.keys.map((key) => ({
             workspaceId: workspace.id,
             actor: { type: "user", id: ctx.user.id },
@@ -76,7 +77,7 @@ export const deleteKeys = t.procedure
         );
       })
       .catch((err) => {
-        console.error(err)
+        console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "We are unable to delete the key. Please try again or contact support@unkey.dev",

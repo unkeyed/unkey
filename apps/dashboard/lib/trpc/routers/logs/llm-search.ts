@@ -1,6 +1,5 @@
 import { METHODS } from "@/app/(app)/logs-v2/constants";
 import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs-v2/filters.schema";
-import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
@@ -82,27 +81,7 @@ async function getStructuredSearchFromLLM(userSearchMsg: string) {
 
 export const llmSearch = rateLimitedProcedure(ratelimit.update)
   .input(z.string())
-  .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Failed to verify workspace access. Please try again or contact support@unkey.dev if this persists.",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
-      });
-    }
-
+  .mutation(async ({ input }) => {
     return await getStructuredSearchFromLLM(input);
   });
 
@@ -130,12 +109,12 @@ const getSystemPrompt = () => {
 
 Query: "path should start with /api/oz and method should be POST"
 Result: [
-  { 
+  {
     field: "paths",
     filters: [{ operator: "startsWith", value: "/api/oz" }]
   },
   {
-    field: "methods", 
+    field: "methods",
     filters: [{ operator: "is", value: "POST" }]
   }
 ]

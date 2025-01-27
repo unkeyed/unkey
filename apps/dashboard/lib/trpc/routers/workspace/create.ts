@@ -60,7 +60,7 @@ export const createWorkspace = t.procedure
           name: "unkey_mutations",
           deleteProtection: true,
         });
-        await insertAuditLogs(tx, [
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, [
           {
             workspaceId: workspace.id,
             actor: { type: "user", id: ctx.user.id },
