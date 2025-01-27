@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Southclaws/fault"
 	"github.com/unkeyed/unkey/go/cmd/api"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/urfave/cli/v2"
 )
 

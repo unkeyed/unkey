@@ -7,14 +7,81 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
-type Database = gen.Querier
+type Config struct {
+	// The primary DSN for your database. This must support both reads and writes.
+	PrimaryDSN string
 
-func New(dsn string) (Database, error) {
-	db, err := sql.Open("mysql", dsn)
+	// The readonly replica will be used for most read queries.
+	// If omitted, the primary is used.
+	ReadOnlyDSN string
+}
+
+type replica struct {
+	db    *sql.DB
+	query *gen.Queries
+}
+
+type database struct {
+	writeReplica *replica
+	readReplica  *replica
+}
+
+func New(config Config, middlewares ...Middleware) (Database, error) {
+
+	db := &database{}
+
+	write, err := sql.Open("mysql", config.PrimaryDSN)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("unable to open mysql connection", ""))
+		return nil, fault.Wrap(err, fault.WithDesc("cannot open primary replica", ""))
+	}
+	db.writeReplica = &replica{
+		db:    write,
+		query: gen.New(write),
 	}
 
-	return gen.New(db), nil
+	if config.ReadOnlyDSN != "" {
+		read, err := sql.Open("mysql", config.ReadOnlyDSN)
+		if err != nil {
+			return nil, fault.Wrap(err, fault.WithDesc("cannot open read replica", ""))
+		}
+		db.readReplica = &replica{
+			db:    read,
+			query: gen.New(read),
+		}
+	}
+
+	var wrapped Database = db
+	for _, mw := range middlewares {
+		wrapped = mw(wrapped)
+	}
+
+	return wrapped, nil
+
+}
+
+func (d *database) write() *gen.Queries {
+	return d.writeReplica.query
+}
+
+func (d *database) read() *gen.Queries {
+	if d.readReplica != nil {
+		return d.readReplica.query
+	}
+	return d.writeReplica.query
+}
+
+func (d *database) Close() error {
+	writeCloseErr := d.writeReplica.db.Close()
+
+	if d.readReplica != nil {
+		readCloseErr := d.readReplica.db.Close()
+		if readCloseErr != nil {
+			return fault.Wrap(readCloseErr)
+		}
+	}
+	if writeCloseErr != nil {
+		return fault.Wrap(writeCloseErr)
+	}
+	return nil
 
 }
