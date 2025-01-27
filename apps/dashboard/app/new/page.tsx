@@ -162,6 +162,11 @@ export default async function (props: Props) {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAt)),
+      with: {
+        auditLogBuckets: {
+          where: (table, { eq }) => eq(table.name, "unkey_mutations"),
+        },
+      },
     });
     if (!workspace) {
       return redirect("/new");
@@ -184,7 +189,9 @@ export default async function (props: Props) {
 
         <Separator className="my-8" />
 
-        <CreateRatelimit />
+        <CreateRatelimit
+          workspace={{ ...workspace, auditLogBucket: workspace.auditLogBuckets[0] }}
+        />
       </div>
     );
   }
