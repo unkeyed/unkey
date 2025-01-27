@@ -20,12 +20,15 @@ interface SuggestionsProps extends PropsWithChildren {
 
 export const DateTimeSuggestions = ({ className, options, onChange }: SuggestionsProps) => {
   return (
-    <div className={cn("flex flex-col justify-center gap-4 mt-2 p-2 ", className)}>
+    <div className={cn("flex flex-col justify-center gap-1.5", className)} role="listbox">
       {options.map(({ id, display, checked }) => (
-        <div className="w-full inline-flex items-center" key={id}>
+        <div
+          className="w-full px-2 rounded rounded-lg h-8 inline-flex items-center font-medium leading-4 hover:bg-gray-3"
+          key={id}
+        >
           <button
             type="button"
-            className="w-full text-left text-accent-12 text-xs"
+            className="w-full text-left text-sm"
             onClick={() => {
               onChange(id);
             }}

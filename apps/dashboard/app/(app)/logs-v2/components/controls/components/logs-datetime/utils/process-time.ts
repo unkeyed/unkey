@@ -13,4 +13,6 @@ export const processTimeFilters = (date?: Date, newTime?: TimeUnit) => {
     date.setHours(hours, minutes, seconds, 0);
     return date;
   }
+  const now = new Date();
+  return now;
 };

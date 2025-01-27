@@ -2,10 +2,12 @@ import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toast } from "@/components/ui/toaster";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
 import { type PropsWithChildren, useState } from "react";
 import { processTimeFilters } from "../utils/process-time";
 import { DateTimeSuggestions, type OptionsType } from "./suggestions";
+
 const options: OptionsType = [
   {
     id: 1,
@@ -72,6 +74,7 @@ const CUSTOM_DATE_TIME = 10;
 
 interface DatetimePopoverProps extends PropsWithChildren {
   setTitle: (value: string) => void;
+  setSelected: (value: boolean) => void;
 }
 
 type TimeRangeType = {
@@ -79,7 +82,7 @@ type TimeRangeType = {
   endTime?: number;
 };
 
-export const DatetimePopover = ({ children, setTitle }: DatetimePopoverProps) => {
+export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePopoverProps) => {
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<OptionsType>(options);
   const { filters, updateFilters } = useFilters();
@@ -91,9 +94,12 @@ export const DatetimePopover = ({ children, setTitle }: DatetimePopoverProps) =>
 
   const handleSuggestionChange = (id: number) => {
     const tempSuggestions = suggestions.map((suggestion) => {
+      const isChecked = suggestion.id === id && !suggestion.checked;
+      setSelected(isChecked);
+
       return {
         ...suggestion,
-        checked: suggestion.id === id,
+        checked: isChecked,
       };
     });
 
@@ -101,9 +107,13 @@ export const DatetimePopover = ({ children, setTitle }: DatetimePopoverProps) =>
   };
   const onDateTimeChange = (newRange?: Range, newStart?: TimeUnit, newEnd?: TimeUnit) => {
     //Custom when selecting something in datetime picker
-    handleSuggestionChange(CUSTOM_DATE_TIME);
+    const custom = suggestions.find((suggestion) => suggestion.id === CUSTOM_DATE_TIME);
+    if (!custom?.checked) {
+      handleSuggestionChange(CUSTOM_DATE_TIME);
+    }
     const startTimestamp = processTimeFilters(newRange?.from, newStart)?.getTime();
-    const endTimestamp = processTimeFilters(newRange?.to ?? newRange?.from, newEnd)?.getTime();
+
+    const endTimestamp = processTimeFilters(newRange?.to, newEnd)?.getTime();
     setTime({
       startTime: startTimestamp,
       endTime: endTimestamp,
@@ -111,7 +121,6 @@ export const DatetimePopover = ({ children, setTitle }: DatetimePopoverProps) =>
   };
 
   const handleApplyFilter = () => {
-    setOpen(false);
     const activeFilters = filters.filter(
       (f) => !["endTime", "startTime", "since"].includes(f.field),
     );
@@ -147,7 +156,19 @@ export const DatetimePopover = ({ children, setTitle }: DatetimePopoverProps) =>
         });
       }
     }
+    if (time.startTime === undefined && time.endTime === undefined) {
+      toast.error("Please select a date range", {
+        duration: 8000,
+        important: true,
+        position: "top-right",
+        style: {
+          whiteSpace: "pre-line",
+        },
+      });
+      return;
+    }
     updateFilters(activeFilters);
+    setOpen(false);
   };
 
   return (
@@ -156,32 +177,30 @@ export const DatetimePopover = ({ children, setTitle }: DatetimePopoverProps) =>
         <div className="flex flex-row items-center">{children}</div>
       </PopoverTrigger>
       <PopoverContent
-        className="flex w-fit bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg p-2 gap-2"
-        side="right"
+        className="flex w-full bg-gray-1 dark:bg-black drop-shadow-3 p-0 m-0 rounded-lg"
         align="start"
-        sideOffset={12}
-        tabIndex={-1}
       >
-        <div className="flex flex-col">
+        <div className="flex flex-col border border-r-1 border-gray-4 w-60 px-1.5 py-3 m-0 ">
           <PopoverHeader />
           <DateTimeSuggestions
             options={suggestions}
             onChange={(id: number) => handleSuggestionChange(id)}
           />
         </div>
-        <div className="flex flex-col mt-2">
-          <DateTime
-            onChange={(newRange, newStart, newEnd) => onDateTimeChange(newRange, newStart, newEnd)}
-          >
-            <DateTime.Calendar mode="range" />
-            <DateTime.TimeInput type="range" />
-            <DateTime.Actions>
-              <Button className="w-full" variant="primary" onClick={handleApplyFilter}>
-                Apply
-              </Button>
-            </DateTime.Actions>
-          </DateTime>
-        </div>
+
+        <DateTime
+          onChange={(newRange, newStart, newEnd) => onDateTimeChange(newRange, newStart, newEnd)}
+          className="gap-2 h-full"
+        >
+          <DateTime.Calendar mode="range" className="border border-b-gray-4 px-3 pt-2.5 pb-3.5" />
+
+          <DateTime.TimeInput type="range" className="px-3.5 h-8 mt-1" />
+          <DateTime.Actions className="px-3.5 mt-1">
+            <Button className="w-full justify-center" variant="primary" onClick={handleApplyFilter}>
+              Apply Filter
+            </Button>
+          </DateTime.Actions>
+        </DateTime>
       </PopoverContent>
     </Popover>
   );
@@ -189,9 +208,9 @@ export const DatetimePopover = ({ children, setTitle }: DatetimePopoverProps) =>
 
 const PopoverHeader = () => {
   return (
-    <div className="flex w-full justify-between items-center px-2 py-1 gap-4">
-      <span className="text-gray-9 text-[13px]">Filter by time range</span>
-      <KeyboardButton shortcut="T" />
+    <div className="flex w-full h-8 justify-between px-2">
+      <span className="text-gray-9 text-[13px] w-full">Filter by time range</span>
+      <KeyboardButton shortcut="T" className="p-0 m-0 min-w-5 w-5 h-5" />
     </div>
   );
 };

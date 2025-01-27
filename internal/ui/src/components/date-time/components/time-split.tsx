@@ -29,7 +29,9 @@ const MAX_VALUES = {
 const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   const { startTime, endTime, date, onStartTimeChange, onEndTimeChange } = useDateTimeContext();
   const [focus, setFocus] = useState(false);
-  const [time, setTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
+  const [time, setTime] = useState<TimeUnit>(
+    type === "start" ? { HH: "00", mm: "00", ss: "00" } : { HH: "23", mm: "59", ss: "59" },
+  );
 
   const normalizeTimeUnit = (time: TimeUnit): TimeUnit => ({
     HH: time.HH.padStart(2, "0") || "00",
@@ -103,9 +105,9 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   };
 
   const inputClassNames = `
-    w-4 p-0 
+    w-6 p-0 
     border-none bg-transparent
-    text-xs text-center text-foreground
+    text-sm text-center text-foreground
     outline-none ring-0 focus:ring-0
   `;
 
@@ -125,11 +127,11 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   return (
     <div
       className={cn(
-        "flex h-7 w-fit items-center justify-center px-4 gap-0 rounded border border-[1px] border-gray-4 text-xs text-gray-12",
+        "flex h-8 w-full items-center rounded rounded-3 border border-[1px] border-gray-4 bg-gray-2 text-sm text-gray-12",
         focus ? "border-[1.5px] border-gray-10" : "",
       )}
     >
-      <div className="text-gray-9 mr-2">
+      <div className="text-gray-9 ml-4 mr-3">
         <TimeClock className="size-3 stroke-1.5" />
       </div>
       {renderTimeInput("HH", "Hours")}
@@ -151,7 +153,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({ type, className }) => {
   return (
     <div
       className={cn(
-        "w-full h-full flex flex-row items-center justify-center gap-4 mt-2 px-1",
+        "w-full h-full flex flex-row items-center justify-center gap-2 mt-1",
         className,
       )}
     >

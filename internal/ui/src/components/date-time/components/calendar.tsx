@@ -16,18 +16,24 @@ import { useDateTimeContext } from "../date-time";
 function CustomCaptionComponent(props: CaptionProps) {
   const { goToMonth, nextMonth, previousMonth } = useNavigation();
   return (
-    <div className="flex flex-row w-full bg-transparent px-2">
+    <div className="flex bg-transparent mb-3.5">
       <button
+        className="flex min-w-6 min-h-6 justify-center items-center"
         type="button"
         disabled={!previousMonth}
         onClick={() => previousMonth && goToMonth(previousMonth)}
       >
         <IconLeft className="text-gray-12 size-2" />
       </button>
-      <div className="w-full text-center text-gray-12 text-xs">
+      <div className="flex w-full text-gray-12 text-sm justify-center items-center font-medium">
         {format(props.displayMonth, "MMMM yyy")}
       </div>
-      <button type="button" disabled={!nextMonth} onClick={() => nextMonth && goToMonth(nextMonth)}>
+      <button
+        className="flex min-w-6 min-h-6 justify-center items-center"
+        type="button"
+        disabled={!nextMonth}
+        onClick={() => nextMonth && goToMonth(nextMonth)}
+      >
         <IconRight className="text-gray-12 size-2" />
       </button>
     </div>
@@ -35,23 +41,24 @@ function CustomCaptionComponent(props: CaptionProps) {
 }
 
 const styleClassNames = {
-  root: "flex justify-center p-0 m-0",
-  tbody: "flex flex-col bg-transparent gap-y-2 w-full text-gray-12 ",
-  months: "flex flex-col sm:flex-row sm:space-x-4 sm:space-y-0 mt-0 pt-0",
-  month: "w-full p-0 mt-0",
-  caption: "flex justify-between px-2 relative items-center",
+  root: "flex w-full justify-center p-0 m-0",
+  tbody: "flex flex-col w-full bg-transparent w-full text-gray-12 gap-3.5 mt-3",
+  months: "flex flex-col w-full sm:flex-row sm:space-x-4 sm:space-y-0",
+  month: "w-full p-0 mt-0 ",
+  caption: "flex justify-between relative items-center",
   caption_label: "text-sm font-medium",
-  nav: "flex items-center my-0 py-0",
+  nav: "flex items-center",
   nav_button: cn(
     buttonVariants({ variant: "default" }),
     "h-7 w-7 opacity-50 hover:opacity-100 flex justify-center items-center",
   ),
   nav_button_previous: "absolute left-1",
   nav_button_next: "absolute right-1",
-  table: "w-full bg-transparent border-none m-0 pt-2",
-  head_row: "flex border-none h-8 mt-0 pt-0 gap-1.5 mt-4",
-  head_cell: "w-8 h-8 font-normal text-xs text-gray-8 bg-transparent border-none",
-  row: "flex w-full border-none gap-1.5",
+  table: "w-full bg-transparent border-none m-0 p-0 ",
+  head_row:
+    "flex flex-start w-full border-none h-8 mx-0 px-0 pt-2 gap-3 justify-center items-center",
+  head_cell: "w-8 h-8 font-normal text-xs text-gray-8 bg-transparent border-none ",
+  row: "flex w-full border-none justify-between",
   cell: "border-none h-8 w-8 text-center rounded rounded-md text-sm p-0 relative [&:has([aria-selected].day-outside)]:bg-gray-4 [&:has([aria-selected])]:bg-gray-4  focus-within:relative focus-within:z-20",
   day: cn(
     buttonVariants({ variant: "ghost" }),

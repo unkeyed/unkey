@@ -9,12 +9,6 @@ type ActionProps = {
 };
 
 const DateTimeActions: React.FC<ActionProps> = ({ className, children }) => {
-  return (
-    <div
-      className={cn("w-full h-full flex items-center justify-center gap-4 mt-2 px-1", className)}
-    >
-      {children}
-    </div>
-  );
+  return <div className={cn("w-full flex items-center justify-center", className)}>{children}</div>;
 };
 export { DateTimeActions };

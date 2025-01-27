@@ -1,4 +1,3 @@
-import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -6,20 +5,15 @@ import { useState } from "react";
 import { DatetimePopover } from "./components/datetime-popover";
 
 export const LogsDateTime = () => {
-  const [title, setTitle] = useState<string>("Date Filter");
-  const { filters } = useFilters();
-  const dateFilterCount = filters.filter((f) =>
-    ["endTime", "startTime", "since"].includes(f.field),
-  );
+  const [title, setTitle] = useState<string>("Last 12 hours");
+  const [isSelected, setIsSelected] = useState<boolean>(false);
+
   return (
-    <DatetimePopover setTitle={setTitle}>
+    <DatetimePopover setTitle={setTitle} setSelected={setIsSelected}>
       <div className="group">
         <Button
           variant="ghost"
-          className={cn(
-            "group-data-[state=open]:bg-gray-4 px-2",
-            dateFilterCount ? "bg-gray-4" : "",
-          )}
+          className={cn("group-data-[state=open]:bg-gray-4 px-2", isSelected ? "bg-gray-4" : "")}
           aria-label="Filter logs"
           aria-haspopup="true"
           title="Press 'F' to toggle filters"

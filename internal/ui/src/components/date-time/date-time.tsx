@@ -47,7 +47,7 @@ type DateTimeRootProps = {
 function DateTime({ children, className, onChange }: DateTimeRootProps) {
   const [date, setDate] = useState<DateRange>();
   const [startTime, setStartTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
-  const [endTime, setEndTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
+  const [endTime, setEndTime] = useState<TimeUnit>({ HH: "23", mm: "59", ss: "59" });
 
   const handleDateChange = (newRange: DateRange) => {
     setDate(newRange);
@@ -65,20 +65,20 @@ function DateTime({ children, className, onChange }: DateTimeRootProps) {
   };
 
   return (
-    <div className={`flex flex-col justify-center items-center w-fit gap-3 ${className}`}>
-      <DateTimeContext.Provider
-        value={{
-          date,
-          startTime,
-          endTime,
-          onDateChange: handleDateChange,
-          onStartTimeChange: handleStartTimeChange,
-          onEndTimeChange: handleEndTimeChange,
-        }}
-      >
+    <DateTimeContext.Provider
+      value={{
+        date,
+        startTime,
+        endTime,
+        onDateChange: handleDateChange,
+        onStartTimeChange: handleStartTimeChange,
+        onEndTimeChange: handleEndTimeChange,
+      }}
+    >
+      <div className={`flex flex-col w-80 justify-center items-center ${className}`}>
         {children}
-      </DateTimeContext.Provider>
-    </div>
+      </div>
+    </DateTimeContext.Provider>
   );
 }
 
