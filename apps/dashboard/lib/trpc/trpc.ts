@@ -10,7 +10,7 @@ export const auth = t.middleware(({ next, ctx }) => {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
   if (!ctx.workspace) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+    throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found in context" });
   }
 
   return next({
