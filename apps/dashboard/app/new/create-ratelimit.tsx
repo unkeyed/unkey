@@ -35,7 +35,6 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
     },
   });
 
-
   const rootKey = await trpc.rootKey.create({
     name: "onboarding",
     permissions: ["ratelimit.*.create_namespace", "ratelimit.*.limit"],
@@ -46,8 +45,9 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
   -H 'Authorization: Bearer ${rootKey.key}' \\
   -d '{
       "namespace": "hello-ratelimit",
-      "identifier": "${sessionClaims?.userName ?? sessionClaims?.email ?? sessionClaims?.sub ?? "hello"
-    }",
+      "identifier": "${
+        sessionClaims?.userName ?? sessionClaims?.email ?? sessionClaims?.sub ?? "hello"
+      }",
       "limit": 10,
       "duration": 10000
   }'`;
