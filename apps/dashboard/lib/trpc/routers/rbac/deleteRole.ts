@@ -29,7 +29,8 @@ export const deleteRole = t.procedure
         .where(
           and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, ctx.workspace.id)),
         )
-        .catch((_err) => {
+        .catch((err) => {
+          console.error("Failed to delete role:", err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
