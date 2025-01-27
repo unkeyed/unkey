@@ -79,6 +79,7 @@ describe.each([
     })({
       workspaceId: h.resources.userWorkspace.id,
     });
+    expect(inserted.err).toEqual(undefined);
     expect(inserted.val!.at(0)?.count).toEqual(verifications.length);
 
     const root = await h.createRootKey(["api.*.read_api"]);
