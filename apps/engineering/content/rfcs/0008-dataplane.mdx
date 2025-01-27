@@ -7,7 +7,7 @@ authors:
 ---
 
 
-We need to design a globally distributed architecture for Unkey where the dataplane can operate independently from the primary database for improved availability. The main challenge is ensuring gateway nodes have access to dynamic data (gateway configs, API keys, etc.) while maintaining global eventual consistency and performance.
+We need to design a globally distributed architecture for Unkey where the dataplane can operate independently of the primary database for improved availability.
 
 ## Goals
 
@@ -63,7 +63,7 @@ We need to design a globally distributed architecture for Unkey where the datapl
 If we had global fast and efficient eviction, we could set much higher TTLs.
 
 #### Pros
-- Efficient cache invalidation through gossip allowing higher TTLs.
+- Efficient cache invalidation through gossip, allowing higher TTLs
 - Reduced load on primary storage
 - Only need to notify one node for changes
 
@@ -100,7 +100,7 @@ Gateways still use an in-memory SWR cache. The cache nodes help reduce the cost
 and latency of S3, but will likely have the same freshness/staleness as the
 gateways. TBD..
 
-Everything here, except the s3 bucket, would be duplicated per region.
+Everything here, except the S3 bucket, would be duplicated per region.
 
 #### Pros
 - Better cache retention due to less frequent reboots
