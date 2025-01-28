@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { DotSquareIcon } from "lucide-react";
 import { useMemo } from "react";
 import { DEFAULT_REJECTED_FLAG } from "../../constants";
 import { useRatelimitLogsContext } from "../../context/logs";
 import { useRatelimitLogsQuery } from "./hooks/use-logs-query";
+import { LogsTableAction } from "./logs-actions";
 
 type StatusStyle = {
   base: string;
@@ -145,21 +145,16 @@ export const LogsTable = ({ namespaceId }: { namespaceId: string }) => {
         key: "region",
         header: "Region",
         width: "auto",
-        headerClassName: "pl-1",
         render: (log) => <div className="font-mono">{log.colo}</div>,
       },
       {
         key: "region",
         header: "",
         width: "12.5%",
-        render: () => (
-          <div>
-            <DotSquareIcon />
-          </div>
-        ),
+        render: () => <LogsTableAction />,
       },
     ],
-    [selectedLog?.request_id],
+    [],
   );
 
   return (

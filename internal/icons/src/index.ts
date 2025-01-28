@@ -33,3 +33,7 @@ export * from "./icons/triangle-warning";
 export * from "./icons/triangle-warning-2";
 export * from "./icons/ufo";
 export * from "./icons/xmark";
+export * from "./icons/dots";
+export * from "./icons/clipboard";
+export * from "./icons/clipboard-check";
+export * from "./icons/pen-writing-3";
