@@ -1,7 +1,7 @@
 import { transformStructuredOutputToFilters } from "@/app/(app)/logs-v2/filters.schema";
 import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
-import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
 import { toast } from "@/components/ui/toaster";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { CaretRightOutline, CircleInfoSparkle, Magnifier, Refresh3 } from "@unkey/icons";

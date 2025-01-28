@@ -1,3 +1,4 @@
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { trpc } from "@/lib/trpc/client";
 import { Refresh3 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -5,7 +6,6 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 import { useLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
-import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 
 export const LogsRefresh = () => {
   const { toggleLive, isLive } = useLogsContext();

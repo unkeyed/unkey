@@ -1,5 +1,6 @@
 import { KeyboardButton } from "@/components/keyboard-button";
 import { TimestampInfo } from "@/components/timestamp-info";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { cn } from "@/lib/utils";
 import { XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -7,7 +8,6 @@ import { format } from "date-fns";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { FilterValue } from "../../filters.type";
 import { useFilters } from "../../hooks/use-filters";
-import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
 
 const formatFieldName = (field: string): string => {
   switch (field) {
