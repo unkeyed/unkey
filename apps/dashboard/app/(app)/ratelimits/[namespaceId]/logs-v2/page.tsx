@@ -18,8 +18,7 @@ export default async function RatelimitLogsPage({
   const tenantId = getTenantId();
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, namespaceId), isNull(table.deletedAt)),
+    where: (table, { eq, and, isNull }) => and(eq(table.id, namespaceId), isNull(table.deletedAt)),
     with: {
       workspace: true,
     },
@@ -28,12 +27,7 @@ export default async function RatelimitLogsPage({
     return notFound();
   }
 
-  return (
-    <LogsContainerPage
-      namespaceId={namespaceId}
-      namespaceName={namespace.name}
-    />
-  );
+  return <LogsContainerPage namespaceId={namespaceId} namespaceName={namespace.name} />;
 }
 
 const LogsContainerPage = ({
@@ -47,19 +41,11 @@ const LogsContainerPage = ({
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">
-            Ratelimits
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/ratelimits/${namespaceId}`}
-            isIdentifier
-          >
+          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/ratelimits/${namespaceId}`} isIdentifier>
             {namespaceName}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/ratelimits/${namespaceId}/logs`}
-            active
-          >
+          <Navbar.Breadcrumbs.Link href={`/ratelimits/${namespaceId}/logs`} active>
             Logs
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>

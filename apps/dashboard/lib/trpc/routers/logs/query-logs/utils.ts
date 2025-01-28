@@ -1,7 +1,7 @@
 import type { queryLogsPayload } from "@/app/(app)/logs-v2/components/table/query-logs.schema";
+import { getTimestampFromRelative } from "@/lib/utils";
 import type { GetLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
 import type { z } from "zod";
-import { getTimestampFromRelative } from "../utils/getTimestampFromRelative";
 
 export function transformFilters(
   params: z.infer<typeof queryLogsPayload>,

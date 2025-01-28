@@ -153,49 +153,7 @@ export function getRatelimitsPerMonth(ch: Querier) {
     return query(args);
   };
 }
-const getRatelimitLogsParameters = z.object({
-  workspaceId: z.string(),
-  namespaceId: z.string(),
-  identifier: z.array(z.string()).optional(),
-  start: z.number().optional().default(0),
-  end: z
-    .number()
-    .optional()
-    .default(() => Date.now()),
-  limit: z.number().optional().default(100),
-  passed: z.boolean().optional(),
-});
 
-export function getRatelimitLogs(ch: Querier) {
-  return async (args: z.input<typeof getRatelimitLogsParameters>) => {
-    const query = `
-  SELECT
-    request_id,
-    time,
-    identifier,
-    passed
-  FROM ratelimits.raw_ratelimits_v1
-  WHERE workspace_id = {workspaceId: String}
-    AND namespace_id = {namespaceId: String}
-    ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
-    AND time >= {start: Int64}
-    AND time <= {end: Int64}
-    ${typeof args.passed !== "undefined" ? "AND passed = {passed:Boolean}" : ""}
-  ORDER BY time DESC
-  LIMIT {limit: Int64}
-;`;
-    return ch.query({
-      query: query,
-      params: getRatelimitLogsParameters,
-      schema: z.object({
-        request_id: z.string(),
-        time: z.number(),
-        identifier: z.string(),
-        passed: z.boolean(),
-      }),
-    })(args);
-  };
-}
 const getRatelimitLastUsedParameters = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
@@ -224,6 +182,114 @@ export function getRatelimitLastUsed(ch: Querier) {
         identifier: z.string(),
         time: z.number(),
       }),
+    });
+
+    return query(args);
+  };
+}
+
+// ------------------------------------------  LOGS-V2
+export const ratelimitLogsParams = z.object({
+  workspaceId: z.string(),
+  namespaceId: z.string(),
+  limit: z.number().int(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  requestIds: z.array(z.string()).nullable(),
+  identifiers: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  rejected: z.number().int().nullable(),
+  cursorTime: z.number().int().nullable(),
+  cursorRequestId: z.string().nullable(),
+});
+
+export const ratelimitLogs = z.object({
+  request_id: z.string(),
+  time: z.number().int(),
+  identifier: z.string(),
+  rejected: z.number().int(),
+});
+
+export type RatelimitLogs = z.infer<typeof ratelimitLogs>;
+export type RatelimitLogsParams = z.infer<typeof ratelimitLogsParams>;
+
+export function getRatelimitLogs(ch: Querier) {
+  return async (args: RatelimitLogsParams) => {
+    const identifierConditions =
+      args.identifiers
+        ?.map((p) => {
+          switch (p.operator) {
+            case "is":
+              return `identifier = '${p.value}'`;
+            case "contains":
+              return `position(identifier, '${p.value}') > 0`;
+            default:
+              return null;
+          }
+        })
+        .filter(Boolean)
+        .join(" OR ") || "TRUE";
+
+    const query = ch.query({
+      query: `
+        WITH filtered_requests AS (
+          SELECT *
+          FROM ratelimits.raw_ratelimits_v1
+          WHERE workspace_id = {workspaceId: String}
+            AND namespace_id = {namespaceId: String}
+            AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+
+            ---------- Apply request ID filter if present (highest priority)
+            AND (
+              CASE
+                WHEN length({requestIds: Array(String)}) > 0 THEN 
+                  request_id IN {requestIds: Array(String)}
+                ELSE TRUE
+              END
+            )
+            
+            ---------- Apply identifier filter
+            AND (${identifierConditions})
+            
+            ---------- Apply rejected filter
+            AND (
+              CASE
+                WHEN {rejected: Nullable(UInt8)} IS NOT NULL THEN 
+                  NOT passed = ({rejected: Nullable(UInt8)} = 0)
+                ELSE TRUE
+              END
+            )
+            
+            -- Apply cursor pagination last
+            AND (
+              CASE
+                WHEN {cursorTime: Nullable(UInt64)} IS NOT NULL 
+                  AND {cursorRequestId: Nullable(String)} IS NOT NULL
+                THEN (time, request_id) < (
+                  {cursorTime: Nullable(UInt64)}, 
+                  {cursorRequestId: Nullable(String)}
+                )
+                ELSE TRUE
+              END
+            )
+        )
+        
+        SELECT
+          request_id,
+          time,
+          identifier,
+          toUInt8(NOT passed) as rejected
+        FROM filtered_requests
+        ORDER BY time DESC, request_id DESC
+        LIMIT {limit: Int}`,
+      params: ratelimitLogsParams,
+      schema: ratelimitLogs,
     });
 
     return query(args);

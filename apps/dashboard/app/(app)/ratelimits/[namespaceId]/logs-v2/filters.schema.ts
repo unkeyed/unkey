@@ -8,20 +8,14 @@ import type {
   StringConfig,
 } from "./filters.type";
 
-export const filterOperatorEnum = z.enum([
-  "is",
-  "contains",
-  "startsWith",
-  "endsWith",
-]);
+export const filterOperatorEnum = z.enum(["is", "contains"]);
 
 export const filterFieldEnum = z.enum([
   "startTime",
   "endTime",
   "since",
   "identifiers",
-  "countries",
-  "ipAddresses",
+  "requestId",
   "rejected",
 ]);
 
@@ -33,22 +27,15 @@ export const filterOutputSchema = z.object({
         filters: z.array(
           z.object({
             operator: filterOperatorEnum,
-            value: z.union([
-              z.string(),
-              z.number(),
-              z.literal(0),
-              z.literal(1),
-            ]),
-          })
+            value: z.union([z.string(), z.number(), z.literal(0), z.literal(1)]),
+          }),
         ),
       })
       .refine(
         (data) => {
           const config = filterFieldConfig[data.field];
           return data.filters.every((filter) => {
-            const isOperatorValid = config.operators.includes(
-              filter.operator as any
-            );
+            const isOperatorValid = config.operators.includes(filter.operator as any);
             if (!isOperatorValid) {
               return false;
             }
@@ -57,20 +44,18 @@ export const filterOutputSchema = z.object({
         },
         {
           message: "Invalid field/operator/value combination",
-        }
-      )
+        },
+      ),
   ),
 });
 
 // Required for transforming OpenAI structured outputs into our own Filter types
 export const transformStructuredOutputToFilters = (
   data: z.infer<typeof filterOutputSchema>,
-  existingFilters: FilterValue[] = []
+  existingFilters: FilterValue[] = [],
 ): FilterValue[] => {
   const uniqueFilters = [...existingFilters];
-  const seenFilters = new Set(
-    existingFilters.map((f) => `${f.field}-${f.operator}-${f.value}`)
-  );
+  const seenFilters = new Set(existingFilters.map((f) => `${f.field}-${f.operator}-${f.value}`));
 
   for (const filterGroup of data.filters) {
     filterGroup.filters.forEach((filter) => {
@@ -116,10 +101,7 @@ function isStringConfig(config: FieldConfig): config is StringConfig {
   return config.type === "string";
 }
 
-export function validateFieldValue(
-  field: FilterField,
-  value: string | number
-): boolean {
+export function validateFieldValue(field: FilterField, value: string | number): boolean {
   const config = filterFieldConfig[field];
 
   if (field === "rejected") {
@@ -157,11 +139,7 @@ export const filterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is", "contains"],
   },
-  countries: {
-    type: "string",
-    operators: ["is"],
-  },
-  ipAddresses: {
+  requestId: {
     type: "string",
     operators: ["is"],
   },

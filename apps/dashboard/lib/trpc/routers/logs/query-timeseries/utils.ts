@@ -1,7 +1,7 @@
 import type { queryTimeseriesPayload } from "@/app/(app)/logs-v2/components/charts/query-timeseries.schema";
+import { getTimestampFromRelative } from "@/lib/utils";
 import type { LogsTimeseriesParams } from "@unkey/clickhouse/src/logs";
 import type { z } from "zod";
-import { getTimestampFromRelative } from "../utils/getTimestampFromRelative";
 import { HOUR_IN_MS, WEEK_IN_MS } from "./constants";
 
 export type TimeseriesGranularity = "perMinute" | "perHour" | "perDay";
