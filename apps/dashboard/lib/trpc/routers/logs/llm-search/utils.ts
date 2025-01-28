@@ -1,5 +1,8 @@
 import { METHODS } from "@/app/(app)/logs-v2/constants";
-import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs-v2/filters.schema";
+import {
+  filterFieldConfig,
+  filterOutputSchema,
+} from "@/app/(app)/logs-v2/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
@@ -7,7 +10,7 @@ import { zodResponseFormat } from "openai/helpers/zod.mjs";
 export async function getStructuredSearchFromLLM(
   openai: OpenAI | null,
   userSearchMsg: string,
-  usersReferenceMS: number,
+  usersReferenceMS: number
 ) {
   try {
     if (!openai) {
@@ -52,8 +55,8 @@ export async function getStructuredSearchFromLLM(
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
-        userSearchMsg,
-      )}\n Output ${(error as Error).message}}`,
+        userSearchMsg
+      )}\n Output ${(error as Error).message}}`
     );
     if (error instanceof TRPCError) {
       throw error;
@@ -62,7 +65,8 @@ export async function getStructuredSearchFromLLM(
     if ((error as any).response?.status === 429) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message: "Search rate limit exceeded. Please try again in a few minutes.",
+        message:
+          "Search rate limit exceeded. Please try again in a few minutes.",
       });
     }
 
@@ -88,10 +92,61 @@ export const getSystemPrompt = (usersReferenceMS: number) => {
       }${constraints}`;
     })
     .join("\n");
-  return `You are an expert at converting natural language queries into filters. For queries with multiple conditions, output all relevant filters. We will process them in sequence to build the complete filter. For status codes, always return one for each variant like 200,400 or 500 instead of 200,201, etc... - the application will handle status code grouping internally. Always use this ${usersReferenceMS} timestamp when dealing with time related queries.
+  return `You are an expert at converting natural language queries into filters, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For status codes, use 200,400,500 variants - the application handles status grouping. Use ${usersReferenceMS} timestamp for time-related queries.
 
 Examples:
-Query: "show me failed requests"
+
+# Complex Host Patterns
+Query: "show requests from api.staging.company.com and test.company.com"
+Result: [
+  {
+    field: "host",
+    filters: [
+      { operator: "is", value: "api.staging.company.com" },
+      { operator: "is", value: "test.company.com" }
+    ]
+  }
+]
+
+Query: "localhost and 127.0.0.1 requests"
+Result: [
+  {
+    field: "host",
+    filters: [
+      { operator: "is", value: "localhost" },
+      { operator: "is", value: "127.0.0.1" }
+    ]
+  }
+]
+
+# Complex Path Patterns
+Query: "find /api/v2/users/{userId}/profile and /api/v2/users/search requests"
+Result: [
+  {
+    field: "paths",
+    filters: [
+      { operator: "startsWith", value: "api/v2/users" }
+    ]
+  }
+]
+
+Query: "/v1/api and /api/v1 timeouts"
+Result: [
+  {
+    field: "paths",
+    filters: [
+      { operator: "startsWith", value: "v1/api" },
+      { operator: "startsWith", value: "api/v1" }
+    ]
+  },
+  {
+    field: "status",
+    filters: [{ operator: "is", value: 500 }]
+  }
+]
+
+# Time Range Edge Cases
+Query: "errors from last 30m and last 24h"
 Result: [
   {
     field: "status",
@@ -99,43 +154,74 @@ Result: [
       { operator: "is", value: 400 },
       { operator: "is", value: 500 }
     ]
-  }
-]
-
-Query: "show me logs from last 30m"
-Result: [
+  },
   {
     field: "since",
     filters: [{ 
       operator: "is", 
-      value: "30m"
+      value: "24h"
     }]
   }
 ]
 
-Query: "get logs from past 1h"
+# Status Code Variations
+Query: "show me timeouts and server errors"
 Result: [
   {
-    field: "startTime",
-    filters: [{ 
-      operator: "is", 
-      value: ${usersReferenceMS - 60 * 60 * 1000} // Current time - 1 hour
-    }]
+    field: "status",
+    filters: [{ operator: "is", value: 500 }]
   }
 ]
 
-Query: "show logs from last 1d"
+Query: "client errors and failed requests"
 Result: [
   {
-    field: "startTime",
-    filters: [{ 
-      operator: "is", 
-      value: ${usersReferenceMS - 24 * 60 * 60 * 1000} // Current time - 1 day
-    }]
+    field: "status",
+    filters: [{ operator: "is", value: 400 }]
   }
 ]
 
-Query: "show me failed requests today"
+Query: "show successful and not found requests"
+Result: [
+  {
+    field: "status",
+    filters: [
+      { operator: "is", value: 200 },
+      { operator: "is", value: 404 }
+    ]
+  }
+]
+
+# Method Combinations
+Query: "get, post and delete requests"
+Result: [
+  {
+    field: "methods",
+    filters: [
+      { operator: "is", value: "GET" },
+      { operator: "is", value: "POST" },
+      { operator: "is", value: "DELETE" }
+    ]
+  }
+]
+
+Query: "read and write operations to /api"
+Result: [
+  {
+    field: "methods",
+    filters: [
+      { operator: "is", value: "GET" },
+      { operator: "is", value: "POST" }
+    ]
+  },
+  {
+    field: "paths",
+    filters: [{ operator: "startsWith", value: "api" }]
+  }
+]
+
+# Complex Combinations
+Query: "failed requests to /v1/users or /v2/users from api.prod.com in last 2h"
 Result: [
   {
     field: "status",
@@ -145,121 +231,55 @@ Result: [
     ]
   },
   {
-    field: "startTime",
-    filters: [{ 
-      operator: "is", 
-      value: ${getDayStart(usersReferenceMS)} // Start of the current day
-    }]
-  }
-]
-
-Query: "show requests from yesterday"
-Result: [
-  {
-    field: "startTime",
-    filters: [{ 
-      operator: "is", 
-      value: ${getDayStart(usersReferenceMS - 24 * 60 * 60 * 1000)} // Start of previous day
-    }],
-  },
-  {
-    field: "endTime",
-    filters: [{ 
-      operator: "is", 
-      value: ${getDayStart(usersReferenceMS)} // Start of current day
-    }]
-  }
-]
-
-Query: "path should start with /api/oz and method should be POST"
-Result: [
-  { 
     field: "paths",
-    filters: [{ operator: "startsWith", value: "/api/oz" }]
+    filters: [
+      { operator: "startsWith", value: "v1/users" },
+      { operator: "startsWith", value: "v2/users" }
+    ]
   },
   {
-    field: "methods", 
-    filters: [{ operator: "is", value: "POST" }]
-  }
-]
-
-Query: "give me the logs of last 10 minutes"
-Result: [
+    field: "host",
+    filters: [{ operator: "is", value: "api.prod.com" }]
+  },
   {
     field: "startTime",
     filters: [{ 
       operator: "is", 
-      value: ${usersReferenceMS - 10 * 60 * 1000} // Current time - 10 minutes
+      value: ${usersReferenceMS - 2 * 60 * 60 * 1000}
     }]
   }
 ]
 
-Query: "show logs between 2024-01-19 and 2024-01-20"
+Query: "localhost GET and POST /api errors since 2h and 30m ago"
 Result: [
   {
-    field: "startTime",
-    filters: [{ 
-      operator: "is", 
-      value: 1705622400000  // 2024-01-19 00:00:00
-    }]
-  },
-  {
-    field: "endTime",
-    filters: [{ 
-      operator: "is", 
-      value: 1705708800000  // 2024-01-20 00:00:00
-    }]
-  }
-]
-
-Query: "find POST and GET requests to api/v1"
-Result: [
-  {
-    field: "paths",
-    filters: [{ operator: "startsWith", value: "api/v1" }]
+    field: "host",
+    filters: [{ operator: "is", value: "localhost" }]
   },
   {
     field: "methods",
     filters: [
-      { operator: "is", value: "POST" },
-      { operator: "is", value: "GET" }
+      { operator: "is", value: "GET" },
+      { operator: "is", value: "POST" }
     ]
-  }
-]
-
-Query: "show me all okay statuses"
-Result: [
+  },
   {
-    field: "status",
-    filters: [{ operator: "is", value: 200 }]
-  }
-]
-
-Query: "get me request with ID req_3HagbMuvTs6gtGbijeHoqbU9Cijg"
-Result: [
-  {
-    field: "requestId",
-    filters: [{ operator: "is", value: "req_3HagbMuvTs6gtGbijeHoqbU9Cijg" }]
-  }
-]
-
-Query: "show 404 requests from test.example.com"
-Result: [
-  {
-    field: "host",
-    filters: [{ operator: "is", value: "test.example.com" }]
+    field: "paths",
+    filters: [{ operator: "startsWith", value: "api" }]
   },
   {
     field: "status",
-    filters: [{ operator: "is", value: 404 }]
-  }
-]
-
-Query: "find all POST requests"
-Result: [
+    filters: [
+      { operator: "is", value: 400 },
+      { operator: "is", value: 500 }
+    ]
+  },
   {
-    field: "methods",
-    filters: [{ operator: "is", value: "POST" }]
+    field: "since",
+    filters: [{ 
+      operator: "is", 
+      value: "2h"
+    }]
   }
 ]
 
@@ -270,14 +290,116 @@ ${operatorsByField}
   • 200 for successful responses
   • 400 for client errors (4XX series)
   • 500 for server errors (5XX series)
-- For relative time queries, support:
-  • 30m (30 minutes)
-  • 1h (1 hour)
-  • 1d (1 day)`;
-};
+- For relative time queries, support any combination of:
+  • Nx[m] for minutes (e.g., 30m, 45m)
+  • Nx[h] for hours (e.g., 1h, 24h)
+  • Nx[d] for days (e.g., 1d, 7d)
+  Multiple units can be combined (e.g., "1d 6h")
 
-const getDayStart = (timestamp: number): number => {
-  const date = new Date(timestamp);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
+Special handling rules:
+1. Always normalize paths by removing leading slash
+2. For multiple time ranges, use the longest duration
+3. For ambiguous terms like "failed", include both 400 and 500 status codes
+4. Treat "read" operations as GET and "write" operations as POST
+5. When seeing path parameters (e.g., {id}), match the base path
+6. For IP addresses and localhost, treat them as host values
+
+Error Handling Rules:
+1. Invalid time formats: Convert to nearest supported range (e.g., "1w" → "7d")
+2. Unknown HTTP methods: Default to GET for read-like terms, POST for write-like terms
+3. Invalid status codes: Map to nearest category (e.g., 418 → 400, 503 → 500)
+4. Malformed paths: Strip special characters and normalize
+
+Ambiguity Resolution Priority:
+1. Explicit over implicit (e.g., "GET" over "read-like" terms)
+2. Specific over general (e.g., "/api/v2" over "/api")
+3. Time ranges: Use most specific when multiple are valid
+4. Status codes: When ambiguous between success/error, prefer error for terms like "failed", "issues"
+5. Methods: When ambiguous between read/write, prefer read (GET) for safety
+
+Output Validation:
+1. Required fields must be present: field, filters
+2. Filters must have: operator, value
+3. Values must match field constraints:
+   - methods: must be valid HTTP method
+   - status: must be 200, 400, or 500
+   - paths: must be normalized string
+   - host: must be valid hostname/IP
+   - time: must be valid timestamp or duration
+
+Additional Examples:
+
+# Error Handling Examples
+Query: "show requests from last week"
+Result: [
+  {
+    field: "since",
+    filters: [{ 
+      operator: "is", 
+      value: "7d"  // Converts unsupported "week" to "7d"
+    }]
+  }
+]
+
+Query: "find browse requests to /api"
+Result: [
+  {
+    field: "methods",
+    filters: [{ 
+      operator: "is", 
+      value: "GET"  // Maps "browse" to GET as read-like term
+    }]
+  },
+  {
+    field: "paths",
+    filters: [{ 
+      operator: "startsWith", 
+      value: "api"  // Normalized path
+    }]
+  }
+]
+
+# Ambiguity Resolution Examples
+Query: "show api issues from last 2d and 6h"
+Result: [
+  {
+    field: "paths",
+    filters: [{ 
+      operator: "startsWith", 
+      value: "api" 
+    }]
+  },
+  {
+    field: "status",
+    filters: [
+      { operator: "is", value: 400 },
+      { operator: "is", value: 500 }
+    ]
+  },
+  {
+    field: "since",
+    filters: [{ 
+      operator: "is", 
+      value: "2d"  // Uses longest time range
+    }]
+  }
+]
+
+Query: "fetch requests to /api/v1 and /api"
+Result: [
+  {
+    field: "methods",
+    filters: [{ 
+      operator: "is", 
+      value: "GET"  // "fetch" mapped to GET
+    }]
+  },
+  {
+    field: "paths",
+    filters: [
+      { operator: "startsWith", value: "api/v1" },  // More specific path first
+      { operator: "startsWith", value: "api" }
+    ]
+  }
+]`;
 };
