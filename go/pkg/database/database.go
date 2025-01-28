@@ -28,29 +28,36 @@ type database struct {
 
 func New(config Config, middlewares ...Middleware) (Database, error) {
 
-	db := &database{}
-
 	write, err := sql.Open("mysql", config.PrimaryDSN)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.WithDesc("cannot open primary replica", ""))
 	}
-	db.writeReplica = &replica{
+
+	writeReplica := &replica{
 		db:    write,
 		query: gen.New(write),
 	}
-
+	readReplica := &replica{
+		db:    write,
+		query: gen.New(write),
+	}
 	if config.ReadOnlyDSN != "" {
 		read, err := sql.Open("mysql", config.ReadOnlyDSN)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.WithDesc("cannot open read replica", ""))
 		}
-		db.readReplica = &replica{
+		readReplica = &replica{
 			db:    read,
 			query: gen.New(read),
 		}
+
 	}
 
-	var wrapped Database = db
+	var wrapped Database = &database{
+		writeReplica: writeReplica,
+		readReplica:  readReplica,
+	}
+
 	for _, mw := range middlewares {
 		wrapped = mw(wrapped)
 	}

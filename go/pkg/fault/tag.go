@@ -12,6 +12,13 @@ const (
 	// This ensures all errors have at least a basic classification, making error
 	// handling more predictable.
 	UNTAGGED Tag = "UNTAGGED"
+
+	// An object was not found in the system.
+	NOT_FOUND Tag = "NOT_FOUND"
+
+	DATABASE_ERROR Tag = "DATABASE_ERROR"
+
+	INTERNAL_SERVER_ERROR Tag = "INTERNAL_SERVER_ERROR"
 )
 
 // GetTag examines an error and its chain of wrapped errors to find the first

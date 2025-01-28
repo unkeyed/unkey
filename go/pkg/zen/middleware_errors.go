@@ -14,7 +14,7 @@ func WithErrorHandling() Middleware {
 			}
 
 			switch fault.GetTag(err) {
-			case NotFoundError:
+			case fault.NOT_FOUND:
 				return s.JSON(404, api.NotFoundError{
 					Title:     "Not Found",
 					Type:      "https://unkey.com/docs/errors/not_found",
@@ -24,11 +24,14 @@ func WithErrorHandling() Middleware {
 					Instance:  nil,
 				})
 
-			case DatabaseError:
-				// ...
+			case fault.DATABASE_ERROR:
+				break // fall through to default 500
 
 			case fault.UNTAGGED:
 				break // fall through to default 500
+
+			case fault.INTERNAL_SERVER_ERROR:
+				break
 			}
 
 			return s.JSON(500, api.InternalServerError{

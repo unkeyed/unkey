@@ -69,7 +69,7 @@ linters-settings:
       - "^github.com/urfave/cli/v2.*$"
 
   lll:
-    line-length: 100
+    line-length: 120
   funlen:
     # Checks the number of lines in a function.
     # If lower than 0, disable the check.
@@ -254,7 +254,7 @@ linters:
     # - goprintffuncname # checks that printf-like functions are named with f at the end
     - gosec # inspects source code for security problems
     # - intrange # finds places where for loops could make use of an integer range
-    - lll # reports long lines
+    # - lll # reports long lines
     - loggercheck # checks key value pairs for common logger libraries (kitlog,klog,logr,zap)
     # - makezero # finds slice declarations with non-zero initial length
     # - mirror # reports wrong mirror patterns of bytes/strings usage

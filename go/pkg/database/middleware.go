@@ -1,4 +1,3 @@
 package database
 
-
-type Middleware func (Database) Database
+type Middleware func(Database) Database
