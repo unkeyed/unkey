@@ -20,7 +20,15 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
       and(eq(table.keyAuthId, keyAuthId), isNull(table.deletedAt)),
     limit: 100,
     with: {
-      roles: true,
+      roles: {
+        with: {
+          role: {
+            with: {
+              permissions: true,
+            },
+          },
+        },
+      },
       permissions: true,
     },
   });
@@ -43,6 +51,12 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
     if (!acc[ownerId]) {
       acc[ownerId] = [];
     }
+    const permissions = new Set(curr.permissions.map((p) => p.permissionId));
+    for (const role of curr.roles) {
+      for (const permission of role.role.permissions) {
+        permissions.add(permission.permissionId);
+      }
+    }
     acc[ownerId].push({
       id: curr.id,
       keyAuthId: curr.keyAuthId,
@@ -50,7 +64,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
       start: curr.start,
       roles: curr.roles.length,
       enabled: curr.enabled,
-      permissions: curr.permissions.length,
+      permissions: permissions.size,
       environment: curr.environment,
     });
     return acc;
