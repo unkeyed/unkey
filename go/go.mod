@@ -7,6 +7,7 @@ require (
 	github.com/axiomhq/axiom-go v0.20.2
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/danielgtaylor/huma v1.14.2
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/uuid v1.6.0
 	github.com/lmittmann/tint v1.0.6
 	github.com/maypok86/otter v1.2.2
@@ -61,7 +62,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
-	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/cel-go v0.22.1 // indirect
