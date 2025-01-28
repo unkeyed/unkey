@@ -11,6 +11,7 @@ export * from "./icons/chevron-right";
 export * from "./icons/circle-carret-right";
 export * from "./icons/circle-info-sparkle";
 export * from "./icons/circle-info-sparkle";
+export * from "./icons/clock";
 export * from "./icons/fingerprint";
 export * from "./icons/gauge";
 export * from "./icons/gear";

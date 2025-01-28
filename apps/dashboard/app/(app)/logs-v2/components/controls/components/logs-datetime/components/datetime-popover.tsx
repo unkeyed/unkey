@@ -95,7 +95,6 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
   const handleSuggestionChange = (id: number) => {
     const tempSuggestions = suggestions.map((suggestion) => {
       const isChecked = suggestion.id === id && !suggestion.checked;
-      setSelected(isChecked);
 
       return {
         ...suggestion,
@@ -125,48 +124,56 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
       (f) => !["endTime", "startTime", "since"].includes(f.field),
     );
     const selected = suggestions.find((suggestion) => suggestion.checked);
-    if (selected?.value !== undefined) {
-      setTitle(selected.display);
-      updateFilters([
-        ...activeFilters,
-        {
-          field: "since",
-          value: selected.value,
-          id: crypto.randomUUID(),
-          operator: "is",
-        },
-      ]);
-      return;
-    }
-    if (selected?.value === undefined && time.startTime) {
-      setTitle("Custom");
-      activeFilters.push({
-        field: "startTime",
-        value: time.startTime,
-        id: crypto.randomUUID(),
-        operator: "is",
-      });
+    if (selected) {
+      setSelected(true);
+      if (selected?.value !== undefined) {
+        setTitle(selected.display);
 
-      if (time.endTime) {
+        updateFilters([
+          ...activeFilters,
+          {
+            field: "since",
+            value: selected.value,
+            id: crypto.randomUUID(),
+            operator: "is",
+          },
+        ]);
+        return;
+      }
+      if (selected?.value === undefined && time.startTime) {
+        setTitle("Custom");
         activeFilters.push({
-          field: "endTime",
-          value: time.endTime,
+          field: "startTime",
+          value: time.startTime,
           id: crypto.randomUUID(),
           operator: "is",
         });
+
+        if (time.endTime) {
+          activeFilters.push({
+            field: "endTime",
+            value: time.endTime,
+            id: crypto.randomUUID(),
+            operator: "is",
+          });
+        }
       }
+      if (time.startTime === undefined && time.endTime === undefined) {
+        toast.error("Please select a date range", {
+          duration: 8000,
+          important: true,
+          position: "top-right",
+          style: {
+            whiteSpace: "pre-line",
+          },
+        });
+        return;
+      }
+    } else {
+      setSelected(false);
+      setTitle("No Filter");
     }
-    if (time.startTime === undefined && time.endTime === undefined) {
-      toast.error("Please select a date range", {
-        duration: 8000,
-        important: true,
-        position: "top-right",
-        style: {
-          whiteSpace: "pre-line",
-        },
-      });
-      return;
-    }
+
     updateFilters(activeFilters);
     setOpen(false);
   };
@@ -180,7 +187,7 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
         className="flex w-full bg-gray-1 dark:bg-black drop-shadow-3 p-0 m-0 rounded-lg"
         align="start"
       >
-        <div className="flex flex-col border border-r-1 border-gray-4 w-60 px-1.5 py-3 m-0 ">
+        <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
           <PopoverHeader />
           <DateTimeSuggestions
             options={suggestions}
@@ -192,10 +199,10 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
           onChange={(newRange, newStart, newEnd) => onDateTimeChange(newRange, newStart, newEnd)}
           className="gap-2 h-full"
         >
-          <DateTime.Calendar mode="range" className="border border-b-gray-4 px-3 pt-2.5 pb-3.5" />
+          <DateTime.Calendar mode="range" className="px-3 pt-2.5 pb-3.5 border-b border-gray-4" />
 
           <DateTime.TimeInput type="range" className="px-3.5 h-8 mt-1" />
-          <DateTime.Actions className="px-3.5 mt-1">
+          <DateTime.Actions className="px-3.5 mt-1 mb-1 h-full">
             <Button className="w-full justify-center" variant="primary" onClick={handleApplyFilter}>
               Apply Filter
             </Button>

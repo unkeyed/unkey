@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 
-import { TimeClock } from "@unkey/icons";
+import { Clock } from "@unkey/icons";
 import { useState } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
@@ -105,10 +105,10 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   };
 
   const inputClassNames = `
-    w-6 p-0 
+    w-5 p-0 
     border-none bg-transparent
-    text-sm text-center text-foreground
-    outline-none ring-0 focus:ring-0
+    text-center leading-4 text-[0.8331rem]
+    outline-none ring-0 focus:ring-0 text-gray-12 font-medium
   `;
 
   const renderTimeInput = (field: TimeField, ariaLabel: string) => (
@@ -127,19 +127,19 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   return (
     <div
       className={cn(
-        "flex h-8 w-full items-center rounded rounded-3 border border-[1px] border-gray-4 bg-gray-2 text-sm text-gray-12",
-        focus ? "border-[1.5px] border-gray-10" : "",
+        "flex h-8 w-full items-center rounded rounded-3 border border-[1px] border-gray-4 bg-gray-2 text-gray-12",
+        focus ? "border-[1px] border-gray-10" : "",
       )}
     >
-      <div className="text-gray-9 ml-4 mr-3">
-        <TimeClock className="size-3 stroke-1.5" />
+      <div className="text-gray-9 ml-3 mr-3">
+        <Clock className="size-3 stroke-1.5" />
       </div>
       {renderTimeInput("HH", "Hours")}
-      <span className="text-gray-12">:</span>
+      <span className="text-gray-12 leading-4 text-[0.8331rem] pb-[2px]">:</span>
       {renderTimeInput("mm", "Minutes")}
-      <span className="text-gray-12">:</span>
+      <span className="text-gray-12 leading-4 text-[0.8331rem] pb-[2px]">:</span>
       {renderTimeInput("ss", "Seconds")}
-      <span className="text-gray-12"> </span>
+      <span className="text-gray-12 leading-4 text-[0.8331rem] pb-[2px]"> </span>
       {/* AM/PM and timezone still needs to be implemented */}
       {/* {renderTimeInput("")} */}
     </div>

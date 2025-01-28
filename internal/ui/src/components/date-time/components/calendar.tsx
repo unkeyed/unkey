@@ -58,13 +58,12 @@ const styleClassNames = {
   head_row:
     "flex flex-start w-full border-none h-8 mx-0 px-0 pt-2 gap-3 justify-center items-center",
   head_cell: "w-8 h-8 font-normal text-xs text-gray-8 bg-transparent border-none ",
-  row: "flex w-full border-none justify-between",
-  cell: "border-none h-8 w-8 text-center rounded rounded-md text-sm p-0 relative [&:has([aria-selected].day-outside)]:bg-gray-4 [&:has([aria-selected])]:bg-gray-4  focus-within:relative focus-within:z-20",
+  row: "flex w-full border-none justify-between ",
+  cell: "border-none h-8 w-8 text-center text-gray-12 rounded rounded-3 text-sm p-0 relative [&:has([aria-selected].day-outside)]:bg-gray-4 [&:has([aria-selected])]:bg-gray-4 focus-within:relative focus-within:z-20",
   day: cn(
     buttonVariants({ variant: "ghost" }),
-    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-[13px] flex items-center justify-center hover:bg-gray-3",
+    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-[13px] flex items-center justify-center hover:bg-gray-3 text-gray-12 rounded rounded-3",
   ),
-
   day_range_start: "hover:bg-gray-3 focus:bg-gray-5 text-gray-12",
   day_range_middle: "",
   day_range_end: "hover:bg-gray-2 focus:bg-gray-3 focus:text-gray-12",
