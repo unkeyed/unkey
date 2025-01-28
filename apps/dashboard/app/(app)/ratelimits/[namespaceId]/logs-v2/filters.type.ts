@@ -32,7 +32,7 @@ export type FilterFieldConfigs = {
   endTime: NumberConfig;
   since: StringConfig;
   identifiers: StringConfig;
-  requestId: StringConfig;
+  requestIds: StringConfig;
   rejected: RejectedConfig;
 };
 
@@ -40,8 +40,8 @@ export type QuerySearchParams = {
   startTime?: number | null;
   endTime?: number | null;
   since?: string | null;
-  identifiers: FilterValue[] | null;
-  requestId: FilterUrlValue[] | null;
+  identifiers: FilterUrlValue[] | null;
+  requestIds: FilterUrlValue[] | null;
   rejected: 1 | 0; // 0 means rejected
 };
 

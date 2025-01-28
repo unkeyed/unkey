@@ -15,7 +15,7 @@ export const filterFieldEnum = z.enum([
   "endTime",
   "since",
   "identifiers",
-  "requestId",
+  "requestIds",
   "rejected",
 ]);
 
@@ -139,7 +139,7 @@ export const filterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is", "contains"],
   },
-  requestId: {
+  requestIds: {
     type: "string",
     operators: ["is"],
   },
