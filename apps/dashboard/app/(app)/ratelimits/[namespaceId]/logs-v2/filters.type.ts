@@ -42,7 +42,7 @@ export type QuerySearchParams = {
   since?: string | null;
   identifiers: FilterUrlValue[] | null;
   requestIds: FilterUrlValue[] | null;
-  rejected: 1 | 0; // 0 means rejected
+  rejected: 1 | 0 | null;
 };
 
 export type FilterUrlValue = Pick<FilterValue, "value" | "operator">;

@@ -53,7 +53,6 @@ export const queryRatelimitLogs = rateLimitedProcedure(ratelimit.update)
         message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
-
     const transformedInputs = transformFilters(input);
     const result = await clickhouse.ratelimits.logs({
       ...transformedInputs,

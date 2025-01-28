@@ -214,9 +214,22 @@ export const ratelimitLogs = z.object({
   time: z.number().int(),
   identifier: z.string(),
   rejected: z.number().int(),
+
+  // Fields from metrics table
+  host: z.string(),
+  method: z.string(),
+  path: z.string(),
+  request_headers: z.array(z.string()),
+  request_body: z.string(),
+  response_status: z.number().int(),
+  response_headers: z.array(z.string()),
+  response_body: z.string(),
+  service_latency: z.number().int(),
+  user_agent: z.string(),
+  colo: z.string(),
 });
 
-export type RatelimitLogs = z.infer<typeof ratelimitLogs>;
+export type RatelimitLog = z.infer<typeof ratelimitLogs>;
 export type RatelimitLogsParams = z.infer<typeof ratelimitLogsParams>;
 
 export function getRatelimitLogs(ch: Querier) {
@@ -239,17 +252,38 @@ export function getRatelimitLogs(ch: Querier) {
     const query = ch.query({
       query: `
         WITH filtered_requests AS (
-          SELECT *
-          FROM ratelimits.raw_ratelimits_v1
-          WHERE workspace_id = {workspaceId: String}
-            AND namespace_id = {namespaceId: String}
-            AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-
+          SELECT 
+            -- Rate limits fields
+            r.request_id,
+            r.time,
+            r.workspace_id,   
+            r.namespace_id,  
+            r.identifier,
+            r.passed,
+            
+            -- Metrics fields
+            m.host,
+            m.method,
+            m.path,
+            m.request_headers,
+            m.request_body,
+            m.response_status,
+            m.response_headers,
+            m.response_body,
+            m.service_latency,
+            m.user_agent,
+            m.colo
+          FROM ratelimits.raw_ratelimits_v1 r
+          LEFT JOIN metrics.raw_api_requests_v1 m ON 
+            r.request_id = m.request_id
+          WHERE r.workspace_id = {workspaceId: String}
+            AND r.namespace_id = {namespaceId: String}
+            AND r.time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
             ---------- Apply request ID filter if present (highest priority)
             AND (
               CASE
                 WHEN length({requestIds: Array(String)}) > 0 THEN 
-                  request_id IN {requestIds: Array(String)}
+                  r.request_id IN {requestIds: Array(String)}
                 ELSE TRUE
               END
             )
@@ -261,7 +295,7 @@ export function getRatelimitLogs(ch: Querier) {
             AND (
               CASE
                 WHEN {rejected: Nullable(UInt8)} IS NOT NULL THEN 
-                  NOT passed = ({rejected: Nullable(UInt8)} = 0)
+                  (NOT r.passed) = {rejected: Nullable(UInt8)}
                 ELSE TRUE
               END
             )
@@ -271,7 +305,7 @@ export function getRatelimitLogs(ch: Querier) {
               CASE
                 WHEN {cursorTime: Nullable(UInt64)} IS NOT NULL 
                   AND {cursorRequestId: Nullable(String)} IS NOT NULL
-                THEN (time, request_id) < (
+                THEN (r.time, r.request_id) < (
                   {cursorTime: Nullable(UInt64)}, 
                   {cursorRequestId: Nullable(String)}
                 )
@@ -283,15 +317,27 @@ export function getRatelimitLogs(ch: Querier) {
         SELECT
           request_id,
           time,
+          workspace_id,
+          namespace_id,
           identifier,
-          toUInt8(NOT passed) as rejected
+          toUInt8(NOT passed) as rejected,
+          host,
+          method,
+          path,
+          request_headers,
+          request_body,
+          response_status,
+          response_headers,
+          response_body,
+          service_latency,
+          user_agent,
+          colo
         FROM filtered_requests
         ORDER BY time DESC, request_id DESC
         LIMIT {limit: Int}`,
       params: ratelimitLogsParams,
       schema: ratelimitLogs,
     });
-
     return query(args);
   };
 }

@@ -118,7 +118,7 @@ export const useFilters = () => {
         endTime: null,
         since: null,
         identifiers: null,
-        rejected: 0,
+        rejected: null,
       };
 
       // Group filters by field

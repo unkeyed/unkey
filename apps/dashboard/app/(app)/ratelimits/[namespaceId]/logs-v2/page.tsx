@@ -61,7 +61,7 @@ const LogsContainerPage = ({
         </Navbar.Actions>
       </Navbar>
       <SubMenu navigation={navigation(namespaceId)} segment="logs" />
-      <LogsClient />
+      <LogsClient namespaceId={namespaceId} />
     </div>
   );
 };

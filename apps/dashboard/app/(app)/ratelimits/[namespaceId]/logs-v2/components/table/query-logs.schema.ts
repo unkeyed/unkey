@@ -27,7 +27,7 @@ export const ratelimitQueryLogsPayload = z.object({
       ),
     })
     .nullable(),
-  rejected: z.number().int(),
+  rejected: z.number().int().nullable(),
   cursor: z
     .object({
       requestId: z.string().nullable(),

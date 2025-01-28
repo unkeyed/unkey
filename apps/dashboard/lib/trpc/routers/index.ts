@@ -29,6 +29,7 @@ import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
+import { queryRatelimitLogs } from "./ratelimit/query-logs";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
 import { addPermissionToRootKey } from "./rbac/addPermissionToRootKey";
@@ -107,6 +108,9 @@ export const router = t.router({
     updateRole: updateRole,
   }),
   ratelimit: t.router({
+    logs: t.router({
+      query: queryRatelimitLogs,
+    }),
     namespace: t.router({
       create: createNamespace,
       update: t.router({
