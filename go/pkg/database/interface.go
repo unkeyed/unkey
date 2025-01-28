@@ -9,9 +9,13 @@ import (
 type Database interface {
 
 	// Workspace
-	// InsertWorkspace(ctx context.Context, newWorkspace entities.Workspace) error
+	InsertWorkspace(ctx context.Context, workspace entities.Workspace) error
+	FindWorkspaceByID(ctx context.Context, id string) (entities.Workspace, error)
+	UpdateWorkspacePlan(ctx context.Context, id string, plan entities.WorkspacePlan) error
+	UpdateWorkspaceEnabled(ctx context.Context, id string, enabled bool) error
 	// UpdateWorkspace(ctx context.Context, workspace entities.Workspace) error
 	// FindWorkspace(ctx context.Context, workspaceId string) (entities.Workspace, bool, error)
+	DeleteWorkspace(ctx context.Context, id string, hardDelete bool) error
 
 	// KeyAuth
 	// InsertKeyAuth(ctx context.Context, newKeyAuth entities.KeyAuth) error
@@ -35,9 +39,17 @@ type Database interface {
 	// CountKeys(ctx context.Context, keyAuthId string) (int64, error)
 	// ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]entities.Key, error)
 
-	// Ratelimit Overrides
+	// Ratelimit Namespace
+	InsertRatelimitNamespace(ctx context.Context, namespace entities.RatelimitNamespace) error
+	FindRatelimitNamespaceByID(ctx context.Context, id string) (entities.RatelimitNamespace, error)
+	FindRatelimitNamespaceByName(ctx context.Context, workspaceID string, name string) (entities.RatelimitNamespace, error)
+	DeleteRatelimitNamespace(ctx context.Context, id string) error
+
+	// Ratelimit Override
 	InsertRatelimitOverride(ctx context.Context, ratelimitOverride entities.RatelimitOverride) error
 	FindRatelimitOverrideByIdentifier(ctx context.Context, identifier string) (ratelimitOverride entities.RatelimitOverride, err error)
+	UpdateRatelimitOverride(ctx context.Context, override entities.RatelimitOverride) error
+	DeleteRatelimitOverride(ctx context.Context, id string) error
 
 	// Stuff
 	Close() error

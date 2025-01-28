@@ -6,9 +6,23 @@ package gen
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
+	//DeleteRatelimitNamespace
+	//
+	//  UPDATE `ratelimit_namespaces`
+	//  SET deleted_at = NOW()
+	//  WHERE id = ?
+	DeleteRatelimitNamespace(ctx context.Context, id string) (sql.Result, error)
+	//DeleteRatelimitOverride
+	//
+	//  UPDATE `ratelimit_overrides`
+	//  SET
+	//      deleted_at = NOW()
+	//  WHERE id = ?
+	DeleteRatelimitOverride(ctx context.Context, id string) (sql.Result, error)
 	//FindKeyByHash
 	//
 	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys`
@@ -19,11 +33,33 @@ type Querier interface {
 	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys`
 	//  WHERE id = ?
 	FindKeyByID(ctx context.Context, id string) (Key, error)
+	//FindRatelimitNamespaceByID
+	//
+	//  SELECT id, workspace_id, name, created_at, updated_at, deleted_at FROM `ratelimit_namespaces`
+	//  WHERE id = ?
+	FindRatelimitNamespaceByID(ctx context.Context, id string) (RatelimitNamespace, error)
+	//FindRatelimitNamespaceByName
+	//
+	//  SELECT id, workspace_id, name, created_at, updated_at, deleted_at FROM `ratelimit_namespaces`
+	//  WHERE name = ?
+	//  AND workspace_id = ?
+	FindRatelimitNamespaceByName(ctx context.Context, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error)
 	//FindRatelimitOverrideByIdentifier
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at, updated_at, deleted_at FROM `ratelimit_overrides`
 	//  WHERE identifier = ?
 	FindRatelimitOverrideByIdentifier(ctx context.Context, identifier string) (RatelimitOverride, error)
+	//FindWorkspaceByID
+	//
+	//  SELECT id, tenant_id, name, created_at, deleted_at, plan, stripe_customer_id, stripe_subscription_id, trial_ends, beta_features, features, plan_locked_until, plan_downgrade_request, plan_changed, subscriptions, enabled, delete_protection FROM `workspaces`
+	//  WHERE id = ?
+	FindWorkspaceByID(ctx context.Context, id string) (Workspace, error)
+	//HardDeleteWorkspace
+	//
+	//  DELETE FROM `workspaces`
+	//  WHERE id = ?
+	//  AND delete_protection = false
+	HardDeleteWorkspace(ctx context.Context, id string) (sql.Result, error)
 	//InsertOverride
 	//
 	//  INSERT INTO
@@ -49,6 +85,60 @@ type Querier interface {
 	//          now()
 	//      )
 	InsertOverride(ctx context.Context, arg InsertOverrideParams) error
+	//InsertWorkspace
+	//
+	//  INSERT INTO `workspaces` (
+	//      id,
+	//      tenant_id,
+	//      name,
+	//      created_at,
+	//      plan,
+	//      beta_features,
+	//      features,
+	//      enabled,
+	//      delete_protection
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      NOW(),
+	//      'free',
+	//      '{}',
+	//      '{}',
+	//      true,
+	//      true
+	//  )
+	InsertWorkspace(ctx context.Context, arg InsertWorkspaceParams) error
+	//SoftDeleteWorkspace
+	//
+	//  UPDATE `workspaces`
+	//  SET deleted_at = NOW()
+	//  WHERE id = ?
+	//  AND delete_protection = false
+	SoftDeleteWorkspace(ctx context.Context, id string) (sql.Result, error)
+	//UpdateRatelimitOverride
+	//
+	//  UPDATE `ratelimit_overrides`
+	//  SET
+	//      `limit` = ?,
+	//      duration = ?,
+	//      async = ?,
+	//      updated_at = NOW()
+	//  WHERE id = ?
+	UpdateRatelimitOverride(ctx context.Context, arg UpdateRatelimitOverrideParams) (sql.Result, error)
+	//UpdateWorkspaceEnabled
+	//
+	//  UPDATE `workspaces`
+	//  SET enabled = ?
+	//  WHERE id = ?
+	UpdateWorkspaceEnabled(ctx context.Context, arg UpdateWorkspaceEnabledParams) (sql.Result, error)
+	//UpdateWorkspacePlan
+	//
+	//  UPDATE `workspaces`
+	//  SET plan = ?
+	//  WHERE id = ?
+	UpdateWorkspacePlan(ctx context.Context, arg UpdateWorkspacePlanParams) (sql.Result, error)
 }
 
 var _ Querier = (*Queries)(nil)

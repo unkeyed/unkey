@@ -54,6 +54,9 @@ type InternalServerError = BaseError
 // NotFoundError defines model for NotFoundError.
 type NotFoundError = BaseError
 
+// PreconditionFailedError defines model for PreconditionFailedError.
+type PreconditionFailedError = BaseError
+
 // V2LivenessResponseBody defines model for V2LivenessResponseBody.
 type V2LivenessResponseBody struct {
 	// Message Whether we're alive or not

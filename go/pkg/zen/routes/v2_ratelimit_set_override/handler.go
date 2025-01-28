@@ -1,4 +1,4 @@
-package v2RatelimitLimit
+package handler
 
 import (
 	"net/http"
@@ -38,6 +38,7 @@ func New(svc *zen.Services) zen.Route {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Time{},
 			DeletedAt:   time.Time{},
+			Async:       false,
 		})
 		if err != nil {
 			return fault.Wrap(err,

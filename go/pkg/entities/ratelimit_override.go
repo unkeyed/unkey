@@ -11,6 +11,7 @@ type RatelimitOverride struct {
 	Identifier  string
 	Limit       int32
 	Duration    time.Duration
+	Async       bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   time.Time

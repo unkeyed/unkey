@@ -19,6 +19,8 @@ const (
 	DATABASE_ERROR Tag = "DATABASE_ERROR"
 
 	INTERNAL_SERVER_ERROR Tag = "INTERNAL_SERVER_ERROR"
+
+	PROTECTED_RESOURCE Tag = "PROTECTED_RESOURCE"
 )
 
 // GetTag examines an error and its chain of wrapped errors to find the first

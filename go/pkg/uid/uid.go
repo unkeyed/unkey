@@ -12,6 +12,7 @@ const (
 	RequestPrefix           Prefix = "req"
 	NodePrefix              Prefix = "node"
 	RatelimitOverridePrefix Prefix = "rlor"
+	TestPrefix              Prefix = "test"
 )
 
 // New Returns a new random base58 encoded uuid.
@@ -30,4 +31,8 @@ func Node() string {
 
 func Request() string {
 	return New(RequestPrefix)
+}
+
+func Test() string {
+	return New(TestPrefix)
 }

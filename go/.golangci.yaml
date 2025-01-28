@@ -188,6 +188,11 @@ linters-settings:
     packages:
       - github.com/jmoiron/sqlx
 
+  wrapcheck:
+    extra-ignore-sigs:
+      - fault.New(
+    ignoreSigRegexps:
+      - mw\.next\..*
   sloglint:
     # Enforce not using global loggers.
     # Values:

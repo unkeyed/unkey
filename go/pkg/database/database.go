@@ -5,6 +5,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/database/gen"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/logging"
 )
 
 type Config struct {
@@ -14,6 +15,8 @@ type Config struct {
 	// The readonly replica will be used for most read queries.
 	// If omitted, the primary is used.
 	ReadOnlyDSN string
+
+	Logger logging.Logger
 }
 
 type replica struct {
@@ -24,6 +27,7 @@ type replica struct {
 type database struct {
 	writeReplica *replica
 	readReplica  *replica
+	logger       logging.Logger
 }
 
 func New(config Config, middlewares ...Middleware) (Database, error) {
@@ -56,6 +60,7 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 	var wrapped Database = &database{
 		writeReplica: writeReplica,
 		readReplica:  readReplica,
+		logger:       config.Logger,
 	}
 
 	for _, mw := range middlewares {
