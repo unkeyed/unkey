@@ -44,6 +44,18 @@ export const createRole = t.procedure
     const roleId = newId("role");
     await db
       .transaction(async (tx) => {
+        const existing = await tx.query.roles.findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.workspaceId, workspace.id), eq(table.name, input.name)),
+        });
+        if (existing) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Role with the same name already exists. To update it, go to 'Authorization' in the sidebar.",
+          });
+        }
+
         await tx
           .insert(schema.roles)
           .values({

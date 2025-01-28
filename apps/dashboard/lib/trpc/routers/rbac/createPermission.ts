@@ -44,6 +44,18 @@ export const createPermission = t.procedure
     const permissionId = newId("permission");
     await db
       .transaction(async (tx) => {
+        const existing = await tx.query.permissions.findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.workspaceId, workspace.id), eq(table.name, input.name)),
+        });
+        if (existing) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Permission with the same name already exists. To update it, go to 'Authorization' in the sidebar.",
+          });
+        }
+
         await tx.insert(schema.permissions).values({
           id: permissionId,
           name: input.name,
