@@ -45,8 +45,6 @@ export type FilterFieldConfigs = {
   since: StringConfig;
 };
 
-export type AllowedOperators<F extends FilterField> = FilterFieldConfigs[F]["operators"][number];
-
 export type QuerySearchParams = {
   methods: FilterUrlValue[] | null;
   paths: FilterUrlValue[] | null;

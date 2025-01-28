@@ -21,7 +21,12 @@ import { clickhouse } from "@/lib/clickhouse";
 import { Gauge } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Check, X } from "lucide-react";
-import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs/server";
+import {
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsIsoDateTime,
+  parseAsString,
+} from "nuqs/server";
 import { Suspense } from "react";
 import { navigation } from "../constants";
 import { Filters } from "./filter";
@@ -76,11 +81,19 @@ export default async function AuditPage(props: Props) {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}`} isIdentifier>
+          <Navbar.Breadcrumbs.Link href="/ratelimits">
+            Ratelimits
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link
+            href={`/ratelimits/${props.params.namespaceId}`}
+            isIdentifier
+          >
             {namespace.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}/logs`} active>
+          <Navbar.Breadcrumbs.Link
+            href={`/ratelimits/${props.params.namespaceId}/logs`}
+            active
+          >
             Logs
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
@@ -96,7 +109,10 @@ export default async function AuditPage(props: Props) {
         </Navbar.Actions>
       </Navbar>
       <PageContent>
-        <SubMenu navigation={navigation(props.params.namespaceId)} segment="logs" />
+        <SubMenu
+          navigation={navigation(props.params.namespaceId)}
+          segment="logs"
+        />
 
         <div className="flex flex-col gap-8 mt-8">
           <Filters />
@@ -144,10 +160,10 @@ const AuditLogTable: React.FC<{
     namespaceId: namespaceId,
     start: selected.before?.getTime() ?? undefined,
     end: selected.after?.getTime() ?? undefined,
-    identifier: selected.identifier.length > 0 ? selected.identifier : undefined,
+    identifier:
+      selected.identifier.length > 0 ? selected.identifier : undefined,
     country: selected.country.length > 0 ? selected.country : undefined,
     ipAddress: selected.ipAddress.length > 0 ? selected.ipAddress : undefined,
-
     passed: selected.success ?? undefined,
   };
   const logs = await clickhouse.ratelimits.logs(query).then((res) => res.val!);
@@ -207,7 +223,10 @@ const AuditLogTable: React.FC<{
                 </span>
               </TableCell>
               <TableCell>
-                <Menu namespace={{ id: namespaceId }} identifier={l.identifier} />
+                <Menu
+                  namespace={{ id: namespaceId }}
+                  identifier={l.identifier}
+                />
               </TableCell>
             </TableRow>
           ))}
