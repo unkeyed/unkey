@@ -1,45 +1,42 @@
 'use server';
 
-/**
- * Client-friendly actions for the auth client. 
- * You should be able to import the `auth` server provider on non-client pages.
- * But if you need access to auth functions on the client, add what you need to this file
- * and import the functions you need access to into the client.
- * 
- * Use/create accompanying hooks if you need a loading state
- * i.e. useUser, useOrganization
- * 
- * NO EDGE RUNTIME UNLESS YOU LIKE CRYTPO MODULE RESOLUTION ERRORS >:(
- */
 import { auth } from './server';
 import { 
   type User, 
-  type OrgMembership, 
-  type SignInViaOAuthOptions,
-  UNKEY_SESSION_COOKIE, 
+  type MembershipListResponse,
+  type EmailAuthResult,
+  type VerificationResult,
+  type OAuthResult,
+  UserData,
+  UNKEY_SESSION_COOKIE,
+  AuthErrorCode,
+  SignInViaOAuthOptions,
+  OrgInviteParams,
   Invitation,
-  OrgInvite,
   Organization,
-  OrgInvitation,
-  AuthErrorCode
+  InvitationListResponse,
+  UpdateMembershipParams,
+  UpdateOrgParams,
+  Membership,
+  SessionData,
 } from './types';
+import { cookies } from 'next/headers';
 import { deleteCookie, setCookies } from './cookies';
 import { redirect } from 'next/navigation';
 import { db } from '../db';
-import { SIGN_IN_URL } from '@clerk/nextjs/server';
 
 // Helper function to check authentication
 async function requireAuth(): Promise<User> {
   const user = await auth.getCurrentUser();
-    if (!user) {
-      redirect('/auth/sign-in');
-    }
-    return user;
+  if (!user) {
+    redirect('/auth/sign-in');
   }
+  return user;
+}
 
 // Helper function to check organization access
 async function requireOrgAccess(orgId: string, userId: string): Promise<void> {
-  const memberships = await auth.listMemberships(userId);
+  const memberships = await auth.listMemberships();
   const hasAccess = memberships.data.some(m => m.organization.id === orgId);
   if (!hasAccess) {
     throw new Error('You do not have access to this organization');
@@ -48,7 +45,7 @@ async function requireOrgAccess(orgId: string, userId: string): Promise<void> {
 
 // Helper to check admin status
 async function requireOrgAdmin(orgId: string, userId: string): Promise<void> {
-  const memberships = await auth.listMemberships(userId);
+  const memberships = await auth.listMemberships();
   const isAdmin = memberships.data.some(
     m => m.organization.id === orgId && m.role === 'admin'
   );
@@ -57,74 +54,139 @@ async function requireOrgAdmin(orgId: string, userId: string): Promise<void> {
   }
 }
 
+// Authentication Actions
+export async function signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
+  return await auth.signUpViaEmail(params);
+}
+
+export async function signInViaEmail(email: string): Promise<EmailAuthResult> {
+  return await auth.signInViaEmail(email);
+}
+
+export async function verifyAuthCode(params: { email: string; code: string }): Promise<VerificationResult> {
+  try {
+    const result = await auth.verifyAuthCode(params);
+    
+    if (result.success) {
+      await setCookies(result.cookies);
+      redirect(result.redirectTo);
+    }
+
+    if (!result.success && 
+      result.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED && 
+      'cookies' in result) {
+    await setCookies(result.cookies);
+  }
+    
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
+  if (!email.trim()) {
+    return {
+      success: false,
+      code: AuthErrorCode.INVALID_EMAIL,
+      message: "Email address is required."
+    };
+  }
+  return await auth.resendAuthCode(email);
+}
+
+export async function signIntoWorkspace(orgId: string): Promise<VerificationResult> {
+  const pendingToken = cookies().get('sess-temp')?.value;
+  
+  if (!pendingToken) {
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: "No pending authentication found"
+    };
+  }
+
+  try {
+    const result = await auth.completeOrgSelection({ 
+      orgId, 
+      pendingAuthToken: pendingToken 
+    });
+
+    if (result.success) {
+      await setCookies(result.cookies);
+      await deleteCookie('sess-temp');
+      redirect(result.redirectTo);
+    }
+
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// User & Session Management
 export async function getCurrentUser(): Promise<User | null> {
   return await auth.getCurrentUser();
 }
 
-export async function listMemberships(userId?: string): Promise<OrgMembership> {
-  const user = await requireAuth();
-  // Only allow users to list their own memberships unless they provide a userId
-  if (userId && userId !== user.id) {
-    throw new Error('Unauthorized to view other users memberships');
-  }
-  return await auth.listMemberships(userId || user.id);
+export async function listMemberships(): Promise<MembershipListResponse> {
+  await requireAuth();
+  return await auth.listMemberships();
 }
 
-export async function refreshSession(orgId: string): Promise<void> {
+export async function refreshSession(orgId: string): Promise<SessionData | null> {
   const user = await requireAuth();
   await requireOrgAccess(orgId, user.id);
   return await auth.refreshSession(orgId);
 }
 
-export async function getSignOutUrl(): Promise<string | null> {
-  await requireAuth(); // Ensure user is authenticated
-  const url = await auth.getSignOutUrl();
-  return url;
-}
-
-export async function createTenant(params: { name: string, userId: string }): Promise<string> {
-  const user = await requireAuth();
-  // Only allow users to create tenants for themselves
-  if (params.userId !== user.id) {
-    throw new Error('Unauthorized to create tenant for another user');
-  }
-  return await auth.createTenant(params);
-}
-
+// OAuth
 export async function signInViaOAuth(options: SignInViaOAuthOptions): Promise<string> {
   return await auth.signInViaOAuth(options);
 }
 
-
-/*
-  * Sign out the current user and redirect to the sign in page.
-  * This function will delete the session cookie before redirecting to the sign in page
-  * @returns {Promise<void>}
-*/
-export async function signOut(): Promise<void> {
-  let redirectPath: string | null = null
-    await requireAuth();
-    redirectPath = await getSignOutUrl();
+export async function completeOAuthSignIn(request: Request): Promise<OAuthResult> {
+  try {
+    const result = await auth.completeOAuthSignIn(request);
     
-    if (!redirectPath) {
-      redirectPath = "/auth/sign-in";
+    if (result.success) {
+      await setCookies(result.cookies);
+      redirect(result.redirectTo);
     }
 
-  // Always delete the session cookie before redirecting to sign out
-    await deleteCookie(UNKEY_SESSION_COOKIE);
-    redirect(redirectPath || "/auth/sign-in");
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
 }
 
-export async function inviteMember(params: OrgInvite): Promise<Invitation> {
-  const user = await requireAuth();
-  await requireOrgAdmin(params.orgId, user.id);
-  return await auth.inviteMember(params);
+// Sign Out
+export async function signOut(): Promise<void> {
+  await requireAuth();
+  const signOutUrl = await auth.getSignOutUrl();
+  await deleteCookie(UNKEY_SESSION_COOKIE);
+  redirect(signOutUrl || '/auth/sign-in');
 }
 
-export async function getOrg(orgId: string): Promise<Organization> {
+// Organization Management
+export async function createTenant(params: { name: string; userId: string }): Promise<string> {
   const user = await requireAuth();
-  await requireOrgAccess(orgId, user.id);
-  return await auth.getOrg(orgId);
+  if (params.userId !== user.id) {
+    throw new Error('Unauthorized to create tenant for another user');
+  }
+  return await auth.createTenant(params);
 }
 
 export async function getWorkspace(tenantId: string): Promise<any> {
@@ -132,18 +194,17 @@ export async function getWorkspace(tenantId: string): Promise<any> {
     throw new Error("TenantId/orgId is required to look up workspace");
   }
   const user = await requireAuth();
-  // Only allow users to retrieve their workspace
   if (tenantId !== user.orgId) {
     throw new Error('Unauthorized to view other users memberships');
   }
-  const workspace = await db.query.workspaces.findFirst({
+  return await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
-  return workspace;
 }
 
-export async function getOrganizationMemberList(orgId: string): Promise<OrgMembership> {
+// Membership & Invitation Management
+export async function getOrganizationMemberList(orgId: string): Promise<MembershipListResponse> {
   if (!orgId) {
     throw new Error("OrgId is required.");
   }
@@ -152,7 +213,13 @@ export async function getOrganizationMemberList(orgId: string): Promise<OrgMembe
   return await auth.getOrganizationMemberList(orgId);
 }
 
-export async function getInvitationList(orgId: string): Promise<OrgInvitation> {
+export async function inviteMember(params: OrgInviteParams): Promise<Invitation> {
+  const user = await requireAuth();
+  await requireOrgAdmin(params.orgId, user.id);
+  return await auth.inviteMember(params);
+}
+
+export async function getInvitationList(orgId: string): Promise<InvitationListResponse> {
   if (!orgId) {
     throw new Error("OrgId is required.");
   }
@@ -161,64 +228,20 @@ export async function getInvitationList(orgId: string): Promise<OrgInvitation> {
   return await auth.getInvitationList(orgId);
 }
 
-export async function removeMembership(params: {membershipId: string, orgId: string}): Promise<Invitation> {
+export async function removeMembership(params: { membershipId: string; orgId: string }): Promise<void> {
   const user = await requireAuth();
   await requireOrgAdmin(params.orgId, user.id);
   return await auth.removeMembership(params.membershipId);
 }
 
-export async function updateMembership(params: {membershipId: string, orgId: string, role: string}): Promise<Invitation> {
+export async function updateMembership(params: { membershipId: string; orgId: string; role: string }): Promise<Membership> {
   const user = await requireAuth();
   await requireOrgAdmin(params.orgId, user.id);
-  return await auth.updateMembership({membershipId: params.membershipId, role: params.role});
+  return await auth.updateMembership({ membershipId: params.membershipId, role: params.role });
 }
 
-export async function revokeOrgInvitation(params: {invitationId: string, orgId: string}): Promise<Invitation> {
+export async function revokeOrgInvitation(params: { invitationId: string; orgId: string }): Promise<void> {
   const user = await requireAuth();
   await requireOrgAdmin(params.orgId, user.id);
   return await auth.revokeOrgInvitation(params.invitationId);
-}
-
-export async function signUpViaEmail(params: {firstName: string, lastName: string, email: string}): Promise<any> {
-  // public
-  return await auth.signUpViaEmail(params);
-}
-
-export async function signInViaEmail(email:string) {
-  return await auth.signInViaEmail(email);
-}
-
-export async function verifyAuthCode(params: {email: string, code: string}) {
-  try {
-    const result = await auth.verifyAuthCode(params);
-    
-    if (result.success) {
-      if (result.cookies?.length) {
-        await setCookies(result.cookies);
-      }
-      
-      // Redirect on success
-      redirect(result.redirectTo);
-    }
-    
-    // Return the error result if verification failed
-    return result;
-    
-  } catch (error) {
-    console.error('Auth code verification failed:', error);
-    return {
-      success: false,
-      redirectTo: SIGN_IN_URL,
-      cookies: [],
-      error: error instanceof Error ? error : new Error(AuthErrorCode.UNKNOWN_ERROR)
-    };
-  }
-}
-
-export async function resendAuthCode(email: string) {
-  if (!email) {
-    throw new Error("Email address is required.");
-  }
-  // TODO
-  return;
 }
