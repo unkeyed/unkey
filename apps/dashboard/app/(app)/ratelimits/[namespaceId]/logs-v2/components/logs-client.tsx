@@ -7,6 +7,7 @@ import { RatelimitLogsChart } from "./charts";
 import { RatelimitLogsControls } from "./controls";
 import { RatelimitLogDetails } from "./table/log-details";
 import { RatelimitLogsTable } from "./table/logs-table";
+import { RatelimitLogsControlCloud } from "./control-cloud";
 
 export const LogsClient = ({ namespaceId }: { namespaceId: string }) => {
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
@@ -18,6 +19,7 @@ export const LogsClient = ({ namespaceId }: { namespaceId: string }) => {
   return (
     <RatelimitLogsProvider namespaceId={namespaceId}>
       <RatelimitLogsControls />
+      <RatelimitLogsControlCloud />
       <RatelimitLogsChart onMount={handleDistanceToTop} />
       <RatelimitLogsTable />
       <RatelimitLogDetails distanceToTop={tableDistanceToTop} />
