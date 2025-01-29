@@ -194,7 +194,7 @@ describe("with externalId", () => {
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
       const hash = await sha256(randomUUID());
 
-      const externalId = newId("test")
+      const externalId = newId("test");
 
       const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
         url: "/v1/migrations.createKeys",
@@ -210,7 +210,7 @@ describe("with externalId", () => {
             },
             apiId: h.resources.userApi.id,
             enabled: true,
-            externalId: externalId
+            externalId: externalId,
           },
         ],
       });
@@ -220,31 +220,28 @@ describe("with externalId", () => {
       const key = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
         with: {
-          identity: true
-        }
+          identity: true,
+        },
       });
       expect(key).toBeDefined();
 
-      expect(key!.identity).toBeDefined()
-      expect(key!.identity!.externalId).toEqual(externalId)
-
+      expect(key!.identity).toBeDefined();
+      expect(key!.identity!.externalId).toEqual(externalId);
     });
-  })
+  });
   describe("when identity does not exist", () => {
     test("should create an identity", async (t) => {
       const h = await IntegrationHarness.init(t);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
       const hash = await sha256(randomUUID());
 
-      const externalId = newId("test")
+      const externalId = newId("test");
       const identity = {
         id: newId("test"),
         workspaceId: h.resources.userWorkspace.id,
         externalId,
-
-      }
-      await h.db.primary.insert(schema.identities).values(identity)
-
+      };
+      await h.db.primary.insert(schema.identities).values(identity);
 
       const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
         url: "/v1/migrations.createKeys",
@@ -260,7 +257,7 @@ describe("with externalId", () => {
             },
             apiId: h.resources.userApi.id,
             enabled: true,
-            externalId: externalId
+            externalId: externalId,
           },
         ],
       });
@@ -270,16 +267,15 @@ describe("with externalId", () => {
       const key = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
         with: {
-          identity: true
-        }
+          identity: true,
+        },
       });
       expect(key).toBeDefined();
 
-      expect(key!.identity).toBeDefined()
-      expect(key!.identity!.id).toEqual(identity.id)
-
+      expect(key!.identity).toBeDefined();
+      expect(key!.identity!.id).toEqual(identity.id);
     });
-  })
+  });
 });
 
 describe("roles", () => {
