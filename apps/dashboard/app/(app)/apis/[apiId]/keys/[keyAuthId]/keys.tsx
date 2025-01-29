@@ -20,6 +20,11 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
       and(eq(table.keyAuthId, keyAuthId), isNull(table.deletedAt)),
     limit: 100,
     with: {
+      identity: {
+        columns: {
+          externalId: true,
+        },
+      },
       roles: {
         with: {
           role: {
@@ -33,9 +38,9 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
     },
   });
 
-  const nullOwnerId = "UNKEY_NULL_OWNER_ID";
+  const nullExternalId = "UNKEY_NULL_OWNER_ID";
   type KeysByOwnerId = {
-    [ownerId: string]: {
+    [externalId: string]: {
       id: string;
       keyAuthId: string;
       name: string | null;
@@ -46,10 +51,10 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
       environment: string | null;
     }[];
   };
-  const keysByOwnerId = keys.reduce((acc, curr) => {
-    const ownerId = curr.ownerId ?? nullOwnerId;
-    if (!acc[ownerId]) {
-      acc[ownerId] = [];
+  const keysByExternalId = keys.reduce((acc, curr) => {
+    const externalId = curr.identity?.externalId ?? curr.ownerId ?? nullExternalId;
+    if (!acc[externalId]) {
+      acc[externalId] = [];
     }
     const permissions = new Set(curr.permissions.map((p) => p.permissionId));
     for (const role of curr.roles) {
@@ -57,7 +62,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
         permissions.add(permission.permissionId);
       }
     }
-    acc[ownerId].push({
+    acc[externalId].push({
       id: curr.id,
       keyAuthId: curr.keyAuthId,
       name: curr.name,
@@ -85,10 +90,10 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
           {/* <CreateNewRole trigger={<Button variant="primary">Create New Role</Button>} /> */}
         </Empty>
       ) : (
-        Object.entries(keysByOwnerId).map(([ownerId, ks]) => (
+        Object.entries(keysByExternalId).map(([externalId, ks]) => (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1">
-              {ownerId === nullOwnerId ? (
+              {externalId === nullExternalId ? (
                 <div className="flex items-center justify-between gap-2 text-xs font-medium ph-no-capture">
                   <VenetianMask className="w-4 h-4 text-content" />
                   Without OwnerID
@@ -103,7 +108,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
                   className="flex items-center justify-between gap-2 text-xs font-medium ph-no-capture"
                 >
                   <User className="w-4 h-4 text-content" />
-                  {ownerId}
+                  {externalId}
                 </div>
               )}
             </div>
