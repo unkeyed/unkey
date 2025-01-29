@@ -19,12 +19,8 @@ export function useRatelimitLogsQuery({
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseLogsQueryParams = {}) {
-  const [historicalLogsMap, setHistoricalLogsMap] = useState(
-    () => new Map<string, RatelimitLog>()
-  );
-  const [realtimeLogsMap, setRealtimeLogsMap] = useState(
-    () => new Map<string, RatelimitLog>()
-  );
+  const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, RatelimitLog>());
+  const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, RatelimitLog>());
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
@@ -33,10 +29,7 @@ export function useRatelimitLogsQuery({
     return Array.from(realtimeLogsMap.values());
   }, [realtimeLogsMap]);
 
-  const historicalLogs = useMemo(
-    () => Array.from(historicalLogsMap.values()),
-    [historicalLogsMap]
-  );
+  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   //Required for preventing double trpc call during initial render
   const dateNow = useMemo(() => Date.now(), []);
@@ -93,9 +86,7 @@ export function useRatelimitLogsQuery({
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(
-              `${filter.field} filter value type has to be 'string'`
-            );
+            console.error(`${filter.field} filter value type has to be 'string'`);
             return;
           }
           params[filter.field] = filter.value;
@@ -152,10 +143,7 @@ export function useRatelimitLogsQuery({
 
         for (const log of result.ratelimitLogs) {
           // Skip if exists in either map
-          if (
-            newMap.has(log.request_id) ||
-            historicalLogsMap.has(log.request_id)
-          ) {
+          if (newMap.has(log.request_id) || historicalLogsMap.has(log.request_id)) {
             continue;
           }
 
