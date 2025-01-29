@@ -1,4 +1,4 @@
-import type { RatelimitQueryTimeseriesPayload } from "@/app/(app)/ratelimits/[namespaceId]/logs-v2/components/charts/query-timeseries.schema";
+import type { RatelimitQueryTimeseriesPayload } from "@/app/(app)/ratelimits/[namespaceId]/logs/components/charts/query-timeseries.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { RatelimitLogsTimeseriesParams } from "@unkey/clickhouse/src/ratelimits";
 import { HOUR_IN_MS, MONTH_IN_MS, WEEK_IN_MS } from "./constants";
