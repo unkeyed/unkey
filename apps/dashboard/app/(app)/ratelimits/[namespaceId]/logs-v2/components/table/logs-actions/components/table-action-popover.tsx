@@ -7,7 +7,9 @@ export const TableActionPopover = ({ children }: PropsWithChildren) => {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger onClick={(e) => e.stopPropagation()}>{children}</PopoverTrigger>
+      <PopoverTrigger onClick={(e) => e.stopPropagation()} asChild>
+        <div>{children}</div>
+      </PopoverTrigger>
       <PopoverContent
         className="w-60 bg-gray-1 dark:bg-black drop-shadow-2xl p-2 border-gray-6 rounded-lg"
         align="start"

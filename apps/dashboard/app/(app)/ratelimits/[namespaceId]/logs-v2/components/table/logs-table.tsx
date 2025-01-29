@@ -107,7 +107,7 @@ export const RatelimitLogsTable = ({
         headerClassName: "pl-3",
         width: "10%",
         render: (log) => (
-          <div className="flex items-center gap-3 pl-2 min-w-0 truncate">
+          <div className="flex items-center gap-3 pl-2 truncate mr-3">
             <TimestampInfo
               value={log.time}
               className={cn(
@@ -152,7 +152,7 @@ export const RatelimitLogsTable = ({
         render: (log) => <div className="font-mono">{log.colo}</div>,
       },
       {
-        key: "region",
+        key: "actions",
         header: "",
         width: "12.5%",
         render: () => <LogsTableAction />,
