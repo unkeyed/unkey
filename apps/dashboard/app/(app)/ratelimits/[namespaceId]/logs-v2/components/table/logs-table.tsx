@@ -63,12 +63,8 @@ const getSelectedClassName = (log: RatelimitLog, isSelected: boolean) => {
   return style.selected;
 };
 
-export const RatelimitLogsTable = ({
-  namespaceId,
-}: {
-  namespaceId: string;
-}) => {
-  const { setSelectedLog, selectedLog, isLive } = useRatelimitLogsContext();
+export const RatelimitLogsTable = () => {
+  const { setSelectedLog, selectedLog, isLive, namespaceId } = useRatelimitLogsContext();
   const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore } =
     useRatelimitLogsQuery({
       namespaceId,

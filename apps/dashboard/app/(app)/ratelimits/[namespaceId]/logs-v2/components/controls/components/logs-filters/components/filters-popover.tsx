@@ -5,7 +5,7 @@ import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type KeyboardEvent, type PropsWithChildren, useEffect, useRef, useState } from "react";
 import { useFilters } from "../../../../../hooks/use-filters";
-import { PathsFilter } from "./paths-filter";
+import { IdentifiersFilter } from "./identifiers-filter";
 import { StatusFilter } from "./status-filter";
 
 type FilterItemConfig = {
@@ -26,7 +26,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     id: "identifiers",
     label: "Identifier",
     shortcut: "p",
-    component: <PathsFilter />,
+    component: <IdentifiersFilter />,
   },
 ];
 

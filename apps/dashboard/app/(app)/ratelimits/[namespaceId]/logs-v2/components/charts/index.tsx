@@ -8,6 +8,7 @@ import {
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef } from "react";
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
+import { useRatelimitLogsContext } from "../../context/logs";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 import { useFetchRatelimitTimeseries } from "./hooks/use-fetch-timeseries";
@@ -17,25 +18,24 @@ import { formatTimestampLabel, formatTimestampTooltip } from "./utils/format-tim
 const chartConfig = {
   success: {
     label: "Success",
-    subLabel: "2xx",
+    subLabel: "Succeeded",
     color: "hsl(var(--accent-4))",
   },
   error: {
     label: "Error",
-    subLabel: "5xx",
+    subLabel: "Rejected",
     color: "hsl(var(--error-9))",
   },
 } satisfies ChartConfig;
 
 export function RatelimitLogsChart({
   onMount,
-  namespaceId,
 }: {
   onMount: (distanceToTop: number) => void;
-  namespaceId: string;
 }) {
   const chartRef = useRef<HTMLDivElement>(null);
 
+  const { namespaceId } = useRatelimitLogsContext();
   const { timeseries, isLoading, isError } = useFetchRatelimitTimeseries(namespaceId);
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
   useEffect(() => {

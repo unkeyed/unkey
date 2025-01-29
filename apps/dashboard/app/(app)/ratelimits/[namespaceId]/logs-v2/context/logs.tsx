@@ -8,11 +8,15 @@ type LogsContextType = {
   toggleLive: (value?: boolean) => void;
   selectedLog: RatelimitLog | null;
   setSelectedLog: (log: RatelimitLog | null) => void;
+  namespaceId: string;
 };
 
 const LogsContext = createContext<LogsContextType | null>(null);
 
-export const RatelimitLogsProvider = ({ children }: PropsWithChildren) => {
+export const RatelimitLogsProvider = ({
+  children,
+  namespaceId,
+}: PropsWithChildren<{ namespaceId: string }>) => {
   const [selectedLog, setSelectedLog] = useState<RatelimitLog | null>(null);
   const [isLive, setIsLive] = useState(false);
 
@@ -27,6 +31,7 @@ export const RatelimitLogsProvider = ({ children }: PropsWithChildren) => {
         toggleLive,
         selectedLog,
         setSelectedLog,
+        namespaceId,
       }}
     >
       {children}

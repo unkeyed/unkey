@@ -1,66 +1,82 @@
-import type { FilterValue } from "@/app/(app)/logs-v2/filters.type";
-import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRatelimitLogsContext } from "../../../../../context/logs";
+import type { FilterValue } from "../../../../../filters.type";
+import { useFilters } from "../../../../../hooks/use-filters";
 import { useCheckboxState } from "./hooks/use-checkbox-state";
 
-export const PathsFilter = () => {
-  const { data: paths, isLoading } = trpc.logs.queryDistinctPaths.useQuery(undefined, {
-    select(paths) {
-      return paths
-        ? paths.map((path, index) => ({
-            id: index + 1,
-            path,
-            checked: false,
-          }))
-        : [];
+export const IdentifiersFilter = () => {
+  const { namespaceId } = useRatelimitLogsContext();
+  const { data: identifiers, isLoading } = trpc.ratelimit.logs.queryDistinctIdentifiers.useQuery(
+    { namespaceId },
+    {
+      select(identifiers) {
+        return identifiers
+          ? identifiers.map((identifier, index) => ({
+              id: index + 1,
+              path: identifier,
+              checked: false,
+            }))
+          : [];
+      },
     },
-  });
+  );
   const { filters, updateFilters } = useFilters();
   const [isAtBottom, setIsAtBottom] = useState(false);
+  const [needsScroll, setNeedsScroll] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState({
-    options: paths ?? [],
+    options: identifiers ?? [],
     filters,
-    filterField: "paths",
+    filterField: "identifiers",
     checkPath: "path",
     shouldSyncWithOptions: true,
   });
-  const handleScroll = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-      const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 1;
-      setIsAtBottom(isBottom);
-    }
-  }, []);
 
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer) {
-      scrollContainer.addEventListener("scroll", handleScroll);
-      handleScroll();
+      const checkScroll = () => {
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+        const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 1;
+        setIsAtBottom(isBottom);
+        setNeedsScroll(scrollHeight > clientHeight);
+      };
+
+      scrollContainer.addEventListener("scroll", checkScroll);
+      // Check initial state
+      checkScroll();
+
+      // Add resize observer to recheck on resize
+      const resizeObserver = new ResizeObserver(checkScroll);
+      resizeObserver.observe(scrollContainer);
+
+      // Also check after a small delay to ensure content is rendered
+      setTimeout(checkScroll, 100);
+
       return () => {
-        scrollContainer.removeEventListener("scroll", handleScroll);
+        scrollContainer.removeEventListener("scroll", checkScroll);
+        resizeObserver.disconnect();
       };
     }
-  }, [handleScroll]);
+  }, []);
 
   const handleApplyFilter = useCallback(() => {
     const selectedPaths = checkboxes.filter((c) => c.checked).map((c) => c.path);
 
     // Keep all non-paths filters and add new path filters
-    const otherFilters = filters.filter((f) => f.field !== "paths");
-    const pathFilters: FilterValue[] = selectedPaths.map((path) => ({
+    const otherFilters = filters.filter((f) => f.field !== "identifiers");
+    const identifiersFilters: FilterValue[] = selectedPaths.map((path) => ({
       id: crypto.randomUUID(),
-      field: "paths",
+      field: "identifiers",
       operator: "is",
       value: path,
     }));
 
-    updateFilters([...otherFilters, ...pathFilters]);
+    updateFilters([...otherFilters, ...identifiersFilters]);
   }, [checkboxes, filters, updateFilters]);
 
   if (isLoading) {
@@ -82,8 +98,6 @@ export const PathsFilter = () => {
     <div className="flex flex-col font-mono">
       <label
         className="flex items-center gap-4 px-4 pb-2 pt-4 cursor-pointer"
-        // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
-        role="checkbox"
         aria-checked={checkboxes.every((checkbox) => checkbox.checked)}
         onKeyDown={handleKeyDown}
       >
@@ -105,8 +119,6 @@ export const PathsFilter = () => {
             <label
               key={checkbox.id}
               className="flex gap-[18px] items-center py-1 cursor-pointer"
-              // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
-              role="checkbox"
               aria-checked={checkbox.checked}
               onKeyDown={handleKeyDown}
             >
@@ -119,7 +131,7 @@ export const PathsFilter = () => {
             </label>
           ))}
         </div>
-        {!isAtBottom && (
+        {needsScroll && !isAtBottom && (
           <div className="absolute bottom-0 left-0 right-0 h-12 pointer-events-none transition-opacity duration-200">
             <div className="h-full bg-gradient-to-t from-white to-white/0 dark:from-gray-900 dark:to-gray-900/0" />
           </div>

@@ -29,6 +29,7 @@ import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
+import { queryDistinctIdentifiers } from "./ratelimit/query-distinct-identifiers";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
@@ -112,6 +113,7 @@ export const router = t.router({
     logs: t.router({
       query: queryRatelimitLogs,
       queryRatelimitTimeseries,
+      queryDistinctIdentifiers,
     }),
     namespace: t.router({
       create: createNamespace,

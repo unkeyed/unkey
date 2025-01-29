@@ -16,10 +16,10 @@ export const LogsClient = ({ namespaceId }: { namespaceId: string }) => {
   }, []);
 
   return (
-    <RatelimitLogsProvider>
+    <RatelimitLogsProvider namespaceId={namespaceId}>
       <RatelimitLogsControls />
-      <RatelimitLogsChart onMount={handleDistanceToTop} namespaceId={namespaceId} />
-      <RatelimitLogsTable namespaceId={namespaceId} />
+      <RatelimitLogsChart onMount={handleDistanceToTop} />
+      <RatelimitLogsTable />
       <RatelimitLogDetails distanceToTop={tableDistanceToTop} />
     </RatelimitLogsProvider>
   );
