@@ -103,7 +103,7 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
             type: "key",
             id: auth.key.id,
           },
-          description: `Created ${permission.id}`,
+          description: `Updated ${permission.id}`,
           resources: [
             {
               type: "permission",
@@ -124,7 +124,6 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
       }
 
       await tx.insert(schema.permissions).values(permission);
-
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
         event: "permission.create",
@@ -147,6 +146,7 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
     });
+
     return c.json({
       permissionId: permission.id,
     });
