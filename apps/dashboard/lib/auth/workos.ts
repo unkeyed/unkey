@@ -1,42 +1,60 @@
 import { WorkOS } from "@workos-inc/node";
-import { OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams, OrgInvite, Invitation, OrgInvitation, UpdateMembershipParams, SessionValidationResult, SessionData, AuthProviderError, AuthErrorCode } from "./types";
 import { env } from "@/lib/env";
+import { BaseAuthProvider } from "./base-provider";
 import { getCookie, updateCookie } from "./cookies";
-import { BaseAuthProvider } from "./base-provider"
-
-const SIGN_IN_REDIRECT = "/apis";
-const SIGN_IN_URL = "/auth/sign-in";
+import {
+  SessionValidationResult,
+  SessionData,
+  UNKEY_SESSION_COOKIE,
+  AuthErrorCode,
+  User,
+  Organization,
+  UpdateOrgParams,
+  MembershipListResponse,
+  UpdateMembershipParams,
+  Membership,
+  OrgInviteParams,
+  Invitation,
+  InvitationListResponse,
+  UserData,
+  EmailAuthResult,
+  VerificationResult,
+  SignInViaOAuthOptions,
+  OAuthResult,
+} from "./types";
 
 export class WorkOSAuthProvider extends BaseAuthProvider {
   private static instance: WorkOSAuthProvider | null = null;
-  private static provider: WorkOS;
-  private static clientId: string;
+  private readonly provider: WorkOS;
+  private readonly clientId: string;
+  private readonly cookiePassword: string;
 
   constructor(config: { apiKey: string; clientId: string }) {
     super();
-    if (WorkOSAuthProvider.instance) {
-      return WorkOSAuthProvider.instance;
+    
+    const cookiePassword = env().WORKOS_COOKIE_PASSWORD;
+    if (!cookiePassword) {
+      throw new Error("WORKOS_COOKIE_PASSWORD is required for WorkOS authentication");
     }
 
-    WorkOSAuthProvider.clientId = config.clientId;
-    WorkOSAuthProvider.provider = new WorkOS(config.apiKey, { clientId: config.clientId });
+    // Initialize properties after validation
+    this.clientId = config.clientId;
+    this.cookiePassword = cookiePassword;  // TypeScript now knows this is string
+    this.provider = new WorkOS(config.apiKey, { clientId: config.clientId });
+
     WorkOSAuthProvider.instance = this;
   }
 
+  // Session Management
   async validateSession(sessionToken: string): Promise<SessionValidationResult> {
     if (!sessionToken) {
       return { isValid: false, shouldRefresh: false };
     }
 
-    const WORKOS_COOKIE_PASSWORD = env().WORKOS_COOKIE_PASSWORD;
-    if (!WORKOS_COOKIE_PASSWORD) {
-      throw new Error("WORKOS_COOKIE_PASSWORD is required");
-    }
-
     try {
-      const session = await WorkOSAuthProvider.provider.userManagement.loadSealedSession({
+      const session = await this.provider.userManagement.loadSealedSession({
         sessionData: sessionToken,
-        cookiePassword: WORKOS_COOKIE_PASSWORD
+        cookiePassword: this.cookiePassword
       });
 
       const authResult = await session.authenticate();
@@ -50,9 +68,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         };
       }
 
-      // Session is invalid, signal that a refresh should be attempted
       return { isValid: false, shouldRefresh: true };
-
     } catch (error) {
       console.error('Session validation error:', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -69,607 +85,269 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       return null;
     }
 
-    const WORKOS_COOKIE_PASSWORD = env().WORKOS_COOKIE_PASSWORD;
-    if (!WORKOS_COOKIE_PASSWORD) {
-      throw new Error("WORKOS_COOKIE_PASSWORD is required");
-    }
-
     try {
-      const session = WorkOSAuthProvider.provider.userManagement.loadSealedSession({
+      const session = this.provider.userManagement.loadSealedSession({
         sessionData: token,
-        cookiePassword: WORKOS_COOKIE_PASSWORD
+        cookiePassword: this.cookiePassword
       });
 
       const refreshResult = await session.refresh({
-        cookiePassword: WORKOS_COOKIE_PASSWORD,
+        cookiePassword: this.cookiePassword,
         ...(orgId && { organizationId: orgId })
       });
 
-      if (refreshResult.authenticated) {
-        const { session } = refreshResult;
+      if (refreshResult.authenticated && refreshResult.session) {
         await updateCookie(UNKEY_SESSION_COOKIE, refreshResult.sealedSession);
         return {
-          userId: session!.user.id,
-          orgId: session!.organizationId ?? null
+          userId: refreshResult.session.user.id,
+          orgId: refreshResult.session.organizationId ?? null
         };
       }
-      else {
-        await updateCookie(UNKEY_SESSION_COOKIE, null, refreshResult.reason);
-        return null;
-      }
-      
+
+      await updateCookie(
+        UNKEY_SESSION_COOKIE, 
+        null, 
+        'reason' in refreshResult ? refreshResult.reason : 'Session refresh failed');
+      return null;
     } catch (error) {
       console.error('Session refresh error:', {
         error: error instanceof Error ? error.message : 'Unknown error',
         token: token.substring(0, 10) + '...'
       });
-      throw new Error("Session refresh error");
+      return null;
     }
   }
 
+  // User Management
+  async getCurrentUser(): Promise<User | null> {
+    try {
+      const token = await getCookie(UNKEY_SESSION_COOKIE);
+      if (!token) return null;
+  
+      const session = this.provider.userManagement.loadSealedSession({
+        sessionData: token,
+        cookiePassword: this.cookiePassword
+      });
+  
+      const authResult = await session.authenticate();
+      if (!authResult.authenticated) {
+        console.error("Get current user failed:", authResult.reason);
+        return null;
+      }
+  
+      const { user, organizationId } = authResult;
+      return this.transformUserData({
+        ...user,
+        organization_id: organizationId
+      });
+  
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+  }
+  
+  async getUser(userId: string): Promise<User | null> {
+    if (!userId) {
+      throw new Error("User Id is required.");
+    }
+  
+    try {
+      const user = await this.provider.userManagement.getUser(userId);
+      if (!user) {
+        return null;
+      }
+  
+      return this.transformUserData(user);
+    } catch (error) {
+      console.error("Failed to get user:", error);
+      return null;
+    }
+  }
 
-  public async createTenant(params: { name: string, userId: string }): Promise<string> {
-    const { userId, name } = params;
-    if (!name || !userId) throw new Error('Organization/Workspace name and userId are required.')
+  // Organization Management
+  async createTenant(params: { name: string; userId: string }): Promise<string> {
+    const { name, userId } = params;
+    if (!name || !userId) {
+      throw new Error('Organization name and userId are required.');
+    }
 
-    const { id } = await this.createOrg(name);
+    try {
+      const org = await this.createOrg(name);
+      const membership = await this.provider.userManagement.createOrganizationMembership({
+        organizationId: org.id,
+        userId,
+        roleSlug: "admin"
+      });
 
-    const membership = await WorkOSAuthProvider.provider.userManagement.createOrganizationMembership({
-      organizationId: id,
-      userId,
-      roleSlug: "admin"
-    });
+      return membership.organizationId;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
 
-    // return the orgId back to use as the workspace tenant
-    return membership.organizationId;
+  protected async createOrg(name: string): Promise<Organization> {
+    if (!name) {
+      throw new Error("Organization name is required.");
+    }
+
+    try {
+      const org = await this.provider.organizations.createOrganization({ name });
+      return this.transformOrganizationData(org);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   protected async getOrg(orgId: string): Promise<Organization> {
     if (!orgId) {
       throw new Error("Organization Id is required.");
     }
-    try {
-      const organization = await WorkOSAuthProvider.provider.organizations.getOrganization(orgId);
-      return {
-        id: organization.id,
-        name: organization.name,
-        createdAt: organization.createdAt,
-        updatedAt: organization.updatedAt
-      }
 
+    try {
+      const org = await this.provider.organizations.getOrganization(orgId);
+      return this.transformOrganizationData(org);
     } catch (error) {
-      throw new Error("Couldn't get organization.")
+      throw this.handleError(error);
     }
   }
 
-  async getCurrentUser(): Promise<User | null> {
-    try {
-      // Extract the user data from the session cookie
-      // Return the UNKEY user shape
-      const token = await getCookie(UNKEY_SESSION_COOKIE);
-      if (!token) return null;
-
-      const WORKOS_COOKIE_PASSWORD = env().WORKOS_COOKIE_PASSWORD;
-      if (!WORKOS_COOKIE_PASSWORD) {
-        throw new Error("WORKOS_COOKIE_PASSWORD is required");
-      }
-
-      try {
-        const session = WorkOSAuthProvider.provider.userManagement.loadSealedSession({
-          sessionData: token,
-          cookiePassword: WORKOS_COOKIE_PASSWORD
-        });
-
-        const authResult = await session.authenticate();
-        if (authResult.authenticated) {
-
-          const {user, organizationId} = authResult;
-
-          return {
-            id: user.id,
-            orgId: organizationId || null,
-	          email: user.email,
-	          firstName: user.firstName,
-	          lastName: user.lastName,
-            fullName: user.firstName + " " + user.lastName,
-	          avatarUrl: user.profilePictureUrl,
-          }
-        }
-
-        else {
-          console.error("Get current user failed:", authResult.reason)
-          return null;
-        }
-        
-      } catch (error) {
-        console.error("Error validating session:", error)
-        return null;
-      }
-    } catch (error) {
-      console.error('Error getting user:', error);
-      return null;
-    }
-  }
-
-  async getUser(userId: string): Promise<User | null> {
-    if (!userId) {
-      throw new Error("User Id is required.");
+  async updateOrg(params: UpdateOrgParams): Promise<Organization> {
+    const { id, name } = params;
+    if (!id || !name) {
+      throw new Error("Organization id and name are required.");
     }
 
     try {
-      const user = await WorkOSAuthProvider.provider.userManagement.getUser(userId);
-      if (!user) {
-        return null;
-      }
-
-      return {
-        id: user.id,
-        orgId: null, // not available from the user management user lookup
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        fullName: user.firstName + " " + user.lastName,
-        avatarUrl: user.profilePictureUrl,
-      }
+      const org = await this.provider.organizations.updateOrganization({
+        organization: id,
+        name
+      });
+      return this.transformOrganizationData(org);
     } catch (error) {
-      console.error("Failed to get user: ", error);
-      return null;
+      throw this.handleError(error);
     }
   }
 
-  async listMemberships(): Promise<OrgMembership> {
+  // Membership Management
+  async listMemberships(): Promise<MembershipListResponse> {
+    try {
       const user = await this.getCurrentUser();
-      if (!user) return {
-        data: [],
-        metadata: {}
-      };
-      const { id: userId } = user;
+      if (!user) {
+        return { data: [], metadata: {} };
+      }
 
-    const memberships = await WorkOSAuthProvider.provider.userManagement.listOrganizationMemberships({
-      userId,
-      limit: 100,
-      statuses: ["active"]
-    });
+      const memberships = await this.provider.userManagement.listOrganizationMemberships({
+        userId: user.id,
+        limit: 100,
+        statuses: ["active"]
+      });
 
-    // listOrganizationMembership dhoesn't include orgNames
-    const orgPromises = memberships.data.map(membership => this.getOrg(membership.organizationId));
-    const orgs = await Promise.all(orgPromises);
-  
-    //quick org name lookup
-    const orgMap = new Map<string, string>(
-      orgs.map(org => [org.id, org.name])
-    );
+      // Fetch organizations for each membership
+      const orgs = await Promise.all(
+        memberships.data.map(m => this.getOrg(m.organizationId))
+      );
 
-    return {
-      data: memberships.data.map((membership) => {
-      
-        return {
+      const orgMap = new Map(orgs.map(org => [org.id, org]));
+
+      return {
+        data: memberships.data.map(membership => ({
           id: membership.id,
           user,
-          organization: {
-            name: orgMap.get(membership.organizationId) || "Unknown Organization",
-            id: membership.organizationId
-          },
+          organization: orgMap.get(membership.organizationId)!,
           role: membership.role.slug,
           createdAt: membership.createdAt,
           updatedAt: membership.updatedAt,
           status: membership.status
-        };
-      }),
-      metadata: memberships.listMetadata || {}
-    };
-  }
-  
-  async signUpViaEmail(params: { firstName: string, lastName: string, email: string }): Promise<void> {
-    const { email, firstName, lastName} = params;
-    if (!email || !firstName || !lastName) {
-      throw new Error(AuthErrorCode.MISSING_REQUIRED_FIELDS);
-    }
-  
-    try {
-      // create the user with the user details
-      // email will be unverified until they respond to the magic auth prompt
-      await WorkOSAuthProvider.provider.userManagement.createUser({
-        firstName,
-        lastName,
-        email
-      }); 
-  
-      await WorkOSAuthProvider.provider.userManagement.createMagicAuth({ email });
-    }
-    catch (error) {
-      const authError = error as AuthProviderError;
-      
-      // account exists
-      if (authError.errors?.some(detail => detail.code === 'email_not_available')) {
-        throw new Error(AuthErrorCode.EMAIL_ALREADY_EXISTS);
-      }
-
-      // malformed email
-      if (authError.message.includes("email_required")) {
-        throw new Error(AuthErrorCode.INVALID_EMAIL);
-      }
-  
-      // generic WorkOS error
-      if (authError.code === 'user_creation_error') {
-        throw new Error(AuthErrorCode.USER_CREATION_FAILED);
-      }
-  
-      // Generic error fallback
-      throw new Error(AuthErrorCode.UNKNOWN_ERROR);
-    }
-  }
-
-  async signInViaEmail(email: string) {
-    try {
-      const { data } = await WorkOSAuthProvider.provider.userManagement.listUsers({
-        email
-      });
-
-      // user doesn't exist, they need to sign up first
-      if (data.length === 0) {
-        throw new Error(AuthErrorCode.ACCOUNT_NOT_FOUND)
-      }
-      
-      await WorkOSAuthProvider.provider.userManagement.createMagicAuth({ email });
-    }
-
-    catch(error) {
-      console.error("Sign in via email failed: ", error);
-      // TODO: research WorkOS magic auth errors
-      throw new Error(AuthErrorCode.UNKNOWN_ERROR);
-    }
-  }
-
-  async resendAuthCode(email: string) {
-    try {
-      await WorkOSAuthProvider.provider.userManagement.createMagicAuth({
-        email
-      });
-    }
-    catch(error) {
-      console.error("Resending auth code failed: ", error);
-      // TODO: research WorkOS magic auth errors
-      throw new Error(AuthErrorCode.UNKNOWN_ERROR);
-    }
-  }
-
-  async verifyAuthCode(params: {email: string, code: string}): Promise<OAuthResult> {
-    const { email, code } = params;
-    if (!email) {
-      throw new Error("Email address is required.")
-    }
-    if (!code) {
-      throw new Error("Verification code is required.")
-    }
-
-    try {
-      const { sealedSession } = await WorkOSAuthProvider.provider.userManagement.authenticateWithMagicAuth({
-        clientId: WorkOSAuthProvider.clientId,
-        code,
-        email,
-        session: {
-          sealSession: true,
-          cookiePassword: env().WORKOS_COOKIE_PASSWORD
-        }
-      });
-  
-      if (!sealedSession) {
-        throw new Error('No sealed session returned from WorkOS');
-      }
-  
-      return {
-        success: true,
-        redirectTo: SIGN_IN_REDIRECT,
-        cookies: [{
-          name: UNKEY_SESSION_COOKIE,
-          value: sealedSession,
-          options: {
-            secure: true,
-            httpOnly: true,
-          }
-        }]
+        })),
+        metadata: memberships.listMetadata || {}
       };
     } catch (error) {
-      // TODO: better error handling
-      console.error("Verify magic auth failed", error);
-      return {
-        success: false,
-        redirectTo: SIGN_IN_URL,
-        cookies: [],
-        error: error instanceof Error ? error : new Error('Unknown error')
-      };
-    }
-
-  }
-
-  signInViaOAuth({ 
-    redirectUrl = env().NEXT_PUBLIC_WORKOS_REDIRECT_URI, 
-    provider,
-    redirectUrlComplete = SIGN_IN_REDIRECT
-  }: SignInViaOAuthOptions): string {
-    if (!provider) {
-      throw new Error('Provider is required');
-    }
-
-    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete }));
-
-    return WorkOSAuthProvider.provider.userManagement.getAuthorizationUrl({
-      clientId: WorkOSAuthProvider.clientId,
-      redirectUri: redirectUrl,
-      provider: provider === "github" ? "GitHubOAuth" : "GoogleOAuth",
-      state
-    });
-  }
-
-  async completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult> {
-    const url = new URL(callbackRequest.url);
-    const code = url.searchParams.get('code');
-    const state = url.searchParams.get('state');
-    const redirectUrlComplete = state 
-      ? JSON.parse(decodeURIComponent(state)).redirectUrlComplete 
-      : SIGN_IN_REDIRECT;
-  
-    if (!code) {
-      return {
-        success: false,
-        redirectTo: SIGN_IN_URL,
-        cookies: [],
-        error: new Error("No code provided")
-      };
-    }
-  
-    try {
-      const { sealedSession } = await WorkOSAuthProvider.provider.userManagement.authenticateWithCode({
-        clientId: WorkOSAuthProvider.clientId,
-        code,
-        session: {
-          sealSession: true,
-          cookiePassword: env().WORKOS_COOKIE_PASSWORD
-        }
-      });
-  
-      if (!sealedSession) {
-        throw new Error('No sealed session returned from WorkOS');
-      }
-  
-      return {
-        success: true,
-        redirectTo: redirectUrlComplete,
-        cookies: [{
-          name: UNKEY_SESSION_COOKIE,
-          value: sealedSession,
-          options: {
-            secure: true,
-            httpOnly: true,
-          }
-        }]
-      };
-    } catch (error) {
-      console.error("OAuth callback failed", error);
-      return {
-        success: false,
-        redirectTo: SIGN_IN_URL,
-        cookies: [],
-        error: error instanceof Error ? error : new Error('Unknown error')
-      };
+      throw this.handleError(error);
     }
   }
 
-  async getSignOutUrl(): Promise<string | null> {
-    const token = await getCookie(UNKEY_SESSION_COOKIE);
-    if (!token) {
-      console.error('Session cookie not found');
-      return null;
-    }
-
-    const WORKOS_COOKIE_PASSWORD = env().WORKOS_COOKIE_PASSWORD;
-    if (!WORKOS_COOKIE_PASSWORD) {
-      throw new Error("WORKOS_COOKIE_PASSWORD is required");
-    }
-
-    try {
-      const session = WorkOSAuthProvider.provider.userManagement.loadSealedSession({
-        sessionData: token,
-        cookiePassword: WORKOS_COOKIE_PASSWORD
-      });
-
-      return await session.getLogoutUrl();
-    }
-
-    catch (error) {
-      console.error('WorkOS Session error:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        token: token.substring(0, 10) + '...'
-      });
-      return null;
-    }
-  }
-  
-  async updateOrg({ id, name }: UpdateOrgParams): Promise<Organization> {
-    if (!id) {
-      throw new Error("Organization id is required.");
-    }
-  
-    if (!name) {
-      throw new Error("Organization name is required.");
-    }
-  
-    try {
-      const updatedOrg = await WorkOSAuthProvider.provider.organizations.updateOrganization({
-        organization: id,
-        name
-      });
-  
-      return {
-        id: updatedOrg.id,
-        name: updatedOrg.name,
-        createdAt: updatedOrg.createdAt,
-        updatedAt: updatedOrg.updatedAt
-      };
-    } catch (error) {
-      console.error("Failed to update organization:", error);
-      throw new Error(
-        error instanceof Error 
-          ? error.message 
-          : "Failed to update organization"
-      );
-    }
-  }
-
-  protected async createOrg(name: string): Promise<Organization> {
-    if (!name) {
-      throw new Error("Organization/workspace name is required.")
-    }
-
-    const org = await WorkOSAuthProvider.provider.organizations.createOrganization({ name });
-
-    return {
-      id: org.id,
-      name: org.name,
-      createdAt: org.createdAt,
-      updatedAt: org.updatedAt
-    };
-
-  }
-
-  async getOrganizationMemberList(orgId: string): Promise<OrgMembership> {
-    if (!orgId) {
-        throw new Error("Organization id is required.");
-    }
-
-    try {
-        // Get the organization info
-        const org = await this.getOrg(orgId);
-        
-        // Get all members of the organization
-        const members = await WorkOSAuthProvider.provider.userManagement.listOrganizationMemberships({
-            organizationId: orgId,
-            limit: 100,
-            statuses: ["active"]
-        });
-
-        // Get user data for each member
-        const userPromises = members.data.map(member => 
-            this.getUser(member.userId).catch((error: any) => {
-                console.error(`Failed to fetch user ${member.userId}:`, error);
-                return null;
-            })
-        );
-        const users = await Promise.all(userPromises);
-
-        // Create user lookup map, filtering out failed fetches
-        const usersMap = new Map<string, User>(
-            users.filter((user): user is User => user !== null)
-                .map(user => [user.id, user])
-        );
-
-        return {
-            data: members.data.map((member): Membership => {
-                const user = usersMap.get(member.userId);
-
-                if (!user) {
-                    throw new Error(`User ${member.userId} not found`);
-                }
-
-                return {
-                    id: member.id,
-                    user,
-                    organization: org,
-                    role: member.role.slug,
-                    createdAt: member.createdAt,
-                    updatedAt: member.updatedAt,
-                    status: member.status
-                };
-            }),
-            metadata: members.listMetadata ?? {}
-        };
-    } catch (error) {
-        console.error("Failed to get organization member list:", error);
-        return {
-            data: [],
-            metadata: {}
-        };
-    }
-  }
-
-  async inviteMember({ orgId, email, role = "basic_member" }: OrgInvite): Promise<Invitation> {
+  async getOrganizationMemberList(orgId: string): Promise<MembershipListResponse> {
     if (!orgId) {
       throw new Error("Organization id is required.");
     }
-  
-    if (!email) {
-      throw new Error("Recipient email is required.");
-    }
-  
+
     try {
-      const user = await this.getCurrentUser();
-      if (!user) {
-        throw new Error("User must be authenticated to invite members.");
-      }
-  
-      const invitation = await WorkOSAuthProvider.provider.userManagement.sendInvitation({
-        email,
+      const org = await this.getOrg(orgId);
+      const members = await this.provider.userManagement.listOrganizationMemberships({
         organizationId: orgId,
-        roleSlug: role,
-        inviterUserId: user.id
+        limit: 100,
+        statuses: ["active"]
       });
-  
+
+      // Get user data for each member
+      const users = await Promise.all(
+        members.data.map(m => this.getUser(m.userId))
+      );
+
+      // Create user map excluding null results
+      const userMap = new Map(
+        users.filter((user): user is User => user !== null)
+          .map(user => [user.id, user])
+      );
+
       return {
-        id: invitation.id,
-        email: invitation.email,
-        state: invitation.state,
-        acceptedAt: invitation.acceptedAt,
-        revokedAt: invitation.revokedAt,
-        expiresAt: invitation.expiresAt,
-        token: invitation.token,
-        organizationId: invitation.organizationId || orgId,
-        inviterUserId: invitation.inviterUserId || user.id,
-        createdAt: invitation.createdAt,
-        updatedAt: invitation.updatedAt,
+        data: members.data.map(member => {
+          const user = userMap.get(member.userId);
+          if (!user) {
+            throw new Error(`User ${member.userId} not found`);
+          }
+
+          return {
+            id: member.id,
+            user,
+            organization: org,
+            role: member.role.slug,
+            createdAt: member.createdAt,
+            updatedAt: member.updatedAt,
+            status: member.status
+          };
+        }),
+        metadata: members.listMetadata || {}
       };
-  
     } catch (error) {
-      console.error('Failed to send invitation:', error);
-      throw error instanceof Error 
-        ? error 
-        : new Error('Failed to send invitation');
+      throw this.handleError(error);
     }
   }
 
-  async updateMembership({membershipId, role}: UpdateMembershipParams): Promise<Membership> {
-    if (!membershipId) {
-      throw new Error("Membership id is required.");
-    }
-
-    if (!role) {
-      throw new Error("Role is required");
+  async updateMembership(params: UpdateMembershipParams): Promise<Membership> {
+    const { membershipId, role } = params;
+    if (!membershipId || !role) {
+      throw new Error("Membership id and role are required.");
     }
 
     try {
-      const membership = await WorkOSAuthProvider.provider.userManagement.updateOrganizationMembership(
+      const membership = await this.provider.userManagement.updateOrganizationMembership(
         membershipId,
-        {roleSlug: role}
+        { roleSlug: role }
       );
 
-      const org = await this.getOrg(membership.organizationId);
-      const user = await this.getUser(membership.userId);
+      // Get related data
+      const [org, user] = await Promise.all([
+        this.getOrg(membership.organizationId),
+        this.getUser(membership.userId)
+      ]);
+
+      if (!user) {
+        throw new Error(`User ${membership.userId} not found`);
+      }
 
       return {
         id: membership.id,
-        user: user!,
+        user,
         organization: org,
         role: membership.role.slug,
         createdAt: membership.createdAt,
         updatedAt: membership.updatedAt,
         status: membership.status
       };
-    }
-    catch (error) {
-      console.error('Failed to update membership:', error);
-      throw error instanceof Error 
-        ? error 
-        : new Error('Failed to update membership');
+    } catch (error) {
+      throw this.handleError(error);
     }
   }
 
@@ -679,63 +357,335 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      await WorkOSAuthProvider.provider.userManagement.deleteOrganizationMembership(membershipId);
+      await this.provider.userManagement.deleteOrganizationMembership(membershipId);
+    } catch (error) {
+      throw this.handleError(error);
     }
+  }
 
-    catch(error) {
-      console.error("Failed to delete membership: ", error);
-    }
-  } 
-
-  async revokeOrgInvitation(invitationId: string): Promise<void> {
-    if (!invitationId) {
-      throw new Error("Membership Id is required");
+  // Invitation Management
+  async inviteMember(params: OrgInviteParams): Promise<Invitation> {
+    const { orgId, email, role = "basic_member" } = params;
+    if (!orgId || !email) {
+      throw new Error("Organization id and email are required.");
     }
 
     try {
-      await WorkOSAuthProvider.provider.userManagement.revokeInvitation(invitationId);
-    }
+      const user = await this.getCurrentUser();
+      if (!user) {
+        throw new Error("User must be authenticated to invite members.");
+      }
 
-    catch(error) {
-      console.error("Failed to revoke invitation: ", error);
-    }
-  } 
+      const invitation = await this.provider.userManagement.sendInvitation({
+        email,
+        organizationId: orgId,
+        roleSlug: role,
+        inviterUserId: user.id
+      });
 
-  async getInvitationList(orgId: string): Promise<OrgInvitation> {
+      return this.transformInvitationData(invitation, { orgId, inviterId: user.id });
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async getInvitationList(orgId: string): Promise<InvitationListResponse> {
     if (!orgId) {
       throw new Error("Organization Id is required");
     }
 
     try {
-      const invitationsList = await WorkOSAuthProvider.provider.userManagement.listInvitations({
+      const invitationsList = await this.provider.userManagement.listInvitations({
         organizationId: orgId
       });
 
       return {
-        data: invitationsList.data.map((invitation): Invitation => {
-          return {
-            id: invitation.id,
-            email: invitation.email,
-            state: invitation.state,
-            acceptedAt: invitation.acceptedAt,
-            revokedAt: invitation.revokedAt,
-            expiresAt: invitation.expiresAt,
-            token: invitation.token,
-            organizationId: invitation.organizationId ?? orgId,
-            inviterUserId: invitation.inviterUserId ?? undefined,
-            createdAt: invitation.createdAt,
-            updatedAt: invitation.updatedAt,
-          }
-        }),
-        metadata: invitationsList.listMetadata
-      }
-      
+        data: invitationsList.data.map(invitation => 
+          this.transformInvitationData(invitation, { orgId })
+        ),
+        metadata: invitationsList.listMetadata || {}
+      };
     } catch (error) {
       console.error("Failed to get organization invitations list:", error);
-        return {
-            data: [],
-            metadata: {}
-        };
+      return {
+        data: [],
+        metadata: {}
+      };
     }
   }
+
+  async revokeOrgInvitation(invitationId: string): Promise<void> {
+    if (!invitationId) {
+      throw new Error("Invitation Id is required");
+    }
+
+    try {
+      await this.provider.userManagement.revokeInvitation(invitationId);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Authentication Management
+  
+  async signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
+    const { email, firstName, lastName } = params;
+    
+    try {
+      // Create the user with WorkOS
+      await this.provider.userManagement.createUser({
+        firstName,
+        lastName,
+        email
+      });
+  
+      // Send magic auth email
+      await this.provider.userManagement.createMagicAuth({ email });
+  
+      return { success: true };
+    } catch (error: any) {
+      if (error.errors?.some((detail: any) => detail.code === 'email_not_available')) {
+        return this.handleError(new Error(AuthErrorCode.EMAIL_ALREADY_EXISTS));
+      }
+      if (error.message.includes("email_required")) {
+        return this.handleError(new Error(AuthErrorCode.INVALID_EMAIL));
+      }
+      if (error.code === 'user_creation_error') {
+        return this.handleError(new Error(AuthErrorCode.USER_CREATION_FAILED));
+      }
+      return this.handleError(error);
+    }
+  }
+  
+  async signInViaEmail(email: string): Promise<EmailAuthResult> {
+    try {
+      const { data } = await this.provider.userManagement.listUsers({ email });
+  
+      if (data.length === 0) {
+        return this.handleError(new Error(AuthErrorCode.ACCOUNT_NOT_FOUND));
+      }
+  
+      await this.provider.userManagement.createMagicAuth({ email });
+      return { success: true };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+  
+  async resendAuthCode(email: string): Promise<EmailAuthResult> {
+    try {
+      await this.provider.userManagement.createMagicAuth({ email });
+      return { success: true };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+  
+  async verifyAuthCode(params: { email: string; code: string }): Promise<VerificationResult> {
+    const { email, code } = params;
+  
+    try {
+      const { sealedSession } = await this.provider.userManagement.authenticateWithMagicAuth({
+        clientId: this.clientId,
+        code,
+        email,
+        session: {
+          sealSession: true,
+          cookiePassword: this.cookiePassword
+        }
+      });
+  
+      if (!sealedSession) {
+        throw new Error('No sealed session returned');
+      }
+  
+      return {
+        success: true,
+        redirectTo: '/apis',
+        cookies: [{
+          name: UNKEY_SESSION_COOKIE,
+          value: sealedSession,
+          options: {
+            secure: true,
+            httpOnly: true
+          }
+        }]
+      };
+    } catch (error: any) {
+      // Handle organization selection required case
+      if (error.code === 'organization_selection_required') {
+        return {
+          success: false,
+          code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
+          message: error.message,
+          user: this.transformUserData(error.user),
+          organizations: error.organizations.map(this.transformOrganizationData),
+          cookies: [{
+            name: 'sess-temp',
+            value: error.pending_authentication_token,
+            options: {
+              secure: true,
+              httpOnly: true
+            }
+          }]
+        };
+      }
+      return this.handleError(error);
+    }
+  }
+  
+  async completeOrgSelection(params: { orgId: string; pendingAuthToken: string }): Promise<VerificationResult> {
+    try {
+      const { sealedSession } = await this.provider.userManagement.authenticateWithOrganizationSelection({
+        pendingAuthenticationToken: params.pendingAuthToken,
+        organizationId: params.orgId,
+        clientId: this.clientId,
+        session: {
+          sealSession: true,
+          cookiePassword: this.cookiePassword
+        }
+      });
+  
+      if (!sealedSession) {
+        throw new Error('No sealed session returned');
+      }
+  
+      return {
+        success: true,
+        redirectTo: '/apis',
+        cookies: [{
+          name: UNKEY_SESSION_COOKIE,
+          value: sealedSession,
+          options: {
+            secure: true,
+            httpOnly: true
+          }
+        }]
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async getSignOutUrl(): Promise<string | null> {
+    const token = await getCookie(UNKEY_SESSION_COOKIE);
+    if (!token) {
+      return null;
+    }
+  
+    try {
+      const session = this.provider.userManagement.loadSealedSession({
+        sessionData: token,
+        cookiePassword: this.cookiePassword
+      });
+  
+      return await session.getLogoutUrl();
+    } catch (error) {
+      console.error('Failed to get sign out URL:', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return null;
+    }
+  }
+  
+  // OAuth Methods
+  signInViaOAuth(options: SignInViaOAuthOptions): string {
+    const { redirectUrl, provider, redirectUrlComplete } = options;
+    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete }));
+  
+    return this.provider.userManagement.getAuthorizationUrl({
+      clientId: this.clientId,
+      redirectUri: redirectUrl ?? env().NEXT_PUBLIC_WORKOS_REDIRECT_URI,
+      provider: provider === "github" ? "GitHubOAuth" : "GoogleOAuth",
+      state
+    });
+  }
+  
+  async completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult> {
+    const url = new URL(callbackRequest.url);
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+  
+    if (!code) {
+      return this.handleError(new Error(AuthErrorCode.MISSING_REQUIRED_FIELDS));
+    }
+  
+    try {
+      const { sealedSession } = await this.provider.userManagement.authenticateWithCode({
+        clientId: this.clientId,
+        code,
+        session: {
+          sealSession: true,
+          cookiePassword: this.cookiePassword
+        }
+      });
+  
+      if (!sealedSession) {
+        throw new Error('No sealed session returned');
+      }
+  
+      const redirectUrlComplete = state 
+        ? JSON.parse(decodeURIComponent(state)).redirectUrlComplete 
+        : '/apis';
+  
+      return {
+        success: true,
+        redirectTo: redirectUrlComplete,
+        cookies: [{
+          name: UNKEY_SESSION_COOKIE,
+          value: sealedSession,
+          options: {
+            secure: true,
+            httpOnly: true
+          }
+        }]
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // Helper methods for transforming WorkOS types to Unkey types
+  private transformUserData(providerUser: any): User {
+    return {
+      id: providerUser.id,
+      orgId: null,
+      email: providerUser.email,
+      firstName: providerUser.first_name,
+      lastName: providerUser.last_name,
+      avatarUrl: providerUser.profile_picture_url,
+      fullName: providerUser.first_name && providerUser.last_name 
+        ? `${providerUser.first_name} ${providerUser.last_name}`
+        : null
+    };
+  }
+
+  private transformOrganizationData(providerOrg: any): Organization {
+    return {
+      id: providerOrg.id,
+      name: providerOrg.name,
+      createdAt: providerOrg.created_at,
+      updatedAt: providerOrg.updated_at
+    };
+  }
+
+  private transformInvitationData(
+    providerInvitation: any, 
+    context: { orgId: string; inviterId?: string }
+  ): Invitation {
+    return {
+      id: providerInvitation.id,
+      email: providerInvitation.email,
+      state: providerInvitation.state,
+      acceptedAt: providerInvitation.acceptedAt,
+      revokedAt: providerInvitation.revokedAt,
+      expiresAt: providerInvitation.expiresAt,
+      token: providerInvitation.token,
+      organizationId: providerInvitation.organizationId ?? context.orgId,
+      inviterUserId: providerInvitation.inviterUserId ?? context.inviterId,
+      createdAt: providerInvitation.createdAt,
+      updatedAt: providerInvitation.updatedAt
+    };
+  }
+
 }

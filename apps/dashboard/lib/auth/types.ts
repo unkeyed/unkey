@@ -1,8 +1,7 @@
-import type { Cookie } from './cookies';
+import { Cookie } from "./cookies";
 
+// Core Types
 export const UNKEY_SESSION_COOKIE = "unkey-session";
-
-export type OAuthStrategy = "google" | "github";
 
 export interface User {
   id: string;
@@ -13,36 +12,6 @@ export interface User {
   avatarUrl: string | null;
   fullName: string | null;
 }
-
-export interface SignInViaOAuthOptions {
-  redirectUrl?: string;
-  redirectUrlComplete: string;
-  provider: OAuthStrategy;
-}
-
-export interface MiddlewareConfig {
-  enabled: boolean;
-  publicPaths: string[];
-  cookieName: string;
-  loginPath: string;
-}
-
-export interface BaseAuthResponse {
-  success: boolean;
-  redirectTo: string;
-  cookies: Cookie[];
-}
-
-export interface OAuthSuccessResponse extends BaseAuthResponse {
-  success: true;
-}
-
-export interface OAuthErrorResponse extends BaseAuthResponse {
-  success: false;
-  error: Error;
-}
-
-export type OAuthResult = OAuthSuccessResponse | OAuthErrorResponse;
 
 export interface Organization {
   id: string;
@@ -61,38 +30,53 @@ export interface Membership {
   status: "pending" | "active" | "inactive";
 }
 
-export interface OrgMembership {
-  data: Membership[];
+// Base response type
+interface AuthResponse {
+  success: boolean;
+}
+
+// State change responses (for operations that update UI state)
+export interface StateChangeResponse extends AuthResponse {
+  success: true;
+}
+
+// Navigation responses (for operations that redirect/set cookies)
+export interface NavigationResponse extends AuthResponse {
+  success: true;
+  redirectTo: string;
+  cookies: Cookie[];
+}
+
+// Error response
+export interface AuthErrorResponse extends AuthResponse {
+  success: false;
+  code: AuthErrorCode;
+  message: string;
+}
+
+// Special case for org selection
+export interface PendingOrgSelectionResponse extends AuthErrorResponse {
+  code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED;
+  user: User;
+  organizations: Organization[];
+  cookies: Cookie[]; // Add this to store the pending auth token
+}
+
+// Union types for different auth operations
+export type EmailAuthResult = StateChangeResponse | AuthErrorResponse;
+export type VerificationResult = NavigationResponse | PendingOrgSelectionResponse | AuthErrorResponse;
+export type OAuthResult = NavigationResponse | AuthErrorResponse;
+
+// List Response Types
+export interface ListResponse<T> {
+  data: T[];
   metadata: Record<string, unknown>;
 }
 
-export interface UpdateOrgParams {
-    id: string;
-    name: string;
-}
+export type MembershipListResponse = ListResponse<Membership>;
+export type InvitationListResponse = ListResponse<Invitation>;
 
-export interface OrgInvite {
-    orgId: string;
-    email: string;
-    role: "basic_member" | "admin";
-}
-export interface OrgInvitation {
-  data: Invitation[];
-  metadata: Record<string, unknown>;
-}
-export interface Invitation {
-    id: string,
-    email: string,
-    state: 'pending' | 'accepted' | 'revoked' | 'expired',
-    acceptedAt?: string | null,
-    revokedAt?: string | null,
-    expiresAt: string,
-    token: string,
-    organizationId?: string,
-    inviterUserId?: string,
-    createdAt: string,
-    updatedAt: string,
-}
+// Session Types
 export interface SessionValidationResult {
   isValid: boolean;
   shouldRefresh: boolean;
@@ -102,12 +86,48 @@ export interface SessionValidationResult {
 
 export interface SessionData {
   userId: string;
-  orgId?: string | null;
+  orgId: string | null;
+}
+
+// OAuth Types
+export type OAuthStrategy = "google" | "github";
+
+export interface SignInViaOAuthOptions {
+  redirectUrl?: string;
+  redirectUrlComplete: string;
+  provider: OAuthStrategy;
+}
+
+// Invitation Types
+export interface Invitation {
+  id: string;
+  email: string;
+  state: 'pending' | 'accepted' | 'revoked' | 'expired';
+  acceptedAt?: string | null;
+  revokedAt?: string | null;
+  expiresAt: string;
+  token: string;
+  organizationId?: string;
+  inviterUserId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Operation Parameters
+export interface UpdateOrgParams {
+  id: string;
+  name: string;
 }
 
 export interface UpdateMembershipParams {
   membershipId: string;
   role: string;
+}
+
+export interface OrgInviteParams {
+  orgId: string;
+  email: string;
+  role: "basic_member" | "admin";
 }
 
 export interface UserData {
@@ -116,24 +136,7 @@ export interface UserData {
   email: string;
 }
 
-export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
-  enabled: true,
-  publicPaths: ['/auth/sign-in', '/auth/sign-up', '/favicon.ico'],
-  cookieName: UNKEY_SESSION_COOKIE,
-  loginPath: '/auth/sign-in'
-};
-
-export interface AuthProviderError extends Error {
-  message: string;
-  status?: number;
-  requestID?: string; 
-  code?: string;
-  errors?: Array<{
-    code: string;
-    message: string;
-  }>;
-}
-
+// Error Handling
 export enum AuthErrorCode {
   EMAIL_ALREADY_EXISTS = 'EMAIL_ALREADY_EXISTS',
   MISSING_REQUIRED_FIELDS = 'MISSING_REQUIRED_FIELDS',
@@ -141,7 +144,8 @@ export enum AuthErrorCode {
   INVALID_EMAIL = 'INVALID_EMAIL',
   NETWORK_ERROR = 'NETWORK_ERROR',
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-  ACCOUNT_NOT_FOUND = 'ACCOUNT_NOT_FOUND'
+  ACCOUNT_NOT_FOUND = 'ACCOUNT_NOT_FOUND',
+  ORGANIZATION_SELECTION_REQUIRED = 'ORGANIZATION_SELECTION_REQUIRED',
 }
 
 export const errorMessages: Record<AuthErrorCode, string> = {
@@ -151,23 +155,20 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.INVALID_EMAIL]: "Please enter a valid email address.",
   [AuthErrorCode.NETWORK_ERROR]: "Connection error. Please check your internet and try again.",
   [AuthErrorCode.UNKNOWN_ERROR]: "Something went wrong. Please try again later, or contact support@unkey.dev",
-  [AuthErrorCode.ACCOUNT_NOT_FOUND]: "Account not found. Would you like to sign up?"
+  [AuthErrorCode.ACCOUNT_NOT_FOUND]: "Account not found. Would you like to sign up?",
+  [AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED]: "Please choose a workspace to continue authentication."
 };
 
-export interface AuthProvider<T = any> {
-  validateSession(token: string): Promise<SessionValidationResult>;
-  getCurrentUser(): Promise<any | null>;
-  listMemberships(userId?: string): Promise<OrgMembership>;
-  signUpViaEmail({firstName, lastName, email}: UserData): Promise<any>;
-  signIn(orgId?: string): Promise<T>;
-  signInViaOAuth(options: SignInViaOAuthOptions): String;
-  completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;
-  getSignOutUrl(): Promise<T>;
-  updateOrg({id, name}: UpdateOrgParams): Promise<Organization>;
-  [key: string]: any;
+export interface MiddlewareConfig {
+  enabled: boolean;
+  publicPaths: string[];
+  cookieName: string;
+  loginPath: string;
 }
-export interface UserData {
-    firstName: string;
-    lastName: string;
-    email: string;
-}
+
+export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
+  enabled: true,
+  publicPaths: ['/auth/sign-in', '/auth/sign-up', '/favicon.ico'],
+  cookieName: UNKEY_SESSION_COOKIE,
+  loginPath: '/auth/sign-in'
+};
