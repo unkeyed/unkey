@@ -13,7 +13,7 @@ export function getActiveKeysPerHour(ch: Querier) {
       query: `
       SELECT count(DISTINCT key_id) as keys,
         time
-      FROM verifications.key_verifications_per_hour_v1
+      FROM verifications.key_verifications_per_hour_v3
       WHERE workspace_id = {workspaceId: String}
       AND key_space_id = {keySpaceId: String}
       AND time < fromUnixTimestamp64Milli({end: Int64})
@@ -53,7 +53,7 @@ export function getActiveKeysPerDay(ch: Querier) {
     SELECT
       count(DISTINCT key_id) as keys,
       time,
-    FROM verifications.key_verifications_per_day_v1
+    FROM verifications.key_verifications_per_day_v3
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
@@ -93,7 +93,7 @@ export function getActiveKeysPerMonth(ch: Querier) {
     SELECT
       count(DISTINCT key_id) as keys,
       time,
-    FROM verifications.key_verifications_per_month_v1
+    FROM verifications.key_verifications_per_month_v3
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
