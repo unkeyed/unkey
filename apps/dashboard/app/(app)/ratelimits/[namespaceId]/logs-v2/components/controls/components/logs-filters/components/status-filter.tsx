@@ -1,9 +1,8 @@
-import type { ResponseStatus } from "@/app/(app)/logs-v2/filters.type";
 import { FilterCheckbox } from "./filter-checkbox";
 
 type StatusOption = {
   id: number;
-  status: ResponseStatus;
+  status: "succeeded" | "rejected";
   label: string;
   color: string;
   checked: boolean;
@@ -12,16 +11,16 @@ type StatusOption = {
 const options: StatusOption[] = [
   {
     id: 1,
-    status: 200,
+    status: "succeeded",
     label: "Succeeded",
     color: "bg-success-9",
     checked: false,
   },
   {
     id: 2,
-    status: 400,
+    status: "rejected",
     label: "Rejected",
-    color: "bg-error-8",
+    color: "bg-error-9",
     checked: false,
   },
 ];
@@ -40,14 +39,6 @@ export const StatusFilter = () => {
       )}
       createFilterValue={(option) => ({
         value: option.status,
-        metadata: {
-          colorClass:
-            option.status >= 500
-              ? "bg-error-9"
-              : option.status >= 400
-                ? "bg-warning-8"
-                : "bg-success-9",
-        },
       })}
     />
   );

@@ -1,9 +1,9 @@
-import type { FilterValue } from "@/app/(app)/logs-v2/filters.type";
-import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Button } from "@unkey/ui";
 import { useCallback } from "react";
+import type { FilterValue } from "../../../../../filters.type";
+import { useFilters } from "../../../../../hooks/use-filters";
 import { useCheckboxState } from "./hooks/use-checkbox-state";
 
 export type BaseCheckboxOption = {
@@ -14,14 +14,14 @@ export type BaseCheckboxOption = {
 
 interface BaseCheckboxFilterProps<TCheckbox extends BaseCheckboxOption> {
   options: TCheckbox[];
-  filterField: "methods" | "paths" | "status";
+  filterField: "identifiers" | "status";
   checkPath: string;
   className?: string;
   showScroll?: boolean;
   scrollContainerRef?: React.RefObject<HTMLDivElement>;
   renderBottomGradient?: () => React.ReactNode;
   renderOptionContent?: (option: TCheckbox) => React.ReactNode;
-  createFilterValue: (option: TCheckbox) => Pick<FilterValue, "value" | "metadata">;
+  createFilterValue: (option: TCheckbox) => Pick<FilterValue, "value">;
 }
 
 export const FilterCheckbox = <TCheckbox extends BaseCheckboxOption>({

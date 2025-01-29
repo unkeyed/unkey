@@ -150,7 +150,7 @@ export const useFilters = () => {
             });
             break;
           case "status":
-            identifierFilters.push({
+            statusFilters.push({
               value: filter.value,
               operator: filter.operator,
             });
@@ -169,7 +169,6 @@ export const useFilters = () => {
       // Set arrays to null when empty, otherwise use the filtered values
       newParams.identifiers = identifierFilters.length > 0 ? identifierFilters : null;
       newParams.requestIds = requestIdFilters.length > 0 ? requestIdFilters : null;
-
       newParams.status = statusFilters.length > 0 ? statusFilters : null;
       setSearchParams(newParams);
     },
