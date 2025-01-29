@@ -229,8 +229,8 @@ describe("with externalId", () => {
       expect(key!.identity!.externalId).toEqual(externalId);
     });
   });
-  describe("when identity does not exist", () => {
-    test("should create an identity", async (t) => {
+  describe("when identity does exist", () => {
+    test("should link the identity", async (t) => {
       const h = await IntegrationHarness.init(t);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
       const hash = await sha256(randomUUID());
