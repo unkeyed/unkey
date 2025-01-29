@@ -10,7 +10,7 @@ import { useEffect, useRef } from "react";
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
-import { useFetchTimeseries } from "./hooks/use-fetch-timeseries";
+import { useFetchRatelimitTimeseries } from "./hooks/use-fetch-timeseries";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
 import { formatTimestampLabel, formatTimestampTooltip } from "./utils/format-timestamp";
 
@@ -19,11 +19,6 @@ const chartConfig = {
     label: "Success",
     subLabel: "2xx",
     color: "hsl(var(--accent-4))",
-  },
-  warning: {
-    label: "Warning",
-    subLabel: "4xx",
-    color: "hsl(var(--warning-9))",
   },
   error: {
     label: "Error",
@@ -34,12 +29,14 @@ const chartConfig = {
 
 export function RatelimitLogsChart({
   onMount,
+  namespaceId,
 }: {
   onMount: (distanceToTop: number) => void;
+  namespaceId: string;
 }) {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const { timeseries, isLoading, isError } = useFetchTimeseries();
+  const { timeseries, isLoading, isError } = useFetchRatelimitTimeseries(namespaceId);
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
   useEffect(() => {
     const distanceToTop = chartRef.current?.getBoundingClientRect().top ?? 0;
@@ -135,9 +132,8 @@ export function RatelimitLogsChart({
                 );
               }}
             />
-            {["success", "warning", "error"].map((key) => (
-              <Bar key={key} dataKey={key} stackId="a" fill={`var(--color-${key})`} />
-            ))}
+            <Bar dataKey="success" stackId="a" fill={chartConfig.success.color} />
+            <Bar dataKey="error" stackId="a" fill={chartConfig.error.color} />
           </BarChart>
         </ChartContainer>
       </ResponsiveContainer>

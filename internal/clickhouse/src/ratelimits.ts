@@ -2,14 +2,6 @@ import { z } from "zod";
 import type { Inserter, Querier } from "./client";
 import { dateTimeToUnix } from "./util";
 
-const params = z.object({
-  workspaceId: z.string(),
-  namespaceId: z.string(),
-  identifier: z.array(z.string()).optional(),
-  start: z.number().default(0),
-  end: z.number().default(() => Date.now()),
-});
-
 export function insertRatelimit(ch: Inserter) {
   return ch.insert({
     table: "ratelimits.raw_ratelimits_v1",
@@ -24,135 +16,128 @@ export function insertRatelimit(ch: Inserter) {
   });
 }
 
-export function getRatelimitsPerMinute(ch: Querier) {
-  return async (args: z.input<typeof params>) => {
-    const query = ch.query({
-      query: `
+export const ratelimitLogsTimeseriesParams = z.object({
+  workspaceId: z.string(),
+  namespaceId: z.string(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  identifiers: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+});
+
+export const ratelimitLogsTimeseriesDataPoint = z.object({
+  x: dateTimeToUnix,
+  y: z.object({
+    passed: z.number().int().default(0),
+    total: z.number().int().default(0),
+  }),
+});
+
+export type RatelimitLogsTimeseriesDataPoint = z.infer<typeof ratelimitLogsTimeseriesDataPoint>;
+export type RatelimitLogsTimeseriesParams = z.infer<typeof ratelimitLogsTimeseriesParams>;
+
+type TimeInterval = {
+  table: string;
+  timeFunction: string;
+  step: string;
+};
+
+const INTERVALS: Record<string, TimeInterval> = {
+  minute: {
+    table: "ratelimits.ratelimits_per_minute_v1",
+    timeFunction: "toStartOfMinute",
+    step: "MINUTE",
+  },
+  hour: {
+    table: "ratelimits.ratelimits_per_hour_v1",
+    timeFunction: "toStartOfHour",
+    step: "HOUR",
+  },
+  day: {
+    table: "ratelimits.ratelimits_per_day_v1",
+    timeFunction: "toStartOfDay",
+    step: "DAY",
+  },
+  month: {
+    table: "ratelimits.ratelimits_per_month_v1",
+    timeFunction: "toStartOfMonth",
+    step: "MONTH",
+  },
+} as const;
+
+function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
+  return `
     SELECT
-      time,
-      sum(passed) as passed,
-      sum(total) as total
-    FROM ratelimits.ratelimits_per_minute_v1
-    WHERE workspace_id = {workspaceId: String}
-      AND namespace_id = {namespaceId: String}
-      ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
-      AND time >= fromUnixTimestamp64Milli({start: Int64})
-      AND time <= fromUnixTimestamp64Milli({end: Int64})
+      time as x,
+      map(
+        'passed', sum(passed),
+        'total', sum(total)
+      ) as y
+    FROM ${interval.table}
+    ${whereClause}
     GROUP BY time
     ORDER BY time ASC
     WITH FILL
-      FROM toStartOfMinute(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfMinute(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 MINUTE
-;`,
-      params,
-      schema: z.object({
-        time: dateTimeToUnix,
-        passed: z.number(),
-        total: z.number(),
-      }),
-    });
+      FROM ${interval.timeFunction}(fromUnixTimestamp64Milli({startTime: Int64}))
+      TO ${interval.timeFunction}(fromUnixTimestamp64Milli({endTime: Int64}))
+      STEP INTERVAL 1 ${interval.step}
+  `;
+}
 
-    return query(args);
+function getRatelimitLogsTimeseriesWhereClause(
+  params: RatelimitLogsTimeseriesParams,
+  additionalConditions: string[] = [],
+): string {
+  const conditions = [
+    "workspace_id = {workspaceId: String}",
+    "namespace_id = {namespaceId: String}",
+    ...additionalConditions,
+  ];
+
+  // Identifier filter with operators
+  if (params.identifiers?.length) {
+    const identifierConditions = params.identifiers
+      .map((i) => {
+        switch (i.operator) {
+          case "is":
+            return `identifier = '${i.value}'`;
+          case "contains":
+            return `like(identifier, '%${i.value}%')`;
+        }
+      })
+      .join(" OR ");
+    conditions.push(`(${identifierConditions})`);
+  }
+
+  return conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+}
+
+function createTimeseriesQuerier(interval: TimeInterval) {
+  return (ch: Querier) => async (args: RatelimitLogsTimeseriesParams) => {
+    const whereClause = getRatelimitLogsTimeseriesWhereClause(args, [
+      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+    ]);
+    const query = createTimeseriesQuery(interval, whereClause);
+
+    return ch.query({
+      query,
+      params: ratelimitLogsTimeseriesParams,
+      schema: ratelimitLogsTimeseriesDataPoint,
+    })(args);
   };
 }
 
-export function getRatelimitsPerHour(ch: Querier) {
-  return async (args: z.infer<typeof params>) => {
-    const query = ch.query({
-      query: `
-    SELECT
-      time,
-      sum(passed) as passed,
-      sum(total) as total
-    FROM ratelimits.ratelimits_per_hour_v1
-    WHERE workspace_id = {workspaceId: String}
-      AND namespace_id = {namespaceId: String}
-      ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
-      AND time >= fromUnixTimestamp64Milli({start: Int64})
-      AND time <= fromUnixTimestamp64Milli({end: Int64})
-    GROUP BY time
-    ORDER BY time ASC
-    WITH FILL
-      FROM toStartOfHour(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfHour(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 HOUR
-;`,
-      params,
-      schema: z.object({
-        time: dateTimeToUnix,
-        passed: z.number(),
-        total: z.number(),
-      }),
-    });
-
-    return query(args);
-  };
-}
-export function getRatelimitsPerDay(ch: Querier) {
-  return async (args: z.infer<typeof params>) => {
-    const query = ch.query({
-      query: `
-    SELECT
-      time,
-      sum(passed) as passed,
-      sum(total) as total
-    FROM ratelimits.ratelimits_per_day_v1
-    WHERE workspace_id = {workspaceId: String}
-      AND namespace_id = {namespaceId: String}
-      ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
-      AND time >= fromUnixTimestamp64Milli({start: Int64})
-      AND time <= fromUnixTimestamp64Milli({end: Int64})
-    GROUP BY time
-    ORDER BY time ASC
-    WITH FILL
-      FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 DAY
-;`,
-      params,
-      schema: z.object({
-        time: dateTimeToUnix,
-        passed: z.number(),
-        total: z.number(),
-      }),
-    });
-
-    return query(args);
-  };
-}
-export function getRatelimitsPerMonth(ch: Querier) {
-  return async (args: z.input<typeof params>) => {
-    const query = ch.query({
-      query: `
-    SELECT
-      time,
-      sum(passed) as passed,
-      sum(total) as total
-    FROM ratelimits.ratelimits_per_month_v1
-    WHERE workspace_id = {workspaceId: String}
-      AND namespace_id = {namespaceId: String}
-      ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
-      AND time >= fromUnixTimestamp64Milli({start: Int64})
-      AND time <= fromUnixTimestamp64Milli({end: Int64})
-    GROUP BY time
-    ORDER BY time ASC
-    WITH FILL
-      FROM toStartOfMonth(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 MONTH
-;`,
-      params,
-      schema: z.object({
-        time: dateTimeToUnix,
-        passed: z.number(),
-        total: z.number(),
-      }),
-    });
-
-    return query(args);
-  };
-}
+export const getRatelimitsPerMinute = createTimeseriesQuerier(INTERVALS.minute);
+export const getRatelimitsPerHour = createTimeseriesQuerier(INTERVALS.hour);
+export const getRatelimitsPerDay = createTimeseriesQuerier(INTERVALS.day);
+export const getRatelimitsPerMonth = createTimeseriesQuerier(INTERVALS.month);
 
 const getRatelimitLastUsedParameters = z.object({
   workspaceId: z.string(),

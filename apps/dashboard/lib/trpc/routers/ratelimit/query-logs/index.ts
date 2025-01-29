@@ -53,6 +53,14 @@ export const queryRatelimitLogs = rateLimitedProcedure(ratelimit.update)
         message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
+
+    if (workspace.ratelimitNamespaces.length === 0) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Namespace not found",
+      });
+    }
+
     const transformedInputs = transformFilters(input);
     const result = await clickhouse.ratelimits.logs({
       ...transformedInputs,
