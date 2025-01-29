@@ -1,4 +1,4 @@
-export const DEFAULT_REJECTED_FLAG = 0;
+export const DEFAULT_STATUS_FLAG = 0;
 
 export const DEFAULT_DRAGGABLE_WIDTH = 500;
 export const MAX_DRAGGABLE_WIDTH = 800;

@@ -189,7 +189,14 @@ export const ratelimitLogsParams = z.object({
       }),
     )
     .nullable(),
-  rejected: z.number().int().nullable(),
+  status: z
+    .array(
+      z.object({
+        value: z.enum(["rejected", "succeeded"]),
+        operator: z.literal("is"),
+      }),
+    )
+    .nullable(),
   cursorTime: z.number().int().nullable(),
   cursorRequestId: z.string().nullable(),
 });
@@ -198,7 +205,7 @@ export const ratelimitLogs = z.object({
   request_id: z.string(),
   time: z.number().int(),
   identifier: z.string(),
-  rejected: z.number().int(),
+  status: z.number().int(),
 
   // Fields from metrics table
   host: z.string(),
@@ -219,6 +226,17 @@ export type RatelimitLogsParams = z.infer<typeof ratelimitLogsParams>;
 
 export function getRatelimitLogs(ch: Querier) {
   return async (args: RatelimitLogsParams) => {
+    const statusCondition =
+      args.status
+        ?.map((filter) => {
+          if (filter.operator === "is") {
+            return `passed = ${filter.value === "succeeded" ? "true" : "false"}`;
+          }
+          return null;
+        })
+        .filter(Boolean)
+        .join(" OR ") || "TRUE";
+
     const identifierConditions =
       args.identifiers
         ?.map((p) => {
@@ -275,15 +293,8 @@ export function getRatelimitLogs(ch: Querier) {
             
             ---------- Apply identifier filter
             AND (${identifierConditions})
-            
-            ---------- Apply rejected filter
-            AND (
-              CASE
-                WHEN {rejected: Nullable(UInt8)} IS NOT NULL THEN 
-                  (NOT r.passed) = {rejected: Nullable(UInt8)}
-                ELSE TRUE
-              END
-            )
+            ---------- Apply status filter
+            AND (${statusCondition})
             
             -- Apply cursor pagination last
             AND (
@@ -305,7 +316,7 @@ export function getRatelimitLogs(ch: Querier) {
           workspace_id,
           namespace_id,
           identifier,
-          toUInt8(NOT passed) as rejected,
+          toUInt8(passed) as status,
           host,
           method,
           path,

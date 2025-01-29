@@ -9,7 +9,7 @@ import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useMemo } from "react";
-import { DEFAULT_REJECTED_FLAG } from "../../constants";
+import { DEFAULT_STATUS_FLAG } from "../../constants";
 import { useRatelimitLogsContext } from "../../context/logs";
 import { useRatelimitLogsQuery } from "./hooks/use-logs-query";
 import { LogsTableAction } from "./logs-actions";
@@ -49,17 +49,17 @@ const STATUS_STYLES = {
 };
 
 const getStatusStyle = (rejected: number): StatusStyle => {
-  if (rejected === DEFAULT_REJECTED_FLAG) {
-    return STATUS_STYLES.success;
+  if (rejected === DEFAULT_STATUS_FLAG) {
+    return STATUS_STYLES.error;
   }
-  return STATUS_STYLES.error;
+  return STATUS_STYLES.success;
 };
 
 const getSelectedClassName = (log: RatelimitLog, isSelected: boolean) => {
   if (!isSelected) {
     return "";
   }
-  const style = getStatusStyle(log.rejected);
+  const style = getStatusStyle(log.status);
   return style.selected;
 };
 
@@ -77,7 +77,7 @@ export const RatelimitLogsTable = ({
     });
 
   const getRowClassName = (log: RatelimitLog) => {
-    const style = getStatusStyle(log.rejected);
+    const style = getStatusStyle(log.status);
     const isSelected = selectedLog?.request_id === log.request_id;
 
     return cn(
@@ -131,7 +131,7 @@ export const RatelimitLogsTable = ({
         width: "10%",
         headerClassName: "pl-1",
         render: (log) => {
-          const style = getStatusStyle(log.rejected);
+          const style = getStatusStyle(log.status);
           const isSelected = selectedLog?.request_id === log.request_id;
           return (
             <Badge
@@ -140,7 +140,7 @@ export const RatelimitLogsTable = ({
                 isSelected ? style.badge.selected : style.badge.default,
               )}
             >
-              {log.rejected ? "Rejected" : "Succeeded"}
+              {log.status === 0 ? "Rejected" : "Succeeded"}
             </Badge>
           );
         },

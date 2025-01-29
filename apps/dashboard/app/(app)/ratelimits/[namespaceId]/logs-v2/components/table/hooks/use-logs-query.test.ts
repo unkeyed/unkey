@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { act, renderHook } from "@testing-library/react";
+import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useRatelimitLogsQuery } from "./use-logs-query";
 
@@ -20,15 +21,19 @@ vi.mock("@/lib/trpc/client", () => {
   return {
     trpc: {
       useUtils: () => ({
-        logs: {
-          queryLogs: {
-            fetch,
+        ratelimit: {
+          logs: {
+            query: {
+              fetch,
+            },
           },
         },
       }),
-      logs: {
-        queryLogs: {
-          useInfiniteQuery,
+      ratelimit: {
+        logs: {
+          query: {
+            useInfiniteQuery,
+          },
         },
       },
     },
@@ -41,23 +46,23 @@ vi.mock("../../../hooks/use-filters", () => ({
   }),
 }));
 
-describe("useLogsQuery filter processing", () => {
+describe("useRatelimitLogsQuery filter processing", () => {
   beforeEach(() => {
     mockFilters = [];
     vi.setSystemTime(mockDate);
   });
 
   it("handles valid status filter", () => {
-    mockFilters = [{ field: "status", operator: "is", value: "404" }];
+    mockFilters = [{ field: "status", operator: "is", value: "rejected" }];
     const { result } = renderHook(() => useRatelimitLogsQuery());
     expect(result.current.isPolling).toBe(false);
   });
 
   it("handles multiple valid filters", () => {
     mockFilters = [
-      { field: "status", operator: "is", value: "404" },
-      { field: "methods", operator: "is", value: "GET" },
-      { field: "paths", operator: "startsWith", value: "/api" },
+      { field: "status", operator: "is", value: "succeeded" },
+      { field: "identifiers", operator: "is", value: "test-id" },
+      { field: "requestIds", operator: "is", value: "req-123" },
     ];
     const { result } = renderHook(() => useRatelimitLogsQuery());
     expect(result.current.isPolling).toBe(false);
@@ -66,9 +71,9 @@ describe("useLogsQuery filter processing", () => {
   it("handles invalid filter types", () => {
     const consoleMock = vi.spyOn(console, "error");
     mockFilters = [
-      { field: "methods", operator: "is", value: 123 },
-      { field: "paths", operator: "startsWith", value: true },
-      { field: "host", operator: "is", value: {} },
+      { field: "identifiers", operator: "is", value: 123 },
+      { field: "requestIds", operator: "is", value: true },
+      { field: "status", operator: "is", value: {} },
     ];
     renderHook(() => useRatelimitLogsQuery());
     expect(consoleMock).toHaveBeenCalledTimes(3);
@@ -84,7 +89,7 @@ describe("useLogsQuery filter processing", () => {
   });
 });
 
-describe("useLogsQuery realtime logs", () => {
+describe("useRatelimitLogsQuery realtime logs", () => {
   let useInfiniteQuery: ReturnType<typeof vi.fn>;
   let fetch: ReturnType<typeof vi.fn>;
 
@@ -92,20 +97,30 @@ describe("useLogsQuery realtime logs", () => {
     vi.setSystemTime(mockDate);
     mockFilters = [];
     //@ts-expect-error hacky way to mock trpc
-    useInfiniteQuery = vi.mocked(trpc.logs.queryLogs.useInfiniteQuery);
+    useInfiniteQuery = vi.mocked(trpc.ratelimit.logs.query.useInfiniteQuery);
     //@ts-expect-error hacky way to mock trpc
-    fetch = vi.mocked(trpc.useUtils().logs.queryLogs.fetch);
+    fetch = vi.mocked(trpc.useUtils().ratelimit.logs.query.fetch);
   });
 
   it("resets realtime logs when polling stops", async () => {
-    const mockLogs = [
-      { request_id: "1", time: Date.now(), method: "GET", path: "/api/test" },
-      { request_id: "2", time: Date.now(), method: "POST", path: "/api/users" },
+    const mockLogs: Partial<RatelimitLog>[] = [
+      {
+        request_id: "1",
+        time: Date.now(),
+        status: 1,
+        identifier: "test-1",
+      },
+      {
+        request_id: "2",
+        time: Date.now(),
+        status: 0,
+        identifier: "test-2",
+      },
     ];
 
     useInfiniteQuery.mockReturnValue({
       data: {
-        pages: [{ logs: mockLogs, nextCursor: null }],
+        pages: [{ ratelimitLogs: mockLogs, nextCursor: null }],
       },
       hasNextPage: false,
       fetchNextPage: vi.fn(),
@@ -114,12 +129,12 @@ describe("useLogsQuery realtime logs", () => {
     });
 
     fetch.mockResolvedValue({
-      logs: [
+      ratelimitLogs: [
         {
           request_id: "3",
           time: Date.now(),
-          method: "PUT",
-          path: "/api/update",
+          status: "succeeded",
+          identifier: "test-3",
         },
       ],
     });

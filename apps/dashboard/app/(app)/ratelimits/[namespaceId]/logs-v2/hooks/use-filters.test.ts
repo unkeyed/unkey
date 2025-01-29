@@ -13,7 +13,7 @@ vi.mock("nuqs", () => {
         identifiers: null,
         startTime: null,
         endTime: null,
-        rejected: null,
+        status: null,
         since: null,
       },
       mockSetSearchParams,
@@ -133,7 +133,7 @@ describe("useFilters hook", () => {
         identifiers: null,
         startTime: null,
         endTime: null,
-        rejected: null,
+        status: null,
         since: null,
       },
       mockSetSearchParams,
@@ -152,7 +152,7 @@ describe("useFilters hook", () => {
         identifiers: null,
         startTime: null,
         endTime: null,
-        rejected: null,
+        status: null,
         since: null,
       },
       mockSetSearchParams,
@@ -176,7 +176,7 @@ describe("useFilters hook", () => {
         identifiers: [{ operator: "contains", value: "api" }],
         startTime: 1609459200000,
         endTime: null,
-        rejected: 1,
+        status: null,
         since: "24h",
       },
       mockSetSearchParams,
@@ -208,12 +208,6 @@ describe("useFilters hook", () => {
         operator: "is",
         value: "24h",
       },
-      {
-        id: "test-uuid",
-        field: "rejected",
-        operator: "is",
-        value: 1,
-      },
     ]);
   });
 
@@ -224,7 +218,7 @@ describe("useFilters hook", () => {
         identifiers: null,
         startTime: null,
         endTime: null,
-        rejected: null,
+        status: null,
         since: null,
       },
       mockSetSearchParams,
@@ -241,7 +235,7 @@ describe("useFilters hook", () => {
       identifiers: null,
       startTime: null,
       endTime: null,
-      rejected: 0,
+      status: null,
       since: null,
     });
   });
@@ -253,7 +247,7 @@ describe("useFilters hook", () => {
         identifiers: [{ operator: "contains", value: "api" }],
         startTime: 1609459200000,
         endTime: null,
-        rejected: 1,
+        status: null,
         since: "24h",
       },
       mockSetSearchParams,
@@ -270,7 +264,7 @@ describe("useFilters hook", () => {
       identifiers: null,
       startTime: null,
       endTime: null,
-      rejected: 0,
+      status: null,
       since: null,
     });
   });
@@ -286,12 +280,6 @@ describe("useFilters hook", () => {
           operator: "contains",
           value: "api",
         },
-        {
-          id: "test-uuid-2",
-          field: "rejected",
-          operator: "is",
-          value: 1,
-        },
       ]);
     });
 
@@ -300,7 +288,7 @@ describe("useFilters hook", () => {
       identifiers: [{ operator: "contains", value: "api" }],
       startTime: null,
       endTime: null,
-      rejected: 1,
+      status: null,
       since: null,
     });
   });

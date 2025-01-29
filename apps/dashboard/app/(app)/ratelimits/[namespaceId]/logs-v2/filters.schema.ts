@@ -16,7 +16,7 @@ export const filterFieldEnum = z.enum([
   "since",
   "identifiers",
   "requestIds",
-  "rejected",
+  "status",
 ]);
 
 export const filterOutputSchema = z.object({
@@ -27,7 +27,7 @@ export const filterOutputSchema = z.object({
         filters: z.array(
           z.object({
             operator: filterOperatorEnum,
-            value: z.union([z.string(), z.number(), z.literal(0), z.literal(1)]),
+            value: z.union([z.string(), z.number()]),
           }),
         ),
       })
@@ -71,19 +71,10 @@ export const transformStructuredOutputToFilters = (
         return;
       }
 
-      if (filterGroup.field === "rejected") {
-        const binaryValue = filter.value === "1" ? 1 : 0;
-        uniqueFilters.push({
-          id: crypto.randomUUID(),
-          ...baseFilter,
-          value: binaryValue,
-        });
-      } else {
-        uniqueFilters.push({
-          id: crypto.randomUUID(),
-          ...baseFilter,
-        });
-      }
+      uniqueFilters.push({
+        id: crypto.randomUUID(),
+        ...baseFilter,
+      });
 
       seenFilters.add(filterKey);
     });
@@ -103,10 +94,6 @@ function isStringConfig(config: FieldConfig): config is StringConfig {
 
 export function validateFieldValue(field: FilterField, value: string | number): boolean {
   const config = filterFieldConfig[field];
-
-  if (field === "rejected") {
-    return value === 0 || value === 1;
-  }
 
   if (isStringConfig(config) && typeof value === "string") {
     if (config.validValues) {
@@ -143,9 +130,9 @@ export const filterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is"],
   },
-  rejected: {
-    type: "number",
+  status: {
+    type: "string",
     operators: ["is"],
-    validate: (value) => value === 0 || value === 1,
+    validValues: ["rejected", "succeeded"],
   },
 } as const;

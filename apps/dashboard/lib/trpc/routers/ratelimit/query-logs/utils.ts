@@ -21,13 +21,19 @@ export function transformFilters(
       value: f.value,
     })) ?? [];
 
+  const status =
+    params.status?.filters.map((f) => ({
+      operator: "is" as const,
+      value: f.value,
+    })) ?? [];
+
   return {
     limit: params.limit,
     startTime,
     endTime,
     identifiers,
     requestIds: params.requestIds?.filters.map((f) => f.value) || [],
-    rejected: params.rejected ?? null,
+    status,
     cursorTime: params.cursor?.time ?? null,
     cursorRequestId: params.cursor?.requestId ?? null,
   };

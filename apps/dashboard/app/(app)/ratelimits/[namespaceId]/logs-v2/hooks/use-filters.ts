@@ -67,7 +67,7 @@ export const queryParamsPayload = {
   identifiers: parseAsFilterValueArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
-  rejected: parseAsInteger,
+  status: parseAsFilterValueArray,
   since: parseAsRelativeTime,
 } as const;
 
@@ -95,7 +95,16 @@ export const useFilters = () => {
       });
     });
 
-    ["startTime", "endTime", "since", "rejected"].forEach((field) => {
+    searchParams.status?.forEach((pathFilter) => {
+      activeFilters.push({
+        id: crypto.randomUUID(),
+        field: "status",
+        operator: pathFilter.operator,
+        value: pathFilter.value,
+      });
+    });
+
+    ["startTime", "endTime", "since"].forEach((field) => {
       const value = searchParams[field as keyof QuerySearchParams];
       if (value !== null && value !== undefined) {
         activeFilters.push({
@@ -118,11 +127,12 @@ export const useFilters = () => {
         endTime: null,
         since: null,
         identifiers: null,
-        rejected: null,
+        status: null,
       };
 
       // Group filters by field
       const requestIdFilters: FilterUrlValue[] = [];
+      const statusFilters: FilterUrlValue[] = [];
       const identifierFilters: FilterUrlValue[] = [];
 
       newFilters.forEach((filter) => {
@@ -139,6 +149,12 @@ export const useFilters = () => {
               operator: filter.operator,
             });
             break;
+          case "status":
+            identifierFilters.push({
+              value: filter.value,
+              operator: filter.operator,
+            });
+            break;
 
           case "startTime":
           case "endTime":
@@ -147,9 +163,6 @@ export const useFilters = () => {
           case "since":
             newParams.since = filter.value as string;
             break;
-          case "rejected":
-            newParams.rejected = filter.value as 0 | 1;
-            break;
         }
       });
 
@@ -157,6 +170,7 @@ export const useFilters = () => {
       newParams.identifiers = identifierFilters.length > 0 ? identifierFilters : null;
       newParams.requestIds = requestIdFilters.length > 0 ? requestIdFilters : null;
 
+      newParams.status = statusFilters.length > 0 ? statusFilters : null;
       setSearchParams(newParams);
     },
     [setSearchParams],

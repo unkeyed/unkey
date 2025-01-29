@@ -40,7 +40,7 @@ export function useRatelimitLogsQuery({
       endTime: dateNow,
       requestIds: { filters: [] },
       identifiers: { filters: [] },
-      rejected: null,
+      status: { filters: [] },
       //@ts-expect-error will be fixed later
       namespaceId,
       since: "",
@@ -72,6 +72,17 @@ export function useRatelimitLogsQuery({
           break;
         }
 
+        case "status": {
+          if (typeof filter.value !== "string") {
+            console.error("Status filter value type has to be 'string'");
+            return;
+          }
+          params.status?.filters.push({
+            operator: "is",
+            value: filter.value,
+          });
+          break;
+        }
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
@@ -88,15 +99,6 @@ export function useRatelimitLogsQuery({
             return;
           }
           params.since = filter.value;
-          break;
-        }
-
-        case "rejected": {
-          if (typeof filter.value !== "number") {
-            console.error("Rejected filter value type has to be 'number'");
-            return;
-          }
-          params.rejected = filter.value;
           break;
         }
       }
