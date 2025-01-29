@@ -45,6 +45,7 @@ export default async function RatelimitNamespacePage(props: {
       },
     },
   });
+
   if (!namespace || namespace.workspace.tenantId !== tenantId) {
     return redirect("/ratelimits");
   }
@@ -61,13 +62,25 @@ export default async function RatelimitNamespacePage(props: {
   const billingCycleEnd = t.setUTCMonth(t.getUTCMonth() + 1) - 1;
 
   const { getRatelimitsPerInterval, start, end, granularity } = prepareInterval(interval);
+  const timeseriesMethod = getRatelimitsPerInterval.replace("clickhouse.ratelimits.", "") as
+    | "perMinute"
+    | "perHour"
+    | "perDay"
+    | "perMonth";
   const query = {
     workspaceId: namespace.workspaceId,
     namespaceId: namespace.id,
-    start,
-    end,
-    identifier: selectedIdentifier.length > 0 ? selectedIdentifier : undefined,
+    startTime: start,
+    endTime: end,
+    identifiers:
+      selectedIdentifier.length > 0
+        ? selectedIdentifier.map((id) => ({
+            operator: "is" as const,
+            value: id,
+          }))
+        : null,
   };
+
   const [customLimits, ratelimitEvents, ratelimitsInBillingCycle, lastUsed] = await Promise.all([
     db
       .select({ count: sql<number>`count(*)` })
@@ -75,13 +88,12 @@ export default async function RatelimitNamespacePage(props: {
       .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
       .execute()
       .then((res) => res?.at(0)?.count ?? 0),
-    getRatelimitsPerInterval(query).then((res) => res.val!),
-    getRatelimitsPerInterval({
-      workspaceId: namespace.workspaceId,
-      namespaceId: namespace.id,
-      start: billingCycleStart,
-      end: billingCycleEnd,
-    }).then((res) => res.val!),
+    clickhouse.ratelimits.timeseries[timeseriesMethod](query),
+    clickhouse.ratelimits.timeseries[timeseriesMethod]({
+      ...query,
+      startTime: billingCycleStart,
+      endTime: billingCycleEnd,
+    }),
     clickhouse.ratelimits
       .latest({
         workspaceId: namespace.workspaceId,
@@ -91,27 +103,26 @@ export default async function RatelimitNamespacePage(props: {
       .then((res) => res.val?.at(0)?.time),
   ]);
 
-  const passedOverTime: { x: string; y: number }[] = [];
-  const ratelimitedOverTime: { x: string; y: number }[] = [];
-
-  for (const d of ratelimitEvents.sort((a, b) => a.time - b.time)) {
-    const x = new Date(d.time).toISOString();
-    passedOverTime.push({ x, y: d.passed });
-    ratelimitedOverTime.push({ x, y: d.total - d.passed });
-  }
-
-  const dataOverTime = ratelimitEvents.flatMap((d) => [
+  const dataOverTime = (ratelimitEvents.val ?? []).flatMap((event) => [
     {
-      x: new Date(d.time).toISOString(),
-      y: d.total - d.passed,
+      x: new Date(event.x).toISOString(),
+      y: event.y.total - event.y.passed,
       category: "Ratelimited",
     },
     {
-      x: new Date(d.time).toISOString(),
-      y: d.passed,
+      x: new Date(event.x).toISOString(),
+      y: event.y.passed,
       category: "Passed",
     },
   ]);
+
+  const totalPassed = (ratelimitEvents.val ?? []).reduce((sum, event) => sum + event.y.passed, 0);
+  const totalRatelimited = (ratelimitEvents.val ?? []).reduce(
+    (sum, event) => sum + (event.y.total - event.y.passed),
+    0,
+  );
+  const totalRequests = totalPassed + totalRatelimited;
+  const successRate = totalRequests > 0 ? (totalPassed / totalRequests) * 100 : 0;
 
   const snippet = `curl -XPOST 'https://api.unkey.dev/v1/ratelimits.limit' \\
   -H 'Content-Type: application/json' \\
@@ -122,6 +133,7 @@ export default async function RatelimitNamespacePage(props: {
       "limit": 10,
       "duration": 10000
   }'`;
+
   return (
     <div>
       <Navbar>
@@ -157,7 +169,7 @@ export default async function RatelimitNamespacePage(props: {
                   month: "long",
                 })}`}
                 value={formatNumber(
-                  ratelimitsInBillingCycle.reduce((sum, day) => sum + day.passed, 0),
+                  (ratelimitsInBillingCycle.val ?? []).reduce((sum, day) => sum + day.y.passed, 0),
                 )}
               />
               <Metric
@@ -182,28 +194,10 @@ export default async function RatelimitNamespacePage(props: {
             <Card>
               <CardHeader>
                 <div className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x">
-                  <Metric
-                    label="Passed"
-                    value={formatNumber(ratelimitEvents.reduce((sum, day) => sum + day.passed, 0))}
-                  />
-                  <Metric
-                    label="Ratelimited"
-                    value={formatNumber(
-                      ratelimitEvents.reduce((sum, day) => sum + (day.total - day.passed), 0),
-                    )}
-                  />
-                  <Metric
-                    label="Total"
-                    value={formatNumber(ratelimitEvents.reduce((sum, day) => sum + day.total, 0))}
-                  />
-                  <Metric
-                    label="Success Rate"
-                    value={`${formatNumber(
-                      (ratelimitEvents.reduce((sum, day) => sum + day.passed, 0) /
-                        ratelimitEvents.reduce((sum, day) => sum + day.total, 0)) *
-                        100,
-                    )}%`}
-                  />
+                  <Metric label="Passed" value={formatNumber(totalPassed)} />
+                  <Metric label="Ratelimited" value={formatNumber(totalRatelimited)} />
+                  <Metric label="Total" value={formatNumber(totalRequests)} />
+                  <Metric label="Success Rate" value={`${formatNumber(successRate)}%`} />
                 </div>
               </CardHeader>
               <CardContent>
@@ -227,7 +221,7 @@ export default async function RatelimitNamespacePage(props: {
               <Empty.Icon />
               <Empty.Title>No usage</Empty.Title>
               <Empty.Description>Ratelimit something or change the range</Empty.Description>
-              <Code className="flex items-start  gap-0 sm:gap-8 p-4 my-8  text-xs  sm:text-xxs text-start overflow-x-auto max-w-full">
+              <Code className="flex items-start gap-0 sm:gap-8 p-4 my-8 text-xs sm:text-xxs text-start overflow-x-auto max-w-full">
                 {snippet}
                 <CopyButton value={snippet} />
               </Code>
@@ -251,7 +245,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60,
-        getRatelimitsPerInterval: clickhouse.ratelimits.perMinute,
+        getRatelimitsPerInterval: "perMinute",
       };
     }
     case "24h": {
@@ -262,7 +256,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60,
-        getRatelimitsPerInterval: clickhouse.ratelimits.perHour,
+        getRatelimitsPerInterval: "perHour",
       };
     }
     case "7d": {
@@ -274,7 +268,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: clickhouse.ratelimits.perDay,
+        getRatelimitsPerInterval: "perDay",
       };
     }
     case "30d": {
@@ -286,7 +280,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: clickhouse.ratelimits.perDay,
+        getRatelimitsPerInterval: "perDay",
       };
     }
     case "90d": {
@@ -298,7 +292,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: clickhouse.ratelimits.perDay,
+        getRatelimitsPerInterval: "perDay",
       };
     }
   }
