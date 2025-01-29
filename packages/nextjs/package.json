@@ -1,6 +1,6 @@
 {
   "name": "@unkey/nextjs",
-  "version": "0.18.6",
+  "version": "0.18.7",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "MIT",
@@ -8,12 +8,19 @@
   "publishConfig": {
     "access": "public"
   },
-  "keywords": ["unkey", "client", "api"],
+  "keywords": [
+    "unkey",
+    "client",
+    "api"
+  ],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
   "homepage": "https://github.com/unkeyed/unkey#readme",
-  "files": ["./dist/**", "README.md"],
+  "files": [
+    "./dist/**",
+    "README.md"
+  ],
   "author": "Andreas Thomas <andreas@chronark.com>",
   "scripts": {
     "build": "tsup"
