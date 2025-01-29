@@ -151,10 +151,10 @@ export const RatelimitLogsTable = () => {
         key: "actions",
         header: "",
         width: "12.5%",
-        render: () => <LogsTableAction />,
+        render: (log) => <LogsTableAction identifier={log.identifier} />,
       },
     ],
-    [],
+    [selectedLog?.request_id],
   );
 
   return (
