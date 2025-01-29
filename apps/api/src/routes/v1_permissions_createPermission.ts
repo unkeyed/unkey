@@ -29,8 +29,7 @@ const route = createRoute({
             description: validation.description.optional().openapi({
               description:
                 "Explain what this permission does. This is just for your team, your users will not see this.",
-              example:
-                "record.write can create new dns records for our domains.",
+              example: "record.write can create new dns records for our domains.",
             }),
           }),
         },
@@ -68,7 +67,7 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_permission"))
+      buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_permission")),
     );
 
     const { db } = c.get("services");
@@ -83,10 +82,7 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
     await db.primary.transaction(async (tx) => {
       const currentPermission = await tx.query.permissions.findFirst({
         where: (table, { and, eq }) =>
-          and(
-            eq(table.workspaceId, auth.authorizedWorkspaceId),
-            eq(table.name, req.name)
-          ),
+          and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.name, req.name)),
         columns: {
           id: true,
         },

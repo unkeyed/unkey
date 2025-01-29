@@ -28,8 +28,7 @@ const route = createRoute({
             description: validation.description.optional().openapi({
               description:
                 "Explain what this role does. This is just for your team, your users will not see this.",
-              example:
-                "dns.records.manager can read and write dns records for our domains.",
+              example: "dns.records.manager can read and write dns records for our domains.",
             }),
           }),
         },
@@ -67,7 +66,7 @@ export const registerV1PermissionsCreateRole = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_role"))
+      buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_role")),
     );
 
     const { db } = c.get("services");
@@ -82,10 +81,7 @@ export const registerV1PermissionsCreateRole = (app: App) =>
     await db.primary.transaction(async (tx) => {
       const currentRole = await tx.query.roles.findFirst({
         where: (table, { and, eq }) =>
-          and(
-            eq(table.workspaceId, auth.authorizedWorkspaceId),
-            eq(table.name, req.name)
-          ),
+          and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.name, req.name)),
         columns: {
           id: true,
         },
