@@ -1,5 +1,3 @@
-import { transformStructuredOutputToFilters } from "@/app/(app)/logs-v2/filters.schema";
-import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { toast } from "@/components/ui/toaster";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { trpc } from "@/lib/trpc/client";
@@ -7,10 +5,12 @@ import { cn } from "@/lib/utils";
 import { CaretRightOutline, CircleInfoSparkle, Magnifier, Refresh3 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip";
 import { useRef, useState } from "react";
+import { transformStructuredOutputToFilters } from "../../../../filters.schema";
+import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = () => {
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.logs.llmSearch.useMutation({
+  const queryLLMForStructuredOutput = trpc.ratelimit.logs.ratelimitLlmSearch.useMutation({
     onSuccess(data) {
       if (data) {
         const transformedFilters = transformStructuredOutputToFilters(data, filters);
@@ -130,15 +130,15 @@ export const LogsSearch = () => {
                   <span>Try queries like:</span>
                   <span className="text-[11px] text-gray-11">(click to use)</span>
                 </div>
-                <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
+                <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px]">
                   <li className="flex items-center gap-2">
                     <CaretRightOutline className="text-accent-9" />
                     <button
                       type="button"
                       className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                      onClick={() => handlePresetQuery("Show failed requests today")}
+                      onClick={() => handlePresetQuery("Show rejected requests from today")}
                     >
-                      "Show failed requests today"
+                      "Show rejected requests from today"
                     </button>
                   </li>
                   <li className="flex items-center gap-2">
@@ -146,21 +146,19 @@ export const LogsSearch = () => {
                     <button
                       type="button"
                       className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                      onClick={() => handlePresetQuery("auth errors in the last 3h")}
+                      onClick={() => handlePresetQuery("Requests containing auth from last 3h")}
                     >
-                      "Auth errors in the last 3h"
+                      "Requests containing auth from last 3h"
                     </button>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CaretRightOutline className="size-2 text-accent-9" />
+                    <CaretRightOutline className="text-accent-9" />
                     <button
                       type="button"
                       className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                      onClick={() =>
-                        handlePresetQuery("API calls from a path that includes /api/v1/oz")
-                      }
+                      onClick={() => handlePresetQuery("Requests with identifier containing api")}
                     >
-                      "API calls from a path that includes /api/v1/oz"
+                      "Requests with identifier containing api"
                     </button>
                   </li>
                 </ul>

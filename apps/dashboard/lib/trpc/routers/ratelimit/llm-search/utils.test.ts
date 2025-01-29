@@ -8,49 +8,35 @@ describe("getSystemPrompt", () => {
   it("should include all necessary examples and constraints", () => {
     const prompt = getSystemPrompt(referenceTime);
 
-    // Check for HTTP method examples
-    expect(prompt).toContain("get, post and delete requests");
-    expect(prompt).toContain("read and write operations");
+    // Check for status examples
+    expect(prompt).toContain("show rejected requests");
+    expect(prompt).toContain("succeeded");
 
-    // Check for path examples
-    expect(prompt).toContain("/api/v2/users");
-    expect(prompt).toContain("/v1/api");
+    // Check for time-based examples
+    expect(prompt).toContain("show requests from last 30m");
+    expect(prompt).toContain("find requests between yesterday and today");
 
-    // Check for host examples
-    expect(prompt).toContain("api.staging.company.com");
-    expect(prompt).toContain("localhost");
+    // Check for identifier examples
+    expect(prompt).toContain("find requests containing test");
+    expect(prompt).toContain("show requests with identifier");
 
-    // Check for status code examples
-    expect(prompt).toContain("timeouts and server errors");
-    expect(prompt).toContain("client errors");
-    expect(prompt).toContain("value: 500");
-    expect(prompt).toContain("value: 400");
+    // Check for request ID examples
+    expect(prompt).toContain("find request req_123");
 
-    // Check for field and operator configurations
-    expect(prompt).toContain('field: "methods"');
+    // Check for field configurations
     expect(prompt).toContain('field: "status"');
-    expect(prompt).toContain('field: "paths"');
-    expect(prompt).toContain('field: "host"');
-    expect(prompt).toContain('operator: "startsWith"');
+    expect(prompt).toContain('field: "identifiers"');
+    expect(prompt).toContain('field: "requestIds"');
+    expect(prompt).toContain('operator: "contains"');
     expect(prompt).toContain('operator: "is"');
   });
 
   it("should include correct timestamp calculations", () => {
     const prompt = getSystemPrompt(referenceTime);
 
-    // Check time-related examples
-    expect(prompt).toContain("last 30m and last 24h");
-    expect(prompt).toContain(`value: ${referenceTime - 2 * 60 * 60 * 1000}`); // 2h ago
-    expect(prompt).toContain("since 2h and 30m ago");
-  });
-
-  it("should include all special handling rules", () => {
-    const prompt = getSystemPrompt(referenceTime);
-
-    expect(prompt).toContain("Always normalize paths by removing leading slash");
-    expect(prompt).toContain("For multiple time ranges, use the longest duration");
-    expect(prompt).toContain('Treat "read" operations as GET');
-    expect(prompt).toContain("For IP addresses and localhost, treat them as host values");
+    // Check for various time calculations
+    expect(prompt).toContain(`value: ${referenceTime}`); // Current time
+    expect(prompt).toContain(`value: ${referenceTime - 24 * 60 * 60 * 1000}`); // Yesterday
   });
 });
 
@@ -70,16 +56,43 @@ describe("getStructuredSearchFromLLM", () => {
     expect(result).toBeNull();
   });
 
-  it("should handle successful HTTP method query", async () => {
+  it("should handle successful LLM response", async () => {
     const mockResponse = {
       choices: [
         {
           message: {
             parsed: {
-              field: "methods",
+              field: "status",
+              filters: [{ operator: "is", value: "rejected" }],
+            },
+          },
+        },
+      ],
+    };
+    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+
+    const result = await getStructuredSearchFromLLM(
+      mockOpenAI as any,
+      "find rejected requests",
+      1706024400000,
+    );
+
+    expect(result).toEqual({
+      field: "status",
+      filters: [{ operator: "is", value: "rejected" }],
+    });
+  });
+
+  it("should handle complex query with multiple filters", async () => {
+    const mockResponse = {
+      choices: [
+        {
+          message: {
+            parsed: {
+              field: "identifiers",
               filters: [
-                { operator: "is", value: "GET" },
-                { operator: "is", value: "POST" },
+                { operator: "contains", value: "test" },
+                { operator: "is", value: "abc-123" },
               ],
             },
           },
@@ -90,45 +103,16 @@ describe("getStructuredSearchFromLLM", () => {
 
     const result = await getStructuredSearchFromLLM(
       mockOpenAI as any,
-      "find GET and POST requests",
+      "find requests containing test with identifier abc-123",
       1706024400000,
     );
 
     expect(result).toEqual({
-      field: "methods",
+      field: "identifiers",
       filters: [
-        { operator: "is", value: "GET" },
-        { operator: "is", value: "POST" },
+        { operator: "contains", value: "test" },
+        { operator: "is", value: "abc-123" },
       ],
-    });
-  });
-
-  it("should handle successful path and status combination", async () => {
-    const mockResponse = {
-      choices: [
-        {
-          message: {
-            parsed: {
-              field: "paths",
-              filters: [{ operator: "startsWith", value: "api/v1" }],
-              status: [{ operator: "is", value: 500 }],
-            },
-          },
-        },
-      ],
-    };
-    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
-
-    const result = await getStructuredSearchFromLLM(
-      mockOpenAI as any,
-      "find timeouts in /api/v1",
-      1706024400000,
-    );
-
-    expect(result).toEqual({
-      field: "paths",
-      filters: [{ operator: "startsWith", value: "api/v1" }],
-      status: [{ operator: "is", value: 500 }],
     });
   });
 
