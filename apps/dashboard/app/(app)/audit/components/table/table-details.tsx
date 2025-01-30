@@ -24,7 +24,10 @@ const createPanelStyle = (distanceToTop: number) => ({
 });
 
 export const LogDetails = ({ log, onClose, distanceToTop }: Props) => {
-  const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
+  const panelStyle = useMemo(
+    () => createPanelStyle(distanceToTop),
+    [distanceToTop]
+  );
 
   if (!log) {
     return null;
@@ -44,10 +47,16 @@ export const LogDetails = ({ log, onClose, distanceToTop }: Props) => {
 
         <LogFooter log={log} />
         {log.auditLog.targets.map((target) => {
-          const title = String(target.type).charAt(0).toUpperCase() + String(target.type).slice(1);
+          const title =
+            String(target.type).charAt(0).toUpperCase() +
+            String(target.type).slice(1);
 
           return (
-            <LogSection key={target.id} details={JSON.stringify(target, null, 2)} title={title} />
+            <LogSection
+              key={target.id}
+              details={JSON.stringify(target, null, 2)}
+              title={title}
+            />
           );
         })}
       </div>
