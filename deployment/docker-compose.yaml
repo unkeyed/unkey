@@ -31,6 +31,23 @@ services:
     ports:
       - 3900:3900
 
+  apiv2:
+    deploy:
+      replicas: 1
+      endpoint_mode: vip
+
+    command:  [ "api", "--config", "config.docker.json"]
+    build:
+      context: ../go
+      dockerfile: ./Dockerfile
+    depends_on:
+      - mysql
+      - clickhouse
+    environment:
+      PORT: 8080
+      DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey"
+      CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
+
   agent:
     deploy:
       replicas: 3

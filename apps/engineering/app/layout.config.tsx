@@ -15,19 +15,19 @@ export const baseOptions: HomeLayoutProps = {
   links: [
     {
       text: "Contributing",
-      url: "/docs/contributing",
+      url: "/contributing",
       active: "nested-url",
     },
-    /*
+
     {
       text: "Company",
-      url: "/docs/company",
+      url: "/company",
       active: "nested-url",
     },
-    */
+
     {
       text: "Architecture",
-      url: "/docs/architecture",
+      url: "/architecture",
       active: "nested-url",
     },
     {

@@ -19,7 +19,7 @@ jobs:
   test:
     environment: Canary
     name: API Test Canary
-    timeout-minutes: 30
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

@@ -75,7 +75,8 @@ export const deleteKeys = t.procedure
           })),
         );
       })
-      .catch((_err) => {
+      .catch((err) => {
+        console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "We are unable to delete the key. Please try again or contact support@unkey.dev",

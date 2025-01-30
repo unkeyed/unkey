@@ -48,3 +48,9 @@ tasks:
     cmds:
       - task: seed
       - pnpm test:integration
+
+
+  generate-sql:
+    dir: internal/db
+    cmds:
+      - pnpm drizzle-kit generate --dialect=mysql

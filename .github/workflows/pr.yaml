@@ -44,3 +44,7 @@ jobs:
   #         CLUSTER_TEST: true
   #         AGENT_BASE_URL: "http://localhost:8080"
   #       working-directory: apps/agent
+
+  test_go_api_local:
+    name: Test GO API Local
+    uses: ./.github/workflows/job_test_go_api_local.yaml
