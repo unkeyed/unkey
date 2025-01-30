@@ -30,10 +30,8 @@ const formatFieldName = (field: string): string => {
   }
 };
 const formatOperator = (operator: string, field: string): string => {
-  if (field === "since") {
-    if (operator === "is") {
-      return "Last";
-    }
+  if (field === "since" && operator === "is") {
+    return "Last";
   }
   return operator;
 };
