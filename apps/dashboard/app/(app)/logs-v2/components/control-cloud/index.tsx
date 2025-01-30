@@ -23,14 +23,17 @@ const formatFieldName = (field: string): string => {
       return "Method";
     case "requestId":
       return "Request ID";
+    case "since":
+      return "";
     default:
       return field.charAt(0).toUpperCase() + field.slice(1);
   }
 };
-
 const formatOperator = (operator: string, field: string): string => {
-  if (field === "since" && operator === "is") {
-    return "past";
+  if (field === "since") {
+    if (operator === "is") {
+      return "Last";
+    }
   }
   return operator;
 };
@@ -83,9 +86,12 @@ const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPil
 
   return (
     <div className="flex gap-0.5 font-mono group" data-pill-index={index}>
-      <div className="bg-gray-3 px-2 rounded-l-md text-accent-12 font-medium py-[2px]">
-        {formatFieldName(field)}
-      </div>
+      {formatFieldName(field) === "" ? null : (
+        <div className="bg-gray-3 px-2 rounded-l-md text-accent-12 font-medium py-[2px]">
+          formatFieldName(field)
+        </div>
+      )}
+
       <div className="bg-gray-3 px-2 text-accent-12 font-medium py-[2px] flex gap-1 items-center">
         {formatOperator(operator, field)}
       </div>
