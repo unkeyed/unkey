@@ -1,6 +1,6 @@
 {
   "name": "@unkey/hono",
-  "version": "1.4.13",
+  "version": "1.4.14",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "MIT",

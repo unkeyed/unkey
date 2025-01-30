@@ -52,7 +52,7 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 		if err != nil {
 			// We want to know about the error, but if there is one, we just fall back
 			// to local state, so we don't return early
-			s.logger.Err(err).Msg("failed to sync with origin, falling back to local state")
+			s.logger.Warn().Err(err).Msg("failed to sync with origin, falling back to local state")
 		}
 	}
 
@@ -125,7 +125,7 @@ func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.Ratelimi
 	})
 	if err != nil {
 		tracing.RecordError(span, err)
-		s.logger.Err(err).Msg("failed to call ratelimit")
+		s.logger.Warn().Err(err).Msg("failed to call ratelimit")
 		return nil, err
 	}
 

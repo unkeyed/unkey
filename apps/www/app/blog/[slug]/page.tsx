@@ -175,15 +175,15 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                       />
                       <AvatarFallback />
                     </Avatar>
-                    <p className="flex items-center justify-center p-0 pt-2 m-0 ml-2 text-white text-nowrap">
+                    <p className="flex items-center justify-center p-0 pt-1 m-0 ml-2 text-white text-nowrap">
                       {author.name}
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full w-full justify-end">
                   {" "}
-                  <p className="text-xs text-nowrap text-white/50">Published on</p>
-                  <div className="flex mt-2 sm:mt-6">
+                  <p className="text-nowrap text-white/50">Published on</p>
+                  <div className="flex mt-2 sm:mt-6 md:mt-5">
                     <time
                       dateTime={post.date}
                       className="inline-flex items-center text-white text-nowrap"
