@@ -13,9 +13,8 @@ export const queryDistinctPaths = rateLimitedProcedure(ratelimit.update).query(a
     .catch((_err) => {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        //TODO: change error message later
         message:
-          "Failed to paths due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
+          "Failed to retrieve distinct paths due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
       });
     });
 
