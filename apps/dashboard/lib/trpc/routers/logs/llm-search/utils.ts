@@ -1,5 +1,5 @@
-import { METHODS } from "@/app/(app)/logs-v2/constants";
-import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs-v2/filters.schema";
+import { METHODS } from "@/app/(app)/logs/constants";
+import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
@@ -153,8 +153,8 @@ Result: [
   },
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "24h"
     }]
   }
@@ -239,8 +239,8 @@ Result: [
   },
   {
     field: "startTime",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: ${usersReferenceMS - 2 * 60 * 60 * 1000}
     }]
   }
@@ -272,8 +272,8 @@ Result: [
   },
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "2h"
     }]
   }
@@ -330,8 +330,8 @@ Query: "show requests from last week"
 Result: [
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "7d"  // Converts unsupported "week" to "7d"
     }]
   }
@@ -341,15 +341,15 @@ Query: "find browse requests to /api"
 Result: [
   {
     field: "methods",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "GET"  // Maps "browse" to GET as read-like term
     }]
   },
   {
     field: "paths",
-    filters: [{ 
-      operator: "startsWith", 
+    filters: [{
+      operator: "startsWith",
       value: "api"  // Normalized path
     }]
   }
@@ -360,9 +360,9 @@ Query: "show api issues from last 2d and 6h"
 Result: [
   {
     field: "paths",
-    filters: [{ 
-      operator: "startsWith", 
-      value: "api" 
+    filters: [{
+      operator: "startsWith",
+      value: "api"
     }]
   },
   {
@@ -374,8 +374,8 @@ Result: [
   },
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "2d"  // Uses longest time range
     }]
   }
@@ -385,8 +385,8 @@ Query: "fetch requests to /api/v1 and /api"
 Result: [
   {
     field: "methods",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "GET"  // "fetch" mapped to GET
     }]
   },

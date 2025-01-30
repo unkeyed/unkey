@@ -6,8 +6,8 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { TriangleWarning2 } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
 import { useLogsQuery } from "./hooks/use-logs-query";
@@ -252,22 +252,9 @@ export const LogsTable = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>Logs</Empty.Title>
             <Empty.Description className="text-left">
-              Keep track of all activity within your workspace. Logs automatically record key
-              actions like key creation, permission updates, and configuration changes, giving you a
-              clear history of resource requests.
+              Keep track of all activity within your workspace. We collect all API requests, giving
+              you a clear history to find problems or debug issues.
             </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button>
-                  <BookBookmark />
-                  Documentation
-                </Button>
-              </a>
-            </Empty.Actions>
           </Empty>
         </div>
       }

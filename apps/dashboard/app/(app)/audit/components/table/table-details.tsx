@@ -1,7 +1,7 @@
 "use client";
 
-import { LogSection } from "@/app/(app)/logs-v2/components/table/log-details/components/log-section";
-import ResizablePanel from "@/app/(app)/logs-v2/components/table/log-details/resizable-panel";
+import { LogSection } from "@/app/(app)/logs/components/table/log-details/components/log-section";
+import ResizablePanel from "@/app/(app)/logs/components/table/log-details/resizable-panel";
 import { useMemo } from "react";
 import { LogFooter } from "./log-footer";
 import { LogHeader } from "./log-header";

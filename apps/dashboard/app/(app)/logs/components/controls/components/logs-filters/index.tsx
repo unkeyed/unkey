@@ -1,4 +1,4 @@
-import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
+import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";

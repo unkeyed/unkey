@@ -1,4 +1,4 @@
-import type { queryTimeseriesPayload } from "@/app/(app)/logs-v2/components/charts/query-timeseries.schema";
+import type { queryTimeseriesPayload } from "@/app/(app)/logs/components/charts/query-timeseries.schema";
 import type { LogsTimeseriesParams } from "@unkey/clickhouse/src/logs";
 import type { z } from "zod";
 import { getTimestampFromRelative } from "../utils/getTimestampFromRelative";

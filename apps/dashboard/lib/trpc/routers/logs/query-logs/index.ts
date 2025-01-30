@@ -1,4 +1,4 @@
-import { queryLogsPayload } from "@/app/(app)/logs-v2/components/table/query-logs.schema";
+import { queryLogsPayload } from "@/app/(app)/logs/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";

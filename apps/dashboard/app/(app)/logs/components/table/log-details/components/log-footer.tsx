@@ -1,6 +1,6 @@
 "use client";
-import { RED_STATES, YELLOW_STATES } from "@/app/(app)/logs-v2/constants";
-import { extractResponseField, getRequestHeader } from "@/app/(app)/logs-v2/utils";
+import { RED_STATES, YELLOW_STATES } from "@/app/(app)/logs/constants";
+import { extractResponseField, getRequestHeader } from "@/app/(app)/logs/utils";
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";

@@ -1,5 +1,5 @@
-import type { FilterValue } from "@/app/(app)/logs-v2/filters.type";
-import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
+import type { FilterValue } from "@/app/(app)/logs/filters.type";
+import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
