@@ -103,21 +103,22 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   };
 
   const inputClassNames = `
-    w-5 p-0 
-    border-none bg-transparent
-    text-center leading-4 text-[0.8331rem]
-    outline-none ring-0 focus:ring-0 text-gray-12 font-medium
+    w-5
+    bg-transparent
+    outline-none ring-0 focus:ring-0
+    text-center
+    text-gray-12 leading-6 tracking-normal font-medium text-[13px]
   `;
 
-  const renderTimeInput = (field: TimeField, ariaLabel: string) => (
+  const TimeInput: React.FC<{ field: TimeField; ariaLabel: string }> = (props): JSX.Element => (
     <input
       type="text"
-      value={time[field]}
-      onChange={(e) => handleChange(e.target.value, field)}
-      onBlur={(e) => handleBlur(e.target.value, field)}
+      value={time[props.field]}
+      onChange={(e) => handleChange(e.target.value, props.field)}
+      onBlur={(e) => handleBlur(e.target.value, props.field)}
       onFocus={handleFocus}
       placeholder="00"
-      aria-label={ariaLabel}
+      aria-label={props.ariaLabel}
       className={inputClassNames}
     />
   );
@@ -125,19 +126,17 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   return (
     <div
       className={cn(
-        "flex h-8 w-full items-center rounded rounded-3 border border-[1px] border-gray-4 bg-gray-2 text-gray-12",
-        focus ? "border-[1px] border-gray-10" : "",
+        "flex h-8 w-full items-center rounded rounded-3 border-[1px]  bg-gray-2 text-gray-12",
+        focus ? " border-gray-10" : "border-gray-4",
       )}
     >
-      <div className="text-gray-9 ml-3 mr-3">
-        <Clock className="size-3 stroke-1.5" />
-      </div>
-      {renderTimeInput("HH", "Hours")}
-      <span className="text-gray-12 leading-4 text-[0.8331rem] pb-[2px]">:</span>
-      {renderTimeInput("mm", "Minutes")}
-      <span className="text-gray-12 leading-4 text-[0.8331rem] pb-[2px]">:</span>
-      {renderTimeInput("ss", "Seconds")}
-      <span className="text-gray-12 leading-4 text-[0.8331rem] pb-[2px]"> </span>
+      <Clock className="text-gray-9 m-3 " />
+      <TimeInput field="HH" ariaLabel="Hours" />
+      <span className="text-gray-12 leading-6 tracking-normal font-medium text-[13px]">:</span>
+      <TimeInput field="mm" ariaLabel="Minutes" />
+      <span className="text-gray-12 leading-6 font-medium text-[13px]">:</span>
+      <TimeInput field="ss" ariaLabel="Seconds" />
+      <span className="text-gray-12 leading-6 font-medium text-[13px]"> </span>
       {/* AM/PM and timezone still needs to be implemented */}
       {/* {renderTimeInput("")} */}
     </div>

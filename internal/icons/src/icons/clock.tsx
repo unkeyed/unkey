@@ -15,21 +15,27 @@ import type { IconProps } from "../props";
 
 export const Clock: React.FC<IconProps> = (props) => {
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      className={props.className}
+      height="12"
+      width="12"
+      viewBox="0 0 12 12"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor">
-        <polyline
+        <circle
+          cx="6"
+          cy="6"
           fill="none"
-          points="10 6.5 10 10 12.5 12.5"
+          r="5.25"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
         />
-        <circle
-          cx="10"
-          cy="10"
+        <path
+          d="m6,3.25v2.75l2,1.75"
           fill="none"
-          r="7"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
