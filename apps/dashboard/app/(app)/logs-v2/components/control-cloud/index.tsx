@@ -86,7 +86,7 @@ const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPil
     <div className="flex gap-0.5 font-mono group" data-pill-index={index}>
       {formatFieldName(field) === "" ? null : (
         <div className="bg-gray-3 px-2 rounded-l-md text-accent-12 font-medium py-[2px]">
-          formatFieldName(field)
+          {formatFieldName(field)}
         </div>
       )}
 
