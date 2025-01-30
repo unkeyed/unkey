@@ -1,6 +1,6 @@
-import { transformStructuredOutputToFilters } from "@/app/(app)/logs-v2/filters.schema";
-import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
-import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
+import { transformStructuredOutputToFilters } from "@/app/(app)/logs/filters.schema";
+import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
+import { useKeyboardShortcut } from "@/app/(app)/logs/hooks/use-keyboard-shortcut";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";

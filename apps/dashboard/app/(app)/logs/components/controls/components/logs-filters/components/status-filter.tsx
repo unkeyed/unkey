@@ -1,4 +1,4 @@
-import type { ResponseStatus } from "@/app/(app)/logs-v2/filters.type";
+import type { ResponseStatus } from "@/app/(app)/logs/filters.type";
 import { FilterCheckbox } from "./filter-checkbox";
 
 type StatusOption = {

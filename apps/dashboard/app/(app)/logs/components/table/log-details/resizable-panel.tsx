@@ -3,7 +3,7 @@ import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from
 import { useOnClickOutside } from "usehooks-ts";
 import { MAX_DRAGGABLE_WIDTH, MIN_DRAGGABLE_WIDTH } from "../../../constants";
 
-const ResizablePanel = ({
+export const ResizablePanel = ({
   children,
   onResize,
   onClose,
@@ -77,5 +77,3 @@ const ResizablePanel = ({
     </div>
   );
 };
-
-export default ResizablePanel;

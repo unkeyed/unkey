@@ -1,4 +1,4 @@
-import { queryTimeseriesPayload } from "@/app/(app)/logs-v2/components/charts/query-timeseries.schema";
+import { queryTimeseriesPayload } from "@/app/(app)/logs/components/charts/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";

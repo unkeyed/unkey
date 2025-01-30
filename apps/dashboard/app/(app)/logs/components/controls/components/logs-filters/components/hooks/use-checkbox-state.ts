@@ -1,4 +1,4 @@
-import type { FilterValue } from "@/app/(app)/logs-v2/filters.type";
+import type { FilterValue } from "@/app/(app)/logs/filters.type";
 import { useEffect, useState } from "react";
 
 type UseCheckboxStateProps<TItem> = {

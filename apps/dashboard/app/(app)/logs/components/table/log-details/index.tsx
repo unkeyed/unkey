@@ -8,7 +8,7 @@ import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
 import { LogMetaSection } from "./components/log-meta";
 import { LogSection } from "./components/log-section";
-import ResizablePanel from "./resizable-panel";
+import { ResizablePanel } from "./resizable-panel";
 
 const PANEL_MAX_WIDTH = 600;
 const PANEL_MIN_WIDTH = 400;

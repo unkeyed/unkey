@@ -1,4 +1,4 @@
-import type { HttpMethod } from "@/app/(app)/logs-v2/filters.type";
+import type { HttpMethod } from "@/app/(app)/logs/filters.type";
 import { FilterCheckbox } from "./filter-checkbox";
 
 type MethodOption = {
