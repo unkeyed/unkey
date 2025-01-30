@@ -1,47 +1,45 @@
-import { source } from "@/app/source";
-import { getGithubLastEdit } from "fumadocs-core/server";
+import { contributingSource } from "@/app/source";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
 import type { Metadata } from "next";
 
+import { getGithubLastEdit } from "fumadocs-core/server";
 import { notFound } from "next/navigation";
+
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
 }) {
   const params = await props.params;
 
-  const page = source.getPage(params.slug);
+  const page = contributingSource.getPage(params.slug);
+
   if (!page) {
     notFound();
   }
-
-  const lastUpdate = await getGithubLastEdit({
-    owner: "unkeyed",
-    repo: "unkey",
-    path: `apps/engineering/content/docs/${page.file.path}`,
-  });
 
   const MDX = page.data.body;
 
   return (
     <DocsPage
       toc={page.data.toc}
+      full={page.data.full}
       tableOfContent={{
         style: "clerk",
         single: true,
       }}
-      full={page.data.full}
-      lastUpdate={lastUpdate ?? undefined}
-      editOnGithub={{
-        owner: "unkeyed",
-        repo: "unkey",
-        sha: "main",
-        path: `apps/engineering/content/docs/${page.file.path}`,
-      }}
+      lastUpdate={
+        (await getGithubLastEdit({
+          owner: "unkeyed",
+          repo: "unkey",
+          path: `apps/engineering/content/contributing/${page.file.path}`,
+        })) ?? undefined
+      }
     >
       <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
-      <DocsBody>
+
+      <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
+
+      <DocsBody className="font-mono text-sm">
         <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>
@@ -49,11 +47,11 @@ export default async function Page(props: {
 }
 
 export async function generateStaticParams() {
-  return source.generateParams();
+  return contributingSource.generateParams();
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug?: string[] }> }) {
-  const page = source.getPage((await params).slug);
+  const page = contributingSource.getPage((await params).slug);
   if (!page) {
     notFound();
   }
