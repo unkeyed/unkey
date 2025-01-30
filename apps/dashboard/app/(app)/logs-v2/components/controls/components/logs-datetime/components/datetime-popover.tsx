@@ -86,7 +86,10 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<OptionsType>(options);
   const { filters, updateFilters } = useFilters();
-  const [time, setTime] = useState<TimeRangeType>({ startTime: undefined, endTime: undefined });
+  const [time, setTime] = useState<TimeRangeType>({
+    startTime: undefined,
+    endTime: undefined,
+  });
 
   useKeyboardShortcut("t", () => {
     setOpen((prev) => !prev);

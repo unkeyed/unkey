@@ -78,11 +78,11 @@ const styleClassNames = {
 type CalendarProps = {
   className?: string;
   classNames?: Record<string, string>;
-  mode?: "single" | "range";
+  mode: "single" | "range";
   showOutsideDays?: boolean;
 };
 
-const Calendar: React.FC<CalendarProps> = ({
+export const Calendar: React.FC<CalendarProps> = ({
   className,
   classNames,
   mode,
@@ -91,47 +91,73 @@ const Calendar: React.FC<CalendarProps> = ({
 }) => {
   const { date, onDateChange, minDateRange, maxDateRange } = useDateTimeContext();
   const [singleDay, setSingleDay] = useState<Date | undefined>(date?.from);
-  const handleChange = (newDate: DateRange) => {
+
+  const handleChange = (newDate: DateRange | undefined) => {
+    // If no date selected, reset the range
+    if (!newDate) {
+      onDateChange({ from: undefined, to: undefined });
+      return;
+    }
+
+    if (date?.from && date?.to && newDate.to!.getTime() > date.to.getTime()) {
+      onDateChange({ from: undefined, to: newDate.to });
+      return;
+    }
+
+    if (
+      date?.from &&
+      date?.to &&
+      (newDate.from?.getTime() === date.from.getTime() ||
+        newDate.from?.getTime() === date.to.getTime())
+    ) {
+      onDateChange({ from: undefined, to: undefined });
+      return;
+    }
+
     onDateChange(newDate);
   };
+
   const handleSingleChange = (newDate: Date | undefined) => {
+    if (singleDay && newDate && singleDay.getTime() === newDate.getTime()) {
+      setSingleDay(undefined);
+      onDateChange({ from: undefined, to: undefined });
+      return;
+    }
     onDateChange({ from: newDate, to: undefined });
     setSingleDay(newDate);
   };
-  return mode === "range" ? (
+
+  const commonProps = {
+    disabled: minDateRange && { before: minDateRange, after: maxDateRange },
+    showOutsideDays,
+    className: cn("", className),
+    classNames: {
+      ...styleClassNames,
+      ...classNames,
+    },
+    components: {
+      Caption: CustomCaptionComponent,
+    },
+    ...props,
+  };
+
+  if (mode === "range") {
+    return (
+      <DayPicker
+        {...commonProps}
+        mode="range"
+        selected={date}
+        onSelect={(date: DateRange | undefined) => (date ? handleChange(date) : undefined)}
+      />
+    );
+  }
+
+  return (
     <DayPicker
-      mode={mode}
-      disabled={minDateRange && { before: minDateRange, after: maxDateRange }}
-      selected={date}
-      onSelect={(range: DateRange | undefined) => (range ? handleChange(range) : undefined)}
-      showOutsideDays={showOutsideDays}
-      className={cn("", className)}
-      classNames={{
-        ...styleClassNames,
-        ...classNames,
-      }}
-      components={{
-        Caption: CustomCaptionComponent,
-      }}
-      {...props}
-    />
-  ) : (
-    <DayPicker
+      {...commonProps}
       mode="single"
-      disabled={minDateRange && { before: minDateRange, after: maxDateRange }}
       selected={singleDay}
-      onDayClick={(day: Date | undefined) => handleSingleChange(day)}
-      showOutsideDays={showOutsideDays}
-      className={cn("", className)}
-      classNames={{
-        ...styleClassNames,
-        ...classNames,
-      }}
-      components={{
-        Caption: CustomCaptionComponent,
-      }}
-      {...props}
+      onSelect={(date: Date | undefined) => handleSingleChange(date)}
     />
   );
 };
-export { Calendar };

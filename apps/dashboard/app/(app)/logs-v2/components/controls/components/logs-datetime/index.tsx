@@ -14,9 +14,9 @@ export const LogsDateTime = () => {
         <Button
           variant="ghost"
           className={cn("group-data-[state=open]:bg-gray-4 px-2", isSelected ? "bg-gray-4" : "")}
-          aria-label="Filter logs"
+          aria-label="Filter logs by time"
           aria-haspopup="true"
-          title="Press 'F' to toggle filters"
+          title="Press 'T' to toggle filters"
         >
           <Calendar className="text-gray-9 size-4" />
           <span className="text-gray-12 font-medium text-[13px]">{title}</span>
