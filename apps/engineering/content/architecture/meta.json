@@ -3,5 +3,5 @@
   "description": "How does Unkey work",
   "icon": "Pencil",
   "root": true,
-  "pages": ["index", "---Services---", "vault", "clickhouse", "clickhouse-proxy"]
+  "pages": ["index", "---Services---"]
 }

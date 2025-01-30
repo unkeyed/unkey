@@ -1,6 +1,6 @@
 {
   "name": "@unkey/ratelimit",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
