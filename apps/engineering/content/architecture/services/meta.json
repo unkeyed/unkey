@@ -1,0 +1,6 @@
+{
+  "title": "Services",
+  "icon": "Pencil",
+  "root": false,
+  "pages": ["vault", "clickhouse", "clickhouse-proxy"]
+}

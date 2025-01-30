@@ -7,7 +7,7 @@ Most of it we serve back to the user through our dashboard or API, but we also u
 
 ClickHouse is a perfect fit for us, for it's very high ingest capabilities and easy of querying through SQL.
 
-We're using [ClickHouse Cloud](https://clickhouse.com/cloud) offering and run our staging and production clusters in AWS us-east-1
+We're using [ClickHouse Cloud](https://clickhouse.com/cloud) offering and run our staging and production clusters in AWS us-east-1.
 
 ## Working with ClickHouse
 
@@ -19,7 +19,7 @@ All queries/inserts must be defined in this package.
 For migrations, we're using [goose](https://pressly.github.io/goose). This is only really relevant when migrating the staging and production clusters, as it is taken care of automatically during the docker compose setup.
 
 While ClickHouse can ingest millions of rows per second, it can only achieve this with relatively large insert batches of tens of thousands of rows per request. This presents a challenge in our serverless setup, as most of our API invocations would only insert a single row per table.
-That's why we're using a [ClickHouse Proxy](/docs/architecture/clickhouse-proxy) for our inserts.
+That's why we're using a [ClickHouse Proxy](/architecture/services/clickhouse-proxy) for our inserts.
 
 ## Databases
 
