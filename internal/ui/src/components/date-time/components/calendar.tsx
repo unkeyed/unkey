@@ -1,16 +1,9 @@
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
-import React, { useState } from "react";
-import { buttonVariants } from "../../button";
-import {
-  type DateRange,
-  DayPicker,
-  IconLeft,
-  IconRight,
-  type CaptionProps,
-  useNavigation,
-} from "react-day-picker";
-import { cn } from "../../../lib/utils";
+import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { format } from "date-fns";
+import { useState } from "react";
+import { type CaptionProps, type DateRange, DayPicker, useNavigation } from "react-day-picker";
+import { cn } from "../../../lib/utils";
+import { buttonVariants } from "../../button";
 import { useDateTimeContext } from "../date-time";
 
 function CustomCaptionComponent(props: CaptionProps) {
@@ -23,9 +16,9 @@ function CustomCaptionComponent(props: CaptionProps) {
         disabled={!previousMonth}
         onClick={() => previousMonth && goToMonth(previousMonth)}
       >
-        <IconLeft className="text-gray-12 size-2" />
+        <ChevronLeft className="text-gray-12 size-3" />
       </button>
-      <div className="flex w-full text-gray-12 text-sm justify-center items-center font-medium">
+      <div className="flex w-full text-gray-12 justify-center items-center font-medium calendar-header">
         {format(props.displayMonth, "MMMM yyy")}
       </div>
       <button
@@ -34,7 +27,7 @@ function CustomCaptionComponent(props: CaptionProps) {
         disabled={!nextMonth}
         onClick={() => nextMonth && goToMonth(nextMonth)}
       >
-        <IconRight className="text-gray-12 size-2" />
+        <ChevronRight className="text-gray-12 size-3" />
       </button>
     </div>
   );
@@ -82,28 +75,37 @@ type CalendarProps = {
   showOutsideDays?: boolean;
 };
 
-export const Calendar: React.FC<CalendarProps> = ({
+export const Calendar = ({
   className,
   classNames,
   mode,
   showOutsideDays = true,
   ...props
-}) => {
+}: CalendarProps) => {
   const { date, onDateChange, minDateRange, maxDateRange } = useDateTimeContext();
   const [singleDay, setSingleDay] = useState<Date | undefined>(date?.from);
 
   const handleChange = (newDate: DateRange | undefined) => {
-    // If no date selected, reset the range
+    //  No date selected (user cleared the selection)
     if (!newDate) {
       onDateChange({ from: undefined, to: undefined });
       return;
     }
 
-    if (date?.from && date?.to && newDate.to!.getTime() > date.to.getTime()) {
+    //  End date was moved later than current end date
+    // This resets the "from" date while keeping the new "to" date
+    if (
+      date?.from &&
+      date?.to &&
+      newDate?.to instanceof Date &&
+      newDate.to.getTime() > date.to.getTime()
+    ) {
       onDateChange({ from: undefined, to: newDate.to });
       return;
     }
 
+    // User clicked on either boundary of existing range
+    // This resets the entire range when clicking on start or end date
     if (
       date?.from &&
       date?.to &&
@@ -114,6 +116,7 @@ export const Calendar: React.FC<CalendarProps> = ({
       return;
     }
 
+    // Update with the new date range as is
     onDateChange(newDate);
   };
 

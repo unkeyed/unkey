@@ -29,9 +29,7 @@ const MAX_VALUES = {
 const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   const { startTime, endTime, date, onStartTimeChange, onEndTimeChange } = useDateTimeContext();
   const [focus, setFocus] = useState(false);
-  const [time, setTime] = useState<TimeUnit>(
-    type === "start" ? { HH: "00", mm: "00", ss: "00" } : { HH: "23", mm: "59", ss: "59" },
-  );
+  const [time, setTime] = useState<TimeUnit>(type === "start" ? startTime : endTime);
 
   const normalizeTimeUnit = (time: TimeUnit): TimeUnit => ({
     HH: time.HH.padStart(2, "0") || "00",

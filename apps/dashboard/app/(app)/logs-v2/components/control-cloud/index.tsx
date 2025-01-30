@@ -28,6 +28,13 @@ const formatFieldName = (field: string): string => {
   }
 };
 
+const formatOperator = (operator: string, field: string): string => {
+  if (field === "since" && operator === "is") {
+    return "past";
+  }
+  return operator;
+};
+
 const formatValue = (value: string | number, field: string): string => {
   if (typeof value === "string" && /^\d+$/.test(value)) {
     const statusFamily = Math.floor(Number.parseInt(value) / 100);
@@ -80,7 +87,7 @@ const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPil
         {formatFieldName(field)}
       </div>
       <div className="bg-gray-3 px-2 text-accent-12 font-medium py-[2px] flex gap-1 items-center">
-        {operator}
+        {formatOperator(operator, field)}
       </div>
       <div className="bg-gray-3 px-2 text-accent-12 font-medium py-[2px] flex gap-1 items-center">
         {metadata?.colorClass && (

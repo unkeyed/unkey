@@ -1,3 +1,5 @@
+"use client";
+
 import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
@@ -8,6 +10,7 @@ import { type PropsWithChildren, useState } from "react";
 import { processTimeFilters } from "../utils/process-time";
 import { DateTimeSuggestions, type OptionsType } from "./suggestions";
 
+const CUSTOM_OPTION_ID = 10;
 const options: OptionsType = [
   {
     id: 1,
@@ -70,6 +73,7 @@ const options: OptionsType = [
     checked: false,
   },
 ];
+
 const CUSTOM_DATE_TIME = 10;
 
 interface DatetimePopoverProps extends PropsWithChildren {
@@ -83,12 +87,38 @@ type TimeRangeType = {
 };
 
 export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePopoverProps) => {
-  const [open, setOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<OptionsType>(options);
   const { filters, updateFilters } = useFilters();
+
+  const sinceFilter = filters.find((f) => f.field === "since");
+  const startTimeFilter = filters.find((f) => f.field === "startTime");
+  const endTimeFilter = filters.find((f) => f.field === "endTime");
+
+  let initialSuggestions = [...options];
+
+  if (sinceFilter) {
+    const matchingSuggestion = initialSuggestions.find((s) => s.value === sinceFilter.value);
+    if (matchingSuggestion) {
+      initialSuggestions = initialSuggestions.map((s) => ({
+        ...s,
+        checked: s.id === matchingSuggestion.id,
+      }));
+      setTitle(matchingSuggestion.display);
+      setSelected(true);
+    }
+  } else if (startTimeFilter) {
+    initialSuggestions = initialSuggestions.map((s) => ({
+      ...s,
+      checked: s.id === CUSTOM_DATE_TIME,
+    }));
+    setTitle("Custom");
+    setSelected(true);
+  }
+
+  const [open, setOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<OptionsType>(initialSuggestions);
   const [time, setTime] = useState<TimeRangeType>({
-    startTime: undefined,
-    endTime: undefined,
+    startTime: startTimeFilter?.value as number | undefined,
+    endTime: endTimeFilter?.value as number | undefined,
   });
 
   useKeyboardShortcut("t", () => {
@@ -98,23 +128,37 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
   const handleSuggestionChange = (id: number) => {
     const tempSuggestions = suggestions.map((suggestion) => {
       const isChecked = suggestion.id === id && !suggestion.checked;
-
       return {
         ...suggestion,
         checked: isChecked,
       };
     });
-
     setSuggestions(tempSuggestions);
+
+    const selectedSuggestion = tempSuggestions.find((s) => s.checked)?.value;
+
+    if (id === CUSTOM_OPTION_ID) {
+      return;
+    }
+    const activeFilters = filters.filter((f) => !["since"].includes(f.field));
+    if (selectedSuggestion) {
+      activeFilters.push({
+        field: "since",
+        value: selectedSuggestion,
+        operator: "is",
+        id: crypto.randomUUID(),
+      });
+    }
+
+    updateFilters(activeFilters);
   };
+
   const onDateTimeChange = (newRange?: Range, newStart?: TimeUnit, newEnd?: TimeUnit) => {
-    //Custom when selecting something in datetime picker
     const custom = suggestions.find((suggestion) => suggestion.id === CUSTOM_DATE_TIME);
     if (!custom?.checked) {
       handleSuggestionChange(CUSTOM_DATE_TIME);
     }
     const startTimestamp = processTimeFilters(newRange?.from, newStart)?.getTime();
-
     const endTimestamp = processTimeFilters(newRange?.to, newEnd)?.getTime();
     setTime({
       startTime: startTimestamp,
@@ -131,7 +175,6 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
       setSelected(true);
       if (selected?.value !== undefined) {
         setTitle(selected.display);
-
         updateFilters([
           ...activeFilters,
           {
@@ -151,7 +194,6 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
           id: crypto.randomUUID(),
           operator: "is",
         });
-
         if (time.endTime) {
           activeFilters.push({
             field: "endTime",
@@ -176,10 +218,14 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
       setSelected(false);
       setTitle("No Filter");
     }
-
     updateFilters(activeFilters);
     setOpen(false);
   };
+
+  const initialStartDate = filters.find((f) => f.field === "startTime")?.value as
+    | number
+    | undefined;
+  const initialEndDate = filters.find((f) => f.field === "endTime")?.value as number | undefined;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -192,21 +238,27 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
       >
         <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
           <PopoverHeader />
-          <DateTimeSuggestions
-            options={suggestions}
-            onChange={(id: number) => handleSuggestionChange(id)}
-          />
+          <DateTimeSuggestions options={suggestions} onChange={handleSuggestionChange} />
         </div>
-
         <DateTime
           onChange={(newRange, newStart, newEnd) => onDateTimeChange(newRange, newStart, newEnd)}
-          className="gap-2 h-full"
+          initialRange={{
+            from: initialStartDate ? new Date(initialStartDate) : undefined,
+            to: initialEndDate ? new Date(initialEndDate) : undefined,
+          }}
+          className="gap-3 h-full"
         >
-          <DateTime.Calendar mode="range" className="px-3 pt-2.5 pb-3.5 border-b border-gray-4" />
-
-          <DateTime.TimeInput type="range" className="px-3.5 h-8 mt-1" />
-          <DateTime.Actions className="px-3.5 mt-1 mb-1 h-full">
-            <Button className="w-full justify-center" variant="primary" onClick={handleApplyFilter}>
+          <DateTime.Calendar
+            mode="range"
+            className="px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]"
+          />
+          <DateTime.TimeInput type="range" className="px-3.5 h-9 mt-0" />
+          <DateTime.Actions className="px-3.5 h-full pb-4">
+            <Button
+              variant="primary"
+              className="font-sans w-full h-9 rounded-md"
+              onClick={handleApplyFilter}
+            >
               Apply Filter
             </Button>
           </DateTime.Actions>
