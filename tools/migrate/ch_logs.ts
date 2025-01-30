@@ -45,7 +45,7 @@ async function main() {
   let i = 1;
   const inserts = [];
   for (const log of logs) {
-    console.log(i++, logs.length);
+    console.infi(i++, logs.length);
 
     const body = z
       .object({
@@ -90,7 +90,7 @@ async function main() {
       outcome: body.data.code ?? "VALID",
     };
 
-    console.log(insert);
+    console.info(insert);
     inserts.push(insert);
   }
   await ch.verifications.insert(inserts);
