@@ -12,10 +12,7 @@ export type Column<T> = {
   header?: string;
   width: ColumnWidth;
   headerClassName?: string;
-  minWidth?: number;
-  maxWidth?: number;
   render: (item: T) => React.ReactNode;
-  noTruncate?: boolean; // Add this to disable truncation for specific columns
 };
 
 export type TableConfig = {
