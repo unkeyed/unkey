@@ -77,5 +77,6 @@ export const useVirtualData = ({
     estimateSize: useCallback(() => config.rowHeight, [config.rowHeight]),
     overscan: config.overscan,
     onChange: handleChange,
+    gap: 4, // Add this line
   });
 };

@@ -109,7 +109,10 @@ export const TableRow = <T,>({
       style={{
         gridTemplateColumns,
         height: `${rowHeight}px`,
-        top: `${virtualRow.start + virtualRow.index * 4}px`, // Add 4px gap per row
+        position: "absolute",
+        top: 0,
+        left: 0,
+        transform: `translateY(${virtualRow.start}px)`,
       }}
     >
       {columns.map((column) => (

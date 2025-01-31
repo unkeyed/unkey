@@ -88,7 +88,11 @@ export function VirtualTable<TTableData>({
         ref={parentRef}
         data-table-container="true"
         className="overflow-auto pb-2 px-1 scroll-smooth relative"
-        style={{ height: `${fixedHeight}px` }}
+        style={{
+          height: `${fixedHeight}px`,
+          display: "grid",
+          gap: "4px",
+        }}
       >
         <div
           className={cn("transition-opacity duration-300", {
@@ -130,7 +134,9 @@ export function VirtualTable<TTableData>({
                   className="w-full mt-1"
                   style={{
                     position: "absolute",
-                    top: `${virtualRow.start + virtualRow.index * 4}px`, // Add 4px gap per row
+                    top: 0,
+                    left: 0,
+                    transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
                   <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
