@@ -170,7 +170,7 @@ export const LogsTable = () => {
       {
         key: "response_status",
         header: "Status",
-        width: "12.5%",
+        width: "7.5%",
         noTruncate: true,
         render: (log) => {
           const style = getStatusStyle(log.response_status);
