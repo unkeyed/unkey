@@ -2,6 +2,9 @@ import { Cookie } from "./cookies";
 
 // Core Types
 export const UNKEY_SESSION_COOKIE = "unkey-session";
+export const PENDING_SESSION_COOKIE ="sess-temp";
+export const SIGN_IN_URL = "/auth/sign-in";
+export const SIGN_UP_URL = "/auth/sign-up";
 
 export interface User {
   id: string;
@@ -52,6 +55,7 @@ export interface AuthErrorResponse extends AuthResponse {
   success: false;
   code: AuthErrorCode;
   message: string;
+  cookies?: Cookie[]; // needed for Org selection error case
 }
 
 // Special case for org selection
@@ -59,13 +63,13 @@ export interface PendingOrgSelectionResponse extends AuthErrorResponse {
   code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED;
   user: User;
   organizations: Organization[];
-  cookies: Cookie[]; // Add this to store the pending auth token
+  cookies: Cookie[];
 }
 
 // Union types for different auth operations
 export type EmailAuthResult = StateChangeResponse | AuthErrorResponse;
 export type VerificationResult = NavigationResponse | PendingOrgSelectionResponse | AuthErrorResponse;
-export type OAuthResult = NavigationResponse | AuthErrorResponse;
+export type OAuthResult = NavigationResponse | PendingOrgSelectionResponse | AuthErrorResponse;
 
 // List Response Types
 export interface ListResponse<T> {

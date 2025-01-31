@@ -19,9 +19,13 @@ import {
   UpdateOrgParams,
   Membership,
   SessionData,
+  NavigationResponse,
+  PENDING_SESSION_COOKIE,
+  AuthErrorResponse,
+  errorMessages,
 } from './types';
 import { cookies } from 'next/headers';
-import { deleteCookie, setCookies } from './cookies';
+import { Cookie, deleteCookie, setCookie, setCookies } from './cookies';
 import { redirect } from 'next/navigation';
 import { db } from '../db';
 
@@ -64,26 +68,20 @@ export async function signInViaEmail(email: string): Promise<EmailAuthResult> {
 }
 
 export async function verifyAuthCode(params: { email: string; code: string }): Promise<VerificationResult> {
+  const {email, code} = params;
   try {
-    const result = await auth.verifyAuthCode(params);
-    
-    if (result.success) {
+    const result = await auth.verifyAuthCode({email, code});
+
+    if (result.cookies) {
       await setCookies(result.cookies);
-      redirect(result.redirectTo);
     }
 
-    if (!result.success && 
-      result.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED && 
-      'cookies' in result) {
-    await setCookies(result.cookies);
-  }
-    
     return result;
   } catch (error) {
     return {
       success: false,
       code: AuthErrorCode.UNKNOWN_ERROR,
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message: errorMessages[AuthErrorCode.UNKNOWN_ERROR]
     };
   }
 }
@@ -172,6 +170,29 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
   }
 }
 
+// Organization Selection
+export async function checkPendingAuth(): Promise<boolean> {
+  const tempSession = cookies().get(PENDING_SESSION_COOKIE);
+  return tempSession !== undefined;
+}
+
+export async function completeOrgSelection(orgId: string): Promise<NavigationResponse | AuthErrorResponse> {
+  const tempSession = cookies().get(PENDING_SESSION_COOKIE);
+  if (!tempSession) throw new Error('No pending session');
+
+  // Call auth provider with token and orgId
+  const result = await auth.completeOrgSelection({pendingAuthToken: tempSession.value, orgId});
+  
+  if (result.success) {
+    cookies().delete(PENDING_SESSION_COOKIE);
+    for (const cookie of result.cookies) {
+      cookies().set(cookie.name, cookie.value, cookie.options);
+    }
+  }
+  
+  return result;
+}
+
 // Sign Out
 export async function signOut(): Promise<void> {
   await requireAuth();
@@ -201,6 +222,12 @@ export async function getWorkspace(tenantId: string): Promise<any> {
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
+}
+
+export async function getOrg(orgId: string): Promise<Organization> {
+  const user = await requireAuth();
+  await requireOrgAccess(orgId, user.id);
+  return await auth.getOrg(orgId);
 }
 
 // Membership & Invitation Management
