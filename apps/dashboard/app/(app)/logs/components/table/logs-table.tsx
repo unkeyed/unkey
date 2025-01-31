@@ -10,6 +10,7 @@ import { TriangleWarning2 } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
+import { extractResponseField } from "../../utils";
 import { useLogsQuery } from "./hooks/use-logs-query";
 
 type StatusStyle = {
@@ -169,20 +170,23 @@ export const LogsTable = () => {
       {
         key: "response_status",
         header: "Status",
-        width: "78px",
+        width: "12.5%",
         noTruncate: true,
         render: (log) => {
           const style = getStatusStyle(log.response_status);
           const isSelected = selectedLog?.request_id === log.request_id;
           return (
-            <Badge
-              className={cn(
-                "uppercase px-[6px] rounded-md font-mono",
-                isSelected ? style.badge.selected : style.badge.default,
-              )}
-            >
-              {log.response_status}
-            </Badge>
+            <div className="flex gap-1">
+              <Badge
+                className={cn(
+                  "uppercase px-[6px] rounded-md font-mono",
+                  isSelected ? style.badge.selected : style.badge.default,
+                )}
+              >
+                {log.response_status}{" "}
+                {extractResponseField(log, "code") ? `| ${extractResponseField(log, "code")}` : ""}
+              </Badge>
+            </div>
           );
         },
       },
