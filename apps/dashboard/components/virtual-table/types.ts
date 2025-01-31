@@ -39,7 +39,6 @@ export type VirtualTableProps<T> = {
   selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
   isFetchingNextPage?: boolean;
-  renderDetails?: (item: T, onClose: () => void, distanceToTop: number) => React.ReactNode;
 };
 
 export type SeparatorItem = {

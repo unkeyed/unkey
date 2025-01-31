@@ -8,7 +8,6 @@ import { useState } from "react";
 import { useAuditLogParams } from "../../query-state";
 import { columns } from "./columns";
 import { DEFAULT_FETCH_COUNT } from "./constants";
-import { LogDetails } from "./table-details";
 import type { Data } from "./types";
 import { getEventType } from "./utils";
 
@@ -123,9 +122,6 @@ export const AuditLogTableClient = () => {
       onRowClick={setSelectedLog}
       selectedClassName={getSelectedClassName}
       keyExtractor={(log) => log.auditLog.id}
-      renderDetails={(log, onClose, distanceToTop) => (
-        <LogDetails log={log} onClose={onClose} distanceToTop={distanceToTop} />
-      )}
       config={{
         loadingRows: DEFAULT_FETCH_COUNT,
       }}

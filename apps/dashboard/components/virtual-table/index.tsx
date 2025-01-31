@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { CircleCarretRight } from "@unkey/icons";
 import { Fragment, useMemo, useRef } from "react";
+import { EmptyState } from "./components/empty-state";
 import { LoadingIndicator } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
@@ -88,7 +89,11 @@ export function VirtualTable<TTableData>({
             </tr>
           </thead>
         </table>
-        <div className="flex-1 flex items-center justify-center h-full">{emptyState}</div>
+        {emptyState ? (
+          <div className="flex-1 flex items-center justify-center h-full">{emptyState}</div>
+        ) : (
+          <EmptyState />
+        )}
       </div>
     );
   }

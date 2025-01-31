@@ -12,7 +12,6 @@ export const columns: Column<Data>[] = [
     header: "Time",
     width: "150px",
     headerClassName: "pl-3",
-    noTruncate: true,
     render: (log) => (
       <div className="flex items-center gap-3">
         <TimestampInfo
@@ -27,7 +26,6 @@ export const columns: Column<Data>[] = [
     header: "Actor",
     width: "15%",
     headerClassName: "pl-3",
-    noTruncate: true,
     render: (log) => (
       <div className="flex items-center gap-3 truncate">
         {log.auditLog.actor.type === "user" && log.user ? (
@@ -55,7 +53,6 @@ export const columns: Column<Data>[] = [
     header: "Action",
     width: "15%",
     headerClassName: "pl-3",
-    noTruncate: true,
     render: (log) => {
       const eventType = getEventType(log.auditLog.event);
       const badgeClassName = cn("font-mono capitalize", {
