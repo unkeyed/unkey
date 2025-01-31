@@ -44,7 +44,3 @@ export type VirtualTableProps<T> = {
 export type SeparatorItem = {
   isSeparator: true;
 };
-
-export type SeparatorItem = {
-  isSeparator: true;
-};

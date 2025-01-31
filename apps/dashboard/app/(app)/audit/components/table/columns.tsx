@@ -37,16 +37,12 @@ export const columns: Column<Data>[] = [
         ) : log.auditLog.actor.type === "key" ? (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
             <KeySquare className="w-4 h-4" />
-            <span className="font-mono text-xs truncate">
-              {log.auditLog.actor.id}
-            </span>
+            <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
           </div>
         ) : (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
             <FunctionSquare className="w-4 h-4" />
-            <span className="font-mono text-xs truncate">
-              {log.auditLog.actor.id}
-            </span>
+            <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
           </div>
         )}
       </div>
@@ -61,10 +57,8 @@ export const columns: Column<Data>[] = [
       const eventType = getEventType(log.auditLog.event);
       const badgeClassName = cn("font-mono capitalize", {
         "bg-error-3 text-error-11 hover:bg-error-4": eventType === "delete",
-        "bg-warning-3 text-warning-11 hover:bg-warning-4":
-          eventType === "update",
-        "bg-success-3 text-success-11 hover:bg-success-4":
-          eventType === "create",
+        "bg-warning-3 text-warning-11 hover:bg-warning-4": eventType === "update",
+        "bg-success-3 text-success-11 hover:bg-success-4": eventType === "create",
         "bg-accent-3 text-accent-11 hover:bg-accent-4": eventType === "other",
       });
       return (
