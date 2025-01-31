@@ -7,12 +7,22 @@ export const getLogsClickhousePayload = z.object({
   limit: z.number().int(),
   startTime: z.number().int(),
   endTime: z.number().int(),
-  path: z.string().optional().nullable(),
-  host: z.string().optional().nullable(),
-  requestId: z.string().optional().nullable(),
-  method: z.string().optional().nullable(),
-  responseStatus: z.array(z.number().int()).nullable(),
+  paths: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "startsWith", "endsWith", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  hosts: z.array(z.string()).nullable(),
+  methods: z.array(z.string()).nullable(),
+  requestIds: z.array(z.string()).nullable(),
+  statusCodes: z.array(z.number().int()).nullable(),
+  cursorTime: z.number().int().nullable(),
+  cursorRequestId: z.string().nullable(),
 });
+
 export const log = z.object({
   request_id: z.string(),
   time: z.number().int(),
@@ -34,79 +44,121 @@ export type GetLogsClickhousePayload = z.infer<typeof getLogsClickhousePayload>;
 
 export function getLogs(ch: Querier) {
   return async (args: GetLogsClickhousePayload) => {
+    // Generate dynamic path conditions
+    const pathConditions =
+      args.paths
+        ?.map((p) => {
+          switch (p.operator) {
+            case "is":
+              return `path = '${p.value}'`;
+            case "startsWith":
+              return `startsWith(path, '${p.value}')`;
+            case "endsWith":
+              return `endsWith(path, '${p.value}')`;
+            case "contains":
+              return `like(path, '%${p.value}%')`;
+            default:
+              return null;
+          }
+        })
+        .filter(Boolean)
+        .join(" OR ") || "TRUE";
+
     const query = ch.query({
       query: `
-    SELECT
-      request_id,
-      time,
-      workspace_id,
-      host,
-      method,
-      path,
-      request_headers,
-      request_body,
-      response_status,
-      response_headers,
-      response_body,
-      error,
-      service_latency
-    FROM metrics.raw_api_requests_v1
-        WHERE workspace_id = {workspaceId: String}
-        AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-        AND (CASE
-                WHEN {host: String} != '' THEN host = {host: String}
+        WITH filtered_requests AS (
+          SELECT *
+          FROM metrics.raw_api_requests_v1
+          WHERE workspace_id = {workspaceId: String}
+            AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+            
+            ---------- Apply request ID filter if present (highest priority)
+            AND (
+              CASE
+                WHEN length({requestIds: Array(String)}) > 0 THEN 
+                  request_id IN {requestIds: Array(String)}
                 ELSE TRUE
-            END)
-        AND (CASE
-                WHEN {requestId: String} != '' THEN request_id = {requestId: String}
+              END
+            )
+            
+            ---------- Apply host filter
+            AND (
+              CASE
+                WHEN length({hosts: Array(String)}) > 0 THEN 
+                  host IN {hosts: Array(String)}
                 ELSE TRUE
-            END)
-        AND (CASE
-                WHEN {method: String} != '' THEN method = {method: String}
+              END
+            )
+            
+            ---------- Apply method filter
+            AND (
+              CASE
+                WHEN length({methods: Array(String)}) > 0 THEN 
+                  method IN {methods: Array(String)}
                 ELSE TRUE
-            END)
-        AND (CASE
-                WHEN {path: String} != '' THEN path = {path: String}
-                ELSE TRUE
-            END)
-        AND (CASE
-                WHEN {responseStatus: Array(UInt16)} IS NOT NULL AND length({responseStatus: Array(UInt16)}) > 0 THEN
-                    response_status IN (
-                        SELECT status
-                        FROM (
-                            SELECT
-                                multiIf(
-                                    code = 200, arrayJoin(range(200, 300)),
-                                    code = 400, arrayJoin(range(400, 500)),
-                                    code = 500, arrayJoin(range(500, 600)),
-                                    code
-                                ) as status
-                            FROM (
-                                SELECT arrayJoin({responseStatus: Array(UInt16)}) as code
-                            )
-                        )
+              END
+            )
+            
+            ---------- Apply path filter using pre-generated conditions
+            AND (${pathConditions})
+            
+            ---------- Apply status code filter
+            AND (
+              CASE
+                WHEN length({statusCodes: Array(UInt16)}) > 0 THEN
+                  response_status IN (
+                    SELECT status
+                    FROM (
+                      SELECT multiIf(
+                        code = 200, arrayJoin(range(200, 300)),
+                        code = 400, arrayJoin(range(400, 500)),
+                        code = 500, arrayJoin(range(500, 600)),
+                        code
+                      ) as status
+                      FROM (
+                        SELECT arrayJoin({statusCodes: Array(UInt16)}) as code
+                      )
                     )
+                  )
                 ELSE TRUE
-            END)
-    ORDER BY time DESC
-    LIMIT {limit: Int}`,
+              END
+            )
+            
+            -- Apply cursor pagination last
+            AND (
+              CASE
+                WHEN {cursorTime: Nullable(UInt64)} IS NOT NULL 
+                  AND {cursorRequestId: Nullable(String)} IS NOT NULL
+                THEN (time, request_id) < (
+                  {cursorTime: Nullable(UInt64)}, 
+                  {cursorRequestId: Nullable(String)}
+                )
+                ELSE TRUE
+              END
+            )
+        )
+        
+        SELECT
+          request_id,
+          time,
+          workspace_id,
+          host,
+          method,
+          path,
+          request_headers,
+          request_body,
+          response_status,
+          response_headers,
+          response_body,
+          error,
+          service_latency
+        FROM filtered_requests
+        ORDER BY time DESC, request_id DESC
+        LIMIT {limit: Int}`,
       params: getLogsClickhousePayload,
-      schema: z.object({
-        request_id: z.string(),
-        time: z.number().int(),
-        workspace_id: z.string(),
-        host: z.string(),
-        method: z.string(),
-        path: z.string(),
-        request_headers: z.array(z.string()),
-        request_body: z.string(),
-        response_status: z.number().int(),
-        response_headers: z.array(z.string()),
-        response_body: z.string(),
-        error: z.string(),
-        service_latency: z.number().int(),
-      }),
+      schema: log,
     });
+
     return query(args);
   };
 }
@@ -115,10 +167,17 @@ export const logsTimeseriesParams = z.object({
   workspaceId: z.string(),
   startTime: z.number().int(),
   endTime: z.number().int(),
-  path: z.string().optional().nullable(),
-  host: z.string().optional().nullable(),
-  method: z.string().optional().nullable(),
-  responseStatus: z.array(z.number().int()).nullable(),
+  paths: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "startsWith", "endsWith", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  hosts: z.array(z.string()).nullable(),
+  methods: z.array(z.string()).nullable(),
+  statusCodes: z.array(z.number().int()).nullable(),
 });
 
 export const logsTimeseriesDataPoint = z.object({
@@ -184,35 +243,57 @@ function getLogsTimeseriesWhereClause(
 ): string {
   const conditions = [
     "workspace_id = {workspaceId: String}",
+    // Host filter
+    `(CASE
+        WHEN length({hosts: Array(String)}) > 0 THEN 
+          host IN {hosts: Array(String)}
+        ELSE TRUE
+      END)`,
+    // Method filter
+    `(CASE
+        WHEN length({methods: Array(String)}) > 0 THEN 
+          method IN {methods: Array(String)}
+        ELSE TRUE
+      END)`,
+    // Status code filter
     `(CASE 
-        WHEN {responseStatus: Array(UInt16)} IS NOT NULL AND length({responseStatus: Array(UInt16)}) > 0 
-        THEN response_status IN (
-          SELECT status 
-          FROM (
-            SELECT multiIf(
-              code = 200, arrayJoin(range(200, 300)),
-              code = 400, arrayJoin(range(400, 500)),
-              code = 500, arrayJoin(range(500, 600)),
-              code
-            ) as status 
+        WHEN length({statusCodes: Array(UInt16)}) > 0 THEN
+          response_status IN (
+            SELECT status 
             FROM (
-              SELECT arrayJoin({responseStatus: Array(UInt16)}) as code
+              SELECT multiIf(
+                code = 200, arrayJoin(range(200, 300)),
+                code = 400, arrayJoin(range(400, 500)),
+                code = 500, arrayJoin(range(500, 600)),
+                code
+              ) as status 
+              FROM (
+                SELECT arrayJoin({statusCodes: Array(UInt16)}) as code
+              )
             )
-          )
-        ) 
+          ) 
         ELSE TRUE 
       END)`,
     ...additionalConditions,
   ];
 
-  if (params.path) {
-    conditions.push("path = {path: String}");
-  }
-  if (params.host) {
-    conditions.push("host = {host: String}");
-  }
-  if (params.method) {
-    conditions.push("method = {method: String}");
+  // Path filter with operators
+  if (params.paths?.length) {
+    const pathConditions = params.paths
+      .map((p) => {
+        switch (p.operator) {
+          case "is":
+            return `path = '${p.value}'`;
+          case "startsWith":
+            return `startsWith(path, '${p.value}')`;
+          case "endsWith":
+            return `endsWith(path, '${p.value}')`;
+          case "contains":
+            return `like(path, '%${p.value}%')`;
+        }
+      })
+      .join(" OR ");
+    conditions.push(`(${pathConditions})`);
   }
 
   return conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
