@@ -22,6 +22,10 @@ func (c *noopCache[T]) Restore(ctx context.Context, data []byte) error {
 	return nil
 }
 func (c *noopCache[T]) Clear(ctx context.Context) {}
+func (c *noopCache[T]) SWR(ctx context.Context, key string) (T, bool) {
+	var t T
+	return t, false
+}
 
 func NewNoopCache[T any]() Cache[T] {
 	return &noopCache[T]{}

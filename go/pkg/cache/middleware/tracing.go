@@ -82,3 +82,14 @@ func (mw *tracingMiddleware[T]) Clear(ctx context.Context) {
 
 	mw.next.Clear(ctx)
 }
+
+func (mw *tracingMiddleware[T]) SWR(ctx context.Context, key string) (T, bool) {
+	ctx, span := tracing.Start(ctx, "cache.SWR")
+	defer span.End()
+	span.SetAttributes(attribute.String("key", key))
+
+	value, found := mw.next.SWR(ctx, key)
+	span.SetAttributes(attribute.Bool("found", found))
+	return value, found
+
+}

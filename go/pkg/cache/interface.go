@@ -18,6 +18,8 @@ type Cache[T any] interface {
 	// Removes the key from the cache.
 	Remove(ctx context.Context, key string)
 
+	SWR(ctx context.Context, key string) (value T, found bool)
+
 	// Dump returns a serialized representation of the cache.
 	Dump(ctx context.Context) ([]byte, error)
 

@@ -200,3 +200,24 @@ func (c cache[T]) runRefreshing() {
 	}
 
 }
+
+func (c cache[T]) SWR(ctx context.Context, identifier string) (T, bool) {
+
+	value, hit := c.Get(ctx, identifier)
+
+	if hit == Hit {
+		return value, true
+	}
+	if hit == Null {
+		return value, false
+	}
+
+	value, found := c.refreshFromOrigin(ctx, identifier)
+	if found {
+		c.Set(ctx, identifier, value)
+		return value, true
+	}
+	c.SetNull(ctx, identifier)
+	return value, false
+
+}

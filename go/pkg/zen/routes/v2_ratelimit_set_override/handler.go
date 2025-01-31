@@ -5,8 +5,10 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/hash"
 	"github.com/unkeyed/unkey/go/pkg/entities"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -17,9 +19,19 @@ type Response = api.V2RatelimitSetOverrideResponseBody
 func New(svc *zen.Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/ratelimit.setOverride", func(s *zen.Session) error {
 
+		rootKey, err := zen.Bearer(s)
+		if err != nil {
+			return err
+		}
+
+		auth, err := svc.Keys.Verify(s.Context(), hash.Sha256(rootKey))
+		if err != nil {
+			return err
+		}
+
 		// nolint:exhaustruct
 		req := Request{}
-		err := s.BindBody(&req)
+		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
@@ -30,7 +42,7 @@ func New(svc *zen.Services) zen.Route {
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
 		err = svc.Database.InsertRatelimitOverride(s.Context(), entities.RatelimitOverride{
 			ID:          overrideID,
-			WorkspaceID: "",
+			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: "",
 			Identifier:  "",
 			Limit:       0,
