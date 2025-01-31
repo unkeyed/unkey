@@ -13,21 +13,21 @@ import { useSignIn } from "@/lib/auth/hooks";
 function SignInContent() {
   const { isVerifying, accountNotFound, error, email } = useSignIn();
 
-  if (isPendingOrgSelection && user && organizations) {
-    return (
-      <FadeIn>
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col">
-            <h1 className="text-4xl text-white">Select Organization</h1>
-            <p className="mt-4 text-sm text-md text-white/50">
-              Choose which organization you want to sign into
-            </p>
-          </div>
-          <OrgSelector user={user} organizations={organizations} />
-        </div>
-      </FadeIn>
-    );
-  }
+  // if (isPendingOrgSelection && user && organizations) {
+  //   return (
+  //     <FadeIn>
+  //       <div className="flex flex-col gap-6">
+  //         <div className="flex flex-col">
+  //           <h1 className="text-4xl text-white">Select Organization</h1>
+  //           <p className="mt-4 text-sm text-md text-white/50">
+  //             Choose which organization you want to sign into
+  //           </p>
+  //         </div>
+  //         <OrgSelector user={user} organizations={organizations} />
+  //       </div>
+  //     </FadeIn>
+  //   );
+  // }
 
   return (
     <div className="flex flex-col gap-10">
