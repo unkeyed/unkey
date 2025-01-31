@@ -109,3 +109,68 @@ Everything here, except the S3 bucket, would be duplicated per region.
 
 #### Cons
 - Additional infrastructure to manage
+
+### 4. DynamoDB Global Tables + Caching
+
+
+Option 4A: Direct DynamoDB + Gateway Memory Cache
+- Each gateway maintains a local memory SWR cache with a TTL of 10s
+- DynamoDB serves as source of truth
+- Automatic multi-region replication handled by AWS
+
+```ascii
+┌─────────────────────┐     ┌──────────────────┐
+│ Gateway (US)        │     │  DynamoDB        │
+│ ┌───────────────┐   │────►│  (US-WEST-1)     │
+│ │ Memory Cache  │   │     │                  │
+│ └───────────────┘   │     └──────────────────┘
+└─────────────────────┘            ▲
+                                   │
+                                   │ Replication
+                                   │
+┌─────────────────────┐            ▼
+│ Gateway (EU)        │     ┌──────────────────┐
+│ ┌───────────────┐   │────►│  DynamoDB        │
+│ │ Memory Cache  │   │     │  (EU-WEST-1)     │
+│ └───────────────┘   │     │                  │
+└─────────────────────┘     └──────────────────┘
+```
+
+
+Option 4B: With Dedicated Cache Layer
+
+A dedicated cache layer could be added to reduce the load on DynamoDB and improve read performance as well as cost.
+Whether this actually saves money is debatable, we'll have to try.
+These cache nodes would be dumb, they only cache reads for 10s and don't have any manual eviction possibilities.
+
+```ascii
+┌─────────────────┐
+│ Gateway 1       │───┐
+└─────────────────┘   │
+                      │    ┌────────────┐
+┌─────────────────┐   │    │   Load     │    ┌────────────┐
+│ Gateway 2       │───┼───►│  Balancer  │───►│ Cache      │──┐
+└─────────────────┘   │    │            │    │ Node 1     │  │    ┌──────────────┐
+                      │    │            │    └────────────┘  ├───►│  DynamoDB    │
+                      │    │            │                    │    │  Global      │
+                      │    │            │    ┌────────────┐  │    │  Tables      │
+┌─────────────────┐   │    │            │───►│ Cache      │──┘    └──────────────┘
+│ Gateway n       │───┘    └────────────┘    │ Node 2     │
+└─────────────────┘                          └────────────┘
+```
+
+#### Pros
+- Built-in multi-region replication with strong consistency
+- No need to manage complex replication logic
+- Lower latency reads from local region
+- Automatic conflict resolution
+- Serverless and fully managed by AWS
+- Cheaper per read operation than S3
+- 99.999% availability (s3 only has 99.99%)
+
+
+#### Cons
+- Vendor lock-in to AWS -> we need to have an abstraction
+- Higher storage cost compared to S3 due to replication
+- Cost of replication
+- Replication lag is controlled by AWS, not us
