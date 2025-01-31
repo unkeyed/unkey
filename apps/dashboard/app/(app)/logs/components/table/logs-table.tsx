@@ -179,7 +179,7 @@ export const LogsTable = () => {
             <div className="flex gap-1">
               <Badge
                 className={cn(
-                  "uppercase px-[6px] rounded-md font-mono",
+                  "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
                   isSelected ? style.badge.selected : style.badge.default,
                 )}
               >
