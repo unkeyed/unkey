@@ -18,7 +18,7 @@ export type ResponseBody = {
 
 export const extractResponseField = <K extends keyof ResponseBody>(
   log: Log,
-  fieldName: K,
+  fieldName: K
 ): ResponseBody[K] | null => {
   if (!log?.response_body) {
     console.error("Invalid log or missing response_body");
@@ -34,7 +34,10 @@ export const extractResponseField = <K extends keyof ResponseBody>(
   }
 };
 
-export const getRequestHeader = (log: Log, headerName: string): string | null => {
+export const getRequestHeader = (
+  log: Log,
+  headerName: string
+): string | null => {
   if (!headerName.trim()) {
     console.error("Invalid header name provided");
     return null;
@@ -46,7 +49,9 @@ export const getRequestHeader = (log: Log, headerName: string): string | null =>
   }
 
   const lowerHeaderName = headerName.toLowerCase();
-  const header = log.request_headers.find((h) => h.toLowerCase().startsWith(`${lowerHeaderName}:`));
+  const header = log.request_headers.find((h) =>
+    h.toLowerCase().startsWith(`${lowerHeaderName}:`)
+  );
 
   if (!header) {
     console.warn(`Header "${headerName}" not found in request headers`);

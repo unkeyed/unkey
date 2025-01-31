@@ -1,7 +1,11 @@
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { useKeyboardShortcut } from "@/app/(app)/logs/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "@/components/ui/toaster";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
 import { type PropsWithChildren, useEffect, useState } from "react";
@@ -9,7 +13,6 @@ import { processTimeFilters } from "../utils/process-time";
 import { DateTimeSuggestions, type OptionsType } from "./suggestions";
 
 const CUSTOM_OPTION_ID = 10;
-
 const options: OptionsType = [
   {
     id: 1,
@@ -107,7 +110,9 @@ export const DatetimePopover = ({
     const initialSuggestions = [...options];
 
     if (sinceFilter) {
-      const matchingSuggestion = options.find((s) => s.value === sinceFilter.value);
+      const matchingSuggestion = options.find(
+        (s) => s.value === sinceFilter.value
+      );
       if (matchingSuggestion) {
         return initialSuggestions.map((s) => ({
           ...s,
@@ -129,7 +134,9 @@ export const DatetimePopover = ({
     let newSelected = initialSelected;
 
     if (sinceFilter) {
-      const matchingSuggestion = options.find((s) => s.value === sinceFilter.value);
+      const matchingSuggestion = options.find(
+        (s) => s.value === sinceFilter.value
+      );
       if (matchingSuggestion) {
         newTitle = matchingSuggestion.display;
         newSelected = true;
@@ -178,13 +185,22 @@ export const DatetimePopover = ({
     updateFilters(activeFilters);
   };
 
-  const onDateTimeChange = (newRange?: Range, newStart?: TimeUnit, newEnd?: TimeUnit) => {
-    const custom = suggestions.find((suggestion) => suggestion.id === CUSTOM_OPTION_ID);
+  const onDateTimeChange = (
+    newRange?: Range,
+    newStart?: TimeUnit,
+    newEnd?: TimeUnit
+  ) => {
+    const custom = suggestions.find(
+      (suggestion) => suggestion.id === CUSTOM_OPTION_ID
+    );
     if (!custom?.checked) {
       handleSuggestionChange(CUSTOM_OPTION_ID);
     }
 
-    const startTimestamp = processTimeFilters(newRange?.from, newStart)?.getTime();
+    const startTimestamp = processTimeFilters(
+      newRange?.from,
+      newStart
+    )?.getTime();
     const endTimestamp = processTimeFilters(newRange?.to, newEnd)?.getTime();
     setTime({
       startTime: startTimestamp,
@@ -194,9 +210,8 @@ export const DatetimePopover = ({
 
   const handleApplyFilter = () => {
     const activeFilters = filters.filter(
-      (f) => !["endTime", "startTime", "since"].includes(f.field),
+      (f) => !["endTime", "startTime", "since"].includes(f.field)
     );
-
     const selected = suggestions.find((suggestion) => suggestion.checked);
     if (selected) {
       setSelected(true);
@@ -213,7 +228,6 @@ export const DatetimePopover = ({
         ]);
         return;
       }
-
       if (selected?.value === undefined && time.startTime) {
         setTitle("Custom");
         activeFilters.push({
@@ -231,7 +245,6 @@ export const DatetimePopover = ({
           });
         }
       }
-
       if (time.startTime === undefined && time.endTime === undefined) {
         toast.error("Please select a date range", {
           duration: 8000,
@@ -247,15 +260,15 @@ export const DatetimePopover = ({
       setSelected(false);
       setTitle("No Filter");
     }
-
     updateFilters(activeFilters);
     setOpen(false);
   };
 
-  const initialStartDate = filters.find((f) => f.field === "startTime")?.value as
+  const initialStartDate = filters.find((f) => f.field === "startTime")
+    ?.value as number | undefined;
+  const initialEndDate = filters.find((f) => f.field === "endTime")?.value as
     | number
     | undefined;
-  const initialEndDate = filters.find((f) => f.field === "endTime")?.value as number | undefined;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -268,10 +281,15 @@ export const DatetimePopover = ({
       >
         <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
           <PopoverHeader />
-          <DateTimeSuggestions options={suggestions} onChange={handleSuggestionChange} />
+          <DateTimeSuggestions
+            options={suggestions}
+            onChange={handleSuggestionChange}
+          />
         </div>
         <DateTime
-          onChange={(newRange, newStart, newEnd) => onDateTimeChange(newRange, newStart, newEnd)}
+          onChange={(newRange, newStart, newEnd) =>
+            onDateTimeChange(newRange, newStart, newEnd)
+          }
           initialRange={{
             from: initialStartDate ? new Date(initialStartDate) : undefined,
             to: initialEndDate ? new Date(initialEndDate) : undefined,
@@ -301,7 +319,9 @@ export const DatetimePopover = ({
 const PopoverHeader = () => {
   return (
     <div className="flex w-full h-8 justify-between px-2">
-      <span className="text-gray-9 text-[13px] w-full">Filter by time range</span>
+      <span className="text-gray-9 text-[13px] w-full">
+        Filter by time range
+      </span>
       <KeyboardButton shortcut="T" className="p-0 m-0 min-w-5 w-5 h-5" />
     </div>
   );
