@@ -10,8 +10,8 @@ export const LoadingRow = <TTableItem,>({
     style={{ gridTemplateColumns: columns.map((col) => col.width).join(" ") }}
   >
     {columns.map((column) => (
-      <div key={column.key} className="px-2">
-        <div className="h-4 bg-accent-6 rounded" />
+      <div key={column.key} className="pr-1">
+        <div className="h-4 bg-gradient-to-r from-accent-6 to-accent-4 rounded" />
       </div>
     ))}
   </div>

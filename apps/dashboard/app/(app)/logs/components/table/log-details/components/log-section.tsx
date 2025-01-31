@@ -23,23 +23,22 @@ export const LogSection = ({
   };
 
   return (
-    <div className="px-3 flex flex-col gap-[2px]">
+    <div className="flex flex-col gap-1 mt-[16px]">
       <div className="flex justify-between items-center">
-        <span className="text-sm text-content/65 font-sans">{title}</span>
+        <span className="text-[13px] text-accent-9 font-sans">{title}</span>
       </div>
-      <Card className="rounded-[5px] bg-background-subtle">
-        <CardContent className="p-2 text-[12px] relative group">
-          <pre>
+      <Card className="bg-gray-2 border-gray-4 rounded-lg">
+        <CardContent className="py-2 px-3 text-xs relative group ">
+          <pre className="flex flex-col gap-1 whitespace-pre-wrap leading-relaxed">
             {Array.isArray(details)
               ? details.map((header) => {
                   const [key, ...valueParts] = header.split(":");
                   const value = valueParts.join(":").trim();
                   return (
-                    <span key={header}>
-                      <span className="text-content/65">{key}</span>
-                      <span className="text-content whitespace-pre-line">: {value}</span>
-                      {"\n"}
-                    </span>
+                    <div className="group flex items-center w-full p-[3px]" key={key}>
+                      <span className="w-28 text-left truncate text-accent-9">{key}:</span>
+                      <span className="ml-2 text-xs text-accent-12 ">{value}</span>
+                    </div>
                   );
                 })
               : details}
