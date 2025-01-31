@@ -53,7 +53,7 @@ export abstract class BaseAuthProvider {
   abstract createTenant(params: { name: string; userId: string }): Promise<string>;
   abstract updateOrg(params: UpdateOrgParams): Promise<Organization>;
   protected abstract createOrg(name: string): Promise<Organization>;
-  protected abstract getOrg(orgId: string): Promise<Organization>;
+  abstract getOrg(orgId: string): Promise<Organization>;
   
   // Membership Management
   abstract listMemberships(): Promise<MembershipListResponse>;

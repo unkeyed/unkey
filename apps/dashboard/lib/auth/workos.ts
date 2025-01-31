@@ -1,4 +1,4 @@
-import { WorkOS } from "@workos-inc/node";
+import { WorkOS, User as WorkOSUser, Organization as WorkOSOrganization, Invitation as WorkOSInvitation } from "@workos-inc/node";
 import { env } from "@/lib/env";
 import { BaseAuthProvider } from "./base-provider";
 import { getCookie, updateCookie } from "./cookies";
@@ -21,6 +21,7 @@ import {
   VerificationResult,
   SignInViaOAuthOptions,
   OAuthResult,
+  PENDING_SESSION_COOKIE,
 } from "./types";
 
 export class WorkOSAuthProvider extends BaseAuthProvider {
@@ -138,7 +139,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       const { user, organizationId } = authResult;
       return this.transformUserData({
         ...user,
-        organization_id: organizationId
+        organizationId: organizationId
       });
   
     } catch (error) {
@@ -199,7 +200,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  protected async getOrg(orgId: string): Promise<Organization> {
+  async getOrg(orgId: string): Promise<Organization> {
     if (!orgId) {
       throw new Error("Organization Id is required.");
     }
@@ -521,7 +522,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           user: this.transformUserData(error.user),
           organizations: error.organizations.map(this.transformOrganizationData),
           cookies: [{
-            name: 'sess-temp',
+            name: PENDING_SESSION_COOKIE,
             value: error.pending_authentication_token,
             options: {
               secure: true,
@@ -640,7 +641,24 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           }
         }]
       };
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === 'organization_selection_required') {
+        return {
+          success: false,
+          code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
+          message: error.message,
+          user: this.transformUserData(error.user),
+          organizations: error.organizations.map(this.transformOrganizationData),
+          cookies: [{
+            name: PENDING_SESSION_COOKIE,
+            value: error.pending_authentication_token,
+            options: {
+              secure: true,
+              httpOnly: true
+            }
+          }]
+        };
+      }
       return this.handleError(error);
     }
   }
@@ -649,28 +667,28 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   private transformUserData(providerUser: any): User {
     return {
       id: providerUser.id,
-      orgId: null,
+      orgId: providerUser.organizationId,
       email: providerUser.email,
-      firstName: providerUser.first_name,
-      lastName: providerUser.last_name,
-      avatarUrl: providerUser.profile_picture_url,
-      fullName: providerUser.first_name && providerUser.last_name 
-        ? `${providerUser.first_name} ${providerUser.last_name}`
+      firstName: providerUser.firstName,
+      lastName: providerUser.lastName,
+      avatarUrl: providerUser.profilePictureUrl,
+      fullName: providerUser.firstName && providerUser.lastName 
+        ? `${providerUser.firstName} ${providerUser.lastName}`
         : null
     };
   }
 
-  private transformOrganizationData(providerOrg: any): Organization {
+  private transformOrganizationData(providerOrg: WorkOSOrganization): Organization {
     return {
       id: providerOrg.id,
       name: providerOrg.name,
-      createdAt: providerOrg.created_at,
-      updatedAt: providerOrg.updated_at
+      createdAt: providerOrg.createdAt,
+      updatedAt: providerOrg.updatedAt
     };
   }
 
   private transformInvitationData(
-    providerInvitation: any, 
+    providerInvitation: WorkOSInvitation, 
     context: { orgId: string; inviterId?: string }
   ): Invitation {
     return {
