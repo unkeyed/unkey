@@ -165,7 +165,7 @@ These cache nodes would be dumb, they only cache reads for 10s and don't have an
 - Lower latency reads from local region
 - Automatic conflict resolution
 - Serverless and fully managed by AWS
-- Cheaper per read operation than S3
+- Cheaper for small reads than S3
 - 99.999% availability (s3 only has 99.99%)
 
 
@@ -174,3 +174,4 @@ These cache nodes would be dumb, they only cache reads for 10s and don't have an
 - Higher storage cost compared to S3 due to replication
 - Cost of replication
 - Replication lag is controlled by AWS, not us
+- More expensive for large \>13kb reads than S3
