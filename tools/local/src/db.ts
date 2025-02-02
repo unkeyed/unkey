@@ -30,6 +30,8 @@ export async function prepareDatabase(url?: string): Promise<{
         },
 
         cwd,
+      }, (error, stdout, stderr) => {
+          console.error(`stdout: ${stdout}`);
       });
       p.on("exit", (code) => {
         if (code === 0) {
