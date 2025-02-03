@@ -153,7 +153,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         if (uniqueNames.has(name)) {
           throw new UnkeyApiError({
             code: "CONFLICT",
-            message: "ratelimit names must be unique",
+            message: `Ratelimit with name "${name}" is already defined in the request`,
           });
         }
         uniqueNames.add(name);

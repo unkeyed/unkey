@@ -139,7 +139,7 @@ export const registerV1IdentitiesCreateIdentity = (app: App) =>
             if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
               throw new UnkeyApiError({
                 code: "CONFLICT",
-                message: "Duplicate identity",
+                message: `Identity with externalId "${identity.externalId}" already exists in this workspace`,
               });
             }
 
@@ -201,7 +201,10 @@ export const registerV1IdentitiesCreateIdentity = (app: App) =>
               },
             ],
 
-            context: { location: c.get("location"), userAgent: c.get("userAgent") },
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
           })),
         ]);
       })

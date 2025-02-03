@@ -68,7 +68,7 @@ export const createNamespace = t.procedure
         if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
           throw new TRPCError({
             code: "CONFLICT",
-            message: "duplicate namespace name. Please use a unique name for each namespace.",
+            message: `A namespace with name "${input.name}" already exists in this workspace. Please choose a different name.`,
           });
         }
         throw new TRPCError({

@@ -48,7 +48,7 @@ export const openApiErrorResponses = {
   },
   412: {
     description:
-      "This response is sent when the request does not meet one or more preconditions required for fulfillment.",
+      "The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails.",
     content: {
       "application/json": {
         schema: errorSchemaFactory(z.enum(["PRECONDITION_FAILED"])).openapi(

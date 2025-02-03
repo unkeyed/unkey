@@ -87,7 +87,7 @@ export const registerV1PermissionsCreateRole = (app: App) =>
           if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
             throw new UnkeyApiError({
               code: "CONFLICT",
-              message: "Duplicate Role",
+              message: `Role with name "${role.name}" already exists in this workspace`,
             });
           }
 

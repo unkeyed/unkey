@@ -88,7 +88,7 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
           if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
             throw new UnkeyApiError({
               code: "CONFLICT",
-              message: "Duplicate Permission",
+              message: `Permission with name "${permission.name}" already exists in this workspace`,
             });
           }
 
