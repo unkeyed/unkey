@@ -1,4 +1,4 @@
-export type Data = {
+export type AuditData = {
   user:
     | {
         username?: string | null;
