@@ -97,6 +97,6 @@ describe("updating ratelimits", () => {
       },
     );
 
-    expect(res.status).toEqual(409);
+    expect(res.status, `expected 409, received: ${JSON.stringify(res, null, 2)}`).toEqual(409);
   });
 });
