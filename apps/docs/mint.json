@@ -207,6 +207,7 @@
             "api-reference/errors/code/BAD_REQUEST",
             "api-reference/errors/code/UNAUTHORIZED",
             "api-reference/errors/code/FORBIDDEN",
+            "api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
             "api-reference/errors/code/NOT_FOUND",
             "api-reference/errors/code/DELETE_PROTECTED",
             "api-reference/errors/code/EXPIRED",
