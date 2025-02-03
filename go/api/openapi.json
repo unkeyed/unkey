@@ -56,6 +56,12 @@
       "NotFoundError": {
         "$ref": "#/components/schemas/BaseError"
       },
+      "ForbiddenError": {
+        "$ref": "#/components/schemas/BaseError"
+      },
+      "PreconditionFailedError": {
+        "$ref": "#/components/schemas/BaseError"
+      },
       "BadRequestError": {
         "allOf": [
           {
@@ -356,6 +362,16 @@
               }
             },
             "description": "OK"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconditionFailedError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           },
           "500": {
             "content": {
