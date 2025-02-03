@@ -41,7 +41,7 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 		config: config,
 	}
 
-	for _ = range bp.config.Consumers {
+	for range bp.config.Consumers {
 		go bp.process()
 	}
 
@@ -70,7 +70,7 @@ func (bp *BatchProcessor[T]) process() {
 				return
 			}
 			bp.batch = append(bp.batch, e)
-			if len(bp.batch) >= int(bp.config.BatchSize) {
+			if len(bp.batch) >= bp.config.BatchSize {
 				flushAndReset()
 
 			}
@@ -90,7 +90,8 @@ func (bp *BatchProcessor[T]) Buffer(t T) {
 		select {
 		case bp.buffer <- t:
 		default:
-			droppedMessages.WithLabelValues(bp.name).Inc()
+			// Emit a metric to signal we dropped a message
+
 		}
 	} else {
 		bp.buffer <- t

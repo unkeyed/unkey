@@ -43,7 +43,10 @@ func TestCreateNewOverride(t *testing.T) {
 		DeletedAt:   time.Time{},
 	})
 
-	route := handler.New(handler.Services{})
+	route := handler.New(handler.Services{
+		DB:   db,
+		Keys: nil,
+	})
 
 	h.Register(route)
 
