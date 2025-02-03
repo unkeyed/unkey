@@ -3,17 +3,16 @@ import { Badge } from "@/components/ui/badge";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { FunctionSquare, KeySquare } from "lucide-react";
-import type { Data } from "./types";
+import type { AuditData } from "../../audit.type";
 import { getEventType } from "./utils";
 
-export const columns: Column<Data>[] = [
+export const columns: Column<AuditData>[] = [
   {
     key: "time",
     header: "Time",
-    headerClassName: "pl-3",
     width: "150px",
     render: (log) => (
-      <div className="flex items-center gap-3 px-2">
+      <div className="flex items-center gap-3">
         <TimestampInfo
           value={log.auditLog.time}
           className="font-mono group-hover:underline decoration-dotted"
@@ -24,25 +23,24 @@ export const columns: Column<Data>[] = [
   {
     key: "actor",
     header: "Actor",
-    headerClassName: "pl-3",
-    width: "7%",
+    width: "15%",
     render: (log) => (
-      <div className="flex items-center gap-3 px-2">
+      <div className="flex items-center gap-3 truncate">
         {log.auditLog.actor.type === "user" && log.user ? (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
-            <span className="text-xs whitespace-nowrap">{`${log.user.firstName ?? ""} ${
-              log.user.lastName ?? ""
-            }`}</span>
+            <span className="text-xs whitespace-nowrap">
+              {`${log.user.firstName ?? ""} ${log.user.lastName ?? ""}`}
+            </span>
           </div>
         ) : log.auditLog.actor.type === "key" ? (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
             <KeySquare className="w-4 h-4" />
-            <span className="font-mono text-xs">{log.auditLog.actor.id}</span>
+            <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
           </div>
         ) : (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
             <FunctionSquare className="w-4 h-4" />
-            <span className="font-mono text-xs">{log.auditLog.actor.id}</span>
+            <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
           </div>
         )}
       </div>
@@ -51,8 +49,7 @@ export const columns: Column<Data>[] = [
   {
     key: "action",
     header: "Action",
-    headerClassName: "pl-3",
-    width: "7%",
+    width: "15%",
     render: (log) => {
       const eventType = getEventType(log.auditLog.event);
       const badgeClassName = cn("font-mono capitalize", {
@@ -62,7 +59,7 @@ export const columns: Column<Data>[] = [
         "bg-accent-3 text-accent-11 hover:bg-accent-4": eventType === "other",
       });
       return (
-        <div className="flex items-center gap-3 px-2">
+        <div className="flex items-center gap-3">
           <Badge className={badgeClassName}>{eventType}</Badge>
         </div>
       );
@@ -71,10 +68,9 @@ export const columns: Column<Data>[] = [
   {
     key: "event",
     header: "Event",
-    headerClassName: "pl-2",
     width: "20%",
     render: (log) => (
-      <div className="flex items-center gap-2 text-current font-mono text-xs px-2">
+      <div className="flex items-center gap-2 text-current font-mono text-xs truncate">
         <span>{log.auditLog.event}</span>
       </div>
     ),
@@ -82,10 +78,11 @@ export const columns: Column<Data>[] = [
   {
     key: "event-description",
     header: "Description",
-    headerClassName: "pl-1",
     width: "auto",
     render: (log) => (
-      <div className="text-current font-mono px-2 text-xs">{log.auditLog.description}</div>
+      <div className="text-current font-mono text-xs truncate w-[200px]">
+        {log.auditLog.description}
+      </div>
     ),
   },
 ];

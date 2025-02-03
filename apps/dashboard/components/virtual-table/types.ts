@@ -12,10 +12,7 @@ export type Column<T> = {
   header?: string;
   width: ColumnWidth;
   headerClassName?: string;
-  minWidth?: number;
-  maxWidth?: number;
   render: (item: T) => React.ReactNode;
-  noTruncate?: boolean; // Add this to disable truncation for specific columns
 };
 
 export type TableConfig = {
@@ -29,6 +26,7 @@ export type TableConfig = {
 
 export type VirtualTableProps<T> = {
   data: T[];
+  realtimeData?: T[];
   columns: Column<T>[];
   isLoading?: boolean;
   config?: Partial<TableConfig>;
@@ -41,5 +39,8 @@ export type VirtualTableProps<T> = {
   selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
   isFetchingNextPage?: boolean;
-  renderDetails?: (item: T, onClose: () => void, distanceToTop: number) => React.ReactNode;
+};
+
+export type SeparatorItem = {
+  isSeparator: true;
 };

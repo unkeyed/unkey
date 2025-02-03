@@ -1,6 +1,5 @@
 @tailwind base;
 
-
 @layer base {
   :root {
     --chart-1: 0 75% 60%; /* Red */
@@ -139,4 +138,17 @@ code .line::before {
   display: inline-block;
   text-align: right;
   color: rgba(115, 138, 148, 0.4);
+}
+
+@keyframes fillLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-fill-left {
+  animation: fillLeft 1s ease-in-out;
 }

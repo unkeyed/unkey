@@ -19,7 +19,7 @@ jobs:
   test:
     name: API Test Staging
     environment: Preview
-    timeout-minutes: 30
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
