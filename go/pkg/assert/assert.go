@@ -84,8 +84,8 @@ func Less[T ~int | ~float64](a, b T) error {
 }
 
 // InRange asserts that a value is within a range (inclusive)
-func InRange[T ~int | ~float64](value, min, max T) error {
-	if value < min || value > max {
+func InRange[T ~int | ~float64](value, minimum, maximum T) error {
+	if value < minimum || value > maximum {
 		return fault.New("value is out of range", fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil

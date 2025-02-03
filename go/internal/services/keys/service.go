@@ -31,6 +31,7 @@ func New(config Config) (*service, error) {
 			key, err := config.DB.FindKeyByHash(ctx, hash)
 			if err != nil {
 				config.Logger.Error(ctx, "failed to fetch key by hash")
+				// nolint:exhaustruct
 				return entities.Key{}, false
 			}
 			return key, true

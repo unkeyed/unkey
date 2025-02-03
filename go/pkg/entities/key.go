@@ -51,4 +51,9 @@ type Key struct {
 	Environment string
 
 	Expires time.Time
+
+	Identity *Identity
+
+	// All transient permissions, directly attached or via roles
+	Permissions []string
 }

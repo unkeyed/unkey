@@ -7,12 +7,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
+	handler "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_set_override"
 	"github.com/unkeyed/unkey/go/pkg/database"
 	"github.com/unkeyed/unkey/go/pkg/entities"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
-	handler "github.com/unkeyed/unkey/go/pkg/zen/routes/v2_ratelimit_set_override"
 )
 
 func TestCreateNewOverride(t *testing.T) {
@@ -43,7 +43,7 @@ func TestCreateNewOverride(t *testing.T) {
 		DeletedAt:   time.Time{},
 	})
 
-	route := handler.New(nil)
+	route := handler.New(handler.Services{})
 
 	h.Register(route)
 

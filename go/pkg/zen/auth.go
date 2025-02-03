@@ -9,7 +9,7 @@ import (
 // Extract the bearer token from the authorization header
 func Bearer(s *Session) (string, error) {
 
-	header := s.r.Header.Get("authorization")
+	header := s.r.Header.Get("Authorization")
 	if header == "" {
 		return "", fault.New("empty authorization header", fault.WithTag(fault.UNAUTHORIZED))
 	}

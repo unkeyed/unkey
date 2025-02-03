@@ -2,10 +2,29 @@ package keys
 
 import (
 	"context"
+	"strings"
 
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/hash"
+	"github.com/unkeyed/unkey/go/pkg/zen"
 )
+
+func (s *service) VerifySession(ctx context.Context, sess *zen.Session) (VerifyResponse, error) {
+
+	header := sess.Request().Header.Get("Authorization")
+	if header == "" {
+		return VerifyResponse{}, fault.New("empty authorization header", fault.WithTag(fault.UNAUTHORIZED))
+	}
+
+	bearer := strings.TrimSuffix(header, "Bearer ")
+	if bearer == "" {
+		return VerifyResponse{}, fault.New("invalid token", fault.WithTag(fault.UNAUTHORIZED))
+	}
+
+	return s.Verify(ctx, hash.Sha256(bearer))
+
+}
 
 func (s *service) Verify(ctx context.Context, hash string) (VerifyResponse, error) {
 

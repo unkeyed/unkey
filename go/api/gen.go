@@ -48,6 +48,9 @@ type BaseError struct {
 	Type string `json:"type"`
 }
 
+// ForbiddenError defines model for ForbiddenError.
+type ForbiddenError = BaseError
+
 // InternalServerError defines model for InternalServerError.
 type InternalServerError = BaseError
 
@@ -56,6 +59,9 @@ type NotFoundError = BaseError
 
 // PreconditionFailedError defines model for PreconditionFailedError.
 type PreconditionFailedError = BaseError
+
+// UnauthorizedError defines model for UnauthorizedError.
+type UnauthorizedError = BaseError
 
 // V2LivenessResponseBody defines model for V2LivenessResponseBody.
 type V2LivenessResponseBody struct {

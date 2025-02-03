@@ -52,7 +52,6 @@ func (c *Containers) RunMySQL() string {
 
 	var db *sql.DB
 	require.NoError(c.t, c.pool.Retry(func() error {
-		var err error
 		db, err = sql.Open("mysql", addr)
 		if err != nil {
 			return fmt.Errorf("unable to open mysql conenction: %w", err)

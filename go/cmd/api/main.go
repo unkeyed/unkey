@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 	"syscall"
 
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/config"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -69,10 +70,17 @@ func run(c *cli.Context) error {
 
 	logger.Info(c.Context, "configration loaded", slog.String("file", configFile))
 
+	var ch clickhouse.Bufferer = clickhouse.NewNoop()
+	if cfg.Clickhouse != nil {
+		ch, err = clickhouse.New(clickhouse.Config{
+			URL:    cfg.Clickhouse.Url,
+			Logger: logger,
+		})
+	}
+
 	srv, err := zen.New(zen.Config{
-		NodeId:     cfg.NodeId,
-		Logger:     logger,
-		Clickhouse: nil,
+		NodeId: cfg.NodeId,
+		Logger: logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
@@ -85,7 +93,7 @@ func run(c *cli.Context) error {
 
 	srv.SetGlobalMiddleware(
 		// metrics should always run first, so it can capture the latency of the entire request
-		zen.WithMetrics(nil),
+		zen.WithMetrics(ch),
 		zen.WithLogging(logger),
 		zen.WithErrorHandling(),
 		zen.WithValidation(validator),

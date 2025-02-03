@@ -11,7 +11,9 @@ import (
 type Request = openapi.V2RatelimitLimitRequestBody
 type Response = openapi.V2RatelimitLimitResponseBody
 
-func New(svc *zen.Services) zen.Route {
+type Services struct{}
+
+func New(svc Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/ratelimit.limit", func(s *zen.Session) error {
 		req := new(Request)
 		err := s.BindBody(req)

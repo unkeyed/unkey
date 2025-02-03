@@ -33,7 +33,7 @@ type Database interface {
 	// InsertKey(ctx context.Context, newKey entities.Key) error
 	FindKeyByID(ctx context.Context, keyId string) (key entities.Key, err error)
 	FindKeyByHash(ctx context.Context, hash string) (key entities.Key, err error)
-	FindKeyForVerification(ctx context.Context, hash string) (key entities.KeyForVerification, err error)
+	FindKeyForVerification(ctx context.Context, hash string) (key entities.Key, err error)
 	// UpdateKey(ctx context.Context, key entities.Key) error
 	// SoftDeleteKey(ctx context.Context, keyId string) error
 	// DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key entities.Key, err error)
