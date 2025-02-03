@@ -65,8 +65,8 @@ describe("when identity exists already", () => {
     expect(res.status).toEqual(412);
     expect(res.body).toMatchObject({
       error: {
-        code: "PRECONDITION_FAILED",
-        docs: "https://unkey.dev/docs/api-reference/errors/code/PRECONDITION_FAILED",
+        code: "CONFLICT",
+        docs: "https://unkey.dev/docs/api-reference/errors/code/CONFLICT",
         message: "Duplicate identity",
       },
     });

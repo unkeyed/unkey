@@ -51,7 +51,9 @@ export const openApiErrorResponses = {
       "This response is sent when the request does not meet one or more preconditions required for fulfillment.",
     content: {
       "application/json": {
-        schema: errorSchemaFactory(z.enum(["CONFLICT"])).openapi("ErrConflict"),
+        schema: errorSchemaFactory(z.enum(["PRECONDITION_FAILED"])).openapi(
+          "ErrPreconditionFailed",
+        ),
       },
     },
   },

@@ -67,7 +67,7 @@ export const createNamespace = t.procedure
       .catch((e) => {
         if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
           throw new TRPCError({
-            code: "PRECONDITION_FAILED",
+            code: "CONFLICT",
             message: "duplicate namespace name. Please use a unique name for each namespace.",
           });
         }
