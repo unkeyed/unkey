@@ -3,7 +3,7 @@ package cluster
 import "context"
 
 type Node struct {
-	Id      string
+	ID      string
 	RpcAddr string
 }
 

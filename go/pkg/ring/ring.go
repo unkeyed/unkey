@@ -2,8 +2,8 @@ package ring
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
+	"crypto/md5"
+	"encoding/binary"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -32,36 +32,36 @@ type Config struct {
 	Logger logging.Logger
 }
 
-type Token struct {
-	hash string
-	// index into the nodeIDs array
-	NodeID string
+type token struct {
+	hash   uint64
+	nodeID string
 }
 
 type Ring[T any] struct {
-	sync.RWMutex
+	mu sync.RWMutex
 
 	tokensPerNode int
 	// nodeIDs
 	nodes  map[string]Node[T]
-	tokens []Token
+	tokens []token
 	logger logging.Logger
 }
 
 func New[T any](config Config) (*Ring[T], error) {
 	r := &Ring[T]{
+		mu:            sync.RWMutex{},
 		tokensPerNode: config.TokensPerNode,
 		logger:        config.Logger,
 		nodes:         make(map[string]Node[T]),
-		tokens:        make([]Token, 0),
+		tokens:        make([]token, 0),
 	}
 
 	return r, nil
 }
 
 func (r *Ring[T]) AddNode(ctx context.Context, node Node[T]) error {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	for _, n := range r.nodes {
 		if n.ID == node.ID {
@@ -75,7 +75,7 @@ func (r *Ring[T]) AddNode(ctx context.Context, node Node[T]) error {
 		if err != nil {
 			return err
 		}
-		r.tokens = append(r.tokens, Token{hash: hash, NodeID: node.ID})
+		r.tokens = append(r.tokens, token{hash: hash, nodeID: node.ID})
 	}
 	sort.Slice(r.tokens, func(i int, j int) bool {
 		return r.tokens[i].hash < r.tokens[j].hash
@@ -89,15 +89,15 @@ func (r *Ring[T]) AddNode(ctx context.Context, node Node[T]) error {
 }
 
 func (r *Ring[T]) RemoveNode(ctx context.Context, nodeID string) error {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.logger.Info(ctx, "removing node from ring", slog.String("removedNodeID", nodeID))
 
 	delete(r.nodes, nodeID)
 
-	tokens := make([]Token, 0)
+	tokens := make([]token, 0)
 	for _, t := range r.tokens {
-		if t.NodeID != nodeID {
+		if t.nodeID != nodeID {
 			tokens = append(tokens, t)
 		}
 	}
@@ -106,19 +106,16 @@ func (r *Ring[T]) RemoveNode(ctx context.Context, nodeID string) error {
 	return nil
 }
 
-func (r *Ring[T]) hash(key string) (string, error) {
+func (r *Ring[T]) hash(key string) (uint64, error) {
 
-	h := sha256.New()
-	_, err := h.Write([]byte(key))
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(h.Sum(nil)), nil
+	sum := md5.Sum([]byte(key))
+
+	return binary.BigEndian.Uint64(sum[:8]), nil
 }
 
 func (r *Ring[T]) Members() []Node[T] {
-	r.RLock()
-	defer r.RUnlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
 	nodes := make([]Node[T], len(r.nodes))
 	i := 0
@@ -130,8 +127,8 @@ func (r *Ring[T]) Members() []Node[T] {
 }
 
 func (r *Ring[T]) FindNode(key string) (Node[T], error) {
-	r.RLock()
-	defer r.RUnlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
 	if len(r.tokens) == 0 {
 		return Node[T]{}, fault.New("ring is empty")
@@ -150,9 +147,9 @@ func (r *Ring[T]) FindNode(key string) (Node[T], error) {
 	}
 
 	token := r.tokens[tokenIndex]
-	node, ok := r.nodes[token.NodeID]
+	node, ok := r.nodes[token.nodeID]
 	if !ok {
-		return Node[T]{}, fmt.Errorf("node not found: %s", token.NodeID)
+		return Node[T]{}, fmt.Errorf("node not found: %s", token.nodeID)
 
 	}
 

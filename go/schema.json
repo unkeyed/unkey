@@ -14,7 +14,9 @@
         }
       },
       "additionalProperties": false,
-      "required": ["url"]
+      "required": [
+        "url"
+      ]
     },
     "database": {
       "type": "object",
@@ -27,7 +29,9 @@
         }
       },
       "additionalProperties": false,
-      "required": ["primary"]
+      "required": [
+        "primary"
+      ]
     },
     "heartbeat": {
       "type": "object",
@@ -45,7 +49,15 @@
         }
       },
       "additionalProperties": false,
-      "required": ["url", "interval"]
+      "required": [
+        "url",
+        "interval"
+      ]
+    },
+    "httpAddr": {
+      "type": "string",
+      "description": "Port to listen on",
+      "default": ":7070"
     },
     "image": {
       "type": "string",
@@ -59,16 +71,24 @@
       "type": "string",
       "description": "The platform this agent is running on"
     },
-    "port": {
-      "type": "string",
-      "description": "Port to listen on",
-      "default": "8080"
+    "redisUrl": {
+      "type": "string"
     },
     "region": {
       "type": "string",
       "description": "The region this agent is running in"
+    },
+    "rpcAddr": {
+      "type": "string",
+      "description": "The internal address for RPC",
+      "default": ":7071"
     }
   },
   "additionalProperties": true,
-  "required": ["database"]
+  "required": [
+    "httpAddr",
+    "rpcAddr",
+    "redisUrl",
+    "database"
+  ]
 }

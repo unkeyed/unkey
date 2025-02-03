@@ -14,7 +14,7 @@ tasks:
 
   build:
     cmds:
-      - go build -o unkey ./cmd/main.go
+      - go build -o unkey ./main.go
 
 
   lint:

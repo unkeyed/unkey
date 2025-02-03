@@ -1,6 +1,7 @@
 {
   "$schema": "schema.json",
-  "port": "8080",
+  "httpAddr": ":7070",
+  "rpcAddr": ":7071",
   "redisUrl": "${REDIS_URL}",
   "database": {
     "primary": "mysql://"

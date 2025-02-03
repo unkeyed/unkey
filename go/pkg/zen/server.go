@@ -27,7 +27,7 @@ type Server struct {
 }
 
 type Config struct {
-	NodeId string
+	NodeID string
 	Logger logging.Logger
 }
 

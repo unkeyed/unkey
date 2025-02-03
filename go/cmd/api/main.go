@@ -8,8 +8,10 @@ import (
 	"os/signal"
 	"runtime/debug"
 	"syscall"
+	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/config"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
@@ -35,8 +37,9 @@ var Cmd = &cli.Command{
 	Action: run,
 }
 
-func run(c *cli.Context) error {
-	configFile := c.String("config")
+func run(cliC *cli.Context) error {
+	ctx := cliC.Context
+	configFile := cliC.String("config")
 
 	// nolint:exhaustruct
 	cfg := nodeConfig{}
@@ -45,66 +48,57 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("unable to load config file: %w", err)
 	}
 
-	if cfg.NodeId == "" {
-		cfg.NodeId = uid.Node()
+	if cfg.NodeID == "" {
+		cfg.NodeID = uid.Node()
 	}
 
 	if cfg.Region == "" {
 		cfg.Region = "unknown"
 	}
-	logger := logging.New(logging.Config{Development: true, NoColor: false})
-	logger = logger.With(
-		slog.String("nodeId", cfg.NodeId),
-		slog.String("platform", cfg.Platform),
-		slog.String("region", cfg.Region),
-		slog.String("version", version.Version),
-	)
-
+	logger := logging.New(logging.Config{Development: true, NoColor: false}).
+		With(
+			slog.String("nodeId", cfg.NodeID),
+			slog.String("platform", cfg.Platform),
+			slog.String("region", cfg.Region),
+			slog.String("version", version.Version),
+		)
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Error(c.Context, "panic",
+			logger.Error(ctx, "panic",
 				slog.Any("panic", r),
 				slog.String("stack", string(debug.Stack())),
 			)
 		}
 	}()
 
-	logger.Info(c.Context, "configration loaded", slog.String("file", configFile))
+	logger.Info(ctx, "configration loaded", slog.String("file", configFile))
 
 	m, err := membership.New(membership.Config{
 		RedisUrl: cfg.RedisUrl,
-		NodeID:   cfg.NodeId,
-		RpcAddr:  "",
+		NodeID:   cfg.NodeID,
+		RpcAddr:  cfg.RpcAddr,
 		Logger:   logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create membership")
 	}
-	_, err = m.Join(c.Context)
+
+	c, err := cluster.New(cluster.Config{
+		Self: cluster.Node{
+			ID:      cfg.NodeID,
+			RpcAddr: "",
+		},
+		Logger:     logger,
+		Membership: m,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create cluster: %w", err)
+	}
+	_, err = m.Join(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to join cluster")
 	}
-	go func() {
-		joins := m.SubscribeJoinEvents()
-		leaves := m.SubscribeLeaveEvents()
-
-		for {
-			select {
-			case j := <-joins:
-				{
-					logger.Info(c.Context, "node joined", slog.String("nodeID", j.ID))
-
-				}
-			case l := <-leaves:
-				{
-					logger.Info(c.Context, "node left", slog.String("nodeID", l.ID))
-
-				}
-			}
-
-		}
-	}()
 
 	var ch clickhouse.Bufferer = clickhouse.NewNoop()
 	if cfg.Clickhouse != nil {
@@ -118,7 +112,7 @@ func run(c *cli.Context) error {
 	}
 
 	srv, err := zen.New(zen.Config{
-		NodeId: cfg.NodeId,
+		NodeID: cfg.NodeID,
 		Logger: logger,
 	})
 	if err != nil {
@@ -139,7 +133,7 @@ func run(c *cli.Context) error {
 	)
 
 	go func() {
-		listenErr := srv.Listen(c.Context, fmt.Sprintf(":%s", cfg.Port))
+		listenErr := srv.Listen(ctx, cfg.HttpAddr)
 		if listenErr != nil {
 			panic(listenErr)
 		}
@@ -149,9 +143,11 @@ func run(c *cli.Context) error {
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
 
 	<-cShutdown
-	shutdownCtx := context.Background()
-	logger.Info(c.Context, "shutting down")
-	err = m.Leave(shutdownCtx)
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	logger.Info(ctx, "shutting down")
+	err = c.Shutdown(ctx)
+
 	if err != nil {
 		return fmt.Errorf("unable to leave cluster: %w", err)
 	}
