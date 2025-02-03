@@ -19,23 +19,25 @@ func TestRetry(t *testing.T) {
 	}{
 		{
 			name:  "success on first try",
-			retry: Build(),
+			retry: New(),
 			fn: func() error {
 				return nil
 			},
 			expectedCalls: 1,
+			expectedError: false,
 			expectedSleep: 0,
 		},
 		{
 			name:          "success after one failure",
-			retry:         Build(),
+			retry:         New(),
 			fn:            failNTimes(1),
 			expectedCalls: 2,
 			expectedSleep: 100 * time.Millisecond,
+			expectedError: false,
 		},
 		{
 			name:  "all attempts fail",
-			retry: Build(),
+			retry: New(),
 			fn: func() error {
 				return errors.New("persistent error")
 			},
@@ -45,7 +47,7 @@ func TestRetry(t *testing.T) {
 		},
 		{
 			name:  "invalid attempts",
-			retry: Build().Attempts(0),
+			retry: New(Attempts(0)),
 			fn: func() error {
 				return nil
 			},
@@ -55,18 +57,20 @@ func TestRetry(t *testing.T) {
 		},
 		{
 			name:          "custom attempts - succeeds after 3 failures",
-			retry:         Build().Attempts(5),
+			retry:         New(Attempts(5)),
 			fn:            failNTimes(3),
 			expectedCalls: 4,
 			expectedSleep: 600 * time.Millisecond,
+			expectedError: false,
 		},
 		{
 			name: "exponential backoff",
-			retry: Build().
-				Attempts(3).
+			retry: New(
+				Attempts(3),
 				Backoff(func(n int) time.Duration {
 					return time.Duration(n*n) * time.Second
 				}),
+			),
 			fn:            failNTimes(3),
 			expectedCalls: 3,
 			expectedSleep: 14 * time.Second,
@@ -74,9 +78,10 @@ func TestRetry(t *testing.T) {
 		},
 		{
 			name: "constant backoff",
-			retry: Build().
-				Attempts(3).
+			retry: New(
+				Attempts(3),
 				Backoff(func(n int) time.Duration { return time.Second }),
+			),
 			fn:            failNTimes(3),
 			expectedCalls: 3,
 			expectedError: true,
