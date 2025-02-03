@@ -90,6 +90,8 @@ export const registerV1PermissionsCreateRole = (app: App) =>
               message: "Duplicate Role",
             });
           }
+
+          throw e;
         });
 
       await insertUnkeyAuditLog(c, tx, {

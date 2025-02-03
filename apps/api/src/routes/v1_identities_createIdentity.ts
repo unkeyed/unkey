@@ -142,6 +142,8 @@ export const registerV1IdentitiesCreateIdentity = (app: App) =>
                 message: "Duplicate identity",
               });
             }
+
+            throw e;
           });
 
         const ratelimits = req.ratelimits

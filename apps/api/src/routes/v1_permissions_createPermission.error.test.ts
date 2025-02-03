@@ -41,7 +41,7 @@ describe.each([
   });
 });
 
-test("creating the same permission twice does not error", async (t) => {
+test("creating the same permission twice returns conflict", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["rbac.*.create_permission"]);
 

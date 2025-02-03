@@ -91,6 +91,8 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
               message: "Duplicate Permission",
             });
           }
+
+          throw e;
         });
 
       await insertUnkeyAuditLog(c, tx, {
