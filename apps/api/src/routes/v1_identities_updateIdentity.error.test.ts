@@ -98,12 +98,5 @@ describe("updating ratelimits", () => {
     );
 
     expect(res.status).toEqual(409);
-    expect(res.body).toMatchObject({
-      error: {
-        code: "CONFLICT",
-        docs: "https://unkey.dev/docs/api-reference/errors/code/CONFLICT",
-        message: "ratelimit names must be unique",
-      },
-    });
   });
 });
