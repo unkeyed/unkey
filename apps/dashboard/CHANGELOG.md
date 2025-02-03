@@ -1,5 +1,11 @@
 # @unkey/web
 
+## 0.1.44
+
+### Patch Changes
+
+- @unkey/ratelimit@0.5.5
+
 ## 0.1.43
 
 ### Patch Changes
