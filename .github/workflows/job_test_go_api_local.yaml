@@ -1,4 +1,4 @@
-name: Test GO API Local
+name: Test Go API Local
 on:
   workflow_call:
 
