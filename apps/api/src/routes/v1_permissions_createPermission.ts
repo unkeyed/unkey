@@ -5,8 +5,9 @@ import { validation } from "@unkey/validation";
 
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { openApiErrorResponses } from "@/pkg/errors";
-import { eq, schema } from "@unkey/db";
+import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { DatabaseError } from "@planetscale/database";
+import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -80,50 +81,18 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
     };
 
     await db.primary.transaction(async (tx) => {
-      const currentPermission = await tx.query.permissions.findFirst({
-        where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.name, req.name)),
-        columns: {
-          id: true,
-        },
-      });
-
-      if (currentPermission) {
-        permission.id = currentPermission.id as `perm_${string}`;
-
-        await tx
-          .update(schema.permissions)
-          .set({ description: req.description })
-          .where(eq(schema.permissions.id, permission.id));
-
-        await insertUnkeyAuditLog(c, tx, {
-          workspaceId: auth.authorizedWorkspaceId,
-          event: "permission.update",
-          actor: {
-            type: "key",
-            id: auth.key.id,
-          },
-          description: `Updated ${permission.id}`,
-          resources: [
-            {
-              type: "permission",
-              id: permission.id,
-              meta: {
-                name: permission.name,
-                description: permission.description,
-              },
-            },
-          ],
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
+      await tx
+        .insert(schema.permissions)
+        .values(permission)
+        .catch((e) => {
+          if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
+            throw new UnkeyApiError({
+              code: "PRECONDITION_FAILED",
+              message: "Duplicate Permission",
+            });
+          }
         });
 
-        return;
-      }
-
-      await tx.insert(schema.permissions).values(permission);
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
         event: "permission.create",
