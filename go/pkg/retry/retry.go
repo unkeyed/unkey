@@ -47,34 +47,47 @@ type retry struct {
 //
 // The retry behavior can be customized using Attempts() and Backoff():
 //
-//	r := retry.Build().
-//		Attempts(5).
-//		Backoff(func(n int) time.Duration {
-//			return time.Duration(1<<uint(n)) * time.Second // exponential backoff
-//		})t
-func Build() *retry {
-	return &retry{
+// r := retry.Build(
+//
+//	retry.Attempts(5),
+//	retry.Backoff(func(n int) time.Duration {
+//		return time.Duration(1<<uint(n)) * time.Second // exponential backoff
+//	}),
+//
+// )
+func New(applies ...apply) *retry {
+	r := &retry{
 		attempts: 3,
 		backoff:  func(n int) time.Duration { return time.Duration(n) * 100 * time.Millisecond },
 		sleep:    time.Sleep,
 	}
+	for _, a := range applies {
+		r = a(r)
+	}
+	return r
 }
+
+// apply modifies r and returns it
+type apply func(r *retry) *retry
 
 // Attempts sets the maximum number of retry attempts.
 // The operation will be attempted up to this many times before giving up.
-// Returns the retry instance for method chaining.
-func (r *retry) Attempts(attempts int) *retry {
-	r.attempts = attempts
-	return r
+func Attempts(attempts int) apply {
+	return func(r *retry) *retry {
+		r.attempts = attempts
+		return r
+	}
 }
 
 // Backoff sets the backoff strategy function.
 // The function receives the current attempt number (starting with 1) and
 // should return the duration to wait before the next attempt.
-// Returns the retry instance for method chaining.
-func (r *retry) Backoff(backoff func(n int) time.Duration) *retry {
-	r.backoff = backoff
-	return r
+func Backoff(backoff func(n int) time.Duration) apply {
+	return func(r *retry) *retry {
+
+		r.backoff = backoff
+		return r
+	}
 }
 
 // Do executes the given function with configured retry behavior.

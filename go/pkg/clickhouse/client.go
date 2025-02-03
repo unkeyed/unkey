@@ -44,11 +44,15 @@ func New(config Config) (*Clickhouse, error) {
 		return nil, fault.Wrap(err, fault.WithDesc("opening clickhouse failed", ""))
 	}
 
-	err = retry.Retry(func() error {
-		return conn.Ping(context.Background())
-	}, 10, func(n int) time.Duration {
-		return time.Duration(n) * time.Second
-	})
+	err = retry.New(
+		retry.Attempts(10),
+		retry.Backoff(func(n int) time.Duration {
+			return time.Duration(n) * time.Second
+		}),
+	).
+		Do(func() error {
+			return conn.Ping(context.Background())
+		})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.WithDesc("pinging clickhouse failed", ""))
 	}
