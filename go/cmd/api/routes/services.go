@@ -1,4 +1,4 @@
-package zen
+package routes
 
 import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"

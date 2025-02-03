@@ -25,7 +25,24 @@ func WithErrorHandling() Middleware {
 					Status:    s.responseStatus,
 					Instance:  nil,
 				})
-
+			case fault.UNAUTHORIZED:
+				return s.JSON(http.StatusUnauthorized, api.UnauthorizedError{
+					Title:     "Unauthorized",
+					Type:      "https://unkey.com/docs/errors/unauthorized",
+					Detail:    fault.UserFacingMessage(err),
+					RequestId: s.requestID,
+					Status:    s.responseStatus,
+					Instance:  nil,
+				})
+			case fault.FORBIDDEN:
+				return s.JSON(http.StatusForbidden, api.ForbiddenError{
+					Title:     "Forbidden",
+					Type:      "https://unkey.com/docs/errors/forbidden",
+					Detail:    fault.UserFacingMessage(err),
+					RequestId: s.requestID,
+					Status:    s.responseStatus,
+					Instance:  nil,
+				})
 			case fault.PROTECTED_RESOURCE:
 				return s.JSON(http.StatusPreconditionFailed, api.PreconditionFailedError{
 					Title:     "Resource is protected",
@@ -42,6 +59,8 @@ func WithErrorHandling() Middleware {
 			case fault.UNTAGGED:
 				break // fall through to default 500
 
+			case fault.ASSERTION_FAILED:
+				break // fall through to default 500
 			case fault.INTERNAL_SERVER_ERROR:
 				break
 			}

@@ -79,7 +79,7 @@ func newBase(
 		Description:  description,
 		PublicMeta:   map[string]any{},
 		InternalMeta: map[string]any{},
-		Code:         fmt.Sprintf("%s:%s:%s", system, namespace, name),
+		Code:         fmt.Sprintf("EID:%s:%s:%s", system, namespace, name),
 		Cause:        err,
 	}
 

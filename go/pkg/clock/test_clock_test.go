@@ -91,7 +91,7 @@ func TestTestClockWithNegativeTick(t *testing.T) {
 
 func TestClockInterface(t *testing.T) {
 	var realClock Clock = &RealClock{}
-	var testClock Clock = &TestClock{}
+	var testClock Clock = &TestClock{} // nolint:exhaustruct
 
 	require.Implements(t, (*Clock)(nil), realClock)
 	require.Implements(t, (*Clock)(nil), testClock)

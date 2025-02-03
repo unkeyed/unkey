@@ -25,9 +25,8 @@ func NewHarness(t *testing.T) *Harness {
 	logger := logging.NewNoop()
 
 	srv, err := zen.New(zen.Config{
-		NodeId:     "test",
-		Logger:     logger,
-		Clickhouse: nil,
+		NodeId: "test",
+		Logger: logger,
 	})
 	require.NoError(t, err)
 

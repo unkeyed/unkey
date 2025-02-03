@@ -1,4 +1,4 @@
--- name: VerifyKey :one
+-- name: FindKeyForVerification :one
 WITH direct_permissions AS (
     SELECT kp.key_id, p.name as permission_name
     FROM keys_permissions kp

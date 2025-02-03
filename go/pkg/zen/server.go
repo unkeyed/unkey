@@ -27,9 +27,9 @@ type Server struct {
 }
 
 type Config struct {
-	NodeId     string
-	Logger     logging.Logger
-	Clickhouse EventBuffer
+	NodeId string
+	Logger logging.Logger
+	Events EventBuffer
 }
 
 func New(config Config) (*Server, error) {
