@@ -27,9 +27,8 @@ type Server struct {
 }
 
 type Config struct {
-	NodeId     string
-	Logger     logging.Logger
-	Clickhouse EventBuffer
+	NodeId string
+	Logger logging.Logger
 }
 
 func New(config Config) (*Server, error) {
@@ -92,6 +91,13 @@ func (s *Server) getSession() any {
 // Return the session to the sync pool.
 func (s *Server) returnSession(session any) {
 	s.sessions.Put(session)
+}
+
+// Mux returns the underlying http.ServeMux.
+//
+// Usually you don't need to use this, but it's here for tests.
+func (s *Server) Mux() *http.ServeMux {
+	return s.mux
 }
 
 // Calling this function multiple times will have no effect.

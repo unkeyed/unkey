@@ -9,24 +9,30 @@ import (
 type Prefix string
 
 const (
-	RequestPrefix Prefix = "req"
-	NodePrefix    Prefix = "node"
+	RequestPrefix           Prefix = "req"
+	NodePrefix              Prefix = "node"
+	RatelimitOverridePrefix Prefix = "rlor"
+	TestPrefix              Prefix = "test"
 )
 
 // New Returns a new random base58 encoded uuid.
-func New(prefix string) string {
+func New(prefix Prefix) string {
 
 	id := ksuid.New().String()
 	if prefix != "" {
-		return strings.Join([]string{prefix, id}, "_")
+		return strings.Join([]string{string(prefix), id}, "_")
 	} else {
 		return id
 	}
 }
 func Node() string {
-	return New(string(NodePrefix))
+	return New(NodePrefix)
 }
 
 func Request() string {
-	return New(string(RequestPrefix))
+	return New(RequestPrefix)
+}
+
+func Test() string {
+	return New(TestPrefix)
 }

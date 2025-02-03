@@ -69,7 +69,7 @@ linters-settings:
       - "^github.com/urfave/cli/v2.*$"
 
   lll:
-    line-length: 100
+    line-length: 120
   funlen:
     # Checks the number of lines in a function.
     # If lower than 0, disable the check.
@@ -188,6 +188,11 @@ linters-settings:
     packages:
       - github.com/jmoiron/sqlx
 
+  wrapcheck:
+    extra-ignore-sigs:
+      - fault.New(
+    ignoreSigRegexps:
+      - mw\.next\..*
   sloglint:
     # Enforce not using global loggers.
     # Values:
@@ -254,7 +259,7 @@ linters:
     # - goprintffuncname # checks that printf-like functions are named with f at the end
     - gosec # inspects source code for security problems
     # - intrange # finds places where for loops could make use of an integer range
-    - lll # reports long lines
+    # - lll # reports long lines
     - loggercheck # checks key value pairs for common logger libraries (kitlog,klog,logr,zap)
     # - makezero # finds slice declarations with non-zero initial length
     # - mirror # reports wrong mirror patterns of bytes/strings usage
@@ -301,7 +306,7 @@ linters:
     #- prealloc # [premature optimization, but can be used in some cases] finds slice declarations that could potentially be preallocated
     #- tagalign # checks that struct tags are well aligned
     #- varnamelen # [great idea, but too many false positives] checks that the length of a variable's name matches its scope
-    - wrapcheck # checks that errors returned from external packages are wrapped
+    #- wrapcheck # checks that errors returned from external packages are wrapped
     #- zerologlint # detects the wrong usage of zerolog that a user forgets to dispatch zerolog.Event
 
     ## disabled

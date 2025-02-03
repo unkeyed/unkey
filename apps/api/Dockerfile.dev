@@ -1,7 +1,9 @@
 FROM node:lts AS base
 
 RUN npm i -g pnpm turbo
-RUN corepack enable
+# I don't know why, but this caused signature mismatch errors
+# and doesn't seem to be needed for dev
+# RUN corepack enable
 
 
 FROM base AS builder
@@ -36,4 +38,4 @@ COPY --from=installer /unkey .
 WORKDIR /unkey/apps/api
 ENV WRANGLER_SEND_METRICS=false
 RUN rm .dev.vars || true
-CMD pnpm wrangler dev 
+CMD pnpm wrangler dev
