@@ -94,6 +94,13 @@ func (s *Server) returnSession(session any) {
 	s.sessions.Put(session)
 }
 
+// Mux returns the underlying http.ServeMux.
+//
+// Usually you don't need to use this, but it's here for tests.
+func (s *Server) Mux() *http.ServeMux {
+	return s.mux
+}
+
 // Calling this function multiple times will have no effect.
 func (s *Server) Listen(ctx context.Context, addr string) error {
 	s.mu.Lock()
