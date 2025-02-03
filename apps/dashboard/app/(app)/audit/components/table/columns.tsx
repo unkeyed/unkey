@@ -3,15 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { FunctionSquare, KeySquare } from "lucide-react";
-import type { Data } from "./types";
+import type { AuditData } from "../../audit.type";
 import { getEventType } from "./utils";
 
-export const columns: Column<Data>[] = [
+export const columns: Column<AuditData>[] = [
   {
     key: "time",
     header: "Time",
     width: "150px",
-    headerClassName: "pl-3",
     render: (log) => (
       <div className="flex items-center gap-3">
         <TimestampInfo
@@ -25,7 +24,6 @@ export const columns: Column<Data>[] = [
     key: "actor",
     header: "Actor",
     width: "15%",
-    headerClassName: "pl-3",
     render: (log) => (
       <div className="flex items-center gap-3 truncate">
         {log.auditLog.actor.type === "user" && log.user ? (
@@ -52,7 +50,6 @@ export const columns: Column<Data>[] = [
     key: "action",
     header: "Action",
     width: "15%",
-    headerClassName: "pl-3",
     render: (log) => {
       const eventType = getEventType(log.auditLog.event);
       const badgeClassName = cn("font-mono capitalize", {

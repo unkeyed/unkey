@@ -72,7 +72,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
         onClick={!field.skipTooltip ? () => handleClick(field) : undefined}
       >
         <span className="text-accent-9 text-[13px]">{field.label}</span>
-        <span className="text-accent-12">
+        <span className="text-accent-12 text-right w-3/4">
           {field.description(field.content as NonNullable<T[number]>)}
         </span>
       </div>

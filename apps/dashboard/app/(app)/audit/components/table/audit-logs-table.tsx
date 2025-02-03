@@ -4,11 +4,10 @@ import { VirtualTable } from "@/components/virtual-table";
 import { trpc } from "@/lib/trpc/client";
 import { Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useState } from "react";
+import type { AuditData } from "../../audit.type";
 import { useAuditLogParams } from "../../query-state";
 import { columns } from "./columns";
 import { DEFAULT_FETCH_COUNT } from "./constants";
-import type { Data } from "./types";
 import { getEventType } from "./utils";
 
 const STATUS_STYLES: Record<
@@ -16,7 +15,7 @@ const STATUS_STYLES: Record<
   { base: string; hover: string; selected: string }
 > = {
   create: {
-    base: "text-accent-11 ",
+    base: "text-accent-11",
     hover: "hover:bg-accent-3",
     selected: "bg-accent-3",
   },
@@ -37,8 +36,12 @@ const STATUS_STYLES: Record<
   },
 };
 
-export const AuditLogTableClient = () => {
-  const [selectedLog, setSelectedLog] = useState<Data | null>(null);
+type Props = {
+  selectedLog: AuditData | null;
+  setSelectedLog: (log: AuditData | null) => void;
+};
+
+export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
   const { setCursor, searchParams } = useAuditLogParams();
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
@@ -74,7 +77,7 @@ export const AuditLogTableClient = () => {
     }
   };
 
-  const getRowClassName = (item: Data) => {
+  const getRowClassName = (item: AuditData) => {
     const eventType = getEventType(item.auditLog.event);
     const style = STATUS_STYLES[eventType];
 
@@ -82,7 +85,6 @@ export const AuditLogTableClient = () => {
       style.base,
       style.hover,
       "group rounded-md",
-      "focus:outline-none focus:ring-1 focus:ring-opacity-40 px-1",
       selectedLog && {
         "opacity-50 z-0": selectedLog.auditLog.id !== item.auditLog.id,
         "opacity-100 z-10": selectedLog.auditLog.id === item.auditLog.id,
@@ -90,7 +92,7 @@ export const AuditLogTableClient = () => {
     );
   };
 
-  const getSelectedClassName = (item: Data, isSelected: boolean) => {
+  const getSelectedClassName = (item: AuditData, isSelected: boolean) => {
     if (!isSelected) {
       return "";
     }
