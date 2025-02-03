@@ -95,9 +95,6 @@ export const createWorkspaceNavigation = (
       icon: TableProperties,
       href: "/logs",
       label: "Logs",
-      active: segments.at(0) === "logs",
-      tag: <Tag label="Beta" />,
-      hidden: !workspace.betaFeatures.logsPage,
     },
     {
       icon: Crown,

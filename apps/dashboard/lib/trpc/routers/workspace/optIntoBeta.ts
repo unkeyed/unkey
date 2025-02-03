@@ -45,10 +45,6 @@ export const optWorkspaceIntoBeta = t.procedure
         workspace.betaFeatures.ratelimit = true;
         break;
       }
-      case "logsPage": {
-        workspace.betaFeatures.logsPage = true;
-        break;
-      }
     }
     await db
       .transaction(async (tx) => {
