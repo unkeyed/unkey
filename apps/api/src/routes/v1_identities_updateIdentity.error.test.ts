@@ -97,7 +97,7 @@ describe("updating ratelimits", () => {
       },
     );
 
-    expect(res.status).toEqual(412);
+    expect(res.status).toEqual(409);
     expect(res.body).toMatchObject({
       error: {
         code: "CONFLICT",
