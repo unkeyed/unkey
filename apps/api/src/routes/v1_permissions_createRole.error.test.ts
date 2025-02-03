@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { randomUUID } from "node:crypto";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import type {
@@ -35,4 +36,37 @@ describe.each([
       },
     });
   });
+});
+
+test("creating the same role twice errors", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const root = await h.createRootKey(["rbac.*.create_role"]);
+
+  const name = randomUUID();
+
+  // The First request should succeed
+  // The Second request should fail
+  const expectedStatuses: Record<number, number> = {
+    0: 200,
+    1: 409,
+  };
+
+  for (let i = 0; i < 2; i++) {
+    const res = await h.post<V1PermissionsCreateRoleRequest, V1PermissionsCreateRoleResponse>({
+      url: "/v1/permissions.createRole",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        name,
+      },
+    });
+
+    const expectedStatus = expectedStatuses[i];
+    expect(
+      res.status,
+      `expected ${expectedStatus}, received: ${JSON.stringify(res, null, 2)}`,
+    ).toBe(expectedStatus);
+  }
 });

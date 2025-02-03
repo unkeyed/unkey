@@ -87,7 +87,7 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
         .catch((e) => {
           if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
             throw new UnkeyApiError({
-              code: "PRECONDITION_FAILED",
+              code: "CONFLICT",
               message: "Duplicate Permission",
             });
           }

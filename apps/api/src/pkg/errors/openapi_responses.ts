@@ -46,6 +46,15 @@ export const openApiErrorResponses = {
       },
     },
   },
+  412: {
+    description:
+      "This response is sent when the request does not meet one or more preconditions required for fulfillment.",
+    content: {
+      "application/json": {
+        schema: errorSchemaFactory(z.enum(["CONFLICT"])).openapi("ErrConflict"),
+      },
+    },
+  },
   429: {
     description: `The user has sent too many requests in a given amount of time ("rate limiting")`,
     content: {

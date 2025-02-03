@@ -559,7 +559,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
                 workspaceId: authorizedWorkspaceId,
               });
               throw new UnkeyApiError({
-                code: "NOT_UNIQUE",
+                code: "CONFLICT",
                 message: e.body.message,
               });
             }
