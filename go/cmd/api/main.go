@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -8,8 +9,10 @@ import (
 	"runtime/debug"
 	"syscall"
 
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/config"
 	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/membership"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -69,10 +72,51 @@ func run(c *cli.Context) error {
 
 	logger.Info(c.Context, "configration loaded", slog.String("file", configFile))
 
+	m, err := membership.New(membership.Config{
+		RedisUrl: cfg.RedisUrl,
+		NodeID:   cfg.NodeId,
+		RpcAddr:  "",
+		Logger:   logger,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create membership")
+	}
+
+	go func() {
+		joins := m.SubscribeJoinEvents()
+		leaves := m.SubscribeLeaveEvents()
+
+		for {
+			select {
+			case j := <-joins:
+				{
+					logger.Info(c.Context, "node joined", slog.String("nodeID", j.ID))
+
+				}
+			case l := <-leaves:
+				{
+					logger.Info(c.Context, "node left", slog.String("nodeID", l.ID))
+
+				}
+			}
+
+		}
+	}()
+
+	var ch clickhouse.Bufferer = clickhouse.NewNoop()
+	if cfg.Clickhouse != nil {
+		ch, err = clickhouse.New(clickhouse.Config{
+			URL:    cfg.Clickhouse.Url,
+			Logger: logger,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create clickhouse: %w", err)
+		}
+	}
+
 	srv, err := zen.New(zen.Config{
-		NodeId:     cfg.NodeId,
-		Logger:     logger,
-		Clickhouse: nil,
+		NodeId: cfg.NodeId,
+		Logger: logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
@@ -85,7 +129,7 @@ func run(c *cli.Context) error {
 
 	srv.SetGlobalMiddleware(
 		// metrics should always run first, so it can capture the latency of the entire request
-		zen.WithMetrics(nil),
+		zen.WithMetrics(ch),
 		zen.WithLogging(logger),
 		zen.WithErrorHandling(),
 		zen.WithValidation(validator),
@@ -102,8 +146,12 @@ func run(c *cli.Context) error {
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
 
 	<-cShutdown
+	shutdownCtx := context.Background()
 	logger.Info(c.Context, "shutting down")
-
+	err = m.Leave(shutdownCtx)
+	if err != nil {
+		return fmt.Errorf("unable to leave cluster: %w", err)
+	}
 	return nil
 }
 

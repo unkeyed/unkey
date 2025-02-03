@@ -2,6 +2,7 @@
   "$schema": "schema.json",
   "port": "8080",
   "nodeId": "node_1",
+  "redisUrl": "${REDIS_URL}",
   "database": {
     "primary": "mysql://"
   }
