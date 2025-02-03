@@ -37,7 +37,15 @@ export default async function RolesPage() {
           },
           roles: {
             with: {
-              role: true,
+              role: {
+                with: {
+                  keys: {
+                    columns: {
+                      keyId: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -55,6 +63,23 @@ export default async function RolesPage() {
     permission.keys = permission.keys.filter(({ key }) => key.deletedAt === null);
     return permission;
   });
+
+  type Permission = (typeof workspace.permissions)[number];
+  const getKeys = (p: Permission) => {
+    const connectedKeys = new Set<string>();
+    for (const key of p.keys) {
+      connectedKeys.add(key.keyId);
+    }
+
+    for (const role of p.roles) {
+      for (const key of role.role.keys) {
+        connectedKeys.add(key.keyId);
+      }
+    }
+
+    return connectedKeys.size;
+  };
+
   return (
     <div>
       <Navbar>
@@ -115,9 +140,9 @@ export default async function RolesPage() {
                       <Badge variant="secondary">
                         {Intl.NumberFormat(undefined, {
                           notation: "compact",
-                        }).format(p.keys.length)}{" "}
+                        }).format(getKeys(p))}{" "}
                         Key
-                        {p.keys.length !== 1 ? "s" : ""}
+                        {getKeys(p) !== 1 ? "s" : ""}
                       </Badge>
                     </div>
 
