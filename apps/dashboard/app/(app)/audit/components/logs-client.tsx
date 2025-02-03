@@ -5,7 +5,7 @@ import type { AuditData } from "../audit.type";
 import { AuditLogsTable } from "./table/audit-logs-table";
 import { AuditLogDetails } from "./table/log-details";
 
-// INFO: Hacky way to create distance to top. This will fixed when this page gets a refactor.
+// INFO: Hacky way to create distance from top. This will be fixed when this page gets a refactor.
 const DISTANCE_TO_TOP = 9;
 export const LogsClient = () => {
   const [selectedLog, setSelectedLog] = useState<AuditData | null>(null);
