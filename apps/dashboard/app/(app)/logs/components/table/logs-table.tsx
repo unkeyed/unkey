@@ -152,49 +152,41 @@ export const LogsTable = () => {
       {
         key: "time",
         header: "Time",
-        width: "165px",
-        headerClassName: "pl-9",
-        noTruncate: true,
+        width: "5%",
         render: (log) => (
-          <div className="flex items-center gap-3">
-            <TimestampInfo
-              value={log.time}
-              className={cn(
-                "font-mono group-hover:underline decoration-dotted",
-                selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
-              )}
-            />
-          </div>
+          <TimestampInfo
+            value={log.time}
+            className={cn(
+              "font-mono group-hover:underline decoration-dotted",
+              selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
+            )}
+          />
         ),
       },
       {
         key: "response_status",
         header: "Status",
         width: "7.5%",
-        noTruncate: true,
         render: (log) => {
           const style = getStatusStyle(log.response_status);
           const isSelected = selectedLog?.request_id === log.request_id;
           return (
-            <div className="flex gap-1">
-              <Badge
-                className={cn(
-                  "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-                  isSelected ? style.badge.selected : style.badge.default,
-                )}
-              >
-                {log.response_status}{" "}
-                {extractResponseField(log, "code") ? `| ${extractResponseField(log, "code")}` : ""}
-              </Badge>
-            </div>
+            <Badge
+              className={cn(
+                "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
+                isSelected ? style.badge.selected : style.badge.default,
+              )}
+            >
+              {log.response_status}{" "}
+              {extractResponseField(log, "code") ? `| ${extractResponseField(log, "code")}` : ""}
+            </Badge>
           );
         },
       },
       {
         key: "method",
         header: "Method",
-        width: "78px",
-        noTruncate: true,
+        width: "7.5%",
         render: (log) => {
           const isSelected = selectedLog?.request_id === log.request_id;
           return (
@@ -208,7 +200,7 @@ export const LogsTable = () => {
         key: "path",
         header: "Path",
         width: "15%",
-        render: (log) => <div className="font-mono">{log.path}</div>,
+        render: (log) => <div className="font-mono pr-4">{log.path}</div>,
       },
     ],
     [selectedLog?.request_id],
@@ -224,7 +216,7 @@ export const LogsTable = () => {
       const originalRender = filtered[0].render;
       filtered[0] = {
         ...filtered[0],
-        headerClassName: "pl-9",
+        headerClassName: "pl-8",
         render: (log: Log) => (
           <div className="flex items-center gap-3 px-2">
             <WarningIcon status={log.response_status} />

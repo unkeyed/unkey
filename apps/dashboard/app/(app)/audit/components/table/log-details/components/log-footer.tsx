@@ -1,13 +1,13 @@
 "use client";
 
+import type { AuditData } from "@/app/(app)/audit/audit.type";
 import { RequestResponseDetails } from "@/app/(app)/logs/components/table/log-details/components/request-response-details";
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FunctionSquare, KeySquare } from "lucide-react";
-import type { Data } from "./types";
 
 type Props = {
-  log: Data;
+  log: AuditData;
 };
 
 export const LogFooter = ({ log }: Props) => {
@@ -65,7 +65,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "User Agent",
           description: (content) => (
-            <span className="text-[13px] font-mono w-[100px] truncate">{content}</span>
+            <span className="text-[13px] font-mono text-right">{content}</span>
           ),
           content: log.auditLog.userAgent,
           tooltipContent: "Copy User Agent",
@@ -80,9 +80,7 @@ export const LogFooter = ({ log }: Props) => {
         },
         {
           label: "Description",
-          description: (content) => (
-            <span className="text-[13px] font-mono flex text-end">{content}</span>
-          ),
+          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
           content: log.auditLog.description,
           tooltipContent: "Copy Description",
           tooltipSuccessMessage: "Description copied to clipboard",

@@ -101,7 +101,7 @@ const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPil
 
         {field === "endTime" || field === "startTime" ? (
           <TimestampInfo
-            value={formatValue(value, field)}
+            value={value}
             className={cn("font-mono group-hover:underline decoration-dotted")}
           />
         ) : (

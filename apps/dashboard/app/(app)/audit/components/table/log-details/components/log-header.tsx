@@ -1,10 +1,10 @@
+import type { AuditData } from "@/app/(app)/audit/audit.type";
 import { Badge } from "@/components/ui/badge";
 import { XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import type { Data } from "./types";
 
 type Props = {
-  log: Data;
+  log: AuditData;
   onClose: () => void;
 };
 

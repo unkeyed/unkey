@@ -9,7 +9,14 @@ export const LogsDateTime = () => {
   const [isSelected, setIsSelected] = useState<boolean>(false);
 
   return (
-    <DatetimePopover setTitle={setTitle} setSelected={setIsSelected}>
+    <DatetimePopover
+      initialTitle={title}
+      initialSelected={isSelected}
+      onStateChange={(newTitle, newSelected) => {
+        setTitle(newTitle);
+        setIsSelected(newSelected);
+      }}
+    >
       <div className="group">
         <Button
           variant="ghost"

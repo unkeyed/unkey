@@ -1,17 +1,31 @@
 import { cn } from "@/lib/utils";
 import { CircleCarretRight } from "@unkey/icons";
-import { useCallback, useRef, useState } from "react";
-import { useScrollLock } from "usehooks-ts";
+import { Fragment, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
 import { LoadingIndicator } from "./components/loading-indicator";
-import { LoadingRow } from "./components/loading-row";
-import { TableHeader } from "./components/table-header";
-import { TableRow } from "./components/table-row";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
-import type { VirtualTableProps } from "./types";
+import type { Column, SeparatorItem, VirtualTableProps } from "./types";
+
+const calculateTableLayout = (columns: Column<any>[]) => {
+  return columns.map((column) => {
+    let width = "auto";
+    if (typeof column.width === "number") {
+      width = `${column.width}px`;
+    } else if (typeof column.width === "string") {
+      width = column.width;
+    } else if (typeof column.width === "object") {
+      if ("min" in column.width && "max" in column.width) {
+        width = `${column.width.min}px`;
+      } else if ("flex" in column.width) {
+        width = "auto";
+      }
+    }
+    return { width };
+  });
+};
 
 export function VirtualTable<TTableData>({
   data: historicData,
@@ -26,17 +40,15 @@ export function VirtualTable<TTableData>({
   rowClassName,
   selectedClassName,
   selectedItem,
-  renderDetails,
   isFetchingNextPage,
 }: VirtualTableProps<TTableData>) {
   const config = { ...DEFAULT_CONFIG, ...userConfig };
   const parentRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
   const fixedHeight = useTableHeight(containerRef, config.headerHeight, config.tableBorder);
-
   const tableData = useTableData<TTableData>(realtimeData, historicData);
+
   const virtualizer = useVirtualData({
     totalDataLength: tableData.getTotalLength(),
     isLoading,
@@ -46,136 +58,199 @@ export function VirtualTable<TTableData>({
     parentRef,
   });
 
-  useScrollLock({
-    autoLock: true,
-    lockTarget:
-      typeof window !== "undefined"
-        ? (document.querySelector("#layout-wrapper") as HTMLElement)
-        : undefined,
-  });
-
-  const handleRowClick = useCallback(
-    (item: TTableData) => {
-      if (onRowClick) {
-        onRowClick(item);
-        setTableDistanceToTop(
-          (parentRef.current?.getBoundingClientRect().top ?? 0) +
-            window.scrollY -
-            config.tableBorder,
-        );
-      }
-    },
-    [onRowClick, config.tableBorder],
-  );
+  const colWidths = useMemo(() => calculateTableLayout(columns), [columns]);
 
   if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
     return (
       <div
-        className="w-full h-full flex flex-col"
-        ref={containerRef}
+        className="w-full flex flex-col h-full"
         style={{ height: `${fixedHeight}px` }}
+        ref={containerRef}
       >
-        <TableHeader columns={columns} />
-        <EmptyState content={emptyState} />
+        <table className="w-full border-separate border-spacing-0">
+          <thead className="sticky top-0 z-10 bg-background">
+            <tr>
+              {columns.map((column) => (
+                <th
+                  key={column.key}
+                  className={cn(
+                    "text-sm font-medium text-accent-12 py-1 text-left",
+                    column.headerClassName,
+                  )}
+                >
+                  <div className="truncate text-accent-12">{column.header}</div>
+                </th>
+              ))}
+            </tr>
+            <tr>
+              <th colSpan={columns.length} className="p-0">
+                <div className="w-full border-t border-border" />
+              </th>
+            </tr>
+          </thead>
+        </table>
+        {emptyState ? (
+          <div className="flex-1 flex items-center justify-center h-full">{emptyState}</div>
+        ) : (
+          <EmptyState />
+        )}
       </div>
     );
   }
 
   return (
     <div className="w-full flex flex-col" ref={containerRef}>
-      <TableHeader columns={columns} />
       <div
         ref={parentRef}
-        data-table-container="true"
-        className="overflow-auto pb-2 px-1 scroll-smooth relative"
-        style={{
-          height: `${fixedHeight}px`,
-          display: "grid",
-          gap: "4px",
-        }}
+        className="overflow-auto relative px-2"
+        style={{ height: `${fixedHeight}px` }}
       >
-        <div
-          className={cn("transition-opacity duration-300", {
-            "opacity-40": isLoading,
-          })}
-          style={{
-            height: `${virtualizer.getTotalSize()}px`,
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            if (isLoading) {
-              return (
-                <div
-                  key={virtualRow.key}
-                  style={{
-                    position: "absolute",
-                    top: `${virtualRow.start}px`,
-                    width: "100%",
-                  }}
+        <table className="w-full border-separate  border-spacing-x-0">
+          <colgroup>
+            {colWidths.map((col, idx) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              <col key={idx} style={{ width: col.width }} />
+            ))}
+          </colgroup>
+
+          <thead className="sticky top-0 z-10 bg-background">
+            <tr>
+              {columns.map((column) => (
+                <th
+                  key={column.key}
+                  className={cn(
+                    "text-sm font-medium text-accent-12 py-1 text-left",
+                    column.headerClassName,
+                  )}
                 >
-                  <LoadingRow columns={columns} />
-                </div>
-              );
-            }
+                  <div className="truncate text-accent-12">{column.header}</div>
+                </th>
+              ))}
+            </tr>
+            <tr>
+              <th colSpan={columns.length} className="p-0">
+                <div className="w-full border-t border-border" />
+              </th>
+            </tr>
+          </thead>
 
-            const item = tableData.getItemAt(virtualRow.index);
-            if (!item) {
-              return null;
-            }
+          <tbody>
+            <tr
+              style={{
+                height: `${virtualizer.getVirtualItems()[0]?.start || 0}px`,
+              }}
+            />
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              if (isLoading) {
+                return (
+                  <tr key={virtualRow.key} style={{ height: `${config.rowHeight}px` }}>
+                    {columns.map((column) => (
+                      <td key={column.key} className="pr-4">
+                        <div className="h-4 bg-accent-3 rounded animate-pulse" />
+                      </td>
+                    ))}
+                  </tr>
+                );
+              }
+              const item = tableData.getItemAt(virtualRow.index);
+              if (!item) {
+                return null;
+              }
 
-            // Render separator
-            //@ts-expect-error This is our hacky way to separate live data from historic data. This separator acts as just another item in the data list to preserve the correct start position.
-            if ("isSeparator" in item && item.isSeparator) {
+              const separator = item as SeparatorItem;
+              if (separator.isSeparator) {
+                return (
+                  <Fragment key={`row-group-${virtualRow.key}`}>
+                    <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
+                    <tr key={`content-${virtualRow.key}`}>
+                      <td colSpan={columns.length} className="p-0">
+                        <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
+                          <CircleCarretRight className="size-3" />
+                          Live
+                        </div>
+                      </td>
+                    </tr>
+                  </Fragment>
+                );
+              }
+
+              const typedItem = item as TTableData;
+              const isSelected = selectedItem
+                ? keyExtractor(selectedItem) === keyExtractor(typedItem)
+                : false;
+
               return (
-                <div
-                  key={virtualRow.key}
-                  className="w-full mt-1"
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-                    <CircleCarretRight className="size-3" />
-                    Live
-                  </div>
-                </div>
+                <Fragment key={`row-group-${virtualRow.key}`}>
+                  <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
+                  <tr
+                    key={`content-${virtualRow.key}`}
+                    tabIndex={virtualRow.index}
+                    data-index={virtualRow.index}
+                    aria-selected={isSelected}
+                    onClick={() => onRowClick?.(typedItem)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        event.preventDefault();
+                        onRowClick?.(null);
+                        const activeElement = document.activeElement as HTMLElement;
+                        activeElement?.blur();
+                      }
+                      if (event.key === "ArrowDown" || event.key === "j") {
+                        event.preventDefault();
+                        const nextElement = document.querySelector(
+                          `[data-index="${virtualRow.index + 1}"]`,
+                        ) as HTMLElement;
+                        if (nextElement) {
+                          nextElement.focus();
+                          nextElement.click();
+                        }
+                      }
+                      if (event.key === "ArrowUp" || event.key === "k") {
+                        event.preventDefault();
+                        const prevElement = document.querySelector(
+                          `[data-index="${virtualRow.index - 1}"]`,
+                        ) as HTMLElement;
+                        if (prevElement) {
+                          prevElement.focus();
+                          prevElement.click();
+                        }
+                      }
+                    }}
+                    className={cn(
+                      "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
+                      rowClassName?.(typedItem),
+                      selectedClassName?.(typedItem, isSelected),
+                    )}
+                    style={{ height: `${config.rowHeight}px` }}
+                  >
+                    {columns.map((column, idx) => (
+                      <td
+                        key={column.key}
+                        className={cn(
+                          "text-xs align-middle whitespace-nowrap pr-4",
+                          idx === 0 ? "rounded-l-md" : "",
+                          idx === columns.length - 1 ? "rounded-r-md" : "",
+                        )}
+                      >
+                        {column.render(typedItem)}
+                      </td>
+                    ))}
+                  </tr>
+                </Fragment>
               );
-            }
-
-            // Regular row
-            const typedItem = item as TTableData;
-            const isSelected = selectedItem
-              ? keyExtractor(selectedItem) === keyExtractor(typedItem)
-              : false;
-
-            return (
-              <TableRow
-                key={virtualRow.key}
-                item={typedItem}
-                columns={columns}
-                virtualRow={virtualRow}
-                rowHeight={config.rowHeight}
-                isSelected={isSelected}
-                selectedClassName={selectedClassName}
-                rowClassName={rowClassName}
-                onClick={() => handleRowClick(typedItem)}
-                measureRef={virtualizer.measureElement}
-                onRowClick={onRowClick}
-              />
-            );
-          })}
-        </div>
-
+            })}
+            <tr
+              style={{
+                height: `${
+                  virtualizer.getTotalSize() -
+                  (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end ||
+                    0)
+                }px`,
+              }}
+            />
+          </tbody>
+        </table>
         {isFetchingNextPage && <LoadingIndicator />}
-
-        {selectedItem &&
-          renderDetails &&
-          renderDetails(selectedItem, () => onRowClick?.(null), tableDistanceToTop)}
       </div>
     </div>
   );

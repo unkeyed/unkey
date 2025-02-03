@@ -1,12 +1,10 @@
-"use client";
-
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { useKeyboardShortcut } from "@/app/(app)/logs/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/components/ui/toaster";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
-import { type PropsWithChildren, useState } from "react";
+import { type PropsWithChildren, useEffect, useState } from "react";
 import { processTimeFilters } from "../utils/process-time";
 import { DateTimeSuggestions, type OptionsType } from "./suggestions";
 
@@ -74,11 +72,10 @@ const options: OptionsType = [
   },
 ];
 
-const CUSTOM_DATE_TIME = 10;
-
 interface DatetimePopoverProps extends PropsWithChildren {
-  setTitle: (value: string) => void;
-  setSelected: (value: boolean) => void;
+  initialTitle: string;
+  initialSelected: boolean;
+  onStateChange: (title: string, selected: boolean) => void;
 }
 
 type TimeRangeType = {
@@ -86,36 +83,64 @@ type TimeRangeType = {
   endTime?: number;
 };
 
-export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePopoverProps) => {
+export const DatetimePopover = ({
+  children,
+  initialTitle,
+  initialSelected,
+  onStateChange,
+}: DatetimePopoverProps) => {
   const { filters, updateFilters } = useFilters();
+  const [title, setTitle] = useState(initialTitle);
+  const [selected, setSelected] = useState(initialSelected);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    onStateChange(title, selected);
+  }, [title, selected, onStateChange]);
 
   const sinceFilter = filters.find((f) => f.field === "since");
   const startTimeFilter = filters.find((f) => f.field === "startTime");
   const endTimeFilter = filters.find((f) => f.field === "endTime");
 
-  let initialSuggestions = [...options];
+  const [suggestions, setSuggestions] = useState<OptionsType>(() => {
+    const initialSuggestions = [...options];
 
-  if (sinceFilter) {
-    const matchingSuggestion = initialSuggestions.find((s) => s.value === sinceFilter.value);
-    if (matchingSuggestion) {
-      initialSuggestions = initialSuggestions.map((s) => ({
+    if (sinceFilter) {
+      const matchingSuggestion = options.find((s) => s.value === sinceFilter.value);
+      if (matchingSuggestion) {
+        return initialSuggestions.map((s) => ({
+          ...s,
+          checked: s.id === matchingSuggestion.id,
+        }));
+      }
+    } else if (startTimeFilter) {
+      return initialSuggestions.map((s) => ({
         ...s,
-        checked: s.id === matchingSuggestion.id,
+        checked: s.id === CUSTOM_OPTION_ID,
       }));
-      setTitle(matchingSuggestion.display);
-      setSelected(true);
     }
-  } else if (startTimeFilter) {
-    initialSuggestions = initialSuggestions.map((s) => ({
-      ...s,
-      checked: s.id === CUSTOM_DATE_TIME,
-    }));
-    setTitle("Custom");
-    setSelected(true);
-  }
 
-  const [open, setOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<OptionsType>(initialSuggestions);
+    return initialSuggestions;
+  });
+
+  useEffect(() => {
+    let newTitle = initialTitle;
+    let newSelected = initialSelected;
+
+    if (sinceFilter) {
+      const matchingSuggestion = options.find((s) => s.value === sinceFilter.value);
+      if (matchingSuggestion) {
+        newTitle = matchingSuggestion.display;
+        newSelected = true;
+      }
+    } else if (startTimeFilter) {
+      newTitle = "Custom";
+      newSelected = true;
+    }
+
+    setTitle(newTitle);
+    setSelected(newSelected);
+  }, [sinceFilter, startTimeFilter, initialTitle, initialSelected]);
   const [time, setTime] = useState<TimeRangeType>({
     startTime: startTimeFilter?.value as number | undefined,
     endTime: endTimeFilter?.value as number | undefined,
@@ -136,10 +161,10 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
     setSuggestions(tempSuggestions);
 
     const selectedSuggestion = tempSuggestions.find((s) => s.checked)?.value;
-
     if (id === CUSTOM_OPTION_ID) {
       return;
     }
+
     const activeFilters = filters.filter((f) => !["since"].includes(f.field));
     if (selectedSuggestion) {
       activeFilters.push({
@@ -149,15 +174,15 @@ export const DatetimePopover = ({ children, setTitle, setSelected }: DatetimePop
         id: crypto.randomUUID(),
       });
     }
-
     updateFilters(activeFilters);
   };
 
   const onDateTimeChange = (newRange?: Range, newStart?: TimeUnit, newEnd?: TimeUnit) => {
-    const custom = suggestions.find((suggestion) => suggestion.id === CUSTOM_DATE_TIME);
+    const custom = suggestions.find((suggestion) => suggestion.id === CUSTOM_OPTION_ID);
     if (!custom?.checked) {
-      handleSuggestionChange(CUSTOM_DATE_TIME);
+      handleSuggestionChange(CUSTOM_OPTION_ID);
     }
+
     const startTimestamp = processTimeFilters(newRange?.from, newStart)?.getTime();
     const endTimestamp = processTimeFilters(newRange?.to, newEnd)?.getTime();
     setTime({
