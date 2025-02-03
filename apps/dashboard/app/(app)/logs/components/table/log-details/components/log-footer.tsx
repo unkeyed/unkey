@@ -84,13 +84,18 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Permissions",
           description: (content) => (
-            <span className="text-xs font-mono flex gap-1">
-              {content.map((permission) => (
-                <Badge key={permission} variant="secondary">
+            <div className="flex flex-wrap gap-2 justify-end">
+              {content.map((permission, index) => (
+                <Badge
+                  variant="secondary"
+                  // biome-ignore lint/suspicious/noArrayIndexKey: its okay to use it as a key
+                  key={index}
+                  className="px-2 py-1 text-xs font-mono rounded-md"
+                >
                   {permission}
                 </Badge>
               ))}
-            </span>
+            </div>
           ),
           content: extractResponseField(log, "permissions"),
           tooltipContent: "Copy Permissions",

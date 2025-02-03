@@ -4,7 +4,7 @@ import { useKeyboardShortcut } from "@/app/(app)/logs/hooks/use-keyboard-shortcu
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { CaretRightOutline, CircleInfoSparkle, Magnifier, Refresh3 } from "@unkey/icons";
+import { CaretRightOutline, CircleInfoSparkle, Magnifier, Refresh3, XMark } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip";
 import { useRef, useState } from "react";
 
@@ -116,13 +116,20 @@ export const LogsSearch = () => {
               />
             )}
           </div>
-        </div>
+        </div>{" "}
         <TooltipProvider>
           <Tooltip delayDuration={150}>
+            {searchText.length > 0 && !isLoading && (
+              <button aria-label="Clear search" onClick={() => setSearchText("")} type="button">
+                <XMark className="size-4 text-accent-9" />
+              </button>
+            )}
             <TooltipTrigger asChild>
-              <div>
-                <CircleInfoSparkle className="size-4 text-accent-9" />
-              </div>
+              {searchText.length === 0 && !isLoading && (
+                <div>
+                  <CircleInfoSparkle className="size-4 text-accent-9" />
+                </div>
+              )}
             </TooltipTrigger>
             <TooltipContent className="p-3 bg-gray-1 dark:bg-black drop-shadow-2xl border border-gray-6 rounded-lg text-accent-12 text-xs">
               <div>

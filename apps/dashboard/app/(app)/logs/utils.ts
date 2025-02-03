@@ -16,16 +16,6 @@ export type ResponseBody = {
     | "INSUFFICIENT_PERMISSIONS";
 };
 
-class ResponseBodyParseError extends Error {
-  constructor(
-    message: string,
-    public readonly context?: unknown,
-  ) {
-    super(message);
-    this.name = "ResponseBodyParseError";
-  }
-}
-
 export const extractResponseField = <K extends keyof ResponseBody>(
   log: Log,
   fieldName: K,
@@ -38,27 +28,8 @@ export const extractResponseField = <K extends keyof ResponseBody>(
   try {
     const parsedBody = JSON.parse(log.response_body) as ResponseBody;
 
-    if (typeof parsedBody !== "object" || parsedBody === null) {
-      throw new ResponseBodyParseError("Parsed response body is not an object", parsedBody);
-    }
-
-    if (!(fieldName in parsedBody)) {
-      throw new ResponseBodyParseError(`Field "${String(fieldName)}" not found in response body`, {
-        availableFields: Object.keys(parsedBody),
-      });
-    }
-
     return parsedBody[fieldName];
-  } catch (error) {
-    if (error instanceof ResponseBodyParseError) {
-      console.error(`Error parsing response body or accessing field: ${error.message}`, {
-        context: error.context,
-        fieldName,
-        logId: log.request_id,
-      });
-    } else {
-      console.error("An unknown error occurred while parsing response body");
-    }
+  } catch {
     return null;
   }
 };
