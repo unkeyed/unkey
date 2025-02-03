@@ -53,7 +53,7 @@ func New(config Config) (Membership, error) {
 	return &membership{
 		mu:              sync.Mutex{},
 		started:         false,
-		logger:          config.Logger,
+		logger:          config.Logger.With(slog.String("pkg", "service discovery"), slog.String("type", "redis")),
 		rdb:             rdb,
 		rpcAddr:         config.RpcAddr,
 		joinEvents:      events.NewTopic[Member](),
@@ -78,6 +78,7 @@ func (m *membership) Join(ctx context.Context, addrs ...string) (int, error) {
 
 	go func() {
 		t := time.NewTicker(10 * time.Second)
+		m.logger.Info(ctx, "heartbeating")
 		defer t.Stop()
 		for range t.C {
 			m.heartbeat(ctx)

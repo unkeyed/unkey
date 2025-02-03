@@ -81,7 +81,10 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("unable to create membership")
 	}
-
+	_, err = m.Join(c.Context)
+	if err != nil {
+		return fmt.Errorf("unable to join cluster")
+	}
 	go func() {
 		joins := m.SubscribeJoinEvents()
 		leaves := m.SubscribeLeaveEvents()
