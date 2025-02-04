@@ -51,7 +51,7 @@ type ControlPillProps = {
 };
 
 const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPillProps) => {
-  const { field, operator, value } = filter;
+  const { field, operator, value, metadata } = filter;
   const pillRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,13 +70,18 @@ const ControlPill = ({ filter, onRemove, isFocused, onFocus, index }: ControlPil
 
   return (
     <div className="flex gap-0.5 font-mono group" data-pill-index={index}>
-      <div className="bg-gray-3 px-2 rounded-l-md text-accent-12 font-medium py-[2px]">
-        {formatFieldName(field)}
-      </div>
+      {formatFieldName(field) === "" ? null : (
+        <div className="bg-gray-3 px-2 rounded-l-md text-accent-12 font-medium py-[2px]">
+          {formatFieldName(field)}
+        </div>
+      )}
       <div className="bg-gray-3 px-2 text-accent-12 font-medium py-[2px] flex gap-1 items-center">
         {formatOperator(operator, field)}
       </div>
       <div className="bg-gray-3 px-2 text-accent-12 font-medium py-[2px] flex gap-1 items-center">
+        {metadata?.colorClass && (
+          <div className={cn("size-2 rounded-[2px]", metadata.colorClass)} />
+        )}
         {field === "endTime" || field === "startTime" ? (
           <TimestampInfo
             value={formatValue(value, field)}

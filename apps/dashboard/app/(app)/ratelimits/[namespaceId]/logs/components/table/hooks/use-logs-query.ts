@@ -79,7 +79,7 @@ export function useRatelimitLogsQuery({
           }
           params.status?.filters.push({
             operator: "is",
-            value: filter.value as "rejected" | "succeeded",
+            value: filter.value as "blocked" | "passed",
           });
           break;
         }

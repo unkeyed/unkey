@@ -133,6 +133,12 @@ export const filterFieldConfig: FilterFieldConfigs = {
   status: {
     type: "string",
     operators: ["is"],
-    validValues: ["rejected", "succeeded"],
-  },
-} as const;
+    validValues: ["blocked", "passed"],
+    getColorClass: (value) => {
+      if (value === "blocked") {
+        return "bg-warning-9";
+      }
+      return "bg-success-9";
+    },
+  } as const,
+};

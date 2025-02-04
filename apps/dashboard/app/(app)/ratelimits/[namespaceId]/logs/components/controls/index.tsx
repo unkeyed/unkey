@@ -1,4 +1,4 @@
-import { Calendar } from "@unkey/icons";
+import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";
 import { LogsRefresh } from "./components/logs-refresh";
@@ -15,9 +15,8 @@ export function RatelimitLogsControls() {
           <div className="flex gap-2 items-center">
             <LogsFilters />
           </div>
-          <div className="flex gap-2 items-center px-2">
-            <Calendar className="text-accent-9 size-4" />
-            <span className="text-accent-12 font-medium text-[13px]">Last 12 hours</span>
+          <div className="flex gap-2 items-center">
+            <LogsDateTime />
           </div>
         </div>
 

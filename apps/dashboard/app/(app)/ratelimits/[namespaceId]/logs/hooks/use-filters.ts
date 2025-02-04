@@ -1,5 +1,6 @@
 import { type Parser, parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
+import { filterFieldConfig } from "../filters.schema";
 import type {
   FilterField,
   FilterOperator,
@@ -95,12 +96,15 @@ export const useFilters = () => {
       });
     });
 
-    searchParams.status?.forEach((pathFilter) => {
+    searchParams.status?.forEach((statusFilter) => {
       activeFilters.push({
         id: crypto.randomUUID(),
         field: "status",
-        operator: pathFilter.operator,
-        value: pathFilter.value,
+        operator: statusFilter.operator,
+        value: statusFilter.value,
+        metadata: {
+          colorClass: filterFieldConfig.status.getColorClass?.(statusFilter.value as string),
+        },
       });
     });
 

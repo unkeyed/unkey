@@ -20,6 +20,7 @@ export interface StringConfig extends BaseFieldConfig<string> {
   type: "string";
   validValues?: readonly string[];
   validate?: (value: string) => boolean;
+  getColorClass?: (value: string) => string;
 }
 
 export type FilterFieldConfigs = {
@@ -47,4 +48,8 @@ export type FilterValue = {
   field: FilterField;
   operator: FilterOperator;
   value: string | number;
+  metadata?: {
+    colorClass?: string;
+    icon?: React.ReactNode;
+  };
 };
