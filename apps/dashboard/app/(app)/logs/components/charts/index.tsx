@@ -125,7 +125,7 @@ export function LogsChart({
 
   return (
     <div className="w-full relative" ref={chartRef}>
-      <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
+      <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between pointer-events-none">
         {timeseries
           ? calculateTimePoints(
               timeseries[0]?.originalTimestamp ?? Date.now(),
