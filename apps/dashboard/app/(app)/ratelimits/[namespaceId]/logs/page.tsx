@@ -43,7 +43,7 @@ const LogsContainerPage = ({
         <Navbar.Breadcrumbs icon={<Gauge />}>
           <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={`/ratelimits/${namespaceId}`} isIdentifier>
-            {namespaceName}
+            {namespaceName.length > 0 ? namespaceName : "<Empty>"}
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={`/ratelimits/${namespaceId}/logs`} active>
             Logs
@@ -60,9 +60,7 @@ const LogsContainerPage = ({
           </Badge>
         </Navbar.Actions>
       </Navbar>
-      <div className="pl-1">
-        <SubMenu navigation={navigation(namespaceId)} segment="logs" />
-      </div>
+      <SubMenu navigation={navigation(namespaceId)} segment="logs" />
       <LogsClient namespaceId={namespaceId} />
     </div>
   );

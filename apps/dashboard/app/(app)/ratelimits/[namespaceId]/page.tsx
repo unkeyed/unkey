@@ -144,7 +144,7 @@ export default async function RatelimitNamespacePage(props: {
             isIdentifier
             active
           >
-            {namespace.name}
+            {namespace.name.length > 0 ? namespace.name : "<Empty>"}
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
