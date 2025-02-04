@@ -129,7 +129,6 @@ export function throttle<T extends (...args: any[]) => any>(
   return throttled;
 }
 
-
 export const getTimestampFromRelative = (relativeTime: string): number => {
   let totalMilliseconds = 0;
 

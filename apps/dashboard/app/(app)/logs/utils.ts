@@ -1,5 +1,5 @@
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
+import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 
 export type ResponseBody = {
   keyId: string;

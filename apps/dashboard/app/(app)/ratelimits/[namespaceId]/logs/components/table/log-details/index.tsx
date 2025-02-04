@@ -1,5 +1,6 @@
 "use client";
 
+import { extractResponseField, safeParseJson } from "@/app/(app)/logs/utils";
 import { useMemo } from "react";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../../../constants";
 import { useRatelimitLogsContext } from "../../../context/logs";
@@ -8,7 +9,6 @@ import { LogHeader } from "./components/log-header";
 import { LogMetaSection } from "./components/log-meta";
 import { LogSection } from "./components/log-section";
 import ResizablePanel from "./resizable-panel";
-import { safeParseJson, extractResponseField } from "@/app/(app)/logs/utils";
 
 const PANEL_MAX_WIDTH = 600;
 const PANEL_MIN_WIDTH = 400;
