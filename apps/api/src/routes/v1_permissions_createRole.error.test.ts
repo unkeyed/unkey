@@ -72,4 +72,11 @@ test("creating the same role twice errors", async (t) => {
     errorResponse.status,
     `expected 409, received: ${JSON.stringify(errorResponse, null, 2)}`,
   ).toBe(409);
+  expect(errorResponse.body).toMatchObject({
+    error: {
+      code: "CONFLICT",
+      docs: "https://unkey.dev/docs/api-reference/errors/code/CONFLICT",
+      message: `Role with name "${createRoleRequest.body.name}" already exists in this workspace`,
+    },
+  });
 });

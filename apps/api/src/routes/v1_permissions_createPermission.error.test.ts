@@ -75,4 +75,11 @@ test("creating the same permission twice returns conflict", async (t) => {
     errorResponse.status,
     `expected 409, received: ${JSON.stringify(errorResponse, null, 2)}`,
   ).toBe(409);
+  expect(errorResponse.body).toMatchObject({
+    error: {
+      code: "CONFLICT",
+      docs: "https://unkey.dev/docs/api-reference/errors/code/CONFLICT",
+      message: `Permission with name "${createPermissionRequest.body.name}" already exists in this workspace`,
+    },
+  });
 });
