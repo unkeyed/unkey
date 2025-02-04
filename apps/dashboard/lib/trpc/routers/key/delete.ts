@@ -43,56 +43,54 @@ export const deleteKeys = t.procedure
 
     await db
       .transaction(async (tx) => {
-        await Promise.all([
-          // Update keys
-          tx
-            .update(schema.keys)
-            .set({ deletedAt: new Date() })
-            .where(
-              and(eq(schema.keys.workspaceId, workspace.id), inArray(schema.keys.id, input.keyIds)),
-            ),
+        // Update keys
+        await tx
+          .update(schema.keys)
+          .set({ deletedAt: new Date() })
+          .where(
+            and(eq(schema.keys.workspaceId, workspace.id), inArray(schema.keys.id, input.keyIds)),
+          );
 
-          // Delete key roles
-          tx
-            .delete(schema.keysRoles)
-            .where(
-              and(
-                eq(schema.keysRoles.workspaceId, workspace.id),
-                inArray(schema.keysRoles.keyId, input.keyIds),
-              ),
+        // Delete key roles
+        await tx
+          .delete(schema.keysRoles)
+          .where(
+            and(
+              eq(schema.keysRoles.workspaceId, workspace.id),
+              inArray(schema.keysRoles.keyId, input.keyIds),
             ),
+          );
 
-          // Delete key permissions
-          tx
-            .delete(schema.keysPermissions)
-            .where(
-              and(
-                eq(schema.keysPermissions.workspaceId, workspace.id),
-                inArray(schema.keysPermissions.keyId, input.keyIds),
-              ),
+        // Delete key permissions
+        await tx
+          .delete(schema.keysPermissions)
+          .where(
+            and(
+              eq(schema.keysPermissions.workspaceId, workspace.id),
+              inArray(schema.keysPermissions.keyId, input.keyIds),
             ),
+          );
 
-          // Insert audit logs
-          insertAuditLogs(
-            tx,
-            workspace.keys.map((key) => ({
-              workspaceId: workspace.id,
-              actor: { type: "user", id: ctx.user.id },
-              event: "key.delete",
-              description: `Deleted ${key.id}`,
-              resources: [
-                {
-                  type: "key",
-                  id: key.id,
-                },
-              ],
-              context: {
-                location: ctx.audit.location,
-                userAgent: ctx.audit.userAgent,
+        // Insert audit logs
+        await insertAuditLogs(
+          tx,
+          workspace.keys.map((key) => ({
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "key.delete",
+            description: `Deleted ${key.id}`,
+            resources: [
+              {
+                type: "key",
+                id: key.id,
               },
-            })),
-          ),
-        ]);
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          })),
+        );
       })
       .catch((err) => {
         console.error(err);
