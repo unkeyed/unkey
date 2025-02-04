@@ -57,14 +57,6 @@ export function LogsChart({
     onMount(distanceToTop);
   }, [onMount, isLoading, isError]);
 
-  if (isError) {
-    return <LogsChartError />;
-  }
-
-  if (isLoading) {
-    return <LogsChartLoading />;
-  }
-
   const handleMouseDown = (e: any) => {
     const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
     setSelection({
