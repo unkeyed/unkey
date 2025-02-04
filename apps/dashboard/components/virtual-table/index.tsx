@@ -46,7 +46,11 @@ export function VirtualTable<TTableData>({
   const parentRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const fixedHeight = useTableHeight(containerRef, config.headerHeight, config.tableBorder);
+  const fixedHeight = useTableHeight(
+    containerRef,
+    config.headerHeight,
+    config.tableBorder
+  );
   const tableData = useTableData<TTableData>(realtimeData, historicData);
 
   const virtualizer = useVirtualData({
@@ -75,7 +79,7 @@ export function VirtualTable<TTableData>({
                   key={column.key}
                   className={cn(
                     "text-sm font-medium text-accent-12 py-1 text-left",
-                    column.headerClassName,
+                    column.headerClassName
                   )}
                 >
                   <div className="truncate text-accent-12">{column.header}</div>
@@ -84,13 +88,15 @@ export function VirtualTable<TTableData>({
             </tr>
             <tr>
               <th colSpan={columns.length} className="p-0">
-                <div className="w-full border-t border-border" />
+                <div className="w-full border-t border-gray-4" />
               </th>
             </tr>
           </thead>
         </table>
         {emptyState ? (
-          <div className="flex-1 flex items-center justify-center h-full">{emptyState}</div>
+          <div className="flex-1 flex items-center justify-center h-full">
+            {emptyState}
+          </div>
         ) : (
           <EmptyState />
         )}
@@ -105,7 +111,7 @@ export function VirtualTable<TTableData>({
         className="overflow-auto relative px-2"
         style={{ height: `${fixedHeight}px` }}
       >
-        <table className="w-full border-separate  border-spacing-x-0">
+        <table className="w-full border-separate border-spacing-x-0">
           <colgroup>
             {colWidths.map((col, idx) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
@@ -120,7 +126,7 @@ export function VirtualTable<TTableData>({
                   key={column.key}
                   className={cn(
                     "text-sm font-medium text-accent-12 py-1 text-left",
-                    column.headerClassName,
+                    column.headerClassName
                   )}
                 >
                   <div className="truncate text-accent-12">{column.header}</div>
@@ -129,7 +135,7 @@ export function VirtualTable<TTableData>({
             </tr>
             <tr>
               <th colSpan={columns.length} className="p-0">
-                <div className="w-full border-t border-border" />
+                <div className="w-full border-t border-gray-4" />
               </th>
             </tr>
           </thead>
@@ -143,7 +149,10 @@ export function VirtualTable<TTableData>({
             {virtualizer.getVirtualItems().map((virtualRow) => {
               if (isLoading) {
                 return (
-                  <tr key={virtualRow.key} style={{ height: `${config.rowHeight}px` }}>
+                  <tr
+                    key={virtualRow.key}
+                    style={{ height: `${config.rowHeight}px` }}
+                  >
                     {columns.map((column) => (
                       <td key={column.key} className="pr-4">
                         <div className="h-4 bg-accent-3 rounded animate-pulse" />
@@ -161,7 +170,10 @@ export function VirtualTable<TTableData>({
               if (separator.isSeparator) {
                 return (
                   <Fragment key={`row-group-${virtualRow.key}`}>
-                    <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
+                    <tr
+                      key={`spacer-${virtualRow.key}`}
+                      style={{ height: "4px" }}
+                    />
                     <tr key={`content-${virtualRow.key}`}>
                       <td colSpan={columns.length} className="p-0">
                         <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
@@ -181,7 +193,10 @@ export function VirtualTable<TTableData>({
 
               return (
                 <Fragment key={`row-group-${virtualRow.key}`}>
-                  <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
+                  <tr
+                    key={`spacer-${virtualRow.key}`}
+                    style={{ height: "4px" }}
+                  />
                   <tr
                     key={`content-${virtualRow.key}`}
                     tabIndex={virtualRow.index}
@@ -192,13 +207,14 @@ export function VirtualTable<TTableData>({
                       if (event.key === "Escape") {
                         event.preventDefault();
                         onRowClick?.(null);
-                        const activeElement = document.activeElement as HTMLElement;
+                        const activeElement =
+                          document.activeElement as HTMLElement;
                         activeElement?.blur();
                       }
                       if (event.key === "ArrowDown" || event.key === "j") {
                         event.preventDefault();
                         const nextElement = document.querySelector(
-                          `[data-index="${virtualRow.index + 1}"]`,
+                          `[data-index="${virtualRow.index + 1}"]`
                         ) as HTMLElement;
                         if (nextElement) {
                           nextElement.focus();
@@ -208,7 +224,7 @@ export function VirtualTable<TTableData>({
                       if (event.key === "ArrowUp" || event.key === "k") {
                         event.preventDefault();
                         const prevElement = document.querySelector(
-                          `[data-index="${virtualRow.index - 1}"]`,
+                          `[data-index="${virtualRow.index - 1}"]`
                         ) as HTMLElement;
                         if (prevElement) {
                           prevElement.focus();
@@ -219,7 +235,7 @@ export function VirtualTable<TTableData>({
                     className={cn(
                       "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
                       rowClassName?.(typedItem),
-                      selectedClassName?.(typedItem, isSelected),
+                      selectedClassName?.(typedItem, isSelected)
                     )}
                     style={{ height: `${config.rowHeight}px` }}
                   >
@@ -229,7 +245,7 @@ export function VirtualTable<TTableData>({
                         className={cn(
                           "text-xs align-middle whitespace-nowrap pr-4",
                           idx === 0 ? "rounded-l-md" : "",
-                          idx === columns.length - 1 ? "rounded-r-md" : "",
+                          idx === columns.length - 1 ? "rounded-r-md" : ""
                         )}
                       >
                         {column.render(typedItem)}
@@ -243,8 +259,9 @@ export function VirtualTable<TTableData>({
               style={{
                 height: `${
                   virtualizer.getTotalSize() -
-                  (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end ||
-                    0)
+                  (virtualizer.getVirtualItems()[
+                    virtualizer.getVirtualItems().length - 1
+                  ]?.end || 0)
                 }px`,
               }}
             />
