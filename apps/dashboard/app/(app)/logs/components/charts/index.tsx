@@ -81,10 +81,11 @@ export function LogsChart({
       setSelection((prev) => ({
         ...prev,
         end: e.activeLabel,
-        endTimestamp: timestamp,
+        startTimestamp: timestamp,
       }));
     }
   };
+
   const handleMouseUp = () => {
     if (selection.start && selection.end) {
       const activeFilters = filters.filter(
@@ -95,17 +96,20 @@ export function LogsChart({
         return;
       }
 
+      // Ensure startTime is smaller than endTime
+      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
+
       updateFilters([
         ...activeFilters,
         {
           field: "startTime",
-          value: convertSelectedDateToUTC(selection.endTimestamp),
+          value: convertSelectedDateToUTC(start),
           id: crypto.randomUUID(),
           operator: "is",
         },
         {
           field: "endTime",
-          value: convertSelectedDateToUTC(selection.startTimestamp),
+          value: convertSelectedDateToUTC(end),
           id: crypto.randomUUID(),
           operator: "is",
         },
