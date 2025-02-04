@@ -192,7 +192,7 @@ export const ratelimitLogsParams = z.object({
   status: z
     .array(
       z.object({
-        value: z.enum(["rejected", "succeeded"]),
+        value: z.enum(["blocked", "passed"]),
         operator: z.literal("is"),
       }),
     )
@@ -230,7 +230,7 @@ export function getRatelimitLogs(ch: Querier) {
       args.status
         ?.map((filter) => {
           if (filter.operator === "is") {
-            return `passed = ${filter.value === "succeeded" ? "true" : "false"}`;
+            return `passed = ${filter.value === "passed" ? "true" : "false"}`;
           }
           return null;
         })

@@ -32,7 +32,7 @@ export const ratelimitQueryLogsPayload = z.object({
       filters: z.array(
         z.object({
           operator: z.literal("is"),
-          value: z.enum(["rejected", "succeeded"]),
+          value: z.enum(["blocked", "passed"]),
         }),
       ),
     })

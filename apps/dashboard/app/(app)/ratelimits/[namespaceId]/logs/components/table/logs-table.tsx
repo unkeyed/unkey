@@ -1,5 +1,6 @@
 "use client";
 
+import { safeParseJson } from "@/app/(app)/logs/utils";
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
@@ -36,21 +37,21 @@ const STATUS_STYLES = {
     },
     focusRing: "focus:ring-accent-7",
   },
-  error: {
-    base: "text-error-11 bg-error-2",
-    hover: "hover:bg-error-3",
-    selected: "bg-error-3",
+  warning: {
+    base: "text-warning-11 bg-warning-2",
+    hover: "hover:bg-warning-3",
+    selected: "bg-warning-3",
     badge: {
-      default: "bg-error-4 text-error-11 group-hover:bg-error-5",
-      selected: "bg-error-5 text-error-11 hover:bg-error-5",
+      default: "bg-warning-4 text-warning-11 group-hover:bg-warning-5",
+      selected: "bg-warning-5 text-warning-11 hover:bg-warning-5",
     },
-    focusRing: "focus:ring-error-7",
+    focusRing: "focus:ring-warning-7",
   },
 };
 
 const getStatusStyle = (rejected: number): StatusStyle => {
   if (rejected === DEFAULT_STATUS_FLAG) {
-    return STATUS_STYLES.error;
+    return STATUS_STYLES.warning;
   }
   return STATUS_STYLES.success;
 };
@@ -94,13 +95,14 @@ export const RatelimitLogsTable = () => {
       },
     );
   };
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: it's okay
   const columns: Column<RatelimitLog>[] = useMemo(
     () => [
       {
         key: "time",
         header: "Time",
-        headerClassName: "pl-3",
+        headerClassName: "pl-2",
         width: "10%",
         render: (log) => (
           <div className="flex items-center gap-3 pl-2 truncate mr-3">
@@ -118,26 +120,60 @@ export const RatelimitLogsTable = () => {
         key: "identifier",
         header: "Identifier",
         width: "15%",
-        headerClassName: "pl-1",
         render: (log) => <div className="font-mono truncate mr-1">{log.identifier}</div>,
       },
       {
         key: "rejected",
         header: "Status",
         width: "10%",
-        headerClassName: "pl-1",
         render: (log) => {
           const style = getStatusStyle(log.status);
           const isSelected = selectedLog?.request_id === log.request_id;
           return (
             <Badge
               className={cn(
-                "uppercase px-[6px] rounded-md font-mono",
+                "uppercase px-[6px] rounded-md font-mono min-w-[70px] inline-block text-center",
                 isSelected ? style.badge.selected : style.badge.default,
               )}
             >
-              {log.status === 0 ? "Rejected" : "Succeeded"}
+              {log.status === 0 ? "Blocked" : "Passed"}
             </Badge>
+          );
+        },
+      },
+      {
+        key: "limit",
+        header: "Limit",
+        width: "auto",
+        render: (log) => {
+          return <div className="font-mono">{safeParseJson(log.response_body).limit}</div>;
+        },
+      },
+      {
+        key: "duration",
+        header: "Duration",
+        width: "auto",
+        render: (log) => {
+          return (
+            <div className="font-mono">{msToSeconds(safeParseJson(log.request_body).duration)}</div>
+          );
+        },
+      },
+      {
+        key: "reset",
+        header: "Resets At",
+        width: "auto",
+        render: (log) => {
+          return (
+            <div className="font-mono">
+              <TimestampInfo
+                value={safeParseJson(log.response_body).reset}
+                className={cn(
+                  "font-mono group-hover:underline decoration-dotted",
+                  selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
+                )}
+              />
+            </div>
           );
         },
       },
@@ -150,8 +186,12 @@ export const RatelimitLogsTable = () => {
       {
         key: "actions",
         header: "",
-        width: "12.5%",
-        render: (log) => <LogsTableAction identifier={log.identifier} />,
+        width: "auto",
+        render: (log) => (
+          <div className="text-end">
+            <LogsTableAction identifier={log.identifier} />
+          </div>
+        ),
       },
     ],
     [selectedLog?.request_id],
@@ -198,3 +238,8 @@ export const RatelimitLogsTable = () => {
     />
   );
 };
+
+function msToSeconds(ms: number) {
+  const seconds = Math.round(ms / 1000);
+  return `${seconds}s`;
+}

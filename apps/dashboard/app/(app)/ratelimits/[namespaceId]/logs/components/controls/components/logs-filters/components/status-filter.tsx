@@ -2,7 +2,7 @@ import { FilterCheckbox } from "./filter-checkbox";
 
 type StatusOption = {
   id: number;
-  status: "succeeded" | "rejected";
+  status: "passed" | "blocked";
   label: string;
   color: string;
   checked: boolean;
@@ -11,16 +11,16 @@ type StatusOption = {
 const options: StatusOption[] = [
   {
     id: 1,
-    status: "succeeded",
-    label: "Succeeded",
+    status: "passed",
+    label: "Passed",
     color: "bg-success-9",
     checked: false,
   },
   {
     id: 2,
-    status: "rejected",
-    label: "Rejected",
-    color: "bg-error-9",
+    status: "blocked",
+    label: "Blocked",
+    color: "bg-warning-9",
     checked: false,
   },
 ];

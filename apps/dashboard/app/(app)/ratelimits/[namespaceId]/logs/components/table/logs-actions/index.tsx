@@ -7,7 +7,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
   return (
     <TableActionPopover identifier={identifier}>
       <Button className={cn("group-data-[state=open]:bg-gray-4 px-2")} size="icon">
-        <Dots />
+        <Dots className="text-accent-9" />
       </Button>
     </TableActionPopover>
   );

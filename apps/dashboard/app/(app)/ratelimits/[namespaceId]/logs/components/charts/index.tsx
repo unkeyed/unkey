@@ -17,14 +17,14 @@ import { formatTimestampLabel, formatTimestampTooltip } from "./utils/format-tim
 
 const chartConfig = {
   success: {
-    label: "Success",
-    subLabel: "Succeeded",
+    label: "Passed",
+    subLabel: "Passed",
     color: "hsl(var(--accent-4))",
   },
   error: {
-    label: "Error",
-    subLabel: "Rejected",
-    color: "hsl(var(--error-9))",
+    label: "Blocked",
+    subLabel: "Blocked",
+    color: "hsl(var(--warning-9))",
   },
 } satisfies ChartConfig;
 
