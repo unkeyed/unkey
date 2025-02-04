@@ -45,33 +45,34 @@ test("creating the same permission twice returns conflict", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["rbac.*.create_permission"]);
 
-  const name = randomUUID();
-  // The First request should succeed
-  // The Second request should fail
-  const expectedStatuses: Record<number, number> = {
-    0: 200,
-    1: 409,
+  const createPermissionRequest = {
+    url: "/v1/permissions.createPermission",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      name: randomUUID(),
+    },
   };
 
-  for (let i = 0; i < 2; i++) {
-    const res = await h.post<
-      V1PermissionsCreatePermissionRequest,
-      V1PermissionsCreatePermissionResponse
-    >({
-      url: "/v1/permissions.createPermission",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${root.key}`,
-      },
-      body: {
-        name,
-      },
-    });
+  const successResponse = await h.post<
+    V1PermissionsCreatePermissionRequest,
+    V1PermissionsCreatePermissionResponse
+  >(createPermissionRequest);
 
-    const expectedStatus = expectedStatuses[i];
-    expect(
-      res.status,
-      `expected ${expectedStatus}, received: ${JSON.stringify(res, null, 2)}`,
-    ).toBe(expectedStatus);
-  }
+  expect(
+    successResponse.status,
+    `expected 200, received: ${JSON.stringify(successResponse, null, 2)}`,
+  ).toBe(200);
+
+  const errorResponse = await h.post<
+    V1PermissionsCreatePermissionRequest,
+    V1PermissionsCreatePermissionResponse
+  >(createPermissionRequest);
+
+  expect(
+    errorResponse.status,
+    `expected 409, received: ${JSON.stringify(errorResponse, null, 2)}`,
+  ).toBe(409);
 });

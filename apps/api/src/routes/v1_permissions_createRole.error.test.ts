@@ -42,31 +42,34 @@ test("creating the same role twice errors", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["rbac.*.create_role"]);
 
-  const name = randomUUID();
-
-  // The First request should succeed
-  // The Second request should fail
-  const expectedStatuses: Record<number, number> = {
-    0: 200,
-    1: 409,
+  const createRoleRequest = {
+    url: "/v1/permissions.createRole",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      name: randomUUID(),
+    },
   };
 
-  for (let i = 0; i < 2; i++) {
-    const res = await h.post<V1PermissionsCreateRoleRequest, V1PermissionsCreateRoleResponse>({
-      url: "/v1/permissions.createRole",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${root.key}`,
-      },
-      body: {
-        name,
-      },
-    });
+  const successResponse = await h.post<
+    V1PermissionsCreateRoleRequest,
+    V1PermissionsCreateRoleResponse
+  >(createRoleRequest);
 
-    const expectedStatus = expectedStatuses[i];
-    expect(
-      res.status,
-      `expected ${expectedStatus}, received: ${JSON.stringify(res, null, 2)}`,
-    ).toBe(expectedStatus);
-  }
+  expect(
+    successResponse.status,
+    `expected 200, received: ${JSON.stringify(successResponse, null, 2)}`,
+  ).toBe(200);
+
+  const errorResponse = await h.post<
+    V1PermissionsCreateRoleRequest,
+    V1PermissionsCreateRoleResponse
+  >(createRoleRequest);
+
+  expect(
+    errorResponse.status,
+    `expected 409, received: ${JSON.stringify(errorResponse, null, 2)}`,
+  ).toBe(409);
 });
