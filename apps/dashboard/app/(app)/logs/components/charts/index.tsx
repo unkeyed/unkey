@@ -13,7 +13,7 @@ import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 import { useFetchTimeseries } from "./hooks/use-fetch-timeseries";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
-import { convertSelectedDateToUTC } from "./utils/convert-date-to-utc";
+import { convertDateToLocal } from "./utils/convert-date-to-local";
 import { formatTimestampLabel, formatTimestampTooltip } from "./utils/format-timestamp";
 
 const chartConfig = {
@@ -103,13 +103,13 @@ export function LogsChart({
         ...activeFilters,
         {
           field: "startTime",
-          value: convertSelectedDateToUTC(start),
+          value: convertDateToLocal(start),
           id: crypto.randomUUID(),
           operator: "is",
         },
         {
           field: "endTime",
-          value: convertSelectedDateToUTC(end),
+          value: convertDateToLocal(end),
           id: crypto.randomUUID(),
           operator: "is",
         },
