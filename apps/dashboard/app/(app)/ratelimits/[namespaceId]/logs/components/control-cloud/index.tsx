@@ -21,6 +21,8 @@ const formatFieldName = (field: string): string => {
       return "Request ID";
     case "identifiers":
       return "Identifier";
+    case "since":
+      return "";
     default:
       return field.charAt(0).toUpperCase() + field.slice(1);
   }
@@ -34,11 +36,8 @@ const formatValue = (value: string | number, field: string): string => {
 };
 
 const formatOperator = (operator: string, field: string): string => {
-  // Special case for time-based fields
-  if (field === "since") {
-    if (operator === "is") {
-      return "past";
-    }
+  if (field === "since" && operator === "is") {
+    return "Last";
   }
   return operator;
 };
