@@ -1,4 +1,5 @@
 import type { Log } from "@unkey/clickhouse/src/logs";
+import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 
 export type ResponseBody = {
   keyId: string;
@@ -17,7 +18,7 @@ export type ResponseBody = {
 };
 
 export const extractResponseField = <K extends keyof ResponseBody>(
-  log: Log,
+  log: Log | RatelimitLog,
   fieldName: K,
 ): ResponseBody[K] | null => {
   if (!log?.response_body) {
@@ -34,7 +35,7 @@ export const extractResponseField = <K extends keyof ResponseBody>(
   }
 };
 
-export const getRequestHeader = (log: Log, headerName: string): string | null => {
+export const getRequestHeader = (log: Log | RatelimitLog, headerName: string): string | null => {
   if (!headerName.trim()) {
     console.error("Invalid header name provided");
     return null;
