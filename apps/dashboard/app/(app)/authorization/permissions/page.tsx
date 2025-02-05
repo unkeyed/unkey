@@ -43,6 +43,13 @@ export default async function RolesPage() {
                     columns: {
                       keyId: true,
                     },
+                    with: {
+                      key: {
+                        columns: {
+                          deletedAt: true,
+                        },
+                      },
+                    },
                   },
                 },
               },
@@ -61,6 +68,10 @@ export default async function RolesPage() {
    */
   workspace.permissions = workspace.permissions.map((permission) => {
     permission.keys = permission.keys.filter(({ key }) => key.deletedAt === null);
+
+    for (const role of permission.roles) {
+      role.role.keys = role.role.keys.filter(({ key }) => key.deletedAt === null);
+    }
     return permission;
   });
 

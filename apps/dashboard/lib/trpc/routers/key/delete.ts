@@ -51,26 +51,6 @@ export const deleteKeys = t.procedure
             and(eq(schema.keys.workspaceId, workspace.id), inArray(schema.keys.id, input.keyIds)),
           );
 
-        // Delete key roles
-        await tx
-          .delete(schema.keysRoles)
-          .where(
-            and(
-              eq(schema.keysRoles.workspaceId, workspace.id),
-              inArray(schema.keysRoles.keyId, input.keyIds),
-            ),
-          );
-
-        // Delete key permissions
-        await tx
-          .delete(schema.keysPermissions)
-          .where(
-            and(
-              eq(schema.keysPermissions.workspaceId, workspace.id),
-              inArray(schema.keysPermissions.keyId, input.keyIds),
-            ),
-          );
-
         // Insert audit logs
         await insertAuditLogs(
           tx,
