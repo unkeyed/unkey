@@ -6,12 +6,14 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Grid } from "@unkey/icons";
-import { useEffect, useRef } from "react";
-import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
+import { useEffect, useRef, useState } from "react";
+import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
+import { useFilters } from "../../hooks/use-filters";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 import { useFetchTimeseries } from "./hooks/use-fetch-timeseries";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
+import { convertDateToLocal } from "./utils/convert-date-to-local";
 import { formatTimestampLabel, formatTimestampTooltip } from "./utils/format-timestamp";
 
 const chartConfig = {
@@ -32,12 +34,21 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+type Selection = {
+  start: string | number;
+  end: string | number;
+  startTimestamp?: number;
+  endTimestamp?: number;
+};
+
 export function LogsChart({
   onMount,
 }: {
   onMount: (distanceToTop: number) => void;
 }) {
+  const { filters, updateFilters } = useFilters();
   const chartRef = useRef<HTMLDivElement>(null);
+  const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
 
   const { timeseries, isLoading, isError } = useFetchTimeseries();
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
@@ -45,6 +56,64 @@ export function LogsChart({
     const distanceToTop = chartRef.current?.getBoundingClientRect().top ?? 0;
     onMount(distanceToTop);
   }, [onMount, isLoading, isError]);
+
+  const handleMouseDown = (e: any) => {
+    const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+    setSelection({
+      start: e.activeLabel,
+      end: e.activeLabel,
+      startTimestamp: timestamp,
+      endTimestamp: timestamp,
+    });
+  };
+
+  const handleMouseMove = (e: any) => {
+    if (selection.start) {
+      const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+      setSelection((prev) => ({
+        ...prev,
+        end: e.activeLabel,
+        startTimestamp: timestamp,
+      }));
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (selection.start && selection.end) {
+      const activeFilters = filters.filter(
+        (f) => !["startTime", "endTime", "since"].includes(f.field),
+      );
+
+      if (!selection.startTimestamp || !selection.endTimestamp) {
+        return;
+      }
+
+      // Ensure startTime is smaller than endTime
+      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
+
+      updateFilters([
+        ...activeFilters,
+        {
+          field: "startTime",
+          value: convertDateToLocal(start),
+          id: crypto.randomUUID(),
+          operator: "is",
+        },
+        {
+          field: "endTime",
+          value: convertDateToLocal(end),
+          id: crypto.randomUUID(),
+          operator: "is",
+        },
+      ]);
+    }
+    setSelection({
+      start: "",
+      end: "",
+      startTimestamp: undefined,
+      endTimestamp: undefined,
+    });
+  };
 
   if (isError) {
     return <LogsChartError />;
@@ -56,10 +125,10 @@ export function LogsChart({
 
   return (
     <div className="w-full relative" ref={chartRef}>
-      <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
+      <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between pointer-events-none">
         {timeseries
           ? calculateTimePoints(
-              timeseries[0].originalTimestamp ?? Date.now(),
+              timeseries[0]?.originalTimestamp ?? Date.now(),
               timeseries.at(-1)?.originalTimestamp ?? Date.now(),
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: use of index is acceptable here.
@@ -76,6 +145,10 @@ export function LogsChart({
             barGap={2}
             barSize={8}
             margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
           >
             <YAxis domain={[0, (dataMax: number) => dataMax * 1.5]} hide />
             <ChartTooltip
@@ -138,6 +211,15 @@ export function LogsChart({
             {["success", "warning", "error"].map((key) => (
               <Bar key={key} dataKey={key} stackId="a" fill={`var(--color-${key})`} />
             ))}
+            {selection.start && selection.end && (
+              <ReferenceArea
+                isAnimationActive
+                x1={Math.min(Number(selection.start), Number(selection.end))}
+                x2={Math.max(Number(selection.start), Number(selection.end))}
+                fill="hsl(var(--chart-selection))"
+                radius={[4, 4, 0, 0]}
+              />
+            )}
           </BarChart>
         </ChartContainer>
       </ResponsiveContainer>
