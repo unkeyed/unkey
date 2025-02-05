@@ -83,10 +83,12 @@ export class ClickHouse {
       insert: insertRatelimit(this.inserter),
       logs: getRatelimitLogs(this.querier),
       latest: getRatelimitLastUsed(this.querier),
-      perMinute: getRatelimitsPerMinute(this.querier),
-      perHour: getRatelimitsPerHour(this.querier),
-      perDay: getRatelimitsPerDay(this.querier),
-      perMonth: getRatelimitsPerMonth(this.querier),
+      timeseries: {
+        perMinute: getRatelimitsPerMinute(this.querier),
+        perHour: getRatelimitsPerHour(this.querier),
+        perDay: getRatelimitsPerDay(this.querier),
+        perMonth: getRatelimitsPerMonth(this.querier),
+      },
     };
   }
   public get billing() {

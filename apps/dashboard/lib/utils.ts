@@ -1,3 +1,4 @@
+import type { TimeUnit } from "@unkey/ui";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -128,3 +129,43 @@ export function throttle<T extends (...args: any[]) => any>(
 
   return throttled;
 }
+
+export const getTimestampFromRelative = (relativeTime: string): number => {
+  if (!relativeTime.match(/^(\d+[hdm])+$/)) {
+    throw new Error(
+      'Invalid relative time format. Expected format: combination of numbers followed by h, d, or m (e.g., "1h", "2d", "30m", "1h30m")',
+    );
+  }
+
+  let totalMilliseconds = 0;
+
+  for (const [, amount, unit] of relativeTime.matchAll(/(\d+)([hdm])/g)) {
+    const value = Number.parseInt(amount, 10);
+
+    switch (unit) {
+      case "h":
+        totalMilliseconds += value * 60 * 60 * 1000;
+        break;
+      case "d":
+        totalMilliseconds += value * 24 * 60 * 60 * 1000;
+        break;
+      case "m":
+        totalMilliseconds += value * 60 * 1000;
+        break;
+    }
+  }
+
+  return Date.now() - totalMilliseconds;
+};
+
+export const processTimeFilters = (date?: Date, newTime?: TimeUnit) => {
+  if (date) {
+    const hours = newTime?.HH ? Number.parseInt(newTime.HH) : 0;
+    const minutes = newTime?.mm ? Number.parseInt(newTime.mm) : 0;
+    const seconds = newTime?.ss ? Number.parseInt(newTime.ss) : 0;
+    date.setHours(hours, minutes, seconds, 0);
+    return date;
+  }
+  const now = new Date();
+  return now;
+};
