@@ -44,25 +44,34 @@ export type GetLogsClickhousePayload = z.infer<typeof getLogsClickhousePayload>;
 
 export function getLogs(ch: Querier) {
   return async (args: GetLogsClickhousePayload) => {
-    // Generate dynamic path conditions
+    const paramSchemaExtension: Record<string, z.ZodString> = {};
+    const parameters: Record<string, any> = { ...args };
+
+    // Generate dynamic path conditions with parameterization
     const pathConditions =
       args.paths
-        ?.map((p) => {
+        ?.map((p, index) => {
+          const paramName = `pathValue_${index}`;
+          paramSchemaExtension[paramName] = z.string();
+          parameters[paramName] = p.value;
+
           switch (p.operator) {
             case "is":
-              return `path = '${p.value}'`;
+              return `path = {${paramName}: String}`;
             case "startsWith":
-              return `startsWith(path, '${p.value}')`;
+              return `startsWith(path, {${paramName}: String})`;
             case "endsWith":
-              return `endsWith(path, '${p.value}')`;
+              return `endsWith(path, {${paramName}: String})`;
             case "contains":
-              return `like(path, '%${p.value}%')`;
+              return `like(path, CONCAT('%', {${paramName}: String}, '%'))`;
             default:
               return null;
           }
         })
         .filter(Boolean)
         .join(" OR ") || "TRUE";
+
+    const extendedParamsSchema = getLogsClickhousePayload.extend(paramSchemaExtension);
 
     const query = ch.query({
       query: `
@@ -155,11 +164,11 @@ export function getLogs(ch: Querier) {
         FROM filtered_requests
         ORDER BY time DESC, request_id DESC
         LIMIT {limit: Int}`,
-      params: getLogsClickhousePayload,
+      params: extendedParamsSchema,
       schema: log,
     });
 
-    return query(args);
+    return query(parameters);
   };
 }
 
@@ -240,7 +249,7 @@ WITH FILL
 function getLogsTimeseriesWhereClause(
   params: LogsTimeseriesParams,
   additionalConditions: string[] = [],
-): string {
+): { whereClause: string; paramSchema: z.ZodType<any> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
     // Host filter
@@ -277,41 +286,62 @@ function getLogsTimeseriesWhereClause(
     ...additionalConditions,
   ];
 
-  // Path filter with operators
+  const paramSchemaExtension: Record<string, z.ZodString> = {};
+
+  // Path filter with parameterized operators
   if (params.paths?.length) {
     const pathConditions = params.paths
-      .map((p) => {
+      .map((p, index) => {
+        const paramName = `pathValue_${index}`;
+        paramSchemaExtension[paramName] = z.string();
+
         switch (p.operator) {
           case "is":
-            return `path = '${p.value}'`;
+            return `path = {${paramName}: String}`;
           case "startsWith":
-            return `startsWith(path, '${p.value}')`;
+            return `startsWith(path, {${paramName}: String})`;
           case "endsWith":
-            return `endsWith(path, '${p.value}')`;
+            return `endsWith(path, {${paramName}: String})`;
           case "contains":
-            return `like(path, '%${p.value}%')`;
+            return `like(path, CONCAT('%', {${paramName}: String}, '%'))`;
         }
       })
       .join(" OR ");
     conditions.push(`(${pathConditions})`);
   }
 
-  return conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  return {
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    paramSchema: logsTimeseriesParams.extend(paramSchemaExtension),
+  };
 }
 
 function createTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: LogsTimeseriesParams) => {
-    const whereClause = getLogsTimeseriesWhereClause(args, [
+    const { whereClause, paramSchema } = getLogsTimeseriesWhereClause(args, [
       "time >= fromUnixTimestamp64Milli({startTime: Int64})",
       "time <= fromUnixTimestamp64Milli({endTime: Int64})",
     ]);
+
+    const parameters = {
+      ...args,
+      ...(args.paths?.reduce(
+        (acc, p, index) => ({
+          // biome-ignore lint/performance/noAccumulatingSpread: it's okay to spread
+          ...acc,
+          [`pathValue_${index}`]: p.value,
+        }),
+        {},
+      ) ?? {}),
+    };
+
     const query = createTimeseriesQuery(interval, whereClause);
 
     return ch.query({
       query,
-      params: logsTimeseriesParams,
+      params: paramSchema,
       schema: logsTimeseriesDataPoint,
-    })(args);
+    })(parameters);
   };
 }
 
