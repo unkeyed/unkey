@@ -5,7 +5,7 @@ import { AuthErrorCode, PENDING_SESSION_COOKIE, SIGN_IN_URL } from '@/lib/auth/t
 
 export async function GET(request: NextRequest) {
     const authResult = await auth.completeOAuthSignIn(request);
-
+    
     if (!authResult.success) {
         if (authResult.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED && authResult.cookies?.[0]) {
             const url = new URL(SIGN_IN_URL, request.url);
