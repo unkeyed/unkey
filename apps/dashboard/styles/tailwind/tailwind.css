@@ -2,7 +2,7 @@
 
 @layer base {
   :root {
-    --chart-selection: #f0ebff;
+    --chart-selection: var(--accent-6);
 
     --white: 0 0% 100%;
     --black: 0 0% 0%;
@@ -37,7 +37,7 @@
   }
 
   .dark {
-    --chart-selection: #1b1525;
+    --chart-selection: var(--accent-9);
 
     --white: 0 0% 100%;
     --black: 0 0% 0%;

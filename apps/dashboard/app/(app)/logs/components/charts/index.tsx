@@ -216,7 +216,7 @@ export function LogsChart({
                 isAnimationActive
                 x1={Math.min(Number(selection.start), Number(selection.end))}
                 x2={Math.max(Number(selection.start), Number(selection.end))}
-                fill="var(--chart-selection)"
+                fill="hsl(var(--chart-selection))"
                 radius={[4, 4, 0, 0]}
               />
             )}
