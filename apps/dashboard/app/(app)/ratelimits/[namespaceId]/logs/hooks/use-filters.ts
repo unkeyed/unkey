@@ -43,7 +43,7 @@ export const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
       // Format: operator:value,operator:value (e.g., "is:200,is:404")
       return str.split(",").map((item) => {
         const [operator, val] = item.split(/:(.+)/);
-        if (!["is", "contains", "startsWith", "endsWith"].includes(operator)) {
+        if (!["is", "contains"].includes(operator)) {
           throw new Error("Invalid operator");
         }
         return {

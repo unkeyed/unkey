@@ -93,44 +93,62 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
 function getRatelimitLogsTimeseriesWhereClause(
   params: RatelimitLogsTimeseriesParams,
   additionalConditions: string[] = [],
-): string {
+): { whereClause: string; paramSchema: z.ZodType<any> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
     "namespace_id = {namespaceId: String}",
     ...additionalConditions,
   ];
 
-  // Identifier filter with operators
+  const paramSchemaExtension: Record<string, z.ZodString> = {};
+
   if (params.identifiers?.length) {
     const identifierConditions = params.identifiers
-      .map((i) => {
+      .map((i, index) => {
+        const paramName = `identifierValue_${index}`;
+        paramSchemaExtension[paramName] = z.string();
+
         switch (i.operator) {
           case "is":
-            return `identifier = '${i.value}'`;
+            return `identifier = {${paramName}: String}`;
           case "contains":
-            return `like(identifier, '%${i.value}%')`;
+            return `like(identifier, CONCAT('%', {${paramName}: String}, '%'))`;
         }
       })
       .join(" OR ");
     conditions.push(`(${identifierConditions})`);
   }
 
-  return conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  return {
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    paramSchema: ratelimitLogsTimeseriesParams.extend(paramSchemaExtension),
+  };
 }
 
 function createTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: RatelimitLogsTimeseriesParams) => {
-    const whereClause = getRatelimitLogsTimeseriesWhereClause(args, [
+    const { whereClause, paramSchema } = getRatelimitLogsTimeseriesWhereClause(args, [
       "time >= fromUnixTimestamp64Milli({startTime: Int64})",
       "time <= fromUnixTimestamp64Milli({endTime: Int64})",
     ]);
-    const query = createTimeseriesQuery(interval, whereClause);
+
+    const parameters = {
+      ...args,
+      ...(args.identifiers?.reduce(
+        (acc, i, index) => ({
+          // biome-ignore lint/performance/noAccumulatingSpread: it's okay here
+          ...acc,
+          [`identifierValue_${index}`]: i.value,
+        }),
+        {},
+      ) ?? {}),
+    };
 
     return ch.query({
-      query,
-      params: ratelimitLogsTimeseriesParams,
+      query: createTimeseriesQuery(interval, whereClause),
+      params: paramSchema,
       schema: ratelimitLogsTimeseriesDataPoint,
-    })(args);
+    })(parameters);
   };
 }
 
@@ -173,7 +191,6 @@ export function getRatelimitLastUsed(ch: Querier) {
   };
 }
 
-// ------------------------------------------  LOGS-V2
 export const ratelimitLogsParams = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
@@ -224,13 +241,23 @@ export const ratelimitLogs = z.object({
 export type RatelimitLog = z.infer<typeof ratelimitLogs>;
 export type RatelimitLogsParams = z.infer<typeof ratelimitLogsParams>;
 
+interface ExtendedParams extends RatelimitLogsParams {
+  [key: string]: unknown;
+}
+
 export function getRatelimitLogs(ch: Querier) {
   return async (args: RatelimitLogsParams) => {
+    const paramSchemaExtension: Record<string, z.ZodType> = {};
+    const parameters: ExtendedParams = { ...args };
+
     const statusCondition =
       args.status
-        ?.map((filter) => {
+        ?.map((filter, index) => {
           if (filter.operator === "is") {
-            return `passed = ${filter.value === "passed" ? "true" : "false"}`;
+            const paramName = `statusValue_${index}`;
+            paramSchemaExtension[paramName] = z.boolean();
+            parameters[paramName] = filter.value === "passed";
+            return `passed = {${paramName}: Boolean}`;
           }
           return null;
         })
@@ -239,18 +266,24 @@ export function getRatelimitLogs(ch: Querier) {
 
     const identifierConditions =
       args.identifiers
-        ?.map((p) => {
+        ?.map((p, index) => {
+          const paramName = `identifierValue_${index}`;
+          paramSchemaExtension[paramName] = z.string();
+          parameters[paramName] = p.value;
+
           switch (p.operator) {
             case "is":
-              return `identifier = '${p.value}'`;
+              return `identifier = {${paramName}: String}`;
             case "contains":
-              return `position(identifier, '${p.value}') > 0`;
+              return `like(identifier, CONCAT('%', {${paramName}: String}, '%'))`;
             default:
               return null;
           }
         })
         .filter(Boolean)
         .join(" OR ") || "TRUE";
+
+    const extendedParamsSchema = ratelimitLogsParams.extend(paramSchemaExtension);
 
     const query = ch.query({
       query: `
@@ -331,9 +364,9 @@ export function getRatelimitLogs(ch: Querier) {
         FROM filtered_requests
         ORDER BY time DESC, request_id DESC
         LIMIT {limit: Int}`,
-      params: ratelimitLogsParams,
+      params: extendedParamsSchema,
       schema: ratelimitLogs,
     });
-    return query(args);
+    return query(parameters);
   };
 }

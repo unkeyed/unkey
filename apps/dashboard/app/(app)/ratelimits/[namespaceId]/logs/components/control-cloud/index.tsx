@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { FilterValue } from "../../filters.type";
 import { useFilters } from "../../hooks/use-filters";
+import { HISTORICAL_DATA_WINDOW } from "../table/hooks/use-logs-query";
 
 const formatFieldName = (field: string): string => {
   switch (field) {
@@ -124,7 +125,7 @@ export const RatelimitLogsControlCloud = () => {
       },
       {
         field: "startTime",
-        value: timestamp - 24 * 60 * 60 * 1000,
+        value: timestamp - HISTORICAL_DATA_WINDOW,
         id: crypto.randomUUID(),
         operator: "is",
       },
