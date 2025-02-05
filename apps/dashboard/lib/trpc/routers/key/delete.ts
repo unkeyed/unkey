@@ -48,7 +48,13 @@ export const deleteKeys = t.procedure
           .update(schema.keys)
           .set({ deletedAt: new Date() })
           .where(
-            and(eq(schema.keys.workspaceId, workspace.id), inArray(schema.keys.id, input.keyIds)),
+            and(
+              eq(schema.keys.workspaceId, workspace.id),
+              inArray(
+                schema.keys.id,
+                workspace.keys.map((k) => k.id),
+              ),
+            ),
           );
 
         // Insert audit logs
