@@ -9,7 +9,13 @@ import { useCheckboxState } from "./hooks/use-checkbox-state";
 
 export const IdentifiersFilter = () => {
   const { namespaceId } = useRatelimitLogsContext();
-  const { data: identifiers, isLoading } = trpc.ratelimit.logs.queryDistinctIdentifiers.useQuery(
+  const {
+    data: identifiers,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+  } = trpc.ratelimit.logs.queryDistinctIdentifiers.useQuery(
     { namespaceId },
     {
       select(identifiers) {
@@ -79,13 +85,32 @@ export const IdentifiersFilter = () => {
     updateFilters([...otherFilters, ...identifiersFilters]);
   }, [checkboxes, filters, updateFilters]);
 
+  if (isError) {
+    return (
+      <div className="flex flex-col bg-white rounded-lg shadow-sm min-w-[320px]">
+        <div className="p-4 flex flex-col items-center gap-4">
+          <div className="text-sm text-accent-12 max-h-64 overflow-auto text-center font-medium">
+            Could not load identifiers
+          </div>
+        </div>
+        <div className="border-t border-gray-4" />
+        <div className="p-2">
+          <Button
+            variant="primary"
+            className="font-sans w-full h-9 rounded-md"
+            onClick={() => refetch()}
+            loading={isFetching}
+          >
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
-      <div
-        className="flex flex-col items-center justify-center p-4"
-        role="status"
-        aria-live="polite"
-      >
+      <div className="flex flex-col items-center justify-center p-4">
         <div className="flex items-center gap-3">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent-11 border-t-transparent" />
           <span className="text-sm text-accent-11">Loading paths...</span>

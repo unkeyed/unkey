@@ -131,6 +131,12 @@ export function throttle<T extends (...args: any[]) => any>(
 }
 
 export const getTimestampFromRelative = (relativeTime: string): number => {
+  if (!relativeTime.match(/^(\d+[hdm])+$/)) {
+    throw new Error(
+      'Invalid relative time format. Expected format: combination of numbers followed by h, d, or m (e.g., "1h", "2d", "30m", "1h30m")',
+    );
+  }
+
   let totalMilliseconds = 0;
 
   for (const [, amount, unit] of relativeTime.matchAll(/(\d+)([hdm])/g)) {

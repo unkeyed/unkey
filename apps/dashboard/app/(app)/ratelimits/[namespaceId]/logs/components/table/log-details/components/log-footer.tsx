@@ -73,7 +73,7 @@ export const LogFooter = ({ log }: Props) => {
                   "uppercase",
                 )}
               >
-                {content}
+                {contentCopy}
               </Badge>
             );
           },

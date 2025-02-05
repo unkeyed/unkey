@@ -7,11 +7,14 @@ import { useState } from "react";
 import { useRatelimitLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
 
+const REFRESH_TIMEOUT_MS = 1000;
+
 export const LogsRefresh = () => {
   const { isLive, toggleLive } = useRatelimitLogsContext();
   const { filters } = useFilters();
-  const { logs } = trpc.useUtils();
+  const { ratelimit } = trpc.useUtils();
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const hasRelativeFilter = filters.find((f) => f.field === "since");
   useKeyboardShortcut("r", () => {
@@ -19,18 +22,26 @@ export const LogsRefresh = () => {
   });
 
   const handleSwitch = () => {
+    if (isLoading) {
+      return;
+    }
+
     const isLiveBefore = Boolean(isLive);
     setIsLoading(true);
     toggleLive(false);
-    logs.queryLogs.invalidate();
-    logs.queryTimeseries.invalidate();
+    ratelimit.logs.query.invalidate();
+    ratelimit.logs.queryRatelimitTimeseries.invalidate();
 
-    setTimeout(() => {
+    if (refreshTimeout) {
+      clearTimeout(refreshTimeout);
+    }
+    const timeout = setTimeout(() => {
       setIsLoading(false);
       if (isLiveBefore) {
         toggleLive(true);
       }
-    }, 1000);
+    }, REFRESH_TIMEOUT_MS);
+    setRefreshTimeout(timeout);
   };
 
   return (
