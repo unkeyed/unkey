@@ -8,6 +8,7 @@ export interface CookieOptions {
   httpOnly?: boolean;
   sameSite?: 'lax' | 'strict' | 'none';
   path?: string;
+  maxAge?: number;
 }
 
 export interface Cookie {

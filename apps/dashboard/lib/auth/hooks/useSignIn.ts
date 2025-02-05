@@ -1,8 +1,9 @@
 import { useContext, useEffect, useState } from "react";
 import { SignInContext } from "../context/signin-context";
-import { AuthErrorCode, AuthErrorResponse, errorMessages, Organization, PendingOrgSelectionResponse, SIGN_IN_URL, VerificationResult } from "../types";
-import { signInViaEmail, verifyAuthCode, resendAuthCode, checkPendingAuth } from '../actions';
+import { AuthErrorCode, AuthErrorResponse, errorMessages, Organization, PENDING_SESSION_COOKIE, PendingOrgSelectionResponse, SIGN_IN_URL, VerificationResult } from "../types";
+import { signInViaEmail, verifyAuthCode, resendAuthCode } from '../actions';
 import { useSearchParams } from "next/navigation";
+import { getCookie } from "../cookies";
 
 function isAuthErrorResponse(
   result: VerificationResult
@@ -29,7 +30,6 @@ export function useSignIn() {
   const [orgs, setOrgs] = useState<Organization[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [hasPendingAuth, setHasPendingAuth] = useState(false);
 
   const {
     setError,
@@ -47,13 +47,17 @@ export function useSignIn() {
         // Parse the organizations from the URL
         const organizations = JSON.parse(decodeURIComponent(orgsParam));
         setOrgs(organizations);
-        setHasPendingAuth(true);
       } catch (err) {
         setError('Failed to load organizations');
       }
     }
     setLoading(false);
   }, [searchParams]);
+
+  const hasPendingAuth = async () => {
+    const hasTempSession = await getCookie(PENDING_SESSION_COOKIE); 
+    return orgs.length && hasTempSession;
+  }
 
   const handleSignInViaEmail = async (email: string) => {
     try {
