@@ -171,11 +171,6 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
 }
 
 // Organization Selection
-export async function checkPendingAuth(): Promise<boolean> {
-  const tempSession = cookies().get(PENDING_SESSION_COOKIE);
-  return tempSession !== undefined;
-}
-
 export async function completeOrgSelection(orgId: string): Promise<NavigationResponse | AuthErrorResponse> {
   const tempSession = cookies().get(PENDING_SESSION_COOKIE);
   if (!tempSession) throw new Error('No pending session');

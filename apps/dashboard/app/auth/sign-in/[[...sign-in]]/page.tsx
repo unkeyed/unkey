@@ -9,28 +9,29 @@ import { EmailSignIn } from "../email-signin";
 import { OAuthSignIn } from "../oauth-signin";
 import { SignInProvider } from "@/lib/auth/context/signin-context";
 import { useSignIn } from "@/lib/auth/hooks";
+import { OrgSelector } from "../org-selector";
+import { Dialog, DialogContent, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 
-function SignInContent() {
-  const { isVerifying, accountNotFound, error, email } = useSignIn();
-
-  // if (isPendingOrgSelection && user && organizations) {
-  //   return (
-  //     <FadeIn>
-  //       <div className="flex flex-col gap-6">
-  //         <div className="flex flex-col">
-  //           <h1 className="text-4xl text-white">Select Organization</h1>
-  //           <p className="mt-4 text-sm text-md text-white/50">
-  //             Choose which organization you want to sign into
-  //           </p>
-  //         </div>
-  //         <OrgSelector user={user} organizations={organizations} />
-  //       </div>
-  //     </FadeIn>
-  //   );
-  // }
+async function SignInContent() {
+  const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs } = useSignIn();
+  const showOrgSelection = await hasPendingAuth();
 
   return (
     <div className="flex flex-col gap-10">
+
+      {showOrgSelection && orgs &&
+          <Dialog defaultOpen>
+             <DialogContent className="border-border w-11/12 max-sm:">
+             <DialogHeader>
+              <DialogDescription>
+                Select a workspace to continue authentication:
+              </DialogDescription>
+             </DialogHeader>
+                <OrgSelector organizations={orgs} />
+             </DialogContent>
+            </Dialog>
+      }
+
       {accountNotFound && (
         <WarnBanner>
           <div className="flex items-center justify-between w-full gap-2">
