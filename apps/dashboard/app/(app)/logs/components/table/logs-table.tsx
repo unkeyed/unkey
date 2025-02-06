@@ -113,7 +113,9 @@ const additionalColumns: Column<Log>[] = [
     .join(" "),
   width: "1fr",
   render: (log: Log) => (
-    <div className="font-mono whitespace-nowrap truncate">{log[key as keyof Log]}</div>
+    <div className="font-mono whitespace-nowrap truncate max-w-[500px]">
+      {log[key as keyof Log]}
+    </div>
   ),
 }));
 

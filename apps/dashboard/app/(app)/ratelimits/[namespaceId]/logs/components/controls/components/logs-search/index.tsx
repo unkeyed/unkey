@@ -138,7 +138,7 @@ export const LogsSearch = () => {
                       className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
                       onClick={() => handlePresetQuery("Show rejected requests from today")}
                     >
-                      "Show rejected requests from today"
+                      "Show blocked requests from today"
                     </button>
                   </li>
                   <li className="flex items-center gap-2">
