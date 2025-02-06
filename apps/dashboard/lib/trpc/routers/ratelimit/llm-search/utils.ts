@@ -41,11 +41,11 @@ export async function getStructuredSearchFromLLM(
         code: "UNPROCESSABLE_CONTENT",
         message:
           "Try using phrases like:\n" +
-          "• 'show rejected requests'\n" +
+          "• 'show blocked requests'\n" +
           "• 'find requests from last 30 minutes'\n" +
           "• 'show requests containing test'\n" +
           "• 'find request req_abc123'\n" +
-          "• 'show succeeded requests since 1h'\n" +
+          "• 'show passed requests since 1h'\n" +
           "For additional help, contact support@unkey.dev",
       });
     }
@@ -81,14 +81,14 @@ export const getSystemPrompt = (usersReferenceMS: number) => {
       const operators = config.operators.join(", ");
       let constraints = "";
       if (field === "status") {
-        constraints = ` and must be one of: "rejected", "succeeded"`;
+        constraints = ` and must be one of: "blocked", "passed"`;
       }
       return `- ${field} accepts ${operators} operator${
         config.operators.length > 1 ? "s" : ""
       }${constraints}`;
     })
     .join("\n");
-  return `You are an expert at converting natural language queries into filters, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For status, use "rejected" or "succeeded". Use ${usersReferenceMS} timestamp for time-related queries.
+  return `You are an expert at converting natural language queries into filters, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For status, use "blocked" or "passed". Use ${usersReferenceMS} timestamp for time-related queries.
 
 Examples:
 
@@ -123,21 +123,21 @@ Result: [
 ]
 
 # Status Examples
-Query: "show rejected requests"
+Query: "show blocked requests"
 Result: [
   {
     field: "status",
-    filters: [{ operator: "is", value: "rejected" }]
+    filters: [{ operator: "is", value: "blocked" }]
   }
 ]
 
-Query: "find all succeeded and rejected requests"
+Query: "find all passed and blocked requests"
 Result: [
   {
     field: "status",
     filters: [
-      { operator: "is", value: "succeeded" },
-      { operator: "is", value: "rejected" }
+      { operator: "is", value: "passed" },
+      { operator: "is", value: "blocked" }
     ]
   }
 ]
@@ -169,11 +169,11 @@ Result: [
 ]
 
 # Complex Combinations
-Query: "show rejected requests from last 2h with identifier containing test"
+Query: "show blocked requests from last 2h with identifier containing test"
 Result: [
   {
     field: "status",
-    filters: [{ operator: "is", value: "rejected" }]
+    filters: [{ operator: "is", value: "blocked" }]
   },
   {
     field: "since",
@@ -194,18 +194,18 @@ ${operatorsByField}
   • Nx[m] for minutes (e.g., 30m, 45m)
   • Nx[h] for hours (e.g., 1h, 24h)
   • Nx[d] for days (e.g., 1d, 7d)
+  • Nx[d] for weeks (e.g., 1w, 2w)
   Multiple units can be combined (e.g., "1d 6h")
 
 Special handling rules:
 1. For multiple time ranges, use the longest duration
-2. Status must be exactly "rejected" or "succeeded"
+2. Status must be exactly "blocked" or "passed"
 3. Identifiers support both exact matches and contains operations
 4. Request IDs must be exact matches
 
 Error Handling Rules:
-1. Invalid time formats: Convert to nearest supported range (e.g., "1w" → "7d")
-2. Invalid status values: Default to "rejected" for negative terms (failed, error), "succeeded" for positive terms
-3. For ambiguous identifiers, prefer "contains" over exact match
+1. Invalid status values: Default to "blocked" for negative terms (failed, error), "passed" for positive terms
+2. For ambiguous identifiers, prefer "contains" over exact match
 
 Ambiguity Resolution Priority:
 1. Explicit over implicit (e.g., exact identifier over partial match)
@@ -216,7 +216,7 @@ Output Validation:
 1. Required fields must be present: field, filters
 2. Filters must have: operator, value
 3. Values must match field constraints:
-   - status: must be "rejected" or "succeeded"
+   - status: must be "blocked" or "passed"
    - time: must be valid timestamp or duration
    - identifiers and requestIds: must be strings
 
@@ -229,7 +229,7 @@ Result: [
     field: "since",
     filters: [{ 
       operator: "is", 
-      value: "7d"  // Converts unsupported "week" to "7d"
+      value: "1w"  
     }]
   }
 ]
@@ -240,7 +240,7 @@ Result: [
     field: "status",
     filters: [{ 
       operator: "is", 
-      value: "rejected"  // Maps "failed" to rejected status
+      value: "blocked"  // Maps "failed" to blocked status
     }]
   }
 ]`;
