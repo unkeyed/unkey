@@ -120,7 +120,7 @@ export const RatelimitLogsTable = () => {
         key: "identifier",
         header: "Identifier",
         width: "15%",
-        render: (log) => <div className="font-mono truncate mr-1">{log.identifier}</div>,
+        render: (log) => <div className="font-mono truncate mr-1 max-w-40">{log.identifier}</div>,
       },
       {
         key: "rejected",
