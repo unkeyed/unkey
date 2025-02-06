@@ -8,6 +8,8 @@ import { CUSTOM_OPTION_ID, OPTIONS } from "./constants";
 import { DateTimeSuggestions } from "./suggestions";
 import type { OptionsType } from "./types";
 
+const CUSTOM_PLACEHOLDER = "Custom";
+
 interface DatetimePopoverProps extends PropsWithChildren {
   initialTitle: string;
   initialTimeValues: { startTime?: number; endTime?: number; since?: string };
@@ -32,6 +34,11 @@ export const DatetimePopover = ({
 
   const { startTime, since, endTime } = initialTimeValues;
   const [time, setTime] = useState<TimeRangeType>({ startTime, endTime });
+  const [lastAppliedTime, setLastAppliedTime] = useState<{
+    startTime?: number;
+    endTime?: number;
+  }>({ startTime, endTime });
+
   const [suggestions, setSuggestions] = useState<OptionsType>(() => {
     const matchingSuggestion = since
       ? OPTIONS.find((s) => s.value === since)
@@ -47,9 +54,9 @@ export const DatetimePopover = ({
 
   useEffect(() => {
     const newTitle = since
-      ? OPTIONS.find((s) => s.value === since)?.display ?? initialTitle
+      ? OPTIONS.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER
       : startTime
-        ? "Custom"
+        ? CUSTOM_PLACEHOLDER
         : initialTitle;
 
     onSuggestionChange(newTitle);
@@ -84,8 +91,17 @@ export const DatetimePopover = ({
     });
   };
 
+  const isTimeChanged =
+    time.startTime !== lastAppliedTime.startTime || time.endTime !== lastAppliedTime.endTime;
+
   const handleApplyFilter = () => {
-    onDateTimeChange(time.startTime, time.endTime, undefined);
+    if (!isTimeChanged) {
+      setOpen(false);
+      return;
+    }
+
+    onDateTimeChange(time.startTime, time.endTime);
+    setLastAppliedTime({ startTime: time.startTime, endTime: time.endTime });
     setOpen(false);
   };
 
@@ -120,6 +136,7 @@ export const DatetimePopover = ({
               variant="primary"
               className="font-sans w-full h-9 rounded-md"
               onClick={handleApplyFilter}
+              disabled={!isTimeChanged}
             >
               Apply Filter
             </Button>
