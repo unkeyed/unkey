@@ -33,7 +33,7 @@ type Props = {
 
 export const UpdateWorkspaceName: React.FC<Props> = async ({ workspace }) => {
   const router = useRouter();
-  const { fetchUser: refetchUser }  = useUser();
+  // const { fetchUser: refetchUser }  = useUser();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -45,9 +45,9 @@ export const UpdateWorkspaceName: React.FC<Props> = async ({ workspace }) => {
     },
   });
   const updateName = trpc.workspace.updateName.useMutation({
-    async onSuccess() {
+    onSuccess() {
       toast.success("Workspace name updated");
-      await refetchUser()
+      //await refetchUser()
       router.refresh();
     },
     onError(err) {
@@ -55,8 +55,8 @@ export const UpdateWorkspaceName: React.FC<Props> = async ({ workspace }) => {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    await updateName.mutateAsync(values);
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    updateName.mutateAsync(values);
   }
   const isDisabled = form.formState.isLoading || !form.formState.isValid || updateName.isLoading;
   return (
