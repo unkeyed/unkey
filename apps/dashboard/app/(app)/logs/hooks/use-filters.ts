@@ -1,3 +1,4 @@
+import { getTimestampFromRelative } from "@/lib/utils";
 import { type Parser, parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import { filterFieldConfig } from "../filters.schema";
@@ -18,11 +19,8 @@ export const parseAsRelativeTime: Parser<string | null> = {
     }
 
     try {
-      // Validate the format matches one or more of: number + (h|d|m)
-      const isValid = /^(\d+[hdm])+$/.test(str);
-      if (!isValid) {
-        return null;
-      }
+      // If that function doesn't throw it means we are safe
+      getTimestampFromRelative(str);
       return str;
     } catch {
       return null;

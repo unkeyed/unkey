@@ -84,7 +84,7 @@ export function VirtualTable<TTableData>({
             </tr>
             <tr>
               <th colSpan={columns.length} className="p-0">
-                <div className="w-full border-t border-border" />
+                <div className="w-full border-t border-gray-4" />
               </th>
             </tr>
           </thead>
@@ -105,7 +105,7 @@ export function VirtualTable<TTableData>({
         className="overflow-auto relative px-2"
         style={{ height: `${fixedHeight}px` }}
       >
-        <table className="w-full border-separate  border-spacing-x-0">
+        <table className="w-full border-separate border-spacing-x-0">
           <colgroup>
             {colWidths.map((col, idx) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
@@ -129,7 +129,7 @@ export function VirtualTable<TTableData>({
             </tr>
             <tr>
               <th colSpan={columns.length} className="p-0">
-                <div className="w-full border-t border-border" />
+                <div className="w-full border-t border-gray-4" />
               </th>
             </tr>
           </thead>
