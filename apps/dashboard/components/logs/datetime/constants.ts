@@ -81,18 +81,12 @@ export const OPTIONS: OptionsType = [
   },
   {
     id: 14,
-    value: "3w",
-    display: "Last 3 weeks",
-    checked: false,
-  },
-  {
-    id: 15,
     value: "4w",
     display: "Last 4 weeks",
     checked: false,
   },
   {
-    id: 16,
+    id: 15,
     value: undefined,
     display: "Custom",
     checked: false,
