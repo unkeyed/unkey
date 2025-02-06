@@ -28,7 +28,7 @@ export function useSignIn() {
 
   const searchParams = useSearchParams();
   const [orgs, setOrgs] = useState<Organization[]>([]);
-
+  const [hasPendingAuth, setHasPendingAuth] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
 
   const {
@@ -39,25 +39,33 @@ export function useSignIn() {
   } = context;
 
   useEffect(() => {
-    // Try to get organizations from URL parameters
-    const orgsParam = searchParams?.get('orgs');
-    
-    if (orgsParam) {
+    const checkAuthStatus = async () => {
       try {
-        // Parse the organizations from the URL
-        const organizations = JSON.parse(decodeURIComponent(orgsParam));
-        setOrgs(organizations);
-      } catch (err) {
-        setError('Failed to load organizations');
-      }
-    }
-    setLoading(false);
-  }, [searchParams]);
+        // Try to get organizations from URL parameters
+        const orgsParam = searchParams?.get('orgs');
+        let parsedOrgs: Organization[] = [];
+        
+        if (orgsParam) {
+          try {
+            parsedOrgs = JSON.parse(decodeURIComponent(orgsParam));
+            setOrgs(parsedOrgs);
+          } catch (err) {
+            setError('Failed to load organizations');
+          }
+        }
 
-  const hasPendingAuth = async () => {
-    const hasTempSession = await getCookie(PENDING_SESSION_COOKIE); 
-    return orgs.length && hasTempSession;
-  }
+        // Check for pending session cookie
+        const hasTempSession = await getCookie(PENDING_SESSION_COOKIE);
+        setHasPendingAuth(Boolean(parsedOrgs.length && hasTempSession));
+      } catch (err) {
+        console.error('Error checking auth status:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, [searchParams, setError]);
 
   const handleSignInViaEmail = async (email: string) => {
     try {
