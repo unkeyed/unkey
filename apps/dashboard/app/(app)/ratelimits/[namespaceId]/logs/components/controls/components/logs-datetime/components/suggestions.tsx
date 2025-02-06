@@ -1,5 +1,4 @@
 "use client";
-
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import type { KeyboardEvent, PropsWithChildren } from "react";
@@ -18,59 +17,55 @@ export const DateTimeSuggestions = ({ className, options, onChange }: Suggestion
   );
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // Add effect to update focus when checked item changes
   useEffect(() => {
     const newCheckedIndex = options.findIndex((option) => option.checked);
     if (newCheckedIndex !== -1) {
       setFocusedIndex(newCheckedIndex);
-      // Optional: also update focus on the DOM element
       itemRefs.current[newCheckedIndex]?.focus();
     }
   }, [options]);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent, index: number) => {
     switch (e.key) {
       case "ArrowDown":
-      case "j":
+      case "j": {
         e.preventDefault();
-        setFocusedIndex((prev) => {
-          const newIndex = (prev + 1) % options.length;
-          itemRefs.current[newIndex]?.focus();
-          return newIndex;
-        });
+        const nextIndex = (index + 1) % options.length;
+        itemRefs.current[nextIndex]?.focus();
+        setFocusedIndex(nextIndex);
         break;
+      }
       case "ArrowUp":
-      case "k":
+      case "k": {
         e.preventDefault();
-        setFocusedIndex((prev) => {
-          const newIndex = (prev - 1 + options.length) % options.length;
-          itemRefs.current[newIndex]?.focus();
-          return newIndex;
-        });
+        const prevIndex = (index - 1 + options.length) % options.length;
+        itemRefs.current[prevIndex]?.focus();
+        setFocusedIndex(prevIndex);
         break;
+      }
       case "Enter":
       case " ":
         e.preventDefault();
-        onChange(options[focusedIndex].id);
+        onChange(options[index].id);
         break;
     }
   };
 
   return (
     <div
+      role="radiogroup"
       className={cn("flex flex-col justify-center gap-1.5", className)}
-      onKeyDown={handleKeyDown}
-      role="listbox"
       aria-label="Time range options"
     >
       {options.map(({ id, display, checked }, index) => (
         <div
           key={id}
           className={cn("group relative w-full rounded-lg", "focus-within:outline-none")}
-          role="presentation"
         >
           <button
             type="button"
+            role="radio"
+            aria-checked={checked}
             ref={(el: HTMLButtonElement | null) => {
               itemRefs.current[index] = el;
             }}
@@ -78,24 +73,23 @@ export const DateTimeSuggestions = ({ className, options, onChange }: Suggestion
               onChange(id);
               setFocusedIndex(index);
             }}
+            onKeyDown={(e) => handleKeyDown(e, index)}
             onFocus={() => setFocusedIndex(index)}
             className={cn(
               "w-full inline-flex items-center justify-between",
               "px-2 py-1.5 rounded-lg",
               "text-[13px] font-medium text-accent-12 text-left",
               "hover:bg-gray-3",
-              "focus:outline-none",
+              "focus:outline-none focus:ring-2 focus:ring-accent-7",
               "focus:bg-gray-3",
               checked && "bg-gray-3",
               focusedIndex === index && "bg-gray-3",
             )}
-            role="option"
-            aria-selected={checked}
-            tabIndex={index === focusedIndex ? 0 : -1}
+            tabIndex={0}
           >
             <span>{display}</span>
             {checked && (
-              <div className="size-4">
+              <div className="size-4" aria-hidden="true">
                 <Check className="text-gray-12/90 size-4" />
               </div>
             )}

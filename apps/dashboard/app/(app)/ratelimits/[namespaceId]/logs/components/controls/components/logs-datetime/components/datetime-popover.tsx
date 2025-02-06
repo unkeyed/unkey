@@ -1,6 +1,6 @@
-import { useKeyboardShortcut } from "@/app/(app)/logs/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { processTimeFilters } from "@/lib/utils";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
 import { type PropsWithChildren, useEffect, useState } from "react";
