@@ -1,18 +1,25 @@
+import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
-import { DatetimePopover } from "./components/datetime-popover";
 
 export const LogsDateTime = () => {
-  const [title, setTitle] = useState<string>("Last 12 hours");
+  const [title, setTitle] = useState<string | null>(null);
   const { filters, updateFilters } = useFilters();
+
+  useEffect(() => {
+    if (!title) {
+      setTitle("Last 12 hours");
+    }
+  }, [title]);
+
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
     .reduce(
       (acc, f) => ({
-        // biome-ignore lint/performance/noAccumulatingSpread: safe to spread
+        // biome-ignore lint/performance/noAccumulatingSpread: it's safe to spread
         ...acc,
         [f.field]: f.value,
       }),
@@ -56,24 +63,24 @@ export const LogsDateTime = () => {
         }
         updateFilters(activeFilters);
       }}
-      initialTitle={title}
-      onSuggestionChange={(newTitle) => {
-        setTitle(newTitle);
-      }}
+      initialTitle={title ?? ""}
+      onSuggestionChange={setTitle}
     >
       <div className="group">
         <Button
           variant="ghost"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2",
+            !title ? "opacity-50" : "",
             title !== "Last 12 hours" ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs by time"
           aria-haspopup="true"
           title="Press 'T' to toggle filters"
+          disabled={!title}
         >
           <Calendar className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-medium text-[13px]">{title}</span>
+          <span className="text-gray-12 font-medium text-[13px]">{title ?? "Loading..."}</span>
         </Button>
       </div>
     </DatetimePopover>

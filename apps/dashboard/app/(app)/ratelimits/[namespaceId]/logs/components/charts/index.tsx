@@ -56,7 +56,7 @@ export function RatelimitLogsChart({
       <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
         {timeseries
           ? calculateTimePoints(
-              timeseries[0].originalTimestamp ?? Date.now(),
+              timeseries[0]?.originalTimestamp ?? Date.now(),
               timeseries.at(-1)?.originalTimestamp ?? Date.now(),
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: use of index is acceptable here.

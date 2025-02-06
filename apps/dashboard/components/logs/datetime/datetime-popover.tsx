@@ -1,75 +1,14 @@
-import { useKeyboardShortcut } from "@/app/(app)/logs/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { processTimeFilters } from "@/lib/utils";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
 import { type PropsWithChildren, useEffect, useState } from "react";
-import type { OptionsType } from "../logs-datetime.type";
+import { CUSTOM_OPTION_ID, OPTIONS } from "./constants";
 import { DateTimeSuggestions } from "./suggestions";
+import type { OptionsType } from "./types";
 
-const CUSTOM_OPTION_ID = 10;
-const options: OptionsType = [
-  {
-    id: 1,
-    value: "5m",
-    display: "Last 5 minutes",
-    checked: false,
-  },
-  {
-    id: 2,
-    value: "15m",
-    display: "Last 15 minutes",
-    checked: false,
-  },
-  {
-    id: 3,
-    value: "30m",
-    display: "Last 30 minutes",
-    checked: false,
-  },
-  {
-    id: 4,
-    value: "1h",
-    display: "Last 1 hour",
-    checked: false,
-  },
-  {
-    id: 5,
-    value: "3h",
-    display: "Last 3 hours",
-    checked: false,
-  },
-  {
-    id: 6,
-    value: "6h",
-    display: "Last 6 hours",
-    checked: false,
-  },
-  {
-    id: 7,
-    value: "12h",
-    display: "Last 12 hours",
-    checked: false,
-  },
-  {
-    id: 8,
-    value: "24h",
-    display: "Last 24 hours",
-    checked: false,
-  },
-  {
-    id: 9,
-    value: "48h",
-    display: "Last 2 days",
-    checked: false,
-  },
-  {
-    id: 10,
-    value: undefined,
-    display: "Custom",
-    checked: false,
-  },
-];
+const CUSTOM_PLACEHOLDER = "Custom";
 
 interface DatetimePopoverProps extends PropsWithChildren {
   initialTitle: string;
@@ -95,14 +34,19 @@ export const DatetimePopover = ({
 
   const { startTime, since, endTime } = initialTimeValues;
   const [time, setTime] = useState<TimeRangeType>({ startTime, endTime });
+  const [lastAppliedTime, setLastAppliedTime] = useState<{
+    startTime?: number;
+    endTime?: number;
+  }>({ startTime, endTime });
+
   const [suggestions, setSuggestions] = useState<OptionsType>(() => {
     const matchingSuggestion = since
-      ? options.find((s) => s.value === since)
+      ? OPTIONS.find((s) => s.value === since)
       : startTime
-        ? options.find((s) => s.id === CUSTOM_OPTION_ID)
+        ? OPTIONS.find((s) => s.id === CUSTOM_OPTION_ID)
         : null;
 
-    return options.map((s) => ({
+    return OPTIONS.map((s) => ({
       ...s,
       checked: s.id === matchingSuggestion?.id,
     }));
@@ -110,9 +54,9 @@ export const DatetimePopover = ({
 
   useEffect(() => {
     const newTitle = since
-      ? options.find((s) => s.value === since)?.display ?? initialTitle
+      ? OPTIONS.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER
       : startTime
-        ? "Custom"
+        ? CUSTOM_PLACEHOLDER
         : initialTitle;
 
     onSuggestionChange(newTitle);
@@ -147,8 +91,17 @@ export const DatetimePopover = ({
     });
   };
 
+  const isTimeChanged =
+    time.startTime !== lastAppliedTime.startTime || time.endTime !== lastAppliedTime.endTime;
+
   const handleApplyFilter = () => {
-    onDateTimeChange(time.startTime, time.endTime, undefined);
+    if (!isTimeChanged) {
+      setOpen(false);
+      return;
+    }
+
+    onDateTimeChange(time.startTime, time.endTime);
+    setLastAppliedTime({ startTime: time.startTime, endTime: time.endTime });
     setOpen(false);
   };
 
@@ -183,6 +136,7 @@ export const DatetimePopover = ({
               variant="primary"
               className="font-sans w-full h-9 rounded-md"
               onClick={handleApplyFilter}
+              disabled={!isTimeChanged}
             >
               Apply Filter
             </Button>
