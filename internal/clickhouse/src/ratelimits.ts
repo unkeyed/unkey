@@ -26,7 +26,7 @@ export const ratelimitLogsTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      }),
+      })
     )
     .nullable(),
 });
@@ -39,8 +39,12 @@ export const ratelimitLogsTimeseriesDataPoint = z.object({
   }),
 });
 
-export type RatelimitLogsTimeseriesDataPoint = z.infer<typeof ratelimitLogsTimeseriesDataPoint>;
-export type RatelimitLogsTimeseriesParams = z.infer<typeof ratelimitLogsTimeseriesParams>;
+export type RatelimitLogsTimeseriesDataPoint = z.infer<
+  typeof ratelimitLogsTimeseriesDataPoint
+>;
+export type RatelimitLogsTimeseriesParams = z.infer<
+  typeof ratelimitLogsTimeseriesParams
+>;
 
 type TimeInterval = {
   table: string;
@@ -92,7 +96,7 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
 
 function getRatelimitLogsTimeseriesWhereClause(
   params: RatelimitLogsTimeseriesParams,
-  additionalConditions: string[] = [],
+  additionalConditions: string[] = []
 ): { whereClause: string; paramSchema: z.ZodType<any> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
@@ -120,17 +124,21 @@ function getRatelimitLogsTimeseriesWhereClause(
   }
 
   return {
-    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    whereClause:
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
     paramSchema: ratelimitLogsTimeseriesParams.extend(paramSchemaExtension),
   };
 }
 
 function createTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: RatelimitLogsTimeseriesParams) => {
-    const { whereClause, paramSchema } = getRatelimitLogsTimeseriesWhereClause(args, [
-      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
-      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
-    ]);
+    const { whereClause, paramSchema } = getRatelimitLogsTimeseriesWhereClause(
+      args,
+      [
+        "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+        "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+      ]
+    );
 
     const parameters = {
       ...args,
@@ -140,7 +148,7 @@ function createTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`identifierValue_${index}`]: i.value,
         }),
-        {},
+        {}
       ) ?? {}),
     };
 
@@ -175,7 +183,11 @@ export function getRatelimitLastUsed(ch: Querier) {
     WHERE
       workspace_id = {workspaceId: String}
       AND namespace_id = {namespaceId: String}
-     ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
+     ${
+       args.identifier
+         ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0"
+         : ""
+     }
     GROUP BY identifier
     ORDER BY time DESC
     LIMIT {limit: Int}
@@ -203,7 +215,7 @@ export const ratelimitLogsParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      }),
+      })
     )
     .nullable(),
   status: z
@@ -211,7 +223,7 @@ export const ratelimitLogsParams = z.object({
       z.object({
         value: z.enum(["blocked", "passed"]),
         operator: z.literal("is"),
-      }),
+      })
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
@@ -252,7 +264,8 @@ export function getRatelimitLogs(ch: Querier) {
 
     const hasRequestIds = args.requestIds && args.requestIds.length > 0;
     const hasStatusFilters = args.status && args.status.length > 0;
-    const hasIdentifierFilters = args.identifiers && args.identifiers.length > 0;
+    const hasIdentifierFilters =
+      args.identifiers && args.identifiers.length > 0;
 
     const statusCondition = !hasStatusFilters
       ? "TRUE"
@@ -280,7 +293,6 @@ export function getRatelimitLogs(ch: Querier) {
               case "is":
                 return `identifier = {${paramName}: String}`;
               case "contains":
-                // Use position() for better performance on substring matches
                 return `position({${paramName}: String}, identifier) > 0`;
               default:
                 return null;
@@ -289,7 +301,8 @@ export function getRatelimitLogs(ch: Querier) {
           .filter(Boolean)
           .join(" OR ") || "TRUE";
 
-    const extendedParamsSchema = ratelimitLogsParams.extend(paramSchemaExtension);
+    const extendedParamsSchema =
+      ratelimitLogsParams.extend(paramSchemaExtension);
 
     const query = ch.query({
       query: `
