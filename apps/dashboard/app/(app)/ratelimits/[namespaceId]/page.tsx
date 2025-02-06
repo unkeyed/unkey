@@ -10,7 +10,7 @@ import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
-import { db, eq, schema, sql } from "@/lib/db";
+import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { Gauge } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
@@ -85,7 +85,12 @@ export default async function RatelimitNamespacePage(props: {
     db
       .select({ count: sql<number>`count(*)` })
       .from(schema.ratelimitOverrides)
-      .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
+      .where(
+        and(
+          eq(schema.ratelimitOverrides.namespaceId, namespace.id),
+          isNull(schema.ratelimitOverrides.deletedAt),
+        ),
+      )
       .execute()
       .then((res) => res?.at(0)?.count ?? 0),
     clickhouse.ratelimits.timeseries[timeseriesMethod](query),
