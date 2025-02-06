@@ -12,14 +12,13 @@ import { useSignIn } from "@/lib/auth/hooks";
 import { OrgSelector } from "../org-selector";
 import { Dialog, DialogContent, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 
-async function SignInContent() {
+function SignInContent() {
   const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs } = useSignIn();
-  const showOrgSelection = await hasPendingAuth();
 
   return (
     <div className="flex flex-col gap-10">
 
-      {showOrgSelection && orgs &&
+      {hasPendingAuth &&
           <Dialog defaultOpen>
              <DialogContent className="border-border w-11/12 max-sm:">
              <DialogHeader>
