@@ -4,8 +4,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
 import { useUser } from "@/lib/auth/hooks";
+import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -18,9 +18,7 @@ const validCharactersRegex = /^[a-zA-Z0-9-_]+$/;
 
 const formSchema = z.object({
   workspaceId: z.string(),
-  name: z.string().trim().min(3).regex(validCharactersRegex, {
-    message: "Workspace can only contain letters, numbers, dashes, and underscores",
-  }),
+  name: z.string().trim().min(3),
 });
 
 type Props = {
@@ -31,9 +29,9 @@ type Props = {
   };
 };
 
-export const UpdateWorkspaceName: React.FC<Props> = async ({ workspace }) => {
+export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const router = useRouter();
-  // const { fetchUser: refetchUser }  = useUser();
+  const { fetchUser: refetchUser }  = useUser();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -47,7 +45,7 @@ export const UpdateWorkspaceName: React.FC<Props> = async ({ workspace }) => {
   const updateName = trpc.workspace.updateName.useMutation({
     onSuccess() {
       toast.success("Workspace name updated");
-      //await refetchUser()
+      refetchUser()
       router.refresh();
     },
     onError(err) {
@@ -55,7 +53,7 @@ export const UpdateWorkspaceName: React.FC<Props> = async ({ workspace }) => {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values) {
     updateName.mutateAsync(values);
   }
   const isDisabled = form.formState.isLoading || !form.formState.isValid || updateName.isLoading;

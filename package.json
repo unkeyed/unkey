@@ -43,7 +43,8 @@
       "@opentelemetry/resources": "1.13.0",
       "@opentelemetry/sdk-trace-base": "1.13.0",
       "@opentelemetry/sdk-trace-node": "1.13.0",
-      "@opentelemetry/semantic-conventions": "1.13.0"
+      "@opentelemetry/semantic-conventions": "1.13.0",
+      "zod": "3.23.8"
     }
   },
   "config": {

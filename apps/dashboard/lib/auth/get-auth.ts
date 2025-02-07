@@ -5,7 +5,7 @@ import { getCookie } from './cookies';
 type GetAuthResult = {
   userId: string | null;
   orgId: string | null;
-  orgRole: "admin" | "basic_member" | null;
+  orgRole: string | null;
 };
 
 export async function getAuth(req?: Request): Promise<GetAuthResult> {

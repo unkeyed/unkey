@@ -4,9 +4,9 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 export interface CookieOptions {
-  secure?: boolean;
-  httpOnly?: boolean;
-  sameSite?: 'lax' | 'strict' | 'none';
+  secure: boolean;
+  httpOnly: boolean;
+  sameSite: 'lax' | 'strict' | 'none';
   path?: string;
   maxAge?: number;
 }
@@ -68,7 +68,8 @@ export async function updateCookie(
       value: value,
       options: {
         httpOnly: true,
-        secure: true
+        secure: true,
+        sameSite: 'lax'
       }
     });
     return;
