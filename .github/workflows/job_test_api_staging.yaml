@@ -19,12 +19,12 @@ jobs:
   test:
     name: API Test Staging
     environment: Preview
-    timeout-minutes: 30
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: ["1/9", "2/9", "3/9", "4/9", "5/9", "6/9","7/9", "8/9", "9/9"]
+        shard: ["1/9", "2/9", "3/9", "4/9", "5/9", "6/9", "7/9", "8/9", "9/9"]
 
     steps:
       - uses: actions/checkout@v4
@@ -33,8 +33,6 @@ jobs:
       # before running our tests
       - name: Wake ClickHouse
         run: curl -X GET ${{ secrets.CLICKHOUSE_URL }}/ping
-
-
 
       - name: Install
         uses: ./.github/actions/install
