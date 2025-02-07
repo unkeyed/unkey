@@ -12,6 +12,7 @@ overrides:
   '@opentelemetry/sdk-trace-base': 1.13.0
   '@opentelemetry/sdk-trace-node': 1.13.0
   '@opentelemetry/semantic-conventions': 1.13.0
+  zod: 3.23.8
 
 importers:
 
@@ -122,7 +123,7 @@ importers:
         specifier: ^2.2.1
         version: 2.2.1
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@cloudflare/vitest-pool-workers':
@@ -213,7 +214,7 @@ importers:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/node':
@@ -517,7 +518,7 @@ importers:
         specifier: ^3.1.0
         version: 3.1.0(react@18.3.1)
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@clerk/types':
@@ -612,7 +613,7 @@ importers:
         specifier: ^15.0.0
         version: 15.0.0(react-dom@18.3.1)(react@18.3.1)
       zod:
-        specifier: ^3.23.8
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/mdx':
@@ -658,7 +659,7 @@ importers:
         specifier: ^4.6.3
         version: 4.6.3
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@cloudflare/workers-types':
@@ -761,7 +762,7 @@ importers:
         specifier: ^1.0.4
         version: 1.0.4(react-dom@18.3.1)(react@18.3.1)
       zod:
-        specifier: ^3.23.8
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/ms':
@@ -964,7 +965,7 @@ importers:
         specifier: ^0.9.0
         version: 0.9.0(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@content-collections/core':
@@ -1028,7 +1029,7 @@ importers:
         specifier: ^3.0.23
         version: 3.4.7(react@18.3.1)(svelte@5.20.5)(vue@3.5.13)(zod@3.23.8)
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/node':
@@ -1065,7 +1066,7 @@ importers:
         specifier: workspace:^
         version: link:../../packages/error
       zod:
-        specifier: ^3.23.8
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@dagger.io/dagger':
@@ -1152,7 +1153,7 @@ importers:
   internal/events:
     dependencies:
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/node':
@@ -1225,7 +1226,7 @@ importers:
         specifier: workspace:^
         version: link:../metrics
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/node':
@@ -1241,7 +1242,7 @@ importers:
   internal/metrics:
     dependencies:
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/node':
@@ -1318,7 +1319,7 @@ importers:
   internal/schema:
     dependencies:
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/node':
@@ -1391,7 +1392,7 @@ importers:
   internal/validation:
     dependencies:
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/node':
@@ -1422,7 +1423,7 @@ importers:
         specifier: workspace:^
         version: link:../../packages/error
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/node':
@@ -1504,7 +1505,7 @@ importers:
   packages/error:
     dependencies:
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/node':
@@ -1542,7 +1543,7 @@ importers:
         specifier: ^5.5.3
         version: 5.5.3
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
 
   packages/nextjs:
@@ -1589,7 +1590,7 @@ importers:
         specifier: workspace:^
         version: link:../error
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@types/node':
@@ -1666,7 +1667,7 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       zod:
-        specifier: ^3.23.5
+        specifier: 3.23.8
         version: 3.23.8
     devDependencies:
       '@planetscale/database':
@@ -5793,7 +5794,7 @@ packages:
       unified: 11.0.5
       unist-util-visit: 5.0.0
       yargs: 17.7.2
-      zod: 3.24.2
+      zod: 3.23.8
     transitivePeerDependencies:
       - bare-buffer
       - bufferutil
@@ -5813,8 +5814,8 @@ packages:
       lcm: 0.0.3
       lodash: 4.17.21
       openapi-types: 12.1.3
-      zod: 3.24.2
-      zod-to-json-schema: 3.24.3(zod@3.24.2)
+      zod: 3.23.8
+      zod-to-json-schema: 3.24.3(zod@3.23.8)
     transitivePeerDependencies:
       - debug
     dev: true
@@ -6676,7 +6677,7 @@ packages:
     resolution: {integrity: sha512-2dBX3Sj99H96uwJKvc2w9NOiNgbvAO6mOFJFramNkKfS9O4Um+VWgpnlAazoYjT6kUJ1MP70KQ5ngD4ed+4NUw==}
     engines: {node: '>=14'}
     peerDependencies:
-      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api': '>=1.0.0 <1.5.0'
     dependencies:
       '@opentelemetry/api': 1.4.1
       '@opentelemetry/semantic-conventions': 1.13.0
@@ -7182,7 +7183,7 @@ packages:
     resolution: {integrity: sha512-coUfuoMeIB7B8/NMekxaDzLhaYmp0HZNPEjYRm9goRou8UZIC3z21s0sL9AWoCw4EG876QyO3kYrc61WNF9B/w==}
     engines: {node: '>=8.0.0'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
     dev: false
 
   /@peculiar/webcrypto@1.4.1:
@@ -7192,7 +7193,7 @@ packages:
       '@peculiar/asn1-schema': 2.3.15
       '@peculiar/json-schema': 1.1.12
       pvtsutils: 1.3.6
-      tslib: 2.4.1
+      tslib: 2.8.1
       webcrypto-core: 1.8.1
     dev: false
 
@@ -10701,32 +10702,6 @@ packages:
       - supports-color
     dev: false
 
-  /@trigger.dev/sdk@3.3.1(zod@3.22.3):
-    resolution: {integrity: sha512-v8zBuroUGkI1emQvJIFo22K8vkAq5FMuVKipJFRWZff5qSplj3rI2O3LzOARDDnw/lCiAkZFTB2qNsgMEfVXrA==}
-    engines: {node: '>=18.20.0'}
-    peerDependencies:
-      zod: ^3.0.0
-    dependencies:
-      '@opentelemetry/api': 1.4.1
-      '@opentelemetry/api-logs': 0.52.1
-      '@opentelemetry/semantic-conventions': 1.13.0
-      '@trigger.dev/core': 3.3.1
-      chalk: 5.4.1
-      cronstrue: 2.55.0
-      debug: 4.4.0(supports-color@8.1.1)
-      evt: 2.5.9
-      slug: 6.1.0
-      terminal-link: 3.0.0
-      ulid: 2.3.0
-      uuid: 9.0.1
-      ws: 8.18.1
-      zod: 3.22.3
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-    dev: false
-
   /@trigger.dev/sdk@3.3.1(zod@3.23.8):
     resolution: {integrity: sha512-v8zBuroUGkI1emQvJIFo22K8vkAq5FMuVKipJFRWZff5qSplj3rI2O3LzOARDDnw/lCiAkZFTB2qNsgMEfVXrA==}
     engines: {node: '>=18.20.0'}
@@ -10758,8 +10733,8 @@ packages:
     engines: {node: '>=16.8.0'}
     dependencies:
       '@slack/web-api': 6.13.0
-      '@trigger.dev/sdk': 3.3.1(zod@3.22.3)
-      zod: 3.22.3
+      '@trigger.dev/sdk': 3.3.1(zod@3.23.8)
+      zod: 3.23.8
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -13979,7 +13954,7 @@ packages:
     dependencies:
       is-arguments: 1.2.0
       is-date-object: 1.1.0
-      is-regex: 1.1.4
+      is-regex: 1.2.1
       object-is: 1.1.6
       object-keys: 1.1.1
       regexp.prototype.flags: 1.5.4
@@ -14258,7 +14233,7 @@ packages:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
     dependencies:
       no-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.8.1
     dev: false
 
   /dot-prop@6.0.1:
@@ -18326,8 +18301,8 @@ packages:
       strip-json-comments: 5.0.1
       summary: 2.1.0
       typescript: 5.5.3
-      zod: 3.24.2
-      zod-validation-error: 3.4.0(zod@3.24.2)
+      zod: 3.23.8
+      zod-validation-error: 3.4.0(zod@3.23.8)
     dev: true
 
   /ky@1.7.5:
@@ -18599,7 +18574,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
     dev: false
 
   /lowercase-keys@3.0.0:
@@ -20008,6 +19983,7 @@ packages:
   /minipass@6.0.2:
     resolution: {integrity: sha512-MzWSV5nYVT7mVyWCwn2o7JH13w2TBRmmSqSRCKzTw+lmft9X4z+3wjvs06Tzijo5z4W/kahUCDpRXTF+ZrmF/w==}
     engines: {node: '>=16 || 14 >=14.17'}
+    dev: true
 
   /minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
@@ -20398,7 +20374,7 @@ packages:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.4.1
+      tslib: 2.8.1
     dev: false
 
   /node-addon-api@7.1.1:
@@ -21132,7 +21108,7 @@ packages:
     engines: {node: '>=16 || 14 >=14.18'}
     dependencies:
       lru-cache: 10.4.3
-      minipass: 6.0.2
+      minipass: 7.1.2
 
   /path-to-regexp@0.1.12:
     resolution: {integrity: sha512-RA1GjUVMnvYFxuqovrEqZoxxW5NUZqbwKtYz/Tt7nXerk0LbLblQmrsgdeOxV5SFHf0UDggjS/bSeOZwt1pmEQ==}
@@ -23392,7 +23368,7 @@ packages:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.8.1
     dev: false
 
   /snakecase-keys@3.2.1:
@@ -26338,15 +26314,6 @@ packages:
       zod: ^3.24.1
     dependencies:
       zod: 3.23.8
-    dev: false
-
-  /zod-to-json-schema@3.24.3(zod@3.24.2):
-    resolution: {integrity: sha512-HIAfWdYIt1sssHfYZFCXp4rU1w2r8hVVXYIlmoa0r0gABLs5di3RCqPU5DDROogVz1pAdYBaz7HK5n9pSUNs3A==}
-    peerDependencies:
-      zod: ^3.24.1
-    dependencies:
-      zod: 3.24.2
-    dev: true
 
   /zod-validation-error@1.5.0(zod@3.23.8):
     resolution: {integrity: sha512-/7eFkAI4qV0tcxMBB/3+d2c1P6jzzZYdYSlBuAklzMuCrJu5bzJfHS0yVAS87dRHVlhftd6RFJDIvv03JgkSbw==}
@@ -26364,27 +26331,9 @@ packages:
       zod: ^3.18.0
     dependencies:
       zod: 3.23.8
-    dev: false
-
-  /zod-validation-error@3.4.0(zod@3.24.2):
-    resolution: {integrity: sha512-ZOPR9SVY6Pb2qqO5XHt+MkkTRxGXb4EVtnjc9JpXUOtUB1T9Ru7mZOT361AN3MsetVe7R0a1KZshJDZdgp9miQ==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      zod: ^3.18.0
-    dependencies:
-      zod: 3.24.2
-    dev: true
-
-  /zod@3.22.3:
-    resolution: {integrity: sha512-EjIevzuJRiRPbVH4mGc8nApb/lVLKVpmUhAaR5R5doKGfAnGJ6Gr3CViAVjP+4FWSxCsybeWQdcgCtbX+7oZug==}
-    dev: false
 
   /zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
-
-  /zod@3.24.2:
-    resolution: {integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==}
-    dev: true
 
   /zustand@4.5.6(react@18.3.1):
     resolution: {integrity: sha512-ibr/n1hBzLLj5Y+yUcU7dYw8p6WnIVzdJbnX+1YpaScvZVF2ziugqHs+LAmHw4lWO9c/zRj+K1ncgWDQuthEdQ==}

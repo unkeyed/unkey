@@ -5,10 +5,16 @@ import type { NextRequest } from "next/server";
 
 // export API handler
 export default async function handler(req: NextRequest) {
+  try{
+
   return fetchRequestHandler({
     endpoint: "/api/trpc",
     router,
     req,
     createContext,
   });
+}
+  catch(err){
+    console.log(err)
+  }
 }

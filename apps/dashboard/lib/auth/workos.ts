@@ -508,7 +508,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           value: sealedSession,
           options: {
             secure: true,
-            httpOnly: true
+            httpOnly: true,
+            sameSite: 'lax'
           }
         }]
       };
@@ -526,7 +527,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             value: error.pending_authentication_token,
             options: {
               secure: true,
-              httpOnly: true
+              httpOnly: true,
+              sameSite: 'lax'
             }
           }]
         };
@@ -559,7 +561,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           value: sealedSession,
           options: {
             secure: true,
-            httpOnly: true
+            httpOnly: true,
+            sameSite: 'lax'
           }
         }]
       };
@@ -637,7 +640,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           value: sealedSession,
           options: {
             secure: true,
-            httpOnly: true
+            httpOnly: true,
+            sameSite: 'lax'
           }
         }]
       };
@@ -655,6 +659,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             options: {
               secure: true,
               httpOnly: true,
+              sameSite: 'lax',
               maxAge: 60 // user has 60 seconds to select an org before the cookie expires
             }
           }]

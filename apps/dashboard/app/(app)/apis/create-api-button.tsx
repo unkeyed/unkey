@@ -49,6 +49,7 @@ export const CreateApiButton = ({
     },
     onError(err) {
       console.error(err);
+      console.info(err.ctx)
       toast.error(err.message);
     },
   });
