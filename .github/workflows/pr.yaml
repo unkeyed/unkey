@@ -46,5 +46,5 @@ jobs:
   #       working-directory: apps/agent
 
   test_go_api_local:
-    name: Test GO API Local
+    name: Test Go API Local
     uses: ./.github/workflows/job_test_go_api_local.yaml
