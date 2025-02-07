@@ -58,7 +58,6 @@ export const workspaces = mysqlTable(
          */
         rbac?: boolean;
 
-        ratelimit?: boolean;
         identities?: boolean;
 
         /**
