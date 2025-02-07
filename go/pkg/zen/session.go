@@ -21,6 +21,11 @@ type Session struct {
 	w http.ResponseWriter
 	r *http.Request
 
+	// The workspace making the request.
+	// We extract this from the root key or regular key
+	// and must set it before the metrics middleware finishes.
+	workspaceID string
+
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
@@ -31,6 +36,7 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request) error {
 	s.w = w
 	s.r = r
 
+	s.workspaceID = ""
 	return nil
 }
 
@@ -43,10 +49,6 @@ func (s *Session) Context() context.Context {
 // Do not store references or modify it outside of the handler function.
 func (s *Session) Request() *http.Request {
 	return s.r
-}
-
-func (s *Session) RequestID() string {
-	return s.requestID
 }
 
 func (s *Session) ResponseWriter() http.ResponseWriter {

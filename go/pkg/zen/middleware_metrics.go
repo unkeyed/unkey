@@ -47,7 +47,8 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 			}
 
 			eventBuffer.BufferApiRequest(schema.ApiRequestV1{
-				RequestID:       s.RequestID(),
+				WorkspaceID:     s.workspaceID,
+				RequestID:       s.requestID,
 				Time:            start.UnixMilli(),
 				Host:            s.r.Host,
 				Method:          s.r.Method,

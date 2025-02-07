@@ -31,24 +31,16 @@ services:
     ports:
       - 3900:3900
 
-  api_lb:
-    container_name: api_lb
-    image: nginx:latest
-    volumes:
-      - ./nginx.apiv2.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - apiv2
-    ports:
-      - 7070:7070
+
   apiv2:
-    deploy:
-      replicas: 3
-      endpoint_mode: vip
+
 
     command:  [ "api", "--config", "config.docker.json"]
     build:
       context: ../go
       dockerfile: ./Dockerfile
+    ports:
+      - "7070:7070"
     depends_on:
       - mysql
       - clickhouse

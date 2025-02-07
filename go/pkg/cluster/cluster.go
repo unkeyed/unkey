@@ -67,7 +67,6 @@ func (c *cluster) keepInSync() {
 				})
 				if err != nil {
 					c.logger.Error(ctx, "failed to add node to ring", slog.String("error", err.Error()))
-					continue
 				}
 
 			}
@@ -75,11 +74,9 @@ func (c *cluster) keepInSync() {
 			{
 				ctx := context.Background()
 				c.logger.Info(ctx, "node left", slog.String("nodeID", node.ID))
-
 				err := c.ring.RemoveNode(ctx, node.ID)
 				if err != nil {
 					c.logger.Error(ctx, "failed to remove node from ring", slog.String("error", err.Error()))
-					continue
 				}
 			}
 		}

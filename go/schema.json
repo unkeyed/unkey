@@ -14,9 +14,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "url"
-      ]
+      "required": ["url"]
     },
     "database": {
       "type": "object",
@@ -29,9 +27,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "primary"
-      ]
+      "required": ["primary"]
     },
     "heartbeat": {
       "type": "object",
@@ -49,10 +45,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "url",
-        "interval"
-      ]
+      "required": ["url", "interval"]
     },
     "httpAddr": {
       "type": "string",
@@ -85,10 +78,5 @@
     }
   },
   "additionalProperties": true,
-  "required": [
-    "httpAddr",
-    "rpcAddr",
-    "redisUrl",
-    "database"
-  ]
+  "required": ["httpAddr", "rpcAddr", "redisUrl", "database"]
 }

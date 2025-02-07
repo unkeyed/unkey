@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/logging"
 )
 
-type membership struct {
+type redisMembership struct {
 	mu          sync.Mutex
 	started     bool
 	logger      logging.Logger
@@ -29,14 +29,14 @@ type membership struct {
 	nodeID string
 }
 
-type Config struct {
+type RedisConfig struct {
 	RedisUrl string
 	NodeID   string
 	RpcAddr  string
 	Logger   logging.Logger
 }
 
-func New(config Config) (Membership, error) {
+func NewRedis(config RedisConfig) (*redisMembership, error) {
 
 	opts, err := redis.ParseURL(config.RedisUrl)
 	if err != nil {
@@ -50,7 +50,7 @@ func New(config Config) (Membership, error) {
 		return nil, fmt.Errorf("failed to ping redis: %w", err)
 	}
 
-	return &membership{
+	return &redisMembership{
 		mu:              sync.Mutex{},
 		started:         false,
 		logger:          config.Logger.With(slog.String("pkg", "service discovery"), slog.String("type", "redis")),
@@ -65,7 +65,7 @@ func New(config Config) (Membership, error) {
 
 }
 
-func (m *membership) Join(ctx context.Context, addrs ...string) (int, error) {
+func (m *redisMembership) Join(ctx context.Context) (int, error) {
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -93,11 +93,11 @@ func (m *membership) Join(ctx context.Context, addrs ...string) (int, error) {
 
 }
 
-func (m *membership) heartbeatRedisKey() string {
+func (m *redisMembership) heartbeatRedisKey() string {
 	return fmt.Sprintf("cluster::membership::nodes::%s", m.nodeID)
 }
 
-func (m *membership) heartbeat(ctx context.Context) {
+func (m *redisMembership) heartbeat(ctx context.Context) {
 
 	m.heartbeatLock.Lock()
 	defer m.heartbeatLock.Unlock()
@@ -152,11 +152,11 @@ func (m *membership) heartbeat(ctx context.Context) {
 
 }
 
-func (m *membership) Leave(ctx context.Context) error {
+func (m *redisMembership) Leave(ctx context.Context) error {
 	return m.rdb.Del(ctx, m.heartbeatRedisKey()).Err()
 }
 
-func (m *membership) Members(ctx context.Context) ([]Member, error) {
+func (m *redisMembership) Members(ctx context.Context) ([]Member, error) {
 	pattern := m.heartbeatRedisKey()
 	pattern = strings.ReplaceAll(pattern, m.nodeID, "*")
 
@@ -189,13 +189,13 @@ func (m *membership) Members(ctx context.Context) ([]Member, error) {
 
 	return members, nil
 }
-func (m *membership) Addr() string {
+func (m *redisMembership) Addr() string {
 	return m.rpcAddr
 }
-func (m *membership) SubscribeJoinEvents() <-chan Member {
+func (m *redisMembership) SubscribeJoinEvents() <-chan Member {
 	return m.joinEvents.Subscribe("cluster_join_events")
 }
 
-func (m *membership) SubscribeLeaveEvents() <-chan Member {
+func (m *redisMembership) SubscribeLeaveEvents() <-chan Member {
 	return m.leaveEvents.Subscribe("cluster_leave_events")
 }

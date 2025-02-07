@@ -16,6 +16,10 @@ tasks:
     cmds:
       - go build -o unkey ./main.go
 
+  generate:
+    cmds:
+      - go generate ./...
+      - buf generate
 
   lint:
     cmds:

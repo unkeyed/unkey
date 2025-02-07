@@ -15,4 +15,5 @@ WORKDIR  /usr/local/bin
 COPY --from=builder /go/src/github.com/unkeyed/unkey/go/bin/unkey .
 COPY --from=builder /go/src/github.com/unkeyed/unkey/go/config.docker.json .
 
+
 ENTRYPOINT [ "/usr/local/bin/unkey"]

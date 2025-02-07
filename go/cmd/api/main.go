@@ -10,9 +10,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/unkeyed/unkey/go/cmd/api/routes"
+	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/certificate"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/config"
+	"github.com/unkeyed/unkey/go/pkg/database"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -55,12 +59,13 @@ func run(cliC *cli.Context) error {
 	if cfg.Region == "" {
 		cfg.Region = "unknown"
 	}
-	logger := logging.New(logging.Config{Development: true, NoColor: false}).
+	logger := logging.New(logging.Config{Development: true, NoColor: true}).
 		With(
 			slog.String("nodeId", cfg.NodeID),
 			slog.String("platform", cfg.Platform),
 			slog.String("region", cfg.Region),
 			slog.String("version", version.Version),
+			slog.Any("env", os.Environ()),
 		)
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
@@ -74,14 +79,14 @@ func run(cliC *cli.Context) error {
 
 	logger.Info(ctx, "configration loaded", slog.String("file", configFile))
 
-	m, err := membership.New(membership.Config{
+	m, err := membership.NewRedis(membership.RedisConfig{
 		RedisUrl: cfg.RedisUrl,
 		NodeID:   cfg.NodeID,
 		RpcAddr:  cfg.RpcAddr,
 		Logger:   logger,
 	})
 	if err != nil {
-		return fmt.Errorf("unable to create membership")
+		return fmt.Errorf("unable to create membership: %w", err)
 	}
 
 	c, err := cluster.New(cluster.Config{
@@ -111,12 +116,27 @@ func run(cliC *cli.Context) error {
 		}
 	}
 
+	certs, err := certificate.NewDevCertificateSource()
+	if err != nil {
+		return fmt.Errorf("unable to create certificate: %w", err)
+	}
+
 	srv, err := zen.New(zen.Config{
-		NodeID: cfg.NodeID,
-		Logger: logger,
+		NodeID:            cfg.NodeID,
+		Logger:            logger,
+		CertificateSource: certs,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
+	}
+
+	db, err := database.New(database.Config{
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Logger:      logger,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to connect to database: %w", err)
 	}
 
 	validator, err := validation.New()
@@ -124,13 +144,15 @@ func run(cliC *cli.Context) error {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
 
-	srv.SetGlobalMiddleware(
-		// metrics should always run first, so it can capture the latency of the entire request
-		zen.WithMetrics(ch),
-		zen.WithLogging(logger),
-		zen.WithErrorHandling(),
-		zen.WithValidation(validator),
-	)
+	keySvc, err := keys.New(keys.Config{})
+
+	routes.Register(srv, &routes.Services{
+		Logger:      logger,
+		Database:    db,
+		EventBuffer: ch,
+		Keys:        keySvc,
+		Validator:   validator,
+	})
 
 	go func() {
 		listenErr := srv.Listen(ctx, cfg.HttpAddr)
