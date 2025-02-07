@@ -4,16 +4,12 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import type { Context } from "../../context";
 
-export async function upsertPermission(
-  ctx: Context,
-  workspaceId: string,
-  name: string,
-): Promise<Permission> {
+export async function upsertPermission(ctx: Context, name: string): Promise<Permission> {
   return await db.transaction(async (tx) => {
     const existingPermission = await tx.query.permissions
       .findFirst({
         where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
+          and(eq(table.workspaceId, ctx.workspace!.id), eq(table.name, name)),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -28,7 +24,7 @@ export async function upsertPermission(
 
     const permission: Permission = {
       id: newId("permission"),
-      workspaceId,
+      workspaceId: ctx.workspace!.id,
       name,
       description: null,
       createdAt: new Date(),
@@ -45,8 +41,8 @@ export async function upsertPermission(
             "We are unable to upsert the permission. Please try again or contact support@unkey.dev.",
         });
       });
-    await insertAuditLogs(tx, {
-      workspaceId,
+    await insertAuditLogs(tx, ctx.workspace!.auditLogBucket.id, {
+      workspaceId: ctx.workspace!.id,
       actor: { type: "user", id: ctx.user!.id },
       event: "permission.create",
       description: `Created ${permission.id}`,

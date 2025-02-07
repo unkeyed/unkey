@@ -29,6 +29,11 @@ export default async function StripeSuccess(props: Props) {
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    with: {
+      auditLogBuckets: {
+        where: (table, { eq }) => eq(table.name, "unkey_mutations"),
+      },
+    },
   });
   if (!ws) {
     return redirect("/new");
@@ -99,7 +104,7 @@ export default async function StripeSuccess(props: Props) {
       .where(eq(schema.workspaces.id, ws.id));
 
     if (isUpgradingPlan) {
-      await insertAuditLogs(tx, {
+      await insertAuditLogs(tx, ws.auditLogBuckets[0].id, {
         workspaceId: ws.id,
         actor: { type: "user", id: user.id },
         event: "workspace.update",
