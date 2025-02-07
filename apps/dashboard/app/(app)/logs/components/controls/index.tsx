@@ -2,6 +2,7 @@ import { LogsDateTime } from "./components/logs-datetime";
 import { LogsDisplay } from "./components/logs-display";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";
+import { LogsQueries } from "./components/logs-queries";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
@@ -9,7 +10,7 @@ export function LogsControls() {
   return (
     <div className="flex flex-col border-b border-gray-4 ">
       <div className="px-3 py-2 w-full justify-between flex items-center min-h-10">
-        <div className="flex gap-2">
+        <div className="flex gap-2 p-0 m-0">
           <div className="flex gap-2 items-center">
             <LogsSearch />
           </div>
@@ -18,6 +19,10 @@ export function LogsControls() {
           </div>
           <div className="flex gap-2 items-center">
             <LogsDateTime />
+          </div>
+          <div className="flex h-4 w-[1px] border-l-[1px] border-l-gray-4 justify-center items-center my-auto mx-1" />
+          <div className="flex gap-2 items-center">
+            <LogsQueries />
           </div>
         </div>
         <div className="flex gap-2">

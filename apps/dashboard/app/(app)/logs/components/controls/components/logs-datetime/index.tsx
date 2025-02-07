@@ -20,7 +20,10 @@ export const LogsDateTime = () => {
       <div className="group">
         <Button
           variant="ghost"
-          className={cn("group-data-[state=open]:bg-gray-4 px-2", isSelected ? "bg-gray-4" : "")}
+          className={cn(
+            "group-data-[state=open]:bg-gray-4 px-2 mr-0",
+            isSelected ? "bg-gray-4" : "",
+          )}
           aria-label="Filter logs by time"
           aria-haspopup="true"
           title="Press 'T' to toggle filters"
