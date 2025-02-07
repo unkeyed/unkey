@@ -73,7 +73,7 @@ export const vercelRouter = t.router({
             remaining: null,
             deletedAt: null,
           });
-          await insertAuditLogs(tx, {
+          await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "key.create",
@@ -123,7 +123,7 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          await insertAuditLogs(tx, {
+          await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -174,7 +174,7 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          await insertAuditLogs(tx, {
+          await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -254,7 +254,7 @@ export const vercelRouter = t.router({
               lastEditedBy: ctx.user.id,
             })
             .where(eq(schema.vercelBindings.id, existingBinding.id));
-          await insertAuditLogs(tx, {
+          await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.update",
@@ -294,7 +294,7 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          await insertAuditLogs(tx, {
+          await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -374,7 +374,7 @@ export const vercelRouter = t.router({
           remaining: null,
           deletedAt: null,
         });
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: integration.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "key.create",
@@ -419,7 +419,7 @@ export const vercelRouter = t.router({
               lastEditedBy: ctx.user.id,
             })
             .where(eq(schema.vercelBindings.id, existingBinding.id));
-          await insertAuditLogs(tx, {
+          await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.update",
@@ -460,7 +460,7 @@ export const vercelRouter = t.router({
             integrationId: integration.id,
           });
 
-          await insertAuditLogs(tx, {
+          await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -527,7 +527,7 @@ export const vercelRouter = t.router({
           .update(schema.vercelBindings)
           .set({ deletedAt: new Date() })
           .where(eq(schema.vercelBindings.id, binding.id));
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: binding.vercelIntegrations.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "vercelBinding.delete",
@@ -584,7 +584,7 @@ export const vercelRouter = t.router({
             .update(schema.vercelBindings)
             .set({ deletedAt: new Date() })
             .where(eq(schema.vercelBindings.id, binding.id));
-          await insertAuditLogs(tx, {
+          await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.delete",
