@@ -19,16 +19,7 @@ function SignInContent() {
     <div className="flex flex-col gap-10">
 
       {hasPendingAuth &&
-          <Dialog defaultOpen>
-             <DialogContent className="border-border w-11/12 max-sm:">
-             <DialogHeader>
-              <DialogDescription>
-                Select a workspace to continue authentication:
-              </DialogDescription>
-             </DialogHeader>
-                <OrgSelector organizations={orgs} />
-             </DialogContent>
-            </Dialog>
+          <OrgSelector organizations={orgs} />
       }
 
       {accountNotFound && (
