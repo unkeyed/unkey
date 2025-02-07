@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.33.1
+
+### Patch Changes
+
+- 10120e0: don't retry on 4XX
+
 ## 0.33.0
 
 ### Minor Changes

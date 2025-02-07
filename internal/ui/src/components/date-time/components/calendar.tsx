@@ -1,6 +1,8 @@
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { format } from "date-fns";
 import { useState } from "react";
+// biome-ignore lint/correctness/noUnusedImports: otherwise biome complains
+import React from "react";
 import { type CaptionProps, type DateRange, DayPicker, useNavigation } from "react-day-picker";
 import { cn } from "../../../lib/utils";
 import { buttonVariants } from "../../button";
@@ -150,6 +152,7 @@ export const Calendar = ({
         {...commonProps}
         mode="range"
         selected={date}
+        disabled={(date) => date > new Date()}
         onSelect={(date: DateRange | undefined) => (date ? handleChange(date) : undefined)}
       />
     );
@@ -160,6 +163,7 @@ export const Calendar = ({
       {...commonProps}
       mode="single"
       selected={singleDay}
+      disabled={(date) => date > new Date()}
       onSelect={(date: Date | undefined) => handleSingleChange(date)}
     />
   );

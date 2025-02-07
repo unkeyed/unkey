@@ -3,24 +3,26 @@ import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useCheckboxState } from "./hooks/use-checkbox-state";
 
 export const PathsFilter = () => {
-  const { data: paths, isLoading } = trpc.logs.queryDistinctPaths.useQuery(undefined, {
-    select(paths) {
-      return paths
-        ? paths.map((path, index) => ({
-            id: index + 1,
-            path,
-            checked: false,
-          }))
-        : [];
+  const dateNow = useMemo(() => Date.now(), []);
+  const { data: paths, isLoading } = trpc.logs.queryDistinctPaths.useQuery(
+    { currentDate: dateNow },
+    {
+      select(paths) {
+        return paths
+          ? paths.map((path, index) => ({
+              id: index + 1,
+              path,
+              checked: false,
+            }))
+          : [];
+      },
     },
-  });
+  );
   const { filters, updateFilters } = useFilters();
-  const [isAtBottom, setIsAtBottom] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState({
     options: paths ?? [],
@@ -29,24 +31,6 @@ export const PathsFilter = () => {
     checkPath: "path",
     shouldSyncWithOptions: true,
   });
-  const handleScroll = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-      const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 1;
-      setIsAtBottom(isBottom);
-    }
-  }, []);
-
-  useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
-    if (scrollContainer) {
-      scrollContainer.addEventListener("scroll", handleScroll);
-      handleScroll();
-      return () => {
-        scrollContainer.removeEventListener("scroll", handleScroll);
-      };
-    }
-  }, [handleScroll]);
 
   const handleApplyFilter = useCallback(() => {
     const selectedPaths = checkboxes.filter((c) => c.checked).map((c) => c.path);
@@ -97,10 +81,7 @@ export const PathsFilter = () => {
         </span>
       </label>
       <div className="relative px-2">
-        <div
-          ref={scrollContainerRef}
-          className="flex flex-col gap-2 font-mono px-2 pb-2 max-h-64 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-        >
+        <div className="flex flex-col gap-2 font-mono px-2 pb-2 max-h-64 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {checkboxes.map((checkbox, index) => (
             <label
               key={checkbox.id}
@@ -119,11 +100,6 @@ export const PathsFilter = () => {
             </label>
           ))}
         </div>
-        {!isAtBottom && (
-          <div className="absolute bottom-0 left-0 right-0 h-12 pointer-events-none transition-opacity duration-200">
-            <div className="h-full bg-gradient-to-t from-white to-white/0 dark:from-gray-900 dark:to-gray-900/0" />
-          </div>
-        )}
       </div>
       <div className="border-t border-gray-4" />
       <div className="p-2">
