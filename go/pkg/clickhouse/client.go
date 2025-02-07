@@ -7,11 +7,11 @@ import (
 	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
-	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
+	"github.com/unkeyed/unkey/go/pkg/batch"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
 type Clickhouse struct {
@@ -44,11 +44,15 @@ func New(config Config) (*Clickhouse, error) {
 		return nil, fault.Wrap(err, fault.WithDesc("opening clickhouse failed", ""))
 	}
 
-	err = util.Retry(func() error {
-		return conn.Ping(context.Background())
-	}, 10, func(n int) time.Duration {
-		return time.Duration(n) * time.Second
-	})
+	err = retry.New(
+		retry.Attempts(10),
+		retry.Backoff(func(n int) time.Duration {
+			return time.Duration(n) * time.Second
+		}),
+	).
+		Do(func() error {
+			return conn.Ping(context.Background())
+		})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.WithDesc("pinging clickhouse failed", ""))
 	}

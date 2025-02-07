@@ -13,6 +13,7 @@ type nodeConfig struct {
 		Interval int    `json:"interval" min:"1" description:"Interval in seconds to send heartbeat"`
 	} `json:"heartbeat,omitempty" description:"Send heartbeat to a URL"`
 
+	RedisUrl   string `json:"redisUrl"`
 	Clickhouse *struct {
 		Url string `json:"url" minLength:"1"`
 	} `json:"clickhouse,omitempty"`

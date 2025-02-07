@@ -21,10 +21,6 @@ export const optWorkspaceIntoBeta = t.procedure
         ctx.workspace.betaFeatures.identities = true;
         break;
       }
-      case "logsPage": {
-        ctx.workspace.betaFeatures.logsPage = true;
-        break;
-      }
     }
     await db
       .transaction(async (tx) => {

@@ -1,5 +1,5 @@
-import { METHODS } from "@/app/(app)/logs-v2/constants";
-import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs-v2/filters.schema";
+import { METHODS } from "@/app/(app)/logs/constants";
+import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs/filters.schema";
 import { env } from "@/lib/env";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";

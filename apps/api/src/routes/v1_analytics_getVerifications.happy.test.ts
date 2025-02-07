@@ -62,13 +62,14 @@ describe.each([
     const verifications = generate({
       start: new Date(tc.generate.start).getTime(),
       end: new Date(tc.generate.end).getTime(),
-      length: 100_000,
+      length: 10_000,
       workspaceId: h.resources.userWorkspace.id,
       keySpaceId: h.resources.userKeyAuth.id,
       keys: Array.from({ length: 3 }).map(() => ({ keyId: newId("test") })),
     });
 
-    await h.ch.verifications.insert(verifications);
+    const insert = await h.ch.verifications.insert(verifications);
+    expect(insert.err).toEqual(undefined);
 
     const inserted = await h.ch.querier.query({
       query:
@@ -78,6 +79,7 @@ describe.each([
     })({
       workspaceId: h.resources.userWorkspace.id,
     });
+    expect(inserted.err).toEqual(undefined);
     expect(inserted.val!.at(0)?.count).toEqual(verifications.length);
 
     const root = await h.createRootKey(["api.*.read_api"]);
@@ -146,7 +148,7 @@ describe("RFC scenarios", () => {
     const verifications = generate({
       start: now - 12 * 60 * 60 * 1000,
       end: now,
-      length: 100_000,
+      length: 10_000,
       workspaceId: h.resources.userWorkspace.id,
       keySpaceId: h.resources.userKeyAuth.id,
       keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
