@@ -14,6 +14,7 @@ export type BaseFieldConfig<T extends string | number, TOperator extends string 
 export type NumberConfig<TOperator extends string = string> = BaseFieldConfig<number, TOperator> & {
   type: "number";
   validate?: (value: number) => boolean;
+  getColorClass?: (value: number) => string;
 };
 
 export type StringConfig<TOperator extends string = string> = BaseFieldConfig<string, TOperator> & {
