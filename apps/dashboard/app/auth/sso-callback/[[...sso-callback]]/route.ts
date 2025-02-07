@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
             
             cookies().set(PENDING_SESSION_COOKIE, authResult.cookies[0].value, {
                 secure: true,
-                httpOnly: true
+                httpOnly: true,
+                maxAge: 60,
+                sameSite: 'lax'
             });
 
             return response;
