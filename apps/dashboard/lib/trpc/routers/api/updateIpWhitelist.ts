@@ -26,17 +26,17 @@ export const updateApiIpWhitelist = t.procedure
         })
         .nullable(),
       apiId: z.string(),
-      workspaceId: z.string(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
     const api = await db.query.apis
       .findFirst({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.apiId), isNull(table.deletedAt)),
-        with: {
-          workspace: true,
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.apiId),
+            isNull(table.deletedAt),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -46,11 +46,7 @@ export const updateApiIpWhitelist = t.procedure
         });
       });
 
-    if (
-      !api ||
-      api.workspace.tenantId !== ctx.tenant.id ||
-      input.workspaceId !== api.workspace.id
-    ) {
+    if (!api) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -58,7 +54,7 @@ export const updateApiIpWhitelist = t.procedure
       });
     }
 
-    if (!api.workspace.features.ipWhitelist) {
+    if (!ctx.workspace.features.ipWhitelist) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message:
@@ -84,8 +80,8 @@ export const updateApiIpWhitelist = t.procedure
             });
           });
 
-        await insertAuditLogs(tx, {
-          workspaceId: api.workspace.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,

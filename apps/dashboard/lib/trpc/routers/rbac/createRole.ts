@@ -22,31 +22,12 @@ export const createRole = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create role. Please try again or contact support@unkey.dev",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
     const roleId = newId("role");
     await db
       .transaction(async (tx) => {
         const existing = await tx.query.roles.findFirst({
           where: (table, { and, eq }) =>
-            and(eq(table.workspaceId, workspace.id), eq(table.name, input.name)),
+            and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
         });
         if (existing) {
           throw new TRPCError({
@@ -62,7 +43,7 @@ export const createRole = t.procedure
             id: roleId,
             name: input.name,
             description: input.description,
-            workspaceId: workspace.id,
+            workspaceId: ctx.workspace.id,
           })
           .catch((_err) => {
             throw new TRPCError({
@@ -71,8 +52,8 @@ export const createRole = t.procedure
                 "We are unable to create a role. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, {
-          workspaceId: workspace.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           event: "role.create",
           actor: {
             type: "user",
@@ -97,13 +78,14 @@ export const createRole = t.procedure
             input.permissionIds.map((permissionId) => ({
               permissionId,
               roleId: roleId,
-              workspaceId: workspace.id,
+              workspaceId: ctx.workspace.id,
             })),
           );
           await insertAuditLogs(
             tx,
+            ctx.workspace.auditLogBucket.id,
             input.permissionIds.map((permissionId) => ({
-              workspaceId: workspace.id,
+              workspaceId: ctx.workspace.id,
               event: "authorization.connect_role_and_permission",
               actor: {
                 type: "user",

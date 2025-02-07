@@ -21,4 +21,5 @@ export type KeyPermission = InferSelectModel<typeof schema.keysPermissions>;
 export type Ratelimit = InferSelectModel<typeof schema.ratelimits>;
 export type Identity = InferSelectModel<typeof schema.identities>;
 export type AuditLog = InferSelectModel<typeof schema.auditLog>;
+export type AuditLogBucket = InferSelectModel<typeof schema.auditLogBucket>;
 export type AuditLogTarget = InferSelectModel<typeof schema.auditLogTarget>;

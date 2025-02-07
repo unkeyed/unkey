@@ -57,6 +57,7 @@ export const deleteKeys = t.procedure
           );
         insertAuditLogs(
           tx,
+          ctx.workspace.auditLogBucket.id,
           workspace.keys.map((key) => ({
             workspaceId: workspace.id,
             actor: { type: "user", id: ctx.user.id },
