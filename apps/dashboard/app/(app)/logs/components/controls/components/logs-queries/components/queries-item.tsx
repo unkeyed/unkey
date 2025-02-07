@@ -69,7 +69,7 @@ export const QueriesItem = ({ item, index, total }: QueriesItemProps) => {
         {/* Filters */}
         <div className="flex flex-row mt-2">
           {/* Vertical Line on Left */}
-          <div className="flex flex-col ml-[8px] border-l-[1px] border-l-gray-5 w-[1px]"></div>
+          <div className="flex flex-col ml-[8px] border-l-[1px] border-l-gray-5 w-[1px]" />
           <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
             {/* Map Thru each Status filter */}
 
