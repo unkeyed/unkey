@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { filterOperatorEnum } from "../../filters.schema";
+import { ratelimitFilterOperatorEnum } from "../../filters.schema";
 
 export const ratelimitQueryTimeseriesPayload = z.object({
   startTime: z.number().int(),
@@ -10,7 +10,7 @@ export const ratelimitQueryTimeseriesPayload = z.object({
     .object({
       filters: z.array(
         z.object({
-          operator: filterOperatorEnum,
+          operator: ratelimitFilterOperatorEnum,
           value: z.string(),
         }),
       ),

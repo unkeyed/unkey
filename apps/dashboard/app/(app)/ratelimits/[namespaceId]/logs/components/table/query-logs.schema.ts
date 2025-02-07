@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { filterOperatorEnum } from "../../filters.schema";
+import { ratelimitFilterOperatorEnum } from "../../filters.schema";
 
 export const ratelimitQueryLogsPayload = z.object({
   limit: z.number().int(),
@@ -11,7 +11,7 @@ export const ratelimitQueryLogsPayload = z.object({
     .object({
       filters: z.array(
         z.object({
-          operator: filterOperatorEnum,
+          operator: ratelimitFilterOperatorEnum,
           value: z.string(),
         }),
       ),

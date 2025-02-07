@@ -7,7 +7,7 @@ import { createFilterOutputSchema } from "@/components/logs/validation/utils/str
 import { z } from "zod";
 
 // Configuration
-export const filterFieldConfig: FilterFieldConfigs = {
+export const ratelimitFilterFieldConfig: FilterFieldConfigs = {
   startTime: {
     type: "number",
     operators: ["is"],
@@ -37,8 +37,8 @@ export const filterFieldConfig: FilterFieldConfigs = {
 };
 
 // Schemas
-export const filterOperatorEnum = z.enum(["is", "contains"]);
-export const filterFieldEnum = z.enum([
+export const ratelimitFilterOperatorEnum = z.enum(["is", "contains"]);
+export const ratelimitFilterFieldEnum = z.enum([
   "startTime",
   "endTime",
   "since",
@@ -47,33 +47,35 @@ export const filterFieldEnum = z.enum([
   "status",
 ]);
 export const filterOutputSchema = createFilterOutputSchema(
-  filterFieldEnum,
-  filterOperatorEnum,
-  filterFieldConfig,
+  ratelimitFilterFieldEnum,
+  ratelimitFilterOperatorEnum,
+  ratelimitFilterFieldConfig,
 );
 
 // Types
-export type FilterOperator = z.infer<typeof filterOperatorEnum>;
-export type FilterField = z.infer<typeof filterFieldEnum>;
-export type FilterOutputSchema = z.infer<typeof filterOutputSchema>;
+export type RatelimitFilterOperator = z.infer<typeof ratelimitFilterOperatorEnum>;
+export type RatelimitFilterField = z.infer<typeof ratelimitFilterFieldEnum>;
 
 export type FilterFieldConfigs = {
-  startTime: NumberConfig<FilterOperator>;
-  endTime: NumberConfig<FilterOperator>;
-  since: StringConfig<FilterOperator>;
-  identifiers: StringConfig<FilterOperator>;
-  requestIds: StringConfig<FilterOperator>;
-  status: StringConfig<FilterOperator>;
+  startTime: NumberConfig<RatelimitFilterOperator>;
+  endTime: NumberConfig<RatelimitFilterOperator>;
+  since: StringConfig<RatelimitFilterOperator>;
+  identifiers: StringConfig<RatelimitFilterOperator>;
+  requestIds: StringConfig<RatelimitFilterOperator>;
+  status: StringConfig<RatelimitFilterOperator>;
 };
 
-export type FilterUrlValue = Pick<FilterValue<FilterField, FilterOperator>, "value" | "operator">;
-export type RatelimitFilterValue = FilterValue<FilterField, FilterOperator>;
+export type RatelimitFilterUrlValue = Pick<
+  FilterValue<RatelimitFilterField, RatelimitFilterOperator>,
+  "value" | "operator"
+>;
+export type RatelimitFilterValue = FilterValue<RatelimitFilterField, RatelimitFilterOperator>;
 
-export type QuerySearchParams = {
+export type RatelimitQuerySearchParams = {
   startTime?: number | null;
   endTime?: number | null;
   since?: string | null;
-  identifiers: FilterUrlValue[] | null;
-  requestIds: FilterUrlValue[] | null;
-  status: FilterUrlValue[] | null;
+  identifiers: RatelimitFilterUrlValue[] | null;
+  requestIds: RatelimitFilterUrlValue[] | null;
+  status: RatelimitFilterUrlValue[] | null;
 };

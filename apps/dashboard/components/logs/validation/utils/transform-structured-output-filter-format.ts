@@ -1,3 +1,20 @@
+/**
+ * Transforms LLM-generated structured filter output into internal query filters that match
+ * the FilterFieldConfigs schema. Merges new filters with existing ones while maintaining
+ * uniqueness based on field-operator-value combinations.
+ *
+ * @example
+ * const llmOutput = {
+ *   filters: [{
+ *     field: "status",
+ *     filters: [
+ *       { operator: "is", value: "blocked" }
+ *     ]
+ *   }]
+ * };
+ * const result = transformStructuredOutputToFilters(llmOutput);
+ * // Returns: [{ id: "uuid", field: "status", operator: "is", value: "blocked" }]
+ */
 export const transformStructuredOutputToFilters = <
   TField extends string,
   TOperator extends string,

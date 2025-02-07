@@ -38,7 +38,7 @@ export function createFilterOutputSchema<
   });
 }
 
-export function validateFieldValue<TConfig extends Record<string, FieldConfig>>(
+function validateFieldValue<TConfig extends Record<string, FieldConfig>>(
   field: keyof TConfig,
   value: string | number,
   filterFieldConfig: TConfig,

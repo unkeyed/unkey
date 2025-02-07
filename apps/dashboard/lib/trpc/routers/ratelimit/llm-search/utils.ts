@@ -1,11 +1,28 @@
 import {
-  filterFieldConfig,
   filterOutputSchema,
+  ratelimitFilterFieldConfig,
 } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
 
+/**
+ * Creates a Zod schema for validating LLM-generated structured filter output.
+ * Used with OpenAI's parse completion to enforce type safety and validation rules
+ * defined in FilterFieldConfigs.
+ *
+ *
+ * @example
+ * const schema = createFilterOutputSchema(
+ *   z.enum(["status", "identifiers"]),
+ *   z.enum(["is", "contains"]),
+ *   ratelimitFilterFieldConfig
+ * );
+ *
+ * const llmResponse = await openai.beta.chat.completions.parse({
+ *   response_format: zodResponseFormat(schema, "searchQuery")
+ * });
+ */
 export async function getStructuredSearchFromLLM(
   openai: OpenAI | null,
   userSearchMsg: string,
@@ -76,7 +93,7 @@ export async function getStructuredSearchFromLLM(
   }
 }
 export const getSystemPrompt = (usersReferenceMS: number) => {
-  const operatorsByField = Object.entries(filterFieldConfig)
+  const operatorsByField = Object.entries(ratelimitFilterFieldConfig)
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
       let constraints = "";
