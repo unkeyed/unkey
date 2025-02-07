@@ -6,7 +6,7 @@ import { XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { format } from "date-fns";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
-import type { FilterValue } from "../../filters.type";
+import type { RatelimitFilterValue } from "../../filters.schema";
 import { useFilters } from "../../hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "../table/hooks/use-logs-query";
 
@@ -44,7 +44,7 @@ const formatOperator = (operator: string, field: string): string => {
 };
 
 type ControlPillProps = {
-  filter: FilterValue;
+  filter: RatelimitFilterValue;
   onRemove: (id: string) => void;
   isFocused?: boolean;
   onFocus?: () => void;

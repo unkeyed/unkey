@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRatelimitLogsContext } from "../../../../../context/logs";
-import type { FilterValue } from "../../../../../filters.type";
+import type { RatelimitFilterValue } from "../../../../../filters.schema";
 import { useFilters } from "../../../../../hooks/use-filters";
 import { useCheckboxState } from "./hooks/use-checkbox-state";
 
@@ -75,7 +75,7 @@ export const IdentifiersFilter = () => {
 
     // Keep all non-paths filters and add new path filters
     const otherFilters = filters.filter((f) => f.field !== "identifiers");
-    const identifiersFilters: FilterValue[] = selectedPaths.map((path) => ({
+    const identifiersFilters: RatelimitFilterValue[] = selectedPaths.map((path) => ({
       id: crypto.randomUUID(),
       field: "identifiers",
       operator: "is",

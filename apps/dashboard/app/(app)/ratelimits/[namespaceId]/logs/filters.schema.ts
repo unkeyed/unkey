@@ -1,114 +1,12 @@
-import { z } from "zod";
 import type {
-  FieldConfig,
-  FilterField,
-  FilterFieldConfigs,
   FilterValue,
   NumberConfig,
   StringConfig,
-} from "./filters.type";
+} from "@/components/logs/validation/filter.types";
+import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
+import { z } from "zod";
 
-export const filterOperatorEnum = z.enum(["is", "contains"]);
-
-export const filterFieldEnum = z.enum([
-  "startTime",
-  "endTime",
-  "since",
-  "identifiers",
-  "requestIds",
-  "status",
-]);
-
-export const filterOutputSchema = z.object({
-  filters: z.array(
-    z
-      .object({
-        field: filterFieldEnum,
-        filters: z.array(
-          z.object({
-            operator: filterOperatorEnum,
-            value: z.union([z.string(), z.number()]),
-          }),
-        ),
-      })
-      .refine(
-        (data) => {
-          const config = filterFieldConfig[data.field];
-          return data.filters.every((filter) => {
-            const isOperatorValid = config.operators.includes(filter.operator as any);
-            if (!isOperatorValid) {
-              return false;
-            }
-            return validateFieldValue(data.field, filter.value);
-          });
-        },
-        {
-          message: "Invalid field/operator/value combination",
-        },
-      ),
-  ),
-});
-
-// Required for transforming OpenAI structured outputs into our own Filter types
-export const transformStructuredOutputToFilters = (
-  data: z.infer<typeof filterOutputSchema>,
-  existingFilters: FilterValue[] = [],
-): FilterValue[] => {
-  const uniqueFilters = [...existingFilters];
-  const seenFilters = new Set(existingFilters.map((f) => `${f.field}-${f.operator}-${f.value}`));
-
-  for (const filterGroup of data.filters) {
-    filterGroup.filters.forEach((filter) => {
-      const baseFilter = {
-        field: filterGroup.field,
-        operator: filter.operator,
-        value: filter.value,
-      };
-
-      const filterKey = `${baseFilter.field}-${baseFilter.operator}-${baseFilter.value}`;
-
-      if (seenFilters.has(filterKey)) {
-        return;
-      }
-
-      uniqueFilters.push({
-        id: crypto.randomUUID(),
-        ...baseFilter,
-      });
-
-      seenFilters.add(filterKey);
-    });
-  }
-
-  return uniqueFilters;
-};
-
-// Type guard for config types
-function isNumberConfig(config: FieldConfig): config is NumberConfig {
-  return config.type === "number";
-}
-
-function isStringConfig(config: FieldConfig): config is StringConfig {
-  return config.type === "string";
-}
-
-export function validateFieldValue(field: FilterField, value: string | number): boolean {
-  const config = filterFieldConfig[field];
-
-  if (isStringConfig(config) && typeof value === "string") {
-    if (config.validValues) {
-      return config.validValues.includes(value);
-    }
-    return config.validate ? config.validate(value) : true;
-  }
-
-  if (isNumberConfig(config) && typeof value === "number") {
-    return config.validate ? config.validate(value) : true;
-  }
-
-  return true;
-}
-
+// Configuration
 export const filterFieldConfig: FilterFieldConfigs = {
   startTime: {
     type: "number",
@@ -134,11 +32,48 @@ export const filterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is"],
     validValues: ["blocked", "passed"],
-    getColorClass: (value) => {
-      if (value === "blocked") {
-        return "bg-warning-9";
-      }
-      return "bg-success-9";
-    },
+    getColorClass: (value) => (value === "blocked" ? "bg-warning-9" : "bg-success-9"),
   } as const,
+};
+
+// Schemas
+export const filterOperatorEnum = z.enum(["is", "contains"]);
+export const filterFieldEnum = z.enum([
+  "startTime",
+  "endTime",
+  "since",
+  "identifiers",
+  "requestIds",
+  "status",
+]);
+export const filterOutputSchema = createFilterOutputSchema(
+  filterFieldEnum,
+  filterOperatorEnum,
+  filterFieldConfig,
+);
+
+// Types
+export type FilterOperator = z.infer<typeof filterOperatorEnum>;
+export type FilterField = z.infer<typeof filterFieldEnum>;
+export type FilterOutputSchema = z.infer<typeof filterOutputSchema>;
+
+export type FilterFieldConfigs = {
+  startTime: NumberConfig<FilterOperator>;
+  endTime: NumberConfig<FilterOperator>;
+  since: StringConfig<FilterOperator>;
+  identifiers: StringConfig<FilterOperator>;
+  requestIds: StringConfig<FilterOperator>;
+  status: StringConfig<FilterOperator>;
+};
+
+export type FilterUrlValue = Pick<FilterValue<FilterField, FilterOperator>, "value" | "operator">;
+export type RatelimitFilterValue = FilterValue<FilterField, FilterOperator>;
+
+export type QuerySearchParams = {
+  startTime?: number | null;
+  endTime?: number | null;
+  since?: string | null;
+  identifiers: FilterUrlValue[] | null;
+  requestIds: FilterUrlValue[] | null;
+  status: FilterUrlValue[] | null;
 };

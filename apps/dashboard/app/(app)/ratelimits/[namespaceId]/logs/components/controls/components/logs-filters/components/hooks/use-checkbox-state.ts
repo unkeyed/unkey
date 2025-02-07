@@ -1,9 +1,9 @@
-import type { FilterValue } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.type";
+import type { RatelimitFilterValue } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import { useEffect, useState } from "react";
 
 type UseCheckboxStateProps<TItem> = {
   options: Array<{ id: number } & TItem>;
-  filters: FilterValue[];
+  filters: RatelimitFilterValue[];
   filterField: string;
   checkPath: keyof TItem; // Specify which field to get from checkbox item
   shouldSyncWithOptions?: boolean;
