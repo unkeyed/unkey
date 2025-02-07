@@ -19,7 +19,6 @@ import { updateKeyOwnerId } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
-import { deleteLlmGateway } from "./llmGateway/delete";
 import { llmSearch } from "./logs/llm-search";
 import { queryDistinctPaths } from "./logs/query-distinct-paths";
 import { queryLogs } from "./logs/query-logs";
@@ -66,9 +65,6 @@ export const router = t.router({
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
     }),
-  }),
-  llmGateway: t.router({
-    delete: deleteLlmGateway,
   }),
   rootKey: t.router({
     create: createRootKey,

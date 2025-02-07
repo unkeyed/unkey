@@ -13,21 +13,6 @@ export const changeWorkspaceName = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const ws = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
-        });
-      });
-    if (!ws || ws.tenantId !== ctx.tenant.id) {
-      throw new Error("Workspace not found, Please sign back in and try again");
-    }
     await db
       .transaction(async (tx) => {
         await tx
@@ -43,15 +28,15 @@ export const changeWorkspaceName = t.procedure
                 "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
             });
           });
-        await insertAuditLogs(tx, {
-          workspaceId: ws.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "workspace.update",
-          description: `Changed name from ${ws.name} to ${input.name}`,
+          description: `Changed name from ${ctx.workspace.name} to ${input.name}`,
           resources: [
             {
               type: "workspace",
-              id: ws.id,
+              id: ctx.workspace.id,
             },
           ],
           context: {

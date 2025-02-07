@@ -50,10 +50,7 @@ export const LogsSearch = () => {
     const query = search.trim();
     if (query) {
       try {
-        await queryLLMForStructuredOutput.mutateAsync({
-          query,
-          timestamp: Date.now(),
-        });
+        await queryLLMForStructuredOutput.mutateAsync(query);
       } catch (error) {
         console.error("Search failed:", error);
       }
