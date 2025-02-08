@@ -29,9 +29,14 @@ const requestValidation = z.object({
   }),
 });
 
-export default async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
+export default async function webhookHandler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
-    const resend = env().RESEND_API_KEY ? new Resend({ apiKey: env().RESEND_API_KEY! }) : null;
+    const resend = env().RESEND_API_KEY
+      ? new Resend({ apiKey: env().RESEND_API_KEY! })
+      : null;
     const {
       headers: { "stripe-signature": signature },
     } = requestValidation.parse(req);
@@ -48,7 +53,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
     const event = stripe.webhooks.constructEvent(
       (await buffer(req)).toString(),
       signature,
-      stripeEnv()!.STRIPE_WEBHOOK_SECRET,
+      stripeEnv()!.STRIPE_WEBHOOK_SECRET
     );
 
     switch (event.type) {
@@ -65,7 +70,9 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           throw new Error("workspace does not exist");
         }
         const users = await getUsers(ws.tenantId);
-        const date = invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date();
+        const date = invoice.effective_at
+          ? new Date(invoice.effective_at * 1000)
+          : new Date();
         for await (const user of users) {
           await resend.sendPaymentIssue({
             email: user.email,
@@ -77,7 +84,10 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       }
 
       default:
-        console.error("Incoming stripe event, that should not be received", event.type);
+        console.error(
+          "Incoming stripe event, that should not be received",
+          event.type
+        );
         break;
     }
     res.send("OK");
@@ -91,18 +101,22 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
   }
 }
 
-async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
+async function getUsers(
+  tenantId: string
+): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];
-    const members = await auth.getOrganizationMembershipList({
-      organizationId: tenantId,
-    });
-    for (const m of members) {
-      userIds.push(m.user.id);
-    }
+  const { data } = await auth.getOrganizationMemberList(tenantId);
+
+  for (const m of data) {
+    userIds.push(m.user.id);
+  }
 
   return await Promise.all(
     userIds.map(async (userId) => {
       const user = await auth.getUser(userId);
+      if (!user) {
+        throw new Error(`Error retrieving user for ${userId}`);
+      }
       const email = user.email;
       if (!email) {
         throw new Error(`user ${user.id} does not have an email`);
@@ -112,6 +126,6 @@ async function getUsers(tenantId: string): Promise<{ id: string; email: string; 
         name: user.firstName ?? "there",
         email,
       };
-    }),
+    })
   );
 }
