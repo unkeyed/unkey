@@ -9,7 +9,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
   const { userId, orgId, orgRole } = await getAuth(req as any);
 
   let ws: (Workspace & { auditLogBucket: AuditLogBucket }) | undefined;
-  const tenantId = orgId ?? userId;
+  const tenantId = orgId;
   if (tenantId) {
     await db.transaction(async (tx) => {
       const res = await tx.query.workspaces.findFirst({
@@ -49,7 +49,10 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
     req,
     audit: {
       userAgent: req.headers.get("user-agent") ?? undefined,
-      location: req.headers.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+      location:
+        req.headers.get("x-forwarded-for") ??
+        process.env.VERCEL_REGION ??
+        "unknown",
     },
     user: userId ? { id: userId } : null,
     workspace: ws,
@@ -59,7 +62,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
             id: orgId,
             role: orgRole,
           }
-          : null,
+        : null,
   };
 }
 
