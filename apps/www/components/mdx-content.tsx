@@ -6,6 +6,8 @@ import { BlogCodeBlock, BlogCodeBlockSingle } from "./blog/blog-code-block";
 import { BlogList, BlogListItem, BlogListNumbered, type BlogListProps } from "./blog/blog-list";
 import { BlogQuote, type BlogQuoteProps } from "./blog/blog-quote";
 import { Alert } from "./ui/alert/alert";
+import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
+
 
 export const MdxComponents = {
   Image: (props: ImageProps) =>
@@ -24,6 +26,7 @@ export const MdxComponents = {
         blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
       />
     ),
+    ImageZoom: (props) => <ImageZoom {...(props as any)} />,
   img: (props: DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => (
     <img src={props.src} alt={props.src} />
   ),
