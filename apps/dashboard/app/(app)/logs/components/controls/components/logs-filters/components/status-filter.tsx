@@ -1,5 +1,5 @@
 import type { ResponseStatus } from "@/app/(app)/logs/types";
-import { FilterCheckbox } from "./filter-checkbox";
+import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 
 type StatusOption = {
   id: number;

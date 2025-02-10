@@ -1,21 +1,21 @@
-import type { LogsFilterValue } from "@/app/(app)/logs/filters.schema";
 import { useEffect, useState } from "react";
+import type { FilterValue } from "../../validation/filter.types";
 
-type UseCheckboxStateProps<TItem> = {
+type UseCheckboxStateProps<TItem, TFilter extends FilterValue> = {
   options: Array<{ id: number } & TItem>;
-  filters: LogsFilterValue[];
+  filters: TFilter[];
   filterField: string;
   checkPath: keyof TItem; // Specify which field to get from checkbox item
   shouldSyncWithOptions?: boolean;
 };
 
-export const useCheckboxState = <TItem extends Record<string, any>>({
+export const useCheckboxState = <TItem extends Record<string, any>, TFilter extends FilterValue>({
   options,
   filters,
   filterField,
   checkPath,
   shouldSyncWithOptions = false,
-}: UseCheckboxStateProps<TItem>) => {
+}: UseCheckboxStateProps<TItem, TFilter>) => {
   const [checkboxes, setCheckboxes] = useState<TItem[]>(() => {
     const activeFilters = filters
       .filter((f) => f.field === filterField)

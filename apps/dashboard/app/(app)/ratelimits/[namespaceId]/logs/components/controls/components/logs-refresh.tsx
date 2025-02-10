@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc/client";
 import { useRatelimitLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
 
-export const RatelimitLogsRefresh = () => {
+export const LogsRefresh = () => {
   const { toggleLive, isLive } = useRatelimitLogsContext();
   const { filters } = useFilters();
   const { ratelimit } = trpc.useUtils();
