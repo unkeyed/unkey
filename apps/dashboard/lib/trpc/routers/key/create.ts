@@ -11,7 +11,7 @@ export const createKey = t.procedure
   .input(
     z.object({
       prefix: z.string().optional(),
-      bytes: z.number().int().gte(1).default(16),
+      bytes: z.number().int().gte(16).default(16),
       keyAuthId: z.string(),
       ownerId: z.string().nullish(),
       meta: z.record(z.unknown()).optional(),
