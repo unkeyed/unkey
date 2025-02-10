@@ -3,25 +3,21 @@ import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useCheckboxState } from "./hooks/use-checkbox-state";
 
 export const PathsFilter = () => {
-  const dateNow = useMemo(() => Date.now(), []);
-  const { data: paths, isLoading } = trpc.logs.queryDistinctPaths.useQuery(
-    { currentDate: dateNow },
-    {
-      select(paths) {
-        return paths
-          ? paths.map((path, index) => ({
-              id: index + 1,
-              path,
-              checked: false,
-            }))
-          : [];
-      },
+  const { data: paths, isLoading } = trpc.logs.queryDistinctPaths.useQuery(undefined, {
+    select(paths) {
+      return paths
+        ? paths.map((path, index) => ({
+            id: index + 1,
+            path,
+            checked: false,
+          }))
+        : [];
     },
-  );
+  });
   const { filters, updateFilters } = useFilters();
 
   const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState({
