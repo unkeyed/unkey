@@ -1,3 +1,4 @@
+import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { toast } from "@/components/ui/toaster";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { trpc } from "@/lib/trpc/client";
@@ -5,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { CaretRightOutline, CircleInfoSparkle, Magnifier, Refresh3 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip";
 import { useRef, useState } from "react";
-import { transformStructuredOutputToFilters } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = () => {
