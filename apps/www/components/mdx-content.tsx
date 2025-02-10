@@ -30,7 +30,7 @@ export const MdxComponents = {
         blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
       />
     ),
-  ImageZoom: (props: ImageProps) => <ImageZoom {...(props as any)} />,
+  ImageZoom: (props: ImageProps) => <ImageZoom {...props} />,
   img: (
     props: DetailedHTMLProps<
       ImgHTMLAttributes<HTMLImageElement>,
