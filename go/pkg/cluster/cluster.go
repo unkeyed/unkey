@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/unkeyed/unkey/go/pkg/events"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
 	"github.com/unkeyed/unkey/go/pkg/ring"
@@ -14,6 +15,8 @@ type Config struct {
 	Self       Node
 	Membership membership.Membership
 	Logger     logging.Logger
+
+	RpcPort int
 }
 
 func New(config Config) (*cluster, error) {
@@ -28,10 +31,14 @@ func New(config Config) (*cluster, error) {
 	}
 
 	c := &cluster{
-		self:       config.Self,
-		membership: config.Membership,
-		ring:       r,
-		logger:     config.Logger,
+		self:        config.Self,
+		membership:  config.Membership,
+		ring:        r,
+		logger:      config.Logger,
+		joinEvents:  events.NewTopic[Node](),
+		leaveEvents: events.NewTopic[Node](),
+
+		rpcPort: config.RpcPort,
 	}
 
 	go c.keepInSync()
@@ -44,6 +51,25 @@ type cluster struct {
 	membership membership.Membership
 	ring       *ring.Ring[Node]
 	logger     logging.Logger
+
+	joinEvents  events.Topic[Node]
+	leaveEvents events.Topic[Node]
+
+	rpcPort int
+}
+
+var _ Cluster = (*cluster)(nil)
+
+func (c *cluster) Self() Node {
+	return c.self
+}
+
+func (c *cluster) SubscribeJoin() <-chan Node {
+	return c.joinEvents.Subscribe("cluster.joinEvents")
+}
+
+func (c *cluster) SubscribeLeave() <-chan Node {
+	return c.leaveEvents.Subscribe("cluster.leaveEvents")
 }
 
 // listens to membership changes and updates the hash ring
@@ -56,13 +82,14 @@ func (c *cluster) keepInSync() {
 		case node := <-joins:
 			{
 				ctx := context.Background()
-				c.logger.Info(ctx, "node joined", slog.String("nodeID", node.ID))
+				c.logger.Info(ctx, "node joined", slog.String("nodeID", node.NodeID))
 
 				err := c.ring.AddNode(ctx, ring.Node[Node]{
-					ID: node.ID,
+					ID: node.NodeID,
 					Tags: Node{
-						ID:      node.ID,
-						RpcAddr: node.RpcAddr,
+						RpcAddr: fmt.Sprintf("%s:%d", node.Addr.String(), c.rpcPort),
+						ID:      node.NodeID,
+						Addr:    node.Addr,
 					},
 				})
 				if err != nil {
@@ -73,8 +100,8 @@ func (c *cluster) keepInSync() {
 		case node := <-leaves:
 			{
 				ctx := context.Background()
-				c.logger.Info(ctx, "node left", slog.String("nodeID", node.ID))
-				err := c.ring.RemoveNode(ctx, node.ID)
+				c.logger.Info(ctx, "node left", slog.String("nodeID", node.NodeID))
+				err := c.ring.RemoveNode(ctx, node.NodeID)
 				if err != nil {
 					c.logger.Error(ctx, "failed to remove node from ring", slog.String("error", err.Error()))
 				}
@@ -95,5 +122,5 @@ func (c *cluster) FindNode(ctx context.Context, key string) (Node, error) {
 }
 
 func (c *cluster) Shutdown(ctx context.Context) error {
-	return c.membership.Leave(ctx)
+	return c.membership.Leave()
 }

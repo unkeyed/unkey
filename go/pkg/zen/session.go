@@ -96,6 +96,10 @@ func (s *Session) JSON(status int, body any) error {
 	s.ResponseWriter().Header().Add("Content-Type", "application/json")
 	return s.send(status, b)
 }
+func (s *Session) Send(status int, body []byte) error {
+
+	return s.send(status, body)
+}
 
 // reset is called automatically before the session is returned to the pool.
 // It resets all fields to their null value to prevent leaking data between

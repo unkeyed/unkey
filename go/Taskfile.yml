@@ -1,9 +1,8 @@
-version: '3'
+version: "3"
 
 tasks:
   install:
-    cmd:
-      go mod tidy
+    cmd: go mod tidy
   fmt:
     cmds:
       - go fmt ./...
@@ -24,3 +23,7 @@ tasks:
   lint:
     cmds:
       - golangci-lint run
+
+  simulate:
+    cmds:
+      - go run github.com/jellevandenhooff/gosim/cmd/gosim test -v -run TestGosim

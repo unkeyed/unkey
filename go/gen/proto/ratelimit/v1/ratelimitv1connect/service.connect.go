@@ -8,7 +8,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	v1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
 	http "net/http"
 	strings "strings"
 )

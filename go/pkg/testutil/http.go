@@ -41,7 +41,7 @@ func NewHarness(t *testing.T) *Harness {
 
 func (h *Harness) Register(route zen.Route) {
 
-	h.srv.RegisterRoute(route)
+	h.srv.RegisterRoute([]zen.Middleware{}, route)
 
 }
 

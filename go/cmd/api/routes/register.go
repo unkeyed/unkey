@@ -1,6 +1,7 @@
 package routes
 
 import (
+	v2EcsMeta "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ecs_meta"
 	v2Liveness "github.com/unkeyed/unkey/go/cmd/api/routes/v2_liveness"
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_limit"
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
@@ -36,5 +37,7 @@ func Register(srv *zen.Server, svc *Services) {
 		defaultMiddlewares,
 		v2RatelimitLimit.New(v2RatelimitLimit.Services{}),
 	)
+
+	srv.RegisterRoute([]zen.Middleware{}, v2EcsMeta.New())
 
 }

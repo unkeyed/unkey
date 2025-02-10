@@ -2,14 +2,12 @@ package zen
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/go/pkg/certificate"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 )
@@ -28,8 +26,6 @@ type Server struct {
 type Config struct {
 	NodeID string
 	Logger logging.Logger
-
-	CertificateSource certificate.Source
 }
 
 func New(config Config) (*Server, error) {
@@ -53,30 +49,6 @@ func New(config Config) (*Server, error) {
 		WriteTimeout: 20 * time.Second,
 	}
 
-	if config.CertificateSource != nil {
-		config.Logger.Info(context.Background(), "using certificate source")
-		srv.TLSConfig = &tls.Config{
-			// which are tuned to avoid attacks. Does nothing on clients.
-			PreferServerCipherSuites: true,
-			// Only use curves which have assembly implementations
-			CurvePreferences: []tls.CurveID{
-				tls.CurveP256,
-				tls.X25519,
-			},
-			MinVersion: tls.VersionTLS12,
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305, // Go 1.8 only
-				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,   // Go 1.8 only
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			},
-
-			GetCertificate: config.CertificateSource.GetCertificate,
-		}
-	}
-
 	s := &Server{
 		mu:          sync.Mutex{},
 		logger:      config.Logger,
@@ -86,6 +58,7 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
+					workspaceID:    "",
 					requestID:      "",
 					w:              nil,
 					r:              nil,
@@ -139,11 +112,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 
 	s.logger.Info(ctx, "listening", slog.String("addr", addr))
 
-	ln, err := tls.Listen("tcp", addr, s.srv.TLSConfig)
-	if err != nil {
-		return fault.Wrap(err, fault.WithDesc("creating listener failed", ""))
-	}
-	err = http.Serve(ln, s.srv.Handler)
+	err := s.srv.ListenAndServe()
 	if err != nil {
 		return fault.Wrap(err, fault.WithDesc("listening failed", ""))
 	}

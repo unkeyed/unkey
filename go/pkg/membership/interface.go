@@ -1,19 +1,12 @@
 package membership
 
-import "context"
+import "github.com/unkeyed/unkey/go/pkg/discovery"
 
 type Membership interface {
-	Join(ctx context.Context) (int, error)
-	Leave(ctx context.Context) error
-	Members(ctx context.Context) ([]Member, error)
-	Addr() string
+	Start(discovery.Discoverer) error
+	Leave() error
+	Members() ([]Member, error)
 	SubscribeJoinEvents() <-chan Member
 
 	SubscribeLeaveEvents() <-chan Member
-}
-
-type Member struct {
-	// Global unique identifier for the node
-	ID      string `json:"id"`
-	RpcAddr string `json:"addr"`
 }

@@ -2,6 +2,8 @@ package ring
 
 import (
 	"context"
+	// We use it as fast and insecure hash
+	// nolint:gosec
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
@@ -107,7 +109,8 @@ func (r *Ring[T]) RemoveNode(ctx context.Context, nodeID string) error {
 }
 
 func (r *Ring[T]) hash(key string) (uint64, error) {
-
+	// We use it as fast and insecure hash
+	// nolint:gosec
 	sum := md5.Sum([]byte(key))
 
 	return binary.BigEndian.Uint64(sum[:8]), nil

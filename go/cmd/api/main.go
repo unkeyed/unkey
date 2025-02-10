@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -12,11 +13,11 @@ import (
 
 	"github.com/unkeyed/unkey/go/cmd/api/routes"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/pkg/certificate"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/config"
 	"github.com/unkeyed/unkey/go/pkg/database"
+	"github.com/unkeyed/unkey/go/pkg/discovery"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -27,20 +28,23 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name: "api",
+	Name:        "api",
+	Description: "Run the API server",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
+			Required:    true,
 			Name:        "config",
 			Aliases:     []string{"c"},
 			Usage:       "Load configuration file",
 			Value:       "unkey.json",
 			DefaultText: "unkey.json",
-			EnvVars:     []string{"AGENT_CONFIG_FILE"},
+			EnvVars:     []string{"UNKEY_CONFIG_FILE"},
 		},
 	},
 	Action: run,
 }
 
+// nolint:gocognit
 func run(cliC *cli.Context) error {
 	ctx := cliC.Context
 	configFile := cliC.String("config")
@@ -52,8 +56,9 @@ func run(cliC *cli.Context) error {
 		return fmt.Errorf("unable to load config file: %w", err)
 	}
 
-	if cfg.NodeID == "" {
-		cfg.NodeID = uid.Node()
+	nodeID := uid.Node()
+	if cfg.Cluster != nil && cfg.Cluster.NodeID != "" {
+		nodeID = cfg.Cluster.NodeID
 	}
 
 	if cfg.Region == "" {
@@ -61,11 +66,10 @@ func run(cliC *cli.Context) error {
 	}
 	logger := logging.New(logging.Config{Development: true, NoColor: true}).
 		With(
-			slog.String("nodeId", cfg.NodeID),
+			slog.String("nodeId", nodeID),
 			slog.String("platform", cfg.Platform),
 			slog.String("region", cfg.Region),
 			slog.String("version", version.Version),
-			slog.Any("env", os.Environ()),
 		)
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
@@ -79,30 +83,51 @@ func run(cliC *cli.Context) error {
 
 	logger.Info(ctx, "configration loaded", slog.String("file", configFile))
 
-	m, err := membership.NewRedis(membership.RedisConfig{
-		RedisUrl: cfg.RedisUrl,
-		NodeID:   cfg.NodeID,
-		RpcAddr:  cfg.RpcAddr,
-		Logger:   logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create membership: %w", err)
-	}
+	var c cluster.Cluster = cluster.NewNoop(nodeID, net.ParseIP("127.0.0.1"))
+	if cfg.Cluster != nil {
+		var d discovery.Discoverer
 
-	c, err := cluster.New(cluster.Config{
-		Self: cluster.Node{
-			ID:      cfg.NodeID,
-			RpcAddr: "",
-		},
-		Logger:     logger,
-		Membership: m,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create cluster: %w", err)
-	}
-	_, err = m.Join(ctx)
-	if err != nil {
-		return fmt.Errorf("unable to join cluster")
+		switch {
+		case cfg.Cluster.Discovery.Static != nil:
+
+			d = &discovery.Static{
+				Addrs: cfg.Cluster.Discovery.Static.Addrs,
+			}
+		case cfg.Cluster.Discovery.AwsCloudmap != nil:
+			return fmt.Errorf("NOT IMPLEMENTED")
+		default:
+			return fmt.Errorf("missing discovery method")
+		}
+
+		m, mErr := membership.New(membership.Config{
+			NodeID:     nodeID,
+			Addr:       net.ParseIP(""),
+			GossipPort: cfg.Cluster.GossipPort,
+			Logger:     logger,
+		})
+		if mErr != nil {
+			return fmt.Errorf("unable to create membership: %w", err)
+		}
+
+		c, err = cluster.New(cluster.Config{
+			Self: cluster.Node{
+
+				ID:      nodeID,
+				Addr:    net.ParseIP(cfg.Cluster.AdvertiseAddr),
+				RpcAddr: "TO DO",
+			},
+			Logger:     logger,
+			Membership: m,
+			RpcPort:    cfg.Cluster.RpcPort,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create cluster: %w", err)
+		}
+
+		err = m.Start(d)
+		if err != nil {
+			return fmt.Errorf("unable to start membership: %w", err)
+		}
 	}
 
 	var ch clickhouse.Bufferer = clickhouse.NewNoop()
@@ -116,15 +141,9 @@ func run(cliC *cli.Context) error {
 		}
 	}
 
-	certs, err := certificate.NewDevCertificateSource()
-	if err != nil {
-		return fmt.Errorf("unable to create certificate: %w", err)
-	}
-
 	srv, err := zen.New(zen.Config{
-		NodeID:            cfg.NodeID,
-		Logger:            logger,
-		CertificateSource: certs,
+		NodeID: nodeID,
+		Logger: logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
@@ -144,7 +163,13 @@ func run(cliC *cli.Context) error {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
 
-	keySvc, err := keys.New(keys.Config{})
+	keySvc, err := keys.New(keys.Config{
+		Logger: logger,
+		DB:     db,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create key service: %w", err)
+	}
 
 	routes.Register(srv, &routes.Services{
 		Logger:      logger,
@@ -155,7 +180,7 @@ func run(cliC *cli.Context) error {
 	})
 
 	go func() {
-		listenErr := srv.Listen(ctx, cfg.HttpAddr)
+		listenErr := srv.Listen(ctx, fmt.Sprintf(":%d", cfg.HttpPort))
 		if listenErr != nil {
 			panic(listenErr)
 		}
