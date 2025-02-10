@@ -58,8 +58,9 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
         ? {
             id: orgId,
             role: orgRole,
-          } : null
- }
-}   
+          }
+          : null,
+  };
+}
 
 export type Context = inferAsyncReturnType<typeof createContext>;
