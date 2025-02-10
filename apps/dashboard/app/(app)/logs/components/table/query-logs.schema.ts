@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { filterOperatorEnum } from "../../filters.schema";
+import { logsFilterOperatorEnum } from "../../filters.schema";
 
 export const queryLogsPayload = z.object({
   limit: z.number().int(),
@@ -10,7 +10,7 @@ export const queryLogsPayload = z.object({
     .object({
       filters: z.array(
         z.object({
-          operator: filterOperatorEnum,
+          operator: logsFilterOperatorEnum,
           value: z.string(),
         }),
       ),

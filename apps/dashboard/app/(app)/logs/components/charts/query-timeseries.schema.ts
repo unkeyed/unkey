@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { filterOperatorEnum } from "../../filters.schema";
+import { logsFilterOperatorEnum } from "../../filters.schema";
 
 export const queryTimeseriesPayload = z.object({
   startTime: z.number().int(),
@@ -9,7 +9,7 @@ export const queryTimeseriesPayload = z.object({
     .object({
       filters: z.array(
         z.object({
-          operator: filterOperatorEnum,
+          operator: logsFilterOperatorEnum,
           value: z.string(),
         }),
       ),

@@ -1,146 +1,15 @@
-import { z } from "zod";
 import { METHODS } from "./constants";
+
 import type {
-  FieldConfig,
-  FilterField,
-  FilterFieldConfigs,
   FilterValue,
-  HttpMethod,
   NumberConfig,
-  StatusConfig,
   StringConfig,
-} from "./filters.type";
+} from "@/components/logs/validation/filter.types";
+import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
+import { z } from "zod";
 
-export const filterOperatorEnum = z.enum(["is", "contains", "startsWith", "endsWith"]);
-
-export const filterFieldEnum = z.enum([
-  "host",
-  "requestId",
-  "methods",
-  "paths",
-  "status",
-  "startTime",
-  "endTime",
-  "since",
-]);
-
-export const filterOutputSchema = z.object({
-  filters: z.array(
-    z
-      .object({
-        field: filterFieldEnum,
-        filters: z.array(
-          z.object({
-            operator: filterOperatorEnum,
-            value: z.union([z.string(), z.number()]),
-          }),
-        ),
-      })
-      .refine(
-        (data) => {
-          const config = filterFieldConfig[data.field];
-          return data.filters.every((filter) => {
-            const isOperatorValid = config.operators.includes(filter.operator as any);
-            if (!isOperatorValid) {
-              return false;
-            }
-            return validateFieldValue(data.field, filter.value);
-          });
-        },
-        {
-          message: "Invalid field/operator/value combination",
-        },
-      ),
-  ),
-});
-
-// Required for transforming OpenAI structured outputs into our own Filter types
-export const transformStructuredOutputToFilters = (
-  data: z.infer<typeof filterOutputSchema>,
-  existingFilters: FilterValue[] = [],
-): FilterValue[] => {
-  const uniqueFilters = [...existingFilters];
-  const seenFilters = new Set(existingFilters.map((f) => `${f.field}-${f.operator}-${f.value}`));
-
-  for (const filterGroup of data.filters) {
-    filterGroup.filters.forEach((filter) => {
-      const baseFilter = {
-        field: filterGroup.field,
-        operator: filter.operator,
-        value: filter.value,
-      };
-
-      const filterKey = `${baseFilter.field}-${baseFilter.operator}-${baseFilter.value}`;
-
-      if (seenFilters.has(filterKey)) {
-        return;
-      }
-
-      if (filterGroup.field === "status") {
-        const numericValue =
-          typeof filter.value === "string" ? Number.parseInt(filter.value) : filter.value;
-
-        uniqueFilters.push({
-          id: crypto.randomUUID(),
-          ...baseFilter,
-          value: numericValue,
-          metadata: {
-            colorClass: filterFieldConfig.status.getColorClass?.(numericValue),
-          },
-        });
-      } else {
-        uniqueFilters.push({
-          id: crypto.randomUUID(),
-          ...baseFilter,
-        });
-      }
-
-      seenFilters.add(filterKey);
-    });
-  }
-
-  return uniqueFilters;
-};
-
-// Type guard for config types
-function isStatusConfig(config: FieldConfig): config is StatusConfig {
-  return "validate" in config && config.type === "number";
-}
-
-function isNumberConfig(config: FieldConfig): config is NumberConfig {
-  return config.type === "number";
-}
-
-function isStringConfig(config: FieldConfig): config is StringConfig {
-  return config.type === "string";
-}
-
-export function validateFieldValue(field: FilterField, value: string | number): boolean {
-  const config = filterFieldConfig[field];
-
-  if (isStatusConfig(config) && typeof value === "number") {
-    return config.validate(value);
-  }
-
-  if (field === "methods" && typeof value === "string") {
-    return METHODS.includes(value as HttpMethod);
-  }
-
-  if (isStringConfig(config) && typeof value === "string") {
-    if (config.validValues) {
-      return config.validValues.includes(value);
-    }
-    return config.validate ? config.validate(value) : true;
-  }
-
-  if (isNumberConfig(config) && typeof value === "number") {
-    return config.validate ? config.validate(value) : true;
-  }
-
-  return true;
-}
-
-export const filterFieldConfig: FilterFieldConfigs = {
+// Configuration
+export const logsFilterFieldConfig: FilterFieldConfigs = {
   status: {
     type: "number",
     operators: ["is"],
@@ -185,3 +54,61 @@ export const filterFieldConfig: FilterFieldConfigs = {
     operators: ["is"],
   },
 } as const;
+
+export interface StatusConfig extends NumberConfig {
+  type: "number";
+  operators: ["is"];
+  validate: (value: number) => boolean;
+}
+
+// Schemas
+export const logsFilterOperatorEnum = z.enum(["is", "contains", "startsWith", "endsWith"]);
+
+export const logsFilterFieldEnum = z.enum([
+  "host",
+  "requestId",
+  "methods",
+  "paths",
+  "status",
+  "startTime",
+  "endTime",
+  "since",
+]);
+
+export const filterOutputSchema = createFilterOutputSchema(
+  logsFilterFieldEnum,
+  logsFilterOperatorEnum,
+  logsFilterFieldConfig,
+);
+
+// Types
+export type LogsFilterOperator = z.infer<typeof logsFilterOperatorEnum>;
+export type LogsFilterField = z.infer<typeof logsFilterFieldEnum>;
+
+export type FilterFieldConfigs = {
+  status: StatusConfig;
+  methods: StringConfig<LogsFilterOperator>;
+  paths: StringConfig<LogsFilterOperator>;
+  host: StringConfig<LogsFilterOperator>;
+  requestId: StringConfig<LogsFilterOperator>;
+  startTime: NumberConfig<LogsFilterOperator>;
+  endTime: NumberConfig<LogsFilterOperator>;
+  since: StringConfig<LogsFilterOperator>;
+};
+
+export type LogsFilterUrlValue = Pick<
+  FilterValue<LogsFilterField, LogsFilterOperator>,
+  "value" | "operator"
+>;
+export type LogsFilterValue = FilterValue<LogsFilterField, LogsFilterOperator>;
+
+export type QuerySearchParams = {
+  methods: LogsFilterUrlValue[] | null;
+  paths: LogsFilterUrlValue[] | null;
+  status: LogsFilterUrlValue[] | null;
+  startTime?: number | null;
+  endTime?: number | null;
+  since?: string | null;
+  host: LogsFilterUrlValue[] | null;
+  requestId: LogsFilterUrlValue[] | null;
+};

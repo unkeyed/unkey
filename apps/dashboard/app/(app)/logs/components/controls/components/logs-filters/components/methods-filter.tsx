@@ -1,9 +1,8 @@
-import type { HttpMethod } from "@/app/(app)/logs/filters.type";
 import { FilterCheckbox } from "./filter-checkbox";
 
 type MethodOption = {
   id: number;
-  method: HttpMethod;
+  method: string;
   checked: boolean;
 };
 
