@@ -1,0 +1,39 @@
+---
+title: January Product Update
+date: 2025-01-31,
+tags: ["product"]
+---
+
+## New Features
+
+### Logs (Beta)
+
+Our new reques logs are designed to simplify your debugging experience. With comprehensive request filtering, real-time monitoring, and intuitive natural language processing, managing API requests has never been easier.
+
+<ImageZoom src="/images/changelog/2025-02-07/logs.png" alt="Logs example" width="1920" height="1080"/>
+
+- **Comprehensive Request Filtering**: Now you can view all API requests, including those that encountered errors. Easily filter these requests by status code, method, and path to quickly identify and troubleshoot issues, ensuring a smoother development process.
+
+- **Natural Language Filtering**: Say goodbye to complex, time-consuming filtering! Our new natural language processing feature allows you to filter API requests using simple, conversational phrases. Just type what you’re looking for, and let our system do the rest!
+
+- **Live Logs for Real-Time Monitoring**: Turn on live logs to watch your logs in real time, making it easier to see if your latest deployment is working as expected.
+
+- **Request IDs for Streamlined Support**: Each API request provides you with a request ID. This enhancement simplifies the support process—just share the request ID with our support team, and we can quickly locate and address your concerns.
+
+## Improvements
+
+**Standalone Rate Limit Logs**: We took everything we built in the request logs and replaced the old rate limit logs, so you can see all the important details in one place, including the timestamp of the request, identifier, status, when the rate limit resets, and more.
+
+<ImageZoom src="/images/changelog/2025-02-07/ratelimit.png" alt="Rate limit logs example" width="1920" height="1080"/>
+
+**Migrating Keys Now Accepts an External ID**: You can now migrate keys using the external ID ready to be used with our identity product; just pass in the `external_id` while migrating the key.
+
+**Permanent Key Deletion**: You can now permanently delete a key. By default, Unkey has the ability to recover a key if requested, but by passing `"permanent": true` with your deletion request, you can bypass this recovery option.
+
+**Default Prefix and Bytes**: The API will now use the default bytes and prefix set by the user if they aren't included when creating a key.
+
+## Top Bugs Crushed
+
+- [**Don't Retry on 4XXs**](https://github.com/unkeyed/unkey/pull/2862) - We stopped our TS SDK from retrying if a 4XX is returned from our API.
+- [**pnpm Local Command to Exit if DB Migration Fails**](https://github.com/unkeyed/unkey/pull/2857) - We now handle cases where one of our migrations fails when spinning up our local environment; prior to this, it would hang with zero user indication.
+- [**Remove Transaction Deadlock from Dashboard**](https://github.com/unkeyed/unkey/pull/2843) - We fixed an issue where, in the Unkey dashboard, our DB would be deadlocked, causing errors when operations were attempted.
