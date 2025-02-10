@@ -19,7 +19,7 @@ import (
 // In other words, we can remove a bucket when it is no longer relevant for
 // ratelimit decisions.
 type bucket struct {
-	sync.RWMutex
+	mu       sync.RWMutex
 	limit    int64
 	duration time.Duration
 	// sequence -> window
@@ -39,14 +39,15 @@ func (b bucketKey) toString() string {
 	return fmt.Sprintf("%s-%d-%d", b.identifier, b.limit, b.duration.Milliseconds())
 }
 
-// getBucket returns a bucket for the given key and will create one if it does not exist.
+// getOrCreateBucket returns a bucket for the given key and will create one if it does not exist.
 // It returns the bucket and a boolean indicating if the bucket existed before.
-func (s *service) getBucket(key bucketKey) (*bucket, bool) {
+func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 	s.bucketsLock.RLock()
 	b, ok := s.buckets[key.toString()]
 	s.bucketsLock.RUnlock()
 	if !ok {
 		b = &bucket{
+			mu:       sync.RWMutex{},
 			limit:    key.limit,
 			duration: key.duration,
 			windows:  make(map[int64]*ratelimitv1.Window),

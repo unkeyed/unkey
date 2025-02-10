@@ -11,7 +11,7 @@ export const setDefaultApiBytes = t.procedure
     z.object({
       defaultBytes: z
         .number()
-        .min(8, "Byte size needs to be at least 8")
+        .min(16, "Byte size needs to be at least 16")
         .max(255, "Byte size cannot exceed 255")
         .optional(),
       keyAuthId: z.string(),
