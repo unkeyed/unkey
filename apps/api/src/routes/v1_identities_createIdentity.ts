@@ -30,7 +30,7 @@ const route = createRoute({
 This usually comes from your authentication provider and could be a userId, organisationId or even an email.
 It does not matter what you use, as long as it uniquely identifies something in your application.
 
-\`externalId\`s are unique across your workspace and therefore a \`PRECONDITION_FAILED\` error is returned when you try to create duplicates.
+\`externalId\`s are unique across your workspace and therefore a \`CONFLICT\` error is returned when you try to create duplicates.
 `,
                 example: "user_123",
               }),
@@ -138,10 +138,12 @@ export const registerV1IdentitiesCreateIdentity = (app: App) =>
           .catch((e) => {
             if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
               throw new UnkeyApiError({
-                code: "PRECONDITION_FAILED",
-                message: "Duplicate identity",
+                code: "CONFLICT",
+                message: `Identity with externalId "${identity.externalId}" already exists in this workspace`,
               });
             }
+
+            throw e;
           });
 
         const ratelimits = req.ratelimits
@@ -199,7 +201,10 @@ export const registerV1IdentitiesCreateIdentity = (app: App) =>
               },
             ],
 
-            context: { location: c.get("location"), userAgent: c.get("userAgent") },
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
           })),
         ]);
       })

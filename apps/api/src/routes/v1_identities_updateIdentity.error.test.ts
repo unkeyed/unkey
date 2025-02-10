@@ -72,6 +72,8 @@ describe("updating ratelimits", () => {
     ];
     await h.db.primary.insert(schema.ratelimits).values(ratelimits);
 
+    const name = "requests";
+
     const res = await h.post<V1IdentitiesUpdateIdentityRequest, V1IdentitiesUpdateIdentityResponse>(
       {
         url: "/v1/identities.updateIdentity",
@@ -83,12 +85,12 @@ describe("updating ratelimits", () => {
           identityId: identity.id,
           ratelimits: [
             {
-              name: "a",
+              name,
               limit: 10,
               duration: 20000,
             },
             {
-              name: "a",
+              name,
               limit: 10,
               duration: 124124,
             },
@@ -97,12 +99,12 @@ describe("updating ratelimits", () => {
       },
     );
 
-    expect(res.status).toEqual(412);
+    expect(res.status, `expected 409, received: ${JSON.stringify(res, null, 2)}`).toEqual(409);
     expect(res.body).toMatchObject({
       error: {
-        code: "PRECONDITION_FAILED",
-        docs: "https://unkey.dev/docs/api-reference/errors/code/PRECONDITION_FAILED",
-        message: "ratelimit names must be unique",
+        code: "CONFLICT",
+        docs: "https://unkey.dev/docs/api-reference/errors/code/CONFLICT",
+        message: `Ratelimit with name "${name}" is already defined in the request`,
       },
     });
   });
