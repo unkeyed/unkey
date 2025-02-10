@@ -3,5 +3,12 @@
   "description": "oss/acc",
   "icon": "GitPullRequest",
   "root": true,
-  "pages": ["index", "sdk-development", "testing", "versions", "client-structure"]
+  "pages": [
+    "index",
+    "sdk-development",
+    "testing",
+    "versions",
+    "client-structure",
+    "populating-logs"
+  ]
 }
