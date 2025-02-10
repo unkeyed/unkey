@@ -488,7 +488,7 @@ test("an error rolls back and does not create any keys", async (t) => {
   });
 
   expect(res.status).toEqual(409);
-  expect(res.body.error.code).toEqual("NOT_UNIQUE");
+  expect(res.body.error.code).toEqual("CONFLICT");
 
   for (let i = 0; i < req.length; i++) {
     const key = await h.db.primary.query.keys.findFirst({

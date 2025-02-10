@@ -47,14 +47,14 @@ export const createNamespace = t.procedure
       .catch((e) => {
         if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
           throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message: "duplicate namespace name. Please use a unique name for each namespace.",
+            code: "CONFLICT",
+            message: `A namespace with name "${input.name}" already exists in this workspace. Please choose a different name.`,
           });
         }
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create namspace. Please try again or contact support@unkey.dev",
+            "We are unable to create namespace. Please try again or contact support@unkey.dev",
         });
       });
 
