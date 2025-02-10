@@ -25,7 +25,7 @@ func NewHarness(t *testing.T) *Harness {
 	logger := logging.NewNoop()
 
 	srv, err := zen.New(zen.Config{
-		NodeId: "test",
+		NodeID: "test",
 		Logger: logger,
 	})
 	require.NoError(t, err)
@@ -41,7 +41,7 @@ func NewHarness(t *testing.T) *Harness {
 
 func (h *Harness) Register(route zen.Route) {
 
-	h.srv.RegisterRoute(route)
+	h.srv.RegisterRoute([]zen.Middleware{}, route)
 
 }
 

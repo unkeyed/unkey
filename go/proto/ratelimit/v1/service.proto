@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ratelimit.v1;
 
-option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1;ratelimitv1";
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1;ratelimitv1";
 
 // RatelimitRequest represents a request to check or consume rate limit tokens.
 // This is typically the first point of contact when a client wants to verify
@@ -30,10 +30,9 @@ message RatelimitRequest {
   int64 duration = 3;
 
   // Number of tokens to consume in this request.
-  // Defaults to 1 if not specified.
   // Higher values can be used for operations that should count more heavily
   // against the rate limit (e.g., batch operations).
-  optional int64 cost = 4;
+  int64 cost = 4;
 }
 
 // RatelimitResponse contains the result of a rate limit check.
@@ -104,12 +103,17 @@ message ReplayRequest {
   // on the origin server.
   RatelimitRequest request = 1;
 
+  // Time at which the request was received by the edge node.
+  // This is used to calculate the sequence number and determine
+  // the window in which the request falls.
+  int64 time = 2;
+
   // Indicates if the edge node denied the request.
   // When false: The origin must increment the counter regardless of its own evaluation
   // When true: The origin can evaluate the request fresh
   // This field is crucial for maintaining consistency when edge nodes
   // make defensive denials due to network issues or uncertainty.
-  bool denied = 2;
+  bool denied = 3;
 }
 
 // ReplayResponse contains the synchronized rate limit state that

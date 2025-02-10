@@ -3,12 +3,13 @@ package circuitbreaker
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/clock"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/tracing"
 )
 
 type CB[Res any] struct {
@@ -120,7 +121,7 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 		},
 		tripThreshold: 5,
 		clock:         clock.New(),
-		logger:        logging.New(nil),
+		logger:        logging.NewNoop(),
 	}
 
 	for _, apply := range applyConfigs {
@@ -128,17 +129,23 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 	}
 
 	cb := &CB[Res]{
-		config:          cfg,
-		logger:          cfg.logger,
-		state:           Closed,
-		resetCountersAt: cfg.clock.Now().Add(cfg.cyclicPeriod),
-		resetStateAt:    cfg.clock.Now().Add(cfg.timeout),
+		Mutex:                sync.Mutex{},
+		config:               cfg,
+		logger:               cfg.logger,
+		state:                Closed,
+		resetCountersAt:      cfg.clock.Now().Add(cfg.cyclicPeriod),
+		resetStateAt:         cfg.clock.Now().Add(cfg.timeout),
+		requests:             0,
+		successes:            0,
+		failures:             0,
+		consecutiveSuccesses: 0,
+		consecutiveFailures:  0,
 	}
 
 	return cb
 }
 
-var _ CircuitBreaker[any] = &CB[any]{}
+var _ CircuitBreaker[any] = (*CB[any])(nil)
 
 func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)) (res Res, err error) {
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "Do"))
@@ -181,13 +188,15 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 		cb.resetStateAt = now.Add(cb.config.timeout)
 	}
 
-	requests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
-
 	if cb.state == Open {
 		return ErrTripped
 	}
 
-	cb.logger.Debug().Str("state", string(cb.state)).Int("requests", cb.requests).Int("maxRequests", cb.config.maxRequests).Msg("circuit breaker state")
+	cb.logger.Debug(ctx, "circuit breaker state",
+		slog.String("state", string(cb.state)),
+		slog.Int("requests", cb.requests),
+		slog.Int("maxRequests", cb.config.maxRequests),
+	)
 	if cb.state == HalfOpen && cb.requests >= cb.config.maxRequests {
 		return ErrTooManyRequests
 	}
@@ -196,7 +205,7 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 
 // postflight updates the circuit breaker state based on the result of the request
 func (cb *CB[Res]) postflight(ctx context.Context, err error) {
-	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "postflight"))
+	_, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "postflight"))
 	defer span.End()
 	cb.Lock()
 	defer cb.Unlock()
