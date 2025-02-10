@@ -12,13 +12,18 @@ export const QueriesPopover = ({ children }: PropsWithChildren) => {
   const [selectedQueryIndex, setSelectedQueryIndex] = useState(0);
   const saved = useBookmarkedFilters();
 
-  useKeyboardShortcut("d", () => {
+  useKeyboardShortcut("Q", () => {
     setOpen((prev) => !prev);
     if (!open) {
+      setOpen(true);
       setSelectedQueryIndex(0);
-      setFocusedTabIndex(0);
-    } else {
       setFocusedTabIndex(1);
+      saved.savedFilters.map((item, index) => {
+        console.log("Saved Filter", item, "Index", index);
+      });
+    } else {
+      setOpen(false);
+      setFocusedTabIndex(0);
     }
   });
   const handleBookmarkChanged = (index: number, isSaved: boolean) => {
@@ -31,7 +36,7 @@ export const QueriesPopover = ({ children }: PropsWithChildren) => {
         <div className="flex flex-row items-center">{children}</div>
       </PopoverTrigger>
       <PopoverContent
-        className="flex flex-col w-full bg-white dark:bg-black drop-shadow-3 border-gray-6 radius-4 p-2"
+        className="flex flex-col w-full bg-white dark:bg-black drop-shadow-3 radius-[8px] p-2 pb-0 max-h-[900px] shadow-[0_12px_32px_-16px_rgba(0,0,0,0.3)] shadow-[0_12px_60px_0px_rgba(0,0,0,0.15)] shadow-[0_0px_0px_1px_rgba(0,0,0,0.1)]"
         align="start"
         // onKeyDown={handleKeyNavigation}
       >
@@ -40,19 +45,21 @@ export const QueriesPopover = ({ children }: PropsWithChildren) => {
         </div>
 
         <QueriesTabs selectedTab={focusedTabIndex} onChange={setFocusedTabIndex} />
-        {saved.savedFilters
-          ? saved.savedFilters.map((item, index) => (
-              <QueriesItem
-                key={item.id}
-                item={item}
-                index={index}
-                total={saved.savedFilters.length}
-                selectedIndex={selectedQueryIndex}
-                querySelected={setSelectedQueryIndex}
-                changeBookmark={handleBookmarkChanged}
-              />
-            ))
-          : null}
+        <div className="flex flex-col w-full max-h-[700px] overflow-y-auto m-0 p-0 scrollbar-hide">
+          {saved.savedFilters
+            ? saved.savedFilters.map((filterItem, index) => (
+                <QueriesItem
+                  key={filterItem.id}
+                  filterList={filterItem}
+                  index={index}
+                  total={saved.savedFilters.length}
+                  selectedIndex={selectedQueryIndex}
+                  querySelected={setSelectedQueryIndex}
+                  changeBookmark={handleBookmarkChanged}
+                />
+              ))
+            : null}
+        </div>
       </PopoverContent>
     </Popover>
   );
