@@ -1,8 +1,13 @@
+import {
+  parseAsFilterValueArray,
+  parseAsRelativeTime,
+} from "@/components/logs/validation/utils/nuqs-parsers";
 import { act, renderHook } from "@testing-library/react";
 import { useQueryStates } from "nuqs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { parseAsFilterValueArray, parseAsRelativeTime, useFilters } from "./use-filters";
+import { useFilters } from "./use-filters";
 
+const parseAsFilterValArray = parseAsFilterValueArray(["is", "contains"]);
 vi.mock("nuqs", () => {
   const mockSetSearchParams = vi.fn();
 
@@ -35,15 +40,15 @@ const mockSetSearchParams = vi.fn();
 describe("parseAsFilterValueArray", () => {
   it("should return empty array for null input", () => {
     //@ts-expect-error ts yells for no reason
-    expect(parseAsFilterValueArray.parse(null)).toEqual([]);
+    expect(parseAsFilterValArray.parse(null)).toEqual([]);
   });
 
   it("should return empty array for empty string", () => {
-    expect(parseAsFilterValueArray.parse("")).toEqual([]);
+    expect(parseAsFilterValArray.parse("")).toEqual([]);
   });
 
   it("should parse single filter correctly", () => {
-    const result = parseAsFilterValueArray.parse("is:200");
+    const result = parseAsFilterValArray.parse("is:200");
     expect(result).toEqual([
       {
         operator: "is",
@@ -53,7 +58,7 @@ describe("parseAsFilterValueArray", () => {
   });
 
   it("should parse multiple filters correctly", () => {
-    const result = parseAsFilterValueArray.parse("is:200,contains:error");
+    const result = parseAsFilterValArray.parse("is:200,contains:error");
     expect(result).toEqual([
       { operator: "is", value: "200" },
       { operator: "contains", value: "error" },
@@ -61,12 +66,12 @@ describe("parseAsFilterValueArray", () => {
   });
 
   it("should return empty array for invalid operator", () => {
-    expect(parseAsFilterValueArray.parse("invalid:200")).toEqual([]);
+    expect(parseAsFilterValArray.parse("invalid:200")).toEqual([]);
   });
 
   it("should serialize empty array to empty string", () => {
     //@ts-expect-error ts yells for no reason
-    expect(parseAsFilterValueArray.serialize([])).toBe("");
+    expect(parseAsFilterValArray.serialize([])).toBe("");
   });
 
   it("should serialize array of filters correctly", () => {
@@ -75,7 +80,7 @@ describe("parseAsFilterValueArray", () => {
       { operator: "contains", value: "error" },
     ];
     //@ts-expect-error ts yells for no reason
-    expect(parseAsFilterValueArray.serialize(filters)).toBe("is:200,contains:error");
+    expect(parseAsFilterValArray.serialize(filters)).toBe("is:200,contains:error");
   });
 });
 

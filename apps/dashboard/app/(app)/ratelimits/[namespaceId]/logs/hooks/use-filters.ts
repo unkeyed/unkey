@@ -1,80 +1,32 @@
-import { getTimestampFromRelative } from "@/lib/utils";
-import { type Parser, parseAsInteger, useQueryStates } from "nuqs";
+import {
+  parseAsFilterValueArray,
+  parseAsRelativeTime,
+} from "@/components/logs/validation/utils/nuqs-parsers";
+import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
-import { filterFieldConfig } from "../filters.schema";
-import type {
-  FilterField,
-  FilterOperator,
-  FilterUrlValue,
-  FilterValue,
-  QuerySearchParams,
-} from "../filters.type";
+import {
+  type RatelimitFilterField,
+  type RatelimitFilterOperator,
+  type RatelimitFilterUrlValue,
+  type RatelimitFilterValue,
+  type RatelimitQuerySearchParams,
+  ratelimitFilterFieldConfig,
+} from "../filters.schema";
 
-export const parseAsRelativeTime: Parser<string | null> = {
-  parse: (str: string | null) => {
-    if (!str) {
-      return null;
-    }
-
-    try {
-      // If that function doesn't throw it means we are safe
-      getTimestampFromRelative(str);
-      return str;
-    } catch {
-      return null;
-    }
-  },
-  serialize: (value: string | null) => {
-    if (!value) {
-      return "";
-    }
-    return value;
-  },
-};
-
-export const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
-  parse: (str: string | null) => {
-    if (!str) {
-      return [];
-    }
-    try {
-      // Format: operator:value,operator:value (e.g., "is:200,is:404")
-      return str.split(",").map((item) => {
-        const [operator, val] = item.split(/:(.+)/);
-        if (!["is", "contains"].includes(operator)) {
-          throw new Error("Invalid operator");
-        }
-        return {
-          operator: operator as FilterOperator,
-          value: val,
-        };
-      });
-    } catch {
-      return [];
-    }
-  },
-  serialize: (value: FilterUrlValue[]) => {
-    if (!value?.length) {
-      return "";
-    }
-    return value.map((v) => `${v.operator}:${v.value}`).join(",");
-  },
-};
-
+const parseAsFilterValArray = parseAsFilterValueArray<RatelimitFilterOperator>(["is", "contains"]);
 export const queryParamsPayload = {
-  requestIds: parseAsFilterValueArray,
-  identifiers: parseAsFilterValueArray,
+  requestIds: parseAsFilterValArray,
+  identifiers: parseAsFilterValArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
-  status: parseAsFilterValueArray,
+  status: parseAsFilterValArray,
   since: parseAsRelativeTime,
 } as const;
 
 export const useFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload);
-
   const filters = useMemo(() => {
-    const activeFilters: FilterValue[] = [];
+    const activeFilters: RatelimitFilterValue[] = [];
 
     searchParams.requestIds?.forEach((requestIdFilter) => {
       activeFilters.push({
@@ -101,17 +53,19 @@ export const useFilters = () => {
         operator: statusFilter.operator,
         value: statusFilter.value,
         metadata: {
-          colorClass: filterFieldConfig.status.getColorClass?.(statusFilter.value as string),
+          colorClass: ratelimitFilterFieldConfig.status.getColorClass?.(
+            statusFilter.value as string,
+          ),
         },
       });
     });
 
     ["startTime", "endTime", "since"].forEach((field) => {
-      const value = searchParams[field as keyof QuerySearchParams];
+      const value = searchParams[field as keyof RatelimitQuerySearchParams];
       if (value !== null && value !== undefined) {
         activeFilters.push({
           id: crypto.randomUUID(),
-          field: field as FilterField,
+          field: field as RatelimitFilterField,
           operator: "is",
           value: value as string | number,
         });
@@ -122,8 +76,8 @@ export const useFilters = () => {
   }, [searchParams]);
 
   const updateFilters = useCallback(
-    (newFilters: FilterValue[]) => {
-      const newParams: Partial<QuerySearchParams> = {
+    (newFilters: RatelimitFilterValue[]) => {
+      const newParams: Partial<RatelimitQuerySearchParams> = {
         requestIds: null,
         startTime: null,
         endTime: null,
@@ -133,9 +87,9 @@ export const useFilters = () => {
       };
 
       // Group filters by field
-      const requestIdFilters: FilterUrlValue[] = [];
-      const statusFilters: FilterUrlValue[] = [];
-      const identifierFilters: FilterUrlValue[] = [];
+      const requestIdFilters: RatelimitFilterUrlValue[] = [];
+      const statusFilters: RatelimitFilterUrlValue[] = [];
+      const identifierFilters: RatelimitFilterUrlValue[] = [];
 
       newFilters.forEach((filter) => {
         switch (filter.field) {
