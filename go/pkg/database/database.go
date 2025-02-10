@@ -3,6 +3,8 @@ package database
 import (
 	"database/sql"
 
+	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/unkeyed/unkey/go/pkg/database/gen"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/logging"

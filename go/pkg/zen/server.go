@@ -20,14 +20,11 @@ type Server struct {
 	mux         *http.ServeMux
 	srv         *http.Server
 
-	// middlewares in the order of inner -> outer
-	// The last middleware in this slice will run first
-	middlewares []Middleware
-	sessions    sync.Pool
+	sessions sync.Pool
 }
 
 type Config struct {
-	NodeId string
+	NodeID string
 	Logger logging.Logger
 }
 
@@ -61,6 +58,7 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
+					workspaceID:    "",
 					requestID:      "",
 					w:              nil,
 					r:              nil,
@@ -70,7 +68,6 @@ func New(config Config) (*Server, error) {
 				}
 			},
 		},
-		middlewares: []Middleware{},
 	}
 	return s, nil
 }
@@ -114,6 +111,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 	s.srv.Addr = addr
 
 	s.logger.Info(ctx, "listening", slog.String("addr", addr))
+
 	err := s.srv.ListenAndServe()
 	if err != nil {
 		return fault.Wrap(err, fault.WithDesc("listening failed", ""))
@@ -121,64 +119,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 	return nil
 }
 
-// SetGlobalMiddleware sets middleware that will be executed before every
-// route handler.
-// Global middleware are executed in the order they are added, before any
-// route-specific middleware.
-// Each middleware can execute code before and after the handler it wraps.
-//
-// Request/Response flow:
-// SetGlobalMiddleware(Middleware_1, Middleware_2)
-//
-//	                        │ REQUEST
-//		                      ▼
-//		┌──────────── Global Middleware 1 ────────────┐
-//		│                     │                       │
-//		│                     ▼                       │
-//		│      ┌────── Global Middleware 2 ─────┐     │
-//		│      │              │                 │     │
-//		│      │              ▼                 │     │
-//		│      │      ┌─── Route MW ────┐       │     │
-//		│      │      │       │         │       │     │
-//		│      │      │       ▼         │       │     │
-//		│      │      │   ┌──────────┐  │       │     │
-//		│      │      │   │ Handler  │  │       │     │
-//		│      │      │   └──────────┘  │       │     │
-//		│      │      │       │         │       │     │
-//		│      │      │       ▼         │       │     │
-//		│      │      └─────────────────┘       │     │
-//		│      │              │                 │     │
-//		│      │              ▼                 │     │
-//		│      └────────────────────────────────┘     │
-//		│                     │                       │
-//		│                     ▼                       │
-//		└─────────────────────────────────────────────┘
-//		                      │
-//		                      ▼ RESPONSE
-//
-// Example usage:
-//
-//	router.SetGlobalMiddleware(
-//	    logging.Middleware,    // logs all requests
-//	    auth.ValidateToken,    // validates auth tokens
-//	)
-//
-// Note: Global middleware cannot be removed once set. To modify global middleware,
-// you need to set all desired middleware again with a new call to SetGlobalMiddleware.
-func (s *Server) SetGlobalMiddleware(middlewares ...Middleware) {
-	n := len(middlewares)
-	if n == 0 {
-		return
-	}
-
-	// Reverses the middlewares to run in the desired order.
-	// If middlewares are [A, B, C], this writes [C, B, A] to s.middlewares.
-	s.middlewares = make([]Middleware, n)
-	for i, mw := range middlewares {
-		s.middlewares[n-i-1] = mw
-	}
-}
-func (s *Server) RegisterRoute(route Route) {
+func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 	s.mux.HandleFunc(
 		fmt.Sprintf("%s %s", route.Method(), route.Path()),
 		func(w http.ResponseWriter, r *http.Request) {
@@ -200,8 +141,10 @@ func (s *Server) RegisterRoute(route Route) {
 			// Apply middleware
 			var handle HandleFunc = route.Handle
 
-			for _, mw := range s.middlewares {
-				handle = mw(handle)
+			// Reverses the middlewares to run in the desired order.
+			// If middlewares are [A, B, C], this writes [C, B, A] to s.middlewares.
+			for i := len(middlewares) - 1; i >= 0; i-- {
+				handle = middlewares[i](handle)
 			}
 
 			err = handle(sess)

@@ -54,3 +54,9 @@ tasks:
     dir: internal/db
     cmds:
       - pnpm drizzle-kit generate --dialect=mysql
+
+  nuke-docker:
+    cmds:
+      - docker stop $(docker ps -aq) || true
+      - docker system prune -af
+      - docker volume prune --all -f

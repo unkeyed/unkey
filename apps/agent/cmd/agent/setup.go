@@ -12,7 +12,9 @@ import (
 
 func setupLogging(cfg config.Agent) (logging.Logger, error) {
 
-	logger := logging.New(nil)
+	logger := logging.New(&logging.Config{
+		Color: cfg.Logging.Color,
+	})
 
 	// runId is unique per start of the agent, this is useful for differnetiating logs between
 	// deployments
