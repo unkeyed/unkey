@@ -1,21 +1,17 @@
+import type { FilterUrlValue } from "@/components/logs/validation/filter.types";
 import { useCallback, useEffect } from "react";
-import { filterFieldConfig } from "../filters.schema";
-import type { FilterField, FilterUrlValue, FilterValue } from "../filters.type";
+import {
+  type LogsFilterField,
+  type LogsFilterValue,
+  type QuerySearchParams,
+  logsFilterFieldConfig,
+} from "../filters.schema";
 import { useFilters } from "./use-filters";
 
 export type SavedFiltersGroup = {
   id: string;
   createdAt: number;
-  filters: {
-    status?: FilterUrlValue[];
-    methods?: FilterUrlValue[];
-    paths?: FilterUrlValue[];
-    host?: FilterUrlValue[];
-    requestId?: FilterUrlValue[];
-    startTime?: number;
-    endTime?: number;
-    since?: string;
-  };
+  filters: QuerySearchParams;
 };
 
 export const useBookmarkedFilters = () => {
@@ -74,13 +70,13 @@ export const useBookmarkedFilters = () => {
 
   const applyFilterGroup = useCallback(
     (savedGroup: SavedFiltersGroup) => {
-      const reconstructedFilters: FilterValue[] = [];
+      const reconstructedFilters: LogsFilterValue[] = [];
 
       Object.entries(savedGroup.filters).forEach(([field, value]) => {
         if (["startTime", "endTime", "since"].includes(field)) {
           reconstructedFilters.push({
             id: crypto.randomUUID(),
-            field: field as FilterField,
+            field: field as LogsFilterField,
             operator: "is",
             value: value as number | string,
           });
@@ -88,13 +84,15 @@ export const useBookmarkedFilters = () => {
           (value as FilterUrlValue[]).forEach((filter) => {
             reconstructedFilters.push({
               id: crypto.randomUUID(),
-              field: field as FilterField,
+              field: field as LogsFilterField,
               operator: filter.operator,
               value: filter.value,
               metadata:
                 field === "status"
                   ? {
-                      colorClass: filterFieldConfig.status.getColorClass?.(filter.value as number),
+                      colorClass: logsFilterFieldConfig.status.getColorClass?.(
+                        filter.value as number,
+                      ),
                     }
                   : undefined,
             });

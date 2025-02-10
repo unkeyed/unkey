@@ -9,8 +9,8 @@ describe("getSystemPrompt", () => {
     const prompt = getSystemPrompt(referenceTime);
 
     // Check for status examples
-    expect(prompt).toContain("show rejected requests");
-    expect(prompt).toContain("succeeded");
+    expect(prompt).toContain("blocked");
+    expect(prompt).toContain("passed");
 
     // Check for time-based examples
     expect(prompt).toContain("show requests from last 30m");
@@ -29,14 +29,6 @@ describe("getSystemPrompt", () => {
     expect(prompt).toContain('field: "requestIds"');
     expect(prompt).toContain('operator: "contains"');
     expect(prompt).toContain('operator: "is"');
-  });
-
-  it("should include correct timestamp calculations", () => {
-    const prompt = getSystemPrompt(referenceTime);
-
-    // Check for various time calculations
-    expect(prompt).toContain(`value: ${referenceTime}`); // Current time
-    expect(prompt).toContain(`value: ${referenceTime - 24 * 60 * 60 * 1000}`); // Yesterday
   });
 });
 

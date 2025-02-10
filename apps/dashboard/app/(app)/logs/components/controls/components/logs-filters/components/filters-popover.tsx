@@ -1,7 +1,7 @@
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
-import { useKeyboardShortcut } from "@/app/(app)/logs/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type KeyboardEvent, type PropsWithChildren, useEffect, useRef, useState } from "react";

@@ -1,5 +1,5 @@
 import { METHODS } from "@/app/(app)/logs/constants";
-import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs/filters.schema";
+import { filterOutputSchema, logsFilterFieldConfig } from "@/app/(app)/logs/filters.schema";
 import { env } from "@/lib/env";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
@@ -88,7 +88,7 @@ export const llmSearch = rateLimitedProcedure(ratelimit.update)
 // HELPERS
 
 const getSystemPrompt = () => {
-  const operatorsByField = Object.entries(filterFieldConfig)
+  const operatorsByField = Object.entries(logsFilterFieldConfig)
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
       let constraints = "";

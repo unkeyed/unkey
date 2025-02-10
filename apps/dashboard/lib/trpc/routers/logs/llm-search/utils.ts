@@ -1,5 +1,5 @@
 import { METHODS } from "@/app/(app)/logs/constants";
-import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs/filters.schema";
+import { filterOutputSchema, logsFilterFieldConfig } from "@/app/(app)/logs/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
@@ -74,7 +74,7 @@ export async function getStructuredSearchFromLLM(
   }
 }
 export const getSystemPrompt = (usersReferenceMS: number) => {
-  const operatorsByField = Object.entries(filterFieldConfig)
+  const operatorsByField = Object.entries(logsFilterFieldConfig)
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
       let constraints = "";

@@ -1,9 +1,9 @@
-import type { FilterValue } from "@/app/(app)/logs/filters.type";
+import type { LogsFilterValue } from "@/app/(app)/logs/filters.schema";
 import { useEffect, useState } from "react";
 
 type UseCheckboxStateProps<TItem> = {
   options: Array<{ id: number } & TItem>;
-  filters: FilterValue[];
+  filters: LogsFilterValue[];
   filterField: string;
   checkPath: keyof TItem; // Specify which field to get from checkbox item
   shouldSyncWithOptions?: boolean;

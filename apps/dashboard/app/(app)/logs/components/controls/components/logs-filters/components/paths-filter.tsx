@@ -1,4 +1,4 @@
-import type { FilterValue } from "@/app/(app)/logs/filters.type";
+import type { LogsFilterValue } from "@/app/(app)/logs/filters.schema";
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc/client";
@@ -33,7 +33,7 @@ export const PathsFilter = () => {
 
     // Keep all non-paths filters and add new path filters
     const otherFilters = filters.filter((f) => f.field !== "paths");
-    const pathFilters: FilterValue[] = selectedPaths.map((path) => ({
+    const pathFilters: LogsFilterValue[] = selectedPaths.map((path) => ({
       id: crypto.randomUUID(),
       field: "paths",
       operator: "is",
