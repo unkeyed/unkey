@@ -3,9 +3,11 @@ import { router } from "@/lib/trpc/routers";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import type { NextRequest } from "next/server";
 
+export const runtime = "edge";
 // export API handler
 export default async function handler(req: NextRequest) {
-  try{
+
+  console.log("API handler", req.headers)
 
   return fetchRequestHandler({
     endpoint: "/api/trpc",
@@ -13,8 +15,4 @@ export default async function handler(req: NextRequest) {
     req,
     createContext,
   });
-}
-  catch(err){
-    console.log(err)
-  }
 }
