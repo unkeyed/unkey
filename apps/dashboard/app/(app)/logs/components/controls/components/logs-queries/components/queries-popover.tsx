@@ -8,16 +8,22 @@ import { QueriesTabs } from "./queries-tabs";
 
 export const QueriesPopover = ({ children }: PropsWithChildren) => {
   const [open, setOpen] = useState(false);
-  const [focusedIndex, setFocusedIndex] = useState(0);
+  const [focusedTabIndex, setFocusedTabIndex] = useState(1);
+  const [selectedQueryIndex, setSelectedQueryIndex] = useState(0);
   const saved = useBookmarkedFilters();
-  console.log("Saved Filters", saved);
 
   useKeyboardShortcut("d", () => {
     setOpen((prev) => !prev);
     if (!open) {
-      setFocusedIndex(0);
+      setSelectedQueryIndex(0);
+      setFocusedTabIndex(0);
+    } else {
+      setFocusedTabIndex(1);
     }
   });
+  const handleBookmarkChanged = (index: number, isSaved: boolean) => {
+    console.log("Bookmark changed index:", index, "Save State", isSaved);
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -25,15 +31,15 @@ export const QueriesPopover = ({ children }: PropsWithChildren) => {
         <div className="flex flex-row items-center">{children}</div>
       </PopoverTrigger>
       <PopoverContent
-        className="flex flex-col w-full bg-gray-1 dark:bg-black drop-shadow-3 border-gray-6 rounded-lg p-2 pt-4"
+        className="flex flex-col w-full bg-white dark:bg-black drop-shadow-3 border-gray-6 radius-4 p-2"
         align="start"
         // onKeyDown={handleKeyNavigation}
       >
-        <div className="flex flex-row w-full">
+        <div className="flex flex-row w-full mt-[6px] px-[6px]">
           <PopoverHeader />
         </div>
 
-        <QueriesTabs selectedTab={focusedIndex} onChange={setFocusedIndex} />
+        <QueriesTabs selectedTab={focusedTabIndex} onChange={setFocusedTabIndex} />
         {saved.savedFilters
           ? saved.savedFilters.map((item, index) => (
               <QueriesItem
@@ -41,6 +47,9 @@ export const QueriesPopover = ({ children }: PropsWithChildren) => {
                 item={item}
                 index={index}
                 total={saved.savedFilters.length}
+                selectedIndex={selectedQueryIndex}
+                querySelected={setSelectedQueryIndex}
+                changeBookmark={handleBookmarkChanged}
               />
             ))
           : null}
@@ -51,8 +60,8 @@ export const QueriesPopover = ({ children }: PropsWithChildren) => {
 
 const PopoverHeader = () => {
   return (
-    <div className="flex w-full h-8 justify-between px-2">
-      <span className="text-gray-9 text-[13px] w-full">Select a query...</span>
+    <div className="flex w-full h-8 justify-between">
+      <span className="text-gray-9 text-[13px] w-full leading-6">Select a query...</span>
       <KeyboardButton shortcut="Q" className="p-0 m-0 min-w-5 w-5 h-5" />
     </div>
   );

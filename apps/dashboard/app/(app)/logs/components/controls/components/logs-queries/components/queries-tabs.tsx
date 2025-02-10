@@ -15,8 +15,8 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
       <Button
         variant="ghost"
         className={cn(
-          "flex h-full bg-gray-3 rounded-b-none w-full",
-          selectedTab === 1 ? "bg-accent-3" : "bg-gray-1",
+          "flex h-full bg-base-12 rounded-b-none w-full",
+          selectedTab === 1 ? "bg-accent-3" : "",
         )}
         aria-label="Log queries"
         aria-haspopup="true"
@@ -30,15 +30,15 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         <div
           className={cn(
             "absolute bottom-0 w-full bg-transparent w-full h-[2px] pb-0 mb-0",
-            selectedTab === 1 ? "bg-accent-12" : "bg-gray-1",
+            selectedTab === 1 ? "bg-accent-12" : "",
           )}
         />
       </Button>
       <Button
         variant="ghost"
         className={cn(
-          "h-full bg-gray-3 rounded-b-none w-full",
-          selectedTab === 2 ? "bg-accent-3" : "bg-gray-1",
+          "h-full bg-base-12 rounded-b-none w-full",
+          selectedTab === 2 ? "bg-accent-3" : "",
         )}
         aria-label="Log queries"
         aria-haspopup="true"

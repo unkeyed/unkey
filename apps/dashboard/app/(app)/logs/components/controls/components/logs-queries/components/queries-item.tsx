@@ -1,39 +1,52 @@
 // import { type PropsWithChildren, useEffect, useState } from "react";
 import type { SavedFiltersGroup } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
 import { cn } from "@/lib/utils";
-import {
-  Bookmark,
-  ChartActivity2,
-  CircleHalfDottedClock,
-  Conversion,
-  Layers2,
-  Link4,
-} from "@unkey/icons";
+import { Bookmark, ChartActivity2, Conversion, Layers2, Link4 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
-import Image from "next/image";
 import { useState } from "react";
+import { QueriesMadeBy } from "./queries-made-by";
+import { QueriesPill } from "./queries-pill";
 
 type QueriesItemProps = {
   item: SavedFiltersGroup;
   index: number;
   total: number;
+  selectedIndex: number;
+  querySelected: (index: number) => void;
+  changeBookmark: (index: number, isSaved: boolean) => void;
 };
 
-export const QueriesItem = ({ item, index, total }: QueriesItemProps) => {
+export const QueriesItem = ({
+  item,
+  index,
+  total,
+  selectedIndex,
+  querySelected,
+  changeBookmark,
+}: QueriesItemProps) => {
   const { status, methods, paths } = item.filters;
   const [isSaved, setIsSaved] = useState(false);
+
+  const handleBookmarkChanged = () => {
+    setIsSaved((prev) => !prev);
+    changeBookmark(index, isSaved);
+  };
+
   return (
     <div
-      className={cn(
-        "flex flex-col mt-2 pb-4",
-        index < total - 1 && "border-b-[1px] border-b-gray-5 ",
-      )}
+      className={cn("flex flex-col mt-2 w-[430px]")}
       role="button"
-      onClick={() => console.log("clicked", index)}
+      onClick={() => querySelected(index)}
       onKeyUp={(e) => e.key === "Enter" && console.log("clicked", index)}
       tabIndex={index}
     >
-      <div className="w-full px-2 hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded rounded-4">
+      {/* Change bg-gray-3 back to 2  */}
+      <div
+        className={cn(
+          "w-full p-2 hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded rounded-4",
+          index === selectedIndex ? "bg-gray-2" : "",
+        )}
+      >
         {/* Top Row for each */}
         <div className="flex flex-row justify-start items-center h-6">
           <div className="inline-flex gap-2 w-full">
@@ -46,7 +59,7 @@ export const QueriesItem = ({ item, index, total }: QueriesItemProps) => {
               <div
                 className="flex h-6 w-6 justify-center items-center hover:bg-gray-3 rounded-md"
                 role="button"
-                onClick={() => setIsSaved(!isSaved)}
+                onClick={() => handleBookmarkChanged}
                 onKeyUp={(e) => e.key === "Enter" && console.log("Saved", index)}
               >
                 <Bookmark
@@ -72,7 +85,6 @@ export const QueriesItem = ({ item, index, total }: QueriesItemProps) => {
           <div className="flex flex-col ml-[8px] border-l-[1px] border-l-gray-5 w-[1px]" />
           <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
             {/* Map Thru each Status filter */}
-
             {status && status.length > 0 && (
               <div className="flex flex-row justify-start items-center gap-2">
                 <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-11">
@@ -117,46 +129,15 @@ export const QueriesItem = ({ item, index, total }: QueriesItemProps) => {
             )}
           </div>
         </div>
-        <div className="flex flex-row justify-start items-center h-6 gap-2 mt-2">
-          <span className="font-mono font-normal text-xs text-gray-9">by</span>
-          <Image
-            className="rounded-full border border-gray-4 border-[1px]"
-            src="/images/team/andreas.jpeg"
-            width={20}
-            height={20}
-            alt="Picture of the user"
-          />
-          <span className="font-mono font-medium leading-4 text-xs text-gray-12">chronark</span>
-          <CircleHalfDottedClock className="size-3" />
-          <span className="font-mono font-normal text-xs leading-4 text-gray-9">3d ago</span>
-        </div>
+        <QueriesMadeBy
+          userName={"chronark"}
+          userImageSrc="/images/team/andreas.jpeg"
+          createdString={"3d ago"}
+        />
       </div>
-    </div>
-  );
-};
-// type UserLineItemProps = {
-
-// };
-type StatusPillType = {
-  value: string | number;
-};
-const QueriesPill = ({ value }: StatusPillType) => {
-  let color = undefined;
-  let wording = value;
-  if (value === 200 || value === "200") {
-    color = "bg-success-9";
-    wording = "2xx";
-  } else if (value === 400 || value === "400") {
-    color = "bg-warning-9";
-    wording = "4xx";
-  } else if (value === 500 || value === "500") {
-    color = "bg-error-9";
-    wording = "5xx";
-  }
-  return (
-    <div className="h-6 bg-gray-3 inline-flex justify-start items-center py-1.5 px-2 rounded rounded-md gap-2 ">
-      {color && <div className={cn("w-2 h-2 rounded-[2px]", color)} />}
-      <span className="font-mono font-medium text-xs text-gray-12 text-xs">{wording}</span>
+      <div
+        className={cn("bg-white h-2 w-full", index < total - 1 && "border-b-[1px] border-b-gray-3")}
+      />
     </div>
   );
 };
