@@ -48,6 +48,7 @@ func New(config Config) (*membership, error) {
 	}
 
 	memberlistConfig := memberlist.DefaultLANConfig()
+	memberlistConfig.Name = config.NodeID
 	memberlistConfig.AdvertisePort = config.GossipPort
 	memberlistConfig.BindPort = config.GossipPort
 	memberlistConfig.Events = b
