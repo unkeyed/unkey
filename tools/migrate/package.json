@@ -25,6 +25,6 @@
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.4.1",
     "tsx": "^4.19.1",
-    "typescript": "^5.5.3"
+    "typescript": "^5.7.3"
   }
 }

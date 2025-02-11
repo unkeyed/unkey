@@ -12,7 +12,7 @@
     "@types/react": "^18.3.11",
     "@unkey/tsconfig": "workspace:^",
     "tailwindcss": "^3.4.15",
-    "typescript": "^5.5.3"
+    "typescript": "^5.7.3"
   },
   "dependencies": {
     "@radix-ui/colors": "^3.0.0",
