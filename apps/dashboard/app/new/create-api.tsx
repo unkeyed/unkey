@@ -105,11 +105,11 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
               <div className="mt-8">
                 <Button
                   variant="primary"
-                  disabled={createApi.isLoading || !form.formState.isValid}
+                  disabled={createApi.isPending || !form.formState.isValid}
                   type="submit"
                   className="w-full"
                 >
-                  {createApi.isLoading ? <Loading /> : "Create API"}
+                  {createApi.isPending ? <Loading /> : "Create API"}
                 </Button>
               </div>
             </form>

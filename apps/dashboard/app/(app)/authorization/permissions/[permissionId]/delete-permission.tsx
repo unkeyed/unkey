@@ -112,7 +112,7 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
             <DialogFooter className="justify-end gap-4">
               <Button
                 type="button"
-                disabled={deletePermission.isLoading}
+                disabled={deletePermission.isPending}
                 onClick={() => setOpen(!open)}
               >
                 Cancel
@@ -120,8 +120,8 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
               <Button
                 type="submit"
                 variant="destructive"
-                disabled={!isValid || deletePermission.isLoading}
-                loading={deletePermission.isLoading}
+                disabled={!isValid || deletePermission.isPending}
+                loading={deletePermission.isPending}
               >
                 Delete
               </Button>

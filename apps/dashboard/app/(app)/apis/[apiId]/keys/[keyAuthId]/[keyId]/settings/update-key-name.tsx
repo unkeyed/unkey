@@ -93,8 +93,8 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
             </div>
           </CardContent>
           <CardFooter className="justify-end">
-            <Button disabled={updateName.isLoading || !form.formState.isValid} type="submit">
-              {updateName.isLoading ? <Loading /> : "Save"}
+            <Button disabled={updateName.isPending || !form.formState.isValid} type="submit">
+              {updateName.isPending ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

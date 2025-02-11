@@ -125,10 +125,10 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
             <Empty.Description>Let's begin by creating a root key</Empty.Description>
 
             <Button
-              disabled={rootKey.isLoading}
+              disabled={rootKey.isPending}
               onClick={() => rootKey.mutate({ permissions: ["*"] })}
             >
-              {rootKey.isLoading ? <Loading /> : "Create Root Key"}
+              {rootKey.isPending ? <Loading /> : "Create Root Key"}
             </Button>
           </Empty>
         ) : step.step === "CREATE_KEY" ? (
@@ -175,10 +175,10 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
             <CardFooter className="justify-between">
               <Button
                 variant="ghost"
-                disabled={key.isLoading}
+                disabled={key.isPending}
                 onClick={() => key.mutate({ keyAuthId })}
               >
-                {key.isLoading ? <Loading /> : "Or click here to create a key"}
+                {key.isPending ? <Loading /> : "Or click here to create a key"}
               </Button>
               <Button
                 className="whitespace-nowrap max-sm:text-xs"

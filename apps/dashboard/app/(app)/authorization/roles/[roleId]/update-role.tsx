@@ -136,7 +136,7 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
             />
             <DialogFooter>
               <Button type="submit">
-                {updateRole.isLoading ? <Loading className="w-4 h-4" /> : "Save"}
+                {updateRole.isPending ? <Loading className="w-4 h-4" /> : "Save"}
               </Button>
             </DialogFooter>
           </form>

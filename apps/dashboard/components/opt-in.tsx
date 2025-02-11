@@ -50,7 +50,7 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
         </Link>
 
         <Button variant="primary" onClick={() => optIn.mutate({ feature })}>
-          {optIn.isLoading ? <Loading /> : "Opt In"}
+          {optIn.isPending ? <Loading /> : "Opt In"}
         </Button>
       </div>
     </Empty>

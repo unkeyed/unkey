@@ -127,7 +127,7 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
             />
             <DialogFooter>
               <Button type="submit">
-                {createPermission.isLoading ? (
+                {createPermission.isPending ? (
                   <Loading className="w-4 h-4" />
                 ) : (
                   "Create New Permission"

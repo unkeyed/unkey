@@ -143,8 +143,8 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
                 </FormItem>
               )}
             />
-            <Button disabled={changeExpiration.isLoading || !form.formState.isValid} type="submit">
-              {changeExpiration.isLoading ? <Loading /> : "Save"}
+            <Button disabled={changeExpiration.isPending || !form.formState.isValid} type="submit">
+              {changeExpiration.isPending ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

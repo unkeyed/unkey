@@ -75,7 +75,7 @@ export const Legacy: React.FC<Props> = ({ keyId, permissions }) => {
             removeRole.mutate({ rootKeyId: keyId, permissionName: "*" });
           }}
         >
-          {removeRole.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {removeRole.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           Remove Legacy Role
         </Button>
       </CardFooter>

@@ -93,11 +93,11 @@ export const CreateApiButton = ({
               <DialogFooter className="flex-row justify-end gap-2 pt-4 ">
                 <Button
                   variant="primary"
-                  disabled={create.isLoading || !form.formState.isValid}
+                  disabled={create.isPending || !form.formState.isValid}
                   className="mt-4 "
                   type="submit"
                 >
-                  {create.isLoading ? <Loading /> : "Create"}
+                  {create.isPending ? <Loading /> : "Create"}
                 </Button>
               </DialogFooter>
             </form>

@@ -156,7 +156,7 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
               <DialogFooter className="justify-end gap-4">
                 <Button
                   type="button"
-                  disabled={deleteNamespace.isLoading}
+                  disabled={deleteNamespace.isPending}
                   onClick={() => setOpen(!open)}
                 >
                   Cancel
@@ -164,9 +164,9 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
                 <Button
                   type="submit"
                   variant="destructive"
-                  disabled={!isValid || deleteNamespace.isLoading}
+                  disabled={!isValid || deleteNamespace.isPending}
                 >
-                  {deleteNamespace.isLoading ? <Loading /> : "Delete namespace"}
+                  {deleteNamespace.isPending ? <Loading /> : "Delete namespace"}
                 </Button>
               </DialogFooter>
             </form>

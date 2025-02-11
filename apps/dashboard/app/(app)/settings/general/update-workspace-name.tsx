@@ -58,7 +58,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateName.mutateAsync(values);
   }
-  const isDisabled = form.formState.isLoading || !form.formState.isValid || updateName.isLoading;
+  const isDisabled = form.formState.isLoading || !form.formState.isValid || updateName.isPending;
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -87,7 +87,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
           </CardContent>
           <CardFooter className="justify-end">
             <Button variant="primary" type="submit" disabled={isDisabled}>
-              {updateName.isLoading ? <Loading /> : "Save"}
+              {updateName.isPending ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

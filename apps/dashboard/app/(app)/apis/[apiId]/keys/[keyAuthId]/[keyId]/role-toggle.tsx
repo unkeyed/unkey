@@ -64,7 +64,7 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
       router.refresh();
     },
   });
-  if (connect.isLoading || disconnect.isLoading) {
+  if (connect.isPending || disconnect.isPending) {
     return <Loader2 className="w-4 h-4 animate-spin" />;
   }
   return (

@@ -166,12 +166,12 @@ export const Feedback: React.FC<FeedbackProps> = ({ variant, FeedbackOpen }) => 
                 </Button>
                 <Button
                   type="submit"
-                  disabled={create.isLoading}
+                  disabled={create.isPending}
                   onClick={form.handleSubmit((data) => {
                     create.mutate(data);
                   })}
                 >
-                  {create.isLoading ? <Loading /> : "Send"}
+                  {create.isPending ? <Loading /> : "Send"}
                 </Button>
               </DialogFooter>
             </DialogContent>

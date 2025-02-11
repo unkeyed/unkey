@@ -168,8 +168,8 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
             />
           </CardContent>
           <CardFooter className="flex flex-row-reverse justify-between">
-            <Button disabled={create.isLoading || !form.formState.isValid} type="submit">
-              {create.isLoading ? <Loading /> : "Create"}
+            <Button disabled={create.isPending || !form.formState.isValid} type="submit">
+              {create.isPending ? <Loading /> : "Create"}
             </Button>
           </CardFooter>
         </form>

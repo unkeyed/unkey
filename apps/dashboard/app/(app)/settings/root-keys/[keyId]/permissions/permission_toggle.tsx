@@ -75,13 +75,13 @@ export const PermissionToggle: React.FC<Props> = ({
       <div className="flex flex-col items-center @xl:flex-row w-full">
         <div className="w-full @xl:w-1/3">
           <div className="flex items-center gap-2">
-            {addPermission.isLoading || removeRole.isLoading ? (
+            {addPermission.isPending || removeRole.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Checkbox
                 disabled={
-                  addPermission.isLoading ||
-                  removeRole.isLoading ||
+                  addPermission.isPending ||
+                  removeRole.isPending ||
                   (preventEnabling && !checked) ||
                   (preventDisabling && checked)
                 }

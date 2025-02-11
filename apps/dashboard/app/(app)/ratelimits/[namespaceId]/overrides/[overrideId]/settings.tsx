@@ -165,8 +165,8 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
             <Button type="button" onClick={() => deleteOverride.mutate({ id: overrideId })}>
               Delete
             </Button>
-            <Button disabled={update.isLoading || !form.formState.isValid} type="submit">
-              {update.isLoading ? <Loading /> : "Save"}
+            <Button disabled={update.isPending || !form.formState.isValid} type="submit">
+              {update.isPending ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </form>

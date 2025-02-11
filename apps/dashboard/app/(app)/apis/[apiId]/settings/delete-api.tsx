@@ -172,14 +172,14 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
               />
 
               <DialogFooter className="justify-end gap-4">
-                <Button type="button" disabled={deleteApi.isLoading} onClick={() => setOpen(!open)}>
+                <Button type="button" disabled={deleteApi.isPending} onClick={() => setOpen(!open)}>
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   variant="destructive"
-                  loading={deleteApi.isLoading}
-                  disabled={!isValid || deleteApi.isLoading}
+                  loading={deleteApi.isPending}
+                  disabled={!isValid || deleteApi.isPending}
                 >
                   Delete API
                 </Button>

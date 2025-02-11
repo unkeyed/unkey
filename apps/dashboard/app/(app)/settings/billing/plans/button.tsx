@@ -94,7 +94,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
             Cancel
           </Button>
           <Button className="col-span-1" variant="primary" onClick={handleClick}>
-            {changePlan.isLoading ? <Loading /> : "Switch"}
+            {changePlan.isPending ? <Loading /> : "Switch"}
           </Button>
         </DialogFooter>
       </DialogContent>

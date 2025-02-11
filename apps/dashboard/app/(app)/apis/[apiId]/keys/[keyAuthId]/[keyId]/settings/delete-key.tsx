@@ -79,10 +79,10 @@ export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
             <Button
               type="submit"
               variant="destructive"
-              disabled={deleteKey.isLoading}
+              disabled={deleteKey.isPending}
               onClick={() => deleteKey.mutate({ keyIds: [apiKey.id] })}
             >
-              {deleteKey.isLoading ? <Loading /> : "Delete Key"}
+              {deleteKey.isPending ? <Loading /> : "Delete Key"}
             </Button>
           </DialogFooter>
         </DialogContent>

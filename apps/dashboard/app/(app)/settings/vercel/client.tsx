@@ -236,7 +236,7 @@ const ConnectedResource: React.FC<{
     },
   });
 
-  const isLoading = updateApiId.isLoading || rerollRootKey.isLoading || unbind.isLoading;
+  const isLoading = updateApiId.isPending || rerollRootKey.isPending || unbind.isPending;
 
   return (
     <div className="flex items-center w-full gap-2 ">
@@ -327,7 +327,7 @@ const ConnectedResource: React.FC<{
 
           {props.type === "Root Key ID" ? (
             <DropdownMenuItem
-              disabled={unbind.isLoading}
+              disabled={unbind.isPending}
               onClick={() => {
                 rerollRootKey.mutate({
                   integrationId: props.integrationId,

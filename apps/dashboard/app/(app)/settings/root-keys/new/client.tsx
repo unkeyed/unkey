@@ -264,7 +264,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
           });
         }}
       >
-        {key.isLoading ? <Loading className="w-4 h-4" /> : "Create New Key"}
+        {key.isPending ? <Loading className="w-4 h-4" /> : "Create New Key"}
       </Button>
 
       <Dialog

@@ -172,7 +172,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
             ) : null}*/}
             <DialogFooter>
               <Button type="submit">
-                {createRole.isLoading ? <Loading className="w-4 h-4" /> : "Create"}
+                {createRole.isPending ? <Loading className="w-4 h-4" /> : "Create"}
               </Button>
             </DialogFooter>
           </form>

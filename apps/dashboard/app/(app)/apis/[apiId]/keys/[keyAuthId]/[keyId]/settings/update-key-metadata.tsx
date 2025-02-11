@@ -109,8 +109,8 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
             >
               Format Json
             </Button>
-            <Button disabled={updateMetadata.isLoading || !form.formState.isValid} type="submit">
-              {updateMetadata.isLoading ? <Loading /> : "Save"}
+            <Button disabled={updateMetadata.isPending || !form.formState.isValid} type="submit">
+              {updateMetadata.isPending ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

@@ -111,14 +111,14 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
             />
 
             <DialogFooter className="justify-end gap-4">
-              <Button type="button" disabled={deleteRole.isLoading} onClick={() => setOpen(!open)}>
+              <Button type="button" disabled={deleteRole.isPending} onClick={() => setOpen(!open)}>
                 Cancel
               </Button>
               <Button
                 type="submit"
                 variant="destructive"
-                disabled={!isValid || deleteRole.isLoading}
-                loading={deleteRole.isLoading}
+                disabled={!isValid || deleteRole.isPending}
+                loading={deleteRole.isPending}
               >
                 Delete Role
               </Button>

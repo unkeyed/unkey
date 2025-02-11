@@ -111,7 +111,7 @@ export const Client: React.FC<Props> = ({ permission }) => {
           </CardContent>
           <CardFooter className="justify-end">
             <Button type="submit">
-              {updatePermission.isLoading ? <Loading className="w-4 h-4" /> : "Save"}
+              {updatePermission.isPending ? <Loading className="w-4 h-4" /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

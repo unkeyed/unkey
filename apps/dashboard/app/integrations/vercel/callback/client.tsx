@@ -177,7 +177,7 @@ export const Client: React.FC<Props> = ({
             });
           }}
         >
-          {create.isLoading ? <Loading /> : "Save"}
+          {create.isPending ? <Loading /> : "Save"}
         </Button>
       </footer>
     </div>

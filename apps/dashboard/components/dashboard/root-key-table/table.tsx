@@ -111,7 +111,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
 
                 <DialogFooter>
                   <Button
-                    disabled={deleteKey.isLoading}
+                    disabled={deleteKey.isPending}
                     onClick={() => {
                       const keyIds = table
                         .getSelectedRowModel()
@@ -120,7 +120,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
                       deleteKey.mutate({ keyIds });
                     }}
                   >
-                    {deleteKey.isLoading ? <Loading /> : "Delete permanently"}
+                    {deleteKey.isPending ? <Loading /> : "Delete permanently"}
                   </Button>
                 </DialogFooter>
               </DialogContent>

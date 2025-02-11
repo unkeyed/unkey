@@ -89,11 +89,11 @@ export const CreateWorkspace: React.FC = () => {
             <div className="mt-8">
               <Button
                 variant="primary"
-                disabled={createWorkspace.isLoading || !form.formState.isValid}
+                disabled={createWorkspace.isPending || !form.formState.isValid}
                 type="submit"
                 className="w-full"
               >
-                {createWorkspace.isLoading ? <Loading /> : "Create Workspace"}
+                {createWorkspace.isPending ? <Loading /> : "Create Workspace"}
               </Button>
             </div>
           </form>

@@ -780,11 +780,11 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                     <div className="w-full">
                       <Button
                         className="w-full"
-                        disabled={key.isLoading || !form.formState.isValid}
+                        disabled={key.isPending || !form.formState.isValid}
                         type="submit"
                         variant="primary"
                       >
-                        {key.isLoading ? <Loading /> : "Create"}
+                        {key.isPending ? <Loading /> : "Create"}
                       </Button>
                     </div>
                   </div>

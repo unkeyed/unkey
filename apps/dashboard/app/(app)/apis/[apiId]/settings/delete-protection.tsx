@@ -130,7 +130,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 <DialogFooter>
                   <Button
                     type="button"
-                    disabled={updateDeleteProtection.isLoading}
+                    disabled={updateDeleteProtection.isPending}
                     onClick={() => {
                       form.reset();
                       setOpen(!open);
@@ -141,9 +141,9 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                   <Button
                     type="submit"
                     variant="destructive"
-                    disabled={!isValid || updateDeleteProtection.isLoading}
+                    disabled={!isValid || updateDeleteProtection.isPending}
                   >
-                    {updateDeleteProtection.isLoading ? <Loading /> : "Disable"}
+                    {updateDeleteProtection.isPending ? <Loading /> : "Disable"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -168,8 +168,8 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
         <Button
           onClick={() => updateDeleteProtection.mutate({ apiId: api.id, enabled: true })}
           variant="primary"
-          disabled={updateDeleteProtection.isLoading}
-          loading={updateDeleteProtection.isLoading}
+          disabled={updateDeleteProtection.isPending}
+          loading={updateDeleteProtection.isPending}
         >
           Enable
         </Button>
