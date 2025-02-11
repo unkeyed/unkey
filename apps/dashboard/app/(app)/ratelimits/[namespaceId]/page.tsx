@@ -1,14 +1,12 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Gauge } from "@unkey/icons";
 import { redirect } from "next/navigation";
-import { navigation } from "./constants";
-import type { Interval } from "./filters";
 import { LogsClient } from "./_overview/components/logs-client";
+import type { Interval } from "./filters";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -42,9 +40,7 @@ export default async function RatelimitNamespacePage(props: {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">
-            Ratelimits
-          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={`/ratelimits/${props.params.namespaceId}`}
             isIdentifier

@@ -18,16 +18,14 @@ function generateRandomIdentifier() {
         .toString()
         .padStart(3, "0")}`;
     case "IP":
-      return `IP-${Array.from({ length: 4 }, () =>
-        Math.floor(Math.random() * 256)
-      ).join(".")}`;
+      return `IP-${Array.from({ length: 4 }, () => Math.floor(Math.random() * 256)).join(".")}`;
     case "API-Key":
       // biome-ignore lint/correctness/noSwitchDeclarations: <explanation>
       const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
       // biome-ignore lint/correctness/noSwitchDeclarations: <explanation>
       const suffix = Array.from(
         { length: 3 },
-        () => letters[Math.floor(Math.random() * letters.length)]
+        () => letters[Math.floor(Math.random() * letters.length)],
       ).join("");
       return `API-Key-${suffix}`;
     default:
@@ -37,23 +35,17 @@ function generateRandomIdentifier() {
 
 function generateRandomDate(startDate: Date, endDate: Date): string {
   const randomDate = new Date(
-    startDate.getTime() +
-      Math.random() * (endDate.getTime() - startDate.getTime())
+    startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()),
   );
 
-  const month = randomDate
-    .toLocaleString("en-US", { month: "short" })
-    .toUpperCase();
+  const month = randomDate.toLocaleString("en-US", { month: "short" }).toUpperCase();
   const day = randomDate.getDate().toString().padStart(2, "0");
   const hours = randomDate.getHours().toString().padStart(2, "0");
   const minutes = randomDate.getMinutes().toString().padStart(2, "0");
   const seconds = randomDate.getSeconds().toString().padStart(2, "0");
   const milliseconds = randomDate.getMilliseconds().toString().padStart(2, "0");
 
-  return `${month.slice(
-    0,
-    3
-  )} ${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+  return `${month.slice(0, 3)} ${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
 
 function generateAnomalyData(): Partial<RatelimitOverviewLogs> {
@@ -132,8 +124,8 @@ export function generateMockApiData(numEntries = 50): RatelimitOverviewLogs[] {
             DEC: 11,
           };
           return (months[month as keyof typeof months] + 1).toString();
-        })
-      )
+        }),
+      ),
     );
     const dateB = new Date(
       Date.parse(
@@ -153,8 +145,8 @@ export function generateMockApiData(numEntries = 50): RatelimitOverviewLogs[] {
             DEC: 11,
           };
           return (months[month as keyof typeof months] + 1).toString();
-        })
-      )
+        }),
+      ),
     );
     return dateB.getTime() - dateA.getTime();
   });

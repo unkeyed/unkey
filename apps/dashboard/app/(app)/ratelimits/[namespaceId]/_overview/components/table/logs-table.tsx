@@ -1,5 +1,6 @@
 "use client";
 
+import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
@@ -7,11 +8,7 @@ import { cn } from "@/lib/utils";
 import { Ban, BookBookmark, Focus, TriangleWarning2 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useMemo } from "react";
-import {
-  type RatelimitOverviewLogs,
-  generateMockApiData,
-} from "../../dev-utils";
-import { TimestampInfo } from "@/components/timestamp-info";
+import { type RatelimitOverviewLogs, generateMockApiData } from "../../dev-utils";
 
 const MAX_LATENCY = 10;
 
@@ -70,7 +67,7 @@ export const RatelimitOverviewLogsTable = () => {
       hasMoreBlocked ? "bg-orange-2" : "",
       "group rounded-md",
       "focus:outline-none focus:ring-1 focus:ring-opacity-40",
-      style.focusRing
+      style.focusRing,
     );
   };
 
@@ -86,18 +83,14 @@ export const RatelimitOverviewLogsTable = () => {
 
           return (
             <div className="flex gap-6 items-center pl-2">
-              <div
-                className={cn(log.blocked > log.passed ? "block" : "invisible")}
-              >
+              <div className={cn(log.blocked > log.passed ? "block" : "invisible")}>
                 <TriangleWarning2 />
               </div>
               <div className="flex gap-3 items-center">
                 <div className={cn(style.badge.default, "rounded p-1")}>
                   <Focus size="md-regular" />
                 </div>
-                <div className="font-mono pr-4 text-accent-12 font-medium">
-                  {log.identifier}
-                </div>
+                <div className="font-mono pr-4 text-accent-12 font-medium">{log.identifier}</div>
               </div>
             </div>
           );
@@ -112,7 +105,7 @@ export const RatelimitOverviewLogsTable = () => {
             <Badge
               className={cn(
                 "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-                STATUS_STYLES.success.badge.default
+                STATUS_STYLES.success.badge.default,
               )}
               title={`${log.passed.toLocaleString()} Passed requests`}
             >
@@ -131,7 +124,7 @@ export const RatelimitOverviewLogsTable = () => {
             <Badge
               className={cn(
                 "uppercase px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
-                style.badge.default
+                style.badge.default,
               )}
               title={`${log.blocked.toLocaleString()} Blocked requests`}
             >
@@ -151,7 +144,7 @@ export const RatelimitOverviewLogsTable = () => {
               "font-mono pr-4",
               log.avgLatency > MAX_LATENCY
                 ? "text-orange-11 font-medium dark:text-warning-11"
-                : "text-accent-9"
+                : "text-accent-9",
             )}
           >
             {log.avgLatency.toFixed(2)}ms
@@ -168,7 +161,7 @@ export const RatelimitOverviewLogsTable = () => {
               "font-mono pr-4",
               log.p99Latency > MAX_LATENCY
                 ? "text-orange-11 font-medium dark:text-warning-11"
-                : "text-accent-9"
+                : "text-accent-9",
             )}
           >
             {log.p99Latency}ms
@@ -183,15 +176,13 @@ export const RatelimitOverviewLogsTable = () => {
           <div className="flex items-center gap-3 truncate text-accent-9">
             <TimestampInfo
               value={log.lastRequest}
-              className={cn(
-                "font-mono group-hover:underline decoration-dotted"
-              )}
+              className={cn("font-mono group-hover:underline decoration-dotted")}
             />
           </div>
         ),
       },
     ],
-    []
+    [],
   );
 
   return (
@@ -206,10 +197,9 @@ export const RatelimitOverviewLogsTable = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>Logs</Empty.Title>
             <Empty.Description className="text-left">
-              Keep track of all activity within your workspace. Logs
-              automatically record key actions like key creation, permission
-              updates, and configuration changes, giving you a clear history of
-              resource requests.
+              Keep track of all activity within your workspace. Logs automatically record key
+              actions like key creation, permission updates, and configuration changes, giving you a
+              clear history of resource requests.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a

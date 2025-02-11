@@ -14,13 +14,7 @@ import type { IconProps } from "../props";
 
 export const ArrowDotAntiClockwise: React.FC<IconProps> = (props) => {
   return (
-    <svg
-      {...props}
-      height="18"
-      width="18"
-      viewBox="0 0 18 18"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
       <g fill="currentColor">
         <circle
           cx="3.75"
