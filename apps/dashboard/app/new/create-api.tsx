@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { useUser } from "@/lib/auth/hooks";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
-import { useUser } from "@/lib/auth/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Code2 } from "lucide-react";

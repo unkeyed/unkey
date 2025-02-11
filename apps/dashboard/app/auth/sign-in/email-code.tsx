@@ -1,21 +1,21 @@
 "use client";
 
-import { OTPInput, type SlotProps } from "input-otp";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
-import { cn } from "@/lib/utils";
 import { useSignIn } from "@/lib/auth/hooks";
+import { cn } from "@/lib/utils";
+import { OTPInput, type SlotProps } from "input-otp";
+import { useState } from "react";
 
 export const EmailCode = () => {
-  const router = useRouter();
   const { handleVerification, handleResendCode, setError } = useSignIn();
   const [isLoading, setIsLoading] = useState(false);
   const [otp, setOtp] = useState("");
 
   const verifyCode = async (code: string) => {
-    if (!code) return;
+    if (!code) {
+      return;
+    }
     setIsLoading(true);
     try {
       await handleVerification(code);

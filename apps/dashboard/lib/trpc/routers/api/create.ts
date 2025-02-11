@@ -7,7 +7,7 @@ import { newId } from "@unkey/id";
 import { auth, t } from "../../trpc";
 
 export const createApi = t.procedure
-.use(auth)
+  .use(auth)
   .input(
     z.object({
       name: z
