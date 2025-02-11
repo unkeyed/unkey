@@ -150,11 +150,11 @@ export function useLogsQuery({
   const pollForNewLogs = useCallback(async () => {
     try {
       const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
-      const result = await queryClient.logs.queryLogs.fetch({
+      const result = await queryClient.fetchQuery(trpc.logs.queryLogs.queryOptions({
         ...queryParams,
         startTime: latestTime ?? Date.now() - pollIntervalMs,
         endTime: Date.now(),
-      });
+      }));
 
       if (result.logs.length === 0) {
         return;

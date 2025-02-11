@@ -113,9 +113,10 @@ export const useFetchTimeseries = () => {
     return params;
   }, [filters, dateNow]);
 
-  const { data, isLoading, isError } = useQuery(trpc.logs.queryTimeseries.queryOptions(queryParams, {
+  const options = trpc.logs.queryTimeseries.queryOptions(queryParams, {
     refetchInterval: queryParams.endTime ? false : 10_000,
-  }));
+  })
+  const { data, isLoading, isError } = useQuery(options);
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestamp(ts.x, data.granularity),

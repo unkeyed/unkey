@@ -131,11 +131,11 @@ export function useRatelimitLogsQuery({
   const pollForNewLogs = useCallback(async () => {
     try {
       const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
-      const result = await queryClient.ratelimit.logs.query.fetch({
+      const result = await queryClient.fetchQuery(trpc.ratelimit.logs.query.queryOptions({
         ...queryParams,
         startTime: latestTime ?? Date.now() - pollIntervalMs,
         endTime: Date.now(),
-      });
+      })) ;
 
       if (result.ratelimitLogs.length === 0) {
         return;

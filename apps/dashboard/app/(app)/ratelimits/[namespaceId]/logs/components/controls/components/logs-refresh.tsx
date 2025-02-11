@@ -2,16 +2,17 @@ import { RefreshButton } from "@/components/logs/refresh-button";
 import { useTRPC } from "@/lib/trpc/client";
 import { useRatelimitLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
-
+import { useQueryClient } from "@tanstack/react-query";
 export const LogsRefresh = () => {
   const { toggleLive, isLive } = useRatelimitLogsContext();
   const { filters } = useFilters();
-  const { ratelimit } = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const hasRelativeFilter = filters.find((f) => f.field === "since");
 
   const handleRefresh = () => {
-    ratelimit.logs.query.invalidate();
-    ratelimit.logs.queryRatelimitTimeseries.invalidate();
+    queryClient.invalidateQueries(trpc.ratelimit.logs.query.queryFilter());
+    queryClient.invalidateQueries(trpc.ratelimit.logs.queryRatelimitTimeseries.queryFilter());
   };
 
   return (
