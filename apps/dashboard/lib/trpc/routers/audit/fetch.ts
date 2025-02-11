@@ -1,8 +1,8 @@
 import { DEFAULT_FETCH_COUNT } from "@/app/(app)/audit/components/table/constants";
+import { auth } from "@/lib/auth/server";
+import type { User } from "@/lib/auth/types";
 import { type Workspace, db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-import type { User } from "@/lib/auth/types";
-import { auth } from '@/lib/auth/server';
 import { TRPCError } from "@trpc/server";
 import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
 import { z } from "zod";

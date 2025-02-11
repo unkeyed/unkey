@@ -1,40 +1,38 @@
-import { db } from "@/lib/db";
-import { env } from "@/lib/env";
 import { auth } from "@/lib/auth/server";
+import { env } from "@/lib/env";
 import { type NextFetchEvent, type NextRequest, NextResponse } from "next/server";
 
-export default async function (req: NextRequest, evt: NextFetchEvent) {
+export default async function (req: NextRequest, _evt: NextFetchEvent) {
   const url = new URL(req.url);
   console.info("host", url.host);
   if (url.host === "gateway.new") {
     return NextResponse.redirect("https://app.unkey.com/gateway-new");
   }
-  
+
   let res: NextResponse;
   const AUTH_PROVIDER = env().AUTH_PROVIDER;
-  const isEnabled = () => AUTH_PROVIDER === 'workos';
+  const isEnabled = () => AUTH_PROVIDER === "workos";
 
   try {
-    console.debug('Processing middleware for URL:', req.url);
+    console.debug("Processing middleware for URL:", req.url);
 
     res = await auth.createMiddleware({
       enabled: isEnabled(),
       publicPaths: [
-        '/auth/sign-in', 
-        '/auth/sign-up',
-        '/auth/sso-callback',
-        '/auth/oauth-sign-in', 
-        '/favicon.ico',
-        '/_next',]
-    })(req)
-}
-    
-catch (error) {
-    console.error('Middleware error:', error);
+        "/auth/sign-in",
+        "/auth/sign-up",
+        "/auth/sso-callback",
+        "/auth/oauth-sign-in",
+        "/favicon.ico",
+        "/_next",
+      ],
+    })(req);
+  } catch (error) {
+    console.error("Middleware error:", error);
     // Return a basic response in case of error
     // TODO: flesh this out as an actual error
     res = new NextResponse();
-}
+  }
 
   return res;
 }

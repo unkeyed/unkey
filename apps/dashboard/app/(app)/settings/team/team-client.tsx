@@ -1,24 +1,12 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
-import { Empty } from "@unkey/ui";
-import { Button } from "@unkey/ui";
-import { useState } from "react";
-import { InviteButton } from "./invite";
 import Confirm from "@/components/dashboard/confirm";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Loading } from "@/components/dashboard/loading";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -27,11 +15,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
-import { Gear } from "@unkey/icons";
-import Link from "next/link";
-import { navigation } from "../constants";
 import { useOrganization, useUser } from "@/lib/auth/hooks";
+import { Gear } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
+import { useState } from "react";
+import { navigation } from "../constants";
+import { InviteButton } from "./invite";
 
 type WorkspaceData = {
   plan: string;
@@ -39,15 +38,15 @@ type WorkspaceData = {
 };
 
 type TeamPageProps = {
-  initialData: {
+  _initialData: {
     orgId: string;
     workspace: WorkspaceData;
   };
 };
 
-export function TeamPageClient({ initialData }: TeamPageProps) {
+export function TeamPageClient({ _initialData }: TeamPageProps) {
   const { membership } = useUser();
-  const isAdmin = membership?.role === 'admin';
+  const isAdmin = membership?.role === "admin";
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
 
@@ -67,9 +66,7 @@ export function TeamPageClient({ initialData }: TeamPageProps) {
         </SelectContent>
       </Select>,
     );
-  }
 
-  if (isAdmin) {
     actions.push(<InviteButton key="invite-button" />);
   }
 
@@ -96,7 +93,7 @@ export function TeamPageClient({ initialData }: TeamPageProps) {
 const Members: React.FC = () => {
   const { memberships, loading, removeMember } = useOrganization();
   const { user, membership } = useUser();
-  const isAdmin = membership?.role === 'admin';
+  const isAdmin = membership?.role === "admin";
 
   if (loading.memberships) {
     return (
@@ -126,7 +123,9 @@ const Members: React.FC = () => {
                 </Avatar>
                 <div className="flex flex-col items-start">
                   <span className="text-content font-medium">
-                    {`${member.firstName ? member.firstName : member.email} ${member.lastName ? member.lastName : ""}`}
+                    {`${member.firstName ? member.firstName : member.email} ${
+                      member.lastName ? member.lastName : ""
+                    }`}
                   </span>
                   <span className="text-content-subtle text-xs">
                     {member.firstName ? member.email : ""}
@@ -231,9 +230,9 @@ const RoleSwitcher: React.FC<{
       if (!organization) {
         return;
       }
-      await updateMember({ 
-        membershipId: member.id, 
-        role: member.role 
+      await updateMember({
+        membershipId: member.id,
+        role: member.role,
       });
 
       setRole(newRole);
@@ -275,7 +274,9 @@ const RoleSwitcher: React.FC<{
   return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
 };
 
-const StatusBadge: React.FC<{ status: "pending" | "accepted" | "revoked" | "expired" }> = ({ status }) => {
+const StatusBadge: React.FC<{ status: "pending" | "accepted" | "revoked" | "expired" }> = ({
+  status,
+}) => {
   switch (status) {
     case "pending":
       return <Badge variant="primary">Pending</Badge>;

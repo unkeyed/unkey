@@ -1,9 +1,9 @@
 import { Buffer } from "node:buffer";
 import crypto from "node:crypto";
 import type { Readable } from "node:stream";
+import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { auth } from "@/lib/auth/server";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -208,12 +208,12 @@ async function alertSlack({
 
 async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];
-    const members = await auth.getOrganizationMembershipList({
-      organizationId: tenantId,
-    });
-    for (const m of members) {
-      userIds.push(m.user.id);
-    }
+  const members = await auth.getOrganizationMembershipList({
+    organizationId: tenantId,
+  });
+  for (const m of members) {
+    userIds.push(m.user.id);
+  }
 
   return await Promise.all(
     userIds.map(async (userId) => {

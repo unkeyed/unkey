@@ -1,8 +1,8 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { insertAuditLogs } from "@/lib/audit";
-import { db, schema } from "@/lib/db";
 import { auth } from "@/lib/auth/server";
+import { db, schema } from "@/lib/db";
 import { newId } from "@unkey/id";
 import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
@@ -26,7 +26,9 @@ type Props = {
 export default async function (props: Props) {
   const user = await auth.getCurrentUser();
   // make typescript happy
-  if (!user) return redirect("/auth/sign-in");
+  if (!user) {
+    return redirect("/auth/sign-in");
+  }
 
   const { id: userId, orgId } = user;
 
@@ -207,7 +209,7 @@ export default async function (props: Props) {
   if (orgId) {
     // do they already have a workspace?
     // they might if they have been invited to one
-      const workspace = await db.query.workspaces.findFirst({
+    const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.tenantId, userId), isNull(table.deletedAtM)),
     });
@@ -218,7 +220,7 @@ export default async function (props: Props) {
       await db.transaction(async (tx) => {
         await tx.insert(schema.workspaces).values({
           id: workspaceId,
-          tenantId: userId,
+          tenantId: orgId,
           name: "Personal",
           plan: "free",
           stripeCustomerId: null,
@@ -260,7 +262,7 @@ export default async function (props: Props) {
           });
         });
 
-        return redirect(`/new?workspaceId=${workspaceId}`);
+      return redirect(`/new?workspaceId=${workspaceId}`);
     }
   }
 

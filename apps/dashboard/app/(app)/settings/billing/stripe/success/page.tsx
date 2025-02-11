@@ -1,10 +1,10 @@
 import { Code } from "@/components/ui/code";
 import { insertAuditLogs } from "@/lib/audit";
 import { getTenantId } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { PostHogClient } from "@/lib/posthog";
-import { auth } from "@/lib/auth/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { Empty } from "@unkey/ui";
 import { headers } from "next/headers";
