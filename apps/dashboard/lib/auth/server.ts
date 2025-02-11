@@ -1,22 +1,24 @@
 import { env } from "@/lib/env";
-import { BaseAuthProvider } from "./base-provider";
+import type { BaseAuthProvider } from "./base-provider";
 import { WorkOSAuthProvider } from "./workos";
 
 type SupportedProviders = "workos" | "local";
-
+// biome-ignore lint/complexity/noStaticOnlyClass: intentional; AuthProvider class is inherited/extended by other providers
 class AuthProvider {
   private static instance: BaseAuthProvider | null = null;
   private static initialized = false;
 
   private static initialize(): void {
-    if (this.initialized) return;
+    if (AuthProvider.initialized) {
+      return;
+    }
 
     const environment = env();
     const authProvider = environment.AUTH_PROVIDER as SupportedProviders;
 
     switch (authProvider) {
       case "workos": {
-        this.initializeWorkOS(environment);
+        AuthProvider.initializeWorkOS(environment);
         break;
       }
 
@@ -24,29 +26,27 @@ class AuthProvider {
         throw new Error(`Unsupported AUTH_PROVIDER: ${authProvider}`);
     }
 
-    this.initialized = true;
+    AuthProvider.initialized = true;
   }
 
   private static initializeWorkOS(environment: ReturnType<typeof env>) {
     const { WORKOS_API_KEY, WORKOS_CLIENT_ID } = environment;
 
     if (!WORKOS_API_KEY || !WORKOS_CLIENT_ID) {
-      throw new Error(
-        "WORKOS_API_KEY and WORKOS_CLIENT_ID are required for WorkOS authentication"
-      );
+      throw new Error("WORKOS_API_KEY and WORKOS_CLIENT_ID are required for WorkOS authentication");
     }
 
-    this.instance = new WorkOSAuthProvider({
+    AuthProvider.instance = new WorkOSAuthProvider({
       apiKey: WORKOS_API_KEY,
-      clientId: WORKOS_CLIENT_ID
+      clientId: WORKOS_CLIENT_ID,
     });
   }
 
   public static getInstance(): BaseAuthProvider {
-    if (!this.instance) {
-      this.initialize();
+    if (!AuthProvider.instance) {
+      AuthProvider.initialize();
     }
-    return this.instance!;
+    return AuthProvider.instance!;
   }
 }
 

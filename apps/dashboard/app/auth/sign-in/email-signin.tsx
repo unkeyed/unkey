@@ -1,8 +1,8 @@
 import { Loading } from "@/components/dashboard/loading";
 import { Input } from "@/components/ui/input";
-import { FormEvent, useState } from "react";
-import { LastUsed, useLastUsed } from "./last_used";
 import { useSignIn } from "@/lib/auth/hooks";
+import { type FormEvent, useState } from "react";
+import { LastUsed, useLastUsed } from "./last_used";
 
 export function EmailSignIn() {
   const { handleSignInViaEmail, email } = useSignIn();
@@ -12,8 +12,10 @@ export function EmailSignIn() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formEmail = new FormData(e.currentTarget).get("email");
-    if (typeof formEmail !== "string") return;
-    
+    if (typeof formEmail !== "string") {
+      return;
+    }
+
     setIsLoading(true);
     await handleSignInViaEmail(formEmail);
     setLastUsed("email");

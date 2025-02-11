@@ -1,26 +1,22 @@
 "use client";
 
 import { FadeIn } from "@/components/landing/fade-in";
+import { SignInProvider } from "@/lib/auth/context/signin-context";
+import { useSignIn } from "@/lib/auth/hooks";
 import { MoveRight } from "lucide-react";
 import Link from "next/link";
 import { ErrorBanner, WarnBanner } from "../../banners";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { OAuthSignIn } from "../oauth-signin";
-import { SignInProvider } from "@/lib/auth/context/signin-context";
-import { useSignIn } from "@/lib/auth/hooks";
 import { OrgSelector } from "../org-selector";
-import { Dialog, DialogContent, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 
 function SignInContent() {
   const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs } = useSignIn();
 
   return (
     <div className="flex flex-col gap-10">
-
-      {hasPendingAuth &&
-          <OrgSelector organizations={orgs} />
-      }
+      {hasPendingAuth && <OrgSelector organizations={orgs} />}
 
       {accountNotFound && (
         <WarnBanner>

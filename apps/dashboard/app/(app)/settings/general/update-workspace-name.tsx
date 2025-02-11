@@ -14,8 +14,6 @@ import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-const validCharactersRegex = /^[a-zA-Z0-9-_]+$/;
-
 const formSchema = z.object({
   workspaceId: z.string(),
   name: z.string().trim().min(3),
@@ -31,7 +29,7 @@ type Props = {
 
 export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const router = useRouter();
-  const { fetchUser: refetchUser }  = useUser();
+  const { fetchUser: refetchUser } = useUser();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -45,7 +43,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const updateName = trpc.workspace.updateName.useMutation({
     onSuccess() {
       toast.success("Workspace name updated");
-      refetchUser()
+      refetchUser();
       router.refresh();
     },
     onError(err) {

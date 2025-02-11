@@ -1,7 +1,7 @@
 import type { Readable } from "node:stream";
+import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
-import { auth } from "@/lib/auth/server";
 import { Resend } from "@unkey/resend";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
@@ -29,14 +29,9 @@ const requestValidation = z.object({
   }),
 });
 
-export default async function webhookHandler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const resend = env().RESEND_API_KEY
-      ? new Resend({ apiKey: env().RESEND_API_KEY! })
-      : null;
+    const resend = env().RESEND_API_KEY ? new Resend({ apiKey: env().RESEND_API_KEY! }) : null;
     const {
       headers: { "stripe-signature": signature },
     } = requestValidation.parse(req);
@@ -53,7 +48,7 @@ export default async function webhookHandler(
     const event = stripe.webhooks.constructEvent(
       (await buffer(req)).toString(),
       signature,
-      stripeEnv()!.STRIPE_WEBHOOK_SECRET
+      stripeEnv()!.STRIPE_WEBHOOK_SECRET,
     );
 
     switch (event.type) {
@@ -64,18 +59,13 @@ export default async function webhookHandler(
         }
         const ws = await db.query.workspaces.findFirst({
           where: (table, { and, eq, isNull }) =>
-            and(
-              eq(table.stripeCustomerId, invoice.customer!.toString()),
-              isNull(table.deletedAt)
-            ),
+            and(eq(table.stripeCustomerId, invoice.customer!.toString()), isNull(table.deletedAt)),
         });
         if (!ws) {
           throw new Error("workspace does not exist");
         }
         const users = await getUsers(ws.tenantId);
-        const date = invoice.effective_at
-          ? new Date(invoice.effective_at * 1000)
-          : new Date();
+        const date = invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date();
         for await (const user of users) {
           await resend.sendPaymentIssue({
             email: user.email,
@@ -87,10 +77,7 @@ export default async function webhookHandler(
       }
 
       default:
-        console.error(
-          "Incoming stripe event, that should not be received",
-          event.type
-        );
+        console.error("Incoming stripe event, that should not be received", event.type);
         break;
     }
     res.send("OK");
@@ -104,9 +91,7 @@ export default async function webhookHandler(
   }
 }
 
-async function getUsers(
-  tenantId: string
-): Promise<{ id: string; email: string; name: string }[]> {
+async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];
   const { data } = await auth.getOrganizationMemberList(tenantId);
 
@@ -129,6 +114,6 @@ async function getUsers(
         name: user.firstName ?? "there",
         email,
       };
-    })
+    }),
   );
 }

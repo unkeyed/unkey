@@ -13,13 +13,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 
-import type React from "react";
-import { useUser } from "@/lib/auth/hooks";
 import { signOut } from "@/lib/auth/actions";
+import { useUser } from "@/lib/auth/hooks";
+import type React from "react";
 
 export const UserButton: React.FC = () => {
   const { user } = useUser();
-  if (!user) { 
+  if (!user) {
     return null;
   }
 
@@ -37,9 +37,7 @@ export const UserButton: React.FC = () => {
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              <span className="text-sm font-medium">
-                {user.fullName ?? user.email}
-              </span>
+              <span className="text-sm font-medium">{user.fullName ?? user.email}</span>
             </TooltipContent>
           </Tooltip>
           <Avatar className="w-8 h-8 lg:w-5 lg:h-5">
@@ -59,9 +57,7 @@ export const UserButton: React.FC = () => {
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              <span className="text-sm font-medium">
-                {user.fullName ?? user.email}
-              </span>
+              <span className="text-sm font-medium">{user.fullName ?? user.email}</span>
             </TooltipContent>
           </Tooltip>
         </div>
@@ -90,12 +86,18 @@ export const UserButton: React.FC = () => {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-        <DropdownMenuItem asChild className="cursor-pointer" onClick={async () => {await signOut()} }>
-              <span>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign out
-              </span>
-            </DropdownMenuItem>
+          <DropdownMenuItem
+            asChild
+            className="cursor-pointer"
+            onClick={async () => {
+              await signOut();
+            }}
+          >
+            <span>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign out
+            </span>
+          </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
