@@ -8,7 +8,6 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
 */
 @layer base {
   :root {
-
     /* Gray */
     --gray-1: 0, 0%, 99%;
     --gray-2: 0, 0%, 98%;
@@ -23,7 +22,6 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --gray-11: 0, 0%, 39%;
     --gray-12: 0, 0%, 13%;
 
-
     /* Teal */
     --success-1: 165, 67%, 99%;
     --success-2: 165, 50%, 97%;
@@ -37,6 +35,20 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --success-10: 173, 85%, 33%;
     --success-11: 172, 100%, 26%;
     --success-12: 174, 65%, 15%;
+
+    /* Orange */
+    --orange-1: 33, 85%, 99%;
+    --orange-2: 33, 100%, 96%;
+    --orange-3: 34, 100%, 91%;
+    --orange-4: 34, 100%, 85%;
+    --orange-5: 32, 99%, 79%;
+    --orange-6: 30, 97%, 72%;
+    --orange-7: 27, 96%, 66%;
+    --orange-8: 25, 94%, 59%;
+    --orange-9: 23, 93%, 53%;
+    --orange-10: 24, 100%, 47%;
+    --orange-11: 23, 100%, 40%;
+    --orange-12: 23, 100%, 35%;
 
     /* Amber */
     --warning-1: 40, 60%, 99%;
@@ -95,7 +107,6 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --info-11: 208, 88%, 43%;
     --info-12: 216, 71%, 23%;
 
-
     /* Slate */
     --accent-1: 240, 20%, 99%;
     --accent-2: 240, 20%, 98%;
@@ -109,13 +120,9 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --accent-10: 226, 5%, 53%;
     --accent-11: 220, 6%, 40%;
     --accent-12: 210, 13%, 13%;
-
   }
 
-
-
   .dark {
-
     /* Gray Dark */
     --gray-1: 0, 0%, 7%;
     --gray-2: 0, 0%, 10%;
@@ -130,7 +137,6 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --gray-11: 0, 0%, 71%;
     --gray-12: 0, 0%, 93%;
 
-
     /* Teal */
     --success-1: 173, 24%, 7%;
     --success-2: 175, 24%, 9%;
@@ -144,6 +150,20 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --success-10: 172, 85%, 38%;
     --success-11: 170, 90%, 45%;
     --success-12: 163, 69%, 81%;
+
+    /* Orange */
+    --orange-1: 28, 25%, 7%;
+    --orange-2: 28, 33%, 9%;
+    --orange-3: 28, 67%, 12%;
+    --orange-4: 28, 100%, 14%;
+    --orange-5: 27, 99%, 22%;
+    --orange-6: 26, 97%, 30%;
+    --orange-7: 25, 96%, 37%;
+    --orange-8: 24, 94%, 45%;
+    --orange-9: 23, 93%, 53%;
+    --orange-10: 26, 100%, 56%;
+    --orange-11: 26, 100%, 67%;
+    --orange-12: 26, 100%, 75%;
 
     /* Amber */
     --warning-1: 36, 29%, 7%;
@@ -200,8 +220,6 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --info-10: 210, 100%, 62%;
     --info-11: 210, 100%, 72%;
     --info-12: 205, 100%, 88%;
-
-
 
     /* Slate Dark */
     --accent-1: 240, 6%, 7%;

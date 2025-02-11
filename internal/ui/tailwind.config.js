@@ -15,6 +15,7 @@ export default {
         gray: palette("gray"),
         info: palette("info"),
         success: palette("success"),
+        orange: palette("orange"),
         warning: palette("warning"),
         error: palette("error"),
         feature: palette("feature"),
