@@ -3,7 +3,7 @@ import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { router } from "@/lib/trpc/routers";
 import { auth } from "@clerk/nextjs";
-import { createCallerFactory } from "@trpc/server";
+
 import type { AuditLogBucket, Workspace } from "@unkey/db";
 import { Button } from "@unkey/ui";
 import { GlobeLock } from "lucide-react";
@@ -19,7 +19,7 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
   }
   const tenantId = getTenantId();
 
-  const trpc = createCallerFactory()(router)({
+  const trpc = router.createCaller({
     req: {} as any,
     user: {
       id: userId,

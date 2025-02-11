@@ -26,9 +26,9 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
   const [queryClient] = useState(() => new QueryClient());
   const [trpcClient] = useState(() =>
     trpc.createClient({
-      transformer: SuperJSON,
       links: [
         httpBatchLink({
+          transformer: SuperJSON,
           url: `${getBaseUrl()}/api/trpc`,
         }),
       ],
