@@ -10,7 +10,6 @@ import {
 } from "@/.source";
 import { loader } from "fumadocs-core/source";
 import { createMDXSource } from "fumadocs-mdx";
-import { createMDX } from "fumadocs-mdx/next";
 
 export const source = loader({
   baseUrl: "/docs",
