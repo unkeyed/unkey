@@ -120,6 +120,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 }
 
 func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
+	s.logger.Info(context.Background(), fmt.Sprintf("registering %s %s", route.Method(), route.Path()))
 	s.mux.HandleFunc(
 		fmt.Sprintf("%s %s", route.Method(), route.Path()),
 		func(w http.ResponseWriter, r *http.Request) {

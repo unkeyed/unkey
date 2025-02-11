@@ -60,8 +60,8 @@ type commitLeaseRequest struct {
 // removeExpiredIdentifiers removes buckets that are no longer relevant
 // for ratelimit decisions
 func (r *service) removeExpiredIdentifiers() {
-	r.bucketsLock.Lock()
-	defer r.bucketsLock.Unlock()
+	r.bucketsMu.Lock()
+	defer r.bucketsMu.Unlock()
 
 	activeRatelimits.Set(float64(len(r.buckets)))
 	now := time.Now()
@@ -260,8 +260,8 @@ func (r *service) SetCounter(ctx context.Context, requests ...setCounterRequest)
 // 		return nil
 // 	}
 
-// 	r.bucketsLock.Lock()
-// 	defer r.bucketsLock.Unlock()
+// 	r.bucketsMu.Lock()
+// 	defer r.bucketsMu.Unlock()
 // 	window, ok := r.buckets[key]
 // 	if !ok {
 // 		r.logger.Warn().Str("key", key).Msg("key not found")

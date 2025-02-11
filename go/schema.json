@@ -66,10 +66,9 @@
           "additionalProperties": false
         },
         "gossipPort": {
-          "type": "integer",
+          "type": "string",
           "description": "The port used for gossip",
-          "format": "int32",
-          "default": 7072
+          "default": "7072"
         },
         "nodeId": {
           "type": "string",
@@ -140,14 +139,11 @@
       "type": "string",
       "description": "The platform this agent is running on"
     },
-    "redisUrl": {
-      "type": "string"
-    },
     "region": {
       "type": "string",
       "description": "The region this agent is running in"
     }
   },
   "additionalProperties": true,
-  "required": ["httpPort", "redisUrl", "database"]
+  "required": ["httpPort", "database"]
 }

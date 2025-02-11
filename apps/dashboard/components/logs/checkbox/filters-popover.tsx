@@ -4,43 +4,34 @@ import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type KeyboardEvent, type PropsWithChildren, useEffect, useRef, useState } from "react";
-import { useFilters } from "../../../../../hooks/use-filters";
-import { IdentifiersFilter } from "./identifiers-filter";
-import { StatusFilter } from "./status-filter";
+import type { FilterValue } from "../validation/filter.types";
 
-type FilterItemConfig = {
+export type FilterItemConfig = {
   id: string;
   label: string;
   shortcut?: string;
   component: React.ReactNode;
 };
 
-const FILTER_ITEMS: FilterItemConfig[] = [
-  {
-    id: "status",
-    label: "Status",
-    shortcut: "e",
-    component: <StatusFilter />,
-  },
-  {
-    id: "identifiers",
-    label: "Identifier",
-    shortcut: "p",
-    component: <IdentifiersFilter />,
-  },
-];
+type FiltersPopoverProps = {
+  items: FilterItemConfig[];
+  activeFilters: FilterValue[];
+  getFilterCount?: (field: string) => number;
+};
 
-export const FiltersPopover = ({ children }: PropsWithChildren) => {
+export const FiltersPopover = ({
+  children,
+  items,
+  activeFilters,
+  getFilterCount = (field) => activeFilters.filter((f) => f.field === field).length,
+}: PropsWithChildren<FiltersPopoverProps>) => {
   const [open, setOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
-  // Clean up activeFilter to prevent unnecessary render when opening and closing
-  // biome-ignore lint/correctness/useExhaustiveDependencies(a): without clean up doesn't work properly
+  // biome-ignore lint/correctness/useExhaustiveDependencies: no need
   useEffect(() => {
-    return () => {
-      setActiveFilter(null);
-    };
+    return () => setActiveFilter(null);
   }, [open]);
 
   useKeyboardShortcut("f", () => {
@@ -52,7 +43,6 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
       return;
     }
 
-    // Don't handle navigation in main popover if we have an active filter
     if (activeFilter) {
       if (e.key === "ArrowLeft" || e.key === "h") {
         e.preventDefault();
@@ -65,15 +55,13 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
       case "ArrowDown":
       case "j":
         e.preventDefault();
-        setFocusedIndex((prev) => (prev === null ? 0 : (prev + 1) % FILTER_ITEMS.length));
+        setFocusedIndex((prev) => (prev === null ? 0 : (prev + 1) % items.length));
         break;
       case "ArrowUp":
       case "k":
         e.preventDefault();
         setFocusedIndex((prev) =>
-          prev === null
-            ? FILTER_ITEMS.length - 1
-            : (prev - 1 + FILTER_ITEMS.length) % FILTER_ITEMS.length,
+          prev === null ? items.length - 1 : (prev - 1 + items.length) % items.length,
         );
         break;
       case "Enter":
@@ -81,15 +69,11 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
       case "ArrowRight":
         e.preventDefault();
         if (focusedIndex !== null) {
-          const selectedFilter = FILTER_ITEMS[focusedIndex];
+          const selectedFilter = items[focusedIndex];
           if (selectedFilter) {
             setActiveFilter(selectedFilter.id);
           }
         }
-        break;
-      case "h":
-      case "ArrowLeft":
-        // Don't handle left arrow in main popover - let it bubble to FilterItem
         break;
     }
   };
@@ -104,10 +88,11 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
       >
         <div className="flex flex-col gap-2">
           <PopoverHeader />
-          {FILTER_ITEMS.map((item, index) => (
+          {items.map((item, index) => (
             <FilterItem
               key={item.id}
               {...item}
+              filterCount={getFilterCount(item.id)}
               isFocused={focusedIndex === index}
               isActive={activeFilter === item.id}
             />
@@ -118,29 +103,27 @@ export const FiltersPopover = ({ children }: PropsWithChildren) => {
   );
 };
 
-const PopoverHeader = () => {
-  return (
-    <div className="flex w-full justify-between items-center px-2 py-1">
-      <span className="text-gray-9 text-[13px]">Filters...</span>
-      <KeyboardButton shortcut="F" />
-    </div>
-  );
-};
+const PopoverHeader = () => (
+  <div className="flex w-full justify-between items-center px-2 py-1">
+    <span className="text-gray-9 text-[13px]">Filters...</span>
+    <KeyboardButton shortcut="F" />
+  </div>
+);
 
 type FilterItemProps = FilterItemConfig & {
   isFocused?: boolean;
   isActive?: boolean;
+  filterCount: number;
 };
 
-export const FilterItem = ({
+const FilterItem = ({
   label,
   shortcut,
-  id,
   component,
   isFocused,
   isActive,
+  filterCount,
 }: FilterItemProps) => {
-  const { filters } = useFilters();
   const [open, setOpen] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -153,28 +136,21 @@ export const FilterItem = ({
     }
   };
 
-  useKeyboardShortcut(
-    { key: shortcut || "", meta: true },
-    () => {
-      setOpen(true);
-    },
-    { preventDefault: true },
-  );
+  useKeyboardShortcut({ key: shortcut || "", meta: true }, () => setOpen(true), {
+    preventDefault: true,
+  });
 
-  // Focus the element when isFocused changes
   useEffect(() => {
     if (isFocused && itemRef.current) {
       itemRef.current.focus();
     }
   }, [isFocused]);
 
-  // Handle focus transfer to sub-popover when active
   useEffect(() => {
     if (isActive && !open) {
       setOpen(true);
     }
     if (isActive && open && contentRef.current) {
-      // Focus the first focusable element in the sub-popover
       const focusableElements = contentRef.current.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
@@ -210,9 +186,9 @@ export const FilterItem = ({
             <span className="text-[13px] text-accent-12 font-medium">{label}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            {filters.filter((filter) => filter.field === id).length > 0 && (
+            {filterCount > 0 && (
               <div className="bg-gray-6 rounded size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
-                {filters.filter((filter) => filter.field === id).length}
+                {filterCount}
               </div>
             )}
             <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
