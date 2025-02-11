@@ -1,8 +1,8 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { router } from "@/lib/trpc/routers";
 import { auth } from "@/lib/auth/server";
+import { router } from "@/lib/trpc/routers";
 import { createCallerFactory } from "@trpc/server";
 import type { AuditLogBucket, Workspace } from "@unkey/db";
 import { Button } from "@unkey/ui";
@@ -46,9 +46,7 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
   -H 'Authorization: Bearer ${rootKey.key}' \\
   -d '{
       "namespace": "hello-ratelimit",
-      "identifier": "${
-        user?.email ?? "hello"
-      }",
+      "identifier": "${user?.email ?? "hello"}",
       "limit": 10,
       "duration": 10000
   }'`;

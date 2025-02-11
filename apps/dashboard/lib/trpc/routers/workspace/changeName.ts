@@ -1,6 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
 import { auth as authClient } from "@/lib/auth/server";
+import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -49,7 +49,6 @@ export const changeWorkspaceName = t.procedure
           id: ctx.tenant.id,
           name: input.name,
         });
-        
       })
       .catch((_err) => {
         throw new TRPCError({

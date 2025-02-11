@@ -1,6 +1,7 @@
 "use client";
 
 import { Loading } from "@/components/dashboard/loading";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +16,6 @@ import { Check, Plus, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useMemo, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronExpandY } from "@unkey/icons";
 import Link from "next/link";
@@ -27,16 +27,18 @@ type Props = {
   };
 };
 export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
-
   const { user } = useUser();
   const router = useRouter();
   const { memberships: userMemberships, switchOrganization, loading } = useUser();
-  const currentOrgMembership = userMemberships.find(membership => membership.organization.id === user?.orgId);
-
+  const currentOrgMembership = userMemberships.find(
+    (membership) => membership.organization.id === user?.orgId,
+  );
 
   async function changeWorkspace(orgId: string | null) {
     try {
-      if (!orgId) return;
+      if (!orgId) {
+        return;
+      }
       await switchOrganization(orgId);
     } finally {
       router.refresh();
@@ -61,11 +63,8 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
       <DropdownMenuTrigger className="flex items-center justify-between w-full h-10 gap-2 px-2 overflow-hidden rounded-[0.625rem] bg-background border-border border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content">
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
           <Avatar className="w-5 h-5">
-          {user?.avatarUrl ? (
-              <AvatarImage
-                src={user.avatarUrl}
-                alt={user?.fullName ?? "Profile picture"}
-              />
+            {user?.avatarUrl ? (
+              <AvatarImage src={user.avatarUrl} alt={user?.fullName ?? "Profile picture"} />
             ) : null}
             <AvatarFallback className="flex items-center justify-center w-8 h-8 text-gray-700 bg-gray-100 border border-gray-500 rounded">
               {props.workspace.name.slice(0, 2).toUpperCase()}
@@ -113,7 +112,9 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
               >
                 <span
                   className={
-                    membership.organization.id === currentOrgMembership?.organization.id ? "font-medium" : undefined
+                    membership.organization.id === currentOrgMembership?.organization.id
+                      ? "font-medium"
+                      : undefined
                   }
                 >
                   {" "}

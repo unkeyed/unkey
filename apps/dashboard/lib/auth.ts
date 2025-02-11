@@ -9,15 +9,13 @@ import { redirect } from "next/navigation";
 export async function getTenantId(): Promise<string> {
   const user = await auth.getCurrentUser();
   if (!user) {
-    console.log("get tenant id: no user")
     return redirect("/auth/sign-in");
   }
 
   const { orgId } = user;
   if (!orgId) {
-    console.log("get tenant id: no orgId")
     return redirect("/new");
   }
-  
+
   return orgId;
 }

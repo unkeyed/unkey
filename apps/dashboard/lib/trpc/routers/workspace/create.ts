@@ -1,6 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { type Workspace, db, schema } from "@/lib/db";
 import { auth as authProvider } from "@/lib/auth/server";
+import { type Workspace, db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
