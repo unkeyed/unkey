@@ -37,7 +37,7 @@ async function requireAuth(): Promise<User> {
 }
 
 // Helper function to check organization access
-async function requireOrgAccess(orgId: string, userId: string): Promise<void> {
+async function requireOrgAccess(orgId: string, _userId: string): Promise<void> {
   const memberships = await auth.listMemberships();
   const hasAccess = memberships.data.some((m) => m.organization.id === orgId);
   if (!hasAccess) {
@@ -46,7 +46,7 @@ async function requireOrgAccess(orgId: string, userId: string): Promise<void> {
 }
 
 // Helper to check admin status
-async function requireOrgAdmin(orgId: string, userId: string): Promise<void> {
+async function requireOrgAdmin(orgId: string, _userId: string): Promise<void> {
   const memberships = await auth.listMemberships();
   const isAdmin = memberships.data.some((m) => m.organization.id === orgId && m.role === "admin");
   if (!isAdmin) {
@@ -77,6 +77,7 @@ export async function verifyAuthCode(params: {
 
     return result;
   } catch (error) {
+    console.error(error);
     return {
       success: false,
       code: AuthErrorCode.UNKNOWN_ERROR,
@@ -174,7 +175,9 @@ export async function completeOrgSelection(
   orgId: string,
 ): Promise<NavigationResponse | AuthErrorResponse> {
   const tempSession = cookies().get(PENDING_SESSION_COOKIE);
-  if (!tempSession) throw new Error("No pending session");
+  if (!tempSession) {
+    throw new Error("No pending session");
+  }
 
   // Call auth provider with token and orgId
   const result = await auth.completeOrgSelection({ pendingAuthToken: tempSession.value, orgId });
