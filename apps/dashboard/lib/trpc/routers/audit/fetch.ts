@@ -1,8 +1,8 @@
 import { auditQueryLogsPayload } from "@/app/(app)/audit/components/table/query-logs.schema";
+import { auth } from "@/lib/auth/server";
+import type { User } from "@/lib/auth/types";
 import { type Workspace, db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-import type { User } from "@/lib/auth/types";
-import { auth } from '@/lib/auth/server';
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { type AuditLogWithTargets, type AuditQueryLogsParams, auditLog } from "./schema";

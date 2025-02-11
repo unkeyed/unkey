@@ -1,8 +1,8 @@
 import { createContext } from "@/lib/trpc/context";
 import { router } from "@/lib/trpc/routers";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-// export API handler
-export async function handler(req: Request) {
+
+async function handler(req: Request) {
   try {
     return fetchRequestHandler({
       endpoint: "/api/trpc",
@@ -11,7 +11,7 @@ export async function handler(req: Request) {
       createContext,
     });
   } catch (err) {
-    console.log(err);
+    console.error(err);
   }
 }
 

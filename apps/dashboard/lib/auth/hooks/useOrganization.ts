@@ -1,79 +1,85 @@
-"use client"
-import { useState, useEffect } from 'react';
-import { Invitation, Membership, Organization, UpdateMembershipParams } from '../types';
-import { getCurrentUser, getOrg, getOrganizationMemberList, removeMembership, getInvitationList, revokeOrgInvitation, updateMembership } from "../actions";
+"use client";
+import { useEffect, useState } from "react";
+import {
+  getCurrentUser,
+  getInvitationList,
+  getOrg,
+  getOrganizationMemberList,
+  removeMembership,
+  revokeOrgInvitation,
+  updateMembership,
+} from "../actions";
+import type { Invitation, Membership, Organization, UpdateMembershipParams } from "../types";
 
 type ErrorState = {
   organization?: Error;
   memberships?: Error;
   invitations?: Error;
   removeMember?: Error;
-  revokeInvitation?: Error
+  revokeInvitation?: Error;
+};
 
- }
- 
- type LoadingState = {
+type LoadingState = {
   organization: boolean;
   memberships: boolean;
   invitations: boolean;
- }
- 
- export function useOrganization() {
+};
+
+export function useOrganization() {
   const [memberships, setMemberships] = useState<Membership[]>([]);
-  const [membershipMetadata, setMembershipMetadata] = useState<{}>({});
-  
+  const [membershipMetadata, setMembershipMetadata] = useState<Record<string, unknown>>(() => ({}));
+
   const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [invitationMetadata, setInvitationMetadata] = useState<{}>({});
-  
+  const [invitationMetadata, setInvitationMetadata] = useState<Record<string, unknown>>(() => ({}));
+
   const [organization, setOrganization] = useState<Organization | null>(null);
-  
-  const [errors, setErrors] = useState<ErrorState>({});
+
+  const [errors, setErrors] = useState<ErrorState>(() => ({}));
   const [loading, setLoading] = useState<LoadingState>({
     organization: true,
     memberships: true,
-    invitations: true
+    invitations: true,
   });
- 
+
   const clearError = (key: keyof ErrorState) => {
-    setErrors(prev => {
+    setErrors((prev) => {
       const next = { ...prev };
       delete next[key];
       return next;
     });
   };
- 
+
   const setError = (key: keyof ErrorState, error: Error) => {
-    setErrors(prev => ({ ...prev, [key]: error }));
+    setErrors((prev) => ({ ...prev, [key]: error }));
   };
- 
+
   const setLoadingState = (key: keyof LoadingState, isLoading: boolean) => {
-    setLoading(prev => ({ ...prev, [key]: isLoading }));
+    setLoading((prev) => ({ ...prev, [key]: isLoading }));
   };
- 
+
   const fetchOrganization = async () => {
     try {
-      setLoadingState('organization', true);
-      clearError('organization');
-      
+      setLoadingState("organization", true);
+      clearError("organization");
+
       const user = await getCurrentUser();
       if (!user?.orgId) {
-        throw new Error('No organization ID found');
+        throw new Error("No organization ID found");
       }
-      
+
       const organizationData = await getOrg(user.orgId);
       setOrganization(organizationData);
 
       // Fetch both lists after we have the organization
-      await Promise.all([
-        fetchMemberships(),
-        fetchInvitations()
-      ]);
-
+      await Promise.all([fetchMemberships(), fetchInvitations()]);
     } catch (err) {
-      setError('organization', err instanceof Error ? err : new Error('Failed to fetch organization'));
+      setError(
+        "organization",
+        err instanceof Error ? err : new Error("Failed to fetch organization"),
+      );
       setOrganization(null);
     } finally {
-      setLoadingState('organization', false);
+      setLoadingState("organization", false);
     }
   };
 
@@ -83,42 +89,50 @@ type ErrorState = {
     }
 
     try {
-      setLoadingState('memberships', true);
-      clearError('memberships');
-      
-      const { data: membershipData, metadata: membershipMetadata } = 
+      setLoadingState("memberships", true);
+      clearError("memberships");
+
+      const { data: membershipData, metadata: membershipMetadata } =
         await getOrganizationMemberList(organization.id);
       setMemberships(membershipData);
       setMembershipMetadata(membershipMetadata);
     } catch (err) {
-      setError('memberships', err instanceof Error ? err : new Error('Failed to fetch memberships'));
+      setError(
+        "memberships",
+        err instanceof Error ? err : new Error("Failed to fetch memberships"),
+      );
       setMemberships([]);
       setMembershipMetadata({});
     } finally {
-      setLoadingState('memberships', false);
+      setLoadingState("memberships", false);
     }
   };
 
   const fetchInvitations = async () => {
-    if (!organization?.id) return;
+    if (!organization?.id){
+      return;
+    }
 
     try {
-      setLoadingState('invitations', true);
-      clearError('invitations');
-      
+      setLoadingState("invitations", true);
+      clearError("invitations");
+
       const { data, metadata } = await getInvitationList(organization.id);
       setInvitations(data);
       setInvitationMetadata(metadata);
     } catch (err) {
-      setError('invitations', err instanceof Error ? err : new Error('Failed to fetch invitations'));
+      setError(
+        "invitations",
+        err instanceof Error ? err : new Error("Failed to fetch invitations"),
+      );
       setInvitations([]);
       setInvitationMetadata({});
     } finally {
-      setLoadingState('invitations', false);
+      setLoadingState("invitations", false);
     }
   };
 
-  const updateMember = async({membershipId, role}: UpdateMembershipParams) => {
+  const updateMember = async ({ membershipId, role }: UpdateMembershipParams) => {
     if (!membershipId) {
       throw new Error("Membership Id is required");
     }
@@ -129,59 +143,63 @@ type ErrorState = {
 
     try {
       if (!loading.organization && organization) {
-        await updateMembership({membershipId, orgId: organization.id, role});
+        await updateMembership({ membershipId, orgId: organization.id, role });
         // refetch memberships
         fetchMemberships();
       }
+    } catch (err) {
+      setError(
+        "removeMember",
+        err instanceof Error ? err : new Error("Failed to remove membership"),
+      );
     }
-
-    catch (err) {
-      setError('removeMember', err instanceof Error ? err : new Error('Failed to remove membership'));
-    }
-  }
-  const removeMember = async(membershipId: string) => {
+  };
+  const removeMember = async (membershipId: string) => {
     if (!membershipId) {
       throw new Error("Membership Id is required");
     }
 
     try {
       if (!loading.organization && organization) {
-        await removeMembership({membershipId, orgId: organization.id});
+        await removeMembership({ membershipId, orgId: organization.id });
         // refetch memberships
         fetchMemberships();
       }
+    } catch (err) {
+      setError(
+        "removeMember",
+        err instanceof Error ? err : new Error("Failed to remove membership"),
+      );
     }
+  };
 
-    catch (err) {
-      setError('removeMember', err instanceof Error ? err : new Error('Failed to remove membership'));
-    }
-  }
-
-  const revokeInvitation = async(invitationId: string) => {
+  const revokeInvitation = async (invitationId: string) => {
     if (!invitationId) {
       throw new Error("Invitation Id is required");
     }
 
     try {
       if (!loading.organization && organization) {
-        await revokeOrgInvitation({invitationId, orgId: organization.id});
+        await revokeOrgInvitation({ invitationId, orgId: organization.id });
         // refetch invitations
         fetchInvitations();
       }
+    } catch (err) {
+      setError(
+        "revokeInvitation",
+        err instanceof Error ? err : new Error("Failed to revoke invitation"),
+      );
     }
-
-    catch (err) {
-      setError('revokeInvitation', err instanceof Error ? err : new Error('Failed to revoke invitation'));
-    }
-  }
+  };
 
   useEffect(() => {
+      // biome-ignore lint/react-hooks/exhaustiveDeps: Fetch organization data once on mount
     fetchOrganization();
   }, []);
- 
+
   const isLoading = Object.values(loading).some(Boolean);
   const hasErrors = Object.keys(errors).length > 0;
- 
+
   return {
     // Data
     organization,
@@ -189,15 +207,15 @@ type ErrorState = {
     membershipMetadata,
     invitations,
     invitationMetadata,
-    
+
     // Loading states
     loading,
     isLoading,
-    
+
     // Error states
     errors,
     hasErrors,
-    
+
     // Actions
     refetchOrganization: fetchOrganization,
     refetchMemberships: fetchMemberships,
@@ -206,4 +224,4 @@ type ErrorState = {
     revokeInvitation,
     updateMember,
   };
- }
+}

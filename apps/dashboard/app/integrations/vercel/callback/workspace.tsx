@@ -15,7 +15,7 @@ import type React from "react";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUser, useOrganization } from "@/lib/auth/hooks";
+import { useOrganization, useUser } from "@/lib/auth/hooks";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { switchOrganization, memberships: userMemberships, isLoading: loading, user } = useUser();
@@ -38,15 +38,10 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
         <div className="flex items-center gap-2">
           <Avatar className="w-6 h-6">
             {user?.avatarUrl ? (
-              <AvatarImage
-                src={user.avatarUrl}
-                alt={user?.fullName ?? "Profile picture"}
-              />
+              <AvatarImage src={user.avatarUrl} alt={user?.fullName ?? "Profile picture"} />
             ) : null}
             <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded">
-              {(user?.fullName ?? "")
-                .slice(0, 2)
-                .toUpperCase() ?? "P"}
+              {(user?.fullName ?? "").slice(0, 2).toUpperCase() ?? "P"}
             </AvatarFallback>
           </Avatar>
           {loading || isLoading ? (

@@ -1,6 +1,6 @@
-import { Membership, UNKEY_SESSION_COOKIE } from './types';
-import { auth } from './server';
-import { getCookie } from './cookies';
+import { getCookie } from "./cookies";
+import { auth } from "./server";
+import { type Membership, UNKEY_SESSION_COOKIE } from "./types";
 
 type GetAuthResult = {
   userId: string | null;
@@ -16,13 +16,13 @@ export async function getAuth(req?: Request): Promise<GetAuthResult> {
       return {
         userId: null,
         orgId: null,
-        orgRole: null
+        orgRole: null,
       };
     }
 
     // Validate session
     const validationResult = await auth.validateSession(sessionToken);
-  
+
     let userId: string | undefined;
     let orgId: string | null | undefined;
 
@@ -50,33 +50,30 @@ export async function getAuth(req?: Request): Promise<GetAuthResult> {
     if (!userId) {
       return { userId: null, orgId: null, orgRole: null };
     }
-  
+
     // fetch org from memberships if we have an org
     if (orgId) {
       const memberships = await auth.getOrganizationMemberList(orgId);
-      const userMembership = memberships.data.find(
-        (m: Membership) => m.user.id === userId
-      );
-      
+      const userMembership = memberships.data.find((m: Membership) => m.user.id === userId);
+
       return {
         userId,
         orgId,
-        orgRole: userMembership?.role ?? null
+        orgRole: userMembership?.role ?? null,
       };
     }
-  
+
     return {
       userId,
       orgId: orgId ?? null,
-      orgRole: null
+      orgRole: null,
     };
-
   } catch (error) {
-    console.error('Auth validation error:', error);
+    console.error("Auth validation error:", error);
     return {
       userId: null,
       orgId: null,
-      orgRole: null
+      orgRole: null,
     };
   }
 }

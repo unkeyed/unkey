@@ -1,8 +1,8 @@
-import { Cookie } from "./cookies";
+import type { Cookie } from "./cookies";
 
 // Core Types
 export const UNKEY_SESSION_COOKIE = "unkey-session";
-export const PENDING_SESSION_COOKIE ="sess-temp";
+export const PENDING_SESSION_COOKIE = "sess-temp";
 export const SIGN_IN_URL = "/auth/sign-in";
 export const SIGN_UP_URL = "/auth/sign-up";
 
@@ -68,7 +68,10 @@ export interface PendingOrgSelectionResponse extends AuthErrorResponse {
 
 // Union types for different auth operations
 export type EmailAuthResult = StateChangeResponse | AuthErrorResponse;
-export type VerificationResult = NavigationResponse | PendingOrgSelectionResponse | AuthErrorResponse;
+export type VerificationResult =
+  | NavigationResponse
+  | PendingOrgSelectionResponse
+  | AuthErrorResponse;
 export type OAuthResult = NavigationResponse | PendingOrgSelectionResponse | AuthErrorResponse;
 
 // List Response Types
@@ -106,7 +109,7 @@ export interface SignInViaOAuthOptions {
 export interface Invitation {
   id: string;
   email: string;
-  state: 'pending' | 'accepted' | 'revoked' | 'expired';
+  state: "pending" | "accepted" | "revoked" | "expired";
   acceptedAt?: string | null;
   revokedAt?: string | null;
   expiresAt: string;
@@ -142,25 +145,28 @@ export interface UserData {
 
 // Error Handling
 export enum AuthErrorCode {
-  EMAIL_ALREADY_EXISTS = 'EMAIL_ALREADY_EXISTS',
-  MISSING_REQUIRED_FIELDS = 'MISSING_REQUIRED_FIELDS',
-  USER_CREATION_FAILED = 'USER_CREATION_FAILED',
-  INVALID_EMAIL = 'INVALID_EMAIL',
-  NETWORK_ERROR = 'NETWORK_ERROR',
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-  ACCOUNT_NOT_FOUND = 'ACCOUNT_NOT_FOUND',
-  ORGANIZATION_SELECTION_REQUIRED = 'ORGANIZATION_SELECTION_REQUIRED',
+  EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS",
+  MISSING_REQUIRED_FIELDS = "MISSING_REQUIRED_FIELDS",
+  USER_CREATION_FAILED = "USER_CREATION_FAILED",
+  INVALID_EMAIL = "INVALID_EMAIL",
+  NETWORK_ERROR = "NETWORK_ERROR",
+  UNKNOWN_ERROR = "UNKNOWN_ERROR",
+  ACCOUNT_NOT_FOUND = "ACCOUNT_NOT_FOUND",
+  ORGANIZATION_SELECTION_REQUIRED = "ORGANIZATION_SELECTION_REQUIRED",
 }
 
 export const errorMessages: Record<AuthErrorCode, string> = {
-  [AuthErrorCode.EMAIL_ALREADY_EXISTS]: "This email address is already registered. Please sign in instead.",
+  [AuthErrorCode.EMAIL_ALREADY_EXISTS]:
+    "This email address is already registered. Please sign in instead.",
   [AuthErrorCode.MISSING_REQUIRED_FIELDS]: "Please fill in all required fields.",
   [AuthErrorCode.USER_CREATION_FAILED]: "Unable to create your account. Please try again later.",
   [AuthErrorCode.INVALID_EMAIL]: "Please enter a valid email address.",
   [AuthErrorCode.NETWORK_ERROR]: "Connection error. Please check your internet and try again.",
-  [AuthErrorCode.UNKNOWN_ERROR]: "Something went wrong. Please try again later, or contact support@unkey.dev",
+  [AuthErrorCode.UNKNOWN_ERROR]:
+    "Something went wrong. Please try again later, or contact support@unkey.dev",
   [AuthErrorCode.ACCOUNT_NOT_FOUND]: "Account not found. Would you like to sign up?",
-  [AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED]: "Please choose a workspace to continue authentication."
+  [AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED]:
+    "Please choose a workspace to continue authentication.",
 };
 
 export interface MiddlewareConfig {
@@ -172,7 +178,7 @@ export interface MiddlewareConfig {
 
 export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
   enabled: true,
-  publicPaths: ['/auth/sign-in', '/auth/sign-up', '/favicon.ico'],
+  publicPaths: ["/auth/sign-in", "/auth/sign-up", "/favicon.ico"],
   cookieName: UNKEY_SESSION_COOKIE,
-  loginPath: '/auth/sign-in'
+  loginPath: "/auth/sign-in",
 };
