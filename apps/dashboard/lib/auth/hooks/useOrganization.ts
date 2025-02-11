@@ -109,7 +109,7 @@ export function useOrganization() {
   };
 
   const fetchInvitations = async () => {
-    if (!organization?.id){
+    if (!organization?.id) {
       return;
     }
 
@@ -192,8 +192,8 @@ export function useOrganization() {
     }
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies(fetchOrganization): fetch organization data once on mount
   useEffect(() => {
-      // biome-ignore lint/react-hooks/exhaustiveDeps: Fetch organization data once on mount
     fetchOrganization();
   }, []);
 

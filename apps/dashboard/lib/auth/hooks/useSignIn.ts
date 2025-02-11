@@ -29,7 +29,9 @@ function isPendingOrgSelection(result: VerificationResult): result is PendingOrg
 
 export function useSignIn() {
   const context = useContext(SignInContext);
-  if (!context) throw new Error("useSignIn must be used within SignInProvider");
+  if (!context) {
+    throw new Error("useSignIn must be used within SignInProvider");
+  }
 
   const searchParams = useSearchParams();
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -50,6 +52,7 @@ export function useSignIn() {
             parsedOrgs = JSON.parse(decodeURIComponent(orgsParam));
             setOrgs(parsedOrgs);
           } catch (err) {
+            console.error(err);
             setError("Failed to load organizations");
           }
         }

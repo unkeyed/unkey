@@ -8,7 +8,7 @@ type GetAuthResult = {
   orgRole: string | null;
 };
 
-export async function getAuth(req?: Request): Promise<GetAuthResult> {
+export async function getAuth(_req?: Request): Promise<GetAuthResult> {
   try {
     const sessionToken = await getCookie(UNKEY_SESSION_COOKIE);
 
@@ -36,6 +36,7 @@ export async function getAuth(req?: Request): Promise<GetAuthResult> {
           userId = refreshedData.userId;
           orgId = refreshedData.orgId;
         } catch (error) {
+          console.error(error);
           return { userId: null, orgId: null, orgRole: null };
         }
       } else {
