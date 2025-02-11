@@ -77,7 +77,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     } catch (error) {
       console.error("Session validation error:", {
         error: error instanceof Error ? error.message : "Unknown error",
-        token: `${sessionToken.substring(0,10)}...`,
+        token: `${sessionToken.substring(0, 10)}...`,
       });
       return { isValid: false, shouldRefresh: false };
     }
@@ -118,7 +118,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     } catch (error) {
       console.error("Session refresh error:", {
         error: error instanceof Error ? error.message : "Unknown error",
-       token: `${token.substring(0,10)}...`,
+        token: `${token.substring(0, 10)}...`,
       });
       return null;
     }
