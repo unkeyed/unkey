@@ -50,7 +50,7 @@ export function useUser() {
   const fetchUser = async () => {
     if (fetchingRef.current) {
       return;
-    } 
+    }
     fetchingRef.current = true;
 
     try {
@@ -104,14 +104,14 @@ export function useUser() {
     m.organization.id === user?.orgId;
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies(fetchUser): fetch user data once on mount
   useEffect(() => {
-      // biome-ignore lint/react-hooks/exhaustiveDeps: only fetching data once on mount, uses a fetchingRef to prevent duplicate calls
     fetchUser();
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies(fetchMemberships): fetchMemberships is stable and only depends on setState functions
   useEffect(() => {
     if (user) {
-      // biome-ignore lint/react-hooks/exhaustiveDeps: fetchMemberships is stable and only depends on setState functions
       fetchMemberships(user.id);
     }
   }, [user]);
