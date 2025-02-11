@@ -57,14 +57,14 @@ export default function RootLayout({
       <PHProvider>
         <body className="min-h-full antialiased">
           <Toaster />
-            <ReactQueryProvider>
-              <ThemeProvider attribute="class">
-                <TooltipProvider>
-                  {children}
-                  <CommandMenu />
-                </TooltipProvider>
-              </ThemeProvider>
-            </ReactQueryProvider>
+          <ReactQueryProvider>
+            <ThemeProvider attribute="class">
+              <TooltipProvider>
+                {children}
+                <CommandMenu />
+              </TooltipProvider>
+            </ThemeProvider>
+          </ReactQueryProvider>
         </body>
       </PHProvider>
     </html>

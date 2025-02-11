@@ -1,19 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
-import { cn } from "@/lib/utils";
-import { OTPInput, type SlotProps } from "input-otp";
-import { Minus } from "lucide-react";
 import { useSignUp } from "@/lib/auth/hooks/useSignUp";
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
-
+import { cn } from "@/lib/utils";
+import { OTPInput, type SlotProps } from "input-otp";
 
 export const EmailCode: React.FC = () => {
-  const router = useRouter();
   const { handleVerification, handleResendCode } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
   const [_timeLeft, _setTimeLeft] = React.useState(0);
@@ -23,15 +19,14 @@ export const EmailCode: React.FC = () => {
       return null;
     }
     setIsLoading(true);
-    await handleVerification(otp)
-      .catch((err) => {
-        setIsLoading(false);
-        const errorCode = err.message as AuthErrorCode;
-        toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
-      });
+    await handleVerification(otp).catch((err) => {
+      setIsLoading(false);
+      const errorCode = err.message as AuthErrorCode;
+      toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
+    });
   };
 
-  const resendCode = async () => {  
+  const resendCode = async () => {
     try {
       const p = handleResendCode();
       toast.promise(p, {

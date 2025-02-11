@@ -6,10 +6,8 @@ import { Loading } from "@/components/dashboard/loading";
 import { FadeInStagger } from "@/components/landing/fade-in";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { useRouter } from "next/navigation";
-import { signUpViaEmail } from "@/lib/auth/actions";
-import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { useSignUp } from "@/lib/auth/hooks/useSignUp";
+import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 
 interface Props {
   setVerification: (value: boolean) => void;
@@ -25,11 +23,7 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
     const first = new FormData(e.currentTarget).get("first");
     const last = new FormData(e.currentTarget).get("last");
 
-    if (
-      typeof email !== "string" ||
-      typeof first !== "string" ||
-      typeof last !== "string"
-    ) {
+    if (typeof email !== "string" || typeof first !== "string" || typeof last !== "string") {
       return null;
     }
 
@@ -41,8 +35,7 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
         lastName: last,
       }).then(() => {
         setVerification(true);
-      }
-      );
+      });
     } catch (err: any) {
       const errorCode = err.message as AuthErrorCode;
       toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);

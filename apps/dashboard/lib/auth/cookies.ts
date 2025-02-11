@@ -1,12 +1,12 @@
-'use server';
+"use server";
 
-import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from "next/headers";
+import type { NextRequest, NextResponse } from "next/server";
 
 export interface CookieOptions {
   secure: boolean;
   httpOnly: boolean;
-  sameSite: 'lax' | 'strict' | 'none';
+  sameSite: "lax" | "strict" | "none";
   path?: string;
   maxAge?: number;
 }
@@ -60,7 +60,7 @@ export async function deleteCookie(name: string): Promise<void> {
 export async function updateCookie(
   cookieName: string,
   value: string | null | undefined,
-  reason?: string
+  reason?: string,
 ): Promise<void> {
   if (value) {
     await setCookie({
@@ -69,14 +69,14 @@ export async function updateCookie(
       options: {
         httpOnly: true,
         secure: true,
-        sameSite: 'lax'
-      }
+        sameSite: "lax",
+      },
     });
     return;
   }
-  
+
   if (reason) {
-    console.debug('Session refresh failed:', reason);
+    console.debug("Session refresh failed:", reason);
     await deleteCookie(cookieName);
   }
 }
@@ -86,8 +86,8 @@ export async function updateCookie(
  * Useful when you need to set cookies during a redirect
  */
 export async function setCookiesOnResponse(
-  response: NextResponse, 
-  cookieList: Cookie[]
+  response: NextResponse,
+  cookieList: Cookie[],
 ): Promise<NextResponse> {
   for (const cookie of cookieList) {
     response.cookies.set(cookie.name, cookie.value, cookie.options);

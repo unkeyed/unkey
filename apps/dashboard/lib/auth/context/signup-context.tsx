@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState } from 'react';
-import { UserData } from '../types';
+import { createContext, useContext, useState } from "react";
+import type { UserData } from "../types";
 
 interface SignUpContextType {
   userData: UserData;
@@ -13,23 +13,23 @@ export const SignUpContext = createContext<SignUpContextType>({} as SignUpContex
 
 export function SignUpProvider({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<UserData>({
-    firstName: '',
-    lastName: '',
-    email: ''
+    firstName: "",
+    lastName: "",
+    email: "",
   });
 
   const updateUserData = (newData: Partial<UserData>) => {
-    setUserData(prev => ({
+    setUserData((prev) => ({
       ...prev,
-      ...newData
+      ...newData,
     }));
   };
 
   const clearUserData = () => {
     setUserData({
-      firstName: '',
-      lastName: '',
-      email: ''
+      firstName: "",
+      lastName: "",
+      email: "",
     });
   };
 
@@ -43,7 +43,7 @@ export function SignUpProvider({ children }: { children: React.ReactNode }) {
 export function useSignUpContext() {
   const context = useContext(SignUpContext);
   if (!context) {
-    throw new Error('useSignUpContext must be used within a SignUpProvider');
+    throw new Error("useSignUpContext must be used within a SignUpProvider");
   }
   return context;
 }

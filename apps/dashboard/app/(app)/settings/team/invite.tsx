@@ -65,7 +65,7 @@ export const InviteButton = async ({ ...rest }: React.ButtonHTMLAttributes<HTMLB
       await inviteMember({
         email: values.email,
         role: values.role,
-        orgId: orgId
+        orgId: orgId,
       });
 
       toast.success(

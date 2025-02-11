@@ -1,30 +1,13 @@
-import { getCurrentUser, getWorkspace } from "@/lib/auth/actions";
-import { TeamPageClient } from "./team-client";
-import { Empty } from "@unkey/ui";
-import { Button } from "@unkey/ui";
-import type React from "react";
-import { useState } from "react";
-import { InviteButton } from "./invite";
-
-import Confirm from "@/components/dashboard/confirm";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Loading } from "@/components/dashboard/loading";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { navigation } from "../constants";
+import { getCurrentUser, getWorkspace } from "@/lib/auth/actions";
 import { Gear } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import Link from "next/link";
+import { navigation } from "../constants";
+import { TeamPageClient } from "./team-client";
 
 export default async function TeamPage() {
   const user = await getCurrentUser();
@@ -57,5 +40,5 @@ export default async function TeamPage() {
     );
   }
 
-  return <TeamPageClient initialData={{ orgId, workspace }} />;
+  return <TeamPageClient _initialData={{ orgId, workspace }} />;
 }
