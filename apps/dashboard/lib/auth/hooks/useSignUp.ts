@@ -19,7 +19,6 @@ export function useSignUp() {
   };
 
   const handleVerification = async (code: string): Promise<void> => {
-    console.log("verification email", userData);
     try {
       await verifyAuthCode({
         email: userData.email,
@@ -34,7 +33,11 @@ export function useSignUp() {
     try {
       await resendAuthCode(userData.email);
     } catch (error) {
-      throw error;
+      throw new Error(
+        `Failed to resend authentication code to ${userData.email}: ${
+          error instanceof Error ? error.message : "Unknown error occurred"
+        }`,
+      );
     }
   };
 
