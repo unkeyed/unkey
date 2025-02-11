@@ -1,3 +1,4 @@
+import { useCheckboxState } from "@/components/logs/checkbox/hooks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
@@ -5,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRatelimitLogsContext } from "../../../../../context/logs";
 import type { RatelimitFilterValue } from "../../../../../filters.schema";
 import { useFilters } from "../../../../../hooks/use-filters";
-import { useCheckboxState } from "./hooks/use-checkbox-state";
 
 export const IdentifiersFilter = () => {
   const { namespaceId } = useRatelimitLogsContext();

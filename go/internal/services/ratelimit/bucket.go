@@ -42,9 +42,9 @@ func (b bucketKey) toString() string {
 // getOrCreateBucket returns a bucket for the given key and will create one if it does not exist.
 // It returns the bucket and a boolean indicating if the bucket existed before.
 func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
-	s.bucketsLock.RLock()
+	s.bucketsMu.RLock()
 	b, ok := s.buckets[key.toString()]
-	s.bucketsLock.RUnlock()
+	s.bucketsMu.RUnlock()
 	if !ok {
 		b = &bucket{
 			mu:       sync.RWMutex{},
@@ -52,9 +52,9 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 			duration: key.duration,
 			windows:  make(map[int64]*ratelimitv1.Window),
 		}
-		s.bucketsLock.Lock()
+		s.bucketsMu.Lock()
 		s.buckets[key.toString()] = b
-		s.bucketsLock.Unlock()
+		s.bucketsMu.Unlock()
 	}
 	return b, ok
 }

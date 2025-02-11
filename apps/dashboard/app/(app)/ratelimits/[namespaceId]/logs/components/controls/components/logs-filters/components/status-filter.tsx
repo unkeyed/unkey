@@ -1,4 +1,4 @@
-import { FilterCheckbox } from "./filter-checkbox";
+import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 
 type StatusOption = {
   id: number;

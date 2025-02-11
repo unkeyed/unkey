@@ -14,8 +14,8 @@ type nodeConfig struct {
 	Cluster *struct {
 		NodeID        string `json:"nodeId,omitempty" description:"A unique node id"`
 		AdvertiseAddr string `json:"advertiseAddr,omitempty" description:"The address to advertise to other nodes"`
-		RpcPort       int    `json:"rpcPort" default:"7071" description:"The port used for RPC"`
-		GossipPort    int    `json:"gossipPort" default:"7072" description:"The port used for gossip"`
+		RpcPort       string `json:"rpcPort" default:"7071" description:"The port used for RPC"`
+		GossipPort    string `json:"gossipPort" default:"7072" description:"The port used for gossip"`
 		Discovery     *struct {
 			Static *struct {
 				Addrs []string `json:"addrs" minLength:"1" description:"List of node addresses"`
@@ -30,7 +30,6 @@ type nodeConfig struct {
 	Logs *struct {
 		Color bool `json:"color" description:"Display color in logs"`
 	} `json:"logs,omitempty"`
-	RedisUrl   string `json:"redisUrl"`
 	Clickhouse *struct {
 		Url string `json:"url" minLength:"1"`
 	} `json:"clickhouse,omitempty"`

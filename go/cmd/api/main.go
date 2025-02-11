@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -32,7 +33,6 @@ var Cmd = &cli.Command{
 	Description: "Run the API server",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Required:    true,
 			Name:        "config",
 			Aliases:     []string{"c"},
 			Usage:       "Load configuration file",
@@ -40,12 +40,27 @@ var Cmd = &cli.Command{
 			DefaultText: "unkey.json",
 			EnvVars:     []string{"UNKEY_CONFIG_FILE"},
 		},
+		&cli.BoolFlag{
+			Name: "generate-config-schema",
+		},
 	},
 	Action: run,
 }
 
 // nolint:gocognit
 func run(cliC *cli.Context) error {
+
+	if cliC.Bool("generate-config-schema") {
+		// nolint:exhaustruct
+		_, err := config.GenerateJsonSchema(nodeConfig{}, "schema.json")
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("Schema generated successfully and written to schema.json")
+
+		return nil
+	}
 	ctx := cliC.Context
 	configFile := cliC.String("config")
 
@@ -99,16 +114,25 @@ func run(cliC *cli.Context) error {
 			return fmt.Errorf("missing discovery method")
 		}
 
+		gossipPort, err := strconv.ParseInt(cfg.Cluster.GossipPort, 10, 64)
+		if err != nil {
+			return fmt.Errorf("unable to parse gossip port: %w", err)
+		}
+
 		m, mErr := membership.New(membership.Config{
 			NodeID:     nodeID,
 			Addr:       net.ParseIP(""),
-			GossipPort: cfg.Cluster.GossipPort,
+			GossipPort: int(gossipPort),
 			Logger:     logger,
 		})
 		if mErr != nil {
 			return fmt.Errorf("unable to create membership: %w", err)
 		}
 
+		rpcPort, err := strconv.ParseInt(cfg.Cluster.RpcPort, 10, 64)
+		if err != nil {
+			return fmt.Errorf("unable to parse rpc port: %w", err)
+		}
 		c, err = cluster.New(cluster.Config{
 			Self: cluster.Node{
 
@@ -118,7 +142,7 @@ func run(cliC *cli.Context) error {
 			},
 			Logger:     logger,
 			Membership: m,
-			RpcPort:    cfg.Cluster.RpcPort,
+			RpcPort:    int(rpcPort),
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create cluster: %w", err)
@@ -199,12 +223,4 @@ func run(cliC *cli.Context) error {
 		return fmt.Errorf("unable to leave cluster: %w", err)
 	}
 	return nil
-}
-
-func init() {
-	// nolint:exhaustruct
-	_, err := config.GenerateJsonSchema(nodeConfig{}, "schema.json")
-	if err != nil {
-		panic(err)
-	}
 }

@@ -1,13 +1,30 @@
+import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useFilters } from "../../../../hooks/use-filters";
-import { FiltersPopover } from "./components/filters-popover";
+import { IdentifiersFilter } from "./components/identifiers-filter";
+import { StatusFilter } from "./components/status-filter";
+
+const FILTER_ITEMS: FilterItemConfig[] = [
+  {
+    id: "status",
+    label: "Status",
+    shortcut: "e",
+    component: <StatusFilter />,
+  },
+  {
+    id: "identifiers",
+    label: "Identifier",
+    shortcut: "p",
+    component: <IdentifiersFilter />,
+  },
+];
 
 export const LogsFilters = () => {
   const { filters } = useFilters();
   return (
-    <FiltersPopover>
+    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters}>
       <div className="group">
         <Button
           variant="ghost"
