@@ -2,12 +2,15 @@ import type { LogsFilterValue } from "@/app/(app)/logs/filters.schema";
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { useCheckboxState } from "@/components/logs/checkbox/hooks";
 import { Checkbox } from "@/components/ui/checkbox";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
 import { useCallback } from "react";
 
+import { useQuery } from "@tanstack/react-query";
+
 export const PathsFilter = () => {
-  const { data: paths, isLoading } = trpc.logs.queryDistinctPaths.useQuery(undefined, {
+  const trpc = useTRPC();
+  const { data: paths, isLoading } = useQuery(trpc.logs.queryDistinctPaths.queryOptions(undefined, {
     select(paths) {
       return paths
         ? paths.map((path, index) => ({
@@ -17,7 +20,7 @@ export const PathsFilter = () => {
           }))
         : [];
     },
-  });
+  }));
   const { filters, updateFilters } = useFilters();
 
   const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState({

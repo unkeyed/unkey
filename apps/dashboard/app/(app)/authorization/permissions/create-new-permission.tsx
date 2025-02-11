@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@unkey/ui";
@@ -24,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { validation } from "@unkey/validation";
@@ -32,6 +31,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
 type Props = {
   trigger: React.ReactNode;
 };
@@ -42,6 +42,7 @@ const formSchema = z.object({
 });
 
 export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -49,7 +50,7 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
     resolver: zodResolver(formSchema),
   });
 
-  const createPermission = trpc.rbac.createPermission.useMutation({
+  const createPermission = useMutation(trpc.rbac.createPermission.mutationOptions({
     onSuccess() {
       toast.success("Permission created");
 
@@ -63,7 +64,7 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     createPermission.mutate(values);

@@ -1,10 +1,12 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/logs/query-timeseries/utils";
 import { addMinutes, format } from "date-fns";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
 import type { queryTimeseriesPayload } from "../query-timeseries.schema";
+
+import { useQuery } from "@tanstack/react-query";
 
 // Duration in milliseconds for historical data fetch window (1 hours)
 const TIMESERIES_DATA_WINDOW = 60 * 60 * 1000;
@@ -27,6 +29,7 @@ const formatTimestamp = (value: string | number, granularity: TimeseriesGranular
 };
 
 export const useFetchTimeseries = () => {
+  const trpc = useTRPC();
   const { filters } = useFilters();
 
   const dateNow = useMemo(() => Date.now(), []);
@@ -110,9 +113,9 @@ export const useFetchTimeseries = () => {
     return params;
   }, [filters, dateNow]);
 
-  const { data, isLoading, isError } = trpc.logs.queryTimeseries.useQuery(queryParams, {
+  const { data, isLoading, isError } = useQuery(trpc.logs.queryTimeseries.queryOptions(queryParams, {
     refetchInterval: queryParams.endTime ? false : 10_000,
-  });
+  }));
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestamp(ts.x, data.granularity),

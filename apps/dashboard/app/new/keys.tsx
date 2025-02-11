@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
@@ -14,12 +13,14 @@ import {
 } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Steps =
   | {
@@ -44,17 +45,18 @@ type Props = {
 };
 
 export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
+  const trpc = useTRPC();
   const [step, setStep] = useState<Steps>({ step: "CREATE_ROOT_KEY" });
-  const rootKey = trpc.rootKey.create.useMutation({
+  const rootKey = useMutation(trpc.rootKey.create.mutationOptions({
     onSuccess(res) {
       setStep({ step: "CREATE_KEY", rootKey: res.key });
     },
-  });
-  const key = trpc.key.create.useMutation({
+  }));
+  const key = useMutation(trpc.key.create.mutationOptions({
     onSuccess(res) {
       setStep({ step: "VERIFY_KEY", key: res.key });
     },
-  });
+  }));
 
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);

@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,13 +19,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   limit: z.coerce.number().int().min(1).max(10_000),
@@ -47,6 +49,7 @@ type Props = {
 };
 
 export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
+  const trpc = useTRPC();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     reValidateMode: "onChange",
@@ -62,7 +65,7 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
     },
   });
 
-  const update = trpc.ratelimit.override.update.useMutation({
+  const update = useMutation(trpc.ratelimit.override.update.mutationOptions({
     onSuccess() {
       toast.success("Limits have been updated", {
         description: "Changes may take up to 60s to propagate globally",
@@ -72,16 +75,16 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
 
-  const deleteOverride = trpc.ratelimit.override.delete.useMutation({
+  const deleteOverride = useMutation(trpc.ratelimit.override.delete.mutationOptions({
     onSuccess() {
       toast.success("Override has been deleted", {
         description: "Changes may take up to 60s to propagate globally",
       });
       router.push("/ratelimits/");
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     update.mutate({

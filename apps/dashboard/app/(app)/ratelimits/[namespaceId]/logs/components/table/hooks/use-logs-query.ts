@@ -1,9 +1,12 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HISTORICAL_DATA_WINDOW } from "../../../constants";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryLogsPayload } from "../query-logs.schema";
+
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Duration in milliseconds for historical data fetch window (12 hours)
 type UseLogsQueryParams = {
@@ -19,11 +22,12 @@ export function useRatelimitLogsQuery({
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseLogsQueryParams = {}) {
+  const trpc = useTRPC();
   const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, RatelimitLog>());
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, RatelimitLog>());
 
   const { filters } = useFilters();
-  const queryClient = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const realtimeLogs = useMemo(() => {
     return Array.from(realtimeLogsMap.values());
@@ -114,13 +118,13 @@ export function useRatelimitLogsQuery({
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.ratelimit.logs.query.useInfiniteQuery(queryParams, {
+  } = useInfiniteQuery(trpc.ratelimit.logs.query.infiniteQueryOptions(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialCursor: { requestId: null, time: null },
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-  });
+  }));
 
   // Query for new logs (polling)
   // biome-ignore lint/correctness/useExhaustiveDependencies: biome wants to everything as dep

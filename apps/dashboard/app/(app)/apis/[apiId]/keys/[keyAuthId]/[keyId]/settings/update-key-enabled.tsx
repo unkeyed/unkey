@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import {
   Card,
@@ -11,12 +11,14 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   keyId: z.string(),
@@ -32,6 +34,7 @@ type Props = {
 };
 
 export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,7 +47,7 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
       enabled: apiKey.enabled,
     },
   });
-  const updateEnabled = trpc.key.update.enabled.useMutation({
+  const updateEnabled = useMutation(trpc.key.update.enabled.mutationOptions({
     onSuccess() {
       toast.success("Your key has been updated!");
       router.refresh();
@@ -53,7 +56,7 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateEnabled.mutateAsync(values);

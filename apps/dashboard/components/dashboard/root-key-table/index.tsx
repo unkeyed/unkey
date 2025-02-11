@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@unkey/ui";
 import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-react";
@@ -29,6 +28,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loading } from "../loading";
 import { DataTable } from "./table";
+import { useMutation } from "@tanstack/react-query";
 type Column = {
   id: string;
   start: string;
@@ -47,8 +47,9 @@ type Props = {
 };
 
 export const RootKeyTable: React.FC<Props> = ({ data }) => {
+  const trpc = useTRPC();
   const router = useRouter();
-  const deleteKey = trpc.rootKey.delete.useMutation({
+  const deleteKey = useMutation(trpc.rootKey.delete.mutationOptions({
     onSuccess: () => {
       toast.success("Root Key was deleted");
       router.refresh();
@@ -58,7 +59,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       toast(`Could not delete key ${JSON.stringify(variables)}`);
       router.refresh();
     },
-  });
+  }));
 
   const columns: ColumnDef<Column>[] = [
     {

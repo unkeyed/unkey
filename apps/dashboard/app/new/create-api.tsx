@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import {
   Form,
@@ -12,7 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +20,7 @@ import { Code2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name is required and should be at least 3 characters").max(50),
 });
@@ -33,6 +33,7 @@ type Props = {
 };
 
 export const CreateApi: React.FC<Props> = ({ workspace }) => {
+  const trpc = useTRPC();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
@@ -42,13 +43,13 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
   if (isLoaded && user) {
     PostHogIdentify({ user });
   }
-  const createApi = trpc.api.create.useMutation({
+  const createApi = useMutation(trpc.api.create.mutationOptions({
     onSuccess: async ({ id: apiId }) => {
       toast.success("Your API has been created");
       form.reset();
       router.push(`/new?workspaceId=${workspace.id}&apiId=${apiId}`);
     },
-  });
+  }));
   function AsideContent() {
     return (
       <div className="space-y-2">

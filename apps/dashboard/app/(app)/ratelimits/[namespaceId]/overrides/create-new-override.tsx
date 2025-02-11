@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,13 +19,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   identifier: z
@@ -47,6 +49,7 @@ type Props = {
 };
 
 export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
+  const trpc = useTRPC();
   const searchParams = useSearchParams();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -60,7 +63,7 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
     },
   });
 
-  const create = trpc.ratelimit.override.create.useMutation({
+  const create = useMutation(trpc.ratelimit.override.create.mutationOptions({
     onSuccess() {
       toast.success("New override has been created", {
         description: "Changes may take up to 60s to propagate globally",
@@ -70,7 +73,7 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
   async function onSubmit(values: z.infer<typeof formSchema>) {
     create.mutate({
       namespaceId,

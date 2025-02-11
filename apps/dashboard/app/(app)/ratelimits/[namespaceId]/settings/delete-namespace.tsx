@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
@@ -25,12 +25,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { revalidate } from "./actions";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   namespace: {
@@ -43,6 +45,7 @@ type Props = {
 const intent = "delete namespace";
 
 export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
+  const trpc = useTRPC();
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
@@ -55,7 +58,7 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
   });
   const router = useRouter();
 
-  const deleteNamespace = trpc.ratelimit.namespace.delete.useMutation({
+  const deleteNamespace = useMutation(trpc.ratelimit.namespace.delete.mutationOptions({
     async onSuccess() {
       toast.message("Namespace Deleted", {
         description: "Your namespace and all its overridden identifiers have been deleted.",
@@ -68,7 +71,7 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
 
   const isValid = form.watch("intent") === intent && form.watch("name") === namespace.name;
 

@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { revalidate } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
@@ -22,6 +22,8 @@ import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name must be at least 3 characters long").max(50),
@@ -35,13 +37,14 @@ export const CreateApiButton = ({
   defaultOpen,
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
+  const trpc = useTRPC();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
   const [open, setOpen] = useState(defaultOpen ?? false);
 
-  const create = trpc.api.create.useMutation({
+  const create = useMutation(trpc.api.create.mutationOptions({
     async onSuccess(res) {
       toast.success("Your API has been created");
       await revalidate("/apis");
@@ -51,7 +54,7 @@ export const CreateApiButton = ({
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
   async function onSubmit(values: z.infer<typeof formSchema>) {
     create.mutate(values);
   }

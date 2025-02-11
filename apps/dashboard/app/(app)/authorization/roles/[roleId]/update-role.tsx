@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import {
@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import type { Role } from "@unkey/db";
@@ -32,6 +32,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   trigger: React.ReactNode;
@@ -44,6 +46,7 @@ const formSchema = z.object({
 });
 
 export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
+  const trpc = useTRPC();
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -55,7 +58,7 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
     },
   });
 
-  const updateRole = trpc.rbac.updateRole.useMutation({
+  const updateRole = useMutation(trpc.rbac.updateRole.mutationOptions({
     onMutate() {
       toast.loading("Updating Role");
     },
@@ -68,7 +71,7 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     updateRole.mutate({

@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -10,13 +9,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import type { Workspace } from "@unkey/db";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 type Props = {
   newPlan: "free" | "pro";
   workspace: Workspace;
@@ -24,10 +24,11 @@ type Props = {
 };
 
 export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const changePlan = trpc.workspace.updatePlan.useMutation({
+  const changePlan = useMutation(trpc.workspace.updatePlan.mutationOptions({
     onSuccess: (data, variables, _context) => {
       toast.success(data.title, {
         description: data.message,
@@ -43,7 +44,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   const handleClick = () => {
     const hasPaymentMethod = !!workspace.stripeCustomerId;

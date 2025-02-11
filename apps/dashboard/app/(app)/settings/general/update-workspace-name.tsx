@@ -1,16 +1,18 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,7 @@ type Props = {
 };
 
 export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const { user } = useUser();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,7 +47,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       name: workspace.name,
     },
   });
-  const updateName = trpc.workspace.updateName.useMutation({
+  const updateName = useMutation(trpc.workspace.updateName.mutationOptions({
     onSuccess() {
       toast.success("Workspace name updated");
       user?.reload();
@@ -53,7 +56,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateName.mutateAsync(values);

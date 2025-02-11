@@ -1,13 +1,16 @@
 import { useCheckboxState } from "@/components/logs/checkbox/hooks";
 import { Checkbox } from "@/components/ui/checkbox";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRatelimitLogsContext } from "../../../../../context/logs";
 import type { RatelimitFilterValue } from "../../../../../filters.schema";
 import { useFilters } from "../../../../../hooks/use-filters";
 
+import { useQuery } from "@tanstack/react-query";
+
 export const IdentifiersFilter = () => {
+  const trpc = useTRPC();
   const { namespaceId } = useRatelimitLogsContext();
   const {
     data: identifiers,
@@ -15,7 +18,7 @@ export const IdentifiersFilter = () => {
     isError,
     refetch,
     isFetching,
-  } = trpc.ratelimit.logs.queryDistinctIdentifiers.useQuery(
+  } = useQuery(trpc.ratelimit.logs.queryDistinctIdentifiers.queryOptions(
     { namespaceId },
     {
       select(identifiers) {
@@ -28,7 +31,7 @@ export const IdentifiersFilter = () => {
           : [];
       },
     },
-  );
+  ));
   const { filters, updateFilters } = useFilters();
   const [isAtBottom, setIsAtBottom] = useState(false);
   const [needsScroll, setNeedsScroll] = useState(false);

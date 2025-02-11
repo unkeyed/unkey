@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
@@ -24,12 +24,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { revalidate } from "./actions";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   api: {
@@ -41,6 +43,7 @@ type Props = {
 };
 
 export const DeleteProtection: React.FC<Props> = ({ api }) => {
+  const trpc = useTRPC();
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
@@ -52,7 +55,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
   });
   const router = useRouter();
 
-  const updateDeleteProtection = trpc.api.updateDeleteProtection.useMutation({
+  const updateDeleteProtection = useMutation(trpc.api.updateDeleteProtection.mutationOptions({
     async onSuccess(_, { enabled }) {
       toast.message(
         `Delete protection for ${api.name} has been ${enabled ? "enabled" : "disabled"}`,
@@ -68,7 +71,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   const isValid = form.watch("name") === api.name;
 

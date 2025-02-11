@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@unkey/ui";
@@ -24,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import type { Permission } from "@unkey/db";
@@ -33,6 +32,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
 type Props = {
   trigger: React.ReactNode;
   permissions?: Permission[];
@@ -53,6 +53,7 @@ const formSchema = z.object({
 });
 
 export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -61,7 +62,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
     reValidateMode: "onBlur",
   });
 
-  const createRole = trpc.rbac.createRole.useMutation({
+  const createRole = useMutation(trpc.rbac.createRole.mutationOptions({
     onSuccess({ roleId }) {
       toast.success("Role created");
 
@@ -76,7 +77,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     createRole.mutate({

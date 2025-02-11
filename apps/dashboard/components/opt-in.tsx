@@ -1,6 +1,5 @@
-"use client";
-
-import { trpc } from "@/lib/trpc/client";
+"use client";;
+import { useTRPC } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
 import { Button } from "@unkey/ui";
 import { Empty } from "@unkey/ui";
@@ -11,6 +10,7 @@ import type React from "react";
 import { toast } from "@/components/ui/toaster";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { Loading } from "./dashboard/loading";
+import { useMutation } from "@tanstack/react-query";
 type Props = {
   title: string;
   description: string;
@@ -18,8 +18,9 @@ type Props = {
 };
 
 export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
+  const trpc = useTRPC();
   const router = useRouter();
-  const optIn = trpc.workspace.optIntoBeta.useMutation({
+  const optIn = useMutation(trpc.workspace.optIntoBeta.mutationOptions({
     onMutate() {
       PostHogEvent({
         name: "self-serve-opt-in",
@@ -37,7 +38,7 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
   return (
     <Empty>
       <Empty.Icon />

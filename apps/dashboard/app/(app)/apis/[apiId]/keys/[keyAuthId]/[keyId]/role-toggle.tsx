@@ -1,11 +1,11 @@
-"use client";
-
+"use client";;
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 type Props = {
   keyId: string;
   roleId: string;
@@ -13,10 +13,11 @@ type Props = {
 };
 
 export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
+  const trpc = useTRPC();
   const router = useRouter();
 
   const [optimisticChecked, setOptimisticChecked] = useState(checked);
-  const connect = trpc.rbac.connectRoleToKey.useMutation({
+  const connect = useMutation(trpc.rbac.connectRoleToKey.mutationOptions({
     onMutate: () => {
       setOptimisticChecked(true);
       toast.loading("Adding Role");
@@ -39,8 +40,8 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
     onSettled: () => {
       router.refresh();
     },
-  });
-  const disconnect = trpc.rbac.disconnectRoleFromKey.useMutation({
+  }));
+  const disconnect = useMutation(trpc.rbac.disconnectRoleFromKey.mutationOptions({
     onMutate: () => {
       setOptimisticChecked(false);
       toast.loading("Removing role");
@@ -63,7 +64,7 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
     onSettled: () => {
       router.refresh();
     },
-  });
+  }));
   if (connect.isPending || disconnect.isPending) {
     return <Loader2 className="w-4 h-4 animate-spin" />;
   }

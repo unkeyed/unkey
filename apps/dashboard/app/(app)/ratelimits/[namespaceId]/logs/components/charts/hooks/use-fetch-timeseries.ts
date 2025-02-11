@@ -1,9 +1,11 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/ratelimit/query-timeseries/utils";
 import { addMinutes, format } from "date-fns";
 import { useMemo } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryTimeseriesPayload } from "../query-timeseries.schema";
+
+import { useQuery } from "@tanstack/react-query";
 
 // Duration in milliseconds for historical data fetch window (1 hours)
 const TIMESERIES_DATA_WINDOW = 60 * 60 * 1000;
@@ -28,6 +30,7 @@ const formatTimestamp = (value: string | number, granularity: TimeseriesGranular
 };
 
 export const useFetchRatelimitTimeseries = (namespaceId: string) => {
+  const trpc = useTRPC();
   const { filters } = useFilters();
   const dateNow = useMemo(() => Date.now(), []);
 
@@ -76,12 +79,12 @@ export const useFetchRatelimitTimeseries = (namespaceId: string) => {
     return params;
   }, [filters, dateNow, namespaceId]);
 
-  const { data, isLoading, isError } = trpc.ratelimit.logs.queryRatelimitTimeseries.useQuery(
+  const { data, isLoading, isError } = useQuery(trpc.ratelimit.logs.queryRatelimitTimeseries.queryOptions(
     queryParams,
     {
       refetchInterval: queryParams.endTime ? false : 10_000,
     },
-  );
+  ));
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestamp(ts.x, data.granularity),

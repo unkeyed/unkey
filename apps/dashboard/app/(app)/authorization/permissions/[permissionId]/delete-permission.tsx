@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { revalidate } from "@/app/actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -20,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Button } from "@unkey/ui";
@@ -28,6 +27,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   trigger: React.ReactNode;
@@ -38,6 +39,7 @@ type Props = {
 };
 
 export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
+  const trpc = useTRPC();
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
@@ -52,7 +54,7 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
 
   const isValid = form.watch("name") === permission.name;
 
-  const deletePermission = trpc.rbac.deletePermission.useMutation({
+  const deletePermission = useMutation(trpc.rbac.deletePermission.mutationOptions({
     onSuccess() {
       toast.success("Permission deleted successfully");
       revalidate("/authorization/permissions");
@@ -61,7 +63,7 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit() {
     deletePermission.mutate({ permissionId: permission.id });

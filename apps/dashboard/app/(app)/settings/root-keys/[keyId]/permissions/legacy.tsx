@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Card,
@@ -10,11 +9,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { Permission } from "@unkey/db";
 import { Button } from "@unkey/ui";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   permissions: Permission[];
@@ -22,8 +23,9 @@ type Props = {
 };
 
 export const Legacy: React.FC<Props> = ({ keyId, permissions }) => {
+  const trpc = useTRPC();
   const router = useRouter();
-  const removeRole = trpc.rbac.removePermissionFromRootKey.useMutation({
+  const removeRole = useMutation(trpc.rbac.removePermissionFromRootKey.mutationOptions({
     onSuccess: () => {
       toast.success("Role removed", {
         description: "Changes may take up to 60 seconds to take effect.",
@@ -35,7 +37,7 @@ export const Legacy: React.FC<Props> = ({ keyId, permissions }) => {
       toast.error(err.message);
     },
     onSettled: () => {},
-  });
+  }));
 
   /**
    * If they delete it without setting permissions first, they might break themselves in production.

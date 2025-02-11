@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
 import { Empty } from "@unkey/ui";
@@ -32,6 +32,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   integration: {
@@ -199,10 +201,11 @@ const ConnectedResource: React.FC<{
   apis: Record<string, Api>;
   rootKeys: Record<string, Key>;
 }> = (props) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const [selectedResourceId, setSelectedResourceId] = useState(props.binding?.resourceId);
 
-  const updateApiId = trpc.vercel.upsertApiId.useMutation({
+  const updateApiId = useMutation(trpc.vercel.upsertApiId.mutationOptions({
     onSuccess: () => {
       router.refresh();
       toast.success("Updated the environment variable in Vercel");
@@ -211,9 +214,9 @@ const ConnectedResource: React.FC<{
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
-  const rerollRootKey = trpc.vercel.upsertNewRootKey.useMutation({
+  const rerollRootKey = useMutation(trpc.vercel.upsertNewRootKey.mutationOptions({
     onSuccess: () => {
       router.refresh();
       toast.success(
@@ -224,8 +227,8 @@ const ConnectedResource: React.FC<{
       console.error(err);
       toast.error(err.message);
     },
-  });
-  const unbind = trpc.vercel.unbind.useMutation({
+  }));
+  const unbind = useMutation(trpc.vercel.unbind.mutationOptions({
     onSuccess: () => {
       router.refresh();
       toast.success(`Successfully unbound ${props.type} from Vercel`);
@@ -234,7 +237,7 @@ const ConnectedResource: React.FC<{
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   const isLoading = updateApiId.isPending || rerollRootKey.isPending || unbind.isPending;
 

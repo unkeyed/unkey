@@ -2,11 +2,14 @@ import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { LogsLLMSearch } from "@/components/logs/llm-search";
 import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
+
+import { useMutation } from "@tanstack/react-query";
 
 export const LogsSearch = () => {
+  const trpc = useTRPC();
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.logs.llmSearch.useMutation({
+  const queryLLMForStructuredOutput = useMutation(trpc.logs.llmSearch.mutationOptions({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -40,7 +43,7 @@ export const LogsSearch = () => {
         className: "font-medium",
       });
     },
-  });
+  }));
 
   return (
     <LogsLLMSearch

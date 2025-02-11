@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
@@ -20,13 +19,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { type UnkeyPermission, unkeyPermissionValidation } from "@unkey/rbac";
 import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   apis: {
@@ -44,6 +45,7 @@ const parseAsUnkeyPermission = createParser({
 });
 
 export const Client: React.FC<Props> = ({ apis }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const [name, setName] = useState<string | undefined>(undefined);
 
@@ -56,12 +58,12 @@ export const Client: React.FC<Props> = ({ apis }) => {
     }),
   );
 
-  const key = trpc.rootKey.create.useMutation({
+  const key = useMutation(trpc.rootKey.create.mutationOptions({
     onError(err: { message: string }) {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys.createKey' \\
   -H 'Authorization: Bearer ${key.data?.key}' \\

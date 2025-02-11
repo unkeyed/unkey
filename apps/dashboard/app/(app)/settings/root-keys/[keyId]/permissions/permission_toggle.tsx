@@ -1,12 +1,12 @@
-"use client";
-
+"use client";;
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 type Props = {
   rootKeyId: string;
   permissionName: string;
@@ -26,10 +26,11 @@ export const PermissionToggle: React.FC<Props> = ({
   preventEnabling,
   preventDisabling,
 }) => {
+  const trpc = useTRPC();
   const router = useRouter();
 
   const [optimisticChecked, setOptimisticChecked] = useState(checked);
-  const addPermission = trpc.rbac.addPermissionToRootKey.useMutation({
+  const addPermission = useMutation(trpc.rbac.addPermissionToRootKey.mutationOptions({
     onMutate: () => {
       setOptimisticChecked(true);
     },
@@ -45,8 +46,8 @@ export const PermissionToggle: React.FC<Props> = ({
     onSettled: () => {
       router.refresh();
     },
-  });
-  const removeRole = trpc.rbac.removePermissionFromRootKey.useMutation({
+  }));
+  const removeRole = useMutation(trpc.rbac.removePermissionFromRootKey.mutationOptions({
     onMutate: () => {
       setOptimisticChecked(false);
     },
@@ -68,7 +69,7 @@ export const PermissionToggle: React.FC<Props> = ({
     onSettled: () => {
       router.refresh();
     },
-  });
+  }));
 
   return (
     <div className="@container flex items-center text-start">

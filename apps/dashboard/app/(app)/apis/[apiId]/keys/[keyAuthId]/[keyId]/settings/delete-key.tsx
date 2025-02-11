@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { revalidate } from "@/app/actions";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
@@ -16,8 +16,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useRouter } from "next/navigation";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   apiKey: {
@@ -27,10 +29,11 @@ type Props = {
 };
 
 export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const deleteKey = trpc.key.delete.useMutation({
+  const deleteKey = useMutation(trpc.key.delete.mutationOptions({
     onSuccess() {
       revalidate(`/keys/${keyAuthId}/keys`);
       toast.success("Key deleted");
@@ -40,7 +43,7 @@ export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   return (
     <>

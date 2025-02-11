@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import {
   Card,
   CardContent,
@@ -10,7 +10,7 @@ import {
 import { FormField } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -19,6 +19,7 @@ import { z } from "zod";
 
 import { tags } from "@/lib/cache";
 import { revalidateTag } from "../../../../actions";
+import { useMutation } from "@tanstack/react-query";
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name is required and should be at least 3 characters"),
   apiId: z.string(),
@@ -34,6 +35,7 @@ type Props = {
 };
 
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,7 +46,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     },
   });
 
-  const updateName = trpc.api.updateName.useMutation({
+  const updateName = useMutation(trpc.api.updateName.mutationOptions({
     onSuccess() {
       toast.success("Your API name has been renamed!");
       revalidateTag(tags.api(api.id));
@@ -54,7 +56,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.name === api.name || !values.name) {
       return toast.error("Please provide a valid name before saving.");

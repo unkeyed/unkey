@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import {
   Dialog,
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { MessagesSquare } from "lucide-react";
@@ -19,6 +19,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+
+import { useMutation } from "@tanstack/react-query";
 
 type FeedbackVariant = "command";
 type FeedbackOpen = boolean;
@@ -29,6 +31,7 @@ interface FeedbackProps {
 }
 
 export const Feedback: React.FC<FeedbackProps> = ({ variant, FeedbackOpen }) => {
+  const trpc = useTRPC();
   const [open, setOpen] = useState(false);
   const cursorClasess = variant === "command" ? "cursor-default" : "cursor-pointer";
   useEffect(() => {
@@ -60,7 +63,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ variant, FeedbackOpen }) => 
     },
   });
 
-  const create = trpc.plain.createIssue.useMutation({
+  const create = useMutation(trpc.plain.createIssue.mutationOptions({
     onSuccess: () => {
       setOpen(false);
       toast.success("Your issue has been created, we'll get back to you as soon as possible");
@@ -69,7 +72,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ variant, FeedbackOpen }) => 
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   return (
     <div

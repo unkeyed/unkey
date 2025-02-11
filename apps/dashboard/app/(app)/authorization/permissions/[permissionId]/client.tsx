@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -18,12 +17,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Permission } from "@unkey/db";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   permission: Permission;
@@ -36,6 +37,7 @@ const formSchema = z.object({
 });
 
 export const Client: React.FC<Props> = ({ permission }) => {
+  const trpc = useTRPC();
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -46,7 +48,7 @@ export const Client: React.FC<Props> = ({ permission }) => {
     },
   });
 
-  const updatePermission = trpc.rbac.updatePermission.useMutation({
+  const updatePermission = useMutation(trpc.rbac.updatePermission.mutationOptions({
     onSuccess() {
       toast.success("Permission updated");
       revalidateTag(tags.permission(permission.id));
@@ -55,7 +57,7 @@ export const Client: React.FC<Props> = ({ permission }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     updatePermission.mutate({

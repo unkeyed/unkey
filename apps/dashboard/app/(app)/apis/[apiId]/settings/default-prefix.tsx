@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import {
   Card,
   CardContent,
@@ -10,12 +10,14 @@ import {
 import { FormField } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   keyAuthId: z.string(),
@@ -30,6 +32,7 @@ type Props = {
 };
 
 export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -39,7 +42,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
     },
   });
 
-  const setDefaultPrefix = trpc.api.setDefaultPrefix.useMutation({
+  const setDefaultPrefix = useMutation(trpc.api.setDefaultPrefix.mutationOptions({
     onSuccess() {
       toast.success("Default prefix for this API is updated!");
       router.refresh();
@@ -48,7 +51,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.defaultPrefix.length > 8) {
       return toast.error("Default prefix is too long, maximum length is 8 characters.");

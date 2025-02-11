@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { revalidate } from "@/app/actions";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
@@ -30,7 +30,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addMinutes, format } from "date-fns";
 import { AlertCircle } from "lucide-react";
@@ -40,6 +40,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { formSchema } from "./validation";
+
+import { useMutation } from "@tanstack/react-query";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +53,7 @@ type Props = {
 };
 
 export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Props) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
@@ -79,7 +82,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     },
   });
 
-  const key = trpc.key.create.useMutation({
+  const key = useMutation(trpc.key.create.mutationOptions({
     onSuccess() {
       toast.success("Key Created", {
         description: "Your Key has been created",
@@ -90,7 +93,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (

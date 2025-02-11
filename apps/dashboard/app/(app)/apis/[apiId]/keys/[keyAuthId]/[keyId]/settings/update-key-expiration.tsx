@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import {
   Card,
@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
@@ -29,6 +29,8 @@ import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 const currentTime = new Date();
 const oneMinute = currentTime.setMinutes(currentTime.getMinutes() + 0.5);
@@ -46,6 +48,7 @@ type Props = {
 };
 
 export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
+  const trpc = useTRPC();
   const router = useRouter();
 
   /*  This ensures the date shown is in local time and not ISO  */
@@ -67,7 +70,7 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
     },
   });
 
-  const changeExpiration = trpc.key.update.expiration.useMutation({
+  const changeExpiration = useMutation(trpc.key.update.expiration.mutationOptions({
     onSuccess() {
       toast.success("Your key has been updated!");
       router.refresh();
@@ -76,7 +79,7 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await changeExpiration.mutateAsync(values);

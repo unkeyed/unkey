@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@unkey/ui";
 import {
@@ -38,6 +37,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loading } from "../loading";
 import { DataTable } from "./table";
+import { useMutation } from "@tanstack/react-query";
 type Column = {
   id: string;
   start: string;
@@ -60,8 +60,9 @@ type Props = {
 };
 
 export const ApiKeyTable: React.FC<Props> = ({ data }) => {
+  const trpc = useTRPC();
   const router = useRouter();
-  const deleteKey = trpc.key.delete.useMutation({
+  const deleteKey = useMutation(trpc.key.delete.mutationOptions({
     onSuccess: () => {
       toast.success("Key was deleted");
       router.refresh();
@@ -71,7 +72,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       toast.error(`Could not delete key ${JSON.stringify(variables)}`);
       router.refresh();
     },
-  });
+  }));
 
   const columns: ColumnDef<Column>[] = [
     {

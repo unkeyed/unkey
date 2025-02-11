@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
@@ -19,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Button } from "@unkey/ui";
@@ -27,6 +26,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   trigger: React.ReactNode;
@@ -37,6 +38,7 @@ type Props = {
 };
 
 export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
+  const trpc = useTRPC();
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
@@ -51,7 +53,7 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
 
   const isValid = form.watch("name") === role.name;
 
-  const deleteRole = trpc.rbac.deleteRole.useMutation({
+  const deleteRole = useMutation(trpc.rbac.deleteRole.mutationOptions({
     onMutate() {
       toast.loading("Deleting Role");
     },
@@ -62,7 +64,7 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit() {
     deleteRole.mutate({ roleId: role.id });

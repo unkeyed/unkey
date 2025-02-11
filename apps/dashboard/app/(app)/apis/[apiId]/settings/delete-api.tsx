@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
@@ -29,6 +29,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { revalidate } from "./actions";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   keys: number;
@@ -41,6 +43,7 @@ type Props = {
 };
 
 export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
+  const trpc = useTRPC();
   const [open, setOpen] = useState(false);
 
   const intent =
@@ -56,7 +59,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   });
   const router = useRouter();
 
-  const deleteApi = trpc.api.delete.useMutation({
+  const deleteApi = useMutation(trpc.api.delete.mutationOptions({
     async onSuccess() {
       toast.message("API Deleted", {
         description: `Your API and ${Intl.NumberFormat(undefined).format(
@@ -72,7 +75,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   const isValid = form.watch("intent") === intent && form.watch("name") === api.name;
 

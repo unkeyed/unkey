@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import {
   Card,
@@ -21,13 +21,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   keyId: z.string(),
@@ -65,6 +67,7 @@ type Props = {
 };
 
 export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,7 +85,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
       ratelimitDuration: apiKey.ratelimitDuration ? apiKey.ratelimitDuration : undefined,
     },
   });
-  const updateRatelimit = trpc.key.update.ratelimit.useMutation({
+  const updateRatelimit = useMutation(trpc.key.update.ratelimit.mutationOptions({
     onSuccess() {
       toast.success("Your ratelimit has been updated!");
       router.refresh();
@@ -91,7 +94,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateRatelimit.mutateAsync(values);
   }

@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
@@ -20,6 +20,8 @@ import { useRouter } from "next/navigation";
 import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   name: z
@@ -36,11 +38,12 @@ const formSchema = z.object({
 export const CreateNamespaceButton = ({
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+  const trpc = useTRPC();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
-  const create = trpc.ratelimit.namespace.create.useMutation({
+  const create = useMutation(trpc.ratelimit.namespace.create.mutationOptions({
     onSuccess(res) {
       toast.success("Your Namespace has been created");
       router.refresh();
@@ -49,7 +52,7 @@ export const CreateNamespaceButton = ({
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
   async function onSubmit(values: z.infer<typeof formSchema>) {
     create.mutate(values);
   }

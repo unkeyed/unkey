@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import {
   Card,
@@ -12,12 +12,14 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   keyId: z.string(),
@@ -31,6 +33,7 @@ type Props = {
 };
 
 export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
+  const trpc = useTRPC();
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -46,7 +49,7 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
 
   const rows = Math.max(3, form.getValues("metadata").split("\n").length);
 
-  const updateMetadata = trpc.key.update.metadata.useMutation({
+  const updateMetadata = useMutation(trpc.key.update.metadata.mutationOptions({
     onSuccess() {
       toast.success("Your metadata has been updated!");
       router.refresh();
@@ -55,7 +58,7 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     updateMetadata.mutate(values);

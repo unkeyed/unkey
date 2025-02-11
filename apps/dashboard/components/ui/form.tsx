@@ -13,6 +13,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 const Form = FormProvider;
 
 type FormFieldContextValue<
@@ -38,8 +40,8 @@ const FormField = <
 };
 
 const useFormField = () => {
-  const fieldContext = React.useContext(FormFieldContext);
-  const itemContext = React.useContext(FormItemContext);
+  const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
   const { getFieldState, formState } = useFormContext();
 
   const fieldState = getFieldState(fieldContext.name, formState);

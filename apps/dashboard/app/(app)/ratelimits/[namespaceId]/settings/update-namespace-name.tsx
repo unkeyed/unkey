@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import {
@@ -13,13 +13,14 @@ import { FormField } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { validation } from "@unkey/validation";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
 const formSchema = z.object({
   name: validation.name,
   namespaceId: validation.unkeyId,
@@ -35,6 +36,7 @@ type Props = {
 };
 
 export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,7 +47,7 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
     },
   });
 
-  const updateName = trpc.ratelimit.namespace.update.name.useMutation({
+  const updateName = useMutation(trpc.ratelimit.namespace.update.name.mutationOptions({
     onSuccess() {
       toast.success("Your namespace name has been renamed!");
       revalidateTag(tags.namespace(namespace.id));
@@ -54,7 +56,7 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.name === namespace.name || !values.name) {
       return toast.error("Please provide a different name before saving.");
