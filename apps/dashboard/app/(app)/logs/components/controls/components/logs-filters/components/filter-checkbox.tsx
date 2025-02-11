@@ -1,4 +1,4 @@
-import type { FilterValue } from "@/app/(app)/logs/filters.type";
+import type { LogsFilterValue } from "@/app/(app)/logs/filters.schema";
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,7 @@ interface BaseCheckboxFilterProps<TCheckbox extends BaseCheckboxOption> {
   scrollContainerRef?: React.RefObject<HTMLDivElement>;
   renderBottomGradient?: () => React.ReactNode;
   renderOptionContent?: (option: TCheckbox) => React.ReactNode;
-  createFilterValue: (option: TCheckbox) => Pick<FilterValue, "value" | "metadata">;
+  createFilterValue: (option: TCheckbox) => Pick<LogsFilterValue, "value" | "metadata">;
 }
 
 export const FilterCheckbox = <TCheckbox extends BaseCheckboxOption>({
@@ -47,7 +47,7 @@ export const FilterCheckbox = <TCheckbox extends BaseCheckboxOption>({
     const selectedValues = checkboxes.filter((c) => c.checked).map((c) => createFilterValue(c));
 
     const otherFilters = filters.filter((f) => f.field !== filterField);
-    const newFilters: FilterValue[] = selectedValues.map((filterValue) => ({
+    const newFilters: LogsFilterValue[] = selectedValues.map((filterValue) => ({
       id: crypto.randomUUID(),
       field: filterField,
       operator: "is",

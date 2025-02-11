@@ -17,6 +17,7 @@ const timeFormat = "2006-01-02T15:04:05.000MST"
 type Config struct {
 	Debug  bool
 	Writer []io.Writer
+	Color  bool
 }
 
 func init() {
@@ -32,7 +33,7 @@ func New(config *Config) Logger {
 		config = &Config{}
 	}
 
-	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat}
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat, NoColor: !config.Color}
 
 	writers := []io.Writer{consoleWriter}
 	if len(config.Writer) > 0 {

@@ -28,9 +28,12 @@ func NotNil(t any) error {
 }
 
 // True asserts that a boolean is true
-func True(value bool) error {
+func True(value bool, messages ...string) error {
 	if !value {
-		return fault.New("expected true but got false", fault.WithTag(fault.ASSERTION_FAILED))
+		if len(messages) == 0 {
+			messages = []string{"expected true but got false"}
+		}
+		return fault.New(messages[0], fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil
 }

@@ -4,13 +4,20 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
+	"time"
 
+	"github.com/unkeyed/unkey/go/cmd/api/routes"
+	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/config"
+	"github.com/unkeyed/unkey/go/pkg/database"
+	"github.com/unkeyed/unkey/go/pkg/discovery"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -21,22 +28,26 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name: "api",
+	Name:        "api",
+	Description: "Run the API server",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
+			Required:    true,
 			Name:        "config",
 			Aliases:     []string{"c"},
 			Usage:       "Load configuration file",
 			Value:       "unkey.json",
 			DefaultText: "unkey.json",
-			EnvVars:     []string{"AGENT_CONFIG_FILE"},
+			EnvVars:     []string{"UNKEY_CONFIG_FILE"},
 		},
 	},
 	Action: run,
 }
 
-func run(c *cli.Context) error {
-	configFile := c.String("config")
+// nolint:gocognit
+func run(cliC *cli.Context) error {
+	ctx := cliC.Context
+	configFile := cliC.String("config")
 
 	// nolint:exhaustruct
 	cfg := nodeConfig{}
@@ -45,63 +56,79 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("unable to load config file: %w", err)
 	}
 
-	if cfg.NodeId == "" {
-		cfg.NodeId = uid.Node()
+	nodeID := uid.Node()
+	if cfg.Cluster != nil && cfg.Cluster.NodeID != "" {
+		nodeID = cfg.Cluster.NodeID
 	}
 
 	if cfg.Region == "" {
 		cfg.Region = "unknown"
 	}
-	logger := logging.New(logging.Config{Development: true, NoColor: false})
-	logger = logger.With(
-		slog.String("nodeId", cfg.NodeId),
-		slog.String("platform", cfg.Platform),
-		slog.String("region", cfg.Region),
-		slog.String("version", version.Version),
-	)
-
+	logger := logging.New(logging.Config{Development: true, NoColor: true}).
+		With(
+			slog.String("nodeId", nodeID),
+			slog.String("platform", cfg.Platform),
+			slog.String("region", cfg.Region),
+			slog.String("version", version.Version),
+		)
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Error(c.Context, "panic",
+			logger.Error(ctx, "panic",
 				slog.Any("panic", r),
 				slog.String("stack", string(debug.Stack())),
 			)
 		}
 	}()
 
-	logger.Info(c.Context, "configration loaded", slog.String("file", configFile))
+	logger.Info(ctx, "configration loaded", slog.String("file", configFile))
 
-	m, err := membership.New(membership.Config{
-		RedisUrl: cfg.RedisUrl,
-		NodeID:   cfg.NodeId,
-		RpcAddr:  "",
-		Logger:   logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create membership")
-	}
+	var c cluster.Cluster = cluster.NewNoop(nodeID, net.ParseIP("127.0.0.1"))
+	if cfg.Cluster != nil {
+		var d discovery.Discoverer
 
-	go func() {
-		joins := m.SubscribeJoinEvents()
-		leaves := m.SubscribeLeaveEvents()
+		switch {
+		case cfg.Cluster.Discovery.Static != nil:
 
-		for {
-			select {
-			case j := <-joins:
-				{
-					logger.Info(c.Context, "node joined", slog.String("nodeID", j.ID))
-
-				}
-			case l := <-leaves:
-				{
-					logger.Info(c.Context, "node left", slog.String("nodeID", l.ID))
-
-				}
+			d = &discovery.Static{
+				Addrs: cfg.Cluster.Discovery.Static.Addrs,
 			}
-
+		case cfg.Cluster.Discovery.AwsCloudmap != nil:
+			return fmt.Errorf("NOT IMPLEMENTED")
+		default:
+			return fmt.Errorf("missing discovery method")
 		}
-	}()
+
+		m, mErr := membership.New(membership.Config{
+			NodeID:     nodeID,
+			Addr:       net.ParseIP(""),
+			GossipPort: cfg.Cluster.GossipPort,
+			Logger:     logger,
+		})
+		if mErr != nil {
+			return fmt.Errorf("unable to create membership: %w", err)
+		}
+
+		c, err = cluster.New(cluster.Config{
+			Self: cluster.Node{
+
+				ID:      nodeID,
+				Addr:    net.ParseIP(cfg.Cluster.AdvertiseAddr),
+				RpcAddr: "TO DO",
+			},
+			Logger:     logger,
+			Membership: m,
+			RpcPort:    cfg.Cluster.RpcPort,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create cluster: %w", err)
+		}
+
+		err = m.Start(d)
+		if err != nil {
+			return fmt.Errorf("unable to start membership: %w", err)
+		}
+	}
 
 	var ch clickhouse.Bufferer = clickhouse.NewNoop()
 	if cfg.Clickhouse != nil {
@@ -115,11 +142,20 @@ func run(c *cli.Context) error {
 	}
 
 	srv, err := zen.New(zen.Config{
-		NodeId: cfg.NodeId,
+		NodeID: nodeID,
 		Logger: logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
+	}
+
+	db, err := database.New(database.Config{
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Logger:      logger,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to connect to database: %w", err)
 	}
 
 	validator, err := validation.New()
@@ -127,16 +163,24 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
 
-	srv.SetGlobalMiddleware(
-		// metrics should always run first, so it can capture the latency of the entire request
-		zen.WithMetrics(ch),
-		zen.WithLogging(logger),
-		zen.WithErrorHandling(),
-		zen.WithValidation(validator),
-	)
+	keySvc, err := keys.New(keys.Config{
+		Logger: logger,
+		DB:     db,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create key service: %w", err)
+	}
+
+	routes.Register(srv, &routes.Services{
+		Logger:      logger,
+		Database:    db,
+		EventBuffer: ch,
+		Keys:        keySvc,
+		Validator:   validator,
+	})
 
 	go func() {
-		listenErr := srv.Listen(c.Context, fmt.Sprintf(":%s", cfg.Port))
+		listenErr := srv.Listen(ctx, fmt.Sprintf(":%d", cfg.HttpPort))
 		if listenErr != nil {
 			panic(listenErr)
 		}
@@ -146,9 +190,11 @@ func run(c *cli.Context) error {
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
 
 	<-cShutdown
-	shutdownCtx := context.Background()
-	logger.Info(c.Context, "shutting down")
-	err = m.Leave(shutdownCtx)
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	logger.Info(ctx, "shutting down")
+	err = c.Shutdown(ctx)
+
 	if err != nil {
 		return fmt.Errorf("unable to leave cluster: %w", err)
 	}

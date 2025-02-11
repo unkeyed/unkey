@@ -62,12 +62,12 @@ describe("when identity exists already", () => {
       },
     });
 
-    expect(res.status).toEqual(412);
+    expect(res.status, `expected 409, received: ${JSON.stringify(res, null, 2)}`).toEqual(409);
     expect(res.body).toMatchObject({
       error: {
-        code: "PRECONDITION_FAILED",
-        docs: "https://unkey.dev/docs/api-reference/errors/code/PRECONDITION_FAILED",
-        message: "Duplicate identity",
+        code: "CONFLICT",
+        docs: "https://unkey.dev/docs/api-reference/errors/code/CONFLICT",
+        message: `Identity with externalId "${externalId}" already exists in this workspace`,
       },
     });
   });

@@ -2,15 +2,25 @@ package ratelimit
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/go/pkg/tracing"
 )
 
-func (s *service) replay(req RatelimitRequest) {
+// consumes the replay buffer and sends out replay requests to peers
+//
+// This is blocking and should be called in a goroutine
+func (s *service) replayRequests() {
+	for req := range s.replayBuffer.Consume() {
+		s.replayToOrigin(req)
+	}
+
+}
+
+func (s *service) replayToOrigin(req *ratelimitv1.ReplayRequest) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -19,68 +29,58 @@ func (s *service) replay(req RatelimitRequest) {
 
 	now := s.clock.Now()
 
-	key := bucketKey{req.Identifier, req.Limit, req.Duration}.toString()
-	client, peer, err := s.getPeerClient(ctx, key)
+	key := bucketKey{
+		req.GetRequest().GetIdentifier(),
+		req.GetRequest().GetLimit(),
+		time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
+	}.toString()
+	p, err := s.getPeer(key)
 	if err != nil {
 		tracing.RecordError(span, err)
-		s.logger.Warn().Err(err).Str("key", key).Msg("unable to create peer client")
+		s.logger.Warn(ctx, "unable to create peer client", slog.String("error", err.Error()), slog.String("key", key))
 		return
 	}
-	if peer.Id == s.cluster.NodeId() {
+	if p.node.ID == s.cluster.Self().ID {
+		// we're the origin, nothing to replay...
 		return
 	}
 
-	res, err := s.syncCircuitBreaker.Do(ctx, func(innerCtx context.Context) (*connect.Response[ratelimitv1.PushPullResponse], error) {
+	res, err := s.replayCircuitBreaker.Do(ctx, func(innerCtx context.Context) (*connect.Response[ratelimitv1.ReplayResponse], error) {
 		innerCtx, cancel = context.WithTimeout(innerCtx, 10*time.Second)
 		defer cancel()
-		return client.PushPull(innerCtx, connect.NewRequest(req.req))
+		return p.client.Replay(innerCtx, connect.NewRequest(req))
 	})
 	if err != nil {
-		s.peersMu.Lock()
-		s.logger.Warn().Str("peerId", peer.Id).Err(err).Msg("resetting peer client due to error")
-		delete(s.peers, peer.Id)
-		s.peersMu.Unlock()
 		tracing.RecordError(span, err)
-		s.logger.Warn().Err(err).Str("peerId", peer.Id).Str("addr", peer.RpcAddr).Msg("failed to push pull")
+		s.logger.Warn(ctx, "unable to replay request", slog.String("error", err.Error()), slog.String("key", key))
 		return
 	}
 
-	err = s.SetCounter(ctx,
-		setCounterRequest{
-			Identifier: req.req.Request.Identifier,
-			Limit:      req.req.Request.Limit,
-			Counter:    res.Msg.Current.Counter,
-			Sequence:   res.Msg.Current.Sequence,
-			Duration:   duration,
-			Time:       t,
+	err = s.SetWindows(ctx,
+		setWindowRequest{
+			Identifier: req.GetRequest().GetIdentifier(),
+			Limit:      req.GetRequest().GetLimit(),
+			Counter:    res.Msg.GetCurrent().GetCounter(),
+			Sequence:   res.Msg.GetCurrent().GetSequence(),
+			Duration:   time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
+			Time:       now,
 		},
-		setCounterRequest{
-			Identifier: req.req.Request.Identifier,
-
-			Counter:  res.Msg.Previous.Counter,
-			Sequence: res.Msg.Previous.Sequence,
-			Duration: duration,
-			Time:     t,
+		setWindowRequest{
+			Identifier: req.GetRequest().GetIdentifier(),
+			Limit:      req.GetRequest().GetLimit(),
+			Counter:    res.Msg.GetPrevious().GetCounter(),
+			Sequence:   res.Msg.GetPrevious().GetSequence(),
+			Duration:   time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
+			Time:       now,
 		},
 	)
 
-	if req.localPassed == res.Msg.Response.Success {
-		ratelimitAccuracy.WithLabelValues("true").Inc()
-	} else {
-		ratelimitAccuracy.WithLabelValues("false").Inc()
+	if err != nil {
+		tracing.RecordError(span, err)
+
+		s.logger.Error(ctx, "unable to set windows", slog.String("error", err.Error()), slog.String("key", key))
+		return
 	}
-
-	// req.events is guaranteed to have at least element
-	// and the first one should be the oldest event, so we can use it to get the max latency
-	latency := time.Since(t)
-	labels := map[string]string{
-		"nodeId": s.cluster.NodeId(),
-		"peerId": peer.Id,
-	}
-	prometheus.RatelimitPushPullEvents.With(labels).Inc()
-
-	prometheus.RatelimitPushPullLatency.With(labels).Observe(latency.Seconds())
-
 	// if we got this far, we pushpulled successfully with a peer and don't need to try the rest
 
 }

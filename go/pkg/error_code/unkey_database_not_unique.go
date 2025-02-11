@@ -10,8 +10,8 @@ func NewUnkeyDatabaseNotUniqueError(err error) UnkeyDatabaseNotUniqueError {
 			err,
 			SystemUnkey,
 			NamespaceKey,
-			"NOT_UNIQUE",
-			"The resource identifier msut be unique.",
+			"CONFLICT",
+			"The resource identifier must be unique.",
 		),
 	}
 

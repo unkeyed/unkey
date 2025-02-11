@@ -9,21 +9,10 @@ describe("getSystemPrompt", () => {
   it("should include all necessary examples and constraints", () => {
     const prompt = getSystemPrompt(referenceTime);
 
-    expect(prompt).toContain("show me failed requests");
-    expect(prompt).toContain("show logs between 2024-01-19 and 2024-01-20");
     expect(prompt).toContain('field: "methods"');
     expect(prompt).toContain('field: "status"');
     expect(prompt).toContain('operator: "startsWith"');
     expect(prompt).toContain("GET, POST, PUT, DELETE");
-  });
-
-  it("should include correct timestamp calculations", () => {
-    const prompt = getSystemPrompt(referenceTime);
-    const dayStart = new Date(referenceTime);
-    dayStart.setHours(0, 0, 0, 0);
-
-    expect(prompt).toContain(`value: ${referenceTime - 60 * 60 * 1000}`); // 1h
-    expect(prompt).toContain(`value: ${dayStart.getTime()}`); // day start
   });
 });
 

@@ -5,6 +5,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/database"
 	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
 
 type EventBuffer interface {
@@ -16,4 +17,5 @@ type Services struct {
 	Database    database.Database
 	EventBuffer EventBuffer
 	Keys        keys.KeyService
+	Validator   *validation.Validator
 }

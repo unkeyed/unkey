@@ -1,9 +1,9 @@
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { CircleCarretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
-import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 import { HISTORICAL_DATA_WINDOW } from "../../table/hooks/use-logs-query";
 
 export const LogsLiveSwitch = () => {

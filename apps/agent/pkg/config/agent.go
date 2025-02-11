@@ -6,6 +6,7 @@ type Agent struct {
 	Image     string `json:"image,omitempty" description:"The image this agent is running"`
 	AuthToken string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
 	Logging   *struct {
+		Color bool `json:"color,omitempty"`
 		Axiom *struct {
 			Dataset string `json:"dataset" minLength:"1" description:"The dataset to send logs to"`
 			Token   string `json:"token" minLength:"1" description:"The token to use for authentication"`

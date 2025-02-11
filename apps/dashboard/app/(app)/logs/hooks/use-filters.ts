@@ -1,74 +1,30 @@
-import { getTimestampFromRelative } from "@/lib/utils";
-import { type Parser, parseAsInteger, useQueryStates } from "nuqs";
+import {
+  parseAsFilterValueArray,
+  parseAsRelativeTime,
+} from "@/components/logs/validation/utils/nuqs-parsers";
+import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
-import { filterFieldConfig } from "../filters.schema";
-import type {
-  FilterField,
-  FilterOperator,
-  FilterUrlValue,
-  FilterValue,
-  HttpMethod,
-  QuerySearchParams,
-  ResponseStatus,
-} from "../filters.type";
+import {
+  type LogsFilterField,
+  type LogsFilterOperator,
+  type LogsFilterUrlValue,
+  type LogsFilterValue,
+  type QuerySearchParams,
+  logsFilterFieldConfig,
+} from "../filters.schema";
 
-export const parseAsRelativeTime: Parser<string | null> = {
-  parse: (str: string | null) => {
-    if (!str) {
-      return null;
-    }
-
-    try {
-      // If that function doesn't throw it means we are safe
-      getTimestampFromRelative(str);
-      return str;
-    } catch {
-      return null;
-    }
-  },
-  serialize: (value: string | null) => {
-    if (!value) {
-      return "";
-    }
-    return value;
-  },
-};
-
-export const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
-  parse: (str: string | null) => {
-    if (!str) {
-      return [];
-    }
-    try {
-      // Format: operator:value,operator:value (e.g., "is:200,is:404")
-      return str.split(",").map((item) => {
-        const [operator, val] = item.split(/:(.+)/);
-        if (!["is", "contains", "startsWith", "endsWith"].includes(operator)) {
-          throw new Error("Invalid operator");
-        }
-        return {
-          operator: operator as FilterOperator,
-          value: val,
-        };
-      });
-    } catch {
-      return [];
-    }
-  },
-  serialize: (value: FilterUrlValue[]) => {
-    if (!value?.length) {
-      return "";
-    }
-    return value.map((v) => `${v.operator}:${v.value}`).join(",");
-  },
-};
-
+const parseAsFilterValArray = parseAsFilterValueArray<LogsFilterOperator>([
+  "is",
+  "contains",
+  "startsWith",
+  "endsWith",
+]);
 export const queryParamsPayload = {
-  requestId: parseAsFilterValueArray,
-  host: parseAsFilterValueArray,
-  methods: parseAsFilterValueArray,
-  paths: parseAsFilterValueArray,
-  status: parseAsFilterValueArray,
+  requestId: parseAsFilterValArray,
+  host: parseAsFilterValArray,
+  methods: parseAsFilterValArray,
+  paths: parseAsFilterValArray,
+  status: parseAsFilterValArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
   since: parseAsRelativeTime,
@@ -78,16 +34,16 @@ export const useFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload);
 
   const filters = useMemo(() => {
-    const activeFilters: FilterValue[] = [];
+    const activeFilters: LogsFilterValue[] = [];
 
     searchParams.status?.forEach((status) => {
       activeFilters.push({
         id: crypto.randomUUID(),
         field: "status",
         operator: status.operator,
-        value: status.value as ResponseStatus,
+        value: status.value,
         metadata: {
-          colorClass: filterFieldConfig.status.getColorClass?.(status.value as number),
+          colorClass: logsFilterFieldConfig.status.getColorClass?.(status.value as number),
         },
       });
     });
@@ -97,7 +53,7 @@ export const useFilters = () => {
         id: crypto.randomUUID(),
         field: "methods",
         operator: method.operator,
-        value: method.value as HttpMethod,
+        value: method.value,
       });
     });
 
@@ -133,7 +89,7 @@ export const useFilters = () => {
       if (value !== null && value !== undefined) {
         activeFilters.push({
           id: crypto.randomUUID(),
-          field: field as FilterField,
+          field: field as LogsFilterField,
           operator: "is",
           value: value as string | number,
         });
@@ -144,7 +100,7 @@ export const useFilters = () => {
   }, [searchParams]);
 
   const updateFilters = useCallback(
-    (newFilters: FilterValue[]) => {
+    (newFilters: LogsFilterValue[]) => {
       const newParams: Partial<QuerySearchParams> = {
         paths: null,
         host: null,
@@ -157,11 +113,11 @@ export const useFilters = () => {
       };
 
       // Group filters by field
-      const responseStatusFilters: FilterUrlValue[] = [];
-      const methodFilters: FilterUrlValue[] = [];
-      const pathFilters: FilterUrlValue[] = [];
-      const hostFilters: FilterUrlValue[] = [];
-      const requestIdFilters: FilterUrlValue[] = [];
+      const responseStatusFilters: LogsFilterUrlValue[] = [];
+      const methodFilters: LogsFilterUrlValue[] = [];
+      const pathFilters: LogsFilterUrlValue[] = [];
+      const hostFilters: LogsFilterUrlValue[] = [];
+      const requestIdFilters: LogsFilterUrlValue[] = [];
 
       newFilters.forEach((filter) => {
         switch (filter.field) {

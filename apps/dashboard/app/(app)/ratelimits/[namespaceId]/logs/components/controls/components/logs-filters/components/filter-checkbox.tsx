@@ -2,7 +2,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Button } from "@unkey/ui";
 import { useCallback } from "react";
-import type { FilterValue } from "../../../../../filters.type";
+import type { RatelimitFilterValue } from "../../../../../filters.schema";
 import { useFilters } from "../../../../../hooks/use-filters";
 import { useCheckboxState } from "./hooks/use-checkbox-state";
 
@@ -21,7 +21,7 @@ interface BaseCheckboxFilterProps<TCheckbox extends BaseCheckboxOption> {
   scrollContainerRef?: React.RefObject<HTMLDivElement>;
   renderBottomGradient?: () => React.ReactNode;
   renderOptionContent?: (option: TCheckbox) => React.ReactNode;
-  createFilterValue: (option: TCheckbox) => Pick<FilterValue, "value">;
+  createFilterValue: (option: TCheckbox) => Pick<RatelimitFilterValue, "value">;
 }
 
 export const FilterCheckbox = <TCheckbox extends BaseCheckboxOption>({
@@ -47,7 +47,7 @@ export const FilterCheckbox = <TCheckbox extends BaseCheckboxOption>({
     const selectedValues = checkboxes.filter((c) => c.checked).map((c) => createFilterValue(c));
 
     const otherFilters = filters.filter((f) => f.field !== filterField);
-    const newFilters: FilterValue[] = selectedValues.map((filterValue) => ({
+    const newFilters: RatelimitFilterValue[] = selectedValues.map((filterValue) => ({
       id: crypto.randomUUID(),
       field: filterField,
       operator: "is",

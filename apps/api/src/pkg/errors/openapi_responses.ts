@@ -46,6 +46,17 @@ export const openApiErrorResponses = {
       },
     },
   },
+  412: {
+    description:
+      "The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails.",
+    content: {
+      "application/json": {
+        schema: errorSchemaFactory(z.enum(["PRECONDITION_FAILED"])).openapi(
+          "ErrPreconditionFailed",
+        ),
+      },
+    },
+  },
   429: {
     description: `The user has sent too many requests in a given amount of time ("rate limiting")`,
     content: {
