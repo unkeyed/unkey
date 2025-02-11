@@ -1,7 +1,7 @@
 import { useBookmarkedFilters } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
-import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { type PropsWithChildren, useState } from "react";
 import { QueriesItem } from "./queries-item";
 import { QueriesTabs } from "./queries-tabs";
