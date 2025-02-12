@@ -32,19 +32,8 @@ import { useState } from "react";
 import { navigation } from "../constants";
 import { InviteButton } from "./invite";
 
-type WorkspaceData = {
-  plan: string;
-  // Add other workspace fields as needed
-};
 
-type TeamPageProps = {
-  _initialData: {
-    orgId: string;
-    workspace: WorkspaceData;
-  };
-};
-
-export function TeamPageClient({ _initialData }: TeamPageProps) {
+export function TeamPageClient() {
   const { membership } = useUser();
   const isAdmin = membership?.role === "admin";
   type Tab = "members" | "invitations";
