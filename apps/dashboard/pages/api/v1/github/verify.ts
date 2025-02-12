@@ -208,21 +208,19 @@ async function alertSlack({
 
 async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];
-  const members = await auth.getOrganizationMembershipList({
-    organizationId: tenantId,
-  });
-  for (const m of members) {
+  const members = await auth.getOrganizationMemberList(tenantId);
+  for (const m of members.data) {
     userIds.push(m.user.id);
   }
 
   return await Promise.all(
     userIds.map(async (userId) => {
       const user = await auth.getUser(userId);
-      const email = user.email;
+      const email = user!.email;
 
       return {
-        id: user.id,
-        name: user.firstName ?? "",
+        id: user!.id,
+        name: user!.firstName ?? "",
         email: email ?? "",
       };
     }),

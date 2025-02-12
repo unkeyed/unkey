@@ -120,9 +120,9 @@ export default async function Page(props: Props) {
       [...new Set(integration.vercelBindings.map((b) => b.lastEditedBy))].map(async (id) => {
         const u = await auth.getUser(id);
         return {
-          id: u.id,
-          name: u.fullName ?? u.email ?? "",
-          image: u.avatarUrl,
+          id: u!.id,
+          name: u!.fullName ?? u!.email ?? "",
+          image: u!.avatarUrl,
         };
       }),
     )
@@ -131,7 +131,7 @@ export default async function Page(props: Props) {
       acc[user.id] = user;
       return acc;
     },
-    {} as Record<string, { id: string; name: string; image: string }>,
+    {} as Record<string, { id: string; name: string; image: string | null }>,
   );
 
   const projects = await Promise.all(
@@ -159,7 +159,7 @@ export default async function Page(props: Props) {
             Record<
               VercelBinding["resourceType"],
               | (VercelBinding & {
-                  updatedBy: { id: string; name: string; image: string };
+                  updatedBy: { id: string; name: string; image: string | null };
                 })
               | null
             >
