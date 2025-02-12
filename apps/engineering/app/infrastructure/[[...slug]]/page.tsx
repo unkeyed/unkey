@@ -1,11 +1,6 @@
 import { infrastructureSource } from "@/app/source";
 import defaultMdxComponents from "fumadocs-ui/mdx";
-import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
-} from "fumadocs-ui/page";
+import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
 import type { Metadata } from "next";
 
 import { getGithubLastEdit } from "fumadocs-core/server";

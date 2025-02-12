@@ -1,11 +1,6 @@
 import { rfcSource } from "@/app/source";
 import defaultMdxComponents from "fumadocs-ui/mdx";
-import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
-} from "fumadocs-ui/page";
+import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
 import type { Metadata } from "next";
 import { LocalDate } from "./local-date";
 
@@ -52,9 +47,7 @@ export default async function Page(props: {
           <LocalDate date={new Date(page.data.date)} />
         </div>
       </div>
-      <DocsDescription className="text-sm">
-        {page.data.description}
-      </DocsDescription>
+      <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
 
       <DocsBody className="font-mono text-sm">
         <MDX components={{ ...defaultMdxComponents }} />
