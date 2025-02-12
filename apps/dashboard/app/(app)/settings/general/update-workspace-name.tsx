@@ -51,7 +51,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     },
   });
 
-  function onSubmit(values) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
     updateName.mutateAsync(values);
   }
   const isDisabled = form.formState.isLoading || !form.formState.isValid || updateName.isLoading;
