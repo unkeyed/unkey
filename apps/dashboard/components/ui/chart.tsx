@@ -219,9 +219,12 @@ const ChartTooltipContent = React.forwardRef<
                     >
                       <div className="flex gap-4 items-center">
                         {nestLabel ? tooltipLabel : null}
-                        <span className="capitalize text-accent-9 text-xs">
-                          {itemConfig?.subLabel}
-                        </span>
+                        {itemConfig?.subLabel && (
+                          <span className="capitalize text-accent-9 text-xs">
+                            {itemConfig?.subLabel}
+                          </span>
+                        )}
+
                         <span className="capitalize text-accent-12 text-xs">
                           {itemConfig?.label || item.name}
                         </span>

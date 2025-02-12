@@ -9,13 +9,9 @@ import { Ban, BookBookmark, Focus, TriangleWarning2 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useMemo } from "react";
 import { type RatelimitOverviewLogs, generateMockApiData } from "../../dev-utils";
+import { compactFormatter } from "../../utils";
 
 const MAX_LATENCY = 10;
-
-const compactFormatter = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
 
 type StatusStyle = {
   base: string;

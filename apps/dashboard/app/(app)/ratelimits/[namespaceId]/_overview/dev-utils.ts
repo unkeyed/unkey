@@ -151,3 +151,54 @@ export function generateMockApiData(numEntries = 50): RatelimitOverviewLogs[] {
     return dateB.getTime() - dateA.getTime();
   });
 }
+
+type TimeseriesData = {
+  originalTimestamp: number;
+  total: number;
+  success: number;
+  error: number;
+};
+export function generateTimeseriesData(numberOfPoints = 168): TimeseriesData[] {
+  const now = Date.now();
+  const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const timeInterval = (now - oneWeekAgo) / numberOfPoints;
+
+  const data: TimeseriesData[] = [];
+
+  for (let i = 0; i < numberOfPoints; i++) {
+    // Generate timestamp for this point
+    const timestamp = oneWeekAgo + i * timeInterval;
+
+    // Generate random numbers with some realistic patterns
+    const total = Math.floor(Math.random() * 100) + 50; // Base between 50-150
+
+    // Success rate between 75-95%
+    const successRate = 0.75 + Math.random() * 0.2;
+    const success = Math.floor(total * successRate);
+
+    // Error is the remainder
+    const error = total - success;
+
+    data.push({
+      originalTimestamp: timestamp,
+      total,
+      success,
+      error,
+    });
+  }
+
+  // Add some daily patterns
+  return data.map((point) => {
+    const hour = new Date(point.originalTimestamp).getHours();
+
+    // Simulate higher traffic during business hours
+    const timeMultiplier = hour >= 9 && hour <= 17 ? 1.5 : 0.7;
+
+    return {
+      ...point,
+      total: Math.floor(point.total * timeMultiplier),
+      success: Math.floor(point.success * timeMultiplier),
+      error: Math.floor(point.error * timeMultiplier),
+    };
+  });
+}
