@@ -10,11 +10,44 @@
  * https://nucleoapp.com/license
  */
 import type React from "react";
-import type { IconProps } from "../props";
 
-export const ClockRotateClockwise: React.FC<IconProps> = (props) => {
+type Size = "sm" | "md" | "lg" | "xl";
+type Weight = "thin" | "regular" | "bold";
+
+type IconSize = `${Size}-${Weight}`;
+
+export const sizeMap = {
+  "sm-thin": { size: 12, strokeWidth: 1 },
+  "sm-regular": { size: 12, strokeWidth: 2 },
+  "sm-bold": { size: 12, strokeWidth: 3 },
+  "md-thin": { size: 14, strokeWidth: 1 },
+  "md-regular": { size: 14, strokeWidth: 2 },
+  "md-bold": { size: 14, strokeWidth: 3 },
+  "lg-thin": { size: 16, strokeWidth: 1 },
+  "lg-regular": { size: 16, strokeWidth: 2 },
+  "lg-bold": { size: 16, strokeWidth: 3 },
+  "xl-thin": { size: 18, strokeWidth: 1 },
+  "xl-regular": { size: 18, strokeWidth: 2 },
+  "xl-bold": { size: 18, strokeWidth: 3 },
+} as const;
+
+export type IconProps = {
+  className?: string;
+  title?: string;
+  size?: IconSize;
+  filled?: boolean;
+};
+export const ClockRotateClockwise: React.FC<IconProps> = ({ size, filled, ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
+
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor">
         <polyline
           fill="none"
@@ -22,7 +55,7 @@ export const ClockRotateClockwise: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="2"
+          strokeWidth={strokeWidth}
         />
         <polygon
           fill="currentColor"
@@ -30,7 +63,7 @@ export const ClockRotateClockwise: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="2"
+          strokeWidth={strokeWidth}
         />
         <path
           d="m5,14.899c1.271,1.297,3.041,2.101,5,2.101,3.866,0,7-3.134,7-7s-3.134-7-7-7c-2.792,0-5.203,1.635-6.326,4"
@@ -38,11 +71,9 @@ export const ClockRotateClockwise: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="2"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>
   );
 };
-
-export default ClockRotateClockwise;

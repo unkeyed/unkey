@@ -10,6 +10,7 @@ import { QueriesPill } from "./queries-pill";
 
 type QueriesItemProps = {
   filterList: SavedFiltersGroup;
+  user: { name: string; url: string; since: string };
   index: number;
   total: number;
   selectedIndex: number;
@@ -26,6 +27,7 @@ export const QueriesToast = () => {
 };
 export const QueriesItem = ({
   filterList,
+  user,
   index,
   total,
   selectedIndex,
@@ -58,10 +60,10 @@ export const QueriesItem = ({
   };
 
   return (
-    <div className="mt-2 w-[430px]">
+    <div className="w-full">
       <div
         className={cn(
-          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded rounded-[8px]",
+          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded rounded-[8px] pb-[9px]",
           index === selectedIndex ? "bg-gray-2" : "",
         )}
       >
@@ -73,12 +75,12 @@ export const QueriesItem = ({
           tabIndex={index}
         >
           {/* Change bg-gray-3 back to 2  */}
-          <div className="w-full p-2">
+          <div className="w-full pt-[7px] px-[8px]">
             {/* Top Row for each */}
             <div className="flex flex-row justify-start items-center h-6">
               <div className="inline-flex gap-2 w-full">
                 <span className="font-mono font-normal text-xs text-gray-9">from</span>
-                <Layers2 className="size-3 " />
+                <Layers2 className="size-3 mt-[1px]" />
                 <span className="font-mono font-medium text-xs">Logs</span>
               </div>
             </div>
@@ -86,15 +88,15 @@ export const QueriesItem = ({
             {/* Filters */}
             <div className="flex flex-row mt-2">
               {/* Vertical Line on Left */}
-              <div className="flex flex-col ml-[8px] border-l-[1px] border-l-gray-5 w-[1px]" />
+              <div className="flex flex-col ml-[9px] border-l-[1px] border-l-gray-5 w-[1px]" />
               <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
                 {/* Map Thru each Status filter */}
-                {status && (
+                {status && status.length > 0 && (
                   <div className="flex flex-row justify-start items-center gap-2">
-                    <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-11">
+                    <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
                       Status
                     </div>
-                    <ChartActivity2 className="size-3" />
+                    <ChartActivity2 className="size-3.5 mb-[2px]" />
                     <span className="font-mono font-normal text-xs text-gray-9">
                       {status[0]?.operator}
                     </span>
@@ -106,10 +108,10 @@ export const QueriesItem = ({
                 {/* Map Thru each Method filter */}
                 {methods && methods.length > 0 && (
                   <div className="flex flex-row justify-start items-center gap-2">
-                    <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-11">
+                    <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
                       Method
                     </div>
-                    <Conversion className="size-3" />
+                    <Conversion className="size-3.5 mb-[2px] ml-[-1px]" />
                     <span className="font-mono font-normal text-xs text-gray-9">
                       {methods[0]?.operator}
                     </span>
@@ -121,10 +123,10 @@ export const QueriesItem = ({
                 {/* Map Thru each Path filter */}
                 {paths && paths.length > 0 && (
                   <div className="flex flex-row justify-start items-center gap-2">
-                    <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-11">
+                    <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
                       Path
                     </div>
-                    <Link4 className="size-3" />
+                    <Link4 className="size-3 ml-[1px]" />
                     <span className="font-mono font-normal text-xs text-gray-9">
                       {paths[0]?.operator}
                     </span>
@@ -134,14 +136,14 @@ export const QueriesItem = ({
               </div>
             </div>
             <QueriesMadeBy
-              userName={"chronark"}
-              userImageSrc="/images/team/andreas.jpeg"
-              createdString={"3d ago"}
+              userName={user.name}
+              userImageSrc={user.url}
+              createdString={user.since}
             />
           </div>
         </div>
         <div
-          className="flex flex-col h-6 w-6"
+          className="flex flex-col h-6 w-6 mr-2"
           onMouseEnter={() => setToolTipOpen(true)}
           onMouseLeave={() => setToolTipOpen(false)}
         >
@@ -149,14 +151,14 @@ export const QueriesItem = ({
             <TooltipTrigger>
               <div
                 className={cn(
-                  "flex h-6 w-6 mr-2 mt-2 justify-center items-center text-accent-9 rounded-md",
+                  "flex h-6 w-6 ml-[1px] mt-1.5 justify-center items-center text-accent-9 rounded-md",
                   isSaved ? "text-info-9 hover:bg-info-3" : "hover:bg-gray-3 hover:text-accent-12",
                 )}
                 role="button"
                 onClick={handleBookmarkChanged}
                 onKeyUp={(e) => e.key === "Enter" && console.log("Saved", index)}
               >
-                <Bookmark filled={isSaved} className="size-[12px] text-center stroke-[1.5px]" />
+                <Bookmark size="sm-regular" filled={isSaved} />
               </div>
             </TooltipTrigger>
             <TooltipContent
@@ -170,7 +172,7 @@ export const QueriesItem = ({
       </div>
       <div
         className={cn(
-          "flex flex-row bg-white h-2 w-full",
+          "flex flex-row bg-white dark:bg-black h-[1px] mt-[7px] mb-[8px] w-full",
           index < total - 1 && "border-b-[1px] border-b-gray-3",
         )}
       />
