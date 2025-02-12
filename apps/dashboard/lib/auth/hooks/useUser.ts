@@ -65,11 +65,11 @@ export function useUser() {
     }
   };
 
-  const fetchMemberships = async (userId?: string) => {
+  const fetchMemberships = async () => {
     try {
       setLoadingState("memberships", true);
       clearError("memberships");
-      const { data: membershipData, metadata: membershipMetadata } = await listMemberships(userId);
+      const { data: membershipData, metadata: membershipMetadata } = await listMemberships();
       setMemberships(membershipData);
       setMetadata(membershipMetadata);
     } catch (err) {
@@ -112,7 +112,7 @@ export function useUser() {
   // biome-ignore lint/correctness/useExhaustiveDependencies(fetchMemberships): fetchMemberships is stable and only depends on setState functions
   useEffect(() => {
     if (user) {
-      fetchMemberships(user.id);
+      fetchMemberships();
     }
   }, [user]);
 

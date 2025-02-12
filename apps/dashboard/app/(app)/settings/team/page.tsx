@@ -40,5 +40,5 @@ export default async function TeamPage() {
     );
   }
 
-  return <TeamPageClient _initialData={{ orgId, workspace }} />;
+  return <TeamPageClient />;
 }
