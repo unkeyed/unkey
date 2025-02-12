@@ -143,7 +143,7 @@ export const RatelimitOverviewLogsTable = () => {
                 : "text-accent-9",
             )}
           >
-            {log.avgLatency.toFixed(2)}ms
+            {Math.round(log.avgLatency)}ms
           </div>
         ),
       },
@@ -160,7 +160,7 @@ export const RatelimitOverviewLogsTable = () => {
                 : "text-accent-9",
             )}
           >
-            {log.p99Latency}ms
+            {Math.round(log.p99Latency)}ms
           </div>
         ),
       },
