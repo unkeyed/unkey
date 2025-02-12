@@ -230,7 +230,7 @@ export function LogsTimeseriesBarChart({
         </ResponsiveContainer>
       </div>
 
-      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-11 font-mono text-xxs w-full flex justify-between border-t-gray-2">
+      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between border-t-gray-2">
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
