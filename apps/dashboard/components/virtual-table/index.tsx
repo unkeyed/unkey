@@ -129,7 +129,10 @@ export function VirtualTable<TTableData>({
             </tr>
             <tr>
               <th colSpan={columns.length} className="p-0">
-                <div className="w-full border-t border-gray-4" />
+                <div className="relative w-full">
+                  {/* inset-x-[-8px] removes padding from divider  */}
+                  <div className="absolute inset-x-[-8px] border-t border-gray-4" />
+                </div>
               </th>
             </tr>
           </thead>

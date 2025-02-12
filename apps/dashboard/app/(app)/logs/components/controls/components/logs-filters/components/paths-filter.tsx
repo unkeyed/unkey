@@ -1,10 +1,10 @@
 import type { LogsFilterValue } from "@/app/(app)/logs/filters.schema";
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
+import { useCheckboxState } from "@/components/logs/checkbox/hooks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
 import { useCallback } from "react";
-import { useCheckboxState } from "./hooks/use-checkbox-state";
 
 export const PathsFilter = () => {
   const { data: paths, isLoading } = trpc.logs.queryDistinctPaths.useQuery(undefined, {

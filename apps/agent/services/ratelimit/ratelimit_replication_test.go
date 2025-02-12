@@ -112,9 +112,9 @@ func TestSync(t *testing.T) {
 
 	originIndex := 0
 	for i, n := range nodes {
-		n.srv.bucketsLock.RLock()
+		n.srv.bucketsMu.RLock()
 		buckets := len(n.srv.buckets)
-		n.srv.bucketsLock.RUnlock()
+		n.srv.bucketsMu.RUnlock()
 		t.Logf("node %d: found %d buckets", i, buckets)
 		if buckets > 0 {
 			originIndex = i
@@ -131,9 +131,9 @@ func TestSync(t *testing.T) {
 	}
 
 	require.Eventually(t, func() bool {
-		nodes[originIndex].srv.bucketsLock.RLock()
+		nodes[originIndex].srv.bucketsMu.RLock()
 		bucket, ok := nodes[originIndex].srv.getBucket(key)
-		nodes[originIndex].srv.bucketsLock.RUnlock()
+		nodes[originIndex].srv.bucketsMu.RUnlock()
 		require.True(t, ok)
 		bucket.RLock()
 		window := bucket.getCurrentWindow(now)

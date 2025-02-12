@@ -76,7 +76,7 @@ type peer struct {
 }
 
 // getAllPeers returns clients for all nodes in the cluster except ourselves
-func (s *service) getAllPeers(ctx context.Context) ([]peer, error) {
+func (s *service) getAllPeers(context.Context) ([]peer, error) {
 	peers := []peer{}
 	for _, p := range s.cluster.Peers() {
 		if p.Id == s.cluster.NodeId() {

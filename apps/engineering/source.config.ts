@@ -40,6 +40,12 @@ export const architecture = defineCollections({
   type: "doc",
 });
 
+export const infrastructure = defineCollections({
+  dir: "content/infrastructure",
+  schema: frontmatterSchema.extend({}),
+  type: "doc",
+});
+
 export default defineConfig({
   lastModifiedTime: "git",
 });

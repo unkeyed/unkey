@@ -31,6 +31,11 @@ export const baseOptions: HomeLayoutProps = {
       active: "nested-url",
     },
     {
+      text: "Infrastructure",
+      url: "/infrastructure",
+      active: "nested-url",
+    },
+    {
       text: "RFCs",
       url: "/rfcs",
       active: "nested-url",
