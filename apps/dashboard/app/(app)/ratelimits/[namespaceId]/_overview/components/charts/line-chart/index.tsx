@@ -1,23 +1,25 @@
-// GenericTimeseriesChart.tsx
-"use client";
-
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
-import {
-  formatTimestampLabel,
-  formatTimestampTooltip,
-} from "@/components/logs/chart/utils/format-timestamp";
+import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Grid } from "@unkey/icons";
 import { useState } from "react";
-import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
-import { compactFormatter } from "../../../utils";
-import { LogsChartError } from "./components/logs-chart-error";
-import { LogsChartLoading } from "./components/logs-chart-loading";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceArea,
+  ResponsiveContainer,
+  YAxis,
+} from "recharts";
+
+const latencyFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+});
 
 type Selection = {
   start: string | number;
@@ -28,34 +30,39 @@ type Selection = {
 
 type TimeseriesData = {
   originalTimestamp: number;
-  total: number;
+  avgLatency: number;
+  p99Latency: number;
   [key: string]: any;
 };
 
-type LogsTimeseriesBarChartProps = {
+interface LogsTimeseriesAreaChartProps {
   data?: TimeseriesData[];
   config: ChartConfig;
   onSelectionChange?: (selection: { start: number; end: number }) => void;
   isLoading?: boolean;
   isError?: boolean;
   enableSelection?: boolean;
+}
+
+const formatTimestampTooltip = (timestamp: number): string => {
+  return new Date(timestamp).toLocaleString();
 };
 
-export function LogsTimeseriesBarChart({
-  data,
+export const LogsTimeseriesAreaChart: React.FC<LogsTimeseriesAreaChartProps> = ({
+  data = [],
   config,
   onSelectionChange,
   isLoading,
   isError,
   enableSelection = false,
-}: LogsTimeseriesBarChartProps) {
+}) => {
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
 
   const handleMouseDown = (e: any) => {
     if (!enableSelection) {
       return;
     }
-    const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+    const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
     setSelection({
       start: e.activeLabel,
       end: e.activeLabel,
@@ -65,17 +72,15 @@ export function LogsTimeseriesBarChart({
   };
 
   const handleMouseMove = (e: any) => {
-    if (!enableSelection) {
+    if (!enableSelection || !selection.start) {
       return;
     }
-    if (selection.start) {
-      const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
-      setSelection((prev) => ({
-        ...prev,
-        end: e.activeLabel,
-        startTimestamp: timestamp,
-      }));
-    }
+    const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
+    setSelection((prev) => ({
+      ...prev,
+      end: e.activeLabel,
+      endTimestamp: timestamp,
+    }));
   };
 
   const handleMouseUp = () => {
@@ -98,21 +103,26 @@ export function LogsTimeseriesBarChart({
   };
 
   if (isError) {
-    return <LogsChartError />;
+    return <div className="flex items-center justify-center h-64">Error loading chart data</div>;
   }
+
   if (isLoading) {
-    return <LogsChartLoading />;
+    return <div className="flex items-center justify-center h-64">Loading...</div>;
   }
+
+  // Calculate metrics
+  const minLatency = data.length > 0 ? Math.min(...data.map((d) => d.avgLatency)) : 0;
+  const maxLatency = data.length > 0 ? Math.max(...data.map((d) => d.p99Latency)) : 0;
+  const avgLatency =
+    data.length > 0 ? data.reduce((acc, curr) => acc + curr.avgLatency, 0) / data.length : 0;
 
   return (
     <div className="flex flex-col h-full">
-      <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
+      <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10">
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">REQUESTS</div>
+          <div className="text-accent-10 text-[11px] leading-4">DURATION</div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
-            {compactFormatter.format(
-              (data ?? []).reduce((acc, crr) => acc + crr.success + crr.error, 0),
-            )}
+            {minLatency} - {maxLatency}ms
           </div>
         </div>
 
@@ -120,27 +130,28 @@ export function LogsTimeseriesBarChart({
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-accent-8 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">PASSED</div>
+              <div className="text-accent-10 text-[11px] leading-4">AVG</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {compactFormatter.format((data ?? []).reduce((acc, crr) => acc + crr.success, 0))}
+              {latencyFormatter.format(avgLatency)}ms
             </div>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-orange-9 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">BLOCKED</div>
+              <div className="text-accent-10 text-[11px] leading-4">P99</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {compactFormatter.format((data ?? []).reduce((acc, crr) => acc + crr.error, 0))}
+              {latencyFormatter.format(maxLatency)}ms
             </div>
           </div>
         </div>
       </div>
+
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <ChartContainer config={config}>
-            <BarChart
+            <AreaChart
               data={data}
               margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
               onMouseDown={handleMouseDown}
@@ -148,7 +159,18 @@ export function LogsTimeseriesBarChart({
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-              <YAxis domain={["auto", (dataMax: number) => dataMax * 1]} hide />
+              <defs>
+                <linearGradient id="avgGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--accent-8))" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="hsl(var(--accent-8))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="p99Gradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--warning-11))" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="hsl(var(--warning-11))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+
+              <YAxis domain={["auto", (dataMax: number) => dataMax * 1.1]} hide />
               <CartesianGrid
                 horizontal
                 vertical={false}
@@ -162,13 +184,13 @@ export function LogsTimeseriesBarChart({
                 isAnimationActive
                 wrapperStyle={{ zIndex: 1000 }}
                 cursor={{
-                  fill: "hsl(var(--accent-3))",
+                  stroke: "hsl(var(--accent-3))",
                   strokeWidth: 1,
                   strokeDasharray: "5 5",
                   strokeOpacity: 0.7,
                 }}
                 content={({ active, payload, label }) => {
-                  if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
+                  if (!active || !payload?.length) {
                     return null;
                   }
                   return (
@@ -176,26 +198,6 @@ export function LogsTimeseriesBarChart({
                       payload={payload}
                       label={label}
                       active={active}
-                      bottomExplainer={
-                        <div className="grid gap-1.5 pt-2 border-t border-gray-4">
-                          <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
-                            <Grid className="text-gray-6" />
-                            <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
-                              <div className="flex gap-4 items-center min-w-[80px]">
-                                <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
-                                  All
-                                </span>
-                                <span className="capitalize text-accent-12 text-xs">Total</span>
-                              </div>
-                              <div className="ml-auto">
-                                <span className="font-mono tabular-nums text-accent-12">
-                                  {payload[0]?.payload?.total}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      }
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) => {
                         const originalTimestamp = tooltipPayload[0]?.payload?.originalTimestamp;
@@ -213,19 +215,30 @@ export function LogsTimeseriesBarChart({
                   );
                 }}
               />
-              {Object.keys(config).map((key) => (
-                <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
-              ))}
+              <Area
+                type="monotone"
+                dataKey="avgLatency"
+                stroke={config.avgLatency.color}
+                strokeWidth={2}
+                fillOpacity={0}
+              />
+              <Area
+                type="monotone"
+                dataKey="p99Latency"
+                stroke={config.p99Latency.color}
+                strokeWidth={2}
+                fill="url(#p99Gradient)"
+                fillOpacity={1}
+              />
               {enableSelection && selection.start && selection.end && (
                 <ReferenceArea
-                  isAnimationActive
                   x1={Math.min(Number(selection.start), Number(selection.end))}
                   x2={Math.max(Number(selection.start), Number(selection.end))}
                   fill="hsl(var(--chart-selection))"
-                  radius={[4, 4, 0, 0]}
+                  fillOpacity={0.3}
                 />
               )}
-            </BarChart>
+            </AreaChart>
           </ChartContainer>
         </ResponsiveContainer>
       </div>
@@ -245,4 +258,4 @@ export function LogsTimeseriesBarChart({
       </div>
     </div>
   );
-}
+};

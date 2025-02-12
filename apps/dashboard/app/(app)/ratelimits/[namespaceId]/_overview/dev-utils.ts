@@ -91,7 +91,7 @@ export function generateMockApiData(numEntries = 50): RatelimitOverviewLogs[] {
     const baseData = {
       identifier: generateRandomIdentifier(),
       passed: Math.floor(Math.random() * 600000000) + 50,
-      blocked: Math.floor(Math.random() * 50000000),
+      blocked: Math.floor(Math.random() * 100000000),
       avgLatency: Number((Math.random() * 3).toFixed(2)),
       p99Latency: Number((Math.random() * 5).toFixed(2)),
       lastRequest: generateRandomDate(startDate, endDate),
@@ -201,4 +201,67 @@ export function generateTimeseriesData(numberOfPoints = 168): TimeseriesData[] {
       error: Math.floor(point.error * timeMultiplier),
     };
   });
+}
+
+type LatencyDataPoint = {
+  originalTimestamp: number;
+  avgLatency: number;
+  p99Latency: number;
+};
+
+export function generateLatencyData(
+  numberOfPoints = 168,
+  options: {
+    baseAvgLatency?: number;
+    baseP99Latency?: number;
+    variability?: number;
+    trendFactor?: number;
+  } = {},
+): LatencyDataPoint[] {
+  const {
+    baseAvgLatency = 150,
+    baseP99Latency = 300,
+    variability = 0.3,
+    trendFactor = 0.4,
+  } = options;
+
+  // Match the same time range as timeseries data
+  const now = Date.now();
+  const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const timeInterval = (now - oneWeekAgo) / numberOfPoints;
+  const data: LatencyDataPoint[] = [];
+
+  for (let i = 0; i < numberOfPoints; i++) {
+    // Calculate timestamp for this point
+    const timestamp = oneWeekAgo + i * timeInterval;
+
+    // Add business hours pattern
+    const hour = new Date(timestamp).getHours();
+    const timeMultiplier = hour >= 9 && hour <= 17 ? 1.2 : 0.8;
+
+    // Add some periodic variation using sine waves
+    const trendVariation = Math.sin((i / numberOfPoints) * Math.PI * 2);
+
+    // Generate random variation
+    const randomVariation = (Math.random() - 0.5) * 2;
+
+    // Combine trend and random variations
+    const totalVariation =
+      (trendVariation * trendFactor + randomVariation * (1 - trendFactor)) * variability;
+
+    // Apply time-of-day multiplier
+    const avgLatency = baseAvgLatency * (1 + totalVariation) * timeMultiplier;
+
+    // P99 varies more than avg and stays above avg
+    const p99Variation = Math.abs(totalVariation) * 1.5;
+    const p99Latency = baseP99Latency * (1 + p99Variation) * timeMultiplier;
+
+    data.push({
+      originalTimestamp: timestamp,
+      avgLatency: Number(avgLatency.toFixed(2)),
+      p99Latency: Number(p99Latency.toFixed(2)),
+    });
+  }
+
+  return data;
 }

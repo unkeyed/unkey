@@ -1,6 +1,6 @@
+import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
+import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
-import { calculateTimePoints } from "../utils/calculate-timepoints";
-import { formatTimestampLabel } from "../utils/format-timestamp";
 
 export const LogsChartLoading = () => {
   const mockData = Array.from({ length: 100 }).map(() => ({
