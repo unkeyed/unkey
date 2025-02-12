@@ -9,17 +9,12 @@ import { RatelimitOverviewLogsTable } from "./table/logs-table";
 const timeseriesData = generateTimeseriesData();
 
 // Generate latency data with matching timestamps
-const latencyData = generateLatencyData(
-  timeseriesData.length, // same number of points
-  {
-    baseAvgLatency: 150,
-    baseP99Latency: 300,
-    variability: 0.3,
-    trendFactor: 0.4,
-  },
-);
-
-// Chart configuration for latency metrics
+const latencyData = generateLatencyData(timeseriesData.length, {
+  baseAvgLatency: 150,
+  baseP99Latency: 300,
+  variability: 0.3,
+  trendFactor: 0.4,
+});
 
 export const LogsClient = () => {
   return (

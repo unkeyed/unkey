@@ -1,9 +1,9 @@
+import { HISTORICAL_DATA_WINDOW } from "@/app/(app)/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { HISTORICAL_DATA_WINDOW } from "../../../constants";
 import { useFilters } from "../../../hooks/use-filters";
-import type { RatelimitQueryLogsPayload } from "../query-logs.schema";
+import type { RatelimitOverviewQueryLogsPayload } from "../query-logs.schema";
 
 // Duration in milliseconds for historical data fetch window (12 hours)
 type UseLogsQueryParams = {
@@ -13,7 +13,7 @@ type UseLogsQueryParams = {
   namespaceId?: string;
 };
 
-export function useRatelimitLogsQuery({
+export function useRatelimitOverviewLogsQuery({
   namespaceId,
   limit = 50,
   pollIntervalMs = 5000,
@@ -34,7 +34,7 @@ export function useRatelimitLogsQuery({
   //Required for preventing double trpc call during initial render
   const dateNow = useMemo(() => Date.now(), []);
   const queryParams = useMemo(() => {
-    const params: RatelimitQueryLogsPayload = {
+    const params: RatelimitOverviewQueryLogsPayload = {
       limit,
       startTime: dateNow - HISTORICAL_DATA_WINDOW,
       endTime: dateNow,
@@ -60,29 +60,6 @@ export function useRatelimitLogsQuery({
           break;
         }
 
-        case "requestIds": {
-          if (typeof filter.value !== "string") {
-            console.error("Request ID filter value type has to be 'string'");
-            return;
-          }
-          params.requestIds?.filters.push({
-            operator: "is",
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "status": {
-          if (typeof filter.value !== "string") {
-            console.error("Status filter value type has to be 'string'");
-            return;
-          }
-          params.status?.filters.push({
-            operator: "is",
-            value: filter.value as "blocked" | "passed",
-          });
-          break;
-        }
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {

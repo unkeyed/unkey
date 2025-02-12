@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { ratelimitFilterOperatorEnum } from "../../filters.schema";
+import { ratelimitOverviewFilterOperatorEnum } from "../../filters.schema";
 
-export const ratelimitQueryLogsPayload = z.object({
+export const ratelimitOverviewQueryLogsPayload = z.object({
   limit: z.number().int(),
   startTime: z.number().int(),
   endTime: z.number().int(),
@@ -11,28 +11,8 @@ export const ratelimitQueryLogsPayload = z.object({
     .object({
       filters: z.array(
         z.object({
-          operator: ratelimitFilterOperatorEnum,
+          operator: ratelimitOverviewFilterOperatorEnum,
           value: z.string(),
-        }),
-      ),
-    })
-    .nullable(),
-  requestIds: z
-    .object({
-      filters: z.array(
-        z.object({
-          operator: z.literal("is"),
-          value: z.string(),
-        }),
-      ),
-    })
-    .nullable(),
-  status: z
-    .object({
-      filters: z.array(
-        z.object({
-          operator: z.literal("is"),
-          value: z.enum(["blocked", "passed"]),
         }),
       ),
     })
@@ -46,4 +26,4 @@ export const ratelimitQueryLogsPayload = z.object({
     .nullable(),
 });
 
-export type RatelimitQueryLogsPayload = z.infer<typeof ratelimitQueryLogsPayload>;
+export type RatelimitOverviewQueryLogsPayload = z.infer<typeof ratelimitOverviewQueryLogsPayload>;
