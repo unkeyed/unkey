@@ -1,6 +1,11 @@
 import { infrastructureSource } from "@/app/source";
 import defaultMdxComponents from "fumadocs-ui/mdx";
-import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
+import {
+  DocsBody,
+  DocsDescription,
+  DocsPage,
+  DocsTitle,
+} from "fumadocs-ui/page";
 import type { Metadata } from "next";
 
 import { getGithubLastEdit } from "fumadocs-core/server";
@@ -36,9 +41,9 @@ export default async function Page(props: {
     >
       <DocsTitle>{page.data.title}</DocsTitle>
 
-      <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
+      <DocsDescription>{page.data.description}</DocsDescription>
 
-      <DocsBody className="font-mono text-sm">
+      <DocsBody>
         <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>

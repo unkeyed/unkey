@@ -1,6 +1,11 @@
 import { architectureSource } from "@/app/source";
 import defaultMdxComponents from "fumadocs-ui/mdx";
-import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
+import {
+  DocsBody,
+  DocsDescription,
+  DocsPage,
+  DocsTitle,
+} from "fumadocs-ui/page";
 import type { Metadata } from "next";
 
 import { getGithubLastEdit } from "fumadocs-core/server";
@@ -36,9 +41,11 @@ export default async function Page(props: {
     >
       <DocsTitle>{page.data.title}</DocsTitle>
 
-      <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
+      <DocsDescription className="text-sm">
+        {page.data.description}
+      </DocsDescription>
 
-      <DocsBody className="font-mono text-sm">
+      <DocsBody className="text-sm">
         <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>
@@ -49,7 +56,11 @@ export async function generateStaticParams() {
   return architectureSource.generateParams();
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug?: string[] }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug?: string[] }>;
+}) {
   const page = architectureSource.getPage((await params).slug);
   if (!page) {
     notFound();
