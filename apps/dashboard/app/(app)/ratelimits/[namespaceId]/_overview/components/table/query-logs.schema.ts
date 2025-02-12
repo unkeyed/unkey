@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ratelimitOverviewFilterOperatorEnum } from "../../filters.schema";
 
-export const ratelimitOverviewQueryLogsPayload = z.object({
+export const ratelimitQueryOverviewLogsPayload = z.object({
   limit: z.number().int(),
   startTime: z.number().int(),
   endTime: z.number().int(),
@@ -26,4 +26,4 @@ export const ratelimitOverviewQueryLogsPayload = z.object({
     .nullable(),
 });
 
-export type RatelimitOverviewQueryLogsPayload = z.infer<typeof ratelimitOverviewQueryLogsPayload>;
+export type RatelimitQueryOverviewLogsPayload = z.infer<typeof ratelimitQueryOverviewLogsPayload>;

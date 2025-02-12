@@ -11,6 +11,7 @@ import {
 import {
   getRatelimitLastUsed,
   getRatelimitLogs,
+  getRatelimitOverviewLogs,
   getRatelimitsPerDay,
   getRatelimitsPerHour,
   getRatelimitsPerMinute,
@@ -88,6 +89,9 @@ export class ClickHouse {
         perHour: getRatelimitsPerHour(this.querier),
         perDay: getRatelimitsPerDay(this.querier),
         perMonth: getRatelimitsPerMonth(this.querier),
+      },
+      overview: {
+        logs: getRatelimitOverviewLogs(this.querier),
       },
     };
   }

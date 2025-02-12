@@ -5,11 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
+import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { Ban, BookBookmark, Focus, TriangleWarning2 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useMemo } from "react";
-import { type RatelimitOverviewLogs, generateMockApiData } from "../../dev-utils";
 import { compactFormatter } from "../../utils";
+import { useRatelimitOverviewLogsQuery } from "./hooks/use-logs-query";
 
 const MAX_LATENCY = 10;
 
@@ -51,11 +52,19 @@ const getStatusStyle = (passed: number, blocked: number): StatusStyle => {
   return blocked > passed ? STATUS_STYLES.blocked : STATUS_STYLES.success;
 };
 
-const historicalLogs = generateMockApiData();
-export const RatelimitOverviewLogsTable = () => {
-  const getRowClassName = (log: RatelimitOverviewLogs) => {
-    const hasMoreBlocked = log.blocked > log.passed;
-    const style = getStatusStyle(log.passed, log.blocked);
+// const historicalLogs = generateMockApiData();
+export const RatelimitOverviewLogsTable = ({
+  namespaceId,
+}: {
+  namespaceId: string;
+}) => {
+  const { historicalLogs, isLoading, isLoadingMore, loadMore } = useRatelimitOverviewLogsQuery({
+    namespaceId,
+  });
+
+  const getRowClassName = (log: RatelimitOverviewLog) => {
+    const hasMoreBlocked = log.blocked_count > log.passed_count;
+    const style = getStatusStyle(log.passed_count, log.blocked_count);
 
     return cn(
       style.base,
@@ -67,7 +76,7 @@ export const RatelimitOverviewLogsTable = () => {
     );
   };
 
-  const columns: Column<RatelimitOverviewLogs>[] = useMemo(
+  const columns: Column<RatelimitOverviewLog>[] = useMemo(
     () => [
       {
         key: "identifier",
@@ -75,11 +84,11 @@ export const RatelimitOverviewLogsTable = () => {
         width: "7.5%",
         headerClassName: "pl-11",
         render: (log) => {
-          const style = getStatusStyle(log.passed, log.blocked);
+          const style = getStatusStyle(log.passed_count, log.blocked_count);
 
           return (
             <div className="flex gap-6 items-center pl-2">
-              <div className={cn(log.blocked > log.passed ? "block" : "invisible")}>
+              <div className={cn(log.blocked_count > log.passed_count ? "block" : "invisible")}>
                 <TriangleWarning2 />
               </div>
               <div className="flex gap-3 items-center">
@@ -103,9 +112,9 @@ export const RatelimitOverviewLogsTable = () => {
                 "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
                 STATUS_STYLES.success.badge.default,
               )}
-              title={`${log.passed.toLocaleString()} Passed requests`}
+              title={`${log.passed_count.toLocaleString()} Passed requests`}
             >
-              {compactFormatter.format(log.passed)}
+              {compactFormatter.format(log.passed_count)}
             </Badge>
           );
         },
@@ -115,17 +124,17 @@ export const RatelimitOverviewLogsTable = () => {
         header: "Blocked",
         width: "7.5%",
         render: (log) => {
-          const style = getStatusStyle(log.passed, log.blocked);
+          const style = getStatusStyle(log.passed_count, log.blocked_count);
           return (
             <Badge
               className={cn(
                 "uppercase px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
                 style.badge.default,
               )}
-              title={`${log.blocked.toLocaleString()} Blocked requests`}
+              title={`${log.blocked_count.toLocaleString()} Blocked requests`}
             >
               <Ban size="sm-regular" />
-              {compactFormatter.format(log.blocked)}
+              {compactFormatter.format(log.blocked_count)}
             </Badge>
           );
         },
@@ -138,12 +147,12 @@ export const RatelimitOverviewLogsTable = () => {
           <div
             className={cn(
               "font-mono pr-4",
-              log.avgLatency > MAX_LATENCY
+              log.avg_latency > MAX_LATENCY
                 ? "text-orange-11 font-medium dark:text-warning-11"
                 : "text-accent-9",
             )}
           >
-            {Math.round(log.avgLatency)}ms
+            {Math.round(log.avg_latency)}ms
           </div>
         ),
       },
@@ -155,12 +164,12 @@ export const RatelimitOverviewLogsTable = () => {
           <div
             className={cn(
               "font-mono pr-4",
-              log.p99Latency > MAX_LATENCY
+              log.p99_latency > MAX_LATENCY
                 ? "text-orange-11 font-medium dark:text-warning-11"
                 : "text-accent-9",
             )}
           >
-            {Math.round(log.p99Latency)}ms
+            {Math.round(log.p99_latency)}ms
           </div>
         ),
       },
@@ -171,7 +180,7 @@ export const RatelimitOverviewLogsTable = () => {
         render: (log) => (
           <div className="flex items-center gap-3 truncate text-accent-9">
             <TimestampInfo
-              value={log.lastRequest}
+              value={log.time}
               className={cn("font-mono group-hover:underline decoration-dotted")}
             />
           </div>
@@ -184,6 +193,9 @@ export const RatelimitOverviewLogsTable = () => {
   return (
     <VirtualTable
       data={historicalLogs}
+      isLoading={isLoading}
+      isFetchingNextPage={isLoadingMore}
+      onLoadMore={loadMore}
       columns={columns}
       keyExtractor={(log) => log.identifier}
       rowClassName={getRowClassName}

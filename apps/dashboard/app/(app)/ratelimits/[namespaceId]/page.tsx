@@ -64,7 +64,7 @@ export default async function RatelimitNamespacePage(props: {
       {/*   navigation={navigation(props.params.namespaceId)} */}
       {/*   segment="overview" */}
       {/* /> */}
-      <LogsClient />
+      <LogsClient namespaceId={namespace.id} />
     </div>
   );
 }

@@ -356,3 +356,124 @@ LIMIT {limit: Int}`,
     return query(parameters);
   };
 }
+
+// ## OVERVIEWS
+export const ratelimitOverviewLogsParams = z.object({
+  workspaceId: z.string(),
+  namespaceId: z.string(),
+  limit: z.number().int(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  identifiers: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  cursorTime: z.number().int().nullable(),
+  cursorRequestId: z.string().nullable(),
+});
+
+export const ratelimitOverviewLogs = z.object({
+  time: z.number().int(),
+  identifier: z.string(),
+  request_id: z.string(),
+  passed_count: z.number().int(),
+  blocked_count: z.number().int(),
+  avg_latency: z.number().int(),
+  p99_latency: z.number().int(),
+});
+
+export type RatelimitOverviewLog = z.infer<typeof ratelimitOverviewLogs>;
+export type RatelimitOverviewLogsParams = z.infer<typeof ratelimitOverviewLogsParams>;
+
+interface ExtendedParamsOverviewLogs extends RatelimitOverviewLogsParams {
+  [key: string]: unknown;
+}
+
+export function getRatelimitOverviewLogs(ch: Querier) {
+  return async (args: RatelimitOverviewLogsParams) => {
+    const paramSchemaExtension: Record<string, z.ZodType> = {};
+    const parameters: ExtendedParamsOverviewLogs = { ...args };
+
+    const hasIdentifierFilters = args.identifiers && args.identifiers.length > 0;
+
+    const identifierConditions = !hasIdentifierFilters
+      ? "TRUE"
+      : args.identifiers
+          ?.map((p, index) => {
+            const paramName = `identifierValue_${index}`;
+            paramSchemaExtension[paramName] = z.string();
+            parameters[paramName] = p.value;
+            switch (p.operator) {
+              case "is":
+                return `identifier = {${paramName}: String}`;
+              case "contains":
+                return `position({${paramName}: String}, identifier) > 0`;
+              default:
+                return null;
+            }
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE";
+
+    const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
+
+    const query = ch.query({
+      query: `
+WITH filtered_ratelimits AS (
+    SELECT
+        request_id,
+        time,
+        identifier,
+        passed
+    FROM ratelimits.raw_ratelimits_v1
+    WHERE workspace_id = {workspaceId: String}
+        AND namespace_id = {namespaceId: String}
+        AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+        AND (${identifierConditions})
+        AND (({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
+             OR (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
+             OR time < {cursorTime: Nullable(UInt64)})
+),
+filtered_metrics AS (
+    SELECT 
+        request_id,
+        service_latency
+    FROM metrics.raw_api_requests_v1
+    WHERE workspace_id = {workspaceId: String}
+        AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+),
+aggregated_data AS (
+    SELECT 
+        fr.identifier,
+        max(fr.time) as last_request_time,
+        max(fr.request_id) as last_request_id,
+        countIf(fr.passed = true) as passed_count,
+        countIf(fr.passed = false) as blocked_count,
+        round(avg(fm.service_latency)) as avg_latency,
+        round(quantile(0.99)(fm.service_latency)) as p99_latency
+    FROM filtered_ratelimits fr
+    LEFT JOIN filtered_metrics fm ON fr.request_id = fm.request_id
+    GROUP BY fr.identifier
+)
+SELECT 
+    identifier,
+    last_request_time as time,
+    last_request_id as request_id,
+    passed_count,
+    blocked_count,
+    avg_latency,
+    p99_latency
+FROM aggregated_data
+ORDER BY time DESC, request_id DESC
+LIMIT {limit: Int}`,
+      params: extendedParamsSchema,
+      schema: ratelimitOverviewLogs,
+    });
+
+    return query(parameters);
+  };
+}
