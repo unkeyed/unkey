@@ -10,13 +10,16 @@ import (
 // here we register all of the routes.
 // this function runs during startup.
 func Register(srv *zen.Server, svc *Services) {
+	withTracing := zen.WithTracing()
 	withMetrics := zen.WithMetrics(svc.EventBuffer)
+
 	withRootKeyAuth := zen.WithRootKeyAuth(svc.Keys)
 	withLogging := zen.WithLogging(svc.Logger)
 	withErrorHandling := zen.WithErrorHandling()
 	withValidation := zen.WithValidation(svc.Validator)
 
 	defaultMiddlewares := []zen.Middleware{
+		withTracing,
 		withMetrics,
 		withLogging,
 		withErrorHandling,
@@ -26,6 +29,7 @@ func Register(srv *zen.Server, svc *Services) {
 
 	srv.RegisterRoute(
 		[]zen.Middleware{
+			withTracing,
 			withMetrics,
 			withLogging,
 			withErrorHandling,

@@ -16,6 +16,7 @@ import (
 // All references to sessions, request bodies or anything within must not be
 // used outside of the handler. Make a copy of them if you need to.
 type Session struct {
+	ctx       context.Context
 	requestID string
 
 	w http.ResponseWriter
@@ -32,6 +33,7 @@ type Session struct {
 }
 
 func (s *Session) Init(w http.ResponseWriter, r *http.Request) error {
+	s.ctx = r.Context()
 	s.requestID = uid.Request()
 	s.w = w
 	s.r = r
@@ -41,7 +43,7 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Session) Context() context.Context {
-	return s.r.Context()
+	return s.ctx
 }
 
 // Request returns the underlying http.Request.
