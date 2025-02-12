@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -11,7 +11,7 @@ import {
 import { FormField } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
@@ -20,6 +20,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   ipWhitelist: z.string(),
@@ -40,6 +42,7 @@ type Props = {
 };
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const isEnabled = workspace.features.ipWhitelist;
 
@@ -52,7 +55,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     },
   });
 
-  const updateIps = trpc.api.updateIpWhitelist.useMutation({
+  const updateIps = useMutation(trpc.api.updateIpWhitelist.mutationOptions({
     onSuccess() {
       toast.success("Your ip whitelist has been updated!");
       router.refresh();
@@ -61,7 +64,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateIps.mutateAsync(values);

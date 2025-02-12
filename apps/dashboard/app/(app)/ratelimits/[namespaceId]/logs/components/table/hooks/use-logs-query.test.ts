@@ -1,4 +1,4 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { act, renderHook } from "@testing-library/react";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { beforeEach, describe, expect, it, vi } from "vitest";

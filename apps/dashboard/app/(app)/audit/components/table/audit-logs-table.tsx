@@ -1,7 +1,6 @@
-"use client";
-
+"use client";;
 import { VirtualTable } from "@/components/virtual-table";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { AuditData } from "../../audit.type";
@@ -9,6 +8,8 @@ import { useAuditLogParams } from "../../query-state";
 import { columns } from "./columns";
 import { DEFAULT_FETCH_COUNT } from "./constants";
 import { getEventType } from "./utils";
+
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 const STATUS_STYLES: Record<
   "create" | "update" | "delete" | "other",
@@ -42,10 +43,11 @@ type Props = {
 };
 
 export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
+  const trpc = useTRPC();
   const { setCursor, searchParams } = useAuditLogParams();
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
-    trpc.audit.fetch.useInfiniteQuery(
+    useInfiniteQuery(trpc.audit.fetch.infiniteQueryOptions(
       {
         bucketName: searchParams.bucket ?? undefined,
         limit: DEFAULT_FETCH_COUNT,
@@ -62,7 +64,7 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
         refetchOnMount: false,
         refetchOnWindowFocus: false,
       },
-    );
+    ));
 
   const flattenedData = data?.pages.flatMap((page) => page.items) ?? [];
 

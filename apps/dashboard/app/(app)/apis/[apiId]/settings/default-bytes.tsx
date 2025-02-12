@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import {
   Card,
@@ -11,12 +11,13 @@ import {
 import { FormField } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
 const formSchema = z.object({
   keyAuthId: z.string(),
   defaultBytes: z
@@ -34,6 +35,7 @@ type Props = {
 };
 
 export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -43,7 +45,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
     },
   });
 
-  const setDefaultBytes = trpc.api.setDefaultBytes.useMutation({
+  const setDefaultBytes = useMutation(trpc.api.setDefaultBytes.mutationOptions({
     onSuccess() {
       toast.success("Default Byte length for this API is updated!");
       router.refresh();
@@ -52,7 +54,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.defaultBytes === keyAuth.defaultBytes || !values.defaultBytes) {
@@ -64,7 +66,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
+    (<form onSubmit={form.handleSubmit(onSubmit)}>
       <Card>
         <CardHeader>
           <CardTitle>Default Bytes</CardTitle>
@@ -101,6 +103,6 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
           </Button>
         </CardFooter>
       </Card>
-    </form>
+    </form>)
   );
 };

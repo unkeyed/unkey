@@ -33,13 +33,14 @@
     "@radix-ui/react-tooltip": "^1.0.7",
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/typography": "^0.5.12",
-    "@tanstack/react-query": "^4.36.1",
+    "@tanstack/react-query": "^5.66.0",
     "@tanstack/react-table": "^8.16.0",
     "@tanstack/react-virtual": "^3.10.9",
     "@team-plain/typescript-sdk": "^2.19.0",
-    "@trpc/client": "^10.45.2",
-    "@trpc/react-query": "^10.45.2",
-    "@trpc/server": "^10.45.2",
+    "@trpc/client": "tmp",
+    "@trpc/react-query": "tmp",
+    "@trpc/server": "tmp",
+    "@trpc/tanstack-react-query": "tmp",
     "@unkey/billing": "workspace:^",
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
@@ -101,7 +102,6 @@
     "tailwindcss": "^3.4.3",
     "tailwindcss-animate": "^1.0.7",
     "trpc-tools": "^0.12.0",
-    "typescript": "5.5.3",
     "usehooks-ts": "^3.1.0",
     "zod": "^3.23.5"
   },
@@ -119,7 +119,7 @@
     "jsdom": "^26.0.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
-    "typescript": "^5.1.3",
+"typescript": "^5.7.3",
     "vitest": "^1.6.0"
   }
 }

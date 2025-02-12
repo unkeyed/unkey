@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Loading } from "@/components/dashboard/loading";
 import {
   Card,
@@ -12,13 +12,14 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
 const formSchema = z.object({
   keyId: z.string(),
   name: z
@@ -34,6 +35,7 @@ type Props = {
 };
 
 export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
+  const trpc = useTRPC();
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -47,7 +49,7 @@ export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
     },
   });
 
-  const updateName = trpc.rootKey.update.name.useMutation({
+  const updateName = useMutation(trpc.rootKey.update.name.mutationOptions({
     onSuccess() {
       toast.success("Your root key name has been updated!");
       router.refresh();
@@ -56,7 +58,7 @@ export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateName.mutateAsync(values);
@@ -90,8 +92,8 @@ export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
             </div>
           </CardContent>
           <CardFooter className="justify-end">
-            <Button disabled={updateName.isLoading || !form.formState.isValid} type="submit">
-              {updateName.isLoading ? <Loading /> : "Save"}
+            <Button disabled={updateName.isPending || !form.formState.isValid} type="submit">
+              {updateName.isPending ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

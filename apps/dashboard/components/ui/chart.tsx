@@ -1,9 +1,10 @@
-"use client";
-
+"use client";;
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@/lib/utils";
+
+import { useQueryClient } from "@tanstack/react-query";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
