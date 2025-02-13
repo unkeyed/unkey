@@ -1,5 +1,4 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,15 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -70,9 +61,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.defaultPrefix === keyAuth.defaultPrefix) {
-      return toast.error(
-        "Please provide a different prefix than already existing one as default"
-      );
+      return toast.error("Please provide a different prefix than already existing one as default");
     }
     await setDefaultPrefix.mutateAsync(values);
   }
@@ -84,8 +73,8 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
           <CardHeader>
             <CardTitle>Default Prefix</CardTitle>
             <CardDescription>
-              Set default prefix for the keys under this API. Don't add a
-              trailing underscore, we'll do that automatically
+              Set default prefix for the keys under this API. Don't add a trailing underscore, we'll
+              do that automatically
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -16,7 +16,7 @@ export const setDefaultApiPrefix = t.procedure
           message: "Prefixes cannot contain spaces.",
         }),
       keyAuthId: z.string(),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     const keyAuth = await db.query.keyAuth
@@ -25,7 +25,7 @@ export const setDefaultApiPrefix = t.procedure
           and(
             eq(table.workspaceId, ctx.workspace.id),
             eq(table.id, input.keyAuthId),
-            isNull(table.deletedAt)
+            isNull(table.deletedAt),
           ),
       })
       .catch((_err) => {
