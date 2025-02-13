@@ -88,7 +88,9 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
           <CardContent>
             <div className="flex flex-col space-y-2">
               <input type="hidden" name="keyAuthId" value={keyAuth.id} />
-              <label className="hidden sr-only">Default Bytes</label>
+              <label htmlFor="defaultBytes" className="hidden sr-only">
+                Default Bytes
+              </label>
               <FormField
                 control={form.control}
                 name="defaultBytes"
@@ -96,6 +98,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
                   <FormItem>
                     <FormControl>
                       <Input
+                        id="defaultBytes"
                         className="max-w-sm"
                         {...field}
                         autoComplete="off"

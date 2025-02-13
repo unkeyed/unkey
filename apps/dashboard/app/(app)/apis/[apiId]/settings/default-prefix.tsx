@@ -91,7 +91,9 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
           <CardContent>
             <div className="flex flex-col space-y-2">
               <input type="hidden" name="keyAuthId" value={keyAuth.id} />
-              <label className="hidden sr-only">Default Prefix</label>
+              <label htmlFor="defaultPrefix" className="hidden sr-only">
+                Default Prefix
+              </label>
               <FormField
                 control={form.control}
                 name="defaultPrefix"
@@ -99,6 +101,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
                   <FormItem>
                     <FormControl>
                       <Input
+                        id="defaultPrefix"
                         className="max-w-sm"
                         {...field}
                         onBlur={(e) => {
