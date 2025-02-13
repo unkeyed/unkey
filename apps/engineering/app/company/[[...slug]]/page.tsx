@@ -39,7 +39,7 @@ export default async function Page(props: {
 
       <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
 
-      <DocsBody className="font-mono text-sm">
+      <DocsBody>
         <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>
@@ -50,7 +50,11 @@ export async function generateStaticParams() {
   return companySource.generateParams();
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug?: string[] }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug?: string[] }>;
+}) {
   const page = companySource.getPage((await params).slug);
   if (!page) {
     notFound();
