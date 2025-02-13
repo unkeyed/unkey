@@ -105,7 +105,10 @@ export const createKey = t.procedure
             location: ctx.audit.location,
             userAgent: ctx.audit.userAgent,
           },
-        });
+        })
+
+
+
       })
       .catch((_err) => {
         throw new TRPCError({

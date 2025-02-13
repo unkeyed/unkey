@@ -1,6 +1,7 @@
 package zen
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 func WithLogging(logger logging.Logger) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(s *Session) error {
+			fmt.Println("Middleware WithLogging")
 			start := time.Now()
 			nextErr := next(s)
 			serviceLatency := time.Since(start)

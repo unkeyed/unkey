@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/entities"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/hash"
+	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -18,8 +20,9 @@ type Request = api.V2RatelimitSetOverrideRequestBody
 type Response = api.V2RatelimitSetOverrideResponseBody
 
 type Services struct {
-	DB   database.Database
-	Keys keys.KeyService
+	Logger logging.Logger
+	DB     database.Database
+	Keys   keys.KeyService
 }
 
 func New(svc Services) zen.Route {
@@ -30,8 +33,10 @@ func New(svc Services) zen.Route {
 			return err
 		}
 
+		svc.Logger.Info(s.Context(), "debug", slog.Any("svc", svc))
 		auth, err := svc.Keys.Verify(s.Context(), hash.Sha256(rootKey))
 		if err != nil {
+			svc.Logger.Error(s.Context(), "error verifying key", slog.Any("error", err))
 			return err
 		}
 

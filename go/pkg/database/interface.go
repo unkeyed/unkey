@@ -2,8 +2,13 @@ package database
 
 import (
 	"context"
+	"errors"
 
 	"github.com/unkeyed/unkey/go/pkg/entities"
+)
+
+var (
+	ErrNotFound = errors.New("not found")
 )
 
 type Database interface {
@@ -48,7 +53,7 @@ type Database interface {
 
 	// Ratelimit Override
 	InsertRatelimitOverride(ctx context.Context, ratelimitOverride entities.RatelimitOverride) error
-	FindRatelimitOverrideByIdentifier(ctx context.Context, identifier string) (ratelimitOverride entities.RatelimitOverride, err error)
+	FindRatelimitOverridesByIdentifier(ctx context.Context, workspaceId, namespaceId, identifier string) (ratelimitOverrides []entities.RatelimitOverride, err error)
 	UpdateRatelimitOverride(ctx context.Context, override entities.RatelimitOverride) error
 	DeleteRatelimitOverride(ctx context.Context, id string) error
 

@@ -8,21 +8,40 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/database"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/zen"
+	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
 
 type Harness struct {
 	t *testing.T
 
-	logger logging.Logger
+	srv        *zen.Server
+	containers *Containers
+	validator  *validation.Validator
 
-	srv *zen.Server
+	middleware []zen.Middleware
+
+	DB     database.Database
+	Logger logging.Logger
+	Keys   keys.KeyService
 }
 
 func NewHarness(t *testing.T) *Harness {
 
-	logger := logging.NewNoop()
+	logger := logging.New(logging.Config{Development: true, NoColor: false})
+
+	containers := NewContainers(t)
+
+	dsn := containers.RunMySQL()
+
+	db, err := database.New(database.Config{
+		Logger:     logger,
+		PrimaryDSN: dsn,
+	})
+	require.NoError(t, err)
 
 	srv, err := zen.New(zen.Config{
 		NodeID: "test",
@@ -30,18 +49,47 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	keyService, err := keys.New(keys.Config{
+		Logger: logger,
+		DB:     db,
+	})
+	require.NoError(t, err)
+
+	validator, err := validation.New()
+	require.NoError(t, err)
+
 	h := Harness{
-		t:      t,
-		logger: logger,
-		srv:    srv,
+		t:          t,
+		Logger:     logger,
+		srv:        srv,
+		containers: containers,
+		validator:  validator,
+		Keys:       keyService,
+		DB:         db,
+
+		middleware: []zen.Middleware{
+			zen.WithTracing(),
+			//	zen.WithMetrics(svc.EventBuffer)
+			//zen.WithRootKeyAuth(keyService),
+			zen.WithLogging(logger),
+			zen.WithErrorHandling(),
+			zen.WithValidation(validator),
+		},
 	}
 
 	return &h
 }
 
-func (h *Harness) Register(route zen.Route) {
+func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
 
-	h.srv.RegisterRoute([]zen.Middleware{}, route)
+	if len(middleware) == 0 {
+		middleware = h.middleware
+	}
+
+	h.srv.RegisterRoute(
+		middleware,
+		route,
+	)
 
 }
 
@@ -73,9 +121,6 @@ func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Heade
 	httpReq.Header = headers
 	if httpReq.Header == nil {
 		httpReq.Header = http.Header{}
-	}
-	if route.Method() == http.MethodPost {
-		httpReq.Header.Set("Content-Type", "application/json")
 	}
 
 	h.srv.Mux().ServeHTTP(rr, httpReq)

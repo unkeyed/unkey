@@ -1,4 +1,4 @@
--- name: InsertOverride :exec
+-- name: InsertRatelimitOverride :exec
 INSERT INTO
     `ratelimit_overrides` (
         id,

@@ -2,8 +2,10 @@ package keys
 
 import (
 	"context"
+	"errors"
 
 	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/database"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
@@ -14,12 +16,18 @@ func (s *service) Verify(ctx context.Context, hash string) (VerifyResponse, erro
 		return VerifyResponse{}, fault.Wrap(err, fault.WithDesc("hash is empty", ""))
 	}
 
-	key, found := s.cache.SWR(ctx, hash)
-	if !found {
-		return VerifyResponse{}, fault.New(
-			"key does not exist",
-			fault.WithTag(fault.NOT_FOUND),
-			fault.WithDesc("key does not exist", "We could not find the requested key."),
+	key, err := s.db.FindKeyByHash(ctx, hash)
+	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return VerifyResponse{}, fault.Wrap(
+				err,
+				fault.WithTag(fault.NOT_FOUND),
+				fault.WithDesc("key does not exist", "We could not find the requested key."),
+			)
+		}
+		return VerifyResponse{}, fault.Wrap(
+			err,
+			fault.WithDesc("unable to load key", "We could not load the requested key."),
 		)
 	}
 

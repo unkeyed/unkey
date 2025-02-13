@@ -39,13 +39,10 @@ func (l logger) Write(p []byte) (n int, err error) {
 		break
 	case "INFO":
 		l.logger.Info(context.Background(), string(p), slog.String("pkg", "memberlist"))
-		break
 	case "WARN":
 		l.logger.Warn(context.Background(), string(p), slog.String("pkg", "memberlist"))
-		break
 	case "ERROR":
 		l.logger.Error(context.Background(), string(p), slog.String("pkg", "memberlist"))
-		break
 	}
 	return len(p), nil
 }

@@ -10,18 +10,24 @@ import (
 )
 
 const insertRatelimitNamespace = `-- name: InsertRatelimitNamespace :exec
-INSERT INTO ` + "`" + `ratelimit_namespaces` + "`" + ` (
-    id,
-    workspace_id,
-    name,
-    created_at
-)
-VALUES (
-    ?,
-    ?,
-    ?,
-    NOW()
-)
+INSERT INTO
+    ` + "`" + `ratelimit_namespaces` + "`" + ` (
+        id,
+        workspace_id,
+        name,
+        created_at,
+        updated_at,
+        deleted_at
+        )
+VALUES
+    (
+        ?,
+        ?,
+        ?,
+        now(),
+        NULL,
+        NULL
+    )
 `
 
 type InsertRatelimitNamespaceParams struct {
@@ -32,18 +38,24 @@ type InsertRatelimitNamespaceParams struct {
 
 // InsertRatelimitNamespace
 //
-//	INSERT INTO `ratelimit_namespaces` (
-//	    id,
-//	    workspace_id,
-//	    name,
-//	    created_at
-//	)
-//	VALUES (
-//	    ?,
-//	    ?,
-//	    ?,
-//	    NOW()
-//	)
+//	INSERT INTO
+//	    `ratelimit_namespaces` (
+//	        id,
+//	        workspace_id,
+//	        name,
+//	        created_at,
+//	        updated_at,
+//	        deleted_at
+//	        )
+//	VALUES
+//	    (
+//	        ?,
+//	        ?,
+//	        ?,
+//	        now(),
+//	        NULL,
+//	        NULL
+//	    )
 func (q *Queries) InsertRatelimitNamespace(ctx context.Context, arg InsertRatelimitNamespaceParams) error {
 	_, err := q.db.ExecContext(ctx, insertRatelimitNamespace, arg.ID, arg.WorkspaceID, arg.Name)
 	return err

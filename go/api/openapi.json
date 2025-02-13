@@ -51,7 +51,13 @@
           }
         },
         "type": "object",
-        "required": ["requestId", "detail", "status", "title", "type"]
+        "required": [
+          "requestId",
+          "detail",
+          "status",
+          "title",
+          "type"
+        ]
       },
       "NotFoundError": {
         "$ref": "#/components/schemas/BaseError"
@@ -77,10 +83,14 @@
                 "items": {
                   "$ref": "#/components/schemas/ValidationError"
                 },
-                "type": ["array"]
+                "type": [
+                  "array"
+                ]
               }
             },
-            "required": ["errors"]
+            "required": [
+              "errors"
+            ]
           }
         ]
       },
@@ -104,7 +114,10 @@
           }
         },
         "type": "object",
-        "required": ["message", "location"]
+        "required": [
+          "message",
+          "location"
+        ]
       },
       "V2LivenessResponseBody": {
         "additionalProperties": false,
@@ -115,7 +128,9 @@
             "type": "string"
           }
         },
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "type": "object"
       },
       "V2RatelimitSetOverrideRequestBody": {
@@ -145,7 +160,11 @@
             "type": "integer"
           }
         },
-        "required": ["identifier", "limit", "duration"],
+        "required": [
+          "identifier",
+          "limit",
+          "duration"
+        ],
         "type": "object"
       },
       "V2RatelimitSetOverrideResponseBody": {
@@ -156,12 +175,19 @@
             "type": "string"
           }
         },
-        "required": ["overrideId"],
+        "required": [
+          "overrideId"
+        ],
         "type": "object"
       },
       "V2RatelimitLimitRequestBody": {
         "additionalProperties": false,
         "properties": {
+          "namespace": {
+            "description": "The namespace name for the rate limit.",
+            "type": "string",
+            "example": "sms.sign_up"
+          },
           "cost": {
             "description": "The cost of the request. Defaults to 1 if not provided.",
             "format": "int64",
@@ -183,7 +209,12 @@
             "type": "integer"
           }
         },
-        "required": ["identifier", "limit", "duration"],
+        "required": [
+          "namespace",
+          "identifier",
+          "limit",
+          "duration"
+        ],
         "type": "object"
       },
       "V2RatelimitLimitResponseBody": {
@@ -209,7 +240,12 @@
             "type": "boolean"
           }
         },
-        "required": ["limit", "remaining", "reset", "success"],
+        "required": [
+          "limit",
+          "remaining",
+          "reset",
+          "success"
+        ],
         "type": "object"
       }
     }
@@ -310,7 +346,9 @@
             "description": "Error"
           }
         },
-        "tags": ["ratelimit"]
+        "tags": [
+          "ratelimit"
+        ]
       }
     },
     "/v2/ratelimit.setOverride": {
@@ -388,7 +426,9 @@
             "description": "Error"
           }
         },
-        "tags": ["ratelimit"]
+        "tags": [
+          "ratelimit"
+        ]
       }
     },
     "/v2/liveness": {
@@ -428,7 +468,9 @@
           }
         },
         "summary": "Liveness check",
-        "tags": ["liveness"]
+        "tags": [
+          "liveness"
+        ]
       }
     }
   }

@@ -1,3 +1,3 @@
--- name: FindRatelimitOverrideByIdentifier :one
-SELECT * FROM `ratelimit_overrides`
-WHERE identifier = sqlc.arg(identifier);
+-- name: FindKeyByID :one
+SELECT * FROM `keys`
+WHERE id = sqlc.arg(id);

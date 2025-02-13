@@ -9,30 +9,44 @@ import (
 	"context"
 )
 
-const findRatelimitOverrideByIdentifier = `-- name: FindRatelimitOverrideByIdentifier :one
-SELECT id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, async, sharding, created_at, updated_at, deleted_at FROM ` + "`" + `ratelimit_overrides` + "`" + `
-WHERE identifier = ?
+const findKeyByID = `-- name: FindKeyByID :one
+SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM ` + "`" + `keys` + "`" + `
+WHERE id = ?
 `
 
-// FindRatelimitOverrideByIdentifier
+// FindKeyByID
 //
-//	SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at, updated_at, deleted_at FROM `ratelimit_overrides`
-//	WHERE identifier = ?
-func (q *Queries) FindRatelimitOverrideByIdentifier(ctx context.Context, identifier string) (RatelimitOverride, error) {
-	row := q.db.QueryRowContext(ctx, findRatelimitOverrideByIdentifier, identifier)
-	var i RatelimitOverride
+//	SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys`
+//	WHERE id = ?
+func (q *Queries) FindKeyByID(ctx context.Context, id string) (Key, error) {
+	row := q.db.QueryRowContext(ctx, findKeyByID, id)
+	var i Key
 	err := row.Scan(
 		&i.ID,
+		&i.KeyAuthID,
+		&i.Hash,
+		&i.Start,
 		&i.WorkspaceID,
-		&i.NamespaceID,
-		&i.Identifier,
-		&i.Limit,
-		&i.Duration,
-		&i.Async,
-		&i.Sharding,
+		&i.ForWorkspaceID,
+		&i.Name,
+		&i.OwnerID,
+		&i.IdentityID,
+		&i.Meta,
 		&i.CreatedAt,
-		&i.UpdatedAt,
+		&i.Expires,
+		&i.CreatedAtM,
+		&i.UpdatedAtM,
+		&i.DeletedAtM,
 		&i.DeletedAt,
+		&i.RefillDay,
+		&i.RefillAmount,
+		&i.LastRefillAt,
+		&i.Enabled,
+		&i.RemainingRequests,
+		&i.RatelimitAsync,
+		&i.RatelimitLimit,
+		&i.RatelimitDuration,
+		&i.Environment,
 	)
 	return i, err
 }

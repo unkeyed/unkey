@@ -1,6 +1,7 @@
 package zen
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/api"
@@ -10,7 +11,9 @@ import (
 func WithErrorHandling() Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(s *Session) error {
+			fmt.Println("Middleware WithErrorHandling")
 			err := next(s)
+
 			if err == nil {
 				return nil
 			}

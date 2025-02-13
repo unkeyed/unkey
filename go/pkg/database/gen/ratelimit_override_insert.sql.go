@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const insertOverride = `-- name: InsertOverride :exec
+const insertRatelimitOverride = `-- name: InsertRatelimitOverride :exec
 INSERT INTO
     ` + "`" + `ratelimit_overrides` + "`" + ` (
         id,
@@ -34,7 +34,7 @@ VALUES
     )
 `
 
-type InsertOverrideParams struct {
+type InsertRatelimitOverrideParams struct {
 	ID          string `db:"id"`
 	WorkspaceID string `db:"workspace_id"`
 	NamespaceID string `db:"namespace_id"`
@@ -43,7 +43,7 @@ type InsertOverrideParams struct {
 	Duration    int32  `db:"duration"`
 }
 
-// InsertOverride
+// InsertRatelimitOverride
 //
 //	INSERT INTO
 //	    `ratelimit_overrides` (
@@ -67,8 +67,8 @@ type InsertOverrideParams struct {
 //	        false,
 //	        now()
 //	    )
-func (q *Queries) InsertOverride(ctx context.Context, arg InsertOverrideParams) error {
-	_, err := q.db.ExecContext(ctx, insertOverride,
+func (q *Queries) InsertRatelimitOverride(ctx context.Context, arg InsertRatelimitOverrideParams) error {
+	_, err := q.db.ExecContext(ctx, insertRatelimitOverride,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.NamespaceID,

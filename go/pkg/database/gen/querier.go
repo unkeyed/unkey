@@ -103,11 +103,14 @@ type Querier interface {
 	//  WHERE name = ?
 	//  AND workspace_id = ?
 	FindRatelimitNamespaceByName(ctx context.Context, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error)
-	//FindRatelimitOverrideByIdentifier
+	//FindRatelimitOverridesByIdentifier
 	//
-	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at, updated_at, deleted_at FROM `ratelimit_overrides`
-	//  WHERE identifier = ?
-	FindRatelimitOverrideByIdentifier(ctx context.Context, identifier string) (RatelimitOverride, error)
+	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at, updated_at, deleted_at FROM ratelimit_overrides
+	//  WHERE
+	//      workspace_id = ?
+	//      AND namespace_id = ?
+	//      AND identifier LIKE ?
+	FindRatelimitOverridesByIdentifier(ctx context.Context, arg FindRatelimitOverridesByIdentifierParams) ([]RatelimitOverride, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, tenant_id, name, created_at, deleted_at, plan, stripe_customer_id, stripe_subscription_id, trial_ends, beta_features, features, plan_locked_until, plan_downgrade_request, plan_changed, subscriptions, enabled, delete_protection FROM `workspaces`
@@ -119,7 +122,28 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	HardDeleteWorkspace(ctx context.Context, id string) (sql.Result, error)
-	//InsertOverride
+	//InsertRatelimitNamespace
+	//
+	//  INSERT INTO
+	//      `ratelimit_namespaces` (
+	//          id,
+	//          workspace_id,
+	//          name,
+	//          created_at,
+	//          updated_at,
+	//          deleted_at
+	//          )
+	//  VALUES
+	//      (
+	//          ?,
+	//          ?,
+	//          ?,
+	//          now(),
+	//          NULL,
+	//          NULL
+	//      )
+	InsertRatelimitNamespace(ctx context.Context, arg InsertRatelimitNamespaceParams) error
+	//InsertRatelimitOverride
 	//
 	//  INSERT INTO
 	//      `ratelimit_overrides` (
@@ -143,7 +167,7 @@ type Querier interface {
 	//          false,
 	//          now()
 	//      )
-	InsertOverride(ctx context.Context, arg InsertOverrideParams) error
+	InsertRatelimitOverride(ctx context.Context, arg InsertRatelimitOverrideParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (

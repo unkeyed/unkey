@@ -32,7 +32,7 @@ type Session struct {
 	responseBody   []byte
 }
 
-func (s *Session) Init(w http.ResponseWriter, r *http.Request) error {
+func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 	s.ctx = r.Context()
 	s.requestID = uid.Request()
 	s.w = w
@@ -44,6 +44,16 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request) error {
 
 func (s *Session) Context() context.Context {
 	return s.ctx
+
+}
+
+// AuthorizedWorkspaceID returns the workspaceID of the root key used as authentication mechanism.
+//
+// If the `WithRootKeyAuth` middleware is used, it is guaranteed to be populated.
+// The request would've aborted and returned early if authentication failed.
+// Otherwise an empty string is returned.
+func (s *Session) AuthorizedWorkspaceID() string {
+	return s.workspaceID
 }
 
 // Request returns the underlying http.Request.

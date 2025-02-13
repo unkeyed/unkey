@@ -4,6 +4,7 @@ import (
 	v2EcsMeta "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ecs_meta"
 	v2Liveness "github.com/unkeyed/unkey/go/cmd/api/routes/v2_liveness"
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_limit"
+	v2RatelimitSetOverride "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_set_override"
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -37,11 +38,22 @@ func Register(srv *zen.Server, svc *Services) {
 		},
 		v2Liveness.New())
 
+	// ---------------------------------------------------------------------------
+	// v2/ratelimit
+
+	// v2/ratelimit.limit
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2RatelimitLimit.New(v2RatelimitLimit.Services{}),
+		v2RatelimitLimit.New(v2RatelimitLimit.Services{Logger: svc.Logger, DB: svc.Database, Keys: svc.Keys, Ratelimit: svc.Ratelimit}),
+	)
+	// v2/ratelimit.setOverride
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2RatelimitSetOverride.New(v2RatelimitSetOverride.Services{Logger: svc.Logger, DB: svc.Database, Keys: svc.Keys}),
 	)
 
+	// ---------------------------------------------------------------------------
+	// misc
 	srv.RegisterRoute([]zen.Middleware{}, v2EcsMeta.New())
 
 }
