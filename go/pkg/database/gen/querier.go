@@ -25,14 +25,22 @@ type Querier interface {
 	DeleteRatelimitOverride(ctx context.Context, id string) (sql.Result, error)
 	//FindKeyByHash
 	//
-	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys`
-	//  WHERE hash = ?
-	FindKeyByHash(ctx context.Context, hash string) (Key, error)
+	//  SELECT
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.created_at, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.deleted_at, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//      i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta
+	//  FROM `keys` k
+	//  LEFT JOIN identities i ON k.identity_id = i.id
+	//  WHERE k.hash = ?
+	FindKeyByHash(ctx context.Context, hash string) (FindKeyByHashRow, error)
 	//FindKeyByID
 	//
-	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys`
-	//  WHERE id = ?
-	FindKeyByID(ctx context.Context, id string) (Key, error)
+	//  SELECT
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.created_at, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.deleted_at, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//      i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta
+	//  FROM `keys` k
+	//  LEFT JOIN identities i ON k.identity_id = i.id
+	//  WHERE k.id = ?
+	FindKeyByID(ctx context.Context, id string) (FindKeyByIDRow, error)
 	//FindKeyForVerification
 	//
 	//  WITH direct_permissions AS (
@@ -122,6 +130,74 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	HardDeleteWorkspace(ctx context.Context, id string) (sql.Result, error)
+	//InsertKey
+	//
+	//  INSERT INTO `keys` (
+	//      id,
+	//      key_auth_id,
+	//      hash,
+	//      start,
+	//      workspace_id,
+	//      for_workspace_id,
+	//      name,
+	//      owner_id,
+	//      identity_id,
+	//      meta,
+	//      created_at,
+	//      expires,
+	//      created_at_m,
+	//      enabled,
+	//      remaining_requests,
+	//      ratelimit_async,
+	//      ratelimit_limit,
+	//      ratelimit_duration,
+	//      environment
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      null,
+	//      ?,
+	//      ?,
+	//      NOW(),
+	//      ?,
+	//      UNIX_TIMESTAMP() * 1000,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertKey(ctx context.Context, arg InsertKeyParams) error
+	//InsertKeyring
+	//
+	//  INSERT INTO `key_auth` (
+	//      id,
+	//      workspace_id,
+	//      created_at,
+	//      created_at_m,
+	//      store_encrypted_keys,
+	//      default_prefix,
+	//      default_bytes,
+	//      size_approx,
+	//      size_last_updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      NOW(),
+	//      UNIX_TIMESTAMP() * 1000,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      0,
+	//      0
+	//  )
+	InsertKeyring(ctx context.Context, arg InsertKeyringParams) error
 	//InsertRatelimitNamespace
 	//
 	//  INSERT INTO

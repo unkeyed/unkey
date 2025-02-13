@@ -7,16 +7,18 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/database"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 )
 
-func (s *service) Verify(ctx context.Context, hash string) (VerifyResponse, error) {
+func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, error) {
 
-	err := assert.NotEmpty(hash)
+	err := assert.NotEmpty(rawKey)
 	if err != nil {
-		return VerifyResponse{}, fault.Wrap(err, fault.WithDesc("hash is empty", ""))
+		return VerifyResponse{}, fault.Wrap(err, fault.WithDesc("rawKey is empty", ""))
 	}
+	h := hash.Sha256(rawKey)
 
-	key, err := s.db.FindKeyByHash(ctx, hash)
+	key, err := s.db.FindKeyByHash(ctx, h)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			return VerifyResponse{}, fault.Wrap(

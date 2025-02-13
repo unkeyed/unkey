@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -39,9 +40,11 @@ func TestCreateNewOverride(t *testing.T) {
 
 	h.Register(route)
 
+	rootKey := h.CreateRootKey()
+
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {"Bearer somethig"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
 	req := handler.Request{

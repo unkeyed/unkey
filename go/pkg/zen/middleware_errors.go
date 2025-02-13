@@ -28,6 +28,7 @@ func WithErrorHandling() Middleware {
 					Status:    s.responseStatus,
 					Instance:  nil,
 				})
+
 			case fault.UNAUTHORIZED:
 				return s.JSON(http.StatusUnauthorized, api.UnauthorizedError{
 					Title:     "Unauthorized",

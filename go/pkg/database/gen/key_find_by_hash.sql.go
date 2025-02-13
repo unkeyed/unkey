@@ -10,43 +10,63 @@ import (
 )
 
 const findKeyByHash = `-- name: FindKeyByHash :one
-SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM ` + "`" + `keys` + "`" + `
-WHERE hash = ?
+SELECT
+    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.created_at, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.deleted_at, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+    i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta
+FROM ` + "`" + `keys` + "`" + ` k
+LEFT JOIN identities i ON k.identity_id = i.id
+WHERE k.hash = ?
 `
+
+type FindKeyByHashRow struct {
+	Key      Key      `db:"key"`
+	Identity Identity `db:"identity"`
+}
 
 // FindKeyByHash
 //
-//	SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys`
-//	WHERE hash = ?
-func (q *Queries) FindKeyByHash(ctx context.Context, hash string) (Key, error) {
+//	SELECT
+//	    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.created_at, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.deleted_at, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+//	    i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta
+//	FROM `keys` k
+//	LEFT JOIN identities i ON k.identity_id = i.id
+//	WHERE k.hash = ?
+func (q *Queries) FindKeyByHash(ctx context.Context, hash string) (FindKeyByHashRow, error) {
 	row := q.db.QueryRowContext(ctx, findKeyByHash, hash)
-	var i Key
+	var i FindKeyByHashRow
 	err := row.Scan(
-		&i.ID,
-		&i.KeyAuthID,
-		&i.Hash,
-		&i.Start,
-		&i.WorkspaceID,
-		&i.ForWorkspaceID,
-		&i.Name,
-		&i.OwnerID,
-		&i.IdentityID,
-		&i.Meta,
-		&i.CreatedAt,
-		&i.Expires,
-		&i.CreatedAtM,
-		&i.UpdatedAtM,
-		&i.DeletedAtM,
-		&i.DeletedAt,
-		&i.RefillDay,
-		&i.RefillAmount,
-		&i.LastRefillAt,
-		&i.Enabled,
-		&i.RemainingRequests,
-		&i.RatelimitAsync,
-		&i.RatelimitLimit,
-		&i.RatelimitDuration,
-		&i.Environment,
+		&i.Key.ID,
+		&i.Key.KeyAuthID,
+		&i.Key.Hash,
+		&i.Key.Start,
+		&i.Key.WorkspaceID,
+		&i.Key.ForWorkspaceID,
+		&i.Key.Name,
+		&i.Key.OwnerID,
+		&i.Key.IdentityID,
+		&i.Key.Meta,
+		&i.Key.CreatedAt,
+		&i.Key.Expires,
+		&i.Key.CreatedAtM,
+		&i.Key.UpdatedAtM,
+		&i.Key.DeletedAtM,
+		&i.Key.DeletedAt,
+		&i.Key.RefillDay,
+		&i.Key.RefillAmount,
+		&i.Key.LastRefillAt,
+		&i.Key.Enabled,
+		&i.Key.RemainingRequests,
+		&i.Key.RatelimitAsync,
+		&i.Key.RatelimitLimit,
+		&i.Key.RatelimitDuration,
+		&i.Key.Environment,
+		&i.Identity.ID,
+		&i.Identity.ExternalID,
+		&i.Identity.WorkspaceID,
+		&i.Identity.Environment,
+		&i.Identity.CreatedAt,
+		&i.Identity.UpdatedAt,
+		&i.Identity.Meta,
 	)
 	return i, err
 }

@@ -7,8 +7,8 @@ type Key struct {
 	// ID is the unique identifier for the key
 	ID string
 
-	// KeySpaceID represents the key authorization space this key belongs to
-	KeySpaceID string
+	// KeyringID represents the key authorization space this key belongs to
+	KeyringID string
 
 	// WorkspaceID is the ID of the workspace that owns this key
 	WorkspaceID string
@@ -25,9 +25,6 @@ type Key struct {
 
 	// Name is an optional human-readable identifier for the key
 	Name string
-
-	// IdentityID links this key to a specific identity in the system
-	IdentityID string
 
 	// Meta contains arbitrary metadata associated with the key as key-value pairs
 	Meta map[string]any
@@ -56,4 +53,6 @@ type Key struct {
 
 	// All transient permissions, directly attached or via roles
 	Permissions []string
+
+	RemainingRequests *int64
 }

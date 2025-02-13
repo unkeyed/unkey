@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/database"
 	"github.com/unkeyed/unkey/go/pkg/entities"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -28,15 +26,8 @@ type Services struct {
 func New(svc Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/ratelimit.setOverride", func(s *zen.Session) error {
 
-		rootKey, err := zen.Bearer(s)
+		auth, err := svc.Keys.VerifyRootKey(s.Context(), s)
 		if err != nil {
-			return err
-		}
-
-		svc.Logger.Info(s.Context(), "debug", slog.Any("svc", svc))
-		auth, err := svc.Keys.Verify(s.Context(), hash.Sha256(rootKey))
-		if err != nil {
-			svc.Logger.Error(s.Context(), "error verifying key", slog.Any("error", err))
 			return err
 		}
 

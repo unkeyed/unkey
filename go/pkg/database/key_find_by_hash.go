@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"errors"
 
@@ -18,15 +19,21 @@ func (db *database) FindKeyByHash(ctx context.Context, hash string) (entities.Ke
 		if errors.Is(err, sql.ErrNoRows) {
 			return entities.Key{}, fault.Wrap(err,
 				fault.WithTag(fault.NOT_FOUND),
-				fault.WithDesc("not found", "The key does not exist."),
+				fault.WithDesc("not found", fmt.Sprintf("The key %s does not exist.", hash)),
 			)
 		}
 		return entities.Key{}, fault.Wrap(err, fault.WithTag(fault.DATABASE_ERROR))
 	}
 
-	key, err := transform.KeyModelToEntity(model)
+	key, err := transform.KeyModelToEntity(model.Key)
 	if err != nil {
 		return entities.Key{}, fault.Wrap(err, fault.WithDesc("cannot transform key model to entity", ""))
 	}
+
+	identiy, err := transform.IdentityModelToEntity(model.Identity)
+	if err != nil {
+		return entities.Key{}, fault.Wrap(err, fault.WithDesc("cannot transform identity model to entity", ""))
+	}
+	key.Identity = &identiy
 	return key, nil
 }

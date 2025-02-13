@@ -2,18 +2,29 @@ package testutil
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/database"
+	"github.com/unkeyed/unkey/go/pkg/entities"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
+
+type Resources struct {
+	RootWorkspace entities.Workspace
+	RootKeyring   entities.Keyring
+	UserWorkspace entities.Workspace
+}
 
 type Harness struct {
 	t *testing.T
@@ -24,9 +35,10 @@ type Harness struct {
 
 	middleware []zen.Middleware
 
-	DB     database.Database
-	Logger logging.Logger
-	Keys   keys.KeyService
+	DB        database.Database
+	Logger    logging.Logger
+	Keys      keys.KeyService
+	Resources Resources
 }
 
 func NewHarness(t *testing.T) *Harness {
@@ -38,8 +50,9 @@ func NewHarness(t *testing.T) *Harness {
 	dsn := containers.RunMySQL()
 
 	db, err := database.New(database.Config{
-		Logger:     logger,
-		PrimaryDSN: dsn,
+		Logger:      logger,
+		PrimaryDSN:  dsn,
+		ReadOnlyDSN: "",
 	})
 	require.NoError(t, err)
 
@@ -66,17 +79,20 @@ func NewHarness(t *testing.T) *Harness {
 		validator:  validator,
 		Keys:       keyService,
 		DB:         db,
+		// resources are seeded later
+		// nolint:exhaustruct
+		Resources: Resources{},
 
 		middleware: []zen.Middleware{
 			zen.WithTracing(),
 			//	zen.WithMetrics(svc.EventBuffer)
-			//zen.WithRootKeyAuth(keyService),
 			zen.WithLogging(logger),
 			zen.WithErrorHandling(),
 			zen.WithValidation(validator),
 		},
 	}
 
+	h.seed()
 	return &h
 }
 
@@ -90,6 +106,99 @@ func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
 		middleware,
 		route,
 	)
+
+}
+
+func (h *Harness) seed() {
+
+	rootWorkspace := entities.Workspace{
+		ID:                   uid.New("test_ws"),
+		TenantID:             "unkey",
+		Name:                 "unkey",
+		CreatedAt:            time.Now(),
+		DeletedAt:            time.Time{},
+		Plan:                 entities.WorkspacePlanPro,
+		Enabled:              true,
+		DeleteProtection:     true,
+		BetaFeatures:         make(map[string]interface{}),
+		Features:             make(map[string]interface{}),
+		StripeCustomerID:     "",
+		StripeSubscriptionID: "",
+		TrialEnds:            time.Time{},
+		PlanLockedUntil:      time.Time{},
+	}
+
+	err := h.DB.InsertWorkspace(context.Background(), rootWorkspace)
+	require.NoError(h.t, err)
+
+	rootKeyring := entities.Keyring{
+		ID:                 uid.New("test_kr"),
+		WorkspaceID:        rootWorkspace.ID,
+		StoreEncryptedKeys: false,
+		DefaultPrefix:      "test",
+		DefaultBytes:       16,
+		CreatedAt:          time.Now(),
+		UpdatedAt:          time.Time{},
+		DeletedAt:          time.Time{},
+	}
+
+	err = h.DB.InsertKeyring(context.Background(), rootKeyring)
+	require.NoError(h.t, err)
+
+	userWorkspace := entities.Workspace{
+		ID:                   uid.New("test_ws"),
+		TenantID:             "user",
+		Name:                 "user",
+		CreatedAt:            time.Now(),
+		DeletedAt:            time.Time{},
+		Plan:                 entities.WorkspacePlanPro,
+		Enabled:              true,
+		DeleteProtection:     true,
+		BetaFeatures:         make(map[string]interface{}),
+		Features:             make(map[string]interface{}),
+		StripeCustomerID:     "",
+		StripeSubscriptionID: "",
+		TrialEnds:            time.Time{},
+		PlanLockedUntil:      time.Time{},
+	}
+
+	err = h.DB.InsertWorkspace(context.Background(), userWorkspace)
+	require.NoError(h.t, err)
+
+	h.Resources = Resources{
+		RootWorkspace: rootWorkspace,
+		RootKeyring:   rootKeyring,
+		UserWorkspace: userWorkspace,
+	}
+
+}
+
+func (h *Harness) CreateRootKey() string {
+
+	key := uid.New("test_root_key")
+
+	err := h.DB.InsertKey(context.Background(), entities.Key{
+		ID:                uid.New("test_root_key"),
+		Hash:              hash.Sha256(key),
+		WorkspaceID:       h.Resources.RootWorkspace.ID,
+		ForWorkspaceID:    h.Resources.UserWorkspace.ID,
+		KeyringID:         h.Resources.RootKeyring.ID,
+		Start:             key[:4],
+		Name:              "test",
+		Identity:          nil,
+		Meta:              make(map[string]any),
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Time{},
+		DeletedAt:         time.Time{},
+		Enabled:           true,
+		Environment:       "",
+		Expires:           time.Time{},
+		Permissions:       []string{},
+		RemainingRequests: nil,
+	})
+	require.NoError(h.t, err)
+
+	return key
 
 }
 

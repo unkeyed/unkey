@@ -14,7 +14,6 @@ func Register(srv *zen.Server, svc *Services) {
 	withTracing := zen.WithTracing()
 	withMetrics := zen.WithMetrics(svc.EventBuffer)
 
-	withRootKeyAuth := zen.WithRootKeyAuth(svc.Keys)
 	withLogging := zen.WithLogging(svc.Logger)
 	withErrorHandling := zen.WithErrorHandling()
 	withValidation := zen.WithValidation(svc.Validator)
@@ -24,7 +23,6 @@ func Register(srv *zen.Server, svc *Services) {
 		withMetrics,
 		withLogging,
 		withErrorHandling,
-		withRootKeyAuth, // must be before validation to capture the workspaceID
 		withValidation,
 	}
 

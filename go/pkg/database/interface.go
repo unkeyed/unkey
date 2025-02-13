@@ -22,7 +22,9 @@ type Database interface {
 	// FindWorkspace(ctx context.Context, workspaceId string) (entities.Workspace, bool, error)
 	DeleteWorkspace(ctx context.Context, id string, hardDelete bool) error
 
-	// KeyAuth
+	// KeyRing
+	InsertKeyring(ctx context.Context, keyring entities.Keyring) error
+
 	// InsertKeyAuth(ctx context.Context, newKeyAuth entities.KeyAuth) error
 	// DeleteKeyAuth(ctx context.Context, keyAuthId string) error
 	// FindKeyAuth(ctx context.Context, keyAuthId string) (keyauth entities.KeyAuth, found bool, err error)
@@ -35,7 +37,7 @@ type Database interface {
 	// ListAllApis(ctx context.Context, limit int, offset int) ([]entities.Api, error)
 
 	// Key
-	// InsertKey(ctx context.Context, newKey entities.Key) error
+	InsertKey(ctx context.Context, newKey entities.Key) error
 	FindKeyByID(ctx context.Context, keyId string) (key entities.Key, err error)
 	FindKeyByHash(ctx context.Context, hash string) (key entities.Key, err error)
 	FindKeyForVerification(ctx context.Context, hash string) (key entities.Key, err error)
