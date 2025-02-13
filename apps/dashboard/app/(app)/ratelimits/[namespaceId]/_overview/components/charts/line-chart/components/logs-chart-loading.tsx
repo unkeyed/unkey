@@ -1,10 +1,10 @@
-export const LogsChartError = () => {
+export const LogsTimeseriesAreaChartError = () => {
   return (
     <div className="flex flex-col h-full">
-      {/* Header section matching the main chart */}
+      {/* Header section */}
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10">
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">REQUESTS</div>
+          <div className="text-accent-10 text-[11px] leading-4">DURATION</div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7">--</div>
         </div>
 
@@ -12,21 +12,21 @@ export const LogsChartError = () => {
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-accent-8 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">PASSED</div>
+              <div className="text-accent-10 text-[11px] leading-4">AVG</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">--</div>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-orange-9 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">BLOCKED</div>
+              <div className="text-accent-10 text-[11px] leading-4">P99</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">--</div>
           </div>
         </div>
       </div>
 
-      {/* Chart area */}
+      {/* Chart area with error message */}
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <span className="text-sm text-accent-9">Could not retrieve logs</span>

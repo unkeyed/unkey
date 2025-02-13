@@ -15,6 +15,8 @@ import {
   ResponsiveContainer,
   YAxis,
 } from "recharts";
+import { LogsTimeseriesAreaChartLoading } from "./components/logs-chart-error";
+import { LogsTimeseriesAreaChartError } from "./components/logs-chart-loading";
 
 const latencyFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
@@ -103,11 +105,10 @@ export const LogsTimeseriesAreaChart: React.FC<LogsTimeseriesAreaChartProps> = (
   };
 
   if (isError) {
-    return <div className="flex items-center justify-center h-64">Error loading chart data</div>;
+    return <LogsTimeseriesAreaChartError />;
   }
-
   if (isLoading) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>;
+    return <LogsTimeseriesAreaChartLoading />;
   }
 
   // Calculate metrics

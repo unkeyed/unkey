@@ -10,7 +10,7 @@ export const LogsClient = ({ namespaceId }: { namespaceId: string }) => {
     <div className="flex flex-col">
       <RatelimitOverviewLogsControls />
       <RatelimitOverviewLogsControlCloud />
-      <RatelimitOverviewLogsCharts />
+      <RatelimitOverviewLogsCharts namespaceId={namespaceId} />
       <RatelimitOverviewLogsTable namespaceId={namespaceId} />
     </div>
   );
