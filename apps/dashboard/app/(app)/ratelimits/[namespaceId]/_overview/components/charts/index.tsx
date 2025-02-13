@@ -1,9 +1,9 @@
 import { convertDateToLocal } from "@/components/logs/chart/utils/convert-date-to-local";
-import { generateLatencyData } from "../../dev-utils";
 import { useFilters } from "../../hooks/use-filters";
 import { LogsTimeseriesBarChart } from "./bar-chart";
 import { useFetchRatelimitOverviewTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 import { LogsTimeseriesAreaChart } from "./line-chart";
+import { useFetchRatelimitOverviewLatencyTimeseries } from "./line-chart/hooks/use-fetch-timeseries";
 
 export const RatelimitOverviewLogsCharts = ({
   namespaceId,
@@ -11,15 +11,10 @@ export const RatelimitOverviewLogsCharts = ({
   namespaceId: string;
 }) => {
   const { filters, updateFilters } = useFilters();
-  const { isError, isLoading, timeseries } = useFetchRatelimitOverviewTimeseries(namespaceId);
-
-  // Generate latency data with matching timestamps
-  const latencyData = generateLatencyData(timeseries?.length ?? 0, {
-    baseAvgLatency: 150,
-    baseP99Latency: 300,
-    variability: 0.3,
-    trendFactor: 0.4,
-  });
+  const { isError, isLoading, timeseries } =
+    useFetchRatelimitOverviewTimeseries(namespaceId);
+  const { latencyIsError, latencyIsLoading, latencyTimeseries } =
+    useFetchRatelimitOverviewLatencyTimeseries(namespaceId);
 
   const handleSelectionChange = ({
     start,
@@ -29,7 +24,7 @@ export const RatelimitOverviewLogsCharts = ({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field),
+      (f) => !["startTime", "endTime", "since"].includes(f.field)
     );
 
     updateFilters([
@@ -48,6 +43,7 @@ export const RatelimitOverviewLogsCharts = ({
       },
     ]);
   };
+  console.log({ latencyTimeseries });
 
   return (
     <div className="flex w-full h-[320px]">
@@ -72,9 +68,9 @@ export const RatelimitOverviewLogsCharts = ({
       </div>
       <div className="w-1/2">
         <LogsTimeseriesAreaChart
-          data={latencyData}
-          isLoading={isLoading}
-          isError={isError}
+          data={latencyTimeseries}
+          isLoading={latencyIsLoading}
+          isError={latencyIsError}
           config={{
             avgLatency: {
               color: "hsl(var(--accent-8))",

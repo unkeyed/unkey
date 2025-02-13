@@ -1,4 +1,8 @@
-import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from "./active_keys";
+import {
+  getActiveKeysPerDay,
+  getActiveKeysPerHour,
+  getActiveKeysPerMonth,
+} from "./active_keys";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import { getLatestVerifications } from "./latest_verifications";
@@ -10,6 +14,9 @@ import {
 } from "./logs";
 import {
   getRatelimitLastUsed,
+  getRatelimitLatencyTimeseriesPerDay,
+  getRatelimitLatencyTimeseriesPerHour,
+  getRatelimitLatencyTimeseriesPerMinute,
   getRatelimitLogs,
   getRatelimitOverviewLogs,
   getRatelimitsPerDay,
@@ -89,6 +96,12 @@ export class ClickHouse {
         perHour: getRatelimitsPerHour(this.querier),
         perDay: getRatelimitsPerDay(this.querier),
         perMonth: getRatelimitsPerMonth(this.querier),
+
+        latency: {
+          perDay: getRatelimitLatencyTimeseriesPerDay(this.querier),
+          perMinute: getRatelimitLatencyTimeseriesPerMinute(this.querier),
+          perHour: getRatelimitLatencyTimeseriesPerHour(this.querier),
+        },
       },
       overview: {
         logs: getRatelimitOverviewLogs(this.querier),
