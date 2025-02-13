@@ -1,4 +1,5 @@
 "use client";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -7,7 +8,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormField } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -21,9 +30,8 @@ const formSchema = z.object({
   keyAuthId: z.string(),
   defaultPrefix: z
     .string()
-    .trim()
     .max(8, { message: "Prefixes cannot be longer than 8 characters" })
-    .refine((prefix) => prefix.includes(" "), {
+    .refine((prefix) => !prefix.includes(" "), {
       message: "Prefixes cannot contain spaces.",
     }),
 });
@@ -38,7 +46,12 @@ type Props = {
 export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: async (data, context, options) => {
+      return zodResolver(formSchema)(data, context, options);
+    },
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
     defaultValues: {
       defaultPrefix: keyAuth.defaultPrefix ?? undefined,
       keyAuthId: keyAuth.id,
@@ -65,38 +78,54 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Default Prefix</CardTitle>
-          <CardDescription>
-            Set default prefix for the keys under this API.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col space-y-2">
-            <input type="hidden" name="keyAuthId" value={keyAuth.id} />
-            <label className="hidden sr-only">Default Prefix</label>
-            <FormField
-              control={form.control}
-              name="defaultPrefix"
-              render={({ field }) => (
-                <Input className="max-w-sm" {...field} autoComplete="off" />
-              )}
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end">
-          <Button
-            variant="primary"
-            disabled={!form.formState.isValid || form.formState.isSubmitting}
-            type="submit"
-            loading={form.formState.isSubmitting}
-          >
-            Save
-          </Button>
-        </CardFooter>
-      </Card>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Default Prefix</CardTitle>
+            <CardDescription>
+              Set default prefix for the keys under this API. Don't add a
+              trailing underscore, we'll do that automatically
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col space-y-2">
+              <input type="hidden" name="keyAuthId" value={keyAuth.id} />
+              <label className="hidden sr-only">Default Prefix</label>
+              <FormField
+                control={form.control}
+                name="defaultPrefix"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        className="max-w-sm"
+                        {...field}
+                        onBlur={(e) => {
+                          if (e.target.value === "") {
+                            return;
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button
+              variant="primary"
+              disabled={!form.formState.isValid || form.formState.isSubmitting}
+              type="submit"
+              loading={form.formState.isSubmitting}
+            >
+              Save
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+    </Form>
   );
 };

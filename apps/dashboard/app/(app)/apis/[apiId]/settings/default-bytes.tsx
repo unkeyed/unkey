@@ -8,7 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormField } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -36,7 +42,12 @@ type Props = {
 export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: async (data, context, options) => {
+      return zodResolver(formSchema)(data, context, options);
+    },
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
     defaultValues: {
       defaultBytes: keyAuth.defaultBytes ?? undefined,
       keyAuthId: keyAuth.id,
@@ -57,50 +68,61 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.defaultBytes === keyAuth.defaultBytes || !values.defaultBytes) {
       return toast.error(
-        "Please provide a different byte-size than already existing one as default",
+        "Please provide a different byte-size than already existing one as default"
       );
     }
     await setDefaultBytes.mutateAsync(values);
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Default Bytes</CardTitle>
-          <CardDescription>
-            Set default Bytes for the keys under this API. Default byte size must be between{" "}
-            <span className="font-bold">8 to 255</span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col space-y-2">
-            <input type="hidden" name="keyAuthId" value={keyAuth.id} />
-            <label className="hidden sr-only">Default Bytes</label>
-            <FormField
-              control={form.control}
-              name="defaultBytes"
-              render={({ field }) => (
-                <Input
-                  className="max-w-sm"
-                  {...field}
-                  autoComplete="off"
-                  onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}
-                />
-              )}
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end">
-          <Button
-            variant="primary"
-            disabled={!form.formState.isValid || form.formState.isSubmitting}
-            type="submit"
-          >
-            {form.formState.isSubmitting ? <Loading /> : "Save"}
-          </Button>
-        </CardFooter>
-      </Card>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Default Bytes</CardTitle>
+            <CardDescription>
+              Set default Bytes for the keys under this API. Default byte size
+              must be between <span className="font-bold">8 to 255</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col space-y-2">
+              <input type="hidden" name="keyAuthId" value={keyAuth.id} />
+              <label className="hidden sr-only">Default Bytes</label>
+              <FormField
+                control={form.control}
+                name="defaultBytes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        className="max-w-sm"
+                        {...field}
+                        autoComplete="off"
+                        onChange={(e) =>
+                          field.onChange(
+                            Number(e.target.value.replace(/\D/g, ""))
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button
+              variant="primary"
+              disabled={!form.formState.isValid || form.formState.isSubmitting}
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+    </Form>
   );
 };
