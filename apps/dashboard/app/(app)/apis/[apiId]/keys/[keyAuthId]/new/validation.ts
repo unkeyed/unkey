@@ -16,7 +16,7 @@ export const formSchema = z.object({
     .string()
     .trim()
     .max(8, { message: "Prefixes cannot be longer than 8 characters" })
-    .refine((prefix) => !prefix.includes(" "), {
+    .refine((prefix) => prefix.includes(" "), {
       message: "Prefixes cannot contain spaces.",
     })
     .optional(),
