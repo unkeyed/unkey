@@ -226,7 +226,7 @@ export const QueriesPopover = ({ children }: PropsWithChildren) => {
         <div className="flex flex-row items-center">{children}</div>
       </PopoverTrigger>
       <PopoverContent
-        className="flex flex-col w-[430px] bg-white dark:bg-black rounded-lg p-2 pb-0 h-[924px] shadow-[0_12px_32px_-16px_rgba(0,0,0,0.1)] shadow-[0_12px_60px_0px_rgba(0,0,0,0.15)] shadow-[0_0px_0px_1px_rgba(0,0,0,0.1)] border-none"
+        className="flex flex-col w-[430px] bg-white dark:bg-black rounded-lg p-2 pb-0 h-[924px] shadow-shadow-black-a5 shadow-shadow-black-a3 shadow-shadow-inverted-2 dark:shadow-[0_12px_32px_-16px_rgba(255,255,255,0.1)] dark:shadow-[0_12px_60px_0px_rgba(255,255,255,0.15)] dark:shadow-[0_0px_0px_1px_rgba(255,255,255,0.1)] border-none"
         align="start"
         // onKeyDown={handleKeyNavigation}
       >
