@@ -19,7 +19,7 @@ export default async function Page(props: {
 
   if (page.slugs.length === 0) {
     return (
-      <div className="min-h-screen   border  text-center -mt-16 pt-16 flex items-center w-screen justify-center ">
+      <div className="min-h-screen border text-center -mt-16 pt-16 flex items-center w-screen justify-center ">
         <div>
           <h1 className="text-7xl md:text-8xl font-bold  leading-none  uppercase tracking-tight">
             RFCS
@@ -60,7 +60,11 @@ export async function generateStaticParams() {
   return rfcSource.generateParams();
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug?: string[] }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug?: string[] }>;
+}) {
   const page = rfcSource.getPage((await params).slug);
   if (!page) {
     notFound();
