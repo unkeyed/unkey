@@ -10,7 +10,13 @@ export const createKey = t.procedure
   .use(auth)
   .input(
     z.object({
-      prefix: z.string().optional(),
+      prefix: z
+        .string()
+        .max(8, { message: "Prefixes cannot be longer than 8 characters" })
+        .refine((prefix) => !prefix.includes(" "), {
+          message: "Prefixes cannot contain spaces.",
+        })
+        .optional(),
       bytes: z.number().int().gte(16).default(16),
       keyAuthId: z.string(),
       ownerId: z.string().nullish(),
@@ -33,13 +39,16 @@ export const createKey = t.procedure
         .optional(),
       enabled: z.boolean().default(true),
       environment: z.string().optional(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const keyAuth = await db.query.keyAuth
       .findFirst({
         where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.keyAuthId)
+          ),
         with: {
           api: true,
         },

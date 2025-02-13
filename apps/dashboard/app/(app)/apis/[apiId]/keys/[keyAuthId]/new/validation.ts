@@ -15,7 +15,10 @@ export const formSchema = z.object({
   prefix: z
     .string()
     .trim()
-    .max(8, { message: "Please limit the prefix to under 8 characters." })
+    .max(8, { message: "Prefixes cannot be longer than 8 characters" })
+    .refine((prefix) => !prefix.includes(" "), {
+      message: "Prefixes cannot contain spaces.",
+    })
     .optional(),
   ownerId: z.string().trim().optional(),
   name: z.string().trim().optional(),
@@ -33,7 +36,7 @@ export const formSchema = z.object({
       },
       {
         message: "Must be valid json",
-      },
+      }
     )
     .optional(),
   limitEnabled: z.boolean().default(false),
@@ -96,7 +99,9 @@ export const formSchema = z.object({
         .number({
           errorMap: (issue, { defaultError }) => ({
             message:
-              issue.code === "invalid_type" ? "Duration must be greater than 0" : defaultError,
+              issue.code === "invalid_type"
+                ? "Duration must be greater than 0"
+                : defaultError,
           }),
         })
         .positive({ message: "Refill interval must be greater than 0" }),
@@ -104,7 +109,9 @@ export const formSchema = z.object({
         .number({
           errorMap: (issue, { defaultError }) => ({
             message:
-              issue.code === "invalid_type" ? "Refill limit must be greater than 0" : defaultError,
+              issue.code === "invalid_type"
+                ? "Refill limit must be greater than 0"
+                : defaultError,
           }),
         })
         .positive({ message: "Limit must be greater than 0" }),
