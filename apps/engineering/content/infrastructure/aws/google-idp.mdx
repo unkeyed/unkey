@@ -1,6 +1,6 @@
 ---
 title: Google as an Identity Provider for AWS
-description: Efficient details for setting up Google Workspace to be an IdP for AWS
+description: Step-by-step guide for configuring Google Workspace as a SAML 2.0 Identity Provider (IdP) for AWS Single Sign-On
 ---
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
@@ -15,7 +15,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
     <Step>
     In the `More options` menu item, navigate to `Manage custom attributes` and then click `ADD CUSTOM ATTRIBUTE`
     Configure the custom attribute as follows:
-    ![Image](./gw-custom-attributes.png)
+    ![Google Workspace custom attributes configuration showing Amazon Role attribute settings](./gw-custom-attributes.png)
     </Step>
 
     <Step>
@@ -60,6 +60,7 @@ Next we'll configure the AWS SAML app in Google Workspace
 
     <Step>Click `Save` then in the `User access` section, turn the `Service status` to `ON for everyone`.</Step>
 
+    <Step>Verify the configuration by clicking the `Test SAML login` link in the Google Workspace admin console to ensure the setup is working correctly.</Step>
 </Steps>
 
 ## Enable automatic user provisioning in IAM Identity Center
