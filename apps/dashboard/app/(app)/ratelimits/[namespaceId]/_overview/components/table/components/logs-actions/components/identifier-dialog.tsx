@@ -24,6 +24,7 @@ import { Button } from "@unkey/ui";
 import type { PropsWithChildren, ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import type { OverrideDetails } from "../../../logs-table";
 import { InputTooltip } from "./input-tooltip";
 
 const overrideValidationSchema = z.object({
@@ -75,15 +76,17 @@ type Props = PropsWithChildren<{
   identifier: string;
   isLoading?: boolean;
   namespaceId: string;
+  overrideDetails?: OverrideDetails;
 }>;
 
-export const IdentifierDialog: React.FC<Props> = ({
+export const IdentifierDialog = ({
   isModalOpen,
   onOpenChange,
   namespaceId,
   identifier,
+  overrideDetails,
   isLoading = false,
-}) => {
+}: Props) => {
   const { ratelimit } = trpc.useUtils();
   const {
     register,
@@ -94,18 +97,35 @@ export const IdentifierDialog: React.FC<Props> = ({
     resolver: zodResolver(overrideValidationSchema),
     defaultValues: {
       identifier,
-      limit: 10,
-      duration: 60_000,
-      async: "unset",
+      limit: overrideDetails?.limit ?? 10,
+      duration: overrideDetails?.duration ?? 60_000,
+      async:
+        overrideDetails?.async === undefined ? "unset" : overrideDetails.async ? "async" : "sync",
+    },
+  });
+
+  const update = trpc.ratelimit.override.update.useMutation({
+    onSuccess() {
+      toast.success("Limits have been updated", {
+        description: "Changes may take up to 60s to propagate globally",
+      });
+      onOpenChange(false);
+      ratelimit.overview.logs.query.invalidate();
+    },
+    onError(err) {
+      toast.error("Failed to update override", {
+        description: err.message,
+      });
     },
   });
 
   const create = trpc.ratelimit.override.create.useMutation({
     onSuccess() {
-      toast.success("Override has been updated", {
+      toast.success("Override has been created", {
         description: "Changes may take up to 60s to propagate globally",
       });
       onOpenChange(false);
+      ratelimit.overview.logs.query.invalidate();
     },
     onError(err) {
       toast.error("Failed to create override", {
@@ -116,18 +136,28 @@ export const IdentifierDialog: React.FC<Props> = ({
 
   const onSubmitForm = async (values: FormValues) => {
     try {
-      await create.mutateAsync({
-        namespaceId,
-        identifier: values.identifier,
-        limit: values.limit,
-        duration: values.duration,
-        async: {
-          unset: undefined,
-          sync: false,
-          async: true,
-        }[values.async],
-      });
-      ratelimit.overview.logs.query.invalidate();
+      const asyncValue = {
+        unset: undefined,
+        sync: false,
+        async: true,
+      }[values.async];
+
+      if (overrideDetails?.overrideId) {
+        await update.mutateAsync({
+          id: overrideDetails.overrideId,
+          limit: values.limit,
+          duration: values.duration,
+          async: Boolean(overrideDetails.async),
+        });
+      } else {
+        await create.mutateAsync({
+          namespaceId,
+          identifier: values.identifier,
+          limit: values.limit,
+          duration: values.duration,
+          async: asyncValue,
+        });
+      }
     } catch (error) {
       console.error("Form submission error:", error);
     }

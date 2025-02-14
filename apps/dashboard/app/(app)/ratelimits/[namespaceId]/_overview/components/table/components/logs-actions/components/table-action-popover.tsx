@@ -6,17 +6,20 @@ import { Clone, Layers3, PenWriting3 } from "@unkey/icons";
 import Link from "next/link";
 import { type KeyboardEvent, type PropsWithChildren, useEffect, useRef, useState } from "react";
 import { useFilters } from "../../../../../hooks/use-filters";
+import type { OverrideDetails } from "../../../logs-table";
 import { IdentifierDialog } from "./identifier-dialog";
 
 type Props = {
   identifier: string;
   namespaceId: string;
+  overrideDetails?: OverrideDetails;
 };
 
 export const TableActionPopover = ({
   children,
   identifier,
   namespaceId,
+  overrideDetails,
 }: PropsWithChildren<Props>) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -222,6 +225,7 @@ export const TableActionPopover = ({
         </PopoverContent>
       </Popover>
       <IdentifierDialog
+        overrideDetails={overrideDetails}
         namespaceId={namespaceId}
         identifier={identifier}
         isModalOpen={isModalOpen}

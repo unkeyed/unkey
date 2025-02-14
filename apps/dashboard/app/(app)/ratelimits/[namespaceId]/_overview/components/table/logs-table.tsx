@@ -17,6 +17,12 @@ import { calculateBlockedPercentage } from "./utils/calculate-blocked-percentage
 import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
 const MAX_LATENCY = 10;
+export type OverrideDetails = {
+  overrideId?: string;
+  limit: number;
+  duration: number;
+  async?: boolean | null;
+};
 
 export const RatelimitOverviewLogsTable = ({
   namespaceId,
@@ -230,7 +236,11 @@ const columns = (namespaceId: string): Column<RatelimitOverviewLog>[] => {
             className={cn("font-mono group-hover:underline decoration-dotted")}
           />
           <div className="invisible group-hover:visible">
-            <LogsTableAction identifier={log.identifier} namespaceId={namespaceId} />
+            <LogsTableAction
+              overrideDetails={log.override}
+              identifier={log.identifier}
+              namespaceId={namespaceId}
+            />
           </div>
         </div>
       ),

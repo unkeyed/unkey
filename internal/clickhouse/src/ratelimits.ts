@@ -384,6 +384,14 @@ export const ratelimitOverviewLogs = z.object({
   blocked_count: z.number().int(),
   avg_latency: z.number().int(),
   p99_latency: z.number().int(),
+  override: z
+    .object({
+      limit: z.number().int(),
+      duration: z.number().int(),
+      overrideId: z.string(),
+      async: z.boolean().nullable(),
+    })
+    .optional(),
 });
 
 export type RatelimitOverviewLog = z.infer<typeof ratelimitOverviewLogs>;

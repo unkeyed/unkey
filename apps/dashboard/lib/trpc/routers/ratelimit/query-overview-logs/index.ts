@@ -104,6 +104,8 @@ async function checkIfIdentifierHasOverride(logs: RatelimitOverviewLog[]) {
       identifier: true,
       limit: true,
       duration: true,
+      id: true,
+      async: true,
     },
   });
 
@@ -114,6 +116,8 @@ async function checkIfIdentifierHasOverride(logs: RatelimitOverviewLog[]) {
       {
         limit: override.limit,
         duration: override.duration,
+        overrideId: override.id,
+        async: override.async,
       },
     ]),
   );
