@@ -12,7 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const PenWriting3: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+export const Clone: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
   return (
     <svg
@@ -23,16 +23,21 @@ export const PenWriting3: React.FC<IconProps> = ({ size = "xl-thin", ...props })
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="currentColor">
-        <path
-          d="M2.75,15.25s3.599-.568,4.546-1.515c.947-.947,7.327-7.327,7.327-7.327,.837-.837,.837-2.194,0-3.031-.837-.836-2.194-.836-3.03,0,0,0-6.38,6.38-7.327,7.327-.947,.947-1.515,4.546-1.515,4.546h0Z"
+        <rect
+          height="11"
+          width="11"
           fill="none"
+          rx="2"
+          ry="2"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
+          x="1.75"
+          y="1.75"
         />
         <path
-          d="M15.25,14.68c-.759,.759-1.991,.759-2.75,0s-1.991-.759-2.75,0"
+          d="M15,5.395c.733,.297,1.25,1.015,1.25,1.855v7c0,1.105-.895,2-2,2H7.25c-.839,0-1.558-.517-1.855-1.25"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
