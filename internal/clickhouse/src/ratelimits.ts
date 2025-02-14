@@ -26,7 +26,7 @@ export const ratelimitLogsTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
 });
@@ -39,12 +39,8 @@ export const ratelimitLogsTimeseriesDataPoint = z.object({
   }),
 });
 
-export type RatelimitLogsTimeseriesDataPoint = z.infer<
-  typeof ratelimitLogsTimeseriesDataPoint
->;
-export type RatelimitLogsTimeseriesParams = z.infer<
-  typeof ratelimitLogsTimeseriesParams
->;
+export type RatelimitLogsTimeseriesDataPoint = z.infer<typeof ratelimitLogsTimeseriesDataPoint>;
+export type RatelimitLogsTimeseriesParams = z.infer<typeof ratelimitLogsTimeseriesParams>;
 
 type TimeInterval = {
   table: string;
@@ -96,7 +92,7 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
 
 function getRatelimitLogsTimeseriesWhereClause(
   params: RatelimitLogsTimeseriesParams,
-  additionalConditions: string[] = []
+  additionalConditions: string[] = [],
 ): { whereClause: string; paramSchema: z.ZodType<any> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
@@ -124,21 +120,17 @@ function getRatelimitLogsTimeseriesWhereClause(
   }
 
   return {
-    whereClause:
-      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
     paramSchema: ratelimitLogsTimeseriesParams.extend(paramSchemaExtension),
   };
 }
 
 function createTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: RatelimitLogsTimeseriesParams) => {
-    const { whereClause, paramSchema } = getRatelimitLogsTimeseriesWhereClause(
-      args,
-      [
-        "time >= fromUnixTimestamp64Milli({startTime: Int64})",
-        "time <= fromUnixTimestamp64Milli({endTime: Int64})",
-      ]
-    );
+    const { whereClause, paramSchema } = getRatelimitLogsTimeseriesWhereClause(args, [
+      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+    ]);
 
     const parameters = {
       ...args,
@@ -148,7 +140,7 @@ function createTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`identifierValue_${index}`]: i.value,
         }),
-        {}
+        {},
       ) ?? {}),
     };
 
@@ -183,11 +175,7 @@ export function getRatelimitLastUsed(ch: Querier) {
     WHERE
       workspace_id = {workspaceId: String}
       AND namespace_id = {namespaceId: String}
-     ${
-       args.identifier
-         ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0"
-         : ""
-     }
+     ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
     GROUP BY identifier
     ORDER BY time DESC
     LIMIT {limit: Int}
@@ -215,7 +203,7 @@ export const ratelimitLogsParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   status: z
@@ -223,7 +211,7 @@ export const ratelimitLogsParams = z.object({
       z.object({
         value: z.enum(["blocked", "passed"]),
         operator: z.literal("is"),
-      })
+      }),
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
@@ -264,8 +252,7 @@ export function getRatelimitLogs(ch: Querier) {
 
     const hasRequestIds = args.requestIds && args.requestIds.length > 0;
     const hasStatusFilters = args.status && args.status.length > 0;
-    const hasIdentifierFilters =
-      args.identifiers && args.identifiers.length > 0;
+    const hasIdentifierFilters = args.identifiers && args.identifiers.length > 0;
 
     const statusCondition = !hasStatusFilters
       ? "TRUE"
@@ -301,8 +288,7 @@ export function getRatelimitLogs(ch: Querier) {
           .filter(Boolean)
           .join(" OR ") || "TRUE";
 
-    const extendedParamsSchema =
-      ratelimitLogsParams.extend(paramSchemaExtension);
+    const extendedParamsSchema = ratelimitLogsParams.extend(paramSchemaExtension);
 
     const query = ch.query({
       query: `
@@ -383,7 +369,7 @@ export const ratelimitOverviewLogsParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
@@ -401,9 +387,7 @@ export const ratelimitOverviewLogs = z.object({
 });
 
 export type RatelimitOverviewLog = z.infer<typeof ratelimitOverviewLogs>;
-export type RatelimitOverviewLogsParams = z.infer<
-  typeof ratelimitOverviewLogsParams
->;
+export type RatelimitOverviewLogsParams = z.infer<typeof ratelimitOverviewLogsParams>;
 
 interface ExtendedParamsOverviewLogs extends RatelimitOverviewLogsParams {
   [key: string]: unknown;
@@ -414,8 +398,7 @@ export function getRatelimitOverviewLogs(ch: Querier) {
     const paramSchemaExtension: Record<string, z.ZodType> = {};
     const parameters: ExtendedParamsOverviewLogs = { ...args };
 
-    const hasIdentifierFilters =
-      args.identifiers && args.identifiers.length > 0;
+    const hasIdentifierFilters = args.identifiers && args.identifiers.length > 0;
 
     const identifierConditions = !hasIdentifierFilters
       ? "TRUE"
@@ -436,8 +419,7 @@ export function getRatelimitOverviewLogs(ch: Querier) {
           .filter(Boolean)
           .join(" OR ") || "TRUE";
 
-    const extendedParamsSchema =
-      ratelimitOverviewLogsParams.extend(paramSchemaExtension);
+    const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
 
     const query = ch.query({
       query: `
@@ -510,7 +492,7 @@ export const ratelimitLatencyTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
 });
@@ -526,9 +508,7 @@ export const ratelimitLatencyTimeseriesDataPoint = z.object({
 export type RatelimitLatencyTimeseriesDataPoint = z.infer<
   typeof ratelimitLatencyTimeseriesDataPoint
 >;
-export type RatelimitLatencyTimeseriesParams = z.infer<
-  typeof ratelimitLatencyTimeseriesParams
->;
+export type RatelimitLatencyTimeseriesParams = z.infer<typeof ratelimitLatencyTimeseriesParams>;
 
 type LatencyTimeInterval = {
   table: string;
@@ -554,10 +534,7 @@ const LATENCY_INTERVALS: Record<string, LatencyTimeInterval> = {
   },
 } as const;
 
-function createLatencyTimeseriesQuery(
-  interval: LatencyTimeInterval,
-  whereClause: string
-) {
+function createLatencyTimeseriesQuery(interval: LatencyTimeInterval, whereClause: string) {
   return `
     WITH filtered_data AS (
       SELECT
@@ -590,9 +567,7 @@ function createLatencyTimeseriesQuery(
   `;
 }
 
-function getRatelimitLatencyTimeseriesWhereClause(
-  params: RatelimitLatencyTimeseriesParams
-): {
+function getRatelimitLatencyTimeseriesWhereClause(params: RatelimitLatencyTimeseriesParams): {
   whereClause: string;
   paramSchema: z.ZodType<any>;
 } {
@@ -623,8 +598,7 @@ function getRatelimitLatencyTimeseriesWhereClause(
 
 function createLatencyTimeseriesQuerier(interval: LatencyTimeInterval) {
   return (ch: Querier) => async (args: RatelimitLatencyTimeseriesParams) => {
-    const { whereClause, paramSchema } =
-      getRatelimitLatencyTimeseriesWhereClause(args);
+    const { whereClause, paramSchema } = getRatelimitLatencyTimeseriesWhereClause(args);
 
     const parameters = {
       ...args,
@@ -634,7 +608,7 @@ function createLatencyTimeseriesQuerier(interval: LatencyTimeInterval) {
           ...acc,
           [`identifierValue_${index}`]: i.value,
         }),
-        {}
+        {},
       ) ?? {}),
     };
 
@@ -646,9 +620,12 @@ function createLatencyTimeseriesQuerier(interval: LatencyTimeInterval) {
   };
 }
 
-export const getRatelimitLatencyTimeseriesPerDay =
-  createLatencyTimeseriesQuerier(LATENCY_INTERVALS.day);
-export const getRatelimitLatencyTimeseriesPerHour =
-  createLatencyTimeseriesQuerier(LATENCY_INTERVALS.hour);
-export const getRatelimitLatencyTimeseriesPerMinute =
-  createLatencyTimeseriesQuerier(LATENCY_INTERVALS.minute);
+export const getRatelimitLatencyTimeseriesPerDay = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.day,
+);
+export const getRatelimitLatencyTimeseriesPerHour = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.hour,
+);
+export const getRatelimitLatencyTimeseriesPerMinute = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.minute,
+);

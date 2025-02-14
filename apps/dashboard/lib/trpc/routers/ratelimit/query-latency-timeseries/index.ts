@@ -1,14 +1,11 @@
-import { ratelimitQueryTimeseriesPayload } from "@/app/(app)/ratelimits/[namespaceId]/logs/components/charts/query-timeseries.schema";
+import { ratelimitOverviewQueryTimeseriesPayload } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { transformRatelimitFilters } from "./utils";
-import { ratelimitOverviewQueryTimeseriesPayload } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 
-export const queryRatelimitLatencyTimeseries = rateLimitedProcedure(
-  ratelimit.update
-)
+export const queryRatelimitLatencyTimeseries = rateLimitedProcedure(ratelimit.update)
   .input(ratelimitOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
     // Validate workspace exists and belongs to tenant
@@ -37,8 +34,7 @@ export const queryRatelimitLatencyTimeseries = rateLimitedProcedure(
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message:
-          "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
 
@@ -50,8 +46,7 @@ export const queryRatelimitLatencyTimeseries = rateLimitedProcedure(
     }
 
     // Transform input filters and determine granularity
-    const { params: transformedInputs, granularity } =
-      transformRatelimitFilters(input);
+    const { params: transformedInputs, granularity } = transformRatelimitFilters(input);
 
     // Query clickhouse using our new ratelimit timeseries functions
     const result = await clickhouse.ratelimits.timeseries.latency[granularity]({

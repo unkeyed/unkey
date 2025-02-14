@@ -8,10 +8,7 @@ import type { RatelimitOverviewQueryTimeseriesPayload } from "../../bar-chart/qu
 // Duration in milliseconds for historical data fetch window (1 hours)
 const TIMESERIES_DATA_WINDOW = 60 * 60 * 1000;
 
-const formatTimestamp = (
-  value: string | number,
-  granularity: TimeseriesGranularity
-) => {
+const formatTimestamp = (value: string | number, granularity: TimeseriesGranularity) => {
   const date = new Date(value);
   const offset = new Date().getTimezoneOffset() * -1;
   const localDate = addMinutes(date, offset);
@@ -30,9 +27,7 @@ const formatTimestamp = (
   }
 };
 
-export const useFetchRatelimitOverviewLatencyTimeseries = (
-  namespaceId: string
-) => {
+export const useFetchRatelimitOverviewLatencyTimeseries = (namespaceId: string) => {
   const { filters } = useFilters();
   const dateNow = useMemo(() => Date.now(), []);
 
@@ -61,9 +56,7 @@ export const useFetchRatelimitOverviewLatencyTimeseries = (
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(
-              `${filter.field} filter value type has to be 'number'`
-            );
+            console.error(`${filter.field} filter value type has to be 'number'`);
             return;
           }
           params[filter.field] = filter.value;
@@ -84,12 +77,9 @@ export const useFetchRatelimitOverviewLatencyTimeseries = (
   }, [filters, dateNow, namespaceId]);
 
   const { data, isLoading, isError } =
-    trpc.ratelimit.overview.logs.queryRatelimitLatencyTimeseries.useQuery(
-      queryParams,
-      {
-        refetchInterval: queryParams.endTime ? false : 10_000,
-      }
-    );
+    trpc.ratelimit.overview.logs.queryRatelimitLatencyTimeseries.useQuery(queryParams, {
+      refetchInterval: queryParams.endTime ? false : 10_000,
+    });
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestamp(ts.x, data.granularity),

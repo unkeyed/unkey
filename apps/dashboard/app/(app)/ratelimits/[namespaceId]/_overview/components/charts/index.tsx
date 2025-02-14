@@ -11,8 +11,7 @@ export const RatelimitOverviewLogsCharts = ({
   namespaceId: string;
 }) => {
   const { filters, updateFilters } = useFilters();
-  const { isError, isLoading, timeseries } =
-    useFetchRatelimitOverviewTimeseries(namespaceId);
+  const { isError, isLoading, timeseries } = useFetchRatelimitOverviewTimeseries(namespaceId);
   const { latencyIsError, latencyIsLoading, latencyTimeseries } =
     useFetchRatelimitOverviewLatencyTimeseries(namespaceId);
 
@@ -24,7 +23,7 @@ export const RatelimitOverviewLogsCharts = ({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field)
+      (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
 
     updateFilters([
@@ -43,7 +42,6 @@ export const RatelimitOverviewLogsCharts = ({
       },
     ]);
   };
-  console.log({ latencyTimeseries });
 
   return (
     <div className="flex w-full h-[320px]">
@@ -73,11 +71,9 @@ export const RatelimitOverviewLogsCharts = ({
           isError={latencyIsError}
           config={{
             avgLatency: {
-              color: "hsl(var(--accent-8))",
               label: "Average Latency",
             },
             p99Latency: {
-              color: "hsl(var(--warning-11))",
               label: "P99 Latency",
             },
           }}

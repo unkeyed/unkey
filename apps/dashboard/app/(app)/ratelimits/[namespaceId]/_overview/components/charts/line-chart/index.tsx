@@ -6,7 +6,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -15,8 +15,8 @@ import {
   ResponsiveContainer,
   YAxis,
 } from "recharts";
-import { LogsTimeseriesAreaChartLoading } from "./components/logs-chart-error";
-import { LogsTimeseriesAreaChartError } from "./components/logs-chart-loading";
+import { LogsTimeseriesAreaChartError } from "./components/logs-chart-error";
+import { LogsTimeseriesAreaChartLoading } from "./components/logs-chart-loading";
 
 const latencyFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
@@ -59,6 +59,32 @@ export const LogsTimeseriesAreaChart: React.FC<LogsTimeseriesAreaChartProps> = (
   enableSelection = false,
 }) => {
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const darkModeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    setIsDarkMode(darkModeMediaQuery.matches);
+
+    const handleThemeChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
+    darkModeMediaQuery.addEventListener("change", handleThemeChange);
+
+    return () => darkModeMediaQuery.removeEventListener("change", handleThemeChange);
+  }, []);
+
+  const getThemeColor = (lightColor: string, darkColor: string) => {
+    return isDarkMode ? darkColor : lightColor;
+  };
+
+  const chartConfig = {
+    avgLatency: {
+      color: getThemeColor("hsl(var(--accent-11))", "hsl(var(--accent-11))"),
+      label: config.avgLatency.label,
+    },
+    p99Latency: {
+      color: getThemeColor("hsl(var(--warning-10))", "hsl(var(--warning-11))"),
+      label: config.p99Latency.label,
+    },
+  };
 
   const handleMouseDown = (e: any) => {
     if (!enableSelection) {
@@ -162,12 +188,12 @@ export const LogsTimeseriesAreaChart: React.FC<LogsTimeseriesAreaChartProps> = (
             >
               <defs>
                 <linearGradient id="avgGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--accent-8))" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="hsl(var(--accent-8))" stopOpacity={0} />
+                  <stop offset="5%" stopColor={chartConfig.avgLatency.color} stopOpacity={0.2} />
+                  <stop offset="95%" stopColor={chartConfig.avgLatency.color} stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="p99Gradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--warning-11))" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="hsl(var(--warning-11))" stopOpacity={0} />
+                  <stop offset="5%" stopColor={chartConfig.p99Latency.color} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={chartConfig.p99Latency.color} stopOpacity={0} />
                 </linearGradient>
               </defs>
 
@@ -219,14 +245,15 @@ export const LogsTimeseriesAreaChart: React.FC<LogsTimeseriesAreaChartProps> = (
               <Area
                 type="monotone"
                 dataKey="avgLatency"
-                stroke={config.avgLatency.color}
+                stroke={chartConfig.avgLatency.color}
+                fill="url(#avgGradient)"
+                fillOpacity={1}
                 strokeWidth={2}
-                fillOpacity={0}
               />
               <Area
                 type="monotone"
                 dataKey="p99Latency"
-                stroke={config.p99Latency.color}
+                stroke={chartConfig.p99Latency.color}
                 strokeWidth={2}
                 fill="url(#p99Gradient)"
                 fillOpacity={1}

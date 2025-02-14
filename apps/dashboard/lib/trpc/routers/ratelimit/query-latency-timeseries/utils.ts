@@ -13,7 +13,7 @@ type TimeseriesConfig = {
 
 export const getTimeseriesGranularity = (
   startTime?: number | null,
-  endTime?: number | null
+  endTime?: number | null,
 ): TimeseriesConfig => {
   const now = Date.now();
 
@@ -51,9 +51,7 @@ export const getTimeseriesGranularity = (
   };
 };
 
-export function transformRatelimitFilters(
-  params: RatelimitQueryTimeseriesPayload
-): {
+export function transformRatelimitFilters(params: RatelimitQueryTimeseriesPayload): {
   params: Omit<RatelimitLogsTimeseriesParams, "workspaceId" | "namespaceId">;
   granularity: TimeseriesGranularity;
 } {
