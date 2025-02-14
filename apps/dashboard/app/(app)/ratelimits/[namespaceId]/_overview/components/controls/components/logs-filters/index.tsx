@@ -3,14 +3,13 @@ import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useFilters } from "../../../../hooks/use-filters";
-import { IdentifiersFilter } from "./components/identifiers-filter";
 
 const FILTER_ITEMS: FilterItemConfig[] = [
   {
     id: "identifiers",
     label: "Identifier",
     shortcut: "p",
-    component: <IdentifiersFilter />,
+    component: <div>Hello there!</div>,
   },
 ];
 

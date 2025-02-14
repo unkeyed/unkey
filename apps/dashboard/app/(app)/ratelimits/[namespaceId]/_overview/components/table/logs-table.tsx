@@ -6,14 +6,12 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
-import { ArrowDotAntiClockwise, Ban, BookBookmark, Focus } from "@unkey/icons";
-import { Button, Empty, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import ms from "ms";
+import { Ban, BookBookmark } from "@unkey/icons";
+import { Button, Empty } from "@unkey/ui";
 import { compactFormatter } from "../../utils";
 import { LogsTableAction } from "./components/logs-actions";
-import { WarningWithTooltip } from "./components/warning-with-tooltip";
+import { IdentifierColumn } from "./components/override-indicator";
 import { useRatelimitOverviewLogsQuery } from "./hooks/use-logs-query";
-import { calculateBlockedPercentage } from "./utils/calculate-blocked-percentage";
 import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
 const MAX_LATENCY = 10;
@@ -79,78 +77,7 @@ const columns = (namespaceId: string): Column<RatelimitOverviewLog>[] => {
       width: "7.5%",
       headerClassName: "pl-11",
       render: (log) => {
-        const style = getStatusStyle(log);
-
-        return (
-          <div className="flex gap-6 items-center pl-2">
-            <WarningWithTooltip log={log} />
-            <div className="flex gap-3 items-center">
-              <div className={cn(style.badge.default, "rounded p-1")}>
-                {log.override ? (
-                  <ArrowDotAntiClockwise size="md-regular" />
-                ) : (
-                  <Focus size="md-regular" />
-                )}
-              </div>
-              <div className="font-mono text-accent-12 font-medium">{log.identifier}</div>
-              {log.override && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="group relative p-3 cursor-pointer -ml-[5px]">
-                        <div className="absolute inset-0" />
-                        <div
-                          className={cn(
-                            "size-[6px] rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-                            calculateBlockedPercentage(log)
-                              ? "bg-orange-10 hover:bg-orange-11"
-                              : "bg-warning-10",
-                          )}
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      className="bg-gray-1 px-4 py-2 border border-accent-6 shadow-md font-medium text-xs text-accent-12 "
-                      side="right"
-                    >
-                      <div className="flex gap-3 items-center">
-                        <div
-                          className={cn(
-                            style.badge.default,
-                            "rounded p-1",
-                            "bg-accent-4 text-accent-11 group-hover:bg-accent-5",
-                          )}
-                        >
-                          <ArrowDotAntiClockwise size="md-regular" />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <div className="text-sm flex gap-[10px] items-center">
-                            <span className="font-medium text-sm text-accent-12">
-                              Custom override in effect
-                            </span>
-                            <div className={cn("size-[6px] rounded-full bg-warning-10")} />
-                          </div>
-                          <div className="text-accent-9">
-                            {log.override && (
-                              <>
-                                Limit set to{" "}
-                                <span className="text-accent-12">
-                                  {Intl.NumberFormat().format(log.override.limit)}{" "}
-                                </span>
-                                requests per{" "}
-                                <span className="text-accent-12">{ms(log.override.duration)}</span>
-                              </>
-                            )}
-                          </div>{" "}
-                        </div>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
-          </div>
-        );
+        return <IdentifierColumn log={log} />;
       },
     },
     {
