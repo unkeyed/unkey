@@ -84,6 +84,7 @@ export const IdentifierDialog: React.FC<Props> = ({
   identifier,
   isLoading = false,
 }) => {
+  const { ratelimit } = trpc.useUtils();
   const {
     register,
     handleSubmit,
@@ -126,6 +127,7 @@ export const IdentifierDialog: React.FC<Props> = ({
           async: true,
         }[values.async],
       });
+      ratelimit.overview.logs.query.invalidate();
     } catch (error) {
       console.error("Form submission error:", error);
     }

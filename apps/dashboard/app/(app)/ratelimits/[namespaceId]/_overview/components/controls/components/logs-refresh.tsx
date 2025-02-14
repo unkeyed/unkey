@@ -8,7 +8,8 @@ export const LogsRefresh = () => {
   const hasRelativeFilter = filters.find((f) => f.field === "since");
 
   const handleRefresh = () => {
-    ratelimit.logs.query.invalidate();
+    ratelimit.overview.logs.query.invalidate();
+    ratelimit.overview.logs.queryRatelimitLatencyTimeseries.invalidate();
     ratelimit.logs.queryRatelimitTimeseries.invalidate();
   };
 

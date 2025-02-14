@@ -3,7 +3,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
-import { ratelimitOverviewLogs } from "@unkey/clickhouse/src/ratelimits";
+import { type RatelimitOverviewLog, ratelimitOverviewLogs } from "@unkey/clickhouse/src/ratelimits";
 import { z } from "zod";
 import { transformFilters } from "./utils";
 
@@ -77,19 +77,53 @@ export const queryRatelimitOverviewLogs = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    const logs = result.val;
+    const logsWithOverrides = await checkIfIdentifierHasOverride(result.val);
 
     const response: RatelimitOverviewLogsResponse = {
-      ratelimitOverviewLogs: logs,
-      hasMore: logs.length === input.limit,
+      ratelimitOverviewLogs: logsWithOverrides,
+      hasMore: logsWithOverrides.length === input.limit,
       nextCursor:
-        logs.length === input.limit
+        logsWithOverrides.length === input.limit
           ? {
-              time: logs[logs.length - 1].time,
-              requestId: logs[logs.length - 1].request_id,
+              time: logsWithOverrides[logsWithOverrides.length - 1].time,
+              requestId: logsWithOverrides[logsWithOverrides.length - 1].request_id,
             }
           : undefined,
     };
 
     return response;
   });
+
+async function checkIfIdentifierHasOverride(logs: RatelimitOverviewLog[]) {
+  const identifiers = [...new Set(logs.map((log) => log.identifier))];
+
+  const overrides = await db.query.ratelimitOverrides.findMany({
+    where: (table, { and, isNull, inArray }) =>
+      and(inArray(table.identifier, identifiers), isNull(table.deletedAt)),
+    columns: {
+      identifier: true,
+      limit: true,
+      duration: true,
+    },
+  });
+
+  // Create a Map for efficient override lookup
+  const overrideMap = new Map(
+    overrides.map((override) => [
+      override.identifier,
+      {
+        limit: override.limit,
+        duration: override.duration,
+      },
+    ]),
+  );
+
+  const logsWithOverrides = logs.map((log) => ({
+    ...log,
+    ...(overrideMap.has(log.identifier) && {
+      override: overrideMap.get(log.identifier),
+    }),
+  }));
+
+  return logsWithOverrides;
+}
