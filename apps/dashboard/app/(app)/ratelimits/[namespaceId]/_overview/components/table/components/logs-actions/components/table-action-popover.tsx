@@ -6,6 +6,7 @@ import { Clone, Layers3, PenWriting3 } from "@unkey/icons";
 import Link from "next/link";
 import { type KeyboardEvent, type PropsWithChildren, useEffect, useRef, useState } from "react";
 import { useFilters } from "../../../../../hooks/use-filters";
+import { IdentifierDialog } from "./identifier-dialog";
 
 type Props = {
   identifier: string;
@@ -17,6 +18,8 @@ export const TableActionPopover = ({
   identifier,
   namespaceId,
 }: PropsWithChildren<Props>) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
   const menuItems = useRef<HTMLDivElement[]>([]);
@@ -51,6 +54,12 @@ export const TableActionPopover = ({
       menuItems.current[0]?.focus();
     }
   }, [open]);
+
+  const handleEditClick = (e: React.MouseEvent | KeyboardEvent) => {
+    e.stopPropagation();
+    setOpen(false);
+    setIsModalOpen(true);
+  };
 
   const handleFilterClick = (e: React.MouseEvent | KeyboardEvent) => {
     e.stopPropagation();
@@ -93,15 +102,16 @@ export const TableActionPopover = ({
           menuItems.current[(currentIndex - 1 + 3) % 3]?.focus();
         }
         break;
-      case "k":
-      case "ArrowUp":
+
+      case "j":
+      case "ArrowDown":
         e.preventDefault();
         setFocusIndex((currentIndex + 1) % 3);
         menuItems.current[(currentIndex + 1) % 3]?.focus();
         break;
 
-      case "j":
-      case "ArrowDown":
+      case "k":
+      case "ArrowUp":
         e.preventDefault();
         setFocusIndex((currentIndex - 1 + 3) % 3);
         menuItems.current[(currentIndex - 1 + 3) % 3]?.focus();
@@ -125,90 +135,98 @@ export const TableActionPopover = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger onClick={(e) => e.stopPropagation()} asChild>
-        <div>{children}</div>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-60 bg-gray-1 dark:bg-black drop-shadow-2xl p-2 border-gray-6 rounded-lg"
-        align="end"
-        onOpenAutoFocus={(e) => {
-          e.preventDefault();
-          menuItems.current[0]?.focus();
-        }}
-        onCloseAutoFocus={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => {
-          e.preventDefault();
-          setOpen(false);
-        }}
-        onInteractOutside={(e) => {
-          e.preventDefault();
-          setOpen(false);
-        }}
-      >
-        <div
-          className="flex flex-col gap-2"
-          role="menu"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={handleKeyDown}
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger onClick={(e) => e.stopPropagation()} asChild>
+          <div>{children}</div>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-60 bg-gray-1 dark:bg-black drop-shadow-2xl p-2 border-gray-6 rounded-lg"
+          align="end"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            menuItems.current[0]?.focus();
+          }}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => {
+            e.preventDefault();
+            setOpen(false);
+          }}
+          onInteractOutside={(e) => {
+            e.preventDefault();
+            setOpen(false);
+          }}
         >
-          <Link
-            href={`/ratelimits/${namespaceId}/logs?${getTimeParams()}`}
-            tabIndex={-1}
+          <div
+            className="flex flex-col gap-2"
+            role="menu"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={handleKeyDown}
           >
+            <Link
+              href={`/ratelimits/${namespaceId}/logs?${getTimeParams()}`}
+              tabIndex={-1}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+              <div
+                ref={(el) => {
+                  if (el) {
+                    menuItems.current[0] = el;
+                  }
+                }}
+                role="menuitem"
+                tabIndex={focusIndex === 0 ? 0 : -1}
+                className="flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group cursor-pointer
+            hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3"
+                onClick={handleCopy}
+              >
+                <Layers3 size="md-regular" />
+                <span className="text-[13px] text-accent-12 font-medium">Go to logs</span>
+              </div>
+            </Link>
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
             <div
               ref={(el) => {
                 if (el) {
-                  menuItems.current[0] = el;
+                  menuItems.current[1] = el;
                 }
               }}
               role="menuitem"
-              tabIndex={focusIndex === 0 ? 0 : -1}
+              tabIndex={focusIndex === 1 ? 0 : -1}
               className="flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group cursor-pointer
             hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3"
               onClick={handleCopy}
             >
-              <Layers3 size="md-regular" />
-              <span className="text-[13px] text-accent-12 font-medium">Go to logs</span>
+              <Clone size="md-regular" />
+              <span className="text-[13px] text-accent-12 font-medium">Copy identifier</span>
             </div>
-          </Link>
 
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
-          <div
-            ref={(el) => {
-              if (el) {
-                menuItems.current[0] = el;
-              }
-            }}
-            role="menuitem"
-            tabIndex={focusIndex === 0 ? 0 : -1}
-            className="flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group cursor-pointer
-            hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3"
-            onClick={handleCopy}
-          >
-            <Clone size="md-regular" />
-            <span className="text-[13px] text-accent-12 font-medium">Copy identifier</span>
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+            <div
+              ref={(el) => {
+                if (el) {
+                  menuItems.current[2] = el;
+                }
+              }}
+              role="menuitem"
+              tabIndex={focusIndex === 2 ? 0 : -1}
+              className="flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group cursor-pointer
+            hover:bg-orange-3 data-[state=open]:bg-orange-3 focus:outline-none focus:bg-orange-3 text-orange-11"
+              onClick={handleEditClick}
+            >
+              <PenWriting3 size="md-regular" />
+              <span className="text-[13px] font-medium">Override Identifier</span>
+            </div>
           </div>
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: it's okay */}
-          <div
-            ref={(el) => {
-              if (el) {
-                menuItems.current[2] = el;
-              }
-            }}
-            role="menuitem"
-            tabIndex={focusIndex === 2 ? 0 : -1}
-            className="flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group cursor-pointer
-            hover:bg-orange-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3 text-orange-11"
-            onClick={handleFilterClick}
-          >
-            <PenWriting3 size="md-regular" />
-            <span className="text-[13px] font-medium">Override Identifier</span>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+      <IdentifierDialog
+        namespaceId={namespaceId}
+        identifier={identifier}
+        isModalOpen={isModalOpen}
+        onOpenChange={setIsModalOpen}
+      />
+    </>
   );
 };

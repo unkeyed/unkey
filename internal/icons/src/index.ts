@@ -42,3 +42,4 @@ export * from "./icons/ban";
 export * from "./icons/focus";
 export * from "./icons/arrow-dot-anti-clockwise";
 export * from "./icons/clone";
+export * from "./icons/circle-info";
