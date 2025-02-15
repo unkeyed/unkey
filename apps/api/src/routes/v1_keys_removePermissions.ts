@@ -85,8 +85,8 @@ export const registerV1KeysRemovePermissions = (app: App) =>
 
     const [key, connectedPermissions] = await Promise.all([
       db.primary.query.keys.findFirst({
-        where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, req.keyId)),
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, req.keyId), isNull(table.deletedAt)),
       }),
 
       await db.primary.query.keysPermissions.findMany({
