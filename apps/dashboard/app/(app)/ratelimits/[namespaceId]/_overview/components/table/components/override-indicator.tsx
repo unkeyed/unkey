@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
-import { ArrowDotAntiClockwise, Focus } from "@unkey/icons";
+import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import ms from "ms";
 import { calculateBlockedPercentage } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
-import { WarningWithTooltip } from "./warning-with-tooltip";
+import { RatelimitOverviewTooltip } from "./ratelimit-overview-tooltip";
 
 type IdentifierColumnProps = {
   log: RatelimitOverviewLog;
@@ -14,10 +14,24 @@ type IdentifierColumnProps = {
 export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   const style = getStatusStyle(log);
   const hasMoreBlocked = calculateBlockedPercentage(log);
+  const totalRequests = log.blocked_count + log.passed_count;
+  const blockRate = totalRequests > 0 ? (log.blocked_count / totalRequests) * 100 : 0;
 
   return (
     <div className="flex gap-6 items-center pl-2">
-      <WarningWithTooltip log={log} />
+      <RatelimitOverviewTooltip
+        content={
+          <p className="text-sm">
+            More than {Math.round(blockRate)}% of requests have been
+            <br />
+            blocked in this timeframe
+          </p>
+        }
+      >
+        <div className={cn(hasMoreBlocked ? "block" : "invisible")}>
+          <TriangleWarning2 />
+        </div>
+      </RatelimitOverviewTooltip>
       <div className="flex gap-3 items-center">
         <div
           className={cn(

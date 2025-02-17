@@ -4,12 +4,13 @@ import {
 } from "@/components/logs/validation/utils/nuqs-parsers";
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
-import type {
-  RatelimitOverviewFilterField,
-  RatelimitOverviewFilterOperator,
-  RatelimitOverviewFilterUrlValue,
-  RatelimitOverviewFilterValue,
-  RatelimitQuerySearchParams,
+import {
+  type RatelimitOverviewFilterField,
+  type RatelimitOverviewFilterOperator,
+  type RatelimitOverviewFilterUrlValue,
+  type RatelimitOverviewFilterValue,
+  type RatelimitQuerySearchParams,
+  ratelimitOverviewFilterFieldConfig,
 } from "../filters.schema";
 
 const parseAsFilterValArray = parseAsFilterValueArray<RatelimitOverviewFilterOperator>([
@@ -21,6 +22,7 @@ export const queryParamsPayload = {
   startTime: parseAsInteger,
   endTime: parseAsInteger,
   since: parseAsRelativeTime,
+  status: parseAsFilterValArray,
 } as const;
 
 export const useFilters = () => {
@@ -34,6 +36,20 @@ export const useFilters = () => {
         field: "identifiers",
         operator: pathFilter.operator,
         value: pathFilter.value,
+      });
+    });
+
+    searchParams.status?.forEach((statusFilter) => {
+      activeFilters.push({
+        id: crypto.randomUUID(),
+        field: "status",
+        operator: statusFilter.operator,
+        value: statusFilter.value,
+        metadata: {
+          colorClass: ratelimitOverviewFilterFieldConfig.status.getColorClass?.(
+            statusFilter.value as string,
+          ),
+        },
       });
     });
 
@@ -62,11 +78,19 @@ export const useFilters = () => {
       };
 
       const identifierFilters: RatelimitOverviewFilterUrlValue[] = [];
+      const statusFilters: RatelimitOverviewFilterUrlValue[] = [];
 
       newFilters.forEach((filter) => {
         switch (filter.field) {
           case "identifiers":
             identifierFilters.push({
+              value: filter.value,
+              operator: filter.operator,
+            });
+            break;
+
+          case "status":
+            statusFilters.push({
               value: filter.value,
               operator: filter.operator,
             });
@@ -84,6 +108,7 @@ export const useFilters = () => {
 
       // Set arrays to null when empty, otherwise use the filtered values
       newParams.identifiers = identifierFilters.length > 0 ? identifierFilters : null;
+      newParams.status = statusFilters.length > 0 ? statusFilters : null;
       setSearchParams(newParams);
     },
     [setSearchParams],

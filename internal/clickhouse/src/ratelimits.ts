@@ -364,6 +364,14 @@ export const ratelimitOverviewLogsParams = z.object({
   limit: z.number().int(),
   startTime: z.number().int(),
   endTime: z.number().int(),
+  status: z
+    .array(
+      z.object({
+        value: z.enum(["blocked", "passed"]),
+        operator: z.literal("is"),
+      }),
+    )
+    .nullable(),
   identifiers: z
     .array(
       z.object({
@@ -407,6 +415,22 @@ export function getRatelimitOverviewLogs(ch: Querier) {
     const parameters: ExtendedParamsOverviewLogs = { ...args };
 
     const hasIdentifierFilters = args.identifiers && args.identifiers.length > 0;
+    const hasStatusFilters = args.status && args.status.length > 0;
+
+    const statusCondition = !hasStatusFilters
+      ? "TRUE"
+      : args.status
+          ?.map((filter, index) => {
+            if (filter.operator === "is") {
+              const paramName = `statusValue_${index}`;
+              paramSchemaExtension[paramName] = z.boolean();
+              parameters[paramName] = filter.value === "passed";
+              return `passed = {${paramName}: Boolean}`;
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE";
 
     const identifierConditions = !hasIdentifierFilters
       ? "TRUE"
@@ -436,12 +460,13 @@ WITH filtered_ratelimits AS (
         request_id,
         time,
         identifier,
-        passed
+        toUInt8(passed) as status
     FROM ratelimits.raw_ratelimits_v1
     WHERE workspace_id = {workspaceId: String}
         AND namespace_id = {namespaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
         AND (${identifierConditions})
+        AND (${statusCondition})
         AND (({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
              OR (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
              OR time < {cursorTime: Nullable(UInt64)})
@@ -459,8 +484,8 @@ aggregated_data AS (
         fr.identifier,
         max(fr.time) as last_request_time,
         max(fr.request_id) as last_request_id,
-        countIf(fr.passed = true) as passed_count,
-        countIf(fr.passed = false) as blocked_count,
+        countIf(fr.status = 1) as passed_count,
+        countIf(fr.status = 0) as blocked_count,
         round(avg(fm.service_latency)) as avg_latency,
         round(quantile(0.99)(fm.service_latency)) as p99_latency
     FROM filtered_ratelimits fr
@@ -487,8 +512,6 @@ LIMIT {limit: Int}`,
 }
 
 // ## OVERVIEW Timeseries
-//
-//
 
 export const ratelimitLatencyTimeseriesParams = z.object({
   workspaceId: z.string(),

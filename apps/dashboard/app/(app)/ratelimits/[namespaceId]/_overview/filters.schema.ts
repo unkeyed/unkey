@@ -24,6 +24,12 @@ export const ratelimitOverviewFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is", "contains"],
   },
+  status: {
+    type: "string",
+    operators: ["is"],
+    validValues: ["blocked", "passed"],
+    getColorClass: (value) => (value === "blocked" ? "bg-warning-9" : "bg-success-9"),
+  } as const,
 };
 
 // Schemas
@@ -33,6 +39,7 @@ export const ratelimitOverviewFilterFieldEnum = z.enum([
   "endTime",
   "since",
   "identifiers",
+  "status",
 ]);
 export const filterOutputSchema = createFilterOutputSchema(
   ratelimitOverviewFilterFieldEnum,
@@ -49,6 +56,7 @@ export type FilterFieldConfigs = {
   endTime: NumberConfig<RatelimitOverviewFilterOperator>;
   since: StringConfig<RatelimitOverviewFilterOperator>;
   identifiers: StringConfig<RatelimitOverviewFilterOperator>;
+  status: StringConfig<RatelimitOverviewFilterOperator>;
 };
 
 export type RatelimitOverviewFilterUrlValue = Pick<
@@ -65,4 +73,5 @@ export type RatelimitQuerySearchParams = {
   endTime?: number | null;
   since?: string | null;
   identifiers: RatelimitOverviewFilterUrlValue[] | null;
+  status: RatelimitOverviewFilterUrlValue[] | null;
 };

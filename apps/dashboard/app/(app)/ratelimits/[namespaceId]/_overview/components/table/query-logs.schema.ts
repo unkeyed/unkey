@@ -6,6 +6,16 @@ export const ratelimitQueryOverviewLogsPayload = z.object({
   startTime: z.number().int(),
   endTime: z.number().int(),
   namespaceId: z.string(),
+  status: z
+    .object({
+      filters: z.array(
+        z.object({
+          operator: z.literal("is"),
+          value: z.enum(["blocked", "passed"]),
+        }),
+      ),
+    })
+    .nullable(),
   since: z.string(),
   identifiers: z
     .object({

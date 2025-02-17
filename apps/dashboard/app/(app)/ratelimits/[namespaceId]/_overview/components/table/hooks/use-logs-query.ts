@@ -8,13 +8,10 @@ import type { RatelimitQueryOverviewLogsPayload } from "../query-logs.schema";
 // Duration in milliseconds for historical data fetch window (12 hours)
 type UseLogsQueryParams = {
   limit?: number;
-  namespaceId?: string;
+  namespaceId: string;
 };
 
-export function useRatelimitOverviewLogsQuery({
-  namespaceId,
-  limit = 50,
-}: UseLogsQueryParams = {}) {
+export function useRatelimitOverviewLogsQuery({ namespaceId, limit = 50 }: UseLogsQueryParams) {
   const [historicalLogsMap, setHistoricalLogsMap] = useState(
     () => new Map<string, RatelimitOverviewLog>(),
   );
@@ -30,10 +27,8 @@ export function useRatelimitOverviewLogsQuery({
       limit,
       startTime: dateNow - HISTORICAL_DATA_WINDOW,
       endTime: dateNow,
-      requestIds: { filters: [] },
       identifiers: { filters: [] },
       status: { filters: [] },
-      //@ts-expect-error will be fixed later
       namespaceId,
       since: "",
     };
@@ -52,6 +47,17 @@ export function useRatelimitOverviewLogsQuery({
           break;
         }
 
+        case "status": {
+          if (typeof filter.value !== "string") {
+            console.error("Status filter value type has to be 'string'");
+            return;
+          }
+          params.status?.filters.push({
+            operator: "is",
+            value: filter.value as "blocked" | "passed",
+          });
+          break;
+        }
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {

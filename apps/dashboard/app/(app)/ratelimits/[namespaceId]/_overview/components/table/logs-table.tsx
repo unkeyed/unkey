@@ -9,6 +9,7 @@ import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { Ban, BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { compactFormatter } from "../../utils";
+import { InlineFilter } from "./components/inline-filter";
 import { LogsTableAction } from "./components/logs-actions";
 import { IdentifierColumn } from "./components/override-indicator";
 import { useRatelimitOverviewLogsQuery } from "./hooks/use-logs-query";
@@ -77,7 +78,15 @@ const columns = (namespaceId: string): Column<RatelimitOverviewLog>[] => {
       width: "7.5%",
       headerClassName: "pl-11",
       render: (log) => {
-        return <IdentifierColumn log={log} />;
+        return (
+          <div className="flex gap-3 items-center group/identifier">
+            <IdentifierColumn log={log} />
+            <InlineFilter
+              content="Filter by identifier"
+              filterPair={{ identifiers: log.identifier }}
+            />
+          </div>
+        );
       },
     },
     {
@@ -86,15 +95,21 @@ const columns = (namespaceId: string): Column<RatelimitOverviewLog>[] => {
       width: "7.5%",
       render: (log) => {
         return (
-          <Badge
-            className={cn(
-              "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-              STATUS_STYLES.success.badge.default,
-            )}
-            title={`${log.passed_count.toLocaleString()} Passed requests`}
-          >
-            {compactFormatter.format(log.passed_count)}
-          </Badge>
+          <div className="flex gap-3 items-center group/identifier">
+            <Badge
+              className={cn(
+                "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
+                STATUS_STYLES.success.badge.default,
+              )}
+              title={`${log.passed_count.toLocaleString()} Passed requests`}
+            >
+              {compactFormatter.format(log.passed_count)}
+            </Badge>
+            <InlineFilter
+              filterPair={{ identifiers: log.identifier, status: "passed" }}
+              content="Filter by identifier and passed status"
+            />
+          </div>
         );
       },
     },
@@ -105,16 +120,22 @@ const columns = (namespaceId: string): Column<RatelimitOverviewLog>[] => {
       render: (log) => {
         const style = getStatusStyle(log);
         return (
-          <Badge
-            className={cn(
-              "uppercase px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
-              style.badge.default,
-            )}
-            title={`${log.blocked_count.toLocaleString()} Blocked requests`}
-          >
-            <Ban size="sm-regular" />
-            {compactFormatter.format(log.blocked_count)}
-          </Badge>
+          <div className="flex gap-3 items-center group/identifier">
+            <Badge
+              className={cn(
+                "uppercase px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
+                style.badge.default,
+              )}
+              title={`${log.blocked_count.toLocaleString()} Blocked requests`}
+            >
+              <Ban size="sm-regular" />
+              {compactFormatter.format(log.blocked_count)}
+            </Badge>
+            <InlineFilter
+              content="Filter by identifier and blocked status"
+              filterPair={{ identifiers: log.identifier, status: "blocked" }}
+            />
+          </div>
         );
       },
     },
