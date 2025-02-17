@@ -38,7 +38,7 @@ func KeyModelToEntity(m gen.Key) (entities.Key, error) {
 	if m.Meta.Valid {
 		err := json.Unmarshal([]byte(m.Meta.String), &key.Meta)
 		if err != nil {
-			return entities.Key{}, fmt.Errorf("uanble to unmarshal meta: %w", err)
+			return entities.Key{}, fmt.Errorf("unable to unmarshal meta: %w", err)
 		}
 	}
 	if m.Expires.Valid {
