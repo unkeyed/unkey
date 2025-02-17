@@ -1,0 +1,177 @@
+---
+title: 0008 Dataplane
+description: Global Unkey Deployment Architecture
+date: 2025-01-26
+authors:
+  - Andreas Thomas
+---
+
+
+We need to design a globally distributed architecture for Unkey where the dataplane can operate independently of the primary database for improved availability.
+
+## Goals
+
+- Achieve 100% dataplane availability independent of primary database
+- Provide fast access to dynamic data across global regions
+- Propagate data across the system quickly
+- Minimize load on expensive storage
+- Enable efficient cache invalidation
+- Can run on any cloud or on premise
+
+## Options
+
+### 1. Direct S3 + In-Memory Cache with SWR
+
+```ascii
+┌─────────────────────┐     ┌─────────┐
+│ Gateway             │     │         │
+│ ┌───────────────┐   │────►│   S3    │
+│ │ Memory Cache  │   │     │         │
+│ └───────────────┘   │     │         │
+└─────────────────────┘     └─────────┘
+```
+
+#### Pros
+- Simple, straightforward design
+- Low architectural complexity
+
+#### Cons
+- Cache invalidation requires communication with all machines or really low TTLs (\<10s)
+- Inefficient cache refresh patterns
+- High load on S3 due to concurrent SWR requests from multiple machines
+
+### 2. S3 + In-Memory Cache with Gossip Protocol
+
+```ascii
+┌─────────────────────┐
+│ Gateway             │
+│ ┌───────────────┐   │──┐
+│ │ Memory Cache  │   │  │
+│ └───────────────┘   │  │
+└─────────────────────┘  │
+         ▲               │
+         │ Gossip        │    ┌─────────┐
+         ▼               ├───►│         │
+┌─────────────────────┐  │    │   S3    │
+│ Gateway             │  │    │         │
+│ ┌───────────────┐   │──┘    └─────────┘
+│ │ Memory Cache  │   │
+│ └───────────────┘   │
+└─────────────────────┘
+```
+
+If we had global fast and efficient eviction, we could set much higher TTLs.
+
+#### Pros
+- Efficient cache invalidation through gossip, allowing higher TTLs
+- Reduced load on primary storage
+- Only need to notify one node for changes
+
+#### Cons
+- Need to implement ordering mechanism (timestamps/Lamport clocks)
+- More complex system architecture
+- Global gossip cluster management overhead
+
+### 3. S3 + Dedicated Cache Layer
+
+```ascii
+┌─────────────────┐
+│ Gateway 1       │───┐
+└─────────────────┘   │
+                      │
+┌─────────────────┐   │    ┌────────────┐
+│ Gateway 2       │───┼───►│   Load     │    ┌────────────┐
+└─────────────────┘   │    │  Balancer  │───►│ Cache      │──┐
+                      │    │            │    │ Node 1     │  │
+┌─────────────────┐   │    │            │    └────────────┘  │
+│ Gateway 3       │───┤    │            │                    │    ┌─────────┐
+└─────────────────┘   │    │            │                    ├───►│   S3    │
+                      ├───►│            │    ┌────────────┐  │    └─────────┘
+┌─────────────────┐   │    │            │───►│ Cache      │──┘
+│ Gateway 4       │───┤    │            │    │ Node 2     │
+└─────────────────┘   │    └────────────┘    └────────────┘
+                      │
+┌─────────────────┐   │
+│ Gateway n       │───┘
+└─────────────────┘
+```
+
+Gateways still use an in-memory SWR cache. The cache nodes help reduce the cost
+and latency of S3, but will likely have the same freshness/staleness as the
+gateways. TBD..
+
+Everything here, except the S3 bucket, would be duplicated per region.
+
+#### Pros
+- Better cache retention due to less frequent reboots
+- Optional global eviction via gossip/kafka later
+- Maybe we only need 1 S3 region now instead of replicating it
+
+#### Cons
+- Additional infrastructure to manage
+
+### 4. DynamoDB Global Tables + Caching
+
+
+Option 4A: Direct DynamoDB + Gateway Memory Cache
+- Each gateway maintains a local memory SWR cache with a TTL of 10s
+- DynamoDB serves as source of truth
+- Automatic multi-region replication handled by AWS
+
+```ascii
+┌─────────────────────┐     ┌──────────────────┐
+│ Gateway (US)        │     │  DynamoDB        │
+│ ┌───────────────┐   │────►│  (US-WEST-1)     │
+│ │ Memory Cache  │   │     │                  │
+│ └───────────────┘   │     └──────────────────┘
+└─────────────────────┘            ▲
+                                   │
+                                   │ Replication
+                                   │
+┌─────────────────────┐            ▼
+│ Gateway (EU)        │     ┌──────────────────┐
+│ ┌───────────────┐   │────►│  DynamoDB        │
+│ │ Memory Cache  │   │     │  (EU-WEST-1)     │
+│ └───────────────┘   │     │                  │
+└─────────────────────┘     └──────────────────┘
+```
+
+
+Option 4B: With Dedicated Cache Layer
+
+A dedicated cache layer could be added to reduce the load on DynamoDB and improve read performance as well as cost.
+Whether this actually saves money is debatable, we'll have to try.
+These cache nodes would be dumb, they only cache reads for 10s and don't have any manual eviction possibilities.
+
+```ascii
+┌─────────────────┐
+│ Gateway 1       │───┐
+└─────────────────┘   │
+                      │    ┌────────────┐
+┌─────────────────┐   │    │   Load     │    ┌────────────┐
+│ Gateway 2       │───┼───►│  Balancer  │───►│ Cache      │──┐
+└─────────────────┘   │    │            │    │ Node 1     │  │    ┌──────────────┐
+                      │    │            │    └────────────┘  ├───►│  DynamoDB    │
+                      │    │            │                    │    │  Global      │
+                      │    │            │    ┌────────────┐  │    │  Tables      │
+┌─────────────────┐   │    │            │───►│ Cache      │──┘    └──────────────┘
+│ Gateway n       │───┘    └────────────┘    │ Node 2     │
+└─────────────────┘                          └────────────┘
+```
+
+#### Pros
+- Built-in multi-region replication with strong consistency
+- No need to manage complex replication logic
+- Lower latency reads from local region
+- Automatic conflict resolution
+- Serverless and fully managed by AWS
+- Cheaper for small reads than S3
+- 99.999% availability (s3 only has 99.99%)
+
+
+#### Cons
+- Vendor lock-in to AWS -> we need to have an abstraction
+- Higher storage cost compared to S3 due to replication
+- Cost of replication
+- Replication lag is controlled by AWS, not us
+- More expensive for large \>13kb reads than S3
