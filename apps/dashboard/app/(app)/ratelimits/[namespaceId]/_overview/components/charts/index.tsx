@@ -69,6 +69,8 @@ export const RatelimitOverviewLogsCharts = ({
           data={latencyTimeseries}
           isLoading={latencyIsLoading}
           isError={latencyIsError}
+          enableSelection
+          onSelectionChange={handleSelectionChange}
           config={{
             avgLatency: {
               label: "Average Latency",

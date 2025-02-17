@@ -171,7 +171,6 @@ export const TableActionPopover = ({
               tabIndex={-1}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
               <div
                 ref={(el) => {
                   if (el) {
@@ -182,7 +181,6 @@ export const TableActionPopover = ({
                 tabIndex={focusIndex === 0 ? 0 : -1}
                 className="flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group cursor-pointer
             hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3"
-                onClick={handleCopy}
               >
                 <Layers3 size="md-regular" />
                 <span className="text-[13px] text-accent-12 font-medium">Go to logs</span>

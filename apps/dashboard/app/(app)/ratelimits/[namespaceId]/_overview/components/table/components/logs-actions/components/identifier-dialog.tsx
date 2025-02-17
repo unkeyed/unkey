@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -56,8 +57,12 @@ interface FormFieldProps {
 }
 
 const FormField: React.FC<FormFieldProps> = ({ label, tooltip, error, children }) => (
-  <div className="flex flex-col gap-1">
-    <Label className="text-gray-11 text-[13px] flex items-center">
+  // biome-ignore lint/a11y/useKeyWithClickEvents: no need for button
+  <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+    <Label
+      className="text-gray-11 text-[13px] flex items-center"
+      onClick={(e) => e.preventDefault()}
+    >
       {label}
       {tooltip && (
         <InputTooltip desc={tooltip}>
@@ -166,7 +171,7 @@ export const IdentifierDialog = ({
   return (
     <Dialog open={isModalOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className="bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-4 rounded-lg p-0"
+        className="bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-4 rounded-lg p-0 gap-0"
         onOpenAutoFocus={(e) => {
           // Prevent auto-focus behavior
           e.preventDefault();
@@ -178,7 +183,7 @@ export const IdentifierDialog = ({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmitForm)}>
-          <div className="flex flex-col gap-4 py-4 pt-0 px-6">
+          <div className="flex flex-col gap-4 py-4 px-6 bg-accent-2">
             <FormField
               label="Identifier"
               tooltip="The identifier you use when ratelimiting."
@@ -210,16 +215,21 @@ export const IdentifierDialog = ({
               tooltip="Duration of each window in milliseconds."
               error={errors.duration?.message}
             >
-              <Input
-                {...register("duration")}
-                type="number"
-                placeholder="Enter milliseconds (60000, 100000, 1200000…)"
-                className="border border-gray-4 focus:border focus:border-gray-4 px-3 py-1 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4 rounded-md"
-              />
+              <div className="relative">
+                <Input
+                  {...register("duration")}
+                  type="number"
+                  placeholder="Enter milliseconds (60000, 100000, 1200000…)"
+                  className="border border-gray-4 focus:border focus:border-gray-4 px-3 py-1 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4 rounded-md"
+                />
+                <Badge className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-accent-4 text-accent-11 hover:bg-accent-6 ">
+                  MS
+                </Badge>
+              </div>
             </FormField>
 
             <FormField
-              label="Override type"
+              label="Enabled"
               tooltip="Override the mode, async is faster but slightly less accurate."
               error={errors.async?.message}
             >
@@ -243,15 +253,20 @@ export const IdentifierDialog = ({
           </div>
 
           <DialogFooter className="px-6 py-4 border-t border-gray-4">
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isLoading || isSubmitting}
-              loading={isLoading || isSubmitting}
-              className="h-10 w-full rounded-lg"
-            >
-              Override Identifier
-            </Button>
+            <div className="w-full flex flex-col gap-2 items-center justify-center">
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={isLoading || isSubmitting}
+                loading={isLoading || isSubmitting}
+                className="h-10 w-full rounded-lg"
+              >
+                Override Identifier
+              </Button>
+              <div className="text-gray-9 text-xs">
+                Changes are propagated globally within 60 seconds
+              </div>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
