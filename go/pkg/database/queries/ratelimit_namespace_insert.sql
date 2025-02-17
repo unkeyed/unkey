@@ -13,7 +13,7 @@ VALUES
         sqlc.arg("id"),
         sqlc.arg("workspace_id"),
         sqlc.arg("name"),
-        now(),
+         sqlc.arg(created_at),
         NULL,
         NULL
     )

@@ -8,6 +8,7 @@ package gen
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const insertKey = `-- name: InsertKey :exec
@@ -42,7 +43,7 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     null,
     ?,
     ?,
-    NOW(),
+    ?,
     ?,
     UNIX_TIMESTAMP() * 1000,
     ?,
@@ -64,6 +65,7 @@ type InsertKeyParams struct {
 	Name              sql.NullString `db:"name"`
 	IdentityID        sql.NullString `db:"identity_id"`
 	Meta              sql.NullString `db:"meta"`
+	CreatedAt         time.Time      `db:"created_at"`
 	Expires           sql.NullTime   `db:"expires"`
 	Enabled           bool           `db:"enabled"`
 	RemainingRequests sql.NullInt32  `db:"remaining_requests"`
@@ -106,7 +108,7 @@ type InsertKeyParams struct {
 //	    null,
 //	    ?,
 //	    ?,
-//	    NOW(),
+//	    ?,
 //	    ?,
 //	    UNIX_TIMESTAMP() * 1000,
 //	    ?,
@@ -127,6 +129,7 @@ func (q *Queries) InsertKey(ctx context.Context, arg InsertKeyParams) error {
 		arg.Name,
 		arg.IdentityID,
 		arg.Meta,
+		arg.CreatedAt,
 		arg.Expires,
 		arg.Enabled,
 		arg.RemainingRequests,

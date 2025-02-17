@@ -30,7 +30,7 @@ INSERT INTO `keys` (
     null,
     sqlc.arg(identity_id),
     sqlc.arg(meta),
-    NOW(),
+    sqlc.arg(created_at),
     sqlc.arg(expires),
     UNIX_TIMESTAMP() * 1000,
     sqlc.arg(enabled),

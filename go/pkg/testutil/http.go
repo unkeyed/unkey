@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/api"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/database"
 	"github.com/unkeyed/unkey/go/pkg/entities"
 	"github.com/unkeyed/unkey/go/pkg/hash"
@@ -30,6 +31,8 @@ type Resources struct {
 type Harness struct {
 	t *testing.T
 
+	Clock clock.Clock
+
 	srv        *zen.Server
 	containers *Containers
 	validator  *validation.Validator
@@ -43,6 +46,7 @@ type Harness struct {
 }
 
 func NewHarness(t *testing.T) *Harness {
+	clk := clock.NewTestClock()
 
 	logger := logging.New(logging.Config{Development: true, NoColor: false})
 
@@ -54,6 +58,7 @@ func NewHarness(t *testing.T) *Harness {
 		Logger:      logger,
 		PrimaryDSN:  dsn,
 		ReadOnlyDSN: "",
+		Clock:       clk,
 	})
 	require.NoError(t, err)
 
@@ -83,6 +88,7 @@ func NewHarness(t *testing.T) *Harness {
 		// resources are seeded later
 		// nolint:exhaustruct
 		Resources: Resources{},
+		Clock:     clk,
 
 		middleware: []zen.Middleware{
 			zen.WithTracing(),

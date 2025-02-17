@@ -13,16 +13,16 @@ type Querier interface {
 	//DeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`
-	//  SET deleted_at = NOW()
+	//  SET deleted_at = ?
 	//  WHERE id = ?
-	DeleteRatelimitNamespace(ctx context.Context, id string) (sql.Result, error)
+	DeleteRatelimitNamespace(ctx context.Context, arg DeleteRatelimitNamespaceParams) (sql.Result, error)
 	//DeleteRatelimitOverride
 	//
 	//  UPDATE `ratelimit_overrides`
 	//  SET
-	//      deleted_at = NOW()
+	//      deleted_at =  ?
 	//  WHERE id = ?
-	DeleteRatelimitOverride(ctx context.Context, id string) (sql.Result, error)
+	DeleteRatelimitOverride(ctx context.Context, arg DeleteRatelimitOverrideParams) (sql.Result, error)
 	//FindKeyByHash
 	//
 	//  SELECT
@@ -190,7 +190,7 @@ type Querier interface {
 	//      null,
 	//      ?,
 	//      ?,
-	//      NOW(),
+	//      ?,
 	//      ?,
 	//      UNIX_TIMESTAMP() * 1000,
 	//      ?,
@@ -216,8 +216,8 @@ type Querier interface {
 	//  ) VALUES (
 	//      ?,
 	//      ?,
-	//      NOW(),
-	//      UNIX_TIMESTAMP() * 1000,
+	//       ?,
+	//        ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -241,7 +241,7 @@ type Querier interface {
 	//          ?,
 	//          ?,
 	//          ?,
-	//          now(),
+	//           ?,
 	//          NULL,
 	//          NULL
 	//      )
@@ -268,7 +268,7 @@ type Querier interface {
 	//          ?,
 	//          ?,
 	//          false,
-	//          now()
+	//           ?
 	//      )
 	InsertRatelimitOverride(ctx context.Context, arg InsertRatelimitOverrideParams) error
 	//InsertWorkspace
@@ -288,7 +288,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      NOW(),
+	//       ?,
 	//      'free',
 	//      '{}',
 	//      '{}',
@@ -299,10 +299,10 @@ type Querier interface {
 	//SoftDeleteWorkspace
 	//
 	//  UPDATE `workspaces`
-	//  SET deleted_at = NOW()
+	//  SET deleted_at = ?
 	//  WHERE id = ?
 	//  AND delete_protection = false
-	SoftDeleteWorkspace(ctx context.Context, id string) (sql.Result, error)
+	SoftDeleteWorkspace(ctx context.Context, arg SoftDeleteWorkspaceParams) (sql.Result, error)
 	//UpdateRatelimitOverride
 	//
 	//  UPDATE `ratelimit_overrides`
@@ -310,7 +310,7 @@ type Querier interface {
 	//      `limit` = ?,
 	//      duration = ?,
 	//      async = ?,
-	//      updated_at = NOW()
+	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, arg UpdateRatelimitOverrideParams) (sql.Result, error)
 	//UpdateWorkspaceEnabled

@@ -23,6 +23,11 @@ func (db *database) InsertKeyring(ctx context.Context, keyring entities.Keyring)
 			Int32: int32(keyring.DefaultBytes),
 			Valid: keyring.DefaultBytes != 0,
 		},
+		CreatedAt: sql.NullTime{
+			Time:  db.clock.Now(),
+			Valid: true,
+		},
+		CreatedAtM: db.clock.Now().UnixMilli(),
 	}
 
 	err := db.write().InsertKeyring(ctx, params)

@@ -13,6 +13,10 @@ func (db *database) UpdateRatelimitOverride(ctx context.Context, e entities.Rate
 	params := gen.UpdateRatelimitOverrideParams{
 		ID:          e.ID,
 		Windowlimit: e.Limit,
+		Now: sql.NullTime{
+			Time:  db.clock.Now(),
+			Valid: true,
+		},
 
 		Duration: int32(e.Duration.Milliseconds()), // nolint:gosec
 		Async: sql.NullBool{

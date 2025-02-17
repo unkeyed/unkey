@@ -19,5 +19,5 @@ VALUES
         sqlc.arg("limit"),
         sqlc.arg("duration"),
         false,
-        now()
+         sqlc.arg("created_at")
     )

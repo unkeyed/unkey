@@ -24,8 +24,8 @@ INSERT INTO ` + "`" + `key_auth` + "`" + ` (
 ) VALUES (
     ?,
     ?,
-    NOW(),
-    UNIX_TIMESTAMP() * 1000,
+     ?,
+      ?,
     ?,
     ?,
     ?,
@@ -37,6 +37,8 @@ INSERT INTO ` + "`" + `key_auth` + "`" + ` (
 type InsertKeyringParams struct {
 	ID                 string         `db:"id"`
 	WorkspaceID        string         `db:"workspace_id"`
+	CreatedAt          sql.NullTime   `db:"created_at"`
+	CreatedAtM         int64          `db:"created_at_m"`
 	StoreEncryptedKeys bool           `db:"store_encrypted_keys"`
 	DefaultPrefix      sql.NullString `db:"default_prefix"`
 	DefaultBytes       sql.NullInt32  `db:"default_bytes"`
@@ -57,8 +59,8 @@ type InsertKeyringParams struct {
 //	) VALUES (
 //	    ?,
 //	    ?,
-//	    NOW(),
-//	    UNIX_TIMESTAMP() * 1000,
+//	     ?,
+//	      ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -69,6 +71,8 @@ func (q *Queries) InsertKeyring(ctx context.Context, arg InsertKeyringParams) er
 	_, err := q.db.ExecContext(ctx, insertKeyring,
 		arg.ID,
 		arg.WorkspaceID,
+		arg.CreatedAt,
+		arg.CreatedAtM,
 		arg.StoreEncryptedKeys,
 		arg.DefaultPrefix,
 		arg.DefaultBytes,

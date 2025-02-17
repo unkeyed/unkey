@@ -116,7 +116,7 @@ type V2RatelimitSetOverrideRequestBody struct {
 	// NamespaceId The id of the namespace. Either namespaceId or namespaceName must be provided
 	NamespaceId *string `json:"namespaceId,omitempty"`
 
-	// NamespaceName xThe name of the namespace. Either namespaceId or namespaceName must be provided
+	// NamespaceName The name of the namespace. Either namespaceId or namespaceName must be provided
 	NamespaceName *string `json:"namespaceName,omitempty"`
 }
 

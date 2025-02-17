@@ -75,6 +75,7 @@ func (db *database) InsertKey(ctx context.Context, key entities.Key) error {
 			String: key.Environment,
 			Valid:  key.Environment != "",
 		},
+		CreatedAt: db.clock.Now(),
 	}
 
 	err = db.write().InsertKey(ctx, params)

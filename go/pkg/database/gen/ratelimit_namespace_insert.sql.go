@@ -7,6 +7,7 @@ package gen
 
 import (
 	"context"
+	"time"
 )
 
 const insertRatelimitNamespace = `-- name: InsertRatelimitNamespace :exec
@@ -24,16 +25,17 @@ VALUES
         ?,
         ?,
         ?,
-        now(),
+         ?,
         NULL,
         NULL
     )
 `
 
 type InsertRatelimitNamespaceParams struct {
-	ID          string `db:"id"`
-	WorkspaceID string `db:"workspace_id"`
-	Name        string `db:"name"`
+	ID          string    `db:"id"`
+	WorkspaceID string    `db:"workspace_id"`
+	Name        string    `db:"name"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 // InsertRatelimitNamespace
@@ -52,11 +54,16 @@ type InsertRatelimitNamespaceParams struct {
 //	        ?,
 //	        ?,
 //	        ?,
-//	        now(),
+//	         ?,
 //	        NULL,
 //	        NULL
 //	    )
 func (q *Queries) InsertRatelimitNamespace(ctx context.Context, arg InsertRatelimitNamespaceParams) error {
-	_, err := q.db.ExecContext(ctx, insertRatelimitNamespace, arg.ID, arg.WorkspaceID, arg.Name)
+	_, err := q.db.ExecContext(ctx, insertRatelimitNamespace,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.Name,
+		arg.CreatedAt,
+	)
 	return err
 }

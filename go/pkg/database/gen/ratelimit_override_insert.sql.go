@@ -7,6 +7,7 @@ package gen
 
 import (
 	"context"
+	"time"
 )
 
 const insertRatelimitOverride = `-- name: InsertRatelimitOverride :exec
@@ -30,17 +31,18 @@ VALUES
         ?,
         ?,
         false,
-        now()
+         ?
     )
 `
 
 type InsertRatelimitOverrideParams struct {
-	ID          string `db:"id"`
-	WorkspaceID string `db:"workspace_id"`
-	NamespaceID string `db:"namespace_id"`
-	Identifier  string `db:"identifier"`
-	Limit       int32  `db:"limit"`
-	Duration    int32  `db:"duration"`
+	ID          string    `db:"id"`
+	WorkspaceID string    `db:"workspace_id"`
+	NamespaceID string    `db:"namespace_id"`
+	Identifier  string    `db:"identifier"`
+	Limit       int32     `db:"limit"`
+	Duration    int32     `db:"duration"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 // InsertRatelimitOverride
@@ -65,7 +67,7 @@ type InsertRatelimitOverrideParams struct {
 //	        ?,
 //	        ?,
 //	        false,
-//	        now()
+//	         ?
 //	    )
 func (q *Queries) InsertRatelimitOverride(ctx context.Context, arg InsertRatelimitOverrideParams) error {
 	_, err := q.db.ExecContext(ctx, insertRatelimitOverride,
@@ -75,6 +77,7 @@ func (q *Queries) InsertRatelimitOverride(ctx context.Context, arg InsertRatelim
 		arg.Identifier,
 		arg.Limit,
 		arg.Duration,
+		arg.CreatedAt,
 	)
 	return err
 }

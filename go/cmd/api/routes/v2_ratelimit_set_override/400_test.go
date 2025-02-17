@@ -1,3 +1,4 @@
+//nolint:exhaustruct
 package handler_test
 
 import (
@@ -29,6 +30,7 @@ func TestBadRequests(t *testing.T) {
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
 				RequestId: "test",
+				Instance:  nil,
 			},
 		},
 		{
@@ -45,6 +47,7 @@ func TestBadRequests(t *testing.T) {
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
 				RequestId: "test",
+				Instance:  nil,
 			},
 		},
 		{
@@ -61,14 +64,16 @@ func TestBadRequests(t *testing.T) {
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
 				RequestId: "test",
+				Instance:  nil,
 			},
 		},
 		{
 			name: "missing limit",
 			req: api.V2RatelimitSetOverrideRequestBody{
-				NamespaceId: util.Pointer("not_empty"),
-				Identifier:  "user_123",
-				Duration:    1000,
+				NamespaceId:   util.Pointer("not_empty"),
+				NamespaceName: nil,
+				Identifier:    "user_123",
+				Duration:      1000,
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
@@ -77,15 +82,17 @@ func TestBadRequests(t *testing.T) {
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
 				RequestId: "test",
+				Instance:  nil,
 			},
 		},
 		{
 			name: "negative duration",
 			req: api.V2RatelimitSetOverrideRequestBody{
-				NamespaceId: util.Pointer("not_empty"),
-				Identifier:  "user_123",
-				Duration:    -1000,
-				Limit:       100,
+				NamespaceId:   util.Pointer("not_empty"),
+				NamespaceName: nil,
+				Identifier:    "user_123",
+				Duration:      -1000,
+				Limit:         100,
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
@@ -94,15 +101,17 @@ func TestBadRequests(t *testing.T) {
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
 				RequestId: "test",
+				Instance:  nil,
 			},
 		},
 		{
 			name: "zero duration",
 			req: api.V2RatelimitSetOverrideRequestBody{
-				NamespaceId: util.Pointer("not_empty"),
-				Identifier:  "user_123",
-				Duration:    0,
-				Limit:       100,
+				NamespaceId:   util.Pointer("not_empty"),
+				NamespaceName: nil,
+				Identifier:    "user_123",
+				Duration:      0,
+				Limit:         100,
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
@@ -111,15 +120,17 @@ func TestBadRequests(t *testing.T) {
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
 				RequestId: "test",
+				Instance:  nil,
 			},
 		},
 		{
 			name: "negative limit",
 			req: api.V2RatelimitSetOverrideRequestBody{
-				NamespaceId: util.Pointer("not_empty"),
-				Identifier:  "user_123",
-				Duration:    1000,
-				Limit:       -100,
+				NamespaceId:   util.Pointer("not_empty"),
+				NamespaceName: nil,
+				Identifier:    "user_123",
+				Duration:      1000,
+				Limit:         -100,
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
@@ -128,15 +139,17 @@ func TestBadRequests(t *testing.T) {
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
 				RequestId: "test",
+				Instance:  nil,
 			},
 		},
 		{
 			name: "zero limit",
 			req: api.V2RatelimitSetOverrideRequestBody{
-				NamespaceId: util.Pointer("not_empty"),
-				Identifier:  "user_123",
-				Duration:    1000,
-				Limit:       0,
+				NamespaceId:   util.Pointer("not_empty"),
+				NamespaceName: nil,
+				Identifier:    "user_123",
+				Duration:      1000,
+				Limit:         0,
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
@@ -145,15 +158,17 @@ func TestBadRequests(t *testing.T) {
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
 				RequestId: "test",
+				Instance:  nil,
 			},
 		},
 		{
 			name: "empty identifier",
 			req: api.V2RatelimitSetOverrideRequestBody{
-				NamespaceId: util.Pointer("not_empty"),
-				Identifier:  "",
-				Duration:    1000,
-				Limit:       100,
+				NamespaceId:   util.Pointer("not_empty"),
+				NamespaceName: nil,
+				Identifier:    "",
+				Duration:      1000,
+				Limit:         100,
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
@@ -162,14 +177,17 @@ func TestBadRequests(t *testing.T) {
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
 				RequestId: "test",
+				Instance:  nil,
 			},
 		},
 		{
 			name: "neither namespace ID nor name provided",
 			req: api.V2RatelimitSetOverrideRequestBody{
-				Identifier: "user_123",
-				Duration:   1000,
-				Limit:      100,
+				NamespaceId:   nil,
+				NamespaceName: nil,
+				Identifier:    "user_123",
+				Duration:      1000,
+				Limit:         100,
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
@@ -178,6 +196,7 @@ func TestBadRequests(t *testing.T) {
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
 				RequestId: "test",
+				Instance:  nil,
 			},
 		},
 	}

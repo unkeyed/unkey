@@ -12,8 +12,8 @@ INSERT INTO `key_auth` (
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(workspace_id),
-    NOW(),
-    UNIX_TIMESTAMP() * 1000,
+     sqlc.arg(created_at),
+      sqlc.arg(created_at_m),
     sqlc.arg(store_encrypted_keys),
     sqlc.arg(default_prefix),
     sqlc.arg(default_bytes),

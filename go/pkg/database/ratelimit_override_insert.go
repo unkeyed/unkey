@@ -17,6 +17,7 @@ func (db *database) InsertRatelimitOverride(ctx context.Context, override entiti
 		Identifier:  override.Identifier,
 		Limit:       override.Limit,
 		Duration:    int32(override.Duration.Milliseconds()), // nolint:gosec
+		CreatedAt:   db.clock.Now(),
 	})
 	if err != nil {
 

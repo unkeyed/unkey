@@ -60,15 +60,15 @@ func (c *Containers) RunMySQL() string {
 	var db *sql.DB
 	require.NoError(c.t, c.pool.Retry(func() error {
 
-		connector, err := mysql.NewConnector(cfg)
-		if err != nil {
-			return fmt.Errorf("unable to create mysql connector: %w", err)
+		connector, err2 := mysql.NewConnector(cfg)
+		if err2 != nil {
+			return fmt.Errorf("unable to create mysql connector: %w", err2)
 		}
 
 		db = sql.OpenDB(connector)
-		err = db.Ping()
-		if err != nil {
-			return fmt.Errorf("unable to ping mysql: %w", err)
+		err3 := db.Ping()
+		if err3 != nil {
+			return fmt.Errorf("unable to ping mysql: %w", err3)
 		}
 
 		return nil

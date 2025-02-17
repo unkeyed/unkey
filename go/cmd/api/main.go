@@ -110,6 +110,7 @@ func run(cliC *cli.Context) error {
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 		Logger:      logger,
+		Clock:       clock.New(),
 	}, dbCache.WithCaching(logger))
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
