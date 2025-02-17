@@ -17,6 +17,8 @@ type LinkProps = {
   isLast?: boolean;
   /** Additional CSS classes to apply to the link */
   className?: string;
+  /** If true, prevents navigation when clicked */
+  noop?: boolean;
   children: React.ReactNode;
 };
 
@@ -93,22 +95,35 @@ const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.Reac
 ) as BreadcrumbsComponent;
 
 Breadcrumbs.Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
-  ({ children, href, className, active, isIdentifier: dynamic, isLast, ...props }, ref) => (
+  ({ children, href, className, active, isIdentifier: dynamic, isLast, noop, ...props }, ref) => (
     <li className="flex items-center gap-3">
-      <a
-        ref={ref}
-        href={href}
-        className={cn(
-          "text-sm transition-colors",
-          active ? "text-accent-12" : "text-accent-10 hover:text-accent-11",
-          dynamic && "font-mono",
-          className,
-        )}
-        {...(active || isLast ? { "aria-current": "page" } : {})}
-        {...props}
-      >
-        {children}
-      </a>
+      {noop ? (
+        <span
+          className={cn(
+            "text-sm",
+            active ? "text-accent-12" : "text-accent-10",
+            dynamic && "font-mono",
+            className,
+          )}
+        >
+          {children}
+        </span>
+      ) : (
+        <a
+          ref={ref}
+          href={href}
+          className={cn(
+            "text-sm transition-colors",
+            active ? "text-accent-12" : "text-accent-10 hover:text-accent-11",
+            dynamic && "font-mono",
+            className,
+          )}
+          {...(active || isLast ? { "aria-current": "page" } : {})}
+          {...props}
+        >
+          {children}
+        </a>
+      )}
       {!isLast && (
         <div className="text-accent-10" aria-hidden="true">
           /

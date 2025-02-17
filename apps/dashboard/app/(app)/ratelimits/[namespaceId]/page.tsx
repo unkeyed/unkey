@@ -1,12 +1,8 @@
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar } from "@/components/navbar";
-import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Gauge } from "@unkey/icons";
 import { redirect } from "next/navigation";
 import { LogsClient } from "./_overview/logs-client";
-import type { Interval } from "./filters";
+import { NamespaceNavbar } from "./namespace-navbar";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -14,56 +10,38 @@ export const runtime = "edge";
 export default async function RatelimitNamespacePage(props: {
   params: { namespaceId: string };
   searchParams: {
-    interval?: Interval;
     identifier?: string;
   };
 }) {
   const tenantId = getTenantId();
 
-  const namespace = await db.query.ratelimitNamespaces.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.namespaceId), isNull(table.deletedAt)),
+  const workspace = await db.query.workspaces.findFirst({
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
-      workspace: {
+      ratelimitNamespaces: {
+        where: (table, { isNull }) => isNull(table.deletedAt),
         columns: {
-          tenantId: true,
+          id: true,
+          name: true,
         },
       },
     },
   });
 
-  if (!namespace || namespace.workspace.tenantId !== tenantId) {
+  const namespace = workspace?.ratelimitNamespaces.find((r) => r.id === props.params.namespaceId);
+
+  if (!namespace || !workspace || workspace.tenantId !== tenantId) {
     return redirect("/ratelimits");
   }
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/ratelimits/${props.params.namespaceId}`}
-            isIdentifier
-            active
-          >
-            {namespace.name.length > 0 ? namespace.name : "<Empty>"}
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge
-            key="namespaceId"
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {props.params.namespaceId}
-            <CopyButton value={props.params.namespaceId} />
-          </Badge>
-        </Navbar.Actions>
-      </Navbar>
-      {/* <SubMenu */}
-      {/*   navigation={navigation(props.params.namespaceId)} */}
-      {/*   segment="overview" */}
-      {/* /> */}
+      <NamespaceNavbar
+        namespaceId={namespace.id}
+        namespaceName={namespace.name}
+        ratelimitNamespaces={workspace.ratelimitNamespaces}
+      />
       <LogsClient namespaceId={namespace.id} />
     </div>
   );
