@@ -13,13 +13,27 @@ type IdentifierColumnProps = {
 
 export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   const style = getStatusStyle(log);
+  const hasMoreBlocked = calculateBlockedPercentage(log);
 
   return (
     <div className="flex gap-6 items-center pl-2">
       <WarningWithTooltip log={log} />
       <div className="flex gap-3 items-center">
-        <div className={cn(style.badge.default, "rounded p-1")}>
-          {log.override ? <ArrowDotAntiClockwise size="md-regular" /> : <Focus size="md-regular" />}
+        <div
+          className={cn(
+            style.badge.default,
+            "rounded p-1",
+            hasMoreBlocked ? "" : "group-hover:bg-accent-6",
+          )}
+        >
+          {log.override ? (
+            <ArrowDotAntiClockwise size="md-regular" />
+          ) : (
+            <Focus
+              size="md-regular"
+              className={cn(hasMoreBlocked ? "" : "group-hover:text-accent-12")}
+            />
+          )}
         </div>
         <div className="font-mono text-accent-12 font-medium">{log.identifier}</div>
         {log.override && <OverrideIndicator log={log} style={style} />}

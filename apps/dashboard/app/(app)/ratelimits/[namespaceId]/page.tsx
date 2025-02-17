@@ -5,7 +5,7 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Gauge } from "@unkey/icons";
 import { redirect } from "next/navigation";
-import { LogsClient } from "./_overview/components/logs-client";
+import { LogsClient } from "./_overview/logs-client";
 import type { Interval } from "./filters";
 
 export const dynamic = "force-dynamic";
