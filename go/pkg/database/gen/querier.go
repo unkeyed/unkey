@@ -26,12 +26,10 @@ type Querier interface {
 	//FindKeyByHash
 	//
 	//  SELECT
-	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.created_at, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.deleted_at, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-	//      i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta
-	//  FROM `keys` k
-	//  LEFT JOIN identities i ON k.identity_id = i.id
-	//  WHERE k.hash = ?
-	FindKeyByHash(ctx context.Context, hash string) (FindKeyByHashRow, error)
+	//      id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
+	//  FROM `keys`
+	//  WHERE hash = ?
+	FindKeyByHash(ctx context.Context, hash string) (Key, error)
 	//FindKeyByID
 	//
 	//  SELECT
@@ -100,6 +98,28 @@ type Querier interface {
 	//  WHERE k.hash = ?
 	//  GROUP BY k.id
 	FindKeyForVerification(ctx context.Context, hash string) (FindKeyForVerificationRow, error)
+	//FindPermissionsForKey
+	//
+	//  WITH direct_permissions AS (
+	//      SELECT p.name as permission_name
+	//      FROM keys_permissions kp
+	//      JOIN permissions p ON kp.permission_id = p.id
+	//      WHERE kp.key_id = ?
+	//  ),
+	//  role_permissions AS (
+	//      SELECT p.name as permission_name
+	//      FROM keys_roles kr
+	//      JOIN roles_permissions rp ON kr.role_id = rp.role_id
+	//      JOIN permissions p ON rp.permission_id = p.id
+	//      WHERE kr.key_id = ?
+	//  )
+	//  SELECT DISTINCT permission_name
+	//  FROM (
+	//      SELECT permission_name FROM direct_permissions
+	//      UNION ALL
+	//      SELECT permission_name FROM role_permissions
+	//  ) all_permissions
+	FindPermissionsForKey(ctx context.Context, arg FindPermissionsForKeyParams) ([]string, error)
 	//FindRatelimitNamespaceByID
 	//
 	//  SELECT id, workspace_id, name, created_at, updated_at, deleted_at FROM `ratelimit_namespaces`
@@ -111,6 +131,13 @@ type Querier interface {
 	//  WHERE name = ?
 	//  AND workspace_id = ?
 	FindRatelimitNamespaceByName(ctx context.Context, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error)
+	//FindRatelimitOverridesById
+	//
+	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at, updated_at, deleted_at FROM ratelimit_overrides
+	//  WHERE
+	//      workspace_id = ?
+	//      AND id = ?
+	FindRatelimitOverridesById(ctx context.Context, arg FindRatelimitOverridesByIdParams) (RatelimitOverride, error)
 	//FindRatelimitOverridesByIdentifier
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at, updated_at, deleted_at FROM ratelimit_overrides

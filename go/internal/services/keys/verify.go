@@ -38,7 +38,7 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	// - Is it expired?
 	// - Is it ratelimited?
 
-	if key.DeletedAt.IsZero() {
+	if !key.DeletedAt.IsZero() {
 		return VerifyResponse{}, fault.New(
 			"key is deleted",
 			fault.WithDesc("deleted_at is non-zero", "The key has been deleted."),

@@ -20,9 +20,11 @@ type cacheMiddleware struct {
 	keyByHash                      cache.Cache[string, entities.Key]
 	workspaceByID                  cache.Cache[string, entities.Workspace]
 	keyByID                        cache.Cache[string, entities.Key]
-	ratelimitNamespaceById         cache.Cache[string, entities.RatelimitNamespace]
+	ratelimitNamespaceByID         cache.Cache[string, entities.RatelimitNamespace]
 	ratelimitNamespaceByName       cache.Cache[KeyRatelimitNamespaceByName, entities.RatelimitNamespace]
-	ratelimitOverridesByIdentifier cache.Cache[KeyRatelimitOverride, []entities.RatelimitOverride]
+	ratelimitOverridesByIdentifier cache.Cache[KeyRatelimitOverridesByIdentifier, []entities.RatelimitOverride]
+	ratelimitOverrideByID          cache.Cache[KeyRatelimitOverrideByID, entities.RatelimitOverride]
+	permissionsByKeyID             cache.Cache[string, []string]
 }
 
 var _ database.Database = (*cacheMiddleware)(nil)
@@ -70,7 +72,7 @@ func WithCaching(logger logging.Logger) database.Middleware {
 				Resource: "workspace_by_id",
 				Clock:    clk,
 			}),
-			ratelimitNamespaceById: cache.New[string, entities.RatelimitNamespace](cache.Config[string, entities.RatelimitNamespace]{
+			ratelimitNamespaceByID: cache.New[string, entities.RatelimitNamespace](cache.Config[string, entities.RatelimitNamespace]{
 				Fresh:    10 * time.Second,
 				Stale:    1 * time.Minute,
 				Logger:   logger,
@@ -86,12 +88,28 @@ func WithCaching(logger logging.Logger) database.Middleware {
 				Resource: "ratelimit_namespace_by_name",
 				Clock:    clk,
 			}),
-			ratelimitOverridesByIdentifier: cache.New[KeyRatelimitOverride, []entities.RatelimitOverride](cache.Config[KeyRatelimitOverride, []entities.RatelimitOverride]{
+			ratelimitOverridesByIdentifier: cache.New[KeyRatelimitOverridesByIdentifier, []entities.RatelimitOverride](cache.Config[KeyRatelimitOverridesByIdentifier, []entities.RatelimitOverride]{
 				Fresh:    10 * time.Second,
 				Stale:    1 * time.Minute,
 				Logger:   logger,
 				MaxSize:  1_000_000,
 				Resource: "ratelimit_overrides_by_identifier",
+				Clock:    clk,
+			}),
+			ratelimitOverrideByID: cache.New[KeyRatelimitOverrideByID, entities.RatelimitOverride](cache.Config[KeyRatelimitOverrideByID, entities.RatelimitOverride]{
+				Fresh:    10 * time.Second,
+				Stale:    1 * time.Minute,
+				Logger:   logger,
+				MaxSize:  1_000_000,
+				Resource: "ratelimit_override_by_id",
+				Clock:    clk,
+			}),
+			permissionsByKeyID: cache.New[string, []string](cache.Config[string, []string]{
+				Fresh:    10 * time.Second,
+				Stale:    1 * time.Minute,
+				Logger:   logger,
+				MaxSize:  1_000_000,
+				Resource: "permissions_by_key_id",
 				Clock:    clk,
 			}),
 		}
@@ -134,6 +152,11 @@ func (c *cacheMiddleware) FindKeyByHash(ctx context.Context, hash string) (key e
 		return c.db.FindKeyByHash(refreshCtx, hash)
 	}, c.translateError)
 }
+func (c *cacheMiddleware) FindPermissionsByKeyID(ctx context.Context, keyID string) (permissions []string, err error) {
+	return c.permissionsByKeyID.SWR(ctx, keyID, func(refreshCtx context.Context) ([]string, error) {
+		return c.db.FindPermissionsByKeyID(refreshCtx, keyID)
+	}, c.translateError)
+}
 func (c *cacheMiddleware) FindKeyForVerification(ctx context.Context, hash string) (key entities.Key, err error) {
 	panic("IMPLEMENT ME")
 }
@@ -141,7 +164,7 @@ func (c *cacheMiddleware) InsertRatelimitNamespace(ctx context.Context, namespac
 	return c.db.InsertRatelimitNamespace(ctx, namespace)
 }
 func (c *cacheMiddleware) FindRatelimitNamespaceByID(ctx context.Context, namespaceID string) (entities.RatelimitNamespace, error) {
-	return c.ratelimitNamespaceById.SWR(ctx, namespaceID, func(refreshCtx context.Context) (entities.RatelimitNamespace, error) {
+	return c.ratelimitNamespaceByID.SWR(ctx, namespaceID, func(refreshCtx context.Context) (entities.RatelimitNamespace, error) {
 		return c.db.FindRatelimitNamespaceByID(refreshCtx, namespaceID)
 	}, c.translateError)
 }
@@ -157,8 +180,13 @@ func (c *cacheMiddleware) InsertRatelimitOverride(ctx context.Context, ratelimit
 	return c.db.InsertRatelimitOverride(ctx, ratelimitOverride)
 }
 func (c *cacheMiddleware) FindRatelimitOverridesByIdentifier(ctx context.Context, workspaceID, namespaceID, identifier string) (ratelimitOverrides []entities.RatelimitOverride, err error) {
-	return c.ratelimitOverridesByIdentifier.SWR(ctx, KeyRatelimitOverride{WorkspaceID: workspaceID, NamespaceID: namespaceID, Identifier: identifier}, func(refreshCtx context.Context) ([]entities.RatelimitOverride, error) {
+	return c.ratelimitOverridesByIdentifier.SWR(ctx, KeyRatelimitOverridesByIdentifier{WorkspaceID: workspaceID, NamespaceID: namespaceID, Identifier: identifier}, func(refreshCtx context.Context) ([]entities.RatelimitOverride, error) {
 		return c.db.FindRatelimitOverridesByIdentifier(refreshCtx, workspaceID, namespaceID, identifier)
+	}, c.translateError)
+}
+func (c *cacheMiddleware) FindRatelimitOverrideByID(ctx context.Context, workspaceID, overrideID string) (ratelimitOverrides entities.RatelimitOverride, err error) {
+	return c.ratelimitOverrideByID.SWR(ctx, KeyRatelimitOverrideByID{WorkspaceID: workspaceID, OverrideID: overrideID}, func(refreshCtx context.Context) (entities.RatelimitOverride, error) {
+		return c.db.FindRatelimitOverrideByID(refreshCtx, workspaceID, overrideID)
 	}, c.translateError)
 }
 func (c *cacheMiddleware) UpdateRatelimitOverride(ctx context.Context, override entities.RatelimitOverride) error {

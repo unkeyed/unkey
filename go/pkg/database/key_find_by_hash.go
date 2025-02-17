@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"errors"
 
@@ -16,6 +17,8 @@ func (db *database) FindKeyByHash(ctx context.Context, hash string) (entities.Ke
 
 	model, err := db.read().FindKeyByHash(ctx, hash)
 	if err != nil {
+		db.logger.Error(ctx, "found key by hash", slog.Any("model", model), slog.Any("error", err))
+
 		if errors.Is(err, sql.ErrNoRows) {
 			return entities.Key{}, fault.Wrap(err,
 				fault.WithTag(fault.NOT_FOUND),
@@ -25,15 +28,10 @@ func (db *database) FindKeyByHash(ctx context.Context, hash string) (entities.Ke
 		return entities.Key{}, fault.Wrap(err, fault.WithTag(fault.DATABASE_ERROR))
 	}
 
-	key, err := transform.KeyModelToEntity(model.Key)
+	key, err := transform.KeyModelToEntity(model)
 	if err != nil {
 		return entities.Key{}, fault.Wrap(err, fault.WithDesc("cannot transform key model to entity", ""))
 	}
 
-	identiy, err := transform.IdentityModelToEntity(model.Identity)
-	if err != nil {
-		return entities.Key{}, fault.Wrap(err, fault.WithDesc("cannot transform identity model to entity", ""))
-	}
-	key.Identity = &identiy
 	return key, nil
 }

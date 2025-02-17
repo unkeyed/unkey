@@ -3,6 +3,7 @@ package zen
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -68,7 +69,14 @@ func (s *Session) ResponseWriter() http.ResponseWriter {
 }
 
 func (s *Session) BindBody(dst any) error {
-	err := json.Unmarshal(s.requestBody, dst)
+	var err error
+	s.requestBody, err = io.ReadAll(s.r.Body)
+	if err != nil {
+		return fault.Wrap(err, fault.WithDesc("unable to read request body", "The request body is malformed."))
+	}
+	defer s.r.Body.Close()
+
+	err = json.Unmarshal(s.requestBody, dst)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.WithDesc("failed to unmarshal request body", "The request body was not valid json."),

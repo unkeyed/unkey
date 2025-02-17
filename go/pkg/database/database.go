@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -34,6 +35,10 @@ type database struct {
 
 func New(config Config, middlewares ...Middleware) (Database, error) {
 
+	if !strings.Contains(config.PrimaryDSN, "parseTime=true") {
+		return nil, fault.New("PrimaryDSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
+	}
+
 	write, err := sql.Open("mysql", config.PrimaryDSN)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.WithDesc("cannot open primary replica", ""))
@@ -48,6 +53,9 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 		query: gen.New(write),
 	}
 	if config.ReadOnlyDSN != "" {
+		if !strings.Contains(config.ReadOnlyDSN, "parseTime=true") {
+			return nil, fault.New("ReadOnlyDSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
+		}
 		read, err := sql.Open("mysql", config.ReadOnlyDSN)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.WithDesc("cannot open read replica", ""))

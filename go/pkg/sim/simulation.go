@@ -36,8 +36,9 @@ func New[State any](t *testing.T, fns ...apply[State]) *Simulation[State] {
 	seed := NewSeed()
 
 	s := &Simulation[State]{
-		t:       t,
-		seed:    seed,
+		t:    t,
+		seed: seed,
+		// nolint:gosec
 		rng:     rand.New(rand.NewSource(seed)),
 		steps:   1_000_000_000,
 		state:   nil,
@@ -59,6 +60,7 @@ func WithSeed[S any](seed int64) apply[S] {
 		}
 
 		s.seed = seed
+		// nolint:gosec
 		s.rng = rand.New(rand.NewSource(seed))
 		return s
 	}

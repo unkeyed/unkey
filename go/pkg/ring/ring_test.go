@@ -72,7 +72,6 @@ func TestRing(t *testing.T) {
 	m, s := stat.MeanStdDev(cs, nil)
 	relStddev := s / m
 
-	fmt.Printf("min: %d, max: %d, mean: %f, stddev: %f, relstddev: %f\n", minimum, maximum, m, s, relStddev)
 	require.LessOrEqual(t, relStddev, 0.1, "relative std should be less than 0.1, got: %f", relStddev)
 }
 

@@ -29,7 +29,6 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 
 	return func(next HandleFunc) HandleFunc {
 		return func(s *Session) error {
-			fmt.Println("Middleware WithMetrics")
 			start := time.Now()
 			nextErr := next(s)
 			serviceLatency := time.Since(start)

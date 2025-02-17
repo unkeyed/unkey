@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/api"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/database"
 	"github.com/unkeyed/unkey/go/pkg/entities"
@@ -96,6 +97,8 @@ func NewHarness(t *testing.T) *Harness {
 	return &h
 }
 
+// Register registers a route with the harness.
+// You can override the middleware by passing a list of middleware.
 func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
 
 	if len(middleware) == 0 {
@@ -212,9 +215,11 @@ func UnmarshalBody[Body any](t *testing.T, r *httptest.ResponseRecorder, body *B
 }
 
 type TestResponse[TBody any] struct {
-	Status  int
-	Headers http.Header
-	Body    TBody
+	Status    int
+	Headers   http.Header
+	Body      *TBody
+	ErrorBody *api.BaseError
+	RawBody   string
 }
 
 func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Header, req Req) TestResponse[Res] {
@@ -235,13 +240,27 @@ func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Heade
 	h.srv.Mux().ServeHTTP(rr, httpReq)
 	require.NoError(h.t, err)
 
-	var res Res
-	err = json.NewDecoder(rr.Body).Decode(&res)
-	require.NoError(h.t, err)
+	rawBody := rr.Body.Bytes()
 
-	return TestResponse[Res]{
-		Status:  rr.Code,
-		Headers: rr.Header(),
-		Body:    res,
+	res := TestResponse[Res]{
+		Status:    rr.Code,
+		Headers:   rr.Header(),
+		RawBody:   string(rawBody),
+		Body:      nil,
+		ErrorBody: nil,
 	}
+
+	if rr.Code < 400 {
+		var responseBody Res
+		err = json.Unmarshal(rawBody, &responseBody)
+		require.NoError(h.t, err)
+		res.Body = &responseBody
+	} else {
+		var errorBody api.BaseError
+		err = json.Unmarshal(rawBody, &errorBody)
+		require.NoError(h.t, err)
+		res.ErrorBody = &errorBody
+	}
+
+	return res
 }

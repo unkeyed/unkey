@@ -13,6 +13,7 @@ const (
 	// handling more predictable.
 	UNTAGGED Tag = "UNTAGGED"
 
+	BAD_REQUEST Tag = "BAD_REQUEST"
 	// An object was not found in the system.
 	NOT_FOUND Tag = "NOT_FOUND"
 

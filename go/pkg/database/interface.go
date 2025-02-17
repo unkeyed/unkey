@@ -47,6 +47,9 @@ type Database interface {
 	// CountKeys(ctx context.Context, keyAuthId string) (int64, error)
 	// ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]entities.Key, error)
 
+	// Permissions
+	FindPermissionsByKeyID(ctx context.Context, keyID string) ([]string, error)
+
 	// Ratelimit Namespace
 	InsertRatelimitNamespace(ctx context.Context, namespace entities.RatelimitNamespace) error
 	FindRatelimitNamespaceByID(ctx context.Context, id string) (entities.RatelimitNamespace, error)
@@ -56,6 +59,7 @@ type Database interface {
 	// Ratelimit Override
 	InsertRatelimitOverride(ctx context.Context, ratelimitOverride entities.RatelimitOverride) error
 	FindRatelimitOverridesByIdentifier(ctx context.Context, workspaceId, namespaceId, identifier string) (ratelimitOverrides []entities.RatelimitOverride, err error)
+	FindRatelimitOverrideByID(ctx context.Context, workspaceID, identifier string) (ratelimitOverride entities.RatelimitOverride, err error)
 	UpdateRatelimitOverride(ctx context.Context, override entities.RatelimitOverride) error
 	DeleteRatelimitOverride(ctx context.Context, id string) error
 

@@ -66,11 +66,13 @@
         "$ref": "#/components/schemas/BaseError"
       },
       "BadRequestError": {
+        "$ref": "#/components/schemas/BaseError",
         "allOf": [
           {
             "$ref": "#/components/schemas/BaseError"
           },
           {
+            "type": "object",
             "properties": {
               "errors": {
                 "description": "Optional list of individual error details",
@@ -124,25 +126,32 @@
         "properties": {
           "namespaceId": {
             "description": "The id of the namespace. Either namespaceId or namespaceName must be provided",
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^rlns_.+$"
           },
           "namespaceName": {
-            "description": "xThe name of the namespace. Either namespaceId or namespaceName must be provided",
+            "description": "The name of the namespace. Either namespaceId or namespaceName must be provided",
             "type": "string"
           },
           "duration": {
             "description": "The duration in milliseconds for the rate limit window.",
             "format": "int64",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1000
           },
           "identifier": {
             "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "limit": {
             "description": "The maximum number of requests allowed.",
             "format": "int64",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": ["identifier", "limit", "duration"],

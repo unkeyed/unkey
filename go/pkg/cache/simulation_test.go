@@ -17,7 +17,7 @@ import (
 type state struct {
 	keys  []uint64
 	cache cache.Cache[uint64, uint64]
-	clk   clock.Clock
+	clk   *clock.TestClock
 }
 
 type setEvent struct{}
@@ -82,7 +82,7 @@ func (e *removeEvent) Run(rng *rand.Rand, s *state) error {
 }
 
 type advanceTimeEvent struct {
-	clk clock.Clock
+	clk *clock.TestClock
 }
 
 func (e *advanceTimeEvent) Name() string {
@@ -91,7 +91,8 @@ func (e *advanceTimeEvent) Name() string {
 
 func (e *advanceTimeEvent) Run(rng *rand.Rand, s *state) error {
 	nanoseconds := rng.Int63n(60 * 60 * 1000 * 1000) // up to 1h
-	e.clk.Now().Add(time.Duration(nanoseconds) * time.Nanosecond)
+
+	e.clk.Tick(time.Duration(nanoseconds) * time.Nanosecond)
 
 	return nil
 }

@@ -9,6 +9,7 @@ tasks:
       - task: lint
   test:
     cmds:
+      - docker pull mysql:latest
       - go test -cover -json -failfast ./... | tparse -all -progress
 
   build:

@@ -1,8 +1,6 @@
 package zen
 
 import (
-	"fmt"
-
 	"github.com/unkeyed/unkey/go/pkg/tracing"
 )
 
@@ -10,7 +8,6 @@ func WithTracing() Middleware {
 
 	return func(next HandleFunc) HandleFunc {
 		return func(s *Session) error {
-			fmt.Println("Middleware WithTracing")
 			ctx, span := tracing.Start(s.Context(), s.r.Pattern)
 			defer span.End()
 

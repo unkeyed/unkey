@@ -1,7 +1,6 @@
 package zen
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/api"
@@ -11,7 +10,6 @@ import (
 func WithErrorHandling() Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(s *Session) error {
-			fmt.Println("Middleware WithErrorHandling")
 			err := next(s)
 
 			if err == nil {
@@ -27,6 +25,17 @@ func WithErrorHandling() Middleware {
 					RequestId: s.requestID,
 					Status:    s.responseStatus,
 					Instance:  nil,
+				})
+
+			case fault.BAD_REQUEST:
+				return s.JSON(http.StatusBadRequest, api.BadRequestError{
+					Title:     "Bad Request",
+					Type:      "https://unkey.com/docs/errors/bad_request",
+					Detail:    fault.UserFacingMessage(err),
+					RequestId: s.requestID,
+					Status:    http.StatusBadRequest,
+					Instance:  nil,
+					Errors:    []api.ValidationError{},
 				})
 
 			case fault.UNAUTHORIZED:

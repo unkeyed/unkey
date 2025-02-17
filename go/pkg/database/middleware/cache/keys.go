@@ -5,8 +5,13 @@ type KeyRatelimitNamespaceByName struct {
 	NamespaceName string
 }
 
-type KeyRatelimitOverride struct {
+type KeyRatelimitOverridesByIdentifier struct {
 	WorkspaceID string
 	Identifier  string
 	NamespaceID string
+}
+
+type KeyRatelimitOverrideByID struct {
+	WorkspaceID string
+	OverrideID  string
 }

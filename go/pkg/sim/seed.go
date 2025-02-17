@@ -6,5 +6,6 @@ import (
 
 func NewSeed() int64 {
 
+	// nolint:gosec
 	return rand.Int63()
 }
