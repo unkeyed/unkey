@@ -5,7 +5,7 @@ import { baseOptions } from "../layout.config";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <div className="font-mono">
+    <div>
       <DocsLayout tree={rfcSource.pageTree} {...baseOptions}>
         {children}
       </DocsLayout>
