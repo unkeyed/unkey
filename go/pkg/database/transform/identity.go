@@ -24,7 +24,7 @@ func IdentityModelToEntity(m gen.Identity) (entities.Identity, error) {
 
 	err := json.Unmarshal([]byte(m.Meta), &identity.Meta)
 	if err != nil {
-		return entities.Identity{}, fmt.Errorf("uanble to unmarshal meta: %w", err)
+		return entities.Identity{}, fmt.Errorf("unable to unmarshal meta: %w", err)
 	}
 
 	if m.UpdatedAt.Valid {
