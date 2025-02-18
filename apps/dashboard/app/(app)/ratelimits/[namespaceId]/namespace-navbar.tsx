@@ -5,9 +5,7 @@ import { Navbar } from "@/components/navbar";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toaster";
-import { cn } from "@/lib/utils";
 import { Dots, Gauge } from "@unkey/icons";
-import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { DeleteNamespaceDialog } from "./_components/namespace-delete-dialog";
 import { NamespaceUpdateNameDialog } from "./_components/namespace-update-dialog";
@@ -15,17 +13,21 @@ import { NamespaceUpdateNameDialog } from "./_components/namespace-update-dialog
 export const NamespaceNavbar = ({
   namespace,
   ratelimitNamespaces,
+  activePage,
 }: {
   namespace: {
     id: string;
     name: string;
     workspaceId: string;
   };
-
   ratelimitNamespaces: {
     id: string;
     name: string;
   }[];
+  activePage: {
+    href: string;
+    text: string;
+  };
 }) => {
   const [isNamespaceNameUpdateModalOpen, setIsNamespaceNameUpdateModalOpen] = useState(false);
 
@@ -42,7 +44,7 @@ export const NamespaceNavbar = ({
             noop
           >
             <div className="flex gap-[10px] items-center">
-              <div className="flex items-center gap-1 group hover:bg-gray-3 rounded-lg">
+              <div className="flex items-center gap-2 group hover:bg-gray-3 rounded-lg p-1">
                 <QuickNavPopover
                   items={ratelimitNamespaces.map((ns) => ({
                     id: ns.id,
@@ -51,17 +53,7 @@ export const NamespaceNavbar = ({
                   }))}
                   shortcutKey="R"
                 >
-                  <Button
-                    variant="ghost"
-                    className={cn("group-data-[state=open]:bg-gray-4 px-1")}
-                    aria-label="Select ratelimit"
-                    aria-haspopup="true"
-                    title="Press 'R' to toggle namespaces"
-                  >
-                    <div className="text-accent-10 group-hover:text-accent-12">
-                      {namespace.name}
-                    </div>
-                  </Button>
+                  <div className="text-accent-10 group-hover:text-accent-12">{namespace.name}</div>
                 </QuickNavPopover>
 
                 <QuickNavPopover
@@ -98,49 +90,34 @@ export const NamespaceNavbar = ({
                     },
                   ]}
                 >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-accent-10 group-hover:text-accent-12 hover:bg-transparent"
-                    aria-label="More options"
-                  >
-                    <Dots />
-                  </Button>
+                  <Dots />
                 </QuickNavPopover>
               </div>
             </div>
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/ratelimits/${namespace.id}`} noop active>
-            <Button
-              variant="ghost"
-              className={cn("group-data-[state=open]:bg-gray-4 px-1")}
-              aria-label="Select ratelimit"
-              aria-haspopup="true"
-              title="Press 'M' to toggle other pages"
+          <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
+            <QuickNavPopover
+              items={[
+                {
+                  id: "logs",
+                  label: "Logs",
+                  href: `/ratelimits/${namespace.id}/logs`,
+                },
+                {
+                  id: "settings",
+                  label: "Settings",
+                  href: `/ratelimits/${namespace.id}/settings`,
+                },
+                {
+                  id: "overrides",
+                  label: "Overrides",
+                  href: `/ratelimits/${namespace.id}/overrides`,
+                },
+              ]}
+              shortcutKey="M"
             >
-              <QuickNavPopover
-                items={[
-                  {
-                    id: "logs",
-                    label: "Logs",
-                    href: `/ratelimits/${namespace.id}/logs`,
-                  },
-                  {
-                    id: "settings",
-                    label: "Settings",
-                    href: `/ratelimits/${namespace.id}/settings`,
-                  },
-                  {
-                    id: "overrides",
-                    label: "Overrides",
-                    href: `/ratelimits/${namespace.id}/overrides`,
-                  },
-                ]}
-                shortcutKey="M"
-              >
-                <div>Requests</div>
-              </QuickNavPopover>
-            </Button>
+              <div className="hover:bg-gray-3 rounded-lg p-1">{activePage.text}</div>
+            </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>

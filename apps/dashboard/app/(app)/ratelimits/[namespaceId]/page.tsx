@@ -1,8 +1,6 @@
-import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { redirect } from "next/navigation";
 import { LogsClient } from "./_overview/logs-client";
 import { NamespaceNavbar } from "./namespace-navbar";
+import { getWorkspaceDetails } from "./namespace.actions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -13,36 +11,20 @@ export default async function RatelimitNamespacePage(props: {
     identifier?: string;
   };
 }) {
-  const tenantId = getTenantId();
-
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
-    columns: {
-      name: true,
-      tenantId: true,
-    },
-    with: {
-      ratelimitNamespaces: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
-        columns: {
-          id: true,
-          workspaceId: true,
-          name: true,
-        },
-      },
-    },
-  });
-
-  const namespace = workspace?.ratelimitNamespaces.find((r) => r.id === props.params.namespaceId);
-
-  if (!namespace || !workspace || workspace.tenantId !== tenantId) {
-    return redirect("/ratelimits");
-  }
-
+  const { namespace, ratelimitNamespaces } = await getWorkspaceDetails(
+    props.params.namespaceId,
+    "/ratelimits",
+  );
   return (
     <div>
-      <NamespaceNavbar namespace={namespace} ratelimitNamespaces={workspace.ratelimitNamespaces} />
+      <NamespaceNavbar
+        activePage={{
+          href: `/ratelimits/${namespace.id}`,
+          text: "Requests",
+        }}
+        namespace={namespace}
+        ratelimitNamespaces={ratelimitNamespaces}
+      />
       <LogsClient namespaceId={namespace.id} />
     </div>
   );
