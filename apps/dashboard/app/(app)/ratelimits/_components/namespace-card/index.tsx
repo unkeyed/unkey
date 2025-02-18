@@ -1,9 +1,9 @@
 "use client";
 import { Clock, ProgressBar } from "@unkey/icons";
-import { useFetchRatelimitOverviewTimeseries } from "../../[namespaceId]/_overview/components/charts/bar-chart/hooks/use-fetch-timeseries";
-import { LogsTimeseriesBarChart } from "./chart/bar-chart";
 import ms from "ms";
 import Link from "next/link";
+import { useFetchRatelimitOverviewTimeseries } from "../../[namespaceId]/_overview/components/charts/bar-chart/hooks/use-fetch-timeseries";
+import { LogsTimeseriesBarChart } from "./chart/bar-chart";
 
 type Props = {
   namespace: {
@@ -44,10 +44,7 @@ export const NamespaceCard = ({ namespace }: Props) => {
       <div className="p-6 border-t border-gray-6 flex flex-col gap-1">
         <div className="flex gap-3 items-center">
           <ProgressBar className="text-accent-11" />
-          <Link
-            className="text-accent-12 font-semibold"
-            href={`/ratelimits/${namespace.id}`}
-          >
+          <Link className="text-accent-12 font-semibold" href={`/ratelimits/${namespace.id}`}>
             <div className="text-accent-12 font-semibold">{namespace.name}</div>
           </Link>
         </div>
@@ -56,23 +53,15 @@ export const NamespaceCard = ({ namespace }: Props) => {
             <div className="flex flex-col gap-1">
               <div className="flex gap-2 items-center">
                 <div className="bg-accent-8 rounded h-[10px] w-1" />
-                <div className="text-accent-12 text-xs font-medium">
-                  {passed}
-                </div>
-                <div className="text-accent-9 text-[11px] leading-4">
-                  PASSED
-                </div>
+                <div className="text-accent-12 text-xs font-medium">{passed}</div>
+                <div className="text-accent-9 text-[11px] leading-4">PASSED</div>
               </div>
             </div>
             <div className="flex flex-col gap-1">
               <div className="flex gap-2 items-center">
                 <div className="bg-orange-9 rounded h-[10px] w-1" />
-                <div className="text-accent-12 text-xs font-medium">
-                  {blocked}
-                </div>
-                <div className="text-accent-9 text-[11px] leading-4">
-                  BLOCKED
-                </div>
+                <div className="text-accent-12 text-xs font-medium">{blocked}</div>
+                <div className="text-accent-9 text-[11px] leading-4">BLOCKED</div>
               </div>
             </div>
           </div>
