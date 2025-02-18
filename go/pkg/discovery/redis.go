@@ -55,7 +55,7 @@ func NewRedis(config RedisConfig) (*Redis, error) {
 
 	err = r.advertise(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("failed to advertise state to redis")
+		return nil, fmt.Errorf("failed to advertise state to redis: %w", err)
 	}
 
 	go r.heartbeat()
