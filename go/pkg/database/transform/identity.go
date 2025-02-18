@@ -9,59 +9,27 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/entities"
 )
 
-func KeyModelToEntity(m gen.Key) (entities.Key, error) {
+func IdentityModelToEntity(m gen.Identity) (entities.Identity, error) {
 
-	key := entities.Key{
-		ID:             m.ID,
-		KeySpaceID:     m.KeyAuthID,
-		WorkspaceID:    m.WorkspaceID,
-		Hash:           m.Hash,
-		Start:          m.Start,
-		CreatedAt:      m.CreatedAt,
-		ForWorkspaceID: "",
-		Name:           "",
-		Enabled:        m.Enabled,
-		IdentityID:     "",
-		Meta:           map[string]any{},
-		UpdatedAt:      time.Time{},
-		DeletedAt:      time.Time{},
-		Environment:    "",
-		Expires:        time.Time{},
-		Identity:       nil,
-		Permissions:    []string{},
+	identity := entities.Identity{
+		ID:          m.ID,
+		ExternalID:  m.ExternalID,
+		WorkspaceID: m.WorkspaceID,
+		CreatedAt:   time.UnixMilli(m.CreatedAt),
+		Meta:        map[string]any{},
+		UpdatedAt:   time.Time{},
+		DeletedAt:   time.Time{},
+		Environment: m.Environment,
 	}
 
-	if m.Name.Valid {
-		key.Name = m.Name.String
+	err := json.Unmarshal([]byte(m.Meta), &identity.Meta)
+	if err != nil {
+		return entities.Identity{}, fmt.Errorf("unable to unmarshal meta: %w", err)
 	}
 
-	if m.Meta.Valid {
-		err := json.Unmarshal([]byte(m.Meta.String), &key.Meta)
-		if err != nil {
-			return entities.Key{}, fmt.Errorf("uanble to unmarshal meta: %w", err)
-		}
-	}
-	if m.Expires.Valid {
-		key.Expires = m.Expires.Time
+	if m.UpdatedAt.Valid {
+		identity.UpdatedAt = time.UnixMilli(m.UpdatedAt.Int64)
 	}
 
-	if m.ForWorkspaceID.Valid {
-		key.ForWorkspaceID = m.ForWorkspaceID.String
-	}
-	if m.IdentityID.Valid {
-		key.IdentityID = m.IdentityID.String
-	}
-
-	if m.UpdatedAtM.Valid {
-		key.UpdatedAt = time.UnixMilli(m.UpdatedAtM.Int64)
-	}
-
-	if m.DeletedAtM.Valid {
-		key.DeletedAt = time.UnixMilli(m.DeletedAtM.Int64)
-	}
-	if m.Environment.Valid {
-		key.Environment = m.Environment.String
-	}
-
-	return key, nil
+	return identity, nil
 }

@@ -28,23 +28,18 @@
           "type": "object",
           "description": "Cluster discovery configuration, only one supported: static, cloudmap",
           "properties": {
-            "awsCloudmap": {
+            "redis": {
               "type": "object",
-              "description": "Cloudmap cluster discovery configuration",
+              "description": "Redis cluster discovery configuration",
               "properties": {
-                "region": {
+                "url": {
                   "type": "string",
-                  "description": "Cloudmap region",
-                  "minLength": 1
-                },
-                "serviceName": {
-                  "type": "string",
-                  "description": "Cloudmap service name",
+                  "description": "Redis URL",
                   "minLength": 1
                 }
               },
               "additionalProperties": false,
-              "required": ["serviceName", "region"]
+              "required": ["url"]
             },
             "static": {
               "type": "object",

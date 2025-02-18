@@ -1,0 +1,211 @@
+---
+title: API
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import {Property} from "fumadocs-openapi/ui"
+
+
+<Callout>
+  This document only covers v2 of the Unkey API. The v1 API on Cloudflare Workers is deprecated and will be removed in the future. It was too hard to selfhost anyways.
+</Callout>
+
+Our API runs on AWS containers, in multiple regions behind a global load balancer to ensure high availability and low latency.
+
+
+The source code is available on [GitHub](https://github.com/unkeyed/unkey/tree/main/go/cmd/api).
+
+## Quickstart
+
+To get started, you need [go1.24+](https://go.dev/dl/) installed on your machine.
+
+<Steps>
+
+<Step>
+  ### Clone the repository:
+
+```bash
+git clone git@github.com:unkeyed/unkey.git
+cd unkey/go
+```
+</Step>
+
+<Step>
+  ### Build the binary:
+
+```bash
+go build -o unkey .
+```
+</Step>
+
+<Step>
+  ### Run the binary:
+
+```bash
+unkey api --config ./path/to/config.json
+```
+
+You should now be able to access the API at
+
+```bash
+$ curl http://localhost:<HTTP_PORT>/v2/liveness
+{"message":"we're cooking"}%
+```
+</Step>
+
+
+
+</Steps>
+
+## Configuration
+
+The API server requires a json configuration file to be passed as an argument to the binary.
+
+You can use `${SOME_NAME}` as placeholder in your config file and it will be replaced by the value of the environment variable `SOME_NAME`.
+
+
+```json title="Example"
+{
+  "httpPort": "${PORT}"
+}
+```
+
+The most up to date json schema can be found here: [https://raw.githubusercontent.com/unkeyed/unkey/refs/heads/main/go/schema.json](https://raw.githubusercontent.com/unkeyed/unkey/refs/heads/main/go/schema.json)
+
+Most IDEs support JSON schema validation if you put it in your config file.
+```json
+  {
+    "$schema": "https://raw.githubusercontent.com/unkeyed/unkey/refs/heads/main/go/schema.json",
+    // ...
+  }
+```
+
+<Callout type="info">
+  You can check out our own configuration files on [GitHub](https://github.com/unkeyed/unkey/tree/main/go).
+</Callout>
+
+
+
+
+### General Configuration
+
+These settings define the fundamental properties of the server.
+
+<Property name="platform" type="string" >
+  The platform this server is running on ("aws", "gcp", ...).
+
+  Most metrics include this information to help with troubleshooting and monitoring.
+</Property>
+
+<Property name="image" type="string">
+  The container image and version identifier for this instance.
+</Property>
+
+<Property name="httpPort" type="number">
+  The HTTP port where the server will listen for incoming connections. Defaults to 7070.
+</Property>
+
+
+<Property name="region" type="string">
+  Geographic region identifier where this server is deployed (e.g., "us-west-1")
+</Property>
+
+### Heartbeat Configuration
+The API can send heartbeats to a destination to monitor its health.
+
+<Property name="heartbeat" type="object">
+  Configuration for server health check reporting. Contains the following properties:
+
+  <Property name="url" type="string" required>
+    Endpoint URL where heartbeat signals will be sent (e.g., "http://monitor.example.com/heartbeat")
+  </Property>
+
+  <Property name="interval" type="number" required>
+    Time between heartbeat signals in seconds (e.g., 30 for checking every half minute)
+  </Property>
+</Property>
+
+### Cluster Configuration
+Settings for cluster operation when running multiple server instances together.
+
+<Property name="cluster" type="object">
+  Settings for multi-server cluster operations:
+
+  <Property name="nodeId" type="string">
+    Unique identifier for this node in the cluster (e.g., "node-1", "server-east-1")
+
+    If omitted, a random id will be generated.
+  </Property>
+
+  <Property name="advertiseAddr" type="string">
+    Network address other nodes will use to contact this node (e.g., "10.0.0.1", "node1.example.com")
+  </Property>
+
+  <Property name="rpcPort" type="string">
+    Port used for internal cluster communication via RPC. Defaults to "7071".
+  </Property>
+
+  <Property name="gossipPort" type="string">
+    Port used for cluster membership and state dissemination. Defaults to "7072".
+  </Property>
+
+  <Property name="discovery" type="object">
+    Configuration for how cluster nodes discover each other on startup.
+
+    Only one discovery method can be configured at a time.
+
+    <Property name="static" type="object">
+      Fixed list of cluster nodes for stable environments:
+
+      <Property name="addrs" type="string[]" required>
+        List of node addresses to connect to (e.g., ["node1:7071", "node2:7071"])
+      </Property>
+    </Property>
+
+    <Property name="redis" type="object">
+      Redis-based dynamic discovery for flexible environments.
+      All nodes will send heartbeats to the Redis server with their address.
+
+      <Property name="url" type="string" required>
+        Redis connection string (e.g., "redis://redis.example.com:6379")
+      </Property>
+    </Property>
+  </Property>
+</Property>
+
+### Logging and Monitoring
+Configuration for observability and debugging capabilities.
+
+<Property name="logs" type="object">
+  Logging configuration settings:
+
+  <Property name="color" type="boolean">
+    Enable colored output in log messages for better readability
+  </Property>
+</Property>
+
+
+### Database Configuration
+Database connection settings for the server's data storage.
+
+<Property name="database" type="object" required>
+  Database connection configuration:
+
+  <Property name="primary" type="string" required>
+    Primary database connection string for read and write operations (e.g., "postgresql://user:pass@localhost:5432/dbname")
+  </Property>
+
+  <Property name="readonlyReplica" type="string">
+    Optional read-only database replica for scaling read operations
+  </Property>
+</Property>
+
+### ClickHouse Configuration
+
+<Property name="clickhouse" type="object">
+  ClickHouse integration for metrics and logging:
+
+  <Property name="url" type="string" required>
+    ClickHouse server connection string (e.g., "http://clickhouse:8123")
+  </Property>
+</Property>

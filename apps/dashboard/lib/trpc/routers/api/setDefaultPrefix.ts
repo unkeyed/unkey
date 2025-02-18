@@ -9,7 +9,12 @@ export const setDefaultApiPrefix = t.procedure
   .use(auth)
   .input(
     z.object({
-      defaultPrefix: z.string().max(8, "Prefix can be a maximum of 8 characters"),
+      defaultPrefix: z
+        .string()
+        .max(8, { message: "Prefixes cannot be longer than 8 characters" })
+        .refine((prefix) => !prefix.includes(" "), {
+          message: "Prefixes cannot contain spaces.",
+        }),
       keyAuthId: z.string(),
     }),
   )

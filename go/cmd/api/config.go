@@ -20,10 +20,9 @@ type nodeConfig struct {
 			Static *struct {
 				Addrs []string `json:"addrs" minLength:"1" description:"List of node addresses"`
 			} `json:"static,omitempty" description:"Static cluster discovery configuration"`
-			AwsCloudmap *struct {
-				ServiceName string `json:"serviceName" minLength:"1" description:"Cloudmap service name"`
-				Region      string `json:"region" minLength:"1" description:"Cloudmap region"`
-			} `json:"awsCloudmap,omitempty" description:"Cloudmap cluster discovery configuration"`
+			Redis *struct {
+				URL string `json:"url" minLength:"1" description:"Redis URL"`
+			} `json:"redis,omitempty" description:"Redis cluster discovery configuration"`
 		} `json:"discovery,omitempty" description:"Cluster discovery configuration, only one supported: static, cloudmap"`
 	} `json:"cluster,omitempty" description:"Cluster configuration"`
 

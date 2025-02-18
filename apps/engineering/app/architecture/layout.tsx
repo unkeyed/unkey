@@ -5,10 +5,8 @@ import { baseOptions } from "../layout.config";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <div>
-      <DocsLayout tree={architectureSource.pageTree} {...baseOptions}>
-        {children}
-      </DocsLayout>
-    </div>
+    <DocsLayout tree={architectureSource.pageTree} {...baseOptions}>
+      {children}
+    </DocsLayout>
   );
 }

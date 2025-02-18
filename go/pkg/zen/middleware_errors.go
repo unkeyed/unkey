@@ -11,6 +11,7 @@ func WithErrorHandling() Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(s *Session) error {
 			err := next(s)
+
 			if err == nil {
 				return nil
 			}
@@ -25,6 +26,18 @@ func WithErrorHandling() Middleware {
 					Status:    s.responseStatus,
 					Instance:  nil,
 				})
+
+			case fault.BAD_REQUEST:
+				return s.JSON(http.StatusBadRequest, api.BadRequestError{
+					Title:     "Bad Request",
+					Type:      "https://unkey.com/docs/errors/bad_request",
+					Detail:    fault.UserFacingMessage(err),
+					RequestId: s.requestID,
+					Status:    http.StatusBadRequest,
+					Instance:  nil,
+					Errors:    []api.ValidationError{},
+				})
+
 			case fault.UNAUTHORIZED:
 				return s.JSON(http.StatusUnauthorized, api.UnauthorizedError{
 					Title:     "Unauthorized",

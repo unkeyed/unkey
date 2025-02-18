@@ -10,9 +10,10 @@
   "cluster": {
     "rpcPort": "${RPC_PORT}",
     "gossipPort": "${GOSSIP_PORT}",
+    "advertiseAddr": "${HOSTNAME}",
     "discovery": {
-      "static": {
-        "addrs": ["unkey-apiv2-1:${GOSSIP_PORT}"]
+      "redis": {
+        "url": "${REDIS_URL}"
       }
     }
   }

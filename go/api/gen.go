@@ -82,6 +82,9 @@ type V2RatelimitLimitRequestBody struct {
 
 	// Limit The maximum number of requests allowed.
 	Limit int64 `json:"limit"`
+
+	// Namespace The namespace name for the rate limit.
+	Namespace string `json:"namespace"`
 }
 
 // V2RatelimitLimitResponseBody defines model for V2RatelimitLimitResponseBody.
@@ -113,7 +116,7 @@ type V2RatelimitSetOverrideRequestBody struct {
 	// NamespaceId The id of the namespace. Either namespaceId or namespaceName must be provided
 	NamespaceId *string `json:"namespaceId,omitempty"`
 
-	// NamespaceName xThe name of the namespace. Either namespaceId or namespaceName must be provided
+	// NamespaceName The name of the namespace. Either namespaceId or namespaceName must be provided
 	NamespaceName *string `json:"namespaceName,omitempty"`
 }
 

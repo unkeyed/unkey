@@ -7,6 +7,7 @@ package gen
 
 import (
 	"context"
+	"database/sql"
 )
 
 const insertWorkspace = `-- name: InsertWorkspace :exec
@@ -25,7 +26,7 @@ VALUES (
     ?,
     ?,
     ?,
-    NOW(),
+     ?,
     'free',
     '{}',
     '{}',
@@ -35,9 +36,10 @@ VALUES (
 `
 
 type InsertWorkspaceParams struct {
-	ID       string `db:"id"`
-	TenantID string `db:"tenant_id"`
-	Name     string `db:"name"`
+	ID        string       `db:"id"`
+	TenantID  string       `db:"tenant_id"`
+	Name      string       `db:"name"`
+	CreatedAt sql.NullTime `db:"created_at"`
 }
 
 // InsertWorkspace
@@ -57,7 +59,7 @@ type InsertWorkspaceParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//	    NOW(),
+//	     ?,
 //	    'free',
 //	    '{}',
 //	    '{}',
@@ -65,6 +67,11 @@ type InsertWorkspaceParams struct {
 //	    true
 //	)
 func (q *Queries) InsertWorkspace(ctx context.Context, arg InsertWorkspaceParams) error {
-	_, err := q.db.ExecContext(ctx, insertWorkspace, arg.ID, arg.TenantID, arg.Name)
+	_, err := q.db.ExecContext(ctx, insertWorkspace,
+		arg.ID,
+		arg.TenantID,
+		arg.Name,
+		arg.CreatedAt,
+	)
 	return err
 }

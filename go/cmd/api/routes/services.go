@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/database"
 	"github.com/unkeyed/unkey/go/pkg/logging"
@@ -18,4 +19,5 @@ type Services struct {
 	EventBuffer EventBuffer
 	Keys        keys.KeyService
 	Validator   *validation.Validator
+	Ratelimit   ratelimit.Service
 }

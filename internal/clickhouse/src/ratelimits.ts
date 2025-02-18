@@ -280,7 +280,7 @@ export function getRatelimitLogs(ch: Querier) {
               case "is":
                 return `identifier = {${paramName}: String}`;
               case "contains":
-                return `position({${paramName}: String}, identifier) > 0`;
+                return `like(identifier, CONCAT('%', {${paramName}: String}, '%'))`;
               default:
                 return null;
             }

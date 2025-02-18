@@ -5,29 +5,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/maypok86/otter"
+	"github.com/panjf2000/ants"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/logging"
-	"github.com/unkeyed/unkey/go/pkg/tracing"
-	"go.opentelemetry.io/otel/attribute"
 )
 
-type cache[T any] struct {
-	otter             otter.Cache[string, swrEntry[T]]
-	fresh             time.Duration
-	stale             time.Duration
-	refreshFromOrigin func(ctx context.Context, identifier string) (data T, ok bool)
-	// If a key is stale, its identifier will be put into this channel and a goroutine refreshes it in the background
-	refreshC chan string
+type cache[K comparable, V any] struct {
+	otter otter.Cache[K, swrEntry[V]]
+	fresh time.Duration
+	stale time.Duration
+	// If a key is stale, its key will be put into this channel and a goroutine refreshes it in the background
+	refreshC chan K
 	logger   logging.Logger
 	resource string
 	clock    clock.Clock
+
+	inflightMu        sync.Mutex
+	inflightRefreshes map[K]bool
+
+	pool *ants.Pool
 }
 
-type Config[T any] struct {
+type Config[K comparable, V any] struct {
 	// How long the data is considered fresh
 	// Subsequent requests in this time will try to use the cache
 	Fresh time.Duration
@@ -35,9 +39,6 @@ type Config[T any] struct {
 	// Subsequent requests that are not fresh but within the stale time will return cached data but also trigger
 	// fetching from the origin server
 	Stale time.Duration
-
-	// A handler that will be called to refetch data from the origin when necessary
-	RefreshFromOrigin func(ctx context.Context, identifier string) (data T, ok bool)
 
 	Logger logging.Logger
 
@@ -49,77 +50,78 @@ type Config[T any] struct {
 	Clock clock.Clock
 }
 
-func New[T any](config Config[T]) (*cache[T], error) {
+var _ Cache[any, any] = (*cache[any, any])(nil)
 
-	builder, err := otter.NewBuilder[string, swrEntry[T]](config.MaxSize)
+// New creates a new cache instance
+func New[K comparable, V any](config Config[K, V]) *cache[K, V] {
+
+	builder, err := otter.NewBuilder[K, swrEntry[V]](config.MaxSize)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("failed to create otter builder", ""))
+		panic(err)
 	}
 
-	otter, err := builder.CollectStats().Cost(func(key string, value swrEntry[T]) uint32 {
+	otter, err := builder.CollectStats().Cost(func(key K, value swrEntry[V]) uint32 {
 		return 1
 	}).WithTTL(time.Hour).Build()
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("failed to create otter cache", ""))
+		panic(err)
 	}
 
-	c := &cache[T]{
+	pool, err := ants.NewPool(10)
+	if err != nil {
+		panic(err)
+	}
+
+	c := &cache[K, V]{
 		otter:             otter,
 		fresh:             config.Fresh,
 		stale:             config.Stale,
-		refreshFromOrigin: config.RefreshFromOrigin,
-		refreshC:          make(chan string, 1000),
+		refreshC:          make(chan K, 1000),
 		logger:            config.Logger,
 		resource:          config.Resource,
 		clock:             config.Clock,
+		pool:              pool,
+		inflightMu:        sync.Mutex{},
+		inflightRefreshes: make(map[K]bool),
 	}
 
-	go c.runRefreshing()
-
-	return c, nil
+	return c
 
 }
 
-func (c cache[T]) Get(ctx context.Context, key string) (value T, hit CacheHit) {
+func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 
 	e, ok := c.otter.Get(key)
 	if !ok {
-		// This hack is necessary because you can not return nil as T
-		var t T
-		return t, Miss
+		// This hack is necessary because you can not return nil as V
+		var v V
+		return v, Miss
 	}
 
 	now := c.clock.Now()
 
-	if now.Before(e.Fresh) {
-
-		return e.Value, e.Hit
-
-	}
 	if now.Before(e.Stale) {
-		c.refreshC <- key
-
 		return e.Value, e.Hit
 	}
 
 	c.otter.Delete(key)
 
-	var t T
-	return t, Miss
+	var v V
+	return v, Miss
 
 }
 
-func (c cache[T]) SetNull(ctx context.Context, key string) {
+func (c *cache[K, V]) SetNull(ctx context.Context, key K) {
 	c.set(ctx, key)
 }
 
-func (c cache[T]) Set(ctx context.Context, key string, value T) {
+func (c *cache[K, V]) Set(ctx context.Context, key K, value V) {
 	c.set(ctx, key, value)
 }
-func (c cache[T]) set(_ context.Context, key string, value ...T) {
+func (c *cache[K, V]) set(_ context.Context, key K, value ...V) {
 	now := c.clock.Now()
 
-	e := swrEntry[T]{
+	e := swrEntry[V]{
 		Value: value[0],
 		Fresh: now.Add(c.fresh),
 		Stale: now.Add(c.stale),
@@ -135,16 +137,16 @@ func (c cache[T]) set(_ context.Context, key string, value ...T) {
 
 }
 
-func (c cache[T]) Remove(ctx context.Context, key string) {
+func (c *cache[K, V]) Remove(ctx context.Context, key K) {
 
 	c.otter.Delete(key)
 
 }
 
-func (c cache[T]) Dump(ctx context.Context) ([]byte, error) {
-	data := make(map[string]swrEntry[T])
+func (c *cache[K, V]) Dump(ctx context.Context) ([]byte, error) {
+	data := make(map[K]swrEntry[V])
 
-	c.otter.Range(func(key string, entry swrEntry[T]) bool {
+	c.otter.Range(func(key K, entry swrEntry[V]) bool {
 		data[key] = entry
 		return true
 	})
@@ -158,9 +160,9 @@ func (c cache[T]) Dump(ctx context.Context) ([]byte, error) {
 
 }
 
-func (c cache[T]) Restore(ctx context.Context, b []byte) error {
+func (c *cache[K, V]) Restore(ctx context.Context, b []byte) error {
 
-	data := make(map[string]swrEntry[T])
+	data := make(map[K]swrEntry[V])
 	err := json.Unmarshal(b, &data)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal cache data: %w", err)
@@ -177,47 +179,93 @@ func (c cache[T]) Restore(ctx context.Context, b []byte) error {
 	return nil
 }
 
-func (c cache[T]) Clear(ctx context.Context) {
+func (c *cache[K, V]) Clear(ctx context.Context) {
 	c.otter.Clear()
 }
 
-func (c cache[T]) runRefreshing() {
-	for {
-		ctx := context.Background()
-		identifier := <-c.refreshC
+func (c *cache[K, V]) refresh(
+	ctx context.Context,
+	key K, refreshFromOrigin func(context.Context) (V, error),
+	translateError func(error) CacheHit,
+) {
+	c.inflightMu.Lock()
+	_, ok := c.inflightRefreshes[key]
+	if ok {
+		c.inflightMu.Unlock()
+		return
+	}
+	c.inflightRefreshes[key] = true
+	c.inflightMu.Unlock()
 
-		ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("cache.%s", c.resource), "refresh"))
-		span.SetAttributes(attribute.String("identifier", identifier))
-		t, ok := c.refreshFromOrigin(ctx, identifier)
-		if !ok {
-			span.AddEvent("identifier not found in origin")
-			c.logger.Warn(ctx, "origin couldn't find data", slog.String("identifier", identifier))
-			span.End()
-			continue
-		}
-		c.Set(ctx, identifier, t)
-		span.End()
+	defer func() {
+		c.inflightMu.Lock()
+		delete(c.inflightRefreshes, key)
+		c.inflightMu.Unlock()
+	}()
+
+	v, err := refreshFromOrigin(ctx)
+
+	switch translateError(err) {
+	case Hit:
+		c.set(ctx, key, v)
+	case Miss:
+		c.set(ctx, key)
+	case Null:
+		c.set(ctx, key)
 	}
 
 }
 
-func (c cache[T]) SWR(ctx context.Context, identifier string) (T, bool) {
+func (c *cache[K, V]) SWR(
+	ctx context.Context,
+	key K,
+	refreshFromOrigin func(context.Context) (V, error),
+	translateError func(error) CacheHit,
+) (V, error) {
+	now := c.clock.Now()
+	e, ok := c.otter.Get(key)
+	if ok {
+		// Cache Hit
 
-	value, hit := c.Get(ctx, identifier)
+		if now.Before(e.Fresh) {
+			// We have data and it's fresh, so we return it
 
-	if hit == Hit {
-		return value, true
+			return e.Value, nil
+		}
+
+		if now.Before(e.Stale) {
+			// We have data, but it's stale, so we refresh it in the background
+			// but return the current value
+
+			err := c.pool.Submit(func() {
+				c.refresh(ctx, key, refreshFromOrigin, translateError)
+			})
+			if err != nil {
+				c.logger.Error(ctx, "failed to submit refresh task", slog.String("error", err.Error()))
+			}
+
+			return e.Value, nil
+		}
+
+		// We have old data, that we should not serve anymore
+		c.otter.Delete(key)
+
 	}
-	if hit == Null {
-		return value, false
+	// Cache Miss
+
+	// We have no data and need to go to the origin
+
+	v, err := refreshFromOrigin(ctx)
+
+	switch translateError(err) {
+	case Hit:
+		c.set(ctx, key, v)
+	case Miss:
+		c.set(ctx, key)
+	case Null:
+		c.set(ctx, key)
 	}
 
-	value, found := c.refreshFromOrigin(ctx, identifier)
-	if found {
-		c.Set(ctx, identifier, value)
-		return value, true
-	}
-	c.SetNull(ctx, identifier)
-	return value, false
+	return v, err
 
 }

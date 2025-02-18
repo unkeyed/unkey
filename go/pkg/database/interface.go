@@ -2,8 +2,13 @@ package database
 
 import (
 	"context"
+	"errors"
 
 	"github.com/unkeyed/unkey/go/pkg/entities"
+)
+
+var (
+	ErrNotFound = errors.New("not found")
 )
 
 type Database interface {
@@ -17,7 +22,9 @@ type Database interface {
 	// FindWorkspace(ctx context.Context, workspaceId string) (entities.Workspace, bool, error)
 	DeleteWorkspace(ctx context.Context, id string, hardDelete bool) error
 
-	// KeyAuth
+	// KeyRing
+	InsertKeyring(ctx context.Context, keyring entities.Keyring) error
+
 	// InsertKeyAuth(ctx context.Context, newKeyAuth entities.KeyAuth) error
 	// DeleteKeyAuth(ctx context.Context, keyAuthId string) error
 	// FindKeyAuth(ctx context.Context, keyAuthId string) (keyauth entities.KeyAuth, found bool, err error)
@@ -30,7 +37,7 @@ type Database interface {
 	// ListAllApis(ctx context.Context, limit int, offset int) ([]entities.Api, error)
 
 	// Key
-	// InsertKey(ctx context.Context, newKey entities.Key) error
+	InsertKey(ctx context.Context, newKey entities.Key) error
 	FindKeyByID(ctx context.Context, keyId string) (key entities.Key, err error)
 	FindKeyByHash(ctx context.Context, hash string) (key entities.Key, err error)
 	FindKeyForVerification(ctx context.Context, hash string) (key entities.Key, err error)
@@ -40,6 +47,9 @@ type Database interface {
 	// CountKeys(ctx context.Context, keyAuthId string) (int64, error)
 	// ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]entities.Key, error)
 
+	// Permissions
+	FindPermissionsByKeyID(ctx context.Context, keyID string) ([]string, error)
+
 	// Ratelimit Namespace
 	InsertRatelimitNamespace(ctx context.Context, namespace entities.RatelimitNamespace) error
 	FindRatelimitNamespaceByID(ctx context.Context, id string) (entities.RatelimitNamespace, error)
@@ -48,7 +58,8 @@ type Database interface {
 
 	// Ratelimit Override
 	InsertRatelimitOverride(ctx context.Context, ratelimitOverride entities.RatelimitOverride) error
-	FindRatelimitOverrideByIdentifier(ctx context.Context, identifier string) (ratelimitOverride entities.RatelimitOverride, err error)
+	FindRatelimitOverridesByIdentifier(ctx context.Context, workspaceId, namespaceId, identifier string) (ratelimitOverrides []entities.RatelimitOverride, err error)
+	FindRatelimitOverrideByID(ctx context.Context, workspaceID, identifier string) (ratelimitOverride entities.RatelimitOverride, err error)
 	UpdateRatelimitOverride(ctx context.Context, override entities.RatelimitOverride) error
 	DeleteRatelimitOverride(ctx context.Context, id string) error
 
