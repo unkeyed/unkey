@@ -15,7 +15,6 @@
   "components": {
     "schemas": {
       "BaseError": {
-        "additionalProperties": false,
         "properties": {
           "requestId": {
             "description": "A unique id for this request. Please always provide this to support.",
@@ -71,13 +70,14 @@
             "$ref": "#/components/schemas/BaseError"
           },
           {
+            "type": "object",
             "properties": {
               "errors": {
                 "description": "Optional list of individual error details",
                 "items": {
                   "$ref": "#/components/schemas/ValidationError"
                 },
-                "type": ["array"]
+                "type": "array"
               }
             },
             "required": ["errors"]
@@ -124,25 +124,32 @@
         "properties": {
           "namespaceId": {
             "description": "The id of the namespace. Either namespaceId or namespaceName must be provided",
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^rlns_.+$"
           },
           "namespaceName": {
-            "description": "xThe name of the namespace. Either namespaceId or namespaceName must be provided",
+            "description": "The name of the namespace. Either namespaceId or namespaceName must be provided",
             "type": "string"
           },
           "duration": {
             "description": "The duration in milliseconds for the rate limit window.",
             "format": "int64",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1000
           },
           "identifier": {
             "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "limit": {
             "description": "The maximum number of requests allowed.",
             "format": "int64",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": ["identifier", "limit", "duration"],
@@ -162,6 +169,11 @@
       "V2RatelimitLimitRequestBody": {
         "additionalProperties": false,
         "properties": {
+          "namespace": {
+            "description": "The namespace name for the rate limit.",
+            "type": "string",
+            "example": "sms.sign_up"
+          },
           "cost": {
             "description": "The cost of the request. Defaults to 1 if not provided.",
             "format": "int64",
@@ -183,7 +195,7 @@
             "type": "integer"
           }
         },
-        "required": ["identifier", "limit", "duration"],
+        "required": ["namespace", "identifier", "limit", "duration"],
         "type": "object"
       },
       "V2RatelimitLimitResponseBody": {

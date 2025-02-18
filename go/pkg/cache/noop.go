@@ -4,29 +4,29 @@ import (
 	"context"
 )
 
-type noopCache[T any] struct{}
+type noopCache[K comparable, V any] struct{}
 
-func (c *noopCache[T]) Get(ctx context.Context, key string) (value T, hit CacheHit) {
-	var t T
-	return t, Miss
+func (c *noopCache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
+	var v V
+	return v, Miss
 }
-func (c *noopCache[T]) Set(ctx context.Context, key string, value T) {}
-func (c *noopCache[T]) SetNull(ctx context.Context, key string)      {}
+func (c *noopCache[K, V]) Set(ctx context.Context, key K, value V) {}
+func (c *noopCache[K, V]) SetNull(ctx context.Context, key K)      {}
 
-func (c *noopCache[T]) Remove(ctx context.Context, key string) {}
+func (c *noopCache[K, V]) Remove(ctx context.Context, key K) {}
 
-func (c *noopCache[T]) Dump(ctx context.Context) ([]byte, error) {
+func (c *noopCache[K, V]) Dump(ctx context.Context) ([]byte, error) {
 	return []byte{}, nil
 }
-func (c *noopCache[T]) Restore(ctx context.Context, data []byte) error {
+func (c *noopCache[K, V]) Restore(ctx context.Context, data []byte) error {
 	return nil
 }
-func (c *noopCache[T]) Clear(ctx context.Context) {}
-func (c *noopCache[T]) SWR(ctx context.Context, key string) (T, bool) {
-	var t T
-	return t, false
+func (c *noopCache[K, V]) Clear(ctx context.Context) {}
+func (c *noopCache[K, V]) SWR(ctx context.Context, key K, refreshFromOrigin func(context.Context) (V, error), translateError func(err error) CacheHit) (V, error) {
+	var v V
+	return v, nil
 }
 
-func NewNoopCache[T any]() Cache[T] {
-	return &noopCache[T]{}
+func NewNoopCache[K comparable, V any]() Cache[K, V] {
+	return &noopCache[K, V]{}
 }

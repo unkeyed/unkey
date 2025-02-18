@@ -13,16 +13,21 @@ import (
 const deleteRatelimitOverride = `-- name: DeleteRatelimitOverride :execresult
 UPDATE ` + "`" + `ratelimit_overrides` + "`" + `
 SET
-    deleted_at = NOW()
+    deleted_at =  ?
 WHERE id = ?
 `
+
+type DeleteRatelimitOverrideParams struct {
+	Now sql.NullTime `db:"now"`
+	ID  string       `db:"id"`
+}
 
 // DeleteRatelimitOverride
 //
 //	UPDATE `ratelimit_overrides`
 //	SET
-//	    deleted_at = NOW()
+//	    deleted_at =  ?
 //	WHERE id = ?
-func (q *Queries) DeleteRatelimitOverride(ctx context.Context, id string) (sql.Result, error) {
-	return q.db.ExecContext(ctx, deleteRatelimitOverride, id)
+func (q *Queries) DeleteRatelimitOverride(ctx context.Context, arg DeleteRatelimitOverrideParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteRatelimitOverride, arg.Now, arg.ID)
 }

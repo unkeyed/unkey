@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/go-sql-driver/mysql"
+	mysql "github.com/go-sql-driver/mysql"
 	"github.com/unkeyed/unkey/go/pkg/database"
 
 	"github.com/ory/dockertest/v3"
@@ -48,22 +48,35 @@ func (c *Containers) RunMySQL() string {
 		require.NoError(c.t, c.pool.Purge(resource))
 	})
 
-	addr := fmt.Sprintf("unkey:password@(localhost:%s)/unkey", resource.GetPort("3306/tcp"))
+	cfg := mysql.NewConfig()
+	cfg.User = "unkey"
+	cfg.Passwd = "password"
+	cfg.Net = "tcp"
+	cfg.Addr = fmt.Sprintf("localhost:%s", resource.GetPort("3306/tcp"))
+	cfg.DBName = "unkey"
+	cfg.ParseTime = true
+	cfg.Logger = &mysql.NopLogger{}
 
 	var db *sql.DB
 	require.NoError(c.t, c.pool.Retry(func() error {
-		db, err = sql.Open("mysql", addr)
-		if err != nil {
-			return fmt.Errorf("unable to open mysql conenction: %w", err)
+
+		connector, err2 := mysql.NewConnector(cfg)
+		if err2 != nil {
+			return fmt.Errorf("unable to create mysql connector: %w", err2)
 		}
-		err = db.Ping()
-		if err != nil {
-			return fmt.Errorf("unable to ping mysql: %w", err)
+
+		db = sql.OpenDB(connector)
+		err3 := db.Ping()
+		if err3 != nil {
+			return fmt.Errorf("unable to ping mysql: %w", err3)
 		}
 
 		return nil
 	}))
 
+	c.t.Cleanup(func() {
+		require.NoError(c.t, db.Close())
+	})
 	// Creating the database tables
 	queries := strings.Split(string(database.Schema), ";")
 	for _, query := range queries {
@@ -79,5 +92,6 @@ func (c *Containers) RunMySQL() string {
 
 	}
 
-	return addr
+	return cfg.FormatDSN()
+
 }

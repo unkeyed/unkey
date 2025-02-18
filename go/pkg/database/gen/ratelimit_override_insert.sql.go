@@ -7,9 +7,10 @@ package gen
 
 import (
 	"context"
+	"time"
 )
 
-const insertOverride = `-- name: InsertOverride :exec
+const insertRatelimitOverride = `-- name: InsertRatelimitOverride :exec
 INSERT INTO
     ` + "`" + `ratelimit_overrides` + "`" + ` (
         id,
@@ -30,20 +31,21 @@ VALUES
         ?,
         ?,
         false,
-        now()
+         ?
     )
 `
 
-type InsertOverrideParams struct {
-	ID          string `db:"id"`
-	WorkspaceID string `db:"workspace_id"`
-	NamespaceID string `db:"namespace_id"`
-	Identifier  string `db:"identifier"`
-	Limit       int32  `db:"limit"`
-	Duration    int32  `db:"duration"`
+type InsertRatelimitOverrideParams struct {
+	ID          string    `db:"id"`
+	WorkspaceID string    `db:"workspace_id"`
+	NamespaceID string    `db:"namespace_id"`
+	Identifier  string    `db:"identifier"`
+	Limit       int32     `db:"limit"`
+	Duration    int32     `db:"duration"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
-// InsertOverride
+// InsertRatelimitOverride
 //
 //	INSERT INTO
 //	    `ratelimit_overrides` (
@@ -65,16 +67,17 @@ type InsertOverrideParams struct {
 //	        ?,
 //	        ?,
 //	        false,
-//	        now()
+//	         ?
 //	    )
-func (q *Queries) InsertOverride(ctx context.Context, arg InsertOverrideParams) error {
-	_, err := q.db.ExecContext(ctx, insertOverride,
+func (q *Queries) InsertRatelimitOverride(ctx context.Context, arg InsertRatelimitOverrideParams) error {
+	_, err := q.db.ExecContext(ctx, insertRatelimitOverride,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.NamespaceID,
 		arg.Identifier,
 		arg.Limit,
 		arg.Duration,
+		arg.CreatedAt,
 	)
 	return err
 }

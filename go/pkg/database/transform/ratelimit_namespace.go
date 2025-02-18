@@ -33,5 +33,6 @@ func RatelimitNamespaceEntityToInsertParams(e entities.RatelimitNamespace) gen.I
 		ID:          e.ID,
 		WorkspaceID: e.WorkspaceID,
 		Name:        e.Name,
+		CreatedAt:   e.CreatedAt,
 	}
 }

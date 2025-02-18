@@ -1,3 +1,3 @@
 package cache
 
-type Middleware[T any] func(Cache[T]) Cache[T]
+type Middleware[K comparable, V any] func(Cache[K, V]) Cache[K, V]
