@@ -92,10 +92,29 @@ func (r *Redis) advertise(ctx context.Context) error {
 func (r *Redis) Discover() ([]string, error) {
 	pattern := r.key()
 	pattern = strings.ReplaceAll(pattern, r.nodeID, "*")
-	addrs, err := r.rdb.Keys(context.Background(), pattern).Result()
+	keys, err := r.rdb.Keys(context.Background(), pattern).Result()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get keys: %w", err)
 	}
+
+	if len(keys) == 0 {
+		return []string{}, nil
+	}
+
+	results, err := r.rdb.MGet(context.Background(), keys...).Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get addresses: %w", err)
+	}
+
+	addrs := make([]string, len(results))
+	var ok bool
+	for i, addr := range results {
+		addrs[i], ok = addr.(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid address type")
+		}
+	}
+
 	return addrs, nil
 }
 
