@@ -70,7 +70,7 @@ export const LogsDateTime = () => {
         <Button
           variant="ghost"
           className={cn(
-            "group-data-[state=open]:bg-gray-4 px-2",
+            "group-data-[state=open]:bg-gray-4 px-2 mr-0",
             !title ? "opacity-50" : "",
             title !== "Last 12 hours" ? "bg-gray-4" : "",
           )}
