@@ -2,8 +2,10 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 
+	"github.com/unkeyed/unkey/go/pkg/database/gen"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
@@ -41,7 +43,13 @@ func (db *database) DeleteWorkspace(ctx context.Context, id string, hardDelete b
 			return fault.Wrap(err, fault.WithDesc("failed to hard delete workspace", ""))
 		}
 	} else {
-		_, err = qtx.SoftDeleteWorkspace(ctx, id)
+		_, err = qtx.SoftDeleteWorkspace(ctx, gen.SoftDeleteWorkspaceParams{
+			ID: id,
+			Now: sql.NullTime{
+				Time:  db.clock.Now(),
+				Valid: true,
+			},
+		})
 		if err != nil {
 			return fault.Wrap(err, fault.WithDesc("failed to soft delete workspace", ""))
 		}

@@ -14,7 +14,7 @@ VALUES (
     sqlc.arg(id),
     sqlc.arg(tenant_id),
     sqlc.arg(name),
-    NOW(),
+     sqlc.arg(created_at),
     'free',
     '{}',
     '{}',

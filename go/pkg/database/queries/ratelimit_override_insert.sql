@@ -1,4 +1,4 @@
--- name: InsertOverride :exec
+-- name: InsertRatelimitOverride :exec
 INSERT INTO
     `ratelimit_overrides` (
         id,
@@ -19,5 +19,5 @@ VALUES
         sqlc.arg("limit"),
         sqlc.arg("duration"),
         false,
-        now()
+         sqlc.arg("created_at")
     )

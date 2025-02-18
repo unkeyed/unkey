@@ -58,6 +58,7 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
+					ctx:            context.Background(),
 					workspaceID:    "",
 					requestID:      "",
 					w:              nil,
@@ -133,7 +134,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				s.returnSession(sess)
 			}()
 
-			err := sess.Init(w, r)
+			err := sess.init(w, r)
 			if err != nil {
 				s.logger.Error(context.Background(), "failed to init session")
 				return

@@ -9,30 +9,64 @@ import (
 	"context"
 )
 
-const findRatelimitOverrideByIdentifier = `-- name: FindRatelimitOverrideByIdentifier :one
-SELECT id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, async, sharding, created_at, updated_at, deleted_at FROM ` + "`" + `ratelimit_overrides` + "`" + `
-WHERE identifier = ?
+const findKeyByID = `-- name: FindKeyByID :one
+SELECT
+    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.created_at, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.deleted_at, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+    i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta
+FROM ` + "`" + `keys` + "`" + ` k
+LEFT JOIN identities i ON k.identity_id = i.id
+WHERE k.id = ?
 `
 
-// FindRatelimitOverrideByIdentifier
+type FindKeyByIDRow struct {
+	Key      Key      `db:"key"`
+	Identity Identity `db:"identity"`
+}
+
+// FindKeyByID
 //
-//	SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at, updated_at, deleted_at FROM `ratelimit_overrides`
-//	WHERE identifier = ?
-func (q *Queries) FindRatelimitOverrideByIdentifier(ctx context.Context, identifier string) (RatelimitOverride, error) {
-	row := q.db.QueryRowContext(ctx, findRatelimitOverrideByIdentifier, identifier)
-	var i RatelimitOverride
+//	SELECT
+//	    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.created_at, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.deleted_at, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+//	    i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta
+//	FROM `keys` k
+//	LEFT JOIN identities i ON k.identity_id = i.id
+//	WHERE k.id = ?
+func (q *Queries) FindKeyByID(ctx context.Context, id string) (FindKeyByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, findKeyByID, id)
+	var i FindKeyByIDRow
 	err := row.Scan(
-		&i.ID,
-		&i.WorkspaceID,
-		&i.NamespaceID,
-		&i.Identifier,
-		&i.Limit,
-		&i.Duration,
-		&i.Async,
-		&i.Sharding,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
+		&i.Key.ID,
+		&i.Key.KeyAuthID,
+		&i.Key.Hash,
+		&i.Key.Start,
+		&i.Key.WorkspaceID,
+		&i.Key.ForWorkspaceID,
+		&i.Key.Name,
+		&i.Key.OwnerID,
+		&i.Key.IdentityID,
+		&i.Key.Meta,
+		&i.Key.CreatedAt,
+		&i.Key.Expires,
+		&i.Key.CreatedAtM,
+		&i.Key.UpdatedAtM,
+		&i.Key.DeletedAtM,
+		&i.Key.DeletedAt,
+		&i.Key.RefillDay,
+		&i.Key.RefillAmount,
+		&i.Key.LastRefillAt,
+		&i.Key.Enabled,
+		&i.Key.RemainingRequests,
+		&i.Key.RatelimitAsync,
+		&i.Key.RatelimitLimit,
+		&i.Key.RatelimitDuration,
+		&i.Key.Environment,
+		&i.Identity.ID,
+		&i.Identity.ExternalID,
+		&i.Identity.WorkspaceID,
+		&i.Identity.Environment,
+		&i.Identity.CreatedAt,
+		&i.Identity.UpdatedAt,
+		&i.Identity.Meta,
 	)
 	return i, err
 }

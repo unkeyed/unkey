@@ -9,44 +9,58 @@ import (
 	"context"
 )
 
-const findKeyByHash = `-- name: FindKeyByHash :one
-SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM ` + "`" + `keys` + "`" + `
-WHERE hash = ?
+const findRatelimitOverridesByIdentifier = `-- name: FindRatelimitOverridesByIdentifier :many
+SELECT id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, async, sharding, created_at, updated_at, deleted_at FROM ratelimit_overrides
+WHERE
+    workspace_id = ?
+    AND namespace_id = ?
+    AND identifier LIKE ?
 `
 
-// FindKeyByHash
+type FindRatelimitOverridesByIdentifierParams struct {
+	WorkspaceID string `db:"workspace_id"`
+	NamespaceID string `db:"namespace_id"`
+	Identifier  string `db:"identifier"`
+}
+
+// FindRatelimitOverridesByIdentifier
 //
-//	SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, created_at, expires, created_at_m, updated_at_m, deleted_at_m, deleted_at, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys`
-//	WHERE hash = ?
-func (q *Queries) FindKeyByHash(ctx context.Context, hash string) (Key, error) {
-	row := q.db.QueryRowContext(ctx, findKeyByHash, hash)
-	var i Key
-	err := row.Scan(
-		&i.ID,
-		&i.KeyAuthID,
-		&i.Hash,
-		&i.Start,
-		&i.WorkspaceID,
-		&i.ForWorkspaceID,
-		&i.Name,
-		&i.OwnerID,
-		&i.IdentityID,
-		&i.Meta,
-		&i.CreatedAt,
-		&i.Expires,
-		&i.CreatedAtM,
-		&i.UpdatedAtM,
-		&i.DeletedAtM,
-		&i.DeletedAt,
-		&i.RefillDay,
-		&i.RefillAmount,
-		&i.LastRefillAt,
-		&i.Enabled,
-		&i.RemainingRequests,
-		&i.RatelimitAsync,
-		&i.RatelimitLimit,
-		&i.RatelimitDuration,
-		&i.Environment,
-	)
-	return i, err
+//	SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at, updated_at, deleted_at FROM ratelimit_overrides
+//	WHERE
+//	    workspace_id = ?
+//	    AND namespace_id = ?
+//	    AND identifier LIKE ?
+func (q *Queries) FindRatelimitOverridesByIdentifier(ctx context.Context, arg FindRatelimitOverridesByIdentifierParams) ([]RatelimitOverride, error) {
+	rows, err := q.db.QueryContext(ctx, findRatelimitOverridesByIdentifier, arg.WorkspaceID, arg.NamespaceID, arg.Identifier)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RatelimitOverride
+	for rows.Next() {
+		var i RatelimitOverride
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.NamespaceID,
+			&i.Identifier,
+			&i.Limit,
+			&i.Duration,
+			&i.Async,
+			&i.Sharding,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

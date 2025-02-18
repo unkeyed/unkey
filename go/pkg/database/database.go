@@ -2,9 +2,11 @@ package database
 
 import (
 	"database/sql"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/database/gen"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/logging"
@@ -19,6 +21,8 @@ type Config struct {
 	ReadOnlyDSN string
 
 	Logger logging.Logger
+
+	Clock clock.Clock
 }
 
 type replica struct {
@@ -30,9 +34,18 @@ type database struct {
 	writeReplica *replica
 	readReplica  *replica
 	logger       logging.Logger
+	clock        clock.Clock
 }
 
 func New(config Config, middlewares ...Middleware) (Database, error) {
+
+	if config.Clock == nil {
+		config.Clock = clock.New()
+	}
+
+	if !strings.Contains(config.PrimaryDSN, "parseTime=true") {
+		return nil, fault.New("PrimaryDSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
+	}
 
 	write, err := sql.Open("mysql", config.PrimaryDSN)
 	if err != nil {
@@ -48,6 +61,9 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 		query: gen.New(write),
 	}
 	if config.ReadOnlyDSN != "" {
+		if !strings.Contains(config.ReadOnlyDSN, "parseTime=true") {
+			return nil, fault.New("ReadOnlyDSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
+		}
 		read, err := sql.Open("mysql", config.ReadOnlyDSN)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.WithDesc("cannot open read replica", ""))
@@ -63,6 +79,7 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 		writeReplica: writeReplica,
 		readReplica:  readReplica,
 		logger:       config.Logger,
+		clock:        config.Clock,
 	}
 
 	for _, mw := range middlewares {
