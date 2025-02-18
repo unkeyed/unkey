@@ -5,7 +5,6 @@ import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import {
@@ -25,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@unkey/ui";
 
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -32,128 +32,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { addMinutes, format } from "date-fns";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import type { z } from "zod";
+import { formSchema } from "./validation";
+
 export const dynamic = "force-dynamic";
-const getDatePlusTwoMinutes = () => {
-  const now = new Date();
-  const futureDate = new Date(now.getTime() + 2 * 60000);
-  return futureDate.toISOString().slice(0, -8);
-};
-const formSchema = z.object({
-  bytes: z.coerce
-    .number({
-      errorMap: (issue, { defaultError }) => ({
-        message:
-          issue.code === "invalid_type"
-            ? "Amount must be a number and greater than 0"
-            : defaultError,
-      }),
-    })
-    .default(16),
-  prefix: z
-    .string()
-    .trim()
-    .max(8, { message: "Please limit the prefix to under 8 characters." })
-    .optional(),
-  ownerId: z.string().trim().optional(),
-  name: z.string().trim().optional(),
-  metaEnabled: z.boolean().default(false),
-  meta: z
-    .string()
-    .refine(
-      (s) => {
-        try {
-          JSON.parse(s);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      {
-        message: "Must be valid json",
-      },
-    )
-    .optional(),
-  limitEnabled: z.boolean().default(false),
-  limit: z
-    .object({
-      remaining: z.coerce
-        .number({
-          errorMap: (issue, { defaultError }) => ({
-            message:
-              issue.code === "invalid_type"
-                ? "Remaining amount must be greater than 0"
-                : defaultError,
-          }),
-        })
-        .int()
-        .positive({ message: "Please enter a positive number" }),
-      refill: z
-        .object({
-          interval: z.enum(["daily", "monthly"]).default("monthly"),
-          amount: z.coerce
-            .number({
-              errorMap: (issue, { defaultError }) => ({
-                message:
-                  issue.code === "invalid_type"
-                    ? "Refill amount must be greater than 0 and a integer"
-                    : defaultError,
-              }),
-            })
-            .int()
-            .min(1)
-            .positive(),
-          refillDay: z.coerce
-            .number({
-              errorMap: (issue, { defaultError }) => ({
-                message:
-                  issue.code === "invalid_type"
-                    ? "Refill day must be an integer between 1 and 31"
-                    : defaultError,
-              }),
-            })
-            .int()
-            .min(1)
-            .max(31)
-            .optional(),
-        })
-        .optional(),
-    })
-    .optional(),
-  expireEnabled: z.boolean().default(false),
-  expires: z.coerce
-    .date()
-    .min(new Date(new Date().getTime() + 2 * 60000))
-    .optional(),
-  ratelimitEnabled: z.boolean().default(false),
-  ratelimit: z
-    .object({
-      async: z.boolean().default(false),
-      duration: z.coerce
-        .number({
-          errorMap: (issue, { defaultError }) => ({
-            message:
-              issue.code === "invalid_type" ? "Duration must be greater than 0" : defaultError,
-          }),
-        })
-        .positive({ message: "Refill interval must be greater than 0" }),
-      limit: z.coerce
-        .number({
-          errorMap: (issue, { defaultError }) => ({
-            message:
-              issue.code === "invalid_type" ? "Refill limit must be greater than 0" : defaultError,
-          }),
-        })
-        .positive({ message: "Limit must be greater than 0" }),
-    })
-    .optional(),
-  environment: z.string().optional(),
-});
 
 type Props = {
   apiId: string;
@@ -162,7 +50,7 @@ type Props = {
   defaultPrefix: string | null;
 };
 
-export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }) => {
+export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Props) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
@@ -171,6 +59,8 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
     mode: "all",
     shouldFocusError: true,
     delayError: 100,
+    // Should required to unregister form elements when they are not rendered.
+    shouldUnregister: true,
     defaultValues: {
       prefix: defaultPrefix || undefined,
       bytes: defaultBytes || 16,
@@ -178,6 +68,14 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
       limitEnabled: false,
       metaEnabled: false,
       ratelimitEnabled: false,
+      limit: {
+        remaining: undefined,
+        refill: {
+          interval: "none",
+          amount: undefined,
+          refillDay: undefined,
+        },
+      },
     },
   });
 
@@ -195,7 +93,18 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // make sure they aren't sent to the server if they are disabled.
+    if (
+      values.limitEnabled &&
+      values.limit?.refill?.interval !== "none" &&
+      !values.limit?.refill?.amount
+    ) {
+      form.setError("limit.refill.amount", {
+        type: "manual",
+        message: "Please enter a value if interval is selected",
+      });
+      return;
+    }
+
     if (!values.expireEnabled) {
       delete values.expires;
     }
@@ -210,12 +119,11 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
     }
     const refill = values.limit?.refill;
     if (refill?.interval === "daily") {
-      refill?.refillDay === undefined;
+      refill.refillDay = undefined;
     }
     if (refill?.interval === "monthly" && !refill.refillDay) {
       refill.refillDay = 1;
     }
-
     await key.mutateAsync({
       keyAuthId,
       ...values,
@@ -223,7 +131,13 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
-      refill: refill,
+      refill:
+        refill?.amount && refill.interval !== "none"
+          ? {
+              amount: refill.amount,
+              refillDay: refill.interval === "daily" ? null : refill.refillDay ?? 1,
+            }
+          : undefined,
       enabled: true,
     });
 
@@ -259,6 +173,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
     form.resetField("limit", undefined);
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset is only required on mount
   useEffect(() => {
     // React hook form + zod doesn't play nice with nested objects, so we need to reset them on load.
     resetRateLimit();
@@ -307,10 +222,10 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
           </Code>
           <div className="flex justify-end my-4 space-x-4">
             <Link href={`/keys/${keyAuthId}`}>
-              <Button variant="secondary">Back</Button>
+              <Button>Back</Button>
             </Link>
             <Link href={`/apis/${apiId}/keys/${keyAuthId}/${key.data.keyId}`}>
-              <Button variant="secondary">View key details</Button>
+              <Button>View key details</Button>
             </Link>
             <Button
               onClick={() => {
@@ -360,7 +275,8 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
                           </FormControl>
                           <FormDescription>
                             Using a prefix can make it easier for your users to distinguish between
-                            apis. Don't add a trailing underscore, we'll do that automatically.
+                            apis. Don't add a trailing underscore, we'll do that automatically:{" "}
+                            <span className="font-mono font-light">{"<prefix>_randombytes"}</span>
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -607,15 +523,12 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
                                 render={({ field }) => (
                                   <FormItem className="">
                                     <FormLabel>Refill Rate</FormLabel>
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      defaultValue="monthly"
-                                      value={field.value}
-                                    >
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                       <SelectTrigger>
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
                                         <SelectItem value="daily">Daily</SelectItem>
                                         <SelectItem value="monthly">Monthly</SelectItem>
                                       </SelectContent>
@@ -628,6 +541,10 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
                               />
                               <FormField
                                 control={form.control}
+                                disabled={
+                                  !form.watch("limitEnabled") ||
+                                  form.watch("limit.refill.interval") === "none"
+                                }
                                 name="limit.refill.amount"
                                 render={({ field }) => (
                                   <FormItem className="mt-4">
@@ -639,7 +556,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
                                         type="number"
                                         {...field}
                                         value={
-                                          form.getValues("limitEnabled") ? field.value : undefined
+                                          form.getValues("limitEnabled") ? field.value : "undefined"
                                         }
                                       />
                                     </FormControl>
@@ -650,21 +567,22 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
                                   </FormItem>
                                 )}
                               />
-
                               <FormField
                                 control={form.control}
                                 disabled={
                                   form.watch("limit.refill.amount") === undefined ||
-                                  form.watch("limit.refill.interval") === "daily"
+                                  form.watch("limit.refill.interval") !== "monthly"
                                 }
                                 name="limit.refill.refillDay"
                                 render={({ field }) => (
                                   <FormItem className="mt-2">
-                                    {/* <FormLabel>Refill day or daily</FormLabel> */}
+                                    <FormLabel>
+                                      On which day of the month should we refill the key?
+                                    </FormLabel>
                                     <FormControl>
                                       <div className="flex flex-col">
                                         <Input
-                                          placeholder="Specify Refill day each month"
+                                          placeholder="Specify refill day each month"
                                           className="inline justify-end"
                                           type="number"
                                           {...field}
@@ -826,7 +744,6 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
                                     </FormDescription>
                                     <FormMessage />
                                     <Button
-                                      variant="secondary"
                                       type="button"
                                       onClick={(_e) => {
                                         try {
@@ -880,3 +797,5 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
     </>
   );
 };
+
+const getDatePlusTwoMinutes = () => format(addMinutes(new Date(), 2), "yyyy-MM-dd'T'HH:mm");

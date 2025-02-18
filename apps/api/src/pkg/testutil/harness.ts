@@ -1,4 +1,5 @@
 import { Client } from "@planetscale/database";
+import { ClickHouse } from "@unkey/clickhouse";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
@@ -27,10 +28,12 @@ export type Resources = {
 
 export abstract class Harness {
   public readonly db: { primary: Database; readonly: Database };
+  public readonly ch: ClickHouse;
   public resources: Resources;
 
   constructor(t: TaskContext) {
-    const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME } = databaseEnv.parse(process.env);
+    const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME, CLICKHOUSE_URL } =
+      databaseEnv.parse(process.env);
 
     const db = drizzle(
       new Client({
@@ -51,6 +54,7 @@ export abstract class Harness {
     );
 
     this.db = { primary: db, readonly: db };
+    this.ch = new ClickHouse({ url: CLICKHOUSE_URL });
     this.resources = this.createResources();
 
     t.onTestFinished(async () => {
@@ -131,7 +135,11 @@ export abstract class Harness {
       name: string;
       permissions?: string[];
     }[];
-  }): Promise<{ keyId: string; key: string }> {
+  }): Promise<{
+    keyId: string;
+    key: string;
+    identityId?: string;
+  }> {
     /**
      * Prepare the key we'll use
      */
@@ -186,6 +194,7 @@ export abstract class Harness {
     return {
       keyId,
       key,
+      identityId: opts?.identityId,
     };
   }
 
@@ -289,6 +298,8 @@ export abstract class Harness {
       deletedAtM: null,
       defaultPrefix: null,
       defaultBytes: null,
+      sizeApprox: 0,
+      sizeLastUpdatedAt: 0,
     };
     const userKeyAuth: KeyAuth = {
       id: newId("test"),
@@ -301,6 +312,8 @@ export abstract class Harness {
       deletedAtM: null,
       defaultPrefix: null,
       defaultBytes: null,
+      sizeApprox: 0,
+      sizeLastUpdatedAt: 0,
     };
 
     const unkeyApi: Api = {

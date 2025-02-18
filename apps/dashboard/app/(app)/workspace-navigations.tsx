@@ -3,7 +3,6 @@ import {
   BookOpen,
   Cable,
   Crown,
-  DatabaseZap,
   Fingerprint,
   Gauge,
   List,
@@ -11,6 +10,7 @@ import {
   MonitorDot,
   Settings2,
   ShieldCheck,
+  TableProperties,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -46,7 +46,7 @@ const DiscordIcon = () => (
 const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
   <div
     className={cn(
-      "bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ",
+      "border text-gray-11 border-gray-6 hover:border-gray-8 rounded text-xs px-1 py-0.5 font-mono",
       className,
     )}
   >
@@ -55,8 +55,7 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 );
 
 export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace, "features"> &
-    Pick<Workspace, "betaFeatures"> & { llmGateways: { id: string }[] },
+  workspace: Pick<Workspace, "features" | "betaFeatures">,
   segments: string[],
 ) => {
   return [
@@ -93,19 +92,19 @@ export const createWorkspaceNavigation = (
       hidden: !workspace.features.webhooks,
     },
     {
+      icon: TableProperties,
+      href: "/logs",
+      label: "Logs",
+      active: segments.at(0) === "logs",
+      tag: <Tag label="Beta" />,
+    },
+    {
       icon: Crown,
       href: "/success",
       label: "Success",
       active: segments.at(0) === "success",
-      tag: <Tag label="internal" />,
+      tag: <Tag label="Internal" />,
       hidden: !workspace.features.successPage,
-    },
-    {
-      icon: DatabaseZap,
-      href: "/semantic-cache",
-      label: "Semantic Cache",
-      active: segments.at(0) === "semantic-cache",
-      hidden: workspace.llmGateways.length === 0,
     },
     {
       icon: Fingerprint,

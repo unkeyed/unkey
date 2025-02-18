@@ -1,0 +1,30 @@
+# <docs-tag name="workflows-wrangler.toml">
+#:schema node_modules/wrangler/config-schema.json
+name = "workflows"
+main = "src/index.ts"
+compatibility_date = "2024-10-22"
+
+[observability]
+enabled = true
+head_sampling_rate = 1 # optional. default = 1.
+
+
+[[workflows]]
+# name of your workflow
+name = "refill-remaining"
+# binding name env.MYWORKFLOW
+binding = "REFILL_REMAINING"
+# this is class that extends the Workflow class in src/index.ts
+class_name = "RefillRemaining"
+
+
+[[workflows]]
+# name of your workflow
+name = "count-keys"
+# binding name env.MYWORKFLOW
+binding = "COUNT_KEYS"
+# this is class that extends the Workflow class in src/index.ts
+class_name = "CountKeys"
+
+[triggers]
+crons = ["* * * * *", "0 0 * * *"]

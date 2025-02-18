@@ -1,10 +1,16 @@
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Gear } from "@unkey/icons";
 import { redirect } from "next/navigation";
+import { navigation } from "../constants";
 import { UpdateTheme } from "./update-theme";
 import { UpdateUserEmail } from "./update-user-email";
 import { UpdateUserImage } from "./update-user-image";
 import { UpdateUserName } from "./update-user-name";
+
 export const revalidate = 0;
 
 export default async function SettingsPage() {
@@ -19,11 +25,24 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="mb-20 flex flex-col gap-8 ">
-      <UpdateUserName />
-      <UpdateUserEmail />
-      <UpdateUserImage />
-      <UpdateTheme />
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gear />}>
+          <Navbar.Breadcrumbs.Link href="/settings/user" active>
+            Settings
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <SubMenu navigation={navigation} segment="user" />
+
+        <div className="mb-20 flex flex-col gap-8 mt-8">
+          <UpdateUserName />
+          <UpdateUserEmail />
+          <UpdateUserImage />
+          <UpdateTheme />
+        </div>
+      </PageContent>
     </div>
   );
 }

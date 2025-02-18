@@ -20,16 +20,11 @@ export const createOverride = t.procedure
     const namespace = await db.query.ratelimitNamespaces
       .findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
-        with: {
-          workspace: {
-            columns: {
-              id: true,
-              tenantId: true,
-              features: true,
-            },
-          },
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.namespaceId),
+            isNull(table.deletedAt),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -38,7 +33,7 @@ export const createOverride = t.procedure
             "We are unable to create an override for this namespace. Please try again or contact support@unkey.dev",
         });
       });
-    if (!namespace || namespace.workspace.tenantId !== ctx.tenant.id) {
+    if (!namespace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -60,8 +55,8 @@ export const createOverride = t.procedure
           )
           .then((res) => Number(res.at(0)?.count ?? 0));
         const max =
-          typeof namespace.workspace.features.ratelimitOverrides === "number"
-            ? namespace.workspace.features.ratelimitOverrides
+          typeof ctx.workspace.features.ratelimitOverrides === "number"
+            ? ctx.workspace.features.ratelimitOverrides
             : 5;
         if (existing >= max) {
           throw new TRPCError({
@@ -71,7 +66,7 @@ export const createOverride = t.procedure
         }
 
         await tx.insert(schema.ratelimitOverrides).values({
-          workspaceId: namespace.workspace.id,
+          workspaceId: ctx.workspace.id,
           namespaceId: namespace.id,
           identifier: input.identifier,
           id,
@@ -80,13 +75,13 @@ export const createOverride = t.procedure
           createdAt: new Date(),
           async: input.async,
         });
-        await insertAuditLogs(tx, {
-          workspaceId: namespace.workspace.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,
           },
-          event: "ratelimitOverride.create",
+          event: "ratelimit.set_override",
           description: `Created ${input.identifier}`,
           resources: [
             {

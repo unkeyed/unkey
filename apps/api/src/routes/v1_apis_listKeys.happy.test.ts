@@ -7,6 +7,7 @@ import { KeyV1 } from "@unkey/keys";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { randomUUID } from "node:crypto";
+import { revalidateKeyCount } from "@/pkg/util/revalidate_key_count";
 import type { V1ApisListKeysResponse } from "./v1_apis_listKeys";
 import type {
   V1MigrationsCreateKeysRequest,
@@ -27,6 +28,7 @@ test("get api", async (t) => {
       createdAt: new Date(),
     });
   }
+  await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
   const root = await h.createRootKey([
     `api.${h.resources.userApi.id}.read_api`,
     `api.${h.resources.userApi.id}.read_key`,
@@ -68,6 +70,8 @@ test("returns identity", async (t) => {
       createdAt: new Date(),
     });
   }
+
+  await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
   const root = await h.createRootKey([
     `api.${h.resources.userApi.id}.read_api`,
     `api.${h.resources.userApi.id}.read_key`,
@@ -107,6 +111,7 @@ test("filter by ownerId", async (t) => {
       ownerId: i % 2 === 0 ? ownerId : undefined,
     });
   }
+  await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
 
   const root = await h.createRootKey([
     `api.${h.resources.userApi.id}.read_api`,
@@ -146,6 +151,7 @@ test("filter by externalId", async (t) => {
       identityId: i % 2 === 0 ? identity.id : undefined,
     });
   }
+  await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
 
   const root = await h.createRootKey([
     `api.${h.resources.userApi.id}.read_api`,
@@ -236,6 +242,7 @@ test("with limit", async (t) => {
       createdAt: new Date(),
     });
   }
+  await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
 
   const root = await h.createRootKey([
     `api.${h.resources.userApi.id}.read_api`,
@@ -267,6 +274,7 @@ test("with cursor", async (t) => {
       createdAt: new Date(),
     });
   }
+  await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
 
   const root = await h.createRootKey([
     `api.${h.resources.userApi.id}.read_api`,

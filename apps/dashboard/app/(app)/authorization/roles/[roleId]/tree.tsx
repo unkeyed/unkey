@@ -87,7 +87,7 @@ export const RecursivePermission: React.FC<
     );
   }
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="p-2 ml-4 border-0">
+    <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex items-center gap-1 transition-all [&[data-state=open]>svg]:rotate-90 ">
         <ChevronRight className="w-4 h-4 transition-transform duration-200" />
         <pre className="text-sm">{k}</pre>

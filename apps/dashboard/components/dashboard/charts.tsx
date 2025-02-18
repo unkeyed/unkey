@@ -8,7 +8,10 @@ type ColorName = "primary" | "warn" | "danger";
 export const useColors = (colorNames: Array<ColorName>) => {
   const { resolvedTheme } = useTheme();
 
-  const colors: { light: Record<ColorName, string>; dark: Record<ColorName, string> } = {
+  const colors: {
+    light: Record<ColorName, string>;
+    dark: Record<ColorName, string>;
+  } = {
     light: {
       primary: "#1c1917",
       warn: "#FFCD07",
@@ -133,9 +136,9 @@ export const LineChart: React.FC<{
       tooltip={{
         formatter: (datum) => ({
           name: datum.category,
-          value: `${Intl.NumberFormat(undefined, { notation: "compact" }).format(
-            Number(datum.y),
-          )} ms`,
+          value: `${Intl.NumberFormat(undefined, {
+            notation: "compact",
+          }).format(Number(datum.y))} ms`,
         }),
       }}
     />
@@ -202,6 +205,53 @@ export const StackedColumnChart: React.FC<{
   colors: Array<ColorName>;
 }> = ({ data, timeGranularity, colors }) => {
   const { axisColor } = useColors(colors);
+
+  const formatDate = (date: string) => {
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) {
+      return date;
+    }
+
+    switch (timeGranularity) {
+      case "minute":
+        return d.toLocaleString(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+          month: "short",
+          day: "numeric",
+        });
+      case "hour":
+        return d.toLocaleString(undefined, {
+          hour: "numeric",
+          hour12: true,
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+      case "day":
+        return d.toLocaleString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+      case "month":
+        return d.toLocaleString(undefined, {
+          month: "long",
+          year: "numeric",
+        });
+      default:
+        return d.toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+    }
+  };
+
   return (
     <Column
       isStack={true}
@@ -276,9 +326,14 @@ export const StackedColumnChart: React.FC<{
         },
       }}
       tooltip={{
+        title: formatDate,
         formatter: (datum) => ({
           name: datum.category,
-          value: Intl.NumberFormat(undefined, { notation: "compact" }).format(Number(datum.y)),
+          value: Intl.NumberFormat(undefined, {
+            notation: "compact",
+            maximumFractionDigits: 1,
+            compactDisplay: "short",
+          }).format(Number(datum.y)),
         }),
       }}
     />

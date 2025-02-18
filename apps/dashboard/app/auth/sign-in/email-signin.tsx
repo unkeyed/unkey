@@ -19,12 +19,15 @@ export function EmailSignIn(props: {
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
   const [lastUsed, setLastUsed] = useLastUsed();
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: effect must be called once if sign-in is loaded
   React.useEffect(() => {
     const signUpOrgUser = async () => {
-      const ticket = new URL(window.location.href).searchParams.get(param);
       if (!signInLoaded) {
         return;
       }
+
+      const ticket = new URL(window.location.href).searchParams.get(param);
       if (!ticket) {
         return;
       }

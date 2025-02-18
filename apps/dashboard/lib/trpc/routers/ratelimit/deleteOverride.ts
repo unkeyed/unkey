@@ -14,19 +14,16 @@ export const deleteOverride = t.procedure
   .mutation(async ({ ctx, input }) => {
     const override = await db.query.ratelimitOverrides
       .findFirst({
-        where: (table, { and, eq, isNull }) => and(eq(table.id, input.id), isNull(table.deletedAt)),
+        where: (table, { and, eq, isNull }) =>
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.id),
+            isNull(table.deletedAt),
+          ),
         with: {
           namespace: {
             columns: {
               id: true,
-            },
-            with: {
-              workspace: {
-                columns: {
-                  id: true,
-                  tenantId: true,
-                },
-              },
             },
           },
         },
@@ -39,7 +36,7 @@ export const deleteOverride = t.procedure
         });
       });
 
-    if (!override || override.namespace.workspace.tenantId !== ctx.tenant.id) {
+    if (!override) {
       throw new TRPCError({
         message:
           "We are unable to find the correct override. Please try again or contact support@unkey.dev.",
@@ -59,13 +56,13 @@ export const deleteOverride = t.procedure
             code: "INTERNAL_SERVER_ERROR",
           });
         });
-      await insertAuditLogs(tx, {
-        workspaceId: override.namespace.workspace.id,
+      await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        workspaceId: ctx.workspace.id,
         actor: {
           type: "user",
           id: ctx.user.id,
         },
-        event: "ratelimitOverride.delete",
+        event: "ratelimit.delete_override",
         description: `Deleted ${override.id}`,
         resources: [
           {

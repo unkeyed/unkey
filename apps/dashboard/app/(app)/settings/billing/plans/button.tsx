@@ -2,7 +2,6 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +13,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import type { Workspace } from "@unkey/db";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
@@ -63,21 +63,12 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
       <DialogTrigger asChild disabled={isSamePlan && !workspace.planDowngradeRequest}>
         <Button
           className="w-full"
+          disabled={isSamePlan}
           variant={
-            workspace.planDowngradeRequest && isSamePlan
-              ? "primary"
-              : isSamePlan
-                ? "disabled"
-                : newPlan === "pro"
-                  ? "primary"
-                  : "secondary"
+            workspace.planDowngradeRequest ? "primary" : newPlan === "pro" ? "primary" : "default"
           }
         >
-          {workspace.planDowngradeRequest && isSamePlan
-            ? "Resubscribe"
-            : isSamePlan
-              ? "Current Plan"
-              : label}
+          {workspace.planDowngradeRequest ? "Resubscribe" : isSamePlan ? "Current Plan" : label}
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -99,7 +90,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
         )}
 
         <DialogFooter className="justify-end">
-          <Button className="col-span-1" variant="outline" onClick={() => setOpen(false)}>
+          <Button className="col-span-1" onClick={() => setOpen(false)}>
             Cancel
           </Button>
           <Button className="col-span-1" variant="primary" onClick={handleClick}>

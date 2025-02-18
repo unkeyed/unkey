@@ -101,10 +101,6 @@
               ]
             },
             {
-              "group": "LLMs",
-              "pages": ["quickstart/llms/index"]
-            },
-            {
               "group": "Identities",
               "pages": ["quickstart/identities/shared-ratelimits"]
             }
@@ -171,11 +167,20 @@
         },
         {
           "group": "Ratelimiting",
-          "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
+          "pages": [
+            "ratelimiting/introduction",
+            "ratelimiting/modes",
+            "ratelimiting/overrides",
+            "ratelimiting/automated-overrides"
+          ]
         },
         {
           "group": "Audit logs",
           "pages": ["audit-log/introduction", "audit-log/types"]
+        },
+        {
+          "group": "Analytics",
+          "pages": ["analytics/overview", "analytics/quickstarts"]
         }
       ]
     },
@@ -202,6 +207,7 @@
             "api-reference/errors/code/BAD_REQUEST",
             "api-reference/errors/code/UNAUTHORIZED",
             "api-reference/errors/code/FORBIDDEN",
+            "api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
             "api-reference/errors/code/NOT_FOUND",
             "api-reference/errors/code/DELETE_PROTECTED",
             "api-reference/errors/code/EXPIRED",
@@ -265,7 +271,17 @@
         },
         {
           "group": "Ratelimits",
-          "pages": ["api-reference/ratelimits/limit"]
+          "pages": [
+            "api-reference/ratelimits/limit",
+            "api-reference/ratelimits/set-override",
+            "api-reference/ratelimits/get-override",
+            "api-reference/ratelimits/list-overrides",
+            "api-reference/ratelimits/delete-override"
+          ]
+        },
+        {
+          "group": "Analytics",
+          "pages": ["api-reference/analytics/get_verifications"]
         },
         {
           "group": "Migrations",
@@ -304,11 +320,37 @@
             },
             {
               "group": "Ratelimits",
-              "pages": ["libraries/ts/sdk/ratelimits/limit"]
+              "pages": [
+                "libraries/ts/sdk/ratelimits/limit",
+                {
+                  "group": "Overrides",
+                  "pages": [
+                    "libraries/ts/sdk/ratelimits/overrides/set-override",
+                    "libraries/ts/sdk/ratelimits/overrides/get-override",
+                    "libraries/ts/sdk/ratelimits/overrides/list-overrides",
+                    "libraries/ts/sdk/ratelimits/overrides/delete-override"
+                  ]
+                }
+              ]
             }
           ]
         },
-        "libraries/ts/ratelimit",
+        {
+          "group": "@unkey/ratelimit",
+          "pages": [
+            "libraries/ts/ratelimit/ratelimit",
+            {
+              "group": "Overrides",
+              "pages": [
+                "libraries/ts/ratelimit/override/overview",
+                "libraries/ts/ratelimit/override/set-override",
+                "libraries/ts/ratelimit/override/get-override",
+                "libraries/ts/ratelimit/override/list-overrides",
+                "libraries/ts/ratelimit/override/delete-override"
+              ]
+            }
+          ]
+        },
         "libraries/ts/nextjs",
         "libraries/ts/hono",
         "libraries/ts/cache/overview",
@@ -405,6 +447,9 @@
   "openapi": "https://api.unkey.dev/openapi.json",
   "api": {
     "baseUrl": "https://api.unkey.dev"
+  },
+  "codeBlock": {
+    "mode": "auto"
   },
   "redirects": [
     {

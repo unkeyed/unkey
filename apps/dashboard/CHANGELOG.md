@@ -1,5 +1,54 @@
 # @unkey/web
 
+## 0.1.44
+
+### Patch Changes
+
+- @unkey/ratelimit@0.5.5
+
+## 0.1.43
+
+### Patch Changes
+
+- @unkey/ratelimit@0.5.4
+
+## 0.1.42
+
+### Patch Changes
+
+- @unkey/ratelimit@0.5.3
+
+## 0.1.41
+
+### Patch Changes
+
+- @unkey/ratelimit@0.5.2
+
+## 0.1.40
+
+### Patch Changes
+
+- @unkey/ratelimit@0.5.1
+
+## 0.1.39
+
+### Patch Changes
+
+- Updated dependencies [3f8d078]
+  - @unkey/ratelimit@0.5.0
+
+## 0.1.38
+
+### Patch Changes
+
+- @unkey/ratelimit@0.4.7
+
+## 0.1.37
+
+### Patch Changes
+
+- @unkey/ratelimit@0.4.6
+
 ## 0.1.36
 
 ### Patch Changes

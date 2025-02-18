@@ -105,7 +105,7 @@ export const registerV1KeysAddRoles = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "rbac.*.add_role_to_key")),
     );
 
-    const { db, analytics, cache, rbac } = c.get("services");
+    const { db, cache, rbac } = c.get("services");
 
     const requestedIds = req.roles.filter((r) => "id" in r).map((r) => r.id!);
     const requestedNames = req.roles.filter((r) => "name" in r).map((r) => r.name!);
@@ -263,58 +263,6 @@ export const registerV1KeysAddRoles = (app: App) =>
         },
       })),
     ]);
-
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogsTinybird([
-        ...createRoles.map((r) => ({
-          workspaceId: auth.authorizedWorkspaceId,
-          event: "role.create" as const,
-          actor: {
-            type: "key" as const,
-            id: auth.key.id,
-          },
-          description: `Created ${r.id}`,
-          resources: [
-            {
-              type: "role" as const,
-              id: r.id,
-              meta: {
-                name: r.name,
-              },
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-        ...addRoles.map((r) => ({
-          workspaceId: auth.authorizedWorkspaceId,
-          event: "authorization.connect_role_and_key" as const,
-          actor: {
-            type: "key" as const,
-            id: auth.key.id,
-          },
-          description: `Connected ${r.id} and ${req.keyId}`,
-          resources: [
-            {
-              type: "role" as const,
-              id: r.id,
-            },
-            {
-              type: "key" as const,
-              id: req.keyId,
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-      ]),
-    );
 
     return c.json(allRoles.map((p) => ({ id: p.id, name: p.name })));
   });

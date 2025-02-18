@@ -1,9 +1,16 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
+import { CreateKeyButton } from "@/components/dashboard/create-key-button";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
+import { Nodes } from "@unkey/icons";
 import { notFound, redirect } from "next/navigation";
+import { navigation } from "../constants";
 import { DefaultBytes } from "./default-bytes";
 import { DefaultPrefix } from "./default-prefix";
 import { DeleteApi } from "./delete-api";
@@ -28,6 +35,9 @@ export default async function SettingsPage(props: Props) {
     with: {
       apis: {
         where: eq(schema.apis.id, props.params.apiId),
+        with: {
+          keyAuth: true,
+        },
       },
     },
   });
@@ -39,45 +49,63 @@ export default async function SettingsPage(props: Props) {
   if (!api) {
     return notFound();
   }
-  const keys = await db
-    .select({ count: sql<string>`count(*)` })
-    .from(schema.keys)
-    .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
-    .then((rows) => Number.parseInt(rows.at(0)?.count ?? "0"));
-  const keyAuth = await db.query.keyAuth.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, api.keyAuthId!), isNull(table.deletedAt)),
-    with: {
-      workspace: true,
-      api: true,
-    },
-  });
-  if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
+
+  const keyAuth = api.keyAuth;
+  if (!keyAuth) {
     return notFound();
   }
 
   return (
-    <div className="flex flex-col gap-8 mb-20 ">
-      <UpdateApiName api={api} />
-      <DefaultBytes keyAuth={keyAuth} />
-      <DefaultPrefix keyAuth={keyAuth} />
-      <UpdateIpWhitelist api={api} workspace={workspace} />
-      <Card>
-        <CardHeader>
-          <CardTitle>API ID</CardTitle>
-          <CardDescription>This is your api id. It's used in some API calls.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4">
-            <pre>{api.id}</pre>
-            <div className="flex items-start justify-between gap-4">
-              <CopyButton value={api.id} />
-            </div>
-          </Code>
-        </CardContent>
-      </Card>
-      <DeleteProtection api={api} />
-      <DeleteApi api={api} keys={keys} />
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Nodes />}>
+          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
+            {api.name}
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link active href={`/apis/${props.params.apiId}/settings`}>
+            Settings
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
+          <Badge
+            key="apiId"
+            variant="secondary"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+          >
+            {api.id}
+            <CopyButton value={api.id} />
+          </Badge>
+          <CreateKeyButton apiId={api.id} keyAuthId={api.keyAuthId!} />
+        </Navbar.Actions>
+      </Navbar>
+
+      <PageContent>
+        <SubMenu navigation={navigation(api.id, api.keyAuthId!)} segment="settings" />
+
+        <div className="flex flex-col gap-8 mb-20 mt-8">
+          <UpdateApiName api={api} />
+          <DefaultBytes keyAuth={keyAuth} />
+          <DefaultPrefix keyAuth={keyAuth} />
+          <UpdateIpWhitelist api={api} workspace={workspace} />
+          <Card>
+            <CardHeader>
+              <CardTitle>API ID</CardTitle>
+              <CardDescription>This is your api id. It's used in some API calls.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4">
+                <pre>{api.id}</pre>
+                <div className="flex items-start justify-between gap-4">
+                  <CopyButton value={api.id} />
+                </div>
+              </Code>
+            </CardContent>
+          </Card>
+          <DeleteProtection api={api} />
+          <DeleteApi api={api} keys={keyAuth.sizeApprox} />
+        </div>
+      </PageContent>
     </div>
   );
 }

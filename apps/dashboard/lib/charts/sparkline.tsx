@@ -89,7 +89,7 @@ function SparkLineInner<T extends Datum>({
         range: [0, width],
       }),
     };
-  }, [startDate, endDate, minY, maxY, height, width]);
+  }, [startDate, endDate, minY, maxY, height, width, padding.bottom, padding.top]);
 
   const chartContext: ChartContextType<T> = {
     width,

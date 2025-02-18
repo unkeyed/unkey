@@ -1,7 +1,0 @@
-VERSION 1
-NODE all_verifications
-DESCRIPTION >
-    Sum up all verifications since the beginning of time and until the heat death of the universe
-
-SQL >
-    SELECT countMerge(verifications) as verifications FROM mv__monthly_stats__v1

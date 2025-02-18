@@ -6,7 +6,14 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
 import { DatabaseError } from "@planetscale/database";
-import { type EncryptedKey, type Key, type KeyPermission, type KeyRole, schema } from "@unkey/db";
+import {
+  type EncryptedKey,
+  type Identity,
+  type Key,
+  type KeyPermission,
+  type KeyRole,
+  schema,
+} from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -67,13 +74,18 @@ The underscore is automatically added if you are defining a prefix, for example:
                     "The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.",
                   example: "unkey_32kq",
                 }),
-                ownerId: z
+                ownerId: z.string().optional().openapi({
+                  description: "Deprecated, use `externalId`",
+                  example: "team_123",
+                  deprecated: true,
+                }),
+                externalId: z
                   .string()
                   .optional()
                   .openapi({
                     description: `Your user’s Id. This will provide a link between Unkey and your customer record.
 When validating a key, we will return this back to you, so you can clearly identify your user from their api key.`,
-                    example: "team_123",
+                    example: "user_123",
                   }),
                 meta: z
                   .record(z.unknown())
@@ -251,11 +263,10 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
 
-    const { cache, db, analytics, rbac, vault, logger } = c.get("services");
+    const { cache, db, rbac, vault, logger } = c.get("services");
 
     const auth = await rootKeyAuth(c);
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
-    const rootKeyId = auth.key.id;
 
     const roleNames = req.filter((k) => k.roles).flatMap((k) => k.roles) as string[];
     // name -> id
@@ -305,6 +316,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
       }
     }
 
+    const createIdentities: Array<Identity> = [];
     const keys: Array<Key> = [];
     const encryptedKeys: Array<EncryptedKey> = [];
     const roleConnections: Array<KeyRole> = [];
@@ -351,7 +363,11 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           return (
             (await db.readonly.query.apis.findFirst({
               where: (table, { eq, and, isNull }) =>
-                and(eq(table.id, key.apiId), isNull(table.deletedAt)),
+                and(
+                  eq(table.workspaceId, authorizedWorkspaceId),
+                  eq(table.id, key.apiId),
+                  isNull(table.deletedAt),
+                ),
               with: {
                 keyAuth: true,
               },
@@ -398,6 +414,43 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             message: "when interval is set to 'daily', 'refillDay' must be null.",
           });
         }
+
+        let identityId: string | null = null;
+        if (key.externalId) {
+          const identity = await cache.identityByExternalId.swr(
+            key.externalId,
+            async (externalId) => {
+              return await db.readonly.query.identities.findFirst({
+                where: (table, { eq, and }) =>
+                  and(
+                    eq(table.workspaceId, authorizedWorkspaceId),
+                    eq(table.externalId, externalId),
+                  ),
+              });
+            },
+          );
+          if (identity.err) {
+            throw new UnkeyApiError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: `unable to load identity: ${identity.err.message}`,
+            });
+          }
+          if (identity.val) {
+            identityId = identity.val.id;
+          } else {
+            identityId = newId("identity");
+            createIdentities.push({
+              id: identityId,
+              externalId: key.externalId,
+              workspaceId: authorizedWorkspaceId,
+              createdAt: Date.now(),
+              updatedAt: null,
+              meta: null,
+              environment: "default",
+            });
+          }
+        }
+
         /**
          * Set up an api for production
          */
@@ -411,7 +464,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           hash: hash,
           start: key.start ?? key.plaintext?.slice(0, 4) ?? "",
           ownerId: key.ownerId ?? null,
-          identityId: null,
+          identityId,
           meta: key.meta ? JSON.stringify(key.meta) : null,
           workspaceId: authorizedWorkspaceId,
           forWorkspaceId: null,
@@ -421,7 +474,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           ratelimitLimit: key.ratelimit?.limit ?? key.ratelimit?.refillRate ?? null,
           ratelimitDuration: key.ratelimit?.refillInterval ?? key.ratelimit?.refillInterval ?? null,
           remaining: key.remaining ?? null,
-          refillInterval: key.refill?.interval ?? null,
           refillDay: key.refill?.interval === "daily" ? null : key?.refill?.refillDay ?? 1,
           refillAmount: key.refill?.amount ?? null,
           deletedAt: null,
@@ -480,6 +532,22 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
     );
 
     await db.primary.transaction(async (tx) => {
+      if (createIdentities.length > 0) {
+        await tx
+          .insert(schema.identities)
+          .values(createIdentities)
+          .onDuplicateKeyUpdate({ set: { updatedAt: Date.now() } })
+          .catch((e) => {
+            logger.error("unable to create identities", {
+              error: e.message,
+            });
+            throw new UnkeyApiError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "unable to create identities",
+            });
+          });
+      }
+
       if (keys.length > 0) {
         await tx
           .insert(schema.keys)
@@ -491,7 +559,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
                 workspaceId: authorizedWorkspaceId,
               });
               throw new UnkeyApiError({
-                code: "NOT_UNIQUE",
+                code: "CONFLICT",
                 message: e.body.message,
               });
             }
@@ -530,80 +598,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             },
           ],
 
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-      );
-
-      await analytics.ingestUnkeyAuditLogsTinybird(
-        keys.map((k) => ({
-          workspaceId: authorizedWorkspaceId,
-          event: "key.create",
-          actor: {
-            type: "key",
-            id: auth.key.id,
-          },
-          description: `Created ${k.id} in ${k.keyAuthId}`,
-          resources: [
-            {
-              type: "key",
-              id: k.id,
-            },
-            {
-              type: "keyAuth",
-              id: k.keyAuthId!,
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-      );
-
-      await insertUnkeyAuditLog(
-        c,
-        tx,
-        roleConnections.map((rc) => ({
-          workspaceId: authorizedWorkspaceId,
-          actor: { type: "key", id: rootKeyId },
-          event: "authorization.connect_role_and_key",
-          description: `Connected ${rc.roleId} and ${rc.keyId}`,
-          resources: [
-            {
-              type: "key",
-              id: rc.keyId,
-            },
-            {
-              type: "role",
-              id: rc.roleId,
-            },
-          ],
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-      );
-      await analytics.ingestUnkeyAuditLogsTinybird(
-        roleConnections.map((rc) => ({
-          workspaceId: authorizedWorkspaceId,
-          actor: { type: "key", id: rootKeyId },
-          event: "authorization.connect_role_and_key",
-          description: `Connected ${rc.roleId} and ${rc.keyId}`,
-          resources: [
-            {
-              type: "key",
-              id: rc.keyId,
-            },
-            {
-              type: "role",
-              id: rc.roleId,
-            },
-          ],
           context: {
             location: c.get("location"),
             userAgent: c.get("userAgent"),

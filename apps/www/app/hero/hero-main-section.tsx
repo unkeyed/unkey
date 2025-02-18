@@ -1,18 +1,14 @@
 import Link from "next/link";
 
-import { PrimaryButton, SecondaryButton } from "@/components/button";
-import { BookOpen, ChevronRight, LogIn } from "lucide-react";
+import { PrimaryButton, RainbowDarkButton, SecondaryButton } from "@/components/button";
+import { ArrowRight, BookOpen, ChevronRight, LogIn } from "lucide-react";
 
 export function HeroMainSection() {
   return (
     <div className="relative flex flex-col items-center text-center xl:text-left xl:items-start">
-      {/* <Link href="/accelerate" target="">
-        <RainbowDarkButton
-          className="mb-6"
-          label="Launch Week: June 24-29"
-          IconRight={ArrowRight}
-        />
-      </Link> */}
+      <Link href="/careers">
+        <RainbowDarkButton className="mb-6" label="We're hiring" IconRight={ArrowRight} />
+      </Link>
       <h1 className="bg-gradient-to-br text-pretty text-transparent bg-gradient-stop bg-clip-text from-white via-white via-30% to-white/30 max-w-sm sm:max-w-none xl:max-w-lg font-medium text-[32px] leading-none sm:text-[56px] md:text-[64px] xl:text-[64px] tracking-tighter">
         Build better APIs faster
       </h1>

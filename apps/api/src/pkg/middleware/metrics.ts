@@ -1,5 +1,6 @@
+import { sha256 } from "@unkey/hash";
 import type { Metric } from "@unkey/metrics";
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import type { HonoEnv } from "../hono/env";
 
 type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
@@ -10,6 +11,10 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
 
     let requestBody = await c.req.raw.clone().text();
     requestBody = requestBody.replaceAll(/"key":\s*"[a-zA-Z0-9_]+"/g, '"key": "<REDACTED>"');
+    requestBody = requestBody.replaceAll(
+      /"plaintext":\s*"[a-zA-Z0-9_]+"/g,
+      '"plaintext": "<REDACTED>"',
+    );
     const start = performance.now();
     const m = {
       isolateId: c.get("isolateId"),
@@ -52,17 +57,6 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       //   };
 
       //   c.executionCtx.waitUntil(
-      //     analytics.ingestSdkTelemetry(event).catch((err) => {
-      //       logger.error("Error ingesting SDK telemetry into tinybird", {
-      //         method: c.req.method,
-      //         path: c.req.path,
-      //         error: err.message,
-      //         telemetry,
-      //         event,
-      //       });
-      //     }),
-      //   );
-      //   c.executionCtx.waitUntil(
       //     analytics
       //       .insertSdkTelemetry({
       //         ...event,
@@ -103,14 +97,24 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
         responseHeaders.push(`${k}: ${v}`);
       });
 
+      let responseBody = await c.res.clone().text();
+      responseBody = responseBody.replaceAll(/"key":\s*"[a-zA-Z0-9_]+"/g, '"key": "<REDACTED>"');
+      responseBody = responseBody.replaceAll(
+        /"plaintext":\s*"[a-zA-Z0-9_]+"/g,
+        '"plaintext": "<REDACTED>"',
+      );
+
+      const url = new URL(c.req.url);
       c.executionCtx.waitUntil(
         analytics.insertApiRequest({
           request_id: c.get("requestId"),
           time: c.get("requestStartedAt"),
-          workspace_id: c.get("workspaceId") ?? "",
-          host: new URL(c.req.url).host,
+          workspace_id: await getWorkspaceId(c),
+          host: url.host,
           method: c.req.method,
-          path: c.req.path,
+          path: `${url.pathname}${
+            url.searchParams.size > 0 ? "?" : ""
+          }${url.searchParams.toString()}`,
           request_headers: Object.entries(c.req.header()).map(([k, v]) => {
             if (k.toLowerCase() === "authorization") {
               return `${k}: <REDACTED>`;
@@ -120,7 +124,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
           request_body: requestBody,
           response_status: c.res.status,
           response_headers: responseHeaders,
-          response_body: await c.res.clone().text(),
+          response_body: responseBody,
           error: m.error ?? "",
           service_latency: Date.now() - c.get("requestStartedAt"),
           ip_address: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
@@ -137,4 +141,34 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       );
     }
   };
+}
+
+async function getWorkspaceId(c: Context<HonoEnv>): Promise<string> {
+  const workspaceId = c.get("workspaceId");
+  if (workspaceId) {
+    return workspaceId;
+  }
+  const rootKey = c.req.header("authorization")?.replace("Bearer ", "");
+  if (!rootKey) {
+    return "";
+  }
+  const hash = await sha256(rootKey);
+  const { cache, db, logger } = c.get("services");
+  const { val, err } = await cache.workspaceIdByRootKeyHash.swr(hash, async () => {
+    const key = await db.readonly.query.keys.findFirst({
+      where: (table, { eq, and, isNull }) => and(isNull(table.deletedAt), eq(table.hash, hash)),
+    });
+    if (!key) {
+      return null;
+    }
+    return key.forWorkspaceId!;
+  });
+
+  if (err) {
+    logger.error("unable to get root key from hash", {
+      error: err.message,
+    });
+    return "";
+  }
+  return val ?? "";
 }

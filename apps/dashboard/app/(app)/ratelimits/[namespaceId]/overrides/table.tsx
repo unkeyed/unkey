@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -9,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { clickhouse } from "@/lib/clickhouse";
+import { Button } from "@unkey/ui";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -90,9 +90,10 @@ const LastUsed: React.FC<{
     workspaceId,
     namespaceId,
     identifier: [identifier],
+    limit: 1,
   });
 
-  const unixMilli = lastUsed.at(0)?.time;
+  const unixMilli = lastUsed.val?.at(0)?.time;
   if (unixMilli) {
     return <span className="text-sm text-content-subtle">{ms(Date.now() - unixMilli)} ago</span>;
   }

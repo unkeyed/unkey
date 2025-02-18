@@ -1,11 +1,11 @@
 "use client";
 import { createWorkspaceNavigation, resourcesNavigation } from "@/app/(app)/workspace-navigations";
 import { Feedback } from "@/components/dashboard/feedback-component";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -35,7 +35,7 @@ export const MobileSideBar = ({ className, workspace }: Props) => {
             <SheetTrigger>
               <Menu className="w-6 h-6 " />
             </SheetTrigger>
-            <WorkspaceSwitcher />
+            <WorkspaceSwitcher workspace={workspace} />
           </div>
           <UserButton />
         </div>

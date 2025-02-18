@@ -1,12 +1,11 @@
-import type { App } from "@/pkg/hono/app";
-import { createRoute, z } from "@hono/zod-openapi";
-
-import type { UnkeyAuditLog } from "@/pkg/analytics";
-import { insertUnkeyAuditLog } from "@/pkg/audit";
+import { type UnkeyAuditLog, insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import type { Database, Identity } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import type { App } from "@/pkg/hono/app";
 import { retry } from "@/pkg/util/retry";
+import { revalidateKeyCount } from "@/pkg/util/revalidate_key_count";
+import { createRoute, z } from "@hono/zod-openapi";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -262,7 +261,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, logger, vault, rbac } = c.get("services");
+    const { cache, db, logger, vault, rbac } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -280,6 +279,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         })) ?? null
       );
     });
+
     if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
@@ -351,10 +351,12 @@ export const registerV1KeysCreateKey = (app: App) =>
           apiId: api.id,
         });
       }
+
       const secret = new KeyV1({
-        byteLength: req.byteLength ?? 16,
-        prefix: req.prefix,
+        byteLength: req.byteLength ?? api.keyAuth?.defaultBytes ?? 16,
+        prefix: req.prefix ?? (api.keyAuth?.defaultPrefix as string | undefined),
       }).toString();
+
       const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
       const kId = newId("key");
       const hash = await sha256(secret.toString());
@@ -374,7 +376,6 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
-        refillInterval: req.refill?.interval,
         refillDay: req.refill?.interval === "daily" ? null : req?.refill?.refillDay ?? 1,
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
@@ -424,6 +425,9 @@ export const registerV1KeysCreateKey = (app: App) =>
           encryptionKeyId: vaultRes.keyId,
         });
       }
+
+      c.executionCtx.waitUntil(revalidateKeyCount(db.primary, api.keyAuthId!));
+
       return {
         id: kId,
         secret,
@@ -525,9 +529,6 @@ export const registerV1KeysCreateKey = (app: App) =>
     ];
 
     await insertUnkeyAuditLog(c, undefined, auditLogs);
-    c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogsTinybird(auditLogs));
-
-    // TODO: emit event to tinybird
     return c.json({
       keyId: newKey.id,
       key: newKey.secret,

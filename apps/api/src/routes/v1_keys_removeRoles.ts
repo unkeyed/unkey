@@ -81,7 +81,7 @@ export const registerV1KeysRemoveRoles = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "rbac.*.remove_role_from_key")),
     );
 
-    const { db, analytics } = c.get("services");
+    const { db } = c.get("services");
 
     const [key, connectedRoles] = await Promise.all([
       db.primary.query.keys.findFirst({
@@ -159,35 +159,6 @@ export const registerV1KeysRemoveRoles = (app: App) =>
         })),
       );
     });
-
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogsTinybird(
-        deleteRoles.map((r) => ({
-          workspaceId: auth.authorizedWorkspaceId,
-          event: "authorization.disconnect_role_and_key" as const,
-          actor: {
-            type: "key" as const,
-            id: auth.key.id,
-          },
-          description: `Disonnected ${r.roleId} and ${req.keyId}`,
-          resources: [
-            {
-              type: "role" as const,
-              id: r.roleId,
-            },
-            {
-              type: "key" as const,
-              id: req.keyId,
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-      ),
-    );
 
     return c.json({});
   });

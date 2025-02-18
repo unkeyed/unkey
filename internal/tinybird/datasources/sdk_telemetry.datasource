@@ -1,9 +1,0 @@
-VERSION 1
-SCHEMA >
-    `runtime` String `json:$.runtime`,
-    `platform` String `json:$.platform`,
-    `versions` Array(String) `json:$.versions[:]`,
-    `requestId` String `json:$.requestId`,
-    `time` Int64 `json:$.time`
-ENGINE “MergeTree”
-ENGINE_SORTING_KEY “time”

@@ -1,18 +1,14 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { PageHeader } from "@/components/dashboard/page-header";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Metric } from "@/components/ui/metric";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import {
-  Activity,
-  CalendarPlus,
-  KeySquare,
-  type LucideIcon,
-  Minus,
-  SquareStack,
-} from "lucide-react";
+import { ShieldKey } from "@unkey/icons";
+import { Button } from "@unkey/ui";
+import { format } from "date-fns";
 import { notFound, redirect } from "next/navigation";
 import { Client } from "./client";
 import { DeletePermission } from "./delete-permission";
@@ -73,11 +69,24 @@ export default async function RolesPage(props: Props) {
   const shouldShowTooltip = permission.name.length > 16;
 
   return (
-    <div className="flex flex-col min-h-screen gap-4">
-      <PageHeader
-        title={<span className="font-mono">{permission.name}</span>}
-        description={permission.description ?? undefined}
-        actions={[
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<ShieldKey />}>
+          <Navbar.Breadcrumbs.Link href="/authorization/roles">
+            Authorization
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/authorization/permissions">
+            Permissions
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link
+            href={`/authorization/permissions/${props.params.permissionId}`}
+            isIdentifier
+            active
+          >
+            {props.params.permissionId}
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
           <Badge
             key="permission-name"
             variant="secondary"
@@ -98,7 +107,7 @@ export default async function RolesPage(props: Props) {
                 </TooltipContent>
               )}
             </Tooltip>
-          </Badge>,
+          </Badge>
           <Badge
             key="permission-id"
             variant="secondary"
@@ -106,50 +115,47 @@ export default async function RolesPage(props: Props) {
           >
             {permission.id}
             <CopyButton value={permission.id} />
-          </Badge>,
+          </Badge>
           <DeletePermission
             key="delete-permission"
-            trigger={<Button variant="alert">Delete</Button>}
+            trigger={<Button variant="destructive">Delete</Button>}
             permission={permission}
-          />,
-        ]}
-      />
-
-      <div className="flex gap-4 mt-8 mb-20">
-        <div className="grid w-full grid-cols-1 gap-4 min-w-20 ">
-          <Metric
-            Icon={CalendarPlus}
-            label="Created At"
-            value={permission.createdAt?.toDateString()}
-          />
-          <Metric Icon={Activity} label="Updated At" value={permission.updatedAt?.toDateString()} />
-          <Metric
-            Icon={SquareStack}
-            label="Connected Roles"
-            value={permission.roles.length.toString()}
-          />
-          <Metric Icon={KeySquare} label="Connected Keys" value={connectedKeys.size.toString()} />
+          />{" "}
+        </Navbar.Actions>
+      </Navbar>
+      <PageContent>
+        <div className="flex flex-col min-h-screen gap-4">
+          <div className="flex gap-4 mb-20">
+            <div className="grid w-full grid-cols-1 gap-4 min-w-20 ">
+              <Metric
+                className="border rounded-lg"
+                label="Created At"
+                value={format(permission.createdAt, "PPPP")}
+              />
+              <Metric
+                className="border rounded-lg"
+                label="Updated At"
+                value={
+                  permission.updatedAt
+                    ? format(permission.updatedAt?.toDateString(), "PPPP")
+                    : "Not updated yet"
+                }
+              />
+              <Metric
+                className="border rounded-lg"
+                label="Connected Roles"
+                value={permission.roles.length.toString()}
+              />
+              <Metric
+                className="border rounded-lg"
+                label="Connected Keys"
+                value={connectedKeys.size.toString()}
+              />
+            </div>
+            <Client permission={permission} />
+          </div>
         </div>
-        <Client permission={permission} />
-      </div>
+      </PageContent>
     </div>
   );
 }
-
-const Metric: React.FC<{ label: string; value?: string; Icon: LucideIcon }> = ({
-  label,
-  value,
-  Icon,
-}) => {
-  return (
-    <div className="flex items-center gap-4 px-4 py-2 border rounded-lg">
-      <Icon className="w-6 h-6 text-primary" />
-      <div className="flex flex-col items-start justify-center">
-        <p className="text-sm text-content-subtle">{label}</p>
-        <div className="text-2xl font-semibold leading-none tracking-tight">
-          {value ?? <Minus className="w-4 h-4" />}
-        </div>
-      </div>
-    </div>
-  );
-};

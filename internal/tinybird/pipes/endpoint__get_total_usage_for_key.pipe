@@ -1,8 +1,0 @@
-VERSION 1
-TOKEN "endpoint__get_total_usage_for_key__v1_endpoint_read_6359" READ
-
-NODE mv_key_total_usage_pipe_5275_0
-SQL >
-
-    %
-    SELECT countMerge(totalUsage) as totalUsage FROM mv_key_total_usage where keyId = {{String(keyId, required=True)}}

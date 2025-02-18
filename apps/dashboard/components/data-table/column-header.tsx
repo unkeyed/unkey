@@ -1,6 +1,5 @@
 import type { Column } from "@tanstack/react-table";
 
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 
 interface DataTableColumnHeaderProps<TData, TValue> extends React.HTMLAttributes<HTMLDivElement> {
@@ -27,8 +27,8 @@ export function DataTableColumnHeader<TData, TValue>({
   return (
     <div className={cn("flex items-center space-x-2", className)}>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 -ml-3">
+        <DropdownMenuTrigger>
+          <Button variant="ghost" className="h-8 -ml-3">
             <span>{title}</span>
             {column.getIsSorted() === "desc" ? (
               <ChevronDown className="w-4 h-4 ml-2" />

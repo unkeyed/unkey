@@ -1,10 +1,10 @@
-import { PageHeader } from "@/components/dashboard/page-header";
 import { CreateApiButton } from "./create-api-button";
 
-import { Separator } from "@/components/ui/separator";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
-import { Search } from "lucide-react";
+import { Nodes } from "@unkey/icons";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiList } from "./client";
@@ -12,7 +12,11 @@ import { ApiList } from "./client";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
-export default async function ApisOverviewPage() {
+type Props = {
+  searchParams: { new?: boolean };
+};
+
+export default async function ApisOverviewPage(props: Props) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -42,22 +46,20 @@ export default async function ApisOverviewPage() {
   const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
 
   return (
-    <div className="">
-      {unpaid ? (
-        <div>
-          <PageHeader title="Applications" description="Manage your APIs" />
-          <Separator className="my-6" />
-          <section className="flex flex-col gap-4 my-4 md:flex-row md:items-center">
-            <div className="flex items-center flex-grow h-8 gap-2 px-3 py-2 text-sm bg-background border rounded-md border-border focus-within:border-primary/40">
-              <Search className="w-4 h-4" />
-              <input
-                disabled
-                className="flex-grow bg-transparent placeholder:text-content-subtle focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 "
-                placeholder="Search.."
-              />
-            </div>
-            <CreateApiButton disabled />
-          </section>
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Nodes />}>
+          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
+          <CreateApiButton
+            key="createApi"
+            defaultOpen={apis.length === 0 || props.searchParams.new}
+          />
+        </Navbar.Actions>
+      </Navbar>
+      <PageContent>
+        {unpaid ? (
           <div className="mt-10 flex min-h-[400px] flex-col items-center  justify-center space-y-6 rounded-lg border border-dashed px-4 md:mt-24">
             <h3 className="text-xl font-semibold leading-none tracking-tight text-center md:text-2xl">
               Upgrade your plan
@@ -72,10 +74,10 @@ export default async function ApisOverviewPage() {
               Subscribe
             </Link>
           </div>
-        </div>
-      ) : (
-        <ApiList apis={apis} />
-      )}
+        ) : (
+          <ApiList apis={apis} />
+        )}
+      </PageContent>
     </div>
   );
 }

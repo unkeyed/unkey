@@ -11,30 +11,34 @@ export const setDefaultApiBytes = t.procedure
     z.object({
       defaultBytes: z
         .number()
-        .min(8, "Byte size needs to be at least 8")
+        .min(16, "Byte size needs to be at least 16")
         .max(255, "Byte size cannot exceed 255")
         .optional(),
       keyAuthId: z.string(),
-      workspaceId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
     const keyAuth = await db.query.keyAuth
       .findFirst({
-        where: (table, { eq }) => eq(table.id, input.keyAuthId),
+        where: (table, { eq, and, isNull }) =>
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.keyAuthId),
+            isNull(table.deletedAt),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to find the KeyAuth. Please try again or contact support@unkey.dev.",
+            "We were unable to update the key auth. Please try again or contact support@unkey.dev",
         });
       });
-    if (!keyAuth || keyAuth.workspaceId !== input.workspaceId) {
+    if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct keyAuth. Please try again or contact support@unkey.dev",
+          "We are unable to find the correct key auth. Please try again or contact support@unkey.dev.",
       });
     }
     await db
@@ -44,7 +48,7 @@ export const setDefaultApiBytes = t.procedure
           .set({
             defaultBytes: input.defaultBytes,
           })
-          .where(eq(schema.keyAuth.id, input.keyAuthId))
+          .where(eq(schema.keyAuth.id, keyAuth.id))
           .catch((_err) => {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
@@ -52,14 +56,14 @@ export const setDefaultApiBytes = t.procedure
                 "We were unable to update the API default bytes. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, {
-          workspaceId: keyAuth.workspaceId,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,
           },
           event: "api.update",
-          description: `Changed ${keyAuth.workspaceId} default byte size for keys from ${keyAuth.defaultBytes} to ${input.defaultBytes}`,
+          description: `Changed ${keyAuth.id} default byte size for keys from ${keyAuth.defaultBytes} to ${input.defaultBytes}`,
           resources: [
             {
               type: "keyAuth",

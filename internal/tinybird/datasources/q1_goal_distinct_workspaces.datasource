@@ -1,8 +1,0 @@
-
-SCHEMA >
-    `workspaces` UInt64,
-    `time` DateTime
-
-ENGINE "MergeTree"
-ENGINE_PARTITION_KEY "toYear(time)"
-ENGINE_SORTING_KEY "time, workspaces"

@@ -12,14 +12,6 @@
   "region": "fly::${FLY_REGION}",
   "authToken": "${AUTH_TOKEN}",
   "services": {
-    "eventRouter": {
-      "tinybird": {
-        "token": "${TINYBIRD_TOKEN}",
-        "batchSize": 1000,
-        "flushInterval": 1,
-        "bufferSize": 10000
-      }
-    },
     "vault": {
       "s3Url": "${VAULT_S3_URL}",
       "s3Bucket": "${VAULT_S3_BUCKET}",

@@ -53,7 +53,7 @@ export type V1IdentitiesDeleteIdentityResponse = z.infer<
 export const registerV1IdentitiesDeleteIdentity = (app: App) =>
   app.openapi(route, async (c) => {
     const { identityId } = c.req.valid("json");
-    const { db, analytics } = c.get("services");
+    const { db } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -88,53 +88,6 @@ export const registerV1IdentitiesDeleteIdentity = (app: App) =>
       await tx.delete(schema.identities).where(eq(schema.identities.id, identity.id));
 
       await insertUnkeyAuditLog(c, tx, [
-        {
-          workspaceId: authorizedWorkspaceId,
-          event: "identity.delete",
-          actor: {
-            type: "key",
-            id: rootKeyId,
-          },
-          description: `Deleted ${identity.id}`,
-          resources: [
-            {
-              type: "identity",
-              id: identity.id,
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        },
-
-        ...deleteRatelimitIds.map((ratelimitId) => ({
-          workspaceId: authorizedWorkspaceId,
-          event: "ratelimit.delete" as const,
-          actor: {
-            type: "key" as const,
-            id: rootKeyId,
-          },
-          description: `Deleted ${ratelimitId}`,
-          resources: [
-            {
-              type: "identity" as const,
-              id: identity.id,
-            },
-            {
-              type: "ratelimit" as const,
-              id: ratelimitId,
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-      ]);
-      await analytics.ingestUnkeyAuditLogsTinybird([
         {
           workspaceId: authorizedWorkspaceId,
           event: "identity.delete",

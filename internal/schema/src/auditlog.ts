@@ -17,9 +17,6 @@ export const unkeyAuditLogEvents = z.enum([
   "ratelimitNamespace.create",
   "ratelimitNamespace.update",
   "ratelimitNamespace.delete",
-  "ratelimitOverride.create",
-  "ratelimitOverride.update",
-  "ratelimitOverride.delete",
   "vercelIntegration.create",
   "vercelIntegration.update",
   "vercelIntegration.delete",
@@ -51,6 +48,9 @@ export const unkeyAuditLogEvents = z.enum([
   "ratelimit.create",
   "ratelimit.update",
   "ratelimit.delete",
+  "ratelimit.set_override",
+  "ratelimit.read_override",
+  "ratelimit.delete_override",
   "auditLogBucket.create",
 ]);
 

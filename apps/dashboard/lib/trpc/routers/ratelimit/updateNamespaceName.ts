@@ -14,17 +14,16 @@ export const updateNamespaceName = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const ws = await db.query.workspaces
+    const namespace = await db.query.ratelimitNamespaces
       .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
-        with: {
-          ratelimitNamespaces: {
-            where: (table, { eq, and, isNull }) =>
-              and(isNull(table.deletedAt), eq(schema.ratelimitNamespaces.id, input.namespaceId)),
-          },
-        },
+        where: (table, { eq, and, isNull }) =>
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            isNull(table.deletedAt),
+            eq(table.id, input.namespaceId),
+          ),
       })
+
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -33,18 +32,10 @@ export const updateNamespaceName = t.procedure
         });
       });
 
-    if (!ws || ws.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev",
-        code: "NOT_FOUND",
-      });
-    }
-    const namespace = ws.ratelimitNamespaces.find((ns) => ns.id === input.namespaceId);
     if (!namespace) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct namespace. Please try again or contact support@unkey.dev",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev",
         code: "NOT_FOUND",
       });
     }
@@ -63,8 +54,8 @@ export const updateNamespaceName = t.procedure
             code: "INTERNAL_SERVER_ERROR",
           });
         });
-      await insertAuditLogs(tx, {
-        workspaceId: ws.id,
+      await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        workspaceId: ctx.workspace.id,
         actor: {
           type: "user",
           id: ctx.user.id,

@@ -16,7 +16,7 @@ jobs:
         uses: ./.github/actions/install
         with:
           ts: true
-        
+
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
 
@@ -31,11 +31,11 @@ jobs:
           EOF
         working-directory: apps/api
       - name: Run worker
-        run: pnpm dev > api.logs &
+        run: pnpm dev & sleep 15
         working-directory: apps/api
-        
-      
-        
+
+
+
 
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
@@ -43,8 +43,8 @@ jobs:
         env:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
 
-    
- 
+
+
       - name: Build
         run: pnpm build
         env:
@@ -57,6 +57,3 @@ jobs:
           UNKEY_WEBHOOK_KEYS_API_ID: "not-empty"
           AGENT_URL: "http://localhost:8080"
           AGENT_TOKEN: "not-empty"
-
-
-    

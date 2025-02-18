@@ -3,8 +3,8 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
-import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
+import { Button } from "@unkey/ui";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -93,6 +93,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
     }));
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: effect must be called once to set initial cards state
   useEffect(() => {
     const initialSelectedApiSet = new Set<string>();
     selectedPermissions.forEach((permission) => {

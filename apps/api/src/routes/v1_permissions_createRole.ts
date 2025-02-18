@@ -3,10 +3,12 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { openApiErrorResponses } from "@/pkg/errors";
+import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { DatabaseError } from "@planetscale/database";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
+import { validation } from "@unkey/validation";
 
 const route = createRoute({
   tags: ["permissions"],
@@ -20,18 +22,11 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            name: z
-              .string()
-              .min(3)
-              .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
-                message:
-                  "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
-              })
-              .openapi({
-                description: "The unique name of your role.",
-                example: "dns.records.manager",
-              }),
-            description: z.string().optional().openapi({
+            name: validation.name.openapi({
+              description: "The unique name of your role.",
+              example: "dns.records.manager",
+            }),
+            description: validation.description.optional().openapi({
               description:
                 "Explain what this role does. This is just for your team, your users will not see this.",
               example: "dns.records.manager can read and write dns records for our domains.",
@@ -75,10 +70,10 @@ export const registerV1PermissionsCreateRole = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_role")),
     );
 
-    const { db, analytics } = c.get("services");
+    const { db } = c.get("services");
 
     const role = {
-      id: newId("test"),
+      id: newId("role"),
       workspaceId: auth.authorizedWorkspaceId,
       name: req.name,
       description: req.description,
@@ -88,12 +83,17 @@ export const registerV1PermissionsCreateRole = (app: App) =>
       await tx
         .insert(schema.roles)
         .values(role)
-        .onDuplicateKeyUpdate({
-          set: {
-            name: req.name,
-            description: req.description,
-          },
+        .catch((e) => {
+          if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
+            throw new UnkeyApiError({
+              code: "CONFLICT",
+              message: `Role with name "${role.name}" already exists in this workspace`,
+            });
+          }
+
+          throw e;
         });
+
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
         event: "role.create",
@@ -112,34 +112,9 @@ export const registerV1PermissionsCreateRole = (app: App) =>
             },
           },
         ],
-
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
     });
-
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogsTinybird({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "role.create",
-        actor: {
-          type: "key",
-          id: auth.key.id,
-        },
-        description: `Created ${role.id}`,
-        resources: [
-          {
-            type: "role",
-            id: role.id,
-            meta: {
-              name: role.name,
-              description: role.description,
-            },
-          },
-        ],
-
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
-      }),
-    );
 
     return c.json({
       roleId: role.id,

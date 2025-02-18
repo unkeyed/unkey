@@ -1,7 +1,6 @@
 import { type Permission, and, db, eq, schema } from "@/lib/db";
 
-import { insertAuditLogs } from "@/lib/audit";
-import type { UnkeyAuditLog } from "@/lib/tinybird";
+import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -76,7 +75,7 @@ export const rbacRouter = t.router({
             workspaceId: permissions[0].workspaceId,
           })
           .onDuplicateKeyUpdate({ set: { permissionId: permissions[0].id } });
-        await insertAuditLogs(tx, auditLogs);
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, auditLogs);
       });
     }),
   removePermissionFromRootKey: rateLimitedProcedure(ratelimit.update)
@@ -136,7 +135,7 @@ export const rbacRouter = t.router({
               eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
             ),
           );
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: permissionRelation.workspaceId,
           actor: { type: "user", id: ctx.user!.id },
           event: "authorization.disconnect_permission_and_key",
@@ -211,7 +210,7 @@ export const rbacRouter = t.router({
           .onDuplicateKeyUpdate({
             set: { ...tuple, updatedAt: new Date() },
           });
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: tuple.workspaceId,
           actor: { type: "user", id: ctx.user!.id },
           event: "authorization.connect_role_and_permission",
@@ -261,7 +260,7 @@ export const rbacRouter = t.router({
               eq(schema.rolesPermissions.permissionId, input.permissionId),
             ),
           );
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: workspace.id,
           actor: { type: "user", id: ctx.user!.id },
           event: "authorization.disconnect_role_and_permissions",
@@ -336,7 +335,7 @@ export const rbacRouter = t.router({
           .onDuplicateKeyUpdate({
             set: { ...tuple, updatedAt: new Date() },
           });
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: tuple.workspaceId,
           actor: { type: "user", id: ctx.user!.id },
           event: "authorization.connect_role_and_key",
@@ -414,7 +413,7 @@ export const rbacRouter = t.router({
           description: input.description,
           workspaceId: workspace.id,
         });
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: workspace.id,
           event: "role.create",
           actor: {
@@ -445,6 +444,7 @@ export const rbacRouter = t.router({
           );
           await insertAuditLogs(
             tx,
+            ctx.workspace.auditLogBucket.id,
             input.permissionIds.map((permissionId) => ({
               workspaceId: workspace.id,
               event: "authorization.connect_role_and_permission",
@@ -504,7 +504,7 @@ export const rbacRouter = t.router({
       }
       await db.transaction(async (tx) => {
         await tx.update(schema.roles).set(input).where(eq(schema.roles.id, input.id));
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: workspace.id,
           event: "role.update",
           actor: {
@@ -556,7 +556,7 @@ export const rbacRouter = t.router({
           .where(
             and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)),
           );
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: workspace.id,
           event: "role.delete",
           actor: {
@@ -600,7 +600,7 @@ export const rbacRouter = t.router({
           description: input.description,
           workspaceId: workspace.id,
         });
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: workspace.id,
           event: "permission.create",
           actor: {
@@ -664,7 +664,7 @@ export const rbacRouter = t.router({
             updatedAt: new Date(),
           })
           .where(eq(schema.permissions.id, input.id));
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: workspace.id,
           event: "permission.update",
           actor: {
@@ -724,7 +724,7 @@ export const rbacRouter = t.router({
               eq(schema.permissions.workspaceId, workspace.id),
             ),
           );
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: workspace.id,
           event: "permission.delete",
           actor: {

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 export const useDelayLoader = (isPending: boolean, delay = 50) => {
   const [showLoader, setShowLoader] = useState(false);
 

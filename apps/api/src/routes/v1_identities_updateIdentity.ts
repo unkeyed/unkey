@@ -1,8 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
-import type { UnkeyAuditLog } from "@/pkg/analytics";
-import { insertUnkeyAuditLog } from "@/pkg/audit";
+import { type UnkeyAuditLog, insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { type Ratelimit, eq, schema } from "@unkey/db";
@@ -139,7 +138,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       buildUnkeyQuery(({ or }) => or("identity.*.update_identity")),
     );
 
-    const { db, analytics, cache } = c.get("services");
+    const { db, cache } = c.get("services");
 
     if (!req.identityId && !req.externalId) {
       throw new UnkeyApiError({
@@ -153,8 +152,8 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       for (const { name } of req.ratelimits) {
         if (uniqueNames.has(name)) {
           throw new UnkeyApiError({
-            code: "PRECONDITION_FAILED",
-            message: "ratelimit names must be unique",
+            code: "CONFLICT",
+            message: `Ratelimit with name "${name}" is already defined in the request`,
           });
         }
         uniqueNames.add(name);
@@ -386,7 +385,6 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
     });
 
     await insertUnkeyAuditLog(c, undefined, auditLogs);
-    c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogsTinybird(auditLogs));
 
     return c.json({
       id: identity.id,

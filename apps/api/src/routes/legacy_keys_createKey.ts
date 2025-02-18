@@ -158,7 +158,7 @@ export type LegacyKeysCreateKeyResponse = z.infer<
 
 export const registerLegacyKeysCreate = (app: App) =>
   app.openapi(route, async (c) => {
-    const { cache, db, analytics } = c.get("services");
+    const { cache, db } = c.get("services");
     const auth = await rootKeyAuth(c);
 
     const req = c.req.valid("json");
@@ -226,28 +226,6 @@ export const registerLegacyKeysCreate = (app: App) =>
         ratelimitAsync: req.ratelimit?.type === "fast",
         remaining: req.remaining,
         deletedAt: null,
-      });
-
-      await analytics.ingestUnkeyAuditLogsTinybird({
-        workspaceId: authorizedWorkspaceId,
-        actor: { type: "key", id: rootKeyId },
-        event: "key.create",
-        description: `Created ${keyId}`,
-        resources: [
-          {
-            type: "key",
-            id: keyId,
-          },
-          {
-            type: "keyAuth",
-            id: api.keyAuthId!,
-          },
-          { type: "api", id: api.id },
-        ],
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
-        },
       });
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: authorizedWorkspaceId,

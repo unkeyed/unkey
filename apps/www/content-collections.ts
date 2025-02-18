@@ -3,6 +3,8 @@ import { compileMDX } from "@content-collections/mdx";
 import { remarkGfm, remarkHeading, remarkStructure } from "fumadocs-core/mdx-plugins";
 import GithubSlugger from "github-slugger";
 import { categoryEnum } from "./app/glossary/data";
+import { faqSchema } from "./lib/schemas/faq-schema";
+import { takeawaysSchema } from "./lib/schemas/takeaways-schema";
 
 const posts = defineCollection({
   name: "posts",
@@ -47,10 +49,32 @@ const changelog = defineCollection({
   include: "*.mdx",
   schema: (z) => ({
     title: z.string(),
-    description: z.string(),
+    description: z.string().optional(),
     date: z.string(),
     tags: z.array(z.string()),
     image: z.string().optional(),
+  }),
+  transform: async (document, context) => {
+    const mdx = await compileMDX(context, document, {
+      remarkPlugins: [remarkGfm, remarkHeading, remarkStructure],
+    });
+    return {
+      ...document,
+      mdx,
+      slug: document._meta.path,
+    };
+  },
+});
+const careers = defineCollection({
+  name: "careers",
+  directory: "content/careers",
+  include: "*.mdx",
+  schema: (z) => ({
+    title: z.string(),
+    description: z.string(),
+    visible: z.boolean(),
+    // use a range
+    salary: z.string(),
   }),
   transform: async (document, context) => {
     const mdx = await compileMDX(context, document, {
@@ -83,28 +107,6 @@ const policy = defineCollection({
   },
 });
 
-const job = defineCollection({
-  name: "job",
-  directory: "content/jobs",
-  include: "*.mdx",
-  schema: (z) => ({
-    title: z.string(),
-    description: z.string(),
-    visible: z.boolean(),
-    salary: z.string(),
-  }),
-  transform: async (document, context) => {
-    const mdx = await compileMDX(context, document, {
-      remarkPlugins: [remarkGfm, remarkHeading, remarkStructure],
-    });
-    return {
-      ...document,
-      mdx,
-      slug: document._meta.path,
-    };
-  },
-});
-
 const glossary = defineCollection({
   name: "glossary",
   directory: "content/glossary",
@@ -115,33 +117,10 @@ const glossary = defineCollection({
     h1: z.string(),
     term: z.string(),
     categories: z.array(categoryEnum),
-    takeaways: z.object({
-      tldr: z.string(),
-      definitionAndStructure: z.array(
-        z.object({
-          key: z.string(),
-          value: z.string(),
-        }),
-      ),
-      historicalContext: z.array(
-        z.object({
-          key: z.string(),
-          value: z.string(),
-        }),
-      ),
-      usageInAPIs: z.object({
-        tags: z.array(z.string()),
-        description: z.string(),
-      }),
-      bestPractices: z.array(z.string()),
-      recommendedReading: z.array(
-        z.object({
-          title: z.string(),
-          url: z.string(),
-        }),
-      ),
-      didYouKnow: z.string(),
-    }),
+    takeaways: takeawaysSchema,
+    faq: faqSchema,
+    updatedAt: z.string(),
+    slug: z.string(),
   }),
   transform: async (document, context) => {
     const mdx = await compileMDX(context, document, {
@@ -177,5 +156,5 @@ const glossary = defineCollection({
 });
 
 export default defineConfig({
-  collections: [posts, changelog, policy, job, glossary],
+  collections: [posts, changelog, policy, careers, glossary],
 });

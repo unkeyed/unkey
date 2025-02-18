@@ -1,7 +1,6 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -14,6 +13,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { Api, VercelBinding } from "@unkey/db";
+import { Button } from "@unkey/ui";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -134,7 +134,7 @@ export const Client: React.FC<Props> = ({
                     </Select>
                     <Button
                       variant="ghost"
-                      size="icon"
+                      shape="square"
                       onClick={() => {
                         setSelectedApis({
                           ...selectedApis,
@@ -154,7 +154,6 @@ export const Client: React.FC<Props> = ({
 
       <footer className="flex items-center justify-end gap-4 mt-8">
         <Button
-          variant="secondary"
           onClick={() => {
             window.close();
           }}
@@ -163,7 +162,7 @@ export const Client: React.FC<Props> = ({
         </Button>
         <Button
           disabled={disabled}
-          variant={disabled ? "disabled" : "primary"}
+          variant="primary"
           onClick={() => {
             create.mutate({
               projectId: projectId!,

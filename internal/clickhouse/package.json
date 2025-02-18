@@ -7,11 +7,19 @@
   "keywords": [],
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
+  "scripts": {
+    "test": "vitest run"
+  },
   "devDependencies": {
-    "typescript": "^5.5.3"
+    "@dagger.io/dagger": "^0.14.0",
+    "testcontainers": "^10.14.0",
+    "typescript": "^5.5.3",
+    "execa": "^9.3.0",
+    "vitest": "^1.6.0"
   },
   "dependencies": {
     "@clickhouse/client-web": "^1.6.0",
+    "@unkey/error": "workspace:^",
     "zod": "^3.23.8"
   }
 }

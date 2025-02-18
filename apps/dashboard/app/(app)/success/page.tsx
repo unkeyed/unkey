@@ -64,7 +64,7 @@ export default async function SuccessPage() {
     });
   }
 
-  const activeWorkspaces = await clickhouse.business.activeWorkspaces();
+  const activeWorkspaces = await clickhouse.business.activeWorkspaces().then((res) => res.val!);
   const chartData = activeWorkspaces.map(({ time, workspaces }) => ({
     x: new Date(time).toLocaleDateString(),
     y: workspaces,

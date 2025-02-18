@@ -30,6 +30,20 @@ The key will be verified against the api's configuration. If the key does not be
                 description: "The key to verify",
                 example: "sk_1234",
               }),
+
+              tags: z
+                .array(z.string().min(1).max(128))
+                .max(10)
+                .optional()
+                .openapi({
+                  description: `Tags do not influence the outcome of a verification.
+                They can be added to filter or aggregate historical verification data for your analytics needs.
+                To unkey, a tag is simply a string, we don't enforce any schema but leave that up to you.
+                The only exception is that each tag must be between 1 and 128 characters long.
+                A typical setup would be to add key-value pairs of resources or locations, that you need later when querying.
+                `,
+                  example: ["path=/v1/users/123", "region=us-east-1"],
+                }),
               authorization: z
                 .object({
                   permissions: z.any(permissionQuerySchema).openapi("PermissionQuery", {
@@ -75,6 +89,18 @@ The key will be verified against the api's configuration. If the key does not be
                 .optional()
                 .openapi({
                   description: "Perform RBAC checks",
+                }),
+              remaining: z
+                .object({
+                  cost: z.number().int().default(1).openapi({
+                    description:
+                      "How many tokens should be deducted from the current `remaining` value. Set it to 0, to make it free.",
+                  }),
+                })
+                .optional()
+                .openapi({
+                  description:
+                    "Customize the behaviour of deducting remaining uses. When some of your endpoints are more expensive than others, you can set a custom `cost` for each.",
                 }),
               ratelimit: z
                 .object({
@@ -181,6 +207,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                   "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
                 example: 123,
               }),
+
               ratelimit: z
                 .object({
                   limit: z.number().int().openapi({
@@ -288,7 +315,7 @@ export type V1KeysVerifyKeyResponse = z.infer<
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { keyService, analytics } = c.get("services");
+    const { keyService, analytics, logger } = c.get("services");
 
     const { val, err } = await keyService.verifyKey(c, {
       key: req.key,
@@ -296,6 +323,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       permissionQuery: req.authorization?.permissions,
       ratelimit: req.ratelimit,
       ratelimits: req.ratelimits,
+      remaining: req.remaining,
     });
 
     if (err) {
@@ -351,44 +379,27 @@ export const registerV1KeysVerifyKey = (app: App) =>
         : undefined,
     };
     c.executionCtx.waitUntil(
-      // new clickhouse
-      analytics.insertKeyVerification({
-        request_id: c.get("requestId"),
-        time: Date.now(),
-        workspace_id: val.key.workspaceId,
-        key_space_id: val.key.keyAuthId,
-        key_id: val.key.id,
-        // @ts-expect-error
-        region: c.req.raw.cf.colo ?? "",
-        outcome: val.code ?? "VALID",
-        identity_id: val.identity?.id,
-      }),
-    );
-
-    c.executionCtx.waitUntil(
-      // old tinybird
-      analytics.ingestKeyVerification({
-        workspaceId: val.key.workspaceId,
-        apiId: val.api.id,
-        keyId: val.key.id,
-        time: Date.now(),
-        deniedReason: val.code,
-        ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
-        userAgent: c.req.header("User-Agent"),
-        requestedResource: "",
-        // @ts-expect-error - the cf object will be there on cloudflare
-        region: c.req.raw?.cf?.country ?? "",
-        ownerId: val.key.ownerId ?? undefined,
-        // @ts-expect-error - the cf object will be there on cloudflare
-        edgeRegion: c.req.raw?.cf?.colo ?? "",
-        keySpaceId: val.key.keyAuthId,
-        requestId: c.get("requestId"),
-        requestBody: JSON.stringify({
-          ...req,
-          key: "<REDACTED>",
+      analytics
+        .insertKeyVerification({
+          request_id: c.get("requestId"),
+          time: Date.now(),
+          workspace_id: val.key.workspaceId,
+          key_space_id: val.key.keyAuthId,
+          key_id: val.key.id,
+          // @ts-expect-error
+          region: c.req.raw.cf.colo ?? "",
+          outcome: val.code,
+          identity_id: val.identity?.id,
+          tags: req.tags ?? [],
+        })
+        .then(({ err }) => {
+          if (!err) {
+            return;
+          }
+          logger.error("unable to insert key verification", {
+            error: err.message,
+          });
         }),
-        responseBody: JSON.stringify(responseBody),
-      }),
     );
 
     return c.json(responseBody);

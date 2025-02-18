@@ -7,9 +7,10 @@ import { buildUnkeyQuery, type unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["keys"],
-  operationId: "getVerifications",
+  operationId: "keys.getVerifications",
   method: "get",
   path: "/v1/keys.getVerifications",
+  "x-speakeasy-name-override": "getVerifications",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
@@ -22,11 +23,13 @@ const route = createRoute({
         example: "chronark",
       }),
       start: z.coerce.number().int().optional().openapi({
-        description: "The start of the period to fetch usage for as unix milliseconds timestamp",
+        description:
+          "The start of the period to fetch usage for as unix milliseconds timestamp, defaults to 24h ago.",
         example: 1620000000000,
       }),
       end: z.coerce.number().int().optional().openapi({
-        description: "The end of the period to fetch usage for as unix milliseconds timestamp",
+        description:
+          "The end of the period to fetch usage for as unix milliseconds timestamp, defaults to now.",
         example: 1620000000000,
       }),
       granularity: z.enum(["day"]).optional().default("day").openapi({
@@ -78,11 +81,12 @@ export const registerV1KeysGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
     const { keyId, ownerId, start, end } = c.req.valid("query");
 
-    const { analytics, cache, db } = c.get("services");
+    const { analytics, cache, db, logger } = c.get("services");
 
     const ids: {
       keyId: string;
       apiId: string;
+      keySpaceId: string;
       workspaceId: string;
     }[] = [];
 
@@ -134,7 +138,12 @@ export const registerV1KeysGetVerifications = (app: App) =>
         });
       }
 
-      ids.push({ keyId, apiId: data.val.api.id, workspaceId: data.val.key.workspaceId });
+      ids.push({
+        keyId,
+        apiId: data.val.api.id,
+        keySpaceId: data.val.api.keyAuthId!,
+        workspaceId: data.val.key.workspaceId,
+      });
     } else {
       if (!ownerId) {
         throw new UnkeyApiError({
@@ -172,6 +181,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         ...(keys.val ?? []).map(({ key, api }) => ({
           keyId: key.id,
           apiId: api.id,
+          keySpaceId: api.keyAuthId!,
           workspaceId: key.workspaceId,
         })),
       );
@@ -207,18 +217,22 @@ export const registerV1KeysGetVerifications = (app: App) =>
         message: "you are not allowed to access this workspace",
       });
     }
+    const now = Date.now();
 
     const verificationsFromAllKeys = await Promise.all(
-      ids.map(({ keyId, apiId }) => {
+      ids.map(({ keyId, keySpaceId }) => {
         return cache.verificationsByKeyId.swr(`${keyId}:${start}-${end}`, async () => {
           const res = await analytics.getVerificationsDaily({
             workspaceId: authorizedWorkspaceId,
-            apiId: apiId,
+            keySpaceId: keySpaceId,
             keyId: keyId,
-            start: start ? start : undefined,
-            end: end ? end : undefined,
+            start: start ? start : now - 24 * 60 * 60 * 1000,
+            end: end ? end : now,
           });
-          return res.data;
+          if (res.err) {
+            throw new Error(res.err.message);
+          }
+          return res.val;
         });
       }),
     );
@@ -227,16 +241,37 @@ export const registerV1KeysGetVerifications = (app: App) =>
       [time: number]: { success: number; rateLimited: number; usageExceeded: number };
     } = {};
     for (const dataPoint of verificationsFromAllKeys) {
+      if (dataPoint.err) {
+        logger.error(dataPoint.err.message);
+        continue;
+      }
       for (const d of dataPoint.val!) {
         if (!verifications[d.time]) {
           verifications[d.time] = { success: 0, rateLimited: 0, usageExceeded: 0 };
         }
-        verifications[d.time].success += d.success;
-        verifications[d.time].rateLimited += d.rateLimited;
-        verifications[d.time].usageExceeded += d.usageExceeded;
+        switch (d.outcome) {
+          case "VALID":
+            verifications[d.time].success += d.count;
+            break;
+          case "RATE_LIMITED":
+            verifications[d.time].rateLimited += d.count;
+            break;
+          case "USAGE_EXCEEDED":
+            verifications[d.time].usageExceeded += d.count;
+            break;
+        }
       }
     }
 
+    // really ugly hack to return an emoty array in case there wasn't a single verification
+    // this became necessary when we switched to clickhouse, due to the different responses
+    if (
+      Object.values(verifications).every(({ success, rateLimited, usageExceeded }) => {
+        return success + rateLimited + usageExceeded === 0;
+      })
+    ) {
+      return c.json({ verifications: [] });
+    }
     return c.json({
       verifications: Object.entries(verifications).map(
         ([time, { success, rateLimited, usageExceeded }]) => ({

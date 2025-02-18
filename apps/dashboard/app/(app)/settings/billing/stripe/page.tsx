@@ -1,8 +1,8 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { currentUser } from "@clerk/nextjs";
+import { Empty } from "@unkey/ui";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
@@ -31,12 +31,12 @@ export default async function StripeRedirect(props: Props) {
   const e = stripeEnv();
   if (!e) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>Stripe is not configured</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
+      <Empty>
+        <Empty.Title>Stripe is not configured</Empty.Title>
+        <Empty.Description>
           If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
+        </Empty.Description>
+      </Empty>
     );
   }
 

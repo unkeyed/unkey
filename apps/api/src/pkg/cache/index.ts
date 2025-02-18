@@ -35,7 +35,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
           cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
           zoneId: c.env.CLOUDFLARE_ZONE_ID,
           domain: "cache.unkey.dev",
-          cacheBuster: "v6",
+          cacheBuster: "v8",
         })
       : undefined;
 
@@ -71,9 +71,14 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
       c.executionCtx,
       defaultOpts,
     ),
+    identityById: new Namespace<CacheNamespaces["identityById"]>(c.executionCtx, defaultOpts),
     auditLogBucketByWorkspaceIdAndName: new Namespace<
       CacheNamespaces["auditLogBucketByWorkspaceIdAndName"]
     >(c.executionCtx, defaultOpts),
+    workspaceIdByRootKeyHash: new Namespace<CacheNamespaces["workspaceIdByRootKeyHash"]>(
+      c.executionCtx,
+      defaultOpts,
+    ),
   });
 }
 

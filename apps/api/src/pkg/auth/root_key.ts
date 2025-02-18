@@ -53,22 +53,16 @@ export async function rootKeyAuth(c: Context<HonoEnv>, permissionQuery?: Permiss
   // otherwise, they likely sent garbage to us and we can't associate it with anything
 
   c.executionCtx.waitUntil(
-    analytics.ingestKeyVerification({
-      workspaceId: rootKey.key.workspaceId,
-      apiId: rootKey.api.id,
-      keyId: rootKey.key.id,
+    analytics.insertKeyVerification({
+      workspace_id: rootKey.key.workspaceId,
+      key_id: rootKey.key.id,
       time: Date.now(),
-      deniedReason: rootKey.code,
-      ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
-      userAgent: c.req.header("User-Agent"),
-      requestedResource: "",
+      outcome: rootKey.code ?? "VALID",
+      key_space_id: rootKey.key.keyAuthId,
       // @ts-expect-error - the cf object will be there on cloudflare
-      region: c.req.raw?.cf?.country ?? "",
-      ownerId: rootKey.key.ownerId ?? undefined,
-      // @ts-expect-error - the cf object will be there on cloudflare
-      edgeRegion: c.req.raw?.cf?.colo ?? "",
-      keySpaceId: rootKey.key.keyAuthId,
-      requestId: c.get("requestId"),
+      region: c.req.cf?.region,
+      request_id: c.get("requestId"),
+      tags: [],
     }),
   );
 

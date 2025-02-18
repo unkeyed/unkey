@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const limitRequestSchema = z.object({
   keyId: z.string(),
+  cost: z.number(),
 });
 export type LimitRequest = z.infer<typeof limitRequestSchema>;
 

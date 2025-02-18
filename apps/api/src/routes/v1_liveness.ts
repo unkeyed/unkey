@@ -31,9 +31,6 @@ const route = createRoute({
               usagelimit: z.string().openapi({
                 description: "The name of the connected usagelimit service",
               }),
-              analytics: z.string().openapi({
-                description: "The name of the connected analytics service",
-              }),
             }),
           }),
         },
@@ -49,7 +46,7 @@ export type V1LivenessResponse = z.infer<
 
 export const registerV1Liveness = (app: App) =>
   app.openapi(route, async (c) => {
-    const { analytics, logger, metrics, rateLimiter, usageLimiter } = c.get("services");
+    const { logger, metrics, rateLimiter, usageLimiter } = c.get("services");
 
     return c.json({
       status: "we're so back",
@@ -58,7 +55,6 @@ export const registerV1Liveness = (app: App) =>
         logger: logger.constructor.name,
         ratelimit: rateLimiter.constructor.name,
         usagelimit: usageLimiter.constructor.name,
-        analytics: analytics.readClient.constructor.name,
       },
     });
   });

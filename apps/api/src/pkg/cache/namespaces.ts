@@ -44,9 +44,8 @@ export type CacheNamespaces = {
   }[];
   verificationsByKeyId: {
     time: number;
-    success: number;
-    rateLimited: number;
-    usageExceeded: number;
+    count: number;
+    outcome: string;
   }[];
   ratelimitByIdentifier: {
     namespace: Pick<RatelimitNamespace, "id" | "workspaceId">;
@@ -64,10 +63,12 @@ export type CacheNamespaces = {
     total: number;
   };
   identityByExternalId: Identity | null;
+  identityById: Identity | null;
   // uses a compound key of [workspaceId, name]
   auditLogBucketByWorkspaceIdAndName: {
     id: string;
   };
+  workspaceIdByRootKeyHash: string | null;
 };
 
 export type CacheNamespace = keyof CacheNamespaces;

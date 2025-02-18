@@ -57,7 +57,7 @@ export const UpdateWorkspaceImage: React.FC = () => {
           toast.error("Error uploading image");
         });
     },
-    [setImage, organization],
+    [organization],
   );
 
   if (!organization) {

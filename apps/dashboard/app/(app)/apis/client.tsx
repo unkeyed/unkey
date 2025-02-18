@@ -1,11 +1,10 @@
 "use client";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
-import { BookOpen, Code, Search } from "lucide-react";
+import { Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
+import { BookOpen, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CreateApiButton } from "./create-api-button";
@@ -19,19 +18,22 @@ type ApiWithKeys = {
 
 export function ApiList({ apis }: { apis: ApiWithKeys }) {
   const { user, isLoaded } = useUser();
+
+  const [localData, setLocalData] = useState(apis);
+
+  if (isLoaded && user) {
+    PostHogIdentify({ user });
+  }
+
   useEffect(() => {
     if (apis.length) {
       setLocalData(apis);
     }
   }, [apis]);
-  const [localData, setLocalData] = useState(apis);
-  if (isLoaded && user) {
-    PostHogIdentify({ user });
-  }
+
   return (
     <div>
-      <Separator className="my-6" />
-      <section className="my-4 flex flex-col gap-4 md:flex-row md:items-center">
+      <section className="mb-4 flex flex-col gap-4 md:flex-row md:items-center">
         <div className="border-border focus-within:border-primary/40 flex h-8 flex-grow items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
           <Search className="h-4 w-4" />
           <input
@@ -45,7 +47,6 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
             }}
           />
         </div>
-        <CreateApiButton key="createApi" />
       </section>
       {apis.length ? (
         <ul className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2 xl:grid-cols-3">
@@ -75,24 +76,22 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
           ))}
         </ul>
       ) : (
-        <EmptyPlaceholder className="my-4 ">
-          <EmptyPlaceholder.Icon>
-            <Code />
-          </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No APIs found</EmptyPlaceholder.Title>
-          <EmptyPlaceholder.Description>
+        <Empty>
+          <Empty.Icon />
+          <Empty.Title>No APIs found</Empty.Title>
+          <Empty.Description>
             You haven&apos;t created any APIs yet. Create one to get started.
-          </EmptyPlaceholder.Description>
-          <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
-            <CreateApiButton key="createApi" className="" />
+          </Empty.Description>
+          <Empty.Actions>
+            <CreateApiButton key="createApi" />
             <Link href="/docs" target="_blank">
-              <Button variant="secondary" className="w-full items-center gap-2 ">
-                <BookOpen className="h-4 w-4 md:h-5 md:w-5" />
+              <Button>
+                <BookOpen />
                 Read the docs
               </Button>
             </Link>
-          </div>
-        </EmptyPlaceholder>
+          </Empty.Actions>
+        </Empty>
       )}
     </div>
   );

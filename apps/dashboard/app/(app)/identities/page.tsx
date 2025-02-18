@@ -1,11 +1,14 @@
-import { redirect } from "next/navigation";
-
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Navbar } from "@/components/navbar";
+import { OptIn } from "@/components/opt-in";
+import { PageContent } from "@/components/page-content";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Fingerprint } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Loader2 } from "lucide-react";
 import { unstable_cache as cache } from "next/cache";
+import { redirect } from "next/navigation";
 import { parseAsInteger, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import { SearchField } from "./filter";
@@ -21,23 +24,44 @@ export default async function Page(props: Props) {
   const search = parseAsString.withDefault("").parse(props.searchParams.search ?? "");
   const limit = parseAsInteger.withDefault(10).parse(props.searchParams.limit ?? "10");
 
-  return (
-    <div className="flex flex-col gap-8">
-      <SearchField />
+  const tenantId = getTenantId();
+  const workspace = await db.query.workspaces.findFirst({
+    where: (table, { eq }) => eq(table.tenantId, tenantId),
+  });
 
-      <div className="flex flex-col gap-8 mb-20 ">
-        <Suspense
-          fallback={
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Title>
-                <Loader2 className="w-4 h-4 animate-spin" />
-              </EmptyPlaceholder.Title>
-            </EmptyPlaceholder>
-          }
-        >
-          <Results search={search ?? ""} limit={limit ?? 10} />
-        </Suspense>
-      </div>
+  if (!workspace) {
+    return redirect("/auth/sign-in");
+  }
+
+  if (!workspace.betaFeatures.identities) {
+    return <OptIn title="Identities" description="Identities are in beta" feature="identities" />;
+  }
+
+  return (
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Fingerprint />}>
+          <Navbar.Breadcrumbs.Link href="/identities" active>
+            Identities
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <SearchField />
+        <div className="flex flex-col gap-8 mb-20 mt-8">
+          <Suspense
+            fallback={
+              <Empty>
+                <Empty.Title>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                </Empty.Title>
+              </Empty>
+            }
+          >
+            <Results search={search ?? ""} limit={limit ?? 10} />
+          </Suspense>
+        </div>
+      </PageContent>
     </div>
   );
 }

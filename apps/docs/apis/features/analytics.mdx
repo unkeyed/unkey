@@ -21,3 +21,61 @@ Our per key analytics give you a deep dive into each individual key, giving usag
 <Frame caption="Per key Analytics">
   <img src="/images/per-key-analytics.png" alt="Per key analytics"/>
 </Frame>
+
+
+## Tags
+
+You can add tags to verification requests to aggregate or filter data when querying.
+
+For example you might want to add the path of your API as a tag: `path=/v1/my-path` and then later retrieve a breakdown of api key usage per unique path.
+
+Unkey does not parse tags in any special way.
+The only limitations are:
+- Tags are strings.
+- You can specify up to 10 tags per request.
+- Each tag must be between (including) 1 and 128 characters.
+
+That being said, having some structure for your tags could be benefitial for you.
+A common theme is treating them as key-value pairs and specifying them with either a colon or equal-sign as delimiter.
+```
+key:value
+key=value
+```
+
+Since Unkey does not know what API routes your user has called or which resources they interact with, we encourage you to record these in the tags.
+Here's an example tags for a fictional blog API:
+
+
+```json
+[
+  "path=/v1/posts.createPost",
+  "postId=post_1asofijqknslkfqWF",
+  "region=us-east-1",
+  "apiVersion=f8ad21bd", // a git sha of your deployment or semver
+]
+```
+
+### Using tags
+
+Tags can be added in the request body.
+
+```bash Providing Tags {7-10}
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "apiId": "api_1234",
+  "key": "sk_1234",
+  "tags": [
+    "tag1",
+    "path=/v1/my-resource/123"
+  ]
+}'
+```
+
+
+### Querying tags
+
+We have only rolled out tag ingestion so far to allow you to start recording data as early as possible.
+
+We're working on new query capabilities including filtering and aggregating by tags.

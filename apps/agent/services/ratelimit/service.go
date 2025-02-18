@@ -31,7 +31,7 @@ type service struct {
 
 	shutdownCh chan struct{}
 
-	bucketsLock sync.RWMutex
+	bucketsMu sync.RWMutex
 	// identifier+sequence -> bucket
 	buckets             map[string]*bucket
 	leaseIdToKeyMapLock sync.RWMutex
@@ -61,7 +61,7 @@ func New(cfg Config) (*service, error) {
 		syncBuffer:          nil,
 		mitigateBuffer:      nil,
 		shutdownCh:          make(chan struct{}),
-		bucketsLock:         sync.RWMutex{},
+		bucketsMu:           sync.RWMutex{},
 		buckets:             make(map[string]*bucket),
 		leaseIdToKeyMapLock: sync.RWMutex{},
 		leaseIdToKeyMap:     make(map[string]string),

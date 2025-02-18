@@ -1,0 +1,61 @@
+---
+title: 0004 COSS Starter
+authors:
+  - James Perkins
+date: 2024-02-14
+---
+
+### **Problem**:
+
+One of our biggest hurdles is penetrating the market because you need to be building either an API or you have one and need something we offer. This is fine but what if you don’t know if you need one? Or if you are building an application for the first time and have never considered it.
+
+### **Proposed solution**:
+
+Open Source starter that is highly opinionated and includes everything you need to build a new product.
+
+1. Web app with internal API
+2. Public API with open API spec protected by Unkey
+3. Docs
+4. Stripe integrations
+
+Imagine typing `npx create-coss-app`, and there you have it. All you need to do is sign up for 1 or 2 services, including Unkey.  We want it to be DX-driven and super easy to extend and modify, but keep it so easy that an FE engineer can do it.
+
+We can get a domain with a landing page that points to the npx command and some documentation for how it works.
+
+## Tech stack proposed
+
+We can create a monorepo using turbo repo for the entire stack to make it as easy as possible to use.
+
+### Web application:
+
+- Next.js
+- tRPC
+- Lucia auth
+- Drizzle
+- Planetscale
+- Stripe
+- Unkey
+
+### Public API
+
+- Hono v4
+- Unkey
+
+## Docs
+
+- Mintlify using the open API spec built using Hono v4.
+
+The proposed solution uses the smallest amount of 3rd party services (Planetscale, Mintlify, and Unkey), allowing maintenance and contributions a small hurdle.
+
+## Work to be done
+
+Come up with a simplified project to show how everything works. An example could be a to-do list or something similar.
+
+1. Web app has a UI interface that allows for creating, updating, and deleting todos, but you can only have a maximum of 5 on the free tier. The web app also allows for the creation of API keys to provide API access (The free tier gets limited uses or rate limiting or whatever we pick) and a way for the user to upgrade to the paid tier with unlimited.
+
+1. API has keys from Unkey passed in and can be used to CRUD the data via the API.
+2. Document everything as a real product to show how documentation works.
+3. Basic landing page with the command and link to docs and a demo
+4. The demo is just a deployed version of this.
+
+ Inspiration : [https://create.t3.gg/](https://create.t3.gg/)

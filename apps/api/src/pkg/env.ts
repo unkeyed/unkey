@@ -3,7 +3,7 @@ import type { MessageBody } from "./key_migration/message";
 
 export const cloudflareRatelimiter = z.custom<{
   limit: (opts: { key: string }) => Promise<{ success: boolean }>;
-}>((r) => typeof r.limit === "function");
+}>((r) => !!r && typeof r.limit === "function");
 
 export const zEnv = z.object({
   VERSION: z.string().default("unknown"),
@@ -18,9 +18,7 @@ export const zEnv = z.object({
   CLOUDFLARE_API_KEY: z.string().optional(),
   CLOUDFLARE_ZONE_ID: z.string().optional(),
   ENVIRONMENT: z.enum(["development", "preview", "canary", "production"]).default("development"),
-  TINYBIRD_PROXY_URL: z.string().optional(),
-  TINYBIRD_PROXY_TOKEN: z.string().optional(),
-  TINYBIRD_TOKEN: z.string().optional(),
+  DO_RATELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"), // pretty loose check but it'll do I think
   DO_USAGELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"),
   KEY_MIGRATIONS: z.custom<Queue<MessageBody>>((q) => typeof q === "object").optional(),
   EMIT_METRICS_LOGS: z
@@ -33,7 +31,8 @@ export const zEnv = z.object({
   AGENT_URL: z.string().url(),
   AGENT_TOKEN: z.string(),
 
-  CLICKHOUSE_URL: z.string().optional(),
+  CLICKHOUSE_URL: z.string(),
+  CLICKHOUSE_INSERT_URL: z.string().optional(),
 
   SYNC_RATELIMIT_ON_NO_DATA: z
     .string()

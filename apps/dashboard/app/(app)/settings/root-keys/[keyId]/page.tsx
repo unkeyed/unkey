@@ -1,12 +1,16 @@
-import { Button } from "@/components/ui/button";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogTrigger } from "@/components/ui/dialog";
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { Gear } from "@unkey/icons";
+import { Button } from "@unkey/ui";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./history/access-table";
+import { PageLayout } from "./page-layout";
 import { DialogAddPermissionsForAPI } from "./permissions/add-permission-for-api";
 import { Api } from "./permissions/api";
 import { Legacy } from "./permissions/legacy";
@@ -91,11 +95,13 @@ export default async function RootKeyPage(props: {
   if (!keyForHistory?.keyAuth?.api) {
     return notFound();
   }
-  const history = await clickhouse.verifications.latest({
-    workspaceId: UNKEY_WORKSPACE_ID,
-    keySpaceId: key.keyAuthId,
-    keyId: key.id,
-  });
+  const history = await clickhouse.verifications
+    .latest({
+      workspaceId: UNKEY_WORKSPACE_ID,
+      keySpaceId: key.keyAuthId,
+      keyId: key.id,
+    })
+    .then((res) => res.val!);
 
   const apis = workspace.apis.map((api) => {
     const apiPermissionsStructure = apiPermissions(api.id);
@@ -121,45 +127,73 @@ export default async function RootKeyPage(props: {
   const apisWithoutActivePermissions = apis.filter((api) => !api.hasActivePermissions);
 
   return (
-    <div className="flex flex-col gap-4">
-      {permissions.some((p) => p.name === "*") ? (
-        <Legacy keyId={key.id} permissions={permissions} />
-      ) : null}
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gear />}>
+          <Navbar.Breadcrumbs.Link href="/settings/root-keys">Root Keys</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link
+            href={`/settings/root-keys/${key.id}`}
+            active
+            isIdentifier
+            className="w-[100px] truncate"
+          >
+            {key.id}
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
 
-      <UpdateRootKeyName apiKey={key} />
+      <PageContent>
+        <PageLayout params={{ keyId: key.id }} rootKey={key}>
+          <div className="flex flex-col gap-4">
+            {permissions.some((p) => p.name === "*") ? (
+              <Legacy keyId={key.id} permissions={permissions} />
+            ) : null}
 
-      <Workspace keyId={key.id} permissions={permissions} />
+            <UpdateRootKeyName apiKey={key} />
 
-      {apisWithActivePermissions.map((api) => (
-        <Api key={api.id} api={api} keyId={key.id} permissions={permissionsByApi[api.id] || []} />
-      ))}
+            <Workspace keyId={key.id} permissions={permissions} />
 
-      <DialogAddPermissionsForAPI
-        keyId={props.params.keyId}
-        apis={workspace.apis}
-        permissions={permissions}
-      >
-        {apisWithoutActivePermissions.length > 0 && (
-          <Card className="flex w-full items-center justify-center h-36 border-dashed">
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                Add permissions for {apisWithActivePermissions.length > 0 ? "another" : "an"} API
-              </Button>
-            </DialogTrigger>
-          </Card>
-        )}
-      </DialogAddPermissionsForAPI>
+            {apisWithActivePermissions.map((api) => (
+              <Api
+                key={api.id}
+                api={api}
+                keyId={key.id}
+                permissions={permissionsByApi[api.id] || []}
+              />
+            ))}
 
-      <UsageHistoryCard
-        accessTableProps={{
-          verifications: history,
-        }}
-      />
+            <DialogAddPermissionsForAPI
+              keyId={props.params.keyId}
+              apis={workspace.apis}
+              permissions={permissions}
+            >
+              {apisWithoutActivePermissions.length > 0 && (
+                <Card className="flex w-full items-center justify-center h-36 border-dashed">
+                  <DialogTrigger asChild>
+                    <Button>
+                      Add permissions for {apisWithActivePermissions.length > 0 ? "another" : "an"}{" "}
+                      API
+                    </Button>
+                  </DialogTrigger>
+                </Card>
+              )}
+            </DialogAddPermissionsForAPI>
+
+            <UsageHistoryCard
+              accessTableProps={{
+                verifications: history,
+              }}
+            />
+          </div>
+        </PageLayout>
+      </PageContent>
     </div>
   );
 }
 
-function UsageHistoryCard(props: { accessTableProps: React.ComponentProps<typeof AccessTable> }) {
+function UsageHistoryCard(props: {
+  accessTableProps: React.ComponentProps<typeof AccessTable>;
+}) {
   return (
     <Card>
       <CardHeader>

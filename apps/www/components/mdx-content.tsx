@@ -1,4 +1,5 @@
 import { useMDXComponent } from "@content-collections/mdx/react";
+import { ImageZoom } from "fumadocs-ui/components/image-zoom";
 import type { ImageProps } from "next/image";
 import Image from "next/image";
 import type { DetailedHTMLProps, ImgHTMLAttributes, JSX } from "react";
@@ -24,6 +25,7 @@ export const MdxComponents = {
         blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
       />
     ),
+  ImageZoom: (props: ImageProps) => <ImageZoom {...props} />,
   img: (props: DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => (
     <img src={props.src} alt={props.src} />
   ),

@@ -1,5 +1,6 @@
+import type { Result } from "@unkey/error";
 import type { z } from "zod";
-
+import type { InsertError, QueryError } from "./error";
 export interface Querier {
   query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<any>>(req: {
     // The SQL query to run.
@@ -12,7 +13,7 @@ export interface Querier {
     // The schema of the output of each row
     // Example: z.object({ id: z.string() })
     schema: TOut;
-  }): (params: z.input<TIn>) => Promise<z.output<TOut>[]>;
+  }): (params: z.input<TIn>) => Promise<Result<z.output<TOut>[], QueryError>>;
 }
 
 export interface Inserter {
@@ -21,5 +22,5 @@ export interface Inserter {
     schema: TSchema;
   }): (
     events: z.input<TSchema> | z.input<TSchema>[],
-  ) => Promise<{ executed: boolean; query_id: string }>;
+  ) => Promise<Result<{ executed: boolean; query_id: string }, InsertError>>;
 }

@@ -1,0 +1,29 @@
+About the Glossary entry workflow generation PR
+
+:tv: Demo
+
+
+:bulb: Main Changes
+The core of this change (in fact that’s what you see in the demo) is the trigger workflows for generating content.
+
+AI generation [→ trigger/glossary]
+This adds a glossary entry generation workflow to apps/billing (ie trigger), that:
+Runs a 5-step process: keyword research, outline generation, section drafting, SEO meta tags, and PR creation
+Each sub-task:
+is idempotent. Why? Allows for replays of sub-tasks from ui → saves time for ongoing parametrisation)
+returns a cached response by default (revalidation configurable). Why? Allows skipping same/similar API calls → saves costs & debug time (faster replays)
+Has a maxAttemps of 3 to recover undeterministic failures
+Upon full generation commits the code to GitHub to create a PR for the single term
+LLM calls follow best practices for prompt engineering (which are documented in prompt-engineering.txt) and makes use of evals (undeterministic evals from AI)
+noticeably good & bad examples or completions are not being used right now as we don’t have enough data for that yet
+It ensures factual consistency (with the help of web browsing & prompt engineering) as well as search engine optimisation (again with web browing & prompt engineering)
+
+NB: for trigger instructions, I’ve created a .txt file which allowed it to generate good trigger code (at least it passed my bar, judge for yourself)
+
+I/O [→ lib/db-marketing]
+Data is persisted with drizzle into our planetscale marketing instance
+// → add your summary here ←
+
+The workflow is designed to be the main entry point for glossary generation, with results stored in both database and GitHub.
+
+NB: Another cursor instruction file to generate drizzle code — I’m not sure since I haven’t used drizzle with mysql before and I didn’t know that their API was different (I appreciate a review from you here @chronark if you would like)

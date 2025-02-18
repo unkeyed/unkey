@@ -184,24 +184,7 @@ const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => 
               </div>
               <div className="mt-12 sm:mx-6">
                 <FAQ
-                  items={[
-                    {
-                      // provide some FAQs for questions & answers about mime types:
-                      question: "What is a mime type?",
-                      answer:
-                        "A mime type is a standard way to describe the format of a file. It is used to identify the type of data contained in a file, such as an image, a video, or a document. Mime types are essential for web browsers to correctly display and process different types of files.",
-                    },
-                    {
-                      question: "What is the difference between a mime type and a file extension?",
-                      answer:
-                        "A mime type is a standard way to describe the format of a file. It is used to identify the type of data contained in a file, such as an image, a video, or a document. Mime types are essential for web browsers to correctly display and process different types of files. A file extension is a suffix added to a file name to indicate its type. It is used to help users identify the type of file and to help applications determine how to open or process the file.",
-                    },
-                    {
-                      question: "Which mime types are supported by Unkey?",
-                      answer:
-                        "Unkey supports a wide range of mime types, including text, image, audio, video, and application-specific types. The full list of supported mime types can be found in the Unkey documentation.",
-                    },
-                  ]}
+                  items={term.faq}
                   title={`Questions & Answers about ${term.term}`}
                   description={`We answer common questions about ${term.term}.`}
                   epigraph="FAQ"

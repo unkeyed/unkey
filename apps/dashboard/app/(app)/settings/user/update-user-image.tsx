@@ -57,7 +57,7 @@ export const UpdateUserImage: React.FC = () => {
           toast.error("Error uploading image");
         });
     },
-    [setImage, user],
+    [user],
   );
 
   return (

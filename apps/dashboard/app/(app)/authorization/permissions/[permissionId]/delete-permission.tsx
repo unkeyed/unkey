@@ -1,9 +1,7 @@
 "use client";
 
 import { revalidate } from "@/app/actions";
-import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +23,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -115,16 +114,16 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
                 type="button"
                 disabled={deletePermission.isLoading}
                 onClick={() => setOpen(!open)}
-                variant="secondary"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                variant={isValid ? "alert" : "disabled"}
+                variant="destructive"
                 disabled={!isValid || deletePermission.isLoading}
+                loading={deletePermission.isLoading}
               >
-                {deletePermission.isLoading ? <Loading /> : "Delete"}
+                Delete
               </Button>
             </DialogFooter>
           </form>

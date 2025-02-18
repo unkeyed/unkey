@@ -1,0 +1,126 @@
+---
+title: Automated Overrides
+description: Manage dynamic overrides programmatically
+---
+
+Unkey's ratelimit override API allows you to manage dynamic overrides in response to events in your system.
+For example when your customer upgrades to an enterprise plan, you might want to create overrides for them to give them higher quotas.
+
+Let's look at common scenarios and how to implement them using our [@unkey/api SDK](https://www.unkey.com/docs/libraries/ts/sdk/overview).
+
+Our application has a ratelimit namespace called `email.send`, which ratelimits users from sending OTP emails during login.
+As identifier we're using their email address.
+
+## Set Override
+
+In this example, we'll set an override for all users of our fictional customer `calendso.com`.
+
+How you detect a change is up to you, typically it's either through a user or admin action, or some form of incoming webhook from your billing or auth provider.
+
+```ts
+
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+});
+
+await unkey.ratelimits.setOverride({
+  namespaceName: "email.send",
+  // set the override for all users with this domain
+  identifier: "*@calendso.com",
+  limit: 10,
+  duration: 60_000, // 1 minute
+  async: true
+})
+```
+
+[API Reference ->](/api-reference/ratelimits/set-override)
+
+Now, when we're ratelimiting `tim@calendso.com`, it will use the override settings and ratelimit them to 10 per minute.
+
+## Get Override
+
+Retrieve a single override for an identifier within a namespace.
+
+```ts
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+});
+
+const override = await unkey.ratelimits.getOverride({
+  namespaceName: "email.send",
+  identifier: "*@customer.com",
+})
+
+console.log(override)
+
+{
+  "result": {
+    "id": "rlor_123",
+    "identifier": "*@calendso.com",
+    "limit": 10,
+    "duration": 60000,
+    "async": true
+  }
+}
+```
+
+[API Reference ->](/api-reference/ratelimits/get-override)
+
+## List Overrides
+
+You can list all of the configured overirdes for a namespace to build your own dashboards.
+
+```ts
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+});
+
+const res = await unkey.ratelimits.listOverrides({
+  namespaceName: "email.send",
+})
+
+console.log(res)
+
+{
+  "result": {
+    "overrides": [
+      {
+        "id": "rlor_123",
+        "identifier": "*@calendso.com",
+        "limit": 10,
+        "duration": 60000,
+        "async": true
+      }
+    ],
+    "cursor": "eyJrZXkiOiJrZXlfMTIzNCJ9",
+    "total": 1
+  }
+}
+```
+
+[API Reference ->](/api-reference/ratelimits/list-overrides)
+
+## Delete Override
+
+Once they downgrade their plan, we can revoke any overrides:
+
+```ts
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+});
+
+await unkey.ratelimits.deleteOverride({
+  namespaceName: "email.send",
+  identifier: "*@customer.com",
+})
+```
+
+[API Reference ->](/api-reference/ratelimits/delete-override)

@@ -117,7 +117,7 @@ export async function setRoles(
   keyId: string,
   requested: Array<{ id?: string; name?: string; create?: boolean }>,
 ): Promise<Array<{ id: string; name: string }>> {
-  const { db, analytics, cache, rbac } = c.get("services");
+  const { db, cache, rbac } = c.get("services");
 
   const requestedIds = requested.filter(({ id }) => !!id).map(({ id }) => id!);
   const requestedNames = requested
@@ -384,6 +384,5 @@ export async function setRoles(
   ];
   await insertUnkeyAuditLog(c, undefined, auditLogs);
 
-  c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogsTinybird(auditLogs));
   return allRoles;
 }

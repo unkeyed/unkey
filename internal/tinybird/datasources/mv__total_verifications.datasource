@@ -1,8 +1,0 @@
-VERSION 1
-# Data Source created from Pipe 'count_monthly_verifications__v1'
-
-SCHEMA >
-    `count` UInt64
-
-ENGINE "MergeTree"
-ENGINE_SORTING_KEY "count"

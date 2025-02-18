@@ -1,0 +1,59 @@
+---
+title: Button
+---
+import { Button } from "@unkey/ui"
+import { RenderComponentWithSnippet } from "@/app/components/render"
+import { Row } from "@/app/components/row"
+import { OnClickExample } from "./button.onClick"
+import { VariantExample } from "./button.variant"
+import { KeyboardExample } from "./button.keyboard"
+import { IconsExample } from "./button.icons"
+import { LoadingExample } from "./button.loading"
+import { DisabledExample } from "./button.disabled"
+import { ShapeExample } from "./button.shape"
+
+## onClick
+
+<OnClickExample/>
+
+
+
+
+
+## Variant
+<VariantExample/>
+
+
+
+
+## Icons
+
+Icons can be added anywhere as a child of the button. In most scenarios you should simply add a lucide icon without any extra styling. The button already takes care of styling svg elements.
+
+
+<IconsExample/>
+
+
+## Shape
+
+For single icons without text, you should make the button square via `shape="square"`
+
+<ShapeExample/>
+
+## Keyboard
+
+Providing a keyboard shortcut will add an icon on the right side of the button and fire the callback when the key is pressed.
+
+  <KeyboardExample/>
+
+
+
+## Loading
+
+Providing a loading state will add a spinner on the left side of the button.
+
+<LoadingExample/>
+
+## Disabled
+
+<DisabledExample/>

@@ -1,7 +1,6 @@
-import * as React from "react";
-
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
+import { useEffect } from "react";
 
 type VisibleButtonProps = React.HTMLAttributes<HTMLButtonElement> & {
   isVisible: boolean;
@@ -14,11 +13,15 @@ export function VisibleButton({
   setIsVisible,
   ...props
 }: VisibleButtonProps) {
-  React.useEffect(() => {
-    setTimeout(() => {
+  useEffect(() => {
+    if (!isVisible) {
+      return;
+    }
+    const timer = setTimeout(() => {
       setIsVisible(false);
     }, 10000);
-  }, [isVisible]);
+    return () => clearTimeout(timer);
+  }, [setIsVisible, isVisible]);
 
   return (
     <button

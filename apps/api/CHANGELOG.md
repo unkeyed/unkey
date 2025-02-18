@@ -1,5 +1,11 @@
 # api
 
+## 0.2.0
+
+### Minor Changes
+
+- 18c12c2: feat: permanently delete keys & identity migration
+
 ## 0.1.0
 
 ### Minor Changes

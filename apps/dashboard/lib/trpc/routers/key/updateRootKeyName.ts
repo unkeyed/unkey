@@ -14,31 +14,14 @@ export const updateRootKeyName = t.procedure
   .mutation(async ({ input, ctx }) => {
     const key = await db.query.keys.findFirst({
       where: (table, { eq, isNull, and }) =>
-        and(eq(table.id, input.keyId), isNull(table.deletedAt)),
+        and(
+          eq(table.workspaceId, ctx.workspace.id),
+          eq(table.id, input.keyId),
+          isNull(table.deletedAt),
+        ),
     });
 
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to update root key name. Please try again or contact support@unkey.dev",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
-
-    if (!key || key.forWorkspaceId !== workspace.id) {
+    if (!key) {
       throw new TRPCError({
         message:
           "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
@@ -61,8 +44,8 @@ export const updateRootKeyName = t.procedure
                 "We are unable to update root key name. Please try again or contact support@unkey.dev",
             });
           });
-        await insertAuditLogs(tx, {
-          workspaceId: workspace.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,

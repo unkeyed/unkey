@@ -108,7 +108,6 @@ func (v *Validator) Body(r *http.Request, dest any) (openapi.ValidationError, bo
 			Type:      "TODO docs link",
 		}, false
 	}
-	fmt.Printf("body %+v\n", dest)
 
 	return openapi.ValidationError{}, true
 

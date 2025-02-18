@@ -1,4 +1,3 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Code } from "@/components/ui/code";
 import { insertAuditLogs } from "@/lib/audit";
 import { getTenantId } from "@/lib/auth";
@@ -7,6 +6,7 @@ import { stripeEnv } from "@/lib/env";
 import { PostHogClient } from "@/lib/posthog";
 import { currentUser } from "@clerk/nextjs";
 import { defaultProSubscriptions } from "@unkey/billing";
+import { Empty } from "@unkey/ui";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
@@ -29,6 +29,11 @@ export default async function StripeSuccess(props: Props) {
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    with: {
+      auditLogBuckets: {
+        where: (table, { eq }) => eq(table.name, "unkey_mutations"),
+      },
+    },
   });
   if (!ws) {
     return redirect("/new");
@@ -36,12 +41,12 @@ export default async function StripeSuccess(props: Props) {
   const e = stripeEnv();
   if (!e) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>Stripe is not configured</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
+      <Empty>
+        <Empty.Title>Stripe is not configured</Empty.Title>
+        <Empty.Description>
           If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
+        </Empty.Description>
+      </Empty>
     );
   }
 
@@ -53,27 +58,27 @@ export default async function StripeSuccess(props: Props) {
   const session = await stripe.checkout.sessions.retrieve(session_id);
   if (!session) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>Stripe session not found</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>The Stripe session</EmptyPlaceholder.Description>
+      <Empty>
+        <Empty.Title>Stripe session not found</Empty.Title>
+        <Empty.Description>The Stripe session</Empty.Description>
         <Code>{session_id}</Code>
-        <EmptyPlaceholder.Description>
+        <Empty.Description>
           you are trying to access does not exist. Please contact support@unkey.dev.
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
+        </Empty.Description>
+      </Empty>
     );
   }
   const customer = await stripe.customers.retrieve(session.customer as string);
   if (!customer) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>Stripe customer not found</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>The Stripe customer</EmptyPlaceholder.Description>
+      <Empty>
+        <Empty.Title>Stripe customer not found</Empty.Title>
+        <Empty.Description>The Stripe customer</Empty.Description>
         <Code>{session.customer as string}</Code>
-        <EmptyPlaceholder.Description>
+        <Empty.Description>
           you are trying to access does not exist. Please contact support@unkey.dev.
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
+        </Empty.Description>
+      </Empty>
     );
   }
 
@@ -99,7 +104,7 @@ export default async function StripeSuccess(props: Props) {
       .where(eq(schema.workspaces.id, ws.id));
 
     if (isUpgradingPlan) {
-      await insertAuditLogs(tx, {
+      await insertAuditLogs(tx, ws.auditLogBuckets[0].id, {
         workspaceId: ws.id,
         actor: { type: "user", id: user.id },
         event: "workspace.update",

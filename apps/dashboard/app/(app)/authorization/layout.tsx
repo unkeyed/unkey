@@ -1,6 +1,5 @@
 import type * as React from "react";
 
-import { Navbar } from "@/components/dashboard/navbar";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -21,24 +20,5 @@ export default async function AuthorizationLayout({
     return redirect("/auth/sign-in");
   }
 
-  const navigation = [
-    {
-      label: "Roles",
-      href: "/authorization/roles",
-      segment: "roles",
-    },
-    {
-      label: "Permissions",
-      href: "/authorization/permissions",
-      segment: "permissions",
-    },
-  ];
-
-  return (
-    <div>
-      <Navbar navigation={navigation} className="mt-8" />
-
-      <main className="mt-8 mb-20 overflow-x-auto">{children}</main>
-    </div>
-  );
+  return children;
 }

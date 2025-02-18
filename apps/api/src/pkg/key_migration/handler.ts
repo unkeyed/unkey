@@ -2,7 +2,6 @@ import { BaseError, Err, Ok, type Result } from "@unkey/error";
 
 import { newId } from "@unkey/id";
 import { ConsoleLogger } from "@unkey/worker-logging";
-import { Analytics } from "../analytics";
 import { createConnection, schema } from "../db";
 import type { Env } from "../env";
 import type { MessageBody } from "./message";
@@ -22,19 +21,6 @@ export async function migrateKey(
     password: env.DATABASE_PASSWORD,
     retry: 3,
     logger: new ConsoleLogger({ requestId: "", application: "api", environment: env.ENVIRONMENT }),
-  });
-
-  const tinybirdProxy =
-    env.TINYBIRD_PROXY_URL && env.TINYBIRD_PROXY_TOKEN
-      ? {
-          url: env.TINYBIRD_PROXY_URL,
-          token: env.TINYBIRD_PROXY_TOKEN,
-        }
-      : undefined;
-
-  const analytics = new Analytics({
-    tinybirdProxy,
-    tinybirdToken: env.TINYBIRD_TOKEN,
   });
 
   const keyId = newId("key");
@@ -94,7 +80,6 @@ export async function migrateKey(
         createdAt: new Date(),
         createdAtM: Date.now(),
         expires: message.expires ? new Date(message.expires) : null,
-        refillInterval: message.refill?.interval,
         refillAmount: message.refill?.amount,
         refillDay: message.refill?.refillDay,
         enabled: message.enabled,
@@ -103,28 +88,6 @@ export async function migrateKey(
         ratelimitLimit: message.ratelimit?.limit,
         ratelimitDuration: message.ratelimit?.duration,
         environment: message.environment,
-      });
-
-      await analytics.ingestUnkeyAuditLogsTinybird({
-        workspaceId: message.workspaceId,
-        event: "key.create",
-        actor: {
-          type: "key",
-          id: message.rootKeyId,
-        },
-        description: `Created ${keyId} in ${message.keyAuthId}`,
-        resources: [
-          {
-            type: "key",
-            id: keyId,
-          },
-          {
-            type: "keyAuth",
-            id: message.keyAuthId,
-          },
-        ],
-
-        context: message.auditLogContext,
       });
 
       if (message.encrypted) {
@@ -149,26 +112,6 @@ export async function migrateKey(
         }));
 
         await tx.insert(schema.keysRoles).values(roleConnections);
-
-        await analytics.ingestUnkeyAuditLogsTinybird(
-          roleConnections.map((rc) => ({
-            workspaceId: message.workspaceId,
-            actor: { type: "key", id: message.rootKeyId },
-            event: "authorization.connect_role_and_key",
-            description: `Connected ${rc.roleId} and ${rc.keyId}`,
-            resources: [
-              {
-                type: "key",
-                id: rc.keyId,
-              },
-              {
-                type: "role",
-                id: rc.roleId,
-              },
-            ],
-            context: message.auditLogContext,
-          })),
-        );
       }
 
       /**
@@ -184,26 +127,6 @@ export async function migrateKey(
         }));
 
         await tx.insert(schema.keysPermissions).values(permissionConnections);
-
-        await analytics.ingestUnkeyAuditLogsTinybird(
-          permissionConnections.map((pc) => ({
-            workspaceId: message.workspaceId,
-            actor: { type: "key", id: message.rootKeyId },
-            event: "authorization.connect_permission_and_key",
-            description: `Connected ${pc.permissionId} and ${pc.keyId}`,
-            resources: [
-              {
-                type: "key",
-                id: pc.keyId,
-              },
-              {
-                type: "permission",
-                id: pc.permissionId,
-              },
-            ],
-            context: message.auditLogContext,
-          })),
-        );
       }
     });
   } catch (e) {

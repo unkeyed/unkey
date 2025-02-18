@@ -1,7 +1,6 @@
 "use client";
 import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +26,8 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import type { Role } from "@unkey/db";
+import { Button } from "@unkey/ui";
+import { validation } from "@unkey/validation";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -38,14 +39,8 @@ type Props = {
 };
 
 const formSchema = z.object({
-  name: z
-    .string()
-    .min(3)
-    .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
-      message:
-        "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
-    }),
-  description: z.string().optional(),
+  name: validation.name,
+  description: validation.description.optional(),
 });
 
 export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {

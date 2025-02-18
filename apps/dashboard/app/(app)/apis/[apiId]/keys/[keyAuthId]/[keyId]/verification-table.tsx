@@ -30,12 +30,11 @@ export const VerificationTable = ({ verifications }: Props) => {
         <TableHeader>
           <TableRow>
             <TableHead className="font-mono text-xs">Time</TableHead>
-            <TableHead className="font-mono text-xs">Region</TableHead>
             <TableHead className="font-mono text-xs p-0">Result</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody className={"font-mono"}>
-          {verifications.map((verification, i) => {
+          {verifications.val?.map((verification, i) => {
             /**
              * Instead of rounding every row individually, we want to round consecutive colored rows together.
              * For example:
@@ -55,10 +54,10 @@ export const VerificationTable = ({ verifications }: Props) => {
              */
             const isStartOfColoredBlock =
               verification.outcome !== "VALID" &&
-              (i === 0 || verifications[i - 1].outcome === "VALID");
+              (i === 0 || verifications.val[i - 1].outcome === "VALID");
             const isEndOfColoredBlock =
               verification.outcome !== "VALID" &&
-              (i === verifications.length - 1 || verifications[i + 1].outcome === "VALID");
+              (i === verifications.val.length - 1 || verifications.val[i + 1].outcome === "VALID");
 
             return (
               <TableRow
@@ -78,7 +77,6 @@ export const VerificationTable = ({ verifications }: Props) => {
                 >
                   {format(verification.time, "MMM dd HH:mm:ss.SS")}
                 </TableCell>
-                <TableCell className={CELL_CLASS}>{verification.region}</TableCell>
                 <TableCell
                   className={cn(CELL_CLASS, "p-2 pl-0", {
                     "rounded-tr-md": isStartOfColoredBlock,

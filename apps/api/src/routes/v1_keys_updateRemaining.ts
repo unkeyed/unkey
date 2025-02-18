@@ -65,7 +65,7 @@ export type V1KeysUpdateRemainingResponse = z.infer<
 export const registerV1KeysUpdateRemaining = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, usageLimiter } = c.get("services");
+    const { cache, db, usageLimiter } = c.get("services");
 
     const key = await db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
@@ -194,32 +194,6 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         userAgent: c.get("userAgent"),
       },
     });
-
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogsTinybird({
-        actor: {
-          type: "key",
-          id: rootKeyId,
-        },
-        event: "key.update",
-        workspaceId: authorizedWorkspaceId,
-        description: `Changed remaining to ${keyAfterUpdate.remaining}`,
-        resources: [
-          {
-            type: "keyAuth",
-            id: key.keyAuthId,
-          },
-          {
-            type: "key",
-            id: key.id,
-          },
-        ],
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
-        },
-      }),
-    );
 
     return c.json({
       remaining: keyAfterUpdate.remaining,

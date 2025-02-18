@@ -1,7 +1,6 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ShieldBan } from "lucide-react";
+import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UsageBanner } from "./banner";
@@ -10,10 +9,9 @@ import { MobileSideBar } from "./mobile-sidebar";
 
 interface LayoutProps {
   children: React.ReactNode;
-  breadcrumb: React.ReactNode;
 }
 
-export default async function Layout({ children, breadcrumb }: LayoutProps) {
+export default async function Layout({ children }: LayoutProps) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -42,22 +40,19 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
           className="isolate hidden lg:flex min-w-[250px] max-w-[250px] bg-[inherit]"
         />
 
-        <div className="isolate bg-background lg:border-l border-t lg:rounded-tl-[0.625rem] border-border w-full overflow-x-auto flex flex-col items-center lg:mt-2">
-          <div className="w-full max-w-[1152px] p-4 lg:p-8">
+        <div
+          className="isolate bg-background lg:border-l border-t lg:rounded-tl-[0.625rem] border-border w-full overflow-x-auto flex flex-col items-center lg:mt-2"
+          id="layout-wrapper"
+        >
+          <div className="w-full">
             {workspace.enabled ? (
-              <>
-                {/* Hacky way to make the breadcrumbs line up with the Teamswitcher on the left, because that also has h12 */}
-                {breadcrumb && <div className="block empty:hidden">{breadcrumb}</div>}
-                {children}
-              </>
+              children
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <EmptyPlaceholder className="border-0">
-                  <EmptyPlaceholder.Icon>
-                    <ShieldBan />
-                  </EmptyPlaceholder.Icon>
-                  <EmptyPlaceholder.Title>This workspace is disabled</EmptyPlaceholder.Title>
-                  <EmptyPlaceholder.Description>
+                <Empty>
+                  <Empty.Icon />
+                  <Empty.Title>This workspace is disabled</Empty.Title>
+                  <Empty.Description>
                     Contact{" "}
                     <Link
                       href={`mailto:support@unkey.dev?body=workspaceId: ${workspace.id}`}
@@ -65,8 +60,8 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
                     >
                       support@unkey.dev
                     </Link>
-                  </EmptyPlaceholder.Description>
-                </EmptyPlaceholder>
+                  </Empty.Description>
+                </Empty>
               </div>
             )}
           </div>

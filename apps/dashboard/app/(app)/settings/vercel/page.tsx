@@ -1,12 +1,17 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Button } from "@/components/ui/button";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
+import { Gear } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { navigation } from "../constants";
 import { Client } from "./client";
 type Props = {
   searchParams: {
@@ -33,6 +38,7 @@ export default async function Page(props: Props) {
       },
     },
   });
+
   if (!workspace) {
     console.warn("no workspace");
     return notFound();
@@ -41,16 +47,30 @@ export default async function Page(props: Props) {
   const integration = props.searchParams.configurationId
     ? workspace.vercelIntegrations.find((i) => i.id === props.searchParams.configurationId)
     : workspace.vercelIntegrations.at(0);
+
   if (!integration) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>Vercel is not connected to this workspace</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
-          <Link target="_blank" href="https://vercel.com/integrations/unkey">
-            <Button>Connect</Button>
-          </Link>
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
+      <div>
+        <Navbar>
+          <Navbar.Breadcrumbs icon={<Gear />}>
+            <Navbar.Breadcrumbs.Link href="/settings/vercel" active>
+              Settings
+            </Navbar.Breadcrumbs.Link>
+          </Navbar.Breadcrumbs>
+        </Navbar>
+        <PageContent>
+          <SubMenu navigation={navigation} segment="vercel" />
+          <div className="mt-8" />
+          <Empty>
+            <Empty.Title>Vercel is not connected to this workspace</Empty.Title>
+            <Empty.Actions>
+              <Link target="_blank" href="https://vercel.com/integrations/unkey">
+                <Button>Connect</Button>
+              </Link>
+            </Empty.Actions>
+          </Empty>
+        </PageContent>
+      </div>
     );
   }
 
@@ -60,15 +80,18 @@ export default async function Page(props: Props) {
   });
 
   const { val: rawProjects, err } = await vercel.listProjects();
+
   if (err) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
+      <Empty>
+        <Empty.Title>Error</Empty.Title>
+        <Empty.Description>
           We couldn't load your projects from Vercel. Please try again or contact support.
-        </EmptyPlaceholder.Description>
-        <Code className="text-left">{JSON.stringify(err, null, 2)}</Code>
-      </EmptyPlaceholder>
+        </Empty.Description>
+        <Empty.Description>
+          <Code className="text-left">{JSON.stringify(err, null, 2)}</Code>
+        </Empty.Description>
+      </Empty>
     );
   }
 
@@ -145,5 +168,20 @@ export default async function Page(props: Props) {
     })),
   );
 
-  return <Client projects={projects} apis={apis} rootKeys={rootKeys} integration={integration} />;
+  return (
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gear />}>
+          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
+            Settings
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <SubMenu navigation={navigation} segment="vercel" />
+        <div className="mt-8" />
+        <Client projects={projects} apis={apis} rootKeys={rootKeys} integration={integration} />
+      </PageContent>
+    </div>
+  );
 }

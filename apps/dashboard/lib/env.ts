@@ -16,8 +16,6 @@ export const env = () =>
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 
-      TINYBIRD_TOKEN: z.string().optional(),
-
       CLERK_WEBHOOK_SECRET: z.string().optional(),
       CLERK_SECRET_KEY: z.string().optional(),
       RESEND_API_KEY: z.string().optional(),
@@ -39,6 +37,7 @@ export const env = () =>
       UNKEY_ROOT_KEY: z.string().optional(),
 
       CLICKHOUSE_URL: z.string().optional(),
+      OPENAI_API_KEY: z.string().optional(),
     })
     .parse(process.env);
 

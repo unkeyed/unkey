@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Copy, CopyCheck } from "lucide-react";
-import * as React from "react";
+import { useEffect, useState } from "react";
 
 interface CopyButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
   value: string;
@@ -14,13 +14,17 @@ async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unk
 }
 
 export function CopyButton({ value, className, src, children, ...props }: CopyButtonProps) {
-  const [hasCopied, setHasCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
 
-  React.useEffect(() => {
-    setTimeout(() => {
-      setHasCopied(false);
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCopied(false);
     }, 2000);
-  }, [hasCopied]);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   return (
     <button
@@ -34,12 +38,12 @@ export function CopyButton({ value, className, src, children, ...props }: CopyBu
         copyToClipboardWithMeta(value, {
           component: src,
         });
-        setHasCopied(true);
+        setCopied(true);
       }}
       {...props}
     >
       <span className="sr-only">Copy</span>
-      {hasCopied ? (
+      {copied ? (
         <CopyCheck className="w-4 h-4 text-white/40" />
       ) : (
         <Copy className="w-4 h-4 text-white/40" />

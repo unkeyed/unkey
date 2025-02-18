@@ -1,11 +1,9 @@
 "use client";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -17,6 +15,8 @@ import {
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc/client";
+import { Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -121,10 +121,8 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
           <AsideContent />
         </aside>
         {step.step === "CREATE_ROOT_KEY" ? (
-          <EmptyPlaceholder>
-            <EmptyPlaceholder.Description>
-              Let's begin by creating a root key
-            </EmptyPlaceholder.Description>
+          <Empty>
+            <Empty.Description>Let's begin by creating a root key</Empty.Description>
 
             <Button
               disabled={rootKey.isLoading}
@@ -132,7 +130,7 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
             >
               {rootKey.isLoading ? <Loading /> : "Create Root Key"}
             </Button>
-          </EmptyPlaceholder>
+          </Empty>
         ) : step.step === "CREATE_KEY" ? (
           <Card>
             <CardHeader>
@@ -176,8 +174,7 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
             </CardContent>
             <CardFooter className="justify-between">
               <Button
-                size="sm"
-                variant="link"
+                variant="ghost"
                 disabled={key.isLoading}
                 onClick={() => key.mutate({ keyAuthId })}
               >
@@ -185,7 +182,6 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
               </Button>
               <Button
                 className="whitespace-nowrap max-sm:text-xs"
-                size="sm"
                 onClick={() => {
                   setStep({ step: "VERIFY_KEY" });
                 }}
@@ -232,12 +228,10 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
             </CardContent>
             <CardFooter className="justify-between">
               <Link href="https://unkey.dev/docs" target="_blank">
-                <Button size="sm" variant="link">
-                  Read more
-                </Button>
+                <Button variant="ghost">Read more</Button>
               </Link>
               <Link href="/">
-                <Button size="sm">Let's go</Button>
+                <Button>Let's go</Button>
               </Link>
             </CardFooter>
           </Card>

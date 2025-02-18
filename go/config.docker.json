@@ -1,0 +1,19 @@
+{
+  "$schema": "./schema.json",
+  "httpPort": 7070,
+  "database": {
+    "primary": "${DATABASE_PRIMARY_DSN}"
+  },
+  "logs": {
+    "color": true
+  },
+  "cluster": {
+    "rpcPort": "${RPC_PORT}",
+    "gossipPort": "${GOSSIP_PORT}",
+    "discovery": {
+      "static": {
+        "addrs": ["unkey-apiv2-1:${GOSSIP_PORT}"]
+      }
+    }
+  }
+}

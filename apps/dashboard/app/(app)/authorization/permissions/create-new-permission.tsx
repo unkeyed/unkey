@@ -2,7 +2,7 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 
 import {
   Dialog,
@@ -27,25 +27,18 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
+import { validation } from "@unkey/validation";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
 type Props = {
   trigger: React.ReactNode;
 };
 
 const formSchema = z.object({
-  name: z
-    .string()
-    .min(3)
-    .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
-      message:
-        "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
-    }),
-
-  description: z.string().optional(),
+  name: validation.name,
+  description: validation.description.optional(),
 });
 
 export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
@@ -83,7 +76,7 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="border-border">
         <DialogHeader>
           <DialogTitle>Create a new permission</DialogTitle>
           <DialogDescription>Permissions allow your key to do certain actions.</DialogDescription>

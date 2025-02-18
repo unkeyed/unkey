@@ -2,7 +2,7 @@
 
 import { useMousePosition } from "@/lib/mouse";
 import type React from "react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 interface ParticlesProps {
   className?: string;
@@ -59,20 +59,19 @@ export const Particles: React.FC<ParticlesProps> = ({
     };
   }, []);
 
-  useEffect(() => {
-    onMouseMove();
-  }, [mousePosition.x, mousePosition.y]);
-
-  useEffect(() => {
-    initCanvas();
-  }, [refresh]);
-
-  const initCanvas = () => {
+  const initCanvas = useCallback(() => {
     resizeCanvas();
     drawParticles();
-  };
+  }, []);
 
-  const onMouseMove = () => {
+  useEffect(() => {
+    if (!refresh) {
+      return;
+    }
+    initCanvas();
+  }, [initCanvas, refresh]);
+
+  const onMouseMove = useCallback(() => {
     if (canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
       const { w, h } = canvasSize.current;
@@ -84,7 +83,11 @@ export const Particles: React.FC<ParticlesProps> = ({
         mouse.current.y = y;
       }
     }
-  };
+  }, [mousePosition.x, mousePosition.y]);
+
+  useEffect(() => {
+    onMouseMove();
+  }, [onMouseMove]);
 
   type Circle = {
     x: number;

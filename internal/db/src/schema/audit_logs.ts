@@ -14,6 +14,7 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { newId } from "@unkey/id";
+
 export const auditLogBucket = mysqlTable(
   "audit_log_bucket",
   {
@@ -44,6 +45,7 @@ export const auditLogBucketRelations = relations(auditLogBucket, ({ one, many })
   workspace: one(workspaces, {
     fields: [auditLogBucket.workspaceId],
     references: [workspaces.id],
+    relationName: "workspace_audit_log_bucket_relation",
   }),
   logs: many(auditLog),
 }));
@@ -120,6 +122,7 @@ export const auditLogTarget = mysqlTable(
   (table) => ({
     pk: primaryKey({ columns: [table.auditLogId, table.id] }),
     auditLog: index("audit_log_id").on(table.auditLogId),
+    id: index("id_idx").on(table.id),
   }),
 );
 

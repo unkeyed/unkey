@@ -14,17 +14,19 @@ export function getLatestVerifications(ch: Querier) {
      time,
      outcome,
      region,
-    FROM default.raw_key_verifications_v1
+     tags
+    FROM verifications.raw_key_verifications_v1
     WHERE workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
     AND key_id = {keyId: String}
     ORDER BY time DESC
-    LIMIT 1`,
+    LIMIT 50`,
       params,
       schema: z.object({
         time: z.number(),
         outcome: z.string(),
         region: z.string(),
+        tags: z.array(z.string()),
       }),
     });
 

@@ -1054,7 +1054,76 @@ describe("When refillDay is omitted.", () => {
     expect(found).toBeDefined();
     expect(found?.remaining).toEqual(10);
     expect(found?.refillAmount).toEqual(130);
-    expect(found?.refillInterval).toEqual("monthly");
     expect(found?.refillDay).toEqual(1);
+  });
+});
+
+describe("update name", () => {
+  test("should not affect ratelimit config", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const root = await h.createRootKey([
+      `api.${h.resources.userApi.id}.create_key`,
+      `api.${h.resources.userApi.id}.update_key`,
+    ]);
+
+    const key = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: "/v1/keys.createKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+        prefix: "prefix",
+        name: "my key",
+        ratelimit: {
+          async: true,
+          limit: 10,
+          duration: 1000,
+        },
+      },
+    });
+
+    expect(key.status).toBe(200);
+
+    const update = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.body.keyId,
+        name: "changed",
+      },
+    });
+
+    expect(update.status).toBe(200);
+
+    const found = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.body.keyId),
+    });
+
+    expect(found).toBeDefined();
+    expect(found!.ratelimitAsync).toEqual(true);
+    expect(found!.ratelimitLimit).toEqual(10);
+    expect(found!.ratelimitDuration).toEqual(1000);
+
+    const verify = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+        key: key.body.key,
+      },
+    });
+
+    expect(verify.status, `expected 200, received: ${JSON.stringify(verify)}`).toBe(200);
+    expect(verify.body.ratelimit).toBeDefined();
+    expect(verify.body.ratelimit!.limit).toBe(10);
+    expect(verify.body.ratelimit!.remaining).toBe(9);
   });
 });

@@ -1,9 +1,8 @@
 "use client";
 
 import { Loading } from "@/components/dashboard/loading";
-import { MultiSelect } from "@/components/multi-select";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 
 import {
   Dialog,
@@ -29,26 +28,20 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import type { Permission } from "@unkey/db";
+import { validation } from "@unkey/validation";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
 type Props = {
   trigger: React.ReactNode;
   permissions?: Permission[];
 };
 
 const formSchema = z.object({
-  name: z
-    .string()
-    .min(3)
-    .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
-      message:
-        "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
-    }),
+  name: validation.name,
 
-  description: z.string().optional(),
+  description: validation.description.optional(),
   permissionOptions: z
     .array(
       z.object({
@@ -59,7 +52,7 @@ const formSchema = z.object({
     .optional(),
 });
 
-export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
+export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -100,12 +93,11 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="border-border">
         <DialogHeader>
           <DialogTitle>Create a new role</DialogTitle>
           <DialogDescription>Roles group permissions together.</DialogDescription>
         </DialogHeader>
-
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-8">
             <FormField
@@ -147,7 +139,8 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                 </FormItem>
               )}
             />
-            {permissions && permissions.length > 0 ? (
+            {/* Broken Have to link permissions on next page after creation */}
+            {/*{permissions && permissions.length > 0 ? (
               <FormField
                 control={form.control}
                 name="permissionOptions"
@@ -176,7 +169,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                   </FormItem>
                 )}
               />
-            ) : null}
+            ) : null}*/}
             <DialogFooter>
               <Button type="submit">
                 {createRole.isLoading ? <Loading className="w-4 h-4" /> : "Create"}

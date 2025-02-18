@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Querier } from "./client/interface";
+import { dateTimeToUnix } from "./util";
 
 export function getActiveKeysPerHour(ch: Querier) {
   return async (args: {
@@ -9,9 +10,17 @@ export function getActiveKeysPerHour(ch: Querier) {
     end: number;
   }) => {
     const query = ch.query({
-      query: ` SELECT count(DISTINCT keyId) as keys, time, FROM verifications.key_verifications_per_hour_v1 WHERE workspace_id = {workspaceId: String} AND key_space_id = {keySpaceId: String} AND time >= {start: Int64} AND time < {end: Int64} GROUP BY time
+      query: `
+      SELECT count(DISTINCT key_id) as keys,
+        time
+      FROM verifications.key_verifications_per_hour_v3
+      WHERE workspace_id = {workspaceId: String}
+      AND key_space_id = {keySpaceId: String}
+      AND time < fromUnixTimestamp64Milli({end: Int64})
+      AND time < fromUnixTimestamp64Milli({end: Int64})
+      GROUP BY time
     ORDER BY time ASC
-    WITH FILL 
+    WITH FILL
       FROM toStartOfHour(fromUnixTimestamp64Milli({start: Int64}))
       TO toStartOfHour(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 HOUR
@@ -24,7 +33,7 @@ export function getActiveKeysPerHour(ch: Querier) {
       }),
       schema: z.object({
         keys: z.number().int(),
-        time: z.number().int(),
+        time: dateTimeToUnix,
       }),
     });
 
@@ -44,15 +53,15 @@ export function getActiveKeysPerDay(ch: Querier) {
     SELECT
       count(DISTINCT key_id) as keys,
       time,
-    FROM verifications.key_verifications_per_day_v1
-    WHERE 
+    FROM verifications.key_verifications_per_day_v3
+    WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
-    AND time >= {start: Int64}
-    AND time < {end: Int64}
+    AND time >= fromUnixTimestamp64Milli({start: Int64})
+    AND time < fromUnixTimestamp64Milli({end: Int64})
     GROUP BY time
     ORDER BY time ASC
-    WITH FILL 
+    WITH FILL
       FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
       TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 DAY
@@ -65,7 +74,7 @@ export function getActiveKeysPerDay(ch: Querier) {
       }),
       schema: z.object({
         keys: z.number().int(),
-        time: z.number().int(),
+        time: dateTimeToUnix,
       }),
     });
 
@@ -82,19 +91,19 @@ export function getActiveKeysPerMonth(ch: Querier) {
     const query = ch.query({
       query: `
     SELECT
-      count(DISTINCT keyId) as keys,
+      count(DISTINCT key_id) as keys,
       time,
-    FROM verifications.key_verifications_per_month_v1
-    WHERE 
+    FROM verifications.key_verifications_per_month_v3
+    WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
-    AND time >= {start: Int64}
-    AND time < {end: Int64}
+    AND time >= fromUnixTimestamp64Milli({start: Int64})
+    AND time < fromUnixTimestamp64Milli({end: Int64})
     GROUP BY time
     ORDER BY time ASC
-    WITH FILL 
-      FROM toStartOfMonth(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int64}))
+    WITH FILL
+      FROM toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({start: Int64})))
+      TO toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({end: Int64})))
       STEP INTERVAL 1 MONTH
     ;`,
       params: z.object({
@@ -105,7 +114,7 @@ export function getActiveKeysPerMonth(ch: Querier) {
       }),
       schema: z.object({
         keys: z.number().int(),
-        time: z.number().int(),
+        time: dateTimeToUnix,
       }),
     });
 

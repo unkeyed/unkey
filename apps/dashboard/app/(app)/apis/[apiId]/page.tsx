@@ -1,14 +1,23 @@
 import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { CopyButton } from "@/components/dashboard/copy-button";
+import { CreateKeyButton } from "@/components/dashboard/create-key-button";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
-import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { BarChart } from "lucide-react";
+import { Nodes } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
+import { navigation } from "./constants";
 import { type Interval, IntervalSelect } from "./select";
+
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -38,7 +47,6 @@ export default async function ApiPage(props: {
   t.setUTCHours(0, 0, 0, 0);
   const billingCycleStart = t.getTime();
   const billingCycleEnd = t.setUTCMonth(t.getUTCMonth() + 1) - 1;
-
   const { getVerificationsPerInterval, getActiveKeysPerInterval, start, end, granularity } =
     prepareInterval(interval);
   const query = {
@@ -47,16 +55,14 @@ export default async function ApiPage(props: {
     start,
     end,
   };
-  const [keys, verifications, activeKeys, activeKeysTotal, verificationsInBillingCycle] =
+  const [keySpace, verifications, activeKeys, activeKeysTotal, verificationsInBillingCycle] =
     await Promise.all([
-      db
-        .select({ count: sql<number>`count(*)` })
-        .from(schema.keys)
-        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
-        .execute()
-        .then((res) => res.at(0)?.count ?? 0),
-      getVerificationsPerInterval(query),
-      getActiveKeysPerInterval(query),
+      db.query.keyAuth.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, api.keyAuthId!), isNull(table.deletedAt)),
+      }),
+      getVerificationsPerInterval(query).then((res) => res.val!),
+      getActiveKeysPerInterval(query).then((res) => res.val!),
       clickhouse.activeKeys
         .perMonth({
           workspaceId: api.workspaceId,
@@ -64,13 +70,13 @@ export default async function ApiPage(props: {
           start: billingCycleStart,
           end: billingCycleEnd,
         })
-        .then((res) => res.at(0)),
+        .then((res) => res.val!.at(0)),
       getVerificationsPerInterval({
         workspaceId: api.workspaceId,
         keySpaceId: api.keyAuthId!,
         start: billingCycleStart,
         end: billingCycleEnd,
-      }),
+      }).then((res) => res.val!),
     ]);
 
   const successOverTime: { x: string; y: number }[] = [];
@@ -80,11 +86,13 @@ export default async function ApiPage(props: {
   const insufficientPermissionsOverTime: { x: string; y: number }[] = [];
   const expiredOverTime: { x: string; y: number }[] = [];
   const forbiddenOverTime: { x: string; y: number }[] = [];
+  const _emptyOverTime: { x: string; y: number }[] = [];
 
   for (const d of verifications.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();
 
     switch (d.outcome) {
+      case "":
       case "VALID":
         successOverTime.push({ x, y: d.count });
         break;
@@ -106,6 +114,7 @@ export default async function ApiPage(props: {
       case "FORBIDDEN":
         forbiddenOverTime.push({ x, y: d.count });
         break;
+      default:
     }
   }
 
@@ -117,10 +126,13 @@ export default async function ApiPage(props: {
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
     ...disabledOverTime.map((d) => ({ ...d, category: "Disabled" })),
-    ...insufficientPermissionsOverTime.map((d) => ({ ...d, category: "Insufficient Permissions" })),
+    ...insufficientPermissionsOverTime.map((d) => ({
+      ...d,
+      category: "Insufficient Permissions",
+    })),
     ...expiredOverTime.map((d) => ({ ...d, category: "Expired" })),
     ...forbiddenOverTime.map((d) => ({ ...d, category: "Forbidden" })),
-  ];
+  ].sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime());
 
   const activeKeysOverTime = activeKeys.map(({ time, keys }) => ({
     x: new Date(time).toISOString(),
@@ -128,138 +140,159 @@ export default async function ApiPage(props: {
   }));
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardContent className="grid grid-cols-3 divide-x">
-          <Metric label="Total Keys" value={formatNumber(keys)} />
-          <Metric
-            label={`Verifications in ${new Date().toLocaleString("en-US", {
-              month: "long",
-            })}`}
-            value={formatNumber(
-              verificationsInBillingCycle.reduce((sum, day) => sum + day.count, 0),
-            )}
-          />
-          <Metric
-            label={`Active Keys in ${new Date().toLocaleString("en-US", {
-              month: "long",
-            })}`}
-            value={formatNumber(activeKeysTotal?.keys ?? 0)}
-          />
-        </CardContent>
-      </Card>
-      <Separator className="my-8" />
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Nodes />}>
+          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} active isIdentifier>
+            {api.name}
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
+          <Badge
+            key="apiId"
+            variant="secondary"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+          >
+            {api.id}
+            <CopyButton value={api.id} />
+          </Badge>
+          <CreateKeyButton apiId={api.id} keyAuthId={api.keyAuthId!} />
+        </Navbar.Actions>
+      </Navbar>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold leading-none tracking-tight">Verifications</h2>
+      <PageContent>
+        <SubMenu navigation={navigation(api.id, api.keyAuthId!)} segment="overview" />
 
-        <div>
-          <IntervalSelect defaultSelected={interval} />
-        </div>
-      </div>
-
-      {verificationsData.some((d) => d.y > 0) ? (
-        <Card>
-          <CardHeader>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 divide-x">
+        <div className="flex flex-col gap-4 mt-8">
+          <Card>
+            <CardContent className="grid grid-cols-3 divide-x">
+              <Metric label="Total Keys" value={formatNumber(keySpace?.sizeApprox ?? 0)} />
               <Metric
-                label="Valid"
-                value={formatNumber(successOverTime.reduce((sum, day) => sum + day.y, 0))}
-              />
-              <Metric
-                label="Ratelimited"
-                value={formatNumber(ratelimitedOverTime.reduce((sum, day) => sum + day.y, 0))}
-              />
-              <Metric
-                label="Usage Exceeded"
-                value={formatNumber(usageExceededOverTime.reduce((sum, day) => sum + day.y, 0))}
-              />
-              <Metric
-                label="Disabled"
-                value={formatNumber(disabledOverTime.reduce((sum, day) => sum + day.y, 0))}
-              />
-              <Metric
-                label="Insufficient Permissions"
+                label={`Verifications in ${new Date().toLocaleString("en-US", {
+                  month: "long",
+                })}`}
                 value={formatNumber(
-                  insufficientPermissionsOverTime.reduce((sum, day) => sum + day.y, 0),
+                  verificationsInBillingCycle.reduce((sum, day) => sum + day.count, 0),
                 )}
               />
               <Metric
-                label="Expired"
-                value={formatNumber(expiredOverTime.reduce((sum, day) => sum + day.y, 0))}
+                label={`Active Keys in ${new Date().toLocaleString("en-US", {
+                  month: "long",
+                })}`}
+                value={formatNumber(activeKeysTotal?.keys ?? 0)}
               />
-              <Metric
-                label="Forbidden"
-                value={formatNumber(forbiddenOverTime.reduce((sum, day) => sum + day.y, 0))}
-              />
+            </CardContent>
+          </Card>
+          <Separator className="my-8" />
+
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold leading-none tracking-tight">Verifications</h2>
+
+            <div>
+              <IntervalSelect defaultSelected={interval} />
             </div>
-          </CardHeader>
-          <CardContent>
-            <StackedColumnChart
-              colors={["primary", "warn", "danger"]}
-              data={verificationsData}
-              timeGranularity={
-                granularity >= 1000 * 60 * 60 * 24 * 30
-                  ? "month"
-                  : granularity >= 1000 * 60 * 60 * 24
-                    ? "day"
-                    : "hour"
-              }
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <EmptyPlaceholder>
-          <EmptyPlaceholder.Icon>
-            <BarChart />
-          </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
-          <EmptyPlaceholder.Description>
-            Verify a key or change the range
-          </EmptyPlaceholder.Description>
-        </EmptyPlaceholder>
-      )}
+          </div>
 
-      <Separator className="my-8" />
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold leading-none tracking-tight">Active Keys</h2>
+          {verificationsData.some((d) => d.y > 0) ? (
+            <Card>
+              <CardHeader>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 divide-x">
+                  <Metric
+                    label="Valid"
+                    value={formatNumber(successOverTime.reduce((sum, day) => sum + day.y, 0))}
+                  />
+                  <Metric
+                    label="Ratelimited"
+                    value={formatNumber(ratelimitedOverTime.reduce((sum, day) => sum + day.y, 0))}
+                  />
+                  <Metric
+                    label="Usage Exceeded"
+                    value={formatNumber(usageExceededOverTime.reduce((sum, day) => sum + day.y, 0))}
+                  />
+                  <Metric
+                    label="Disabled"
+                    value={formatNumber(disabledOverTime.reduce((sum, day) => sum + day.y, 0))}
+                  />
+                  <Metric
+                    label="Insufficient Permissions"
+                    value={formatNumber(
+                      insufficientPermissionsOverTime.reduce((sum, day) => sum + day.y, 0),
+                    )}
+                  />
+                  <Metric
+                    label="Expired"
+                    value={formatNumber(expiredOverTime.reduce((sum, day) => sum + day.y, 0))}
+                  />
+                  <Metric
+                    label="Forbidden"
+                    value={formatNumber(forbiddenOverTime.reduce((sum, day) => sum + day.y, 0))}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <StackedColumnChart
+                  colors={["primary", "warn", "danger"]}
+                  data={verificationsData}
+                  timeGranularity={
+                    granularity >= 1000 * 60 * 60 * 24 * 30
+                      ? "month"
+                      : granularity >= 1000 * 60 * 60 * 24
+                        ? "day"
+                        : "hour"
+                  }
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <Empty>
+              <Empty.Icon />
+              <Empty.Title>No usage</Empty.Title>
+              <Empty.Description>Verify a key or change the range</Empty.Description>
+            </Empty>
+          )}
 
-        <div>
-          <IntervalSelect defaultSelected={interval} />
+          <Separator className="my-8" />
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold leading-none tracking-tight">Active Keys</h2>
+
+            <div>
+              <IntervalSelect defaultSelected={interval} />
+            </div>
+          </div>
+          {activeKeysOverTime.some((k) => k.y > 0) ? (
+            <Card>
+              <CardHeader>
+                <div className="grid grid-cols-4 divide-x">
+                  <Metric
+                    label="Total Active Keys"
+                    value={formatNumber(activeKeysTotal?.keys ?? 0)}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <AreaChart
+                  data={activeKeysOverTime}
+                  tooltipLabel="Active Keys"
+                  timeGranularity={
+                    granularity >= 1000 * 60 * 60 * 24 * 30
+                      ? "month"
+                      : granularity >= 1000 * 60 * 60 * 24
+                        ? "day"
+                        : "hour"
+                  }
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <Empty>
+              <Empty.Icon />
+              <Empty.Title>No usage</Empty.Title>
+              <Empty.Description>Verify a key or change the range</Empty.Description>
+            </Empty>
+          )}
         </div>
-      </div>
-      {activeKeysOverTime.some((k) => k.y > 0) ? (
-        <Card>
-          <CardHeader>
-            <div className="grid grid-cols-4 divide-x">
-              <Metric label="Total Active Keys" value={formatNumber(activeKeysTotal?.keys ?? 0)} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <AreaChart
-              data={activeKeysOverTime}
-              tooltipLabel="Active Keys"
-              timeGranularity={
-                granularity >= 1000 * 60 * 60 * 24 * 30
-                  ? "month"
-                  : granularity >= 1000 * 60 * 60 * 24
-                    ? "day"
-                    : "hour"
-              }
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <EmptyPlaceholder>
-          <EmptyPlaceholder.Icon>
-            <BarChart />
-          </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
-          <EmptyPlaceholder.Description>
-            Verify a key or change the range
-          </EmptyPlaceholder.Description>
-        </EmptyPlaceholder>
-      )}
+      </PageContent>
     </div>
   );
 }
@@ -321,12 +354,3 @@ function prepareInterval(interval: Interval) {
     }
   }
 }
-
-const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => {
-  return (
-    <div className="flex flex-col items-start justify-between h-full px-4 py-2">
-      <p className="text-sm text-content-subtle">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
-    </div>
-  );
-};

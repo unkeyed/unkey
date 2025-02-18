@@ -1,5 +1,67 @@
 # @unkey/nextjs
 
+## 0.18.8
+
+### Patch Changes
+
+- Updated dependencies [10120e0]
+  - @unkey/api@0.33.1
+
+## 0.18.7
+
+### Patch Changes
+
+- Updated dependencies [98bbb16]
+  - @unkey/api@0.33.0
+
+## 0.18.6
+
+### Patch Changes
+
+- Updated dependencies [a2f16f0]
+  - @unkey/api@0.32.0
+
+## 0.18.5
+
+### Patch Changes
+
+- Updated dependencies [56ae5f6]
+  - @unkey/api@0.31.0
+
+## 0.18.4
+
+### Patch Changes
+
+- Updated dependencies [0746b33]
+  - @unkey/api@0.30.0
+
+## 0.18.3
+
+### Patch Changes
+
+- Updated dependencies [3f8d078]
+  - @unkey/api@0.29.0
+
+## 0.18.2
+
+### Patch Changes
+
+- Updated dependencies [25fd102]
+  - @unkey/api@0.28.0
+
+## 0.18.1
+
+### Patch Changes
+
+- Updated dependencies [852d1a1]
+  - @unkey/api@0.27.0
+
+## 0.18.0
+
+### Minor Changes
+
+- 77ca701: upgrade types to match nextjs 15
+
 ## 0.17.7
 
 ### Patch Changes

@@ -6,6 +6,7 @@ import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
 import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
 import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
+import { fetchAuditLog } from "./audit/fetch";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -18,12 +19,19 @@ import { updateKeyOwnerId } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
-import { deleteLlmGateway } from "./llmGateway/delete";
+import { llmSearch } from "./logs/llm-search";
+import { queryDistinctPaths } from "./logs/query-distinct-paths";
+import { queryLogs } from "./logs/query-logs";
+import { queryTimeseries } from "./logs/query-timeseries";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
+import { ratelimitLlmSearch } from "./ratelimit/llm-search";
+import { queryDistinctIdentifiers } from "./ratelimit/query-distinct-identifiers";
+import { queryRatelimitLogs } from "./ratelimit/query-logs";
+import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
 import { addPermissionToRootKey } from "./rbac/addPermissionToRootKey";
@@ -57,10 +65,6 @@ export const router = t.router({
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
     }),
-  }),
-
-  llmGateway: t.router({
-    delete: deleteLlmGateway,
   }),
   rootKey: t.router({
     create: createRootKey,
@@ -103,6 +107,12 @@ export const router = t.router({
     updateRole: updateRole,
   }),
   ratelimit: t.router({
+    logs: t.router({
+      query: queryRatelimitLogs,
+      ratelimitLlmSearch,
+      queryRatelimitTimeseries,
+      queryDistinctIdentifiers,
+    }),
     namespace: t.router({
       create: createNamespace,
       update: t.router({
@@ -115,6 +125,15 @@ export const router = t.router({
       update: updateOverride,
       delete: deleteOverride,
     }),
+  }),
+  logs: t.router({
+    queryLogs,
+    queryDistinctPaths,
+    queryTimeseries,
+    llmSearch,
+  }),
+  audit: t.router({
+    fetch: fetchAuditLog,
   }),
 });
 

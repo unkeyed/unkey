@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   textToCopy: string;
@@ -8,6 +8,16 @@ type Props = {
 export function CopyCodeSnippetButton(props: Props) {
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCopied(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
   return (
     <button
       type="button"
@@ -16,9 +26,6 @@ export function CopyCodeSnippetButton(props: Props) {
       onClick={() => {
         navigator.clipboard.writeText(props.textToCopy);
         setCopied(true);
-        setTimeout(() => {
-          setCopied(false);
-        }, 2000);
       }}
     >
       {copied ? <CheckmarkCircle /> : <CopyIcon />}

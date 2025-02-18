@@ -1,6 +1,5 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -86,11 +86,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
             </div>
           </CardContent>
           <CardFooter className="justify-end">
-            <Button
-              variant={updateName.isLoading ? "disabled" : "primary"}
-              type="submit"
-              disabled={isDisabled}
-            >
+            <Button variant="primary" type="submit" disabled={isDisabled}>
               {updateName.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>

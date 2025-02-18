@@ -1,0 +1,31 @@
+{
+  "name": "@unkey/ui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "AGPL-3.0",
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/react": "^18.3.11",
+    "@unkey/tsconfig": "workspace:^",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "@radix-ui/colors": "^3.0.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "@unkey/icons": "workspace:^",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "lucide-react": "^0.378.0",
+    "react": "^18.2.0",
+    "react-day-picker": "8.10.1",
+    "tailwind-merge": "^2.5.4",
+    "tailwindcss-animate": "^1.0.7"
+  }
+}

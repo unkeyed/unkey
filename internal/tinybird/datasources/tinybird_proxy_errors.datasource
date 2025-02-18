@@ -1,8 +1,0 @@
-VERSION 1
-SCHEMA >
-    `nodeId` String `json:$.nodeId`,
-    `time` Int64 `json:$.time`,
-    `message` String `json:$.message`
-
-ENGINE "MergeTree"
-ENGINE_SORTING_KEY "nodeId, time"

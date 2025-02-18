@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Permission } from "@unkey/db";
-import { type PropsWithChildren, useMemo, useState } from "react";
+import { type PropsWithChildren, useState } from "react";
 import { PermissionToggle } from "./permission_toggle";
 import { apiPermissions } from "./permissions";
 
@@ -38,10 +38,7 @@ export function DialogAddPermissionsForAPI(
   });
 
   const [selectedApiId, setSelectedApiId] = useState<string>("");
-  const selectedApi = useMemo(
-    () => props.apis.find((api) => api.id === selectedApiId),
-    [selectedApiId],
-  );
+  const selectedApi = props.apis.find((api) => api.id === selectedApiId);
 
   const isSelectionDisabled =
     selectedApi && !apisWithoutPermission.some((api) => api.id === selectedApi.id);

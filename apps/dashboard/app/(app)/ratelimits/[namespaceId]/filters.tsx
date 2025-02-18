@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrayInput } from "@/components/array-input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -10,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { parseAsArrayOf, parseAsString, parseAsStringEnum, useQueryState } from "nuqs";
@@ -46,9 +46,9 @@ export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (
   );
 
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-row items-end justify-between gap-2">
       {props.identifier ? (
-        <div>
+        <div className="flex-col align-end">
           <ArrayInput
             title="Identifiers"
             selected={identifier}
@@ -60,7 +60,7 @@ export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (
         </div>
       ) : null}{" "}
       {props.interval ? (
-        <div>
+        <div className="flex flex-col">
           <Select
             value={interval}
             onValueChange={(i: Interval) => {
@@ -83,8 +83,7 @@ export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (
       ) : null}
       <div>
         <Button
-          size="icon"
-          variant="secondary"
+          shape="square"
           onClick={() => {
             startTransition(router.refresh);
           }}

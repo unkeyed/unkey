@@ -12,9 +12,8 @@ export const updateKeyRemaining = t.procedure
       remaining: z.number().int().positive().optional(),
       refill: z
         .object({
-          interval: z.enum(["daily", "monthly", "none"]),
           amount: z.number().int().min(1).optional(),
-          refillDay: z.number().int().min(1).max(31).optional(),
+          refillDay: z.number().int().min(1).max(31).nullable().optional(),
         })
         .optional(),
     }),
@@ -24,21 +23,18 @@ export const updateKeyRemaining = t.procedure
       input.remaining = undefined;
       input.refill = undefined;
     }
-    if (input.refill?.interval === "none") {
-      input.refill = undefined;
-    }
 
     await db
       .transaction(async (tx) => {
         const key = await tx.query.keys.findFirst({
           where: (table, { eq, and, isNull }) =>
-            and(eq(table.id, input.keyId), isNull(table.deletedAt)),
-          with: {
-            workspace: true,
-          },
+            and(
+              eq(table.workspaceId, ctx.workspace.id),
+              eq(table.id, input.keyId),
+              isNull(table.deletedAt),
+            ),
         });
-        const isMonthlyInterval = input.refill?.interval === "monthly";
-        if (!key || key.workspace.tenantId !== ctx.tenant.id) {
+        if (!key) {
           throw new TRPCError({
             message:
               "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
@@ -49,13 +45,9 @@ export const updateKeyRemaining = t.procedure
           .update(schema.keys)
           .set({
             remaining: input.remaining ?? null,
-            refillInterval:
-              input.refill?.interval === "none" || input.refill?.interval === undefined
-                ? null
-                : input.refill?.interval,
-            refillDay: isMonthlyInterval ? input.refill?.refillDay : null,
+            refillDay: input.refill?.refillDay ?? null,
             refillAmount: input.refill?.amount ?? null,
-            lastRefillAt: input.refill?.interval ? new Date() : null,
+            lastRefillAt: input.refill?.amount ? new Date() : null,
           })
           .where(eq(schema.keys.id, key.id))
           .catch((_err) => {
@@ -65,8 +57,8 @@ export const updateKeyRemaining = t.procedure
                 "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
             });
           });
-        await insertAuditLogs(tx, {
-          workspaceId: key.workspace.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,
@@ -74,7 +66,7 @@ export const updateKeyRemaining = t.procedure
           event: "key.update",
           description: input.limitEnabled
             ? `Changed remaining for ${key.id} to remaining=${input.remaining}, refill=${
-                input.refill ? `${input.refill.amount}@${input.refill.interval}` : "none"
+                input.refill ? `${input.refill.amount}@${input.refill.refillDay}` : "none"
               }`
             : `Disabled limit for ${key.id}`,
           resources: [

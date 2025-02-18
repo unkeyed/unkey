@@ -1,6 +1,6 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { type Identity, and, eq, gt, isNull, sql } from "@unkey/db";
+import type { Identity } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
@@ -67,7 +67,8 @@ When you're creating a key and immediately listing all keys to display them to y
               example: "eyJrZXkiOiJrZXlfMTIzNCJ9",
             }),
             total: z.number().int().openapi({
-              description: "The total number of keys for this api",
+              description:
+                "The total number of keys for this api. This is an approximation and may lag behind up to 5 minutes.",
             }),
           }),
         },
@@ -160,59 +161,63 @@ export const registerV1ApisListKeys = (app: App) =>
     }
 
     async function loadKeys() {
-      const [keys, total] = await Promise.all([
-        db.readonly.query.keys.findMany({
-          where: and(
-            ...[
-              eq(schema.keys.keyAuthId, api!.keyAuthId!),
-              isNull(schema.keys.deletedAt),
-              cursor ? gt(schema.keys.id, cursor) : undefined,
-              identity
-                ? eq(schema.keys.identityId, identity.id)
-                : ownerId
-                  ? eq(schema.keys.ownerId, ownerId)
-                  : undefined,
-            ].filter(Boolean),
-          ),
-          with: {
-            identity: true,
-            encrypted: true,
-            roles: {
-              with: {
-                role: {
-                  with: {
-                    permissions: {
-                      with: {
-                        permission: true,
+      const keySpace = await db.readonly.query.keyAuth.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, api!.keyAuthId!), isNull(schema.keys.deletedAt)),
+
+        with: {
+          keys: {
+            where: (table, { and, isNull, gt, eq }) =>
+              and(
+                ...[
+                  isNull(table.deletedAt),
+                  cursor ? gt(table.id, cursor) : undefined,
+                  identity
+                    ? eq(table.identityId, identity.id)
+                    : ownerId
+                      ? eq(table.ownerId, ownerId)
+                      : undefined,
+                ].filter(Boolean),
+              ),
+            with: {
+              identity: true,
+              encrypted: true,
+              roles: {
+                with: {
+                  role: {
+                    with: {
+                      permissions: {
+                        with: {
+                          permission: true,
+                        },
                       },
                     },
                   },
                 },
               },
-            },
-            permissions: {
-              with: {
-                permission: true,
+              permissions: {
+                with: {
+                  permission: true,
+                },
               },
             },
+            limit: limit,
+            orderBy: schema.keys.id,
           },
-          limit: limit,
-          orderBy: schema.keys.id,
-        }),
+        },
+      });
 
-        db.readonly
-          .select({ count: sql<string>`count(*)` })
-          .from(schema.keys)
-          .where(and(eq(schema.keys.keyAuthId, api!.keyAuthId!), isNull(schema.keys.deletedAt))),
-      ]);
+      if (!keySpace) {
+        throw new UnkeyApiError({ code: "NOT_FOUND", message: "keyspace not found" });
+      }
 
       /**
-       * Createa a unique set of all permissions, whether they're attached directly or connected
+       * Creates a unique set of all permissions, whether they're attached directly or connected
        * through a role.
        */
 
       return {
-        keys: keys.map((k) => {
+        keys: keySpace.keys.map((k) => {
           const permissions = new Set<string>([
             ...k.permissions.map((p) => p.permission.name),
             ...k.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
@@ -230,7 +235,7 @@ export const registerV1ApisListKeys = (app: App) =>
             roles: k.roles.map((r) => r.role.name),
           };
         }),
-        total: Number.parseInt(total.at(0)?.count ?? "0"),
+        total: keySpace.sizeApprox,
       };
     }
 
@@ -312,15 +317,14 @@ export const registerV1ApisListKeys = (app: App) =>
               }
             : undefined,
         remaining: k.remaining ?? undefined,
-        refill:
-          k.refillInterval && k.refillAmount && k.lastRefillAt
-            ? {
-                interval: k.refillInterval,
-                amount: k.refillAmount,
-                refillDay: k.refillInterval === "monthly" && k.refillDay ? k.refillDay : null,
-                lastRefillAt: k.lastRefillAt?.getTime(),
-              }
-            : undefined,
+        refill: k.refillAmount
+          ? {
+              interval: k.refillDay ? ("monthly" as const) : ("daily" as const),
+              amount: k.refillAmount,
+              refillDay: k.refillDay,
+              lastRefillAt: k.lastRefillAt?.getTime(),
+            }
+          : undefined,
         environment: k.environment ?? undefined,
         plaintext: plaintext[k.id] ?? undefined,
         roles: k.roles,

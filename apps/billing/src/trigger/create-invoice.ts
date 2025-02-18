@@ -1,4 +1,4 @@
-import { Tinybird } from "@/lib/tinybird";
+import { clickhouse } from "@/lib/clickhouse";
 import {
   type FixedSubscription,
   type TieredSubscription,
@@ -28,7 +28,6 @@ export const createInvoiceTask = task({
       apiVersion: "2023-10-16",
       typescript: true,
     });
-    const tinybird = new Tinybird(env().TINYBIRD_TOKEN);
 
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
@@ -109,13 +108,11 @@ export const createInvoiceTask = task({
      * Verifications
      */
     if (workspace.subscriptions?.verifications) {
-      const verifications = await tinybird
-        .verifications({
-          workspaceId: workspace.id,
-          year,
-          month,
-        })
-        .then((res) => res.data.at(0)?.success ?? 0);
+      const verifications = await clickhouse.billing.billableVerifications({
+        workspaceId: workspace.id,
+        year,
+        month,
+      });
 
       await createTieredInvoiceItem({
         stripe,
@@ -131,13 +128,11 @@ export const createInvoiceTask = task({
      * Ratelimits
      */
     if (workspace.subscriptions?.ratelimits) {
-      const ratelimits = await tinybird
-        .ratelimits({
-          workspaceId: workspace.id,
-          year,
-          month,
-        })
-        .then((res) => res.data.at(0)?.success ?? 0);
+      const ratelimits = await clickhouse.billing.billableRatelimits({
+        workspaceId: workspace.id,
+        year,
+        month,
+      });
 
       await createTieredInvoiceItem({
         stripe,

@@ -58,8 +58,12 @@ export const workspaces = mysqlTable(
          */
         rbac?: boolean;
 
-        ratelimit?: boolean;
         identities?: boolean;
+
+        /**
+         * Can access /logs
+         */
+        logsPage?: boolean;
       }>()
       .notNull(),
     features: json("features")

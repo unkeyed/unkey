@@ -80,7 +80,7 @@ type ApiRequest = {
   | {
       method: "GET";
       body?: never;
-      query?: Record<string, string | number | boolean | null>;
+      query?: Record<string, string | number | boolean | null | string[]>;
     }
   | {
       method: "POST";
@@ -177,29 +177,29 @@ export class Unkey {
         err = e;
         return null; // set `res` to `null`
       });
-      if (res?.ok) {
+      // 200-299 -> success
+      if (res && res.status >= 200 && res.status <= 299) {
         return { result: (await res.json()) as TResult };
+      }
+      // 400-499 -> client error, retries are futile
+      if (res && res.status >= 400 && res.status <= 499) {
+        return (await res.json()) as ErrorResponse;
       }
       const backoff = this.retry.backoff(i);
       console.debug(
-        "attempt %d of %d to reach %s failed, retrying in %d ms: %s | %s",
-        i + 1,
-        this.retry.attempts + 1,
-        url,
-        backoff,
-        // @ts-ignore I don't understand why `err` is `never`
-        err?.message ?? `status=${res?.status}`,
-        res?.headers.get("unkey-request-id"),
+        `attempt ${i + 1} of ${
+          this.retry.attempts + 1
+        } to reach ${url} failed, retrying in ${backoff} ms: status=${
+          res?.status
+        } | ${res?.headers.get("unkey-request-id")}`,
       );
       await new Promise((r) => setTimeout(r, backoff));
     }
 
     if (res) {
-      const { code, message, docs, requestId } = (await res.json()) as ErrorResponse["error"];
-      return {
-        error: { code, message, docs, requestId },
-      };
+      return (await res.json()) as ErrorResponse;
     }
+
     return {
       error: {
         // @ts-ignore
@@ -376,6 +376,60 @@ export class Unkey {
           body: req,
         });
       },
+      getOverride: async (
+        req: paths["/v1/ratelimits.getOverride"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/ratelimits.getOverride"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "ratelimits.getOverride"],
+          method: "GET",
+          query: req,
+        });
+      },
+      listOverrides: async (
+        req: paths["/v1/ratelimits.listOverrides"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/ratelimits.listOverrides"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "ratelimits.listOverrides"],
+          method: "GET",
+          query: req,
+        });
+      },
+
+      setOverride: async (
+        req: paths["/v1/ratelimits.setOverride"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/ratelimits.setOverride"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "ratelimits.setOverride"],
+          method: "POST",
+          body: req,
+        });
+      },
+
+      deleteOverride: async (
+        req: paths["/v1/ratelimits.deleteOverride"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/ratelimits.deleteOverride"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "ratelimits.deleteOverride"],
+          method: "POST",
+          body: req,
+        });
+      },
     };
   }
   public get identities() {
@@ -443,6 +497,24 @@ export class Unkey {
           path: ["v1", "identities.updateIdentity"],
           method: "POST",
           body: req,
+        });
+      },
+    };
+  }
+
+  public get analytics() {
+    return {
+      getVerifications: async (
+        req: paths["/v1/analytics.getVerifications"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/analytics.getVerifications"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "analytics.getVerifications"],
+          method: "GET",
+          query: req,
         });
       },
     };

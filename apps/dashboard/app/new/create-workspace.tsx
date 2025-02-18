@@ -2,7 +2,6 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -17,6 +16,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useOrganizationList } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -88,7 +88,7 @@ export const CreateWorkspace: React.FC = () => {
             </div>
             <div className="mt-8">
               <Button
-                variant={form.formState.isValid ? "primary" : "disabled"}
+                variant="primary"
                 disabled={createWorkspace.isLoading || !form.formState.isValid}
                 type="submit"
                 className="w-full"

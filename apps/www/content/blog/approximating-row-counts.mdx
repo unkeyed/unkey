@@ -1,0 +1,94 @@
+---
+date: 2024-11-25
+title: Approximating row counts
+image: "/images/blog-images/covers/approximating-row-counts.png"
+description: "Caching count(*) queries without a cache"
+author: andreas
+tags: ["engineering"]
+---
+
+
+
+Unkey allows users to create an unlimited number of API keys for their applications. Counting these for our dashboard or API has become a growing issue for us.
+
+Most APIs have fewer than a thousand keys, however some of our larger customers have hundreds of thousands. And those customers are also the ones hitting our API the most.
+
+
+## Schema
+
+```sql
+
+CREATE TABLE `key_space` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	# ... omitted
+)
+
+CREATE TABLE `keys` (
+	`id` varchar(256) NOT NULL,
+	`hash` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`key_space_id` varchar(256) NOT NULL,
+	# ... omitted
+)
+```
+
+
+As you can see, many `keys` belong to a single `key_space` and out query in question is:
+```sql
+SELECT count(*) FROM keys WHERE key_space_id = ?
+```
+
+## Options
+
+We were looking at a few options how to fix this:
+
+1. Caching the count as part of a larger query
+2. Caching the `count(*)` query separately in our [tiered cache](https://www.unkey.com/blog/announcing-unkey-cache-package) using SWR semantics.
+3. Adding two new columns for storing approximated counts.
+
+
+## Solution
+
+We went with the 3rd option, mainly because we would never run into a cold cache, where we don't have a value at all, nor does it depend on another component. We can use this in our dashboard just as easily as in our API and it behaves the same.
+
+Adding these two columns, one for storing the approximated count and one for storing a timestamp of when we last updated the count.
+```sql
+ALTER TABLE `key_space`
+  ADD COLUMN `size_approx` int NOT NULL DEFAULT '0',
+  ADD COLUMN `size_last_updated_at` bigint NOT NULL DEFAULT '0'
+```
+
+By storing the count on the `key_space` table, we get the count for free cause we're not doing an extra query.
+To keep it up to date, we check the `size_last_updated_at` timestamp after every read and if it's too old (60s in our case), we refresh it asynchronously.
+
+Here's how we do it in drizzle:
+```ts
+
+
+const keySpace = await db.query.keySpace.findFirst({where: ...})
+if (keySpace.sizeLastUpdatedAt < Date.now() - 60_000) {
+  const count = await db
+    .select({ count: sql<string>`count(*)` })
+    .from(schema.keys)
+    .where(and(eq(schema.keys.keySpaceId, keySpace.id), isNull(schema.keys.deletedAt)));
+
+  keySpace.sizeApprox = Number.parseInt(count?.at(0)?.count ?? "0");
+  keySpace.sizeLastUpdatedAt = Date.now();
+
+  c.executionCtx.waitUntil(
+    db.primary
+      .update(schema.keySpace)
+      .set({
+        sizeApprox: keySpace.sizeApprox,
+        sizeLastUpdatedAt: keySpace.sizeLastUpdatedAt,
+      })
+      .where(eq(schema.keySpace.id, keySpace.id)),
+  );
+}
+```
+
+We first load the `keySpace` and if the data is too old, we kick off a second query to count all keys.
+Potentially this might kick off many queries to refresh if a lot of requests come in at the same time, but that's also the case for our current system, where we always count all rows.
+
+In the future we might want to run a cron job to refresh counts in the background and remove the manual refresh, but we haven't needed that yet.

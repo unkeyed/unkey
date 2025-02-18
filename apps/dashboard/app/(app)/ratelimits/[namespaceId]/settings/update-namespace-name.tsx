@@ -1,7 +1,6 @@
 "use client";
 import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -16,21 +15,15 @@ import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
+import { validation } from "@unkey/validation";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(3)
-    .max(50)
-    .regex(/^[a-zA-Z0-9_\-\.]+$/, {
-      message:
-        "Name must be 3-50 characters long and can only contain letters, numbers, underscores, hyphens, and periods.",
-    }),
-  namespaceId: z.string(),
-  workspaceId: z.string(),
+  name: validation.name,
+  namespaceId: validation.unkeyId,
+  workspaceId: validation.unkeyId,
 });
 
 type Props = {
@@ -92,9 +85,7 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
         </CardContent>
         <CardFooter className="justify-end">
           <Button
-            variant={
-              form.formState.isValid && !form.formState.isSubmitting ? "primary" : "disabled"
-            }
+            variant="primary"
             disabled={!form.formState.isValid || form.formState.isSubmitting}
             type="submit"
           >

@@ -1,16 +1,13 @@
-import Link from "next/link";
-
-export default function HomePage() {
+export default function Page() {
   return (
-    <main className="flex h-screen flex-col justify-center text-center">
-      <h1 className="mb-4 text-2xl font-bold">Unkey Engineering</h1>
-      <p className="text-fd-muted-foreground">
-        You can open{" "}
-        <Link href="/docs" className="text-fd-foreground font-semibold underline">
-          /docs
-        </Link>{" "}
-        and see the documentation.{" "}
-      </p>
-    </main>
+    <div className="min-h-screen border text-center -mt-16 pt-16 flex items-center w-screen justify-center ">
+      <div>
+        <h1 className="text-7xl md:text-8xl font-bold  leading-none  uppercase tracking-tight">
+          BUILD BETTER
+          <br /> APIS FASTER
+        </h1>
+        <p className="text-xl mt-8 font-light ">How we work</p>
+      </div>
+    </div>
   );
 }

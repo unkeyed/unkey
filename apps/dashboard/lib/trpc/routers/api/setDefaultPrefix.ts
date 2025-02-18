@@ -9,29 +9,40 @@ export const setDefaultApiPrefix = t.procedure
   .use(auth)
   .input(
     z.object({
-      defaultPrefix: z.string().max(8, "Prefix can be a maximum of 8 characters"),
+      defaultPrefix: z
+        .string()
+        .max(8, { message: "Prefixes cannot be longer than 8 characters" })
+        .refine((prefix) => !prefix.includes(" "), {
+          message: "Prefixes cannot contain spaces.",
+        }),
       keyAuthId: z.string(),
-      workspaceId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
     const keyAuth = await db.query.keyAuth
       .findFirst({
-        where: (table, { eq }) => eq(table.id, input.keyAuthId),
+        where: (table, { eq, and, isNull }) =>
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.keyAuthId),
+            isNull(table.deletedAt),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We were unable to find KeyAuth. Please try again or contact support@unkey.dev.",
+          message:
+            "We were unable to update the key auth. Please try again or contact support@unkey.dev",
         });
       });
-    if (!keyAuth || keyAuth.workspaceId !== input.workspaceId) {
+    if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct keyAuth. Please try again or contact support@unkey.dev",
+          "We are unable to find the correct key auth. Please try again or contact support@unkey.dev.",
       });
     }
+
     await db
       .transaction(async (tx) => {
         await tx
@@ -39,7 +50,7 @@ export const setDefaultApiPrefix = t.procedure
           .set({
             defaultPrefix: input.defaultPrefix,
           })
-          .where(eq(schema.keyAuth.id, input.keyAuthId))
+          .where(eq(schema.keyAuth.id, keyAuth.id))
           .catch((_err) => {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
@@ -47,14 +58,14 @@ export const setDefaultApiPrefix = t.procedure
                 "We were unable to update the API default prefix. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, {
-          workspaceId: keyAuth.workspaceId,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,
           },
           event: "api.update",
-          description: `Changed ${keyAuth.workspaceId} default prefix from ${keyAuth.defaultPrefix} to ${input.defaultPrefix}`,
+          description: `Changed ${keyAuth.id} default prefix from ${keyAuth.defaultPrefix} to ${input.defaultPrefix}`,
           resources: [
             {
               type: "keyAuth",

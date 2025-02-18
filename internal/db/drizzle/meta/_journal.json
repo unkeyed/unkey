@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1736957441936,
+      "tag": "0000_aspiring_agent_zero",
+      "breakpoints": true
+    }
+  ]
+}

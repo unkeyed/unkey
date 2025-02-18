@@ -15,7 +15,7 @@ import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining"
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1KeysWhoAmI } from "./routes/v1_keys_whoami";
 import { registerV1Liveness } from "./routes/v1_liveness";
-import { registerV1RatelimitLimit } from "./routes/v1_ratelimit_limit";
+import { registerV1RatelimitLimit } from "./routes/v1_ratelimits_limit";
 
 // Legacy Routes
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
@@ -23,6 +23,8 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 
 // Export Durable Objects for cloudflare
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
+export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
+
 import { cors, init, metrics } from "@/pkg/middleware";
 import type { MessageBatch } from "@cloudflare/workers-types";
 import { ConsoleLogger } from "@unkey/worker-logging";
@@ -51,6 +53,12 @@ import { registerV1PermissionsGetPermission } from "./routes/v1_permissions_getP
 import { registerV1PermissionsGetRole } from "./routes/v1_permissions_getRole";
 import { registerV1PermissionsListPermissions } from "./routes/v1_permissions_listPermissions";
 import { registerV1PermissionsListRoles } from "./routes/v1_permissions_listRoles";
+import { registerV1RatelimitDeleteOverride } from "./routes/v1_ratelimits_deleteOverride";
+import { registerV1RatelimitGetOverride } from "./routes/v1_ratelimits_getOverride";
+import { registerV1RatelimitListOverrides } from "./routes/v1_ratelimits_listOverrides";
+import { registerV1RatelimitSetOverride } from "./routes/v1_ratelimits_setOverride";
+
+import { registerV1AnalyticsGetVerifications } from "./routes/v1_analytics_getVerifications";
 
 const app = newApp();
 
@@ -93,6 +101,10 @@ registerV1ApisDeleteKeys(app);
 
 // ratelimit
 registerV1RatelimitLimit(app);
+registerV1RatelimitSetOverride(app);
+registerV1RatelimitListOverrides(app);
+registerV1RatelimitDeleteOverride(app);
+registerV1RatelimitGetOverride(app);
 
 // migrations
 registerV1MigrationsCreateKeys(app);
@@ -115,6 +127,9 @@ registerV1IdentitiesGetIdentity(app);
 registerV1IdentitiesListIdentities(app);
 registerV1IdentitiesUpdateIdentity(app);
 registerV1IdentitiesDeleteIdentity(app);
+
+// analytics
+registerV1AnalyticsGetVerifications(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);
