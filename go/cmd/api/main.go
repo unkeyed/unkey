@@ -53,6 +53,8 @@ var Cmd = &cli.Command{
 // nolint:gocognit
 func run(cliC *cli.Context) error {
 
+	shutdowns := []func(ctx context.Context) error{}
+
 	if cliC.Bool("generate-config-schema") {
 		// nolint:exhaustruct
 		_, err := config.GenerateJsonSchema(nodeConfig{}, "schema.json")
@@ -118,16 +120,11 @@ func run(cliC *cli.Context) error {
 
 	defer db.Close()
 
-	c, err := setupCluster(cfg, logger)
+	c, shutdownCluster, err := setupCluster(cfg, logger)
 	if err != nil {
 		return fmt.Errorf("unable to create cluster: %w", err)
 	}
-	defer func() {
-		shutdownErr := c.Shutdown(ctx)
-		if shutdownErr != nil {
-			logger.Error(ctx, "error shutting down cluster", slog.String("error", shutdownErr.Error()))
-		}
-	}()
+	shutdowns = append(shutdowns, shutdownCluster...)
 
 	var ch clickhouse.Bufferer = clickhouse.NewNoop()
 	if cfg.Clickhouse != nil {
@@ -186,6 +183,10 @@ func run(cliC *cli.Context) error {
 		}
 	}()
 
+	return gracefulShutdown(ctx, logger, shutdowns)
+}
+
+func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns []func(ctx context.Context) error) error {
 	cShutdown := make(chan os.Signal, 1)
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
 
@@ -193,17 +194,31 @@ func run(cliC *cli.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 	logger.Info(ctx, "shutting down")
+
+	errors := []error{}
+	for i := len(shutdowns) - 1; i >= 0; i-- {
+		err := shutdowns[i](ctx)
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("errors occurred during shutdown: %v", errors)
+	}
 	return nil
 }
 
-func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, error) {
+func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, []func(ctx context.Context) error, error) {
 	if cfg.Cluster == nil {
-		return cluster.NewNoop("", net.ParseIP("127.0.0.1")), nil
+		return cluster.NewNoop("", net.ParseIP("127.0.0.1")), []func(ctx context.Context) error{}, nil
 	}
+
+	shutdowns := []func(ctx context.Context) error{}
 
 	gossipPort, err := strconv.ParseInt(cfg.Cluster.GossipPort, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse gossip port: %w", err)
+		return nil, shutdowns, fmt.Errorf("unable to parse gossip port: %w", err)
 	}
 
 	m, err := membership.New(membership.Config{
@@ -213,12 +228,12 @@ func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, error
 		Logger:     logger,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to create membership: %w", err)
+		return nil, shutdowns, fmt.Errorf("unable to create membership: %w", err)
 	}
 
 	rpcPort, err := strconv.ParseInt(cfg.Cluster.RpcPort, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse rpc port: %w", err)
+		return nil, shutdowns, fmt.Errorf("unable to parse rpc port: %w", err)
 	}
 	c, err := cluster.New(cluster.Config{
 		Self: cluster.Node{
@@ -232,27 +247,46 @@ func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, error
 		RpcPort:    int(rpcPort),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to create cluster: %w", err)
+		return nil, shutdowns, fmt.Errorf("unable to create cluster: %w", err)
 	}
+	shutdowns = append(shutdowns, c.Shutdown)
 
 	var d discovery.Discoverer
 
 	switch {
 	case cfg.Cluster.Discovery.Static != nil:
-
-		d = &discovery.Static{
-			Addrs: cfg.Cluster.Discovery.Static.Addrs,
+		{
+			d = &discovery.Static{
+				Addrs: cfg.Cluster.Discovery.Static.Addrs,
+			}
+			break
 		}
-	case cfg.Cluster.Discovery.AwsCloudmap != nil:
-		return nil, fmt.Errorf("NOT IMPLEMENTED")
+
+	case cfg.Cluster.Discovery.Redis != nil:
+		{
+			rd, rErr := discovery.NewRedis(discovery.RedisConfig{
+				URL:    cfg.Cluster.Discovery.Redis.URL,
+				NodeID: cfg.Cluster.NodeID,
+				Addr:   cfg.Cluster.AdvertiseAddr,
+				Logger: logger,
+			})
+			if rErr != nil {
+				return nil, shutdowns, fmt.Errorf("unable to create redis discovery: %w", rErr)
+			}
+			shutdowns = append(shutdowns, rd.Shutdown)
+			d = rd
+			break
+		}
 	default:
-		return nil, fmt.Errorf("missing discovery method")
+		{
+			return nil, nil, fmt.Errorf("missing discovery method")
+		}
 	}
 
 	err = m.Start(d)
 	if err != nil {
-		return nil, fmt.Errorf("unable to start membership: %w", err)
+		return nil, nil, fmt.Errorf("unable to start membership: %w", err)
 	}
 
-	return c, nil
+	return c, shutdowns, nil
 }

@@ -37,9 +37,9 @@ export default async function Page(props: {
     >
       <DocsTitle>{page.data.title}</DocsTitle>
 
-      <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
+      <DocsDescription>{page.data.description}</DocsDescription>
 
-      <DocsBody className="text-sm">
+      <DocsBody>
         <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>

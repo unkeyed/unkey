@@ -55,7 +55,7 @@ services:
     environment:
       GOSSIP_PORT: 9090
       RPC_PORT: 9091
-      DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey"
+      DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey?parseTime=true"
       CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
 
   agent:
