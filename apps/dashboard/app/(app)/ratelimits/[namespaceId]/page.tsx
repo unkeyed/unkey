@@ -18,11 +18,16 @@ export default async function RatelimitNamespacePage(props: {
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    columns: {
+      name: true,
+      tenantId: true,
+    },
     with: {
       ratelimitNamespaces: {
         where: (table, { isNull }) => isNull(table.deletedAt),
         columns: {
           id: true,
+          workspaceId: true,
           name: true,
         },
       },
@@ -37,11 +42,7 @@ export default async function RatelimitNamespacePage(props: {
 
   return (
     <div>
-      <NamespaceNavbar
-        namespaceId={namespace.id}
-        namespaceName={namespace.name}
-        ratelimitNamespaces={workspace.ratelimitNamespaces}
-      />
+      <NamespaceNavbar namespace={namespace} ratelimitNamespaces={workspace.ratelimitNamespaces} />
       <LogsClient namespaceId={namespace.id} />
     </div>
   );
