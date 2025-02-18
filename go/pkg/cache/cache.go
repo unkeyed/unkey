@@ -93,7 +93,7 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 
 	e, ok := c.otter.Get(key)
 	if !ok {
-		// This hack is necessary because you can not return nil as T
+		// This hack is necessary because you can not return nil as V
 		var v V
 		return v, Miss
 	}
@@ -111,17 +111,17 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 
 }
 
-func (c *cache[K, T]) SetNull(ctx context.Context, key K) {
+func (c *cache[K, V]) SetNull(ctx context.Context, key K) {
 	c.set(ctx, key)
 }
 
-func (c *cache[K, T]) Set(ctx context.Context, key K, value T) {
+func (c *cache[K, V]) Set(ctx context.Context, key K, value V) {
 	c.set(ctx, key, value)
 }
-func (c *cache[K, T]) set(_ context.Context, key K, value ...T) {
+func (c *cache[K, V]) set(_ context.Context, key K, value ...V) {
 	now := c.clock.Now()
 
-	e := swrEntry[T]{
+	e := swrEntry[V]{
 		Value: value[0],
 		Fresh: now.Add(c.fresh),
 		Stale: now.Add(c.stale),
@@ -137,16 +137,16 @@ func (c *cache[K, T]) set(_ context.Context, key K, value ...T) {
 
 }
 
-func (c *cache[K, T]) Remove(ctx context.Context, key K) {
+func (c *cache[K, V]) Remove(ctx context.Context, key K) {
 
 	c.otter.Delete(key)
 
 }
 
-func (c *cache[K, T]) Dump(ctx context.Context) ([]byte, error) {
-	data := make(map[K]swrEntry[T])
+func (c *cache[K, V]) Dump(ctx context.Context) ([]byte, error) {
+	data := make(map[K]swrEntry[V])
 
-	c.otter.Range(func(key K, entry swrEntry[T]) bool {
+	c.otter.Range(func(key K, entry swrEntry[V]) bool {
 		data[key] = entry
 		return true
 	})
@@ -160,9 +160,9 @@ func (c *cache[K, T]) Dump(ctx context.Context) ([]byte, error) {
 
 }
 
-func (c *cache[K, T]) Restore(ctx context.Context, b []byte) error {
+func (c *cache[K, V]) Restore(ctx context.Context, b []byte) error {
 
-	data := make(map[K]swrEntry[T])
+	data := make(map[K]swrEntry[V])
 	err := json.Unmarshal(b, &data)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal cache data: %w", err)
@@ -179,7 +179,7 @@ func (c *cache[K, T]) Restore(ctx context.Context, b []byte) error {
 	return nil
 }
 
-func (c *cache[K, T]) Clear(ctx context.Context) {
+func (c *cache[K, V]) Clear(ctx context.Context) {
 	c.otter.Clear()
 }
 

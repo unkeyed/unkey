@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -45,7 +44,6 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		svc.Logger.Warn(s.Context(), "request received", slog.String("request", fmt.Sprintf("%+v", req)))
 		namespace, err := getNamespace(s.Context(), svc, auth.AuthorizedWorkspaceID, req)
 		if err != nil {
 			svc.Logger.Warn(s.Context(), "failed to get namespace", slog.String("error", err.Error()))
