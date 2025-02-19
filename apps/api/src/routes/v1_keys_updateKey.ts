@@ -282,7 +282,7 @@ export const registerV1KeysUpdate = (app: App) =>
     const { cache, db, usageLimiter, rbac } = c.get("services");
     const auth = await rootKeyAuth(c);
     const key = await db.primary.query.keys.findFirst({
-      where: (table, { eq }) => eq(table.id, req.keyId),
+      where: (table, { eq, and, isNull }) => and(eq(table.id, req.keyId), isNull(table.deletedAt)),
       with: {
         keyAuth: {
           with: {
