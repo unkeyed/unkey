@@ -43,6 +43,7 @@ export const deleteKeys = t.procedure
 
     await db
       .transaction(async (tx) => {
+        // Update keys
         await tx
           .update(schema.keys)
           .set({ deletedAt: new Date() })
@@ -55,7 +56,9 @@ export const deleteKeys = t.procedure
               ),
             ),
           );
-        insertAuditLogs(
+
+        // Insert audit logs
+        await insertAuditLogs(
           tx,
           ctx.workspace.auditLogBucket.id,
           workspace.keys.map((key) => ({
