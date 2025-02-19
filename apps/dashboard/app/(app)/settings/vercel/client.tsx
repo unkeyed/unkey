@@ -301,11 +301,15 @@ const ConnectedResource: React.FC<{
                     src={props.binding?.updatedBy.image}
                     alt={props.binding?.updatedBy.name}
                   /> */}
-                  {props.binding?.updatedBy.image && 
-                    <AvatarImage src={props.binding?.updatedBy.image} alt={props.binding?.updatedBy.name} />}
-                    <AvatarFallback className="w-6 h-6 lg:w-5 lg:h-5 bg-gray-100 border border-gray-500 rounded-md">
-                      {(props.binding?.updatedBy.name ?? "U").slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
+                  {props.binding?.updatedBy.image && (
+                    <AvatarImage
+                      src={props.binding?.updatedBy.image}
+                      alt={props.binding?.updatedBy.name}
+                    />
+                  )}
+                  <AvatarFallback className="w-6 h-6 lg:w-5 lg:h-5 bg-gray-100 border border-gray-500 rounded-md">
+                    {(props.binding?.updatedBy.name ?? "U").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
