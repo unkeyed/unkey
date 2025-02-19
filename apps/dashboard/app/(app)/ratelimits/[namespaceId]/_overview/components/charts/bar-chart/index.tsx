@@ -177,7 +177,7 @@ export function LogsTimeseriesBarChart({
                       label={label}
                       active={active}
                       bottomExplainer={
-                        <div className="grid gap-1.5 pt-2 border-t border-gray-4">
+                        <div className="grid gap-1.5 pt-2 border-t border-gray-4 select-none">
                           <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
                             <Grid className="text-gray-6" />
                             <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">

@@ -41,42 +41,43 @@ export const NamespaceCard = ({ namespace }: Props) => {
           }}
         />
       </div>
-      <div className="p-6 border-t border-gray-6 flex flex-col gap-1">
-        <div className="flex gap-3 items-center">
-          <ProgressBar className="text-accent-11" />
-          <Link className="text-accent-12 font-semibold" href={`/ratelimits/${namespace.id}`}>
+
+      <Link href={`/ratelimits/${namespace.id}`}>
+        <div className="p-6 border-t border-gray-6 flex flex-col gap-1">
+          <div className="flex gap-3 items-center">
+            <ProgressBar className="text-accent-11" />
             <div className="text-accent-12 font-semibold">{namespace.name}</div>
-          </Link>
-        </div>
-        <div className="flex items-center w-full justify-between gap-10">
-          <div className="flex gap-[14px] items-center">
-            <div className="flex flex-col gap-1">
-              <div className="flex gap-2 items-center">
-                <div className="bg-accent-8 rounded h-[10px] w-1" />
-                <div className="text-accent-12 text-xs font-medium">{passed}</div>
-                <div className="text-accent-9 text-[11px] leading-4">PASSED</div>
+          </div>
+          <div className="flex items-center w-full justify-between gap-10">
+            <div className="flex gap-[14px] items-center">
+              <div className="flex flex-col gap-1">
+                <div className="flex gap-2 items-center">
+                  <div className="bg-accent-8 rounded h-[10px] w-1" />
+                  <div className="text-accent-12 text-xs font-medium">{passed}</div>
+                  <div className="text-accent-9 text-[11px] leading-4">PASSED</div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex gap-2 items-center">
+                  <div className="bg-orange-9 rounded h-[10px] w-1" />
+                  <div className="text-accent-12 text-xs font-medium">{blocked}</div>
+                  <div className="text-accent-9 text-[11px] leading-4">BLOCKED</div>
+                </div>
               </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex gap-2 items-center">
-                <div className="bg-orange-9 rounded h-[10px] w-1" />
-                <div className="text-accent-12 text-xs font-medium">{blocked}</div>
-                <div className="text-accent-9 text-[11px] leading-4">BLOCKED</div>
+            <div className="flex items-center gap-2">
+              <Clock className="text-accent-11" />
+              <div className="text-xs text-accent-9">
+                {lastRatelimit
+                  ? `${ms(Date.now() - lastRatelimit.originalTimestamp, {
+                      long: true,
+                    })} ago`
+                  : "No data"}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Clock className="text-accent-11" />
-            <div className="text-xs text-accent-9">
-              {lastRatelimit
-                ? `${ms(Date.now() - lastRatelimit.originalTimestamp, {
-                    long: true,
-                  })} ago`
-                : "No data"}
-            </div>
-          </div>
         </div>
-      </div>
+      </Link>
     </div>
   );
 };

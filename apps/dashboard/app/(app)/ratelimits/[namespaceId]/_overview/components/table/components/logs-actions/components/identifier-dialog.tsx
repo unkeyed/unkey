@@ -32,7 +32,7 @@ const overrideValidationSchema = z.object({
   identifier: z
     .string()
     .trim()
-    .min(3, "Name is required and should be at least 3 characters")
+    .min(2, "Name is required and should be at least 2 characters")
     .max(250),
   limit: z.coerce
     .number()
@@ -229,7 +229,7 @@ export const IdentifierDialog = ({
             </FormField>
 
             <FormField
-              label="Enabled"
+              label="Override Type"
               tooltip="Override the mode, async is faster but slightly less accurate."
               error={errors.async?.message}
             >
