@@ -3,8 +3,8 @@ import { createWorkspaceNavigation, resourcesNavigation } from "@/app/(app)/work
 import { Feedback } from "@/components/dashboard/feedback-component";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useDelayLoader } from "@/hooks/useDelayLoader";
 import type { Workspace } from "@/lib/db";
-import { useDelayLoader } from "@/lib/hooks/useDelayLoader";
 import { cn } from "@/lib/utils";
 import { Loader2, type LucideIcon } from "lucide-react";
 import Link from "next/link";

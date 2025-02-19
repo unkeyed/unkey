@@ -1,24 +1,24 @@
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { HISTORICAL_DATA_WINDOW } from "../../../constants";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryLogsPayload } from "../query-logs.schema";
 
-// Duration in milliseconds for historical data fetch window (12 hours)
 type UseLogsQueryParams = {
   limit?: number;
   pollIntervalMs?: number;
   startPolling?: boolean;
-  namespaceId?: string;
+  namespaceId: string;
 };
 
+const REALTIME_DATA_LIMIT = 100;
 export function useRatelimitLogsQuery({
   namespaceId,
   limit = 50,
   pollIntervalMs = 5000,
   startPolling = false,
-}: UseLogsQueryParams = {}) {
+}: UseLogsQueryParams) {
   const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, RatelimitLog>());
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, RatelimitLog>());
 
@@ -26,7 +26,7 @@ export function useRatelimitLogsQuery({
   const queryClient = trpc.useUtils();
 
   const realtimeLogs = useMemo(() => {
-    return Array.from(realtimeLogsMap.values());
+    return sortLogs(Array.from(realtimeLogsMap.values()));
   }, [realtimeLogsMap]);
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
@@ -41,7 +41,6 @@ export function useRatelimitLogsQuery({
       requestIds: { filters: [] },
       identifiers: { filters: [] },
       status: { filters: [] },
-      //@ts-expect-error will be fixed later
       namespaceId,
       since: "",
     };
@@ -123,7 +122,6 @@ export function useRatelimitLogsQuery({
   });
 
   // Query for new logs (polling)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: biome wants to everything as dep
   const pollForNewLogs = useCallback(async () => {
     try {
       const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
@@ -150,9 +148,15 @@ export function useRatelimitLogsQuery({
           newMap.set(log.request_id, log);
           added++;
 
-          if (newMap.size > Math.min(limit, 100)) {
-            const oldestKey = Array.from(newMap.keys()).shift()!;
-            newMap.delete(oldestKey);
+          // Remove oldest entries when exceeding the size limit to prevent memory issues
+          // We use min(limit, REALTIME_DATA_LIMIT) to ensure a reasonable upper bound
+          if (newMap.size > Math.min(limit, REALTIME_DATA_LIMIT)) {
+            // Find and remove the entry with the oldest timestamp
+            const entries = Array.from(newMap.entries());
+            const oldestEntry = entries.reduce((oldest, current) => {
+              return oldest[1].time < current[1].time ? oldest : current;
+            });
+            newMap.delete(oldestEntry[0]);
           }
         }
 
@@ -162,7 +166,15 @@ export function useRatelimitLogsQuery({
     } catch (error) {
       console.error("Error polling for new logs:", error);
     }
-  }, [queryParams, queryClient, limit, pollIntervalMs, historicalLogsMap]);
+  }, [
+    queryParams,
+    queryClient,
+    limit,
+    pollIntervalMs,
+    historicalLogsMap,
+    realtimeLogs,
+    historicalLogs,
+  ]);
 
   // Set up polling effect
   useEffect(() => {
@@ -202,3 +214,7 @@ export function useRatelimitLogsQuery({
     isPolling: startPolling,
   };
 }
+
+const sortLogs = (logs: RatelimitLog[]) => {
+  return logs.toSorted((a, b) => b.time - a.time);
+};

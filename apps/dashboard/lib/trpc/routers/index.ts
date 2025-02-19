@@ -29,8 +29,11 @@ import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
+import { searchNamespace } from "./ratelimit/namespace-search";
 import { queryDistinctIdentifiers } from "./ratelimit/query-distinct-identifiers";
+import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
+import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
@@ -113,7 +116,14 @@ export const router = t.router({
       queryRatelimitTimeseries,
       queryDistinctIdentifiers,
     }),
+    overview: t.router({
+      logs: t.router({
+        query: queryRatelimitOverviewLogs,
+        queryRatelimitLatencyTimeseries,
+      }),
+    }),
     namespace: t.router({
+      search: searchNamespace,
       create: createNamespace,
       update: t.router({
         name: updateNamespaceName,

@@ -113,13 +113,18 @@ export function VirtualTable<TTableData>({
             ))}
           </colgroup>
 
-          <thead className="sticky top-0 z-10 bg-background">
+          <thead className="sticky top-0 z-10">
+            <tr>
+              <th colSpan={columns.length} className="p-0">
+                <div className="absolute inset-x-[-8px] top-0 bottom-[0px] bg-gray-1" />
+              </th>
+            </tr>
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
                   className={cn(
-                    "text-sm font-medium text-accent-12 py-1 text-left",
+                    "text-sm font-medium text-accent-12 py-1 text-left relative",
                     column.headerClassName,
                   )}
                 >

@@ -146,7 +146,9 @@ export const RatelimitLogsTable = () => {
         header: "Limit",
         width: "auto",
         render: (log) => {
-          return <div className="font-mono">{safeParseJson(log.response_body).limit}</div>;
+          return (
+            <div className="font-mono">{safeParseJson(log.response_body)?.limit ?? "<Empty>"}</div>
+          );
         },
       },
       {
@@ -154,8 +156,11 @@ export const RatelimitLogsTable = () => {
         header: "Duration",
         width: "auto",
         render: (log) => {
+          const parsedDuration = safeParseJson(log.request_body)?.duration;
           return (
-            <div className="font-mono">{msToSeconds(safeParseJson(log.request_body).duration)}</div>
+            <div className="font-mono">
+              {parsedDuration ? msToSeconds(parsedDuration) : "<Empty>"}
+            </div>
           );
         },
       },

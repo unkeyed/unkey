@@ -1,8 +1,8 @@
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
-import { HISTORICAL_DATA_WINDOW } from "../../../constants";
 import { useFilters } from "../../../hooks/use-filters";
 import type { queryLogsPayload } from "../query-logs.schema";
 
@@ -12,6 +12,8 @@ type UseLogsQueryParams = {
   pollIntervalMs?: number;
   startPolling?: boolean;
 };
+
+const REALTIME_DATA_LIMIT = 100;
 
 export function useLogsQuery({
   limit = 50,
@@ -25,7 +27,7 @@ export function useLogsQuery({
   const queryClient = trpc.useUtils();
 
   const realtimeLogs = useMemo(() => {
-    return Array.from(realtimeLogsMap.values());
+    return sortLogs(Array.from(realtimeLogsMap.values()));
   }, [realtimeLogsMap]);
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
@@ -142,7 +144,6 @@ export function useLogsQuery({
   });
 
   // Query for new logs (polling)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: biome wants to everything as dep
   const pollForNewLogs = useCallback(async () => {
     try {
       const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
@@ -169,19 +170,30 @@ export function useLogsQuery({
           newMap.set(log.request_id, log);
           added++;
 
-          if (newMap.size > Math.min(limit, 100)) {
-            const oldestKey = Array.from(newMap.keys()).shift()!;
-            newMap.delete(oldestKey);
+          // Remove oldest entries when exceeding the size limit `100`
+          if (newMap.size > Math.min(limit, REALTIME_DATA_LIMIT)) {
+            const entries = Array.from(newMap.entries());
+            const oldestEntry = entries.reduce((oldest, current) => {
+              return oldest[1].time < current[1].time ? oldest : current;
+            });
+            newMap.delete(oldestEntry[0]);
           }
         }
 
-        // If nothing was added, return old map to prevent re-render
         return added > 0 ? newMap : prevMap;
       });
     } catch (error) {
       console.error("Error polling for new logs:", error);
     }
-  }, [queryParams, queryClient, limit, pollIntervalMs, historicalLogsMap]);
+  }, [
+    queryParams,
+    queryClient,
+    limit,
+    pollIntervalMs,
+    historicalLogsMap,
+    realtimeLogs,
+    historicalLogs,
+  ]);
 
   // Set up polling effect
   useEffect(() => {
@@ -221,3 +233,7 @@ export function useLogsQuery({
     isPolling: startPolling,
   };
 }
+
+const sortLogs = (logs: Log[]) => {
+  return logs.toSorted((a, b) => b.time - a.time);
+};
