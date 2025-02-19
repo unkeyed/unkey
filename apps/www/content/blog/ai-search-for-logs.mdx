@@ -1,0 +1,229 @@
+---
+date: 2025-01-27
+title: "Building complex UI queries in plain English with AI"
+image: "/images/blog-images/ai-logs/og-image.png"
+description: "Just ask 'Show me logs from yesterday' and AI finds them. No more clicking filters - type what you want, like you're texting a friend. Simple log search that just works."
+author: oz
+tags: ["engineering"]
+---
+
+Imagine this: You're tracking down an issue in your logs. The traditional approach feels like following a recipe - select the request status, choose the method, navigate to the date-time picker, set it to two hours ago, and keep adding more criteria. Click after click, filter after filter.
+
+Now imagine simply typing: "I need requests with GET methods, success status that happened 2 hours ago." That's it. No more menu diving, no more juggling multiple filters - just tell the system what you want, like you're asking a colleague.
+
+## Implementation Journey
+
+When this feature was first discussed, we thought implementation would be challenging. However, if you're already using `zod`, it's surprisingly straightforward. OpenAI provides a `zodResponseFormat` helper to generate structured outputs, making the integration super easy.
+
+### Query Parameter Structure
+
+At the heart of our implementation is a query parameter design that bridges natural language and code. We used a syntax that's both powerful and intuitive:
+
+```bash
+operator:value,operator:value (e.g., "is:200,is:404")
+
+Example -> status=is:200,is:400
+           path=startsWith:foo,endsWith:bar
+```
+
+This pattern allows for incredible flexibility - you can chain multiple conditions while maintaining readability. To handle these parameters in our Unkey dashboard, we implemented a custom parser for [nuqs]("https://nuqs.47ng.com/"):
+
+```typescript
+export const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
+  parse: (str: string | null) => {
+    if (!str) {
+      return [];
+    }
+    try {
+      // Format: operator:value,operator:value (e.g., "is:200,is:404")
+      return str.split(",").map((item) => {
+        const [operator, val] = item.split(/:(.+)/);
+        if (!["is", "contains", "startsWith", "endsWith"].includes(operator)) {
+          throw new Error("Invalid operator");
+        }
+        return {
+          operator: operator as FilterOperator,
+          value: val,
+        };
+      });
+    } catch {
+      return [];
+    }
+  },
+  // In our app we pass a valid type but for brevity it's omitted
+  serialize: (value: any[]) => {
+    if (!value?.length) {
+      return "";
+    }
+    return value.map((v) => `${v.operator}:${v.value}`).join(",");
+  },
+};
+
+export const queryParamsPayload = {
+  requestId: parseAsFilterValueArray,
+  host: parseAsFilterValueArray,
+  methods: parseAsFilterValueArray,
+  paths: parseAsFilterValueArray,
+  status: parseAsFilterValueArray,
+  startTime: parseAsInteger,
+  endTime: parseAsInteger,
+  since: parseAsRelativeTime,
+} as const;
+```
+
+Our parser handles edge cases gracefully - from null inputs to invalid operators - while maintaining a clean, predictable output format. The type-safe payload configuration ensures consistency across different parameter types.
+
+### Defining the Schema
+
+With our parameter structure in place, we needed a way to ensure the AI's responses would map perfectly to our system. Enter Zod - our schema validation powerhouse:
+
+```typescript
+export const filterOutputSchema = z.object({
+  filters: z.array(
+    z.object({
+      field: z.enum([
+        "host",
+        "requestId",
+        "methods",
+        "paths",
+        "status",
+        "startTime",
+        "endTime",
+        "since",
+      ]),
+      filters: z.array(
+        z.object({
+          operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+          value: z.union([z.string(), z.number()]),
+        })
+      ),
+    })
+  ),
+});
+```
+
+This schema acts as a contract between natural language and our application's expectations. It ensures that every AI response will be structured in a way our system can understand and process. The nested array structure allows for complex queries while maintaining strict type safety.
+
+## System Prompt and OpenAI Integration
+
+The magic happens in how we instruct the AI. Our system prompt is carefully crafted to ensure consistent, reliable outputs:
+
+```ts
+You are an expert at converting natural language queries into filters. For queries with multiple conditions, output all relevant filters. We will process them in sequence to build the complete filter. For status codes, always return one for each variant like 200,400 or 500 instead of 200,201, etc... - the application will handle status code grouping internally. Always use this ${usersReferenceMS} timestamp when dealing with time related queries.
+
+Query: "path should start with /api/oz and method should be POST"
+Result: [
+  {
+    "field": "paths",
+    "filters": [
+      {
+        "operator": "startsWith",
+        "value": "/api/oz"
+      }
+    ]
+  },
+  {
+    "field": "methods",
+    "filters": [
+      {
+        "operator": "is",
+        "value": "POST"
+      }
+    ]
+  }
+]
+```
+
+> In our prompt there are lots of examples for each search variation, but in here it's omitted for brevity. For the best result make sure your prompt is as detailed as possible.
+
+### OpenAI Configuration
+
+Tuning the AI's behavior is crucial for reliable results. Here's our optimized configuration:
+
+```typescript
+const completion = await openai.beta.chat.completions.parse({
+  model: "gpt-4o-mini",
+  temperature: 0.2, // Lower temperature for more deterministic outputs
+  top_p: 0.1, // Focus on highest probability tokens
+  frequency_penalty: 0.5, // Maintain natural language variety
+  presence_penalty: 0.5, // Encourage diverse responses
+  n: 1, // Single, confident response
+  messages: [
+    {
+      role: "system",
+      content: systemPrompt,
+    },
+    {
+      role: "user",
+      content: userQuery,
+    },
+  ],
+  response_format: zodResponseFormat(filterOutputSchema, "searchQuery"),
+});
+```
+
+The low `temperature` and `top_p` values ensure predictable outputs, while the penalty parameters help maintain natural-sounding responses.
+
+## Process Flow
+
+Here's how the entire process works:
+
+```bash
+User
+  |
+  | "Show me failed requests from last hour"
+  v
+Frontend
+  |
+  | {query: "show me failed requests from last hour"}
+  v
+tRPC Route
+  |
+  | {model, messages with system prompt, schema}
+  v
+OpenAI
+  |
+  | {structured JSON matching our schema}
+  v
+tRPC Route
+  |
+  | status=is:400,since:1h
+  v
+Frontend
+  |
+  | /logs?status=is:400&since=is:1h
+  v
+URL
+  |
+  | trigger fetch with new params
+  v
+Logs tRPC Query
+  |
+  | return filtered logs
+  v
+Frontend
+  |
+  | display filtered results
+  v
+User
+```
+
+## Important Considerations
+
+Before implementing this feature in your own application, here are some crucial factors to consider:
+
+- Integrating LLMs into your application requires robust error handling. The OpenAI API might experience downtime or rate limiting, so implement fallback mechanisms or meaningful error message to show to user.
+- Each query consumes OpenAI API tokens - More AI search burns more money
+- Implement rate limiting - Without ratelimit users can abuse your AI-powered search
+
+## Conclusion
+
+While traditional filter-based UIs work well, the ability to express search criteria in plain English makes log exploration more intuitive and efficient.
+
+The integration with OpenAI's structured output feature and zod makes the implementation surprisingly straightforward. The key to success lies in:
+
+- Crafting a clear system prompt
+- Defining a robust schema for your use case
+- Implementing proper error handling and fallbacks
+
+Remember that while AI-powered features can enhance your application, they should complement rather than completely replace traditional interfaces. This hybrid approach ensures the best experience for all users while maintaining reliability and accessibility.
