@@ -17,10 +17,21 @@ const formatTimestamp = (value: string | number, granularity: TimeseriesGranular
   switch (granularity) {
     case "perMinute":
       return format(localDate, "HH:mm:ss");
+    case "per5Minutes":
+    case "per15Minutes":
+    case "per30Minutes":
+      return format(localDate, "HH:mm");
     case "perHour":
+    case "per2Hours":
+    case "per4Hours":
+    case "per6Hours":
       return format(localDate, "MMM d, HH:mm");
+    case "per12Hours":
+      return format(localDate, "MMM d, HH:00");
     case "perDay":
       return format(localDate, "MMM d");
+    case "perWeek":
+      return format(localDate, "'Week of' MMM d");
     default:
       return format(localDate, "Pp");
   }

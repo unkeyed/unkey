@@ -4,9 +4,15 @@ import { Client, type Inserter, Noop, type Querier } from "./client";
 import { getLatestVerifications } from "./latest_verifications";
 import {
   getDailyLogsTimeseries,
+  getFifteenMinuteLogsTimeseries,
+  getFiveMinuteLogsTimeseries,
+  getFourHourlyLogsTimeseries,
   getHourlyLogsTimeseries,
   getLogs,
   getMinutelyLogsTimeseries,
+  getSixHourlyLogsTimeseries,
+  getThirtyMinuteLogsTimeseries,
+  getTwoHourlyLogsTimeseries,
 } from "./logs";
 import {
   getRatelimitLastUsed,
@@ -116,7 +122,13 @@ export class ClickHouse {
       logs: getLogs(this.querier),
       timeseries: {
         perMinute: getMinutelyLogsTimeseries(this.querier),
+        per5Minutes: getFiveMinuteLogsTimeseries(this.querier),
+        per15Minutes: getFifteenMinuteLogsTimeseries(this.querier),
+        per30Minutes: getThirtyMinuteLogsTimeseries(this.querier),
         perHour: getHourlyLogsTimeseries(this.querier),
+        per2Hours: getTwoHourlyLogsTimeseries(this.querier),
+        per4Hours: getFourHourlyLogsTimeseries(this.querier),
+        per6Hours: getSixHourlyLogsTimeseries(this.querier),
         perDay: getDailyLogsTimeseries(this.querier),
       },
     };
