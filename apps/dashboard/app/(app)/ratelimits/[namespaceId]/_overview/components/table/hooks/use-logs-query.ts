@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryOverviewLogsPayload } from "../query-logs.schema";
 
-// Duration in milliseconds for historical data fetch window (12 hours)
 type UseLogsQueryParams = {
   limit?: number;
   namespaceId: string;
