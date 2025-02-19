@@ -27,6 +27,24 @@ We have seen a lot of growth in the past 12 months and we want to ensure that we
 
 Firstly we are moving away from "verifications" and moving towards using the "requests", this will make it easier to transition into our new features we rely directly on requests.
 
+#### For reference our current pricing is:
+
+| Free | Pro | Enterprise
+| --- | --- | --- |
+| 2.5k Valid Verifications | 150k Valid Verifications  | XM Valid Verifications |
+| 100k Valid Ratelimits | 2.5M Valid Ratelimits | XM Valid Ratelimits |
+| 7 days Logs | 90 Days Logs | X Days Logs |
+| 30 days Audit | 90 Days Audit | X Days Audit |
+| 1k API keys | 1M API Keys | 1M API Keys |
+| Unlimited APIs| Unlimited APIs | Unlimited APIs |
+| $0 | $25 | $? |
+
+#### Charge for additional requests:
+
+- $1 per 10k
+- $1 per 100k (Ratelimits)
+
+### Proposal for 2025
 When we met in October 2024, we discussed moving to buckets of requests, where a developer can have a certain number of requests per month. This is similar to other SaaS products like `Resend` or `Dub`.
 
 | Free | Pro Tier 1 | Pro Tier 2 | Pro Tier 3 | Pro Tier 4 | Pro Tier 5 | Pro Tier 6 | Enterprise  |
@@ -40,11 +58,11 @@ When we met in October 2024, we discussed moving to buckets of requests, where a
 
 
 
-### What is counted as a successful request?
+#### What is counted as a successful request?
 A successful request means everything is fine and you should grant access to the user. Requests may be unsuccessful due to exceeding limits, keys being expired or disabled, or other factors.
 To protect your business from abuse, we do not charge for unsuccessful requests.
 
-### What happens if I exceed my tier?
+#### What happens if I exceed my tier?
 If you exceed your tier, we will continue to allow traffic to flow and won’t charge you for the additional usage. If you API continues to exceed the tier we will advise you to upgrade to the next tier up.
 
 ## Drawbacks
