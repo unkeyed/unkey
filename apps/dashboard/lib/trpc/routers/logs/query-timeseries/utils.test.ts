@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { HOUR_IN_MS, WEEK_IN_MS } from "./constants";
-import { getTimeseriesGranularity, transformFilters } from "./utils";
+import { HOUR_IN_MS, WEEK_IN_MS } from "../../utils/constants";
+import { getTimeseriesGranularity } from "../../utils/granularity";
+import { transformFilters } from "./utils";
 
 describe("getTimeseriesGranularity", () => {
   const NOW = 1706024400000; // 2024-01-23T12:00:00.000Z

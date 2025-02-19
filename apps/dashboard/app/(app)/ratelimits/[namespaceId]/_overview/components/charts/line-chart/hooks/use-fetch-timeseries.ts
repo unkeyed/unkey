@@ -1,31 +1,9 @@
+import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
+import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
-import type { TimeseriesGranularity } from "@/lib/trpc/routers/ratelimit/query-timeseries/utils";
-import { addMinutes, format } from "date-fns";
 import { useMemo } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { RatelimitOverviewQueryTimeseriesPayload } from "../../bar-chart/query-timeseries.schema";
-
-// Duration in milliseconds for historical data fetch window (1 hours)
-const TIMESERIES_DATA_WINDOW = 60 * 60 * 1000;
-
-const formatTimestamp = (value: string | number, granularity: TimeseriesGranularity) => {
-  const date = new Date(value);
-  const offset = new Date().getTimezoneOffset() * -1;
-  const localDate = addMinutes(date, offset);
-
-  switch (granularity) {
-    case "perMinute":
-      return format(localDate, "HH:mm:ss");
-    case "perHour":
-      return format(localDate, "MMM d, HH:mm");
-    case "perDay":
-      return format(localDate, "MMM d");
-    case "perMonth":
-      return format(localDate, "MMM yyyy");
-    default:
-      return format(localDate, "Pp");
-  }
-};
 
 export const useFetchRatelimitOverviewLatencyTimeseries = (namespaceId: string) => {
   const { filters } = useFilters();
@@ -82,7 +60,7 @@ export const useFetchRatelimitOverviewLatencyTimeseries = (namespaceId: string) 
     });
 
   const timeseries = data?.timeseries.map((ts) => ({
-    displayX: formatTimestamp(ts.x, data.granularity),
+    displayX: formatTimestampForChart(ts.x, data.granularity),
     originalTimestamp: ts.x,
     avgLatency: ts.y.avg_latency,
     p99Latency: ts.y.p99_latency,

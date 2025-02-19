@@ -1,7 +1,7 @@
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { HISTORICAL_DATA_WINDOW } from "../../../constants";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryLogsPayload } from "../query-logs.schema";
 

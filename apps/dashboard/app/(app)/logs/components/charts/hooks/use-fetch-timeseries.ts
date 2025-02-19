@@ -1,41 +1,10 @@
+import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
+import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
-import type { TimeseriesGranularity } from "@/lib/trpc/routers/logs/query-timeseries/utils";
-import { addMinutes, format } from "date-fns";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
 import type { queryTimeseriesPayload } from "../query-timeseries.schema";
-
-// Duration in milliseconds for historical data fetch window (1 hours)
-const TIMESERIES_DATA_WINDOW = 60 * 60 * 1000;
-
-const formatTimestamp = (value: string | number, granularity: TimeseriesGranularity) => {
-  const date = new Date(value);
-  const offset = new Date().getTimezoneOffset() * -1;
-  const localDate = addMinutes(date, offset);
-
-  switch (granularity) {
-    case "perMinute":
-      return format(localDate, "HH:mm:ss");
-    case "per5Minutes":
-    case "per15Minutes":
-    case "per30Minutes":
-      return format(localDate, "HH:mm");
-    case "perHour":
-    case "per2Hours":
-    case "per4Hours":
-    case "per6Hours":
-      return format(localDate, "MMM d, HH:mm");
-    case "per12Hours":
-      return format(localDate, "MMM d, HH:00");
-    case "perDay":
-      return format(localDate, "MMM d");
-    case "perWeek":
-      return format(localDate, "'Week of' MMM d");
-    default:
-      return format(localDate, "Pp");
-  }
-};
 
 export const useFetchTimeseries = () => {
   const { filters } = useFilters();
@@ -126,7 +95,7 @@ export const useFetchTimeseries = () => {
   });
 
   const timeseries = data?.timeseries.map((ts) => ({
-    displayX: formatTimestamp(ts.x, data.granularity),
+    displayX: formatTimestampForChart(ts.x, data.granularity),
     originalTimestamp: ts.x,
     ...ts.y,
   }));

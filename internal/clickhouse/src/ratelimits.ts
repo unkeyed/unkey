@@ -44,50 +44,89 @@ export type RatelimitLogsTimeseriesParams = z.infer<typeof ratelimitLogsTimeseri
 
 type TimeInterval = {
   table: string;
-  timeFunction: string;
   step: string;
+  stepSize: number;
 };
 
 const INTERVALS: Record<string, TimeInterval> = {
   minute: {
     table: "ratelimits.ratelimits_per_minute_v1",
-    timeFunction: "toStartOfMinute",
     step: "MINUTE",
+    stepSize: 1,
+  },
+  fiveMinutes: {
+    table: "ratelimits.ratelimits_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 5,
+  },
+  fifteenMinutes: {
+    table: "ratelimits.ratelimits_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 15,
+  },
+  thirtyMinutes: {
+    table: "ratelimits.ratelimits_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 30,
   },
   hour: {
     table: "ratelimits.ratelimits_per_hour_v1",
-    timeFunction: "toStartOfHour",
     step: "HOUR",
+    stepSize: 1,
+  },
+  twoHours: {
+    table: "ratelimits.ratelimits_per_hour_v1",
+    step: "HOURS",
+    stepSize: 2,
+  },
+  fourHours: {
+    table: "ratelimits.ratelimits_per_hour_v1",
+    step: "HOURS",
+    stepSize: 4,
+  },
+  sixHours: {
+    table: "ratelimits.ratelimits_per_hour_v1",
+    step: "HOURS",
+    stepSize: 6,
   },
   day: {
     table: "ratelimits.ratelimits_per_day_v1",
-    timeFunction: "toStartOfDay",
     step: "DAY",
+    stepSize: 1,
   },
   month: {
     table: "ratelimits.ratelimits_per_month_v1",
-    timeFunction: "toStartOfMonth",
     step: "MONTH",
+    stepSize: 1,
   },
 } as const;
 
 function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
+  // Map step to ClickHouse interval unit
+  const intervalUnit = {
+    MINUTE: "minute",
+    MINUTES: "minute",
+    HOUR: "hour",
+    HOURS: "hour",
+    DAY: "day",
+    MONTH: "month",
+  }[interval.step];
+
   return `
     SELECT
-      time as x,
+      toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) as x,
       map(
         'passed', sum(passed),
         'total', sum(total)
       ) as y
     FROM ${interval.table}
     ${whereClause}
-    GROUP BY time
-    ORDER BY time ASC
+    GROUP BY x
+    ORDER BY x ASC
     WITH FILL
-      FROM ${interval.timeFunction}(fromUnixTimestamp64Milli({startTime: Int64}))
-      TO ${interval.timeFunction}(fromUnixTimestamp64Milli({endTime: Int64}))
-      STEP INTERVAL 1 ${interval.step}
-  `;
+      FROM toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
+      TO toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
+      STEP INTERVAL ${interval.stepSize} ${intervalUnit}`;
 }
 
 function getRatelimitLogsTimeseriesWhereClause(
@@ -152,10 +191,18 @@ function createTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
-export const getRatelimitsPerMinute = createTimeseriesQuerier(INTERVALS.minute);
-export const getRatelimitsPerHour = createTimeseriesQuerier(INTERVALS.hour);
-export const getRatelimitsPerDay = createTimeseriesQuerier(INTERVALS.day);
-export const getRatelimitsPerMonth = createTimeseriesQuerier(INTERVALS.month);
+export const getMinutelyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.minute);
+export const getFiveMinuteRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.fiveMinutes);
+export const getFifteenMinuteRatelimitTimeseries = createTimeseriesQuerier(
+  INTERVALS.fifteenMinutes,
+);
+export const getThirtyMinuteRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.thirtyMinutes);
+export const getHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.hour);
+export const getTwoHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.twoHours);
+export const getFourHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.fourHours);
+export const getSixHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.sixHours);
+export const getDailyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.day);
+export const getMonthlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.month);
 
 const getRatelimitLastUsedParameters = z.object({
   workspaceId: z.string(),
@@ -541,31 +588,64 @@ export type RatelimitLatencyTimeseriesDataPoint = z.infer<
 >;
 export type RatelimitLatencyTimeseriesParams = z.infer<typeof ratelimitLatencyTimeseriesParams>;
 
-type LatencyTimeInterval = {
-  table: string;
-  timeFunction: string;
-  step: string;
-};
-
-const LATENCY_INTERVALS: Record<string, LatencyTimeInterval> = {
-  day: {
-    table: "ratelimits.ratelimits_identifier_latency_stats_per_day_v1",
-    timeFunction: "toStartOfDay",
-    step: "DAY",
-  },
+const LATENCY_INTERVALS: Record<string, TimeInterval> = {
   minute: {
     table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
-    timeFunction: "toStartOfMinute",
     step: "MINUTE",
+    stepSize: 1,
+  },
+  fiveMinutes: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 5,
+  },
+  fifteenMinutes: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 15,
+  },
+  thirtyMinutes: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 30,
   },
   hour: {
     table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
-    timeFunction: "toStartOfHour",
     step: "HOUR",
+    stepSize: 1,
+  },
+  twoHours: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    step: "HOURS",
+    stepSize: 2,
+  },
+  fourHours: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    step: "HOURS",
+    stepSize: 4,
+  },
+  sixHours: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    step: "HOURS",
+    stepSize: 6,
+  },
+  day: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_day_v1",
+    step: "DAY",
+    stepSize: 1,
   },
 } as const;
 
-function createLatencyTimeseriesQuery(interval: LatencyTimeInterval, whereClause: string) {
+function createLatencyTimeseriesQuery(interval: TimeInterval, whereClause: string) {
+  // Map step to ClickHouse interval unit
+  const intervalUnit = {
+    MINUTE: "minute",
+    MINUTES: "minute",
+    HOUR: "hour",
+    HOURS: "hour",
+    DAY: "day",
+  }[interval.step];
+
   return `
     WITH filtered_data AS (
       SELECT
@@ -578,23 +658,23 @@ function createLatencyTimeseriesQuery(interval: LatencyTimeInterval, whereClause
       FROM ${interval.table}
       WHERE workspace_id = {workspaceId: String}
         AND namespace_id = {namespaceId: String}
-        AND time >= ${interval.timeFunction}(fromUnixTimestamp64Milli({startTime: Int64}))
-        AND time <= ${interval.timeFunction}(fromUnixTimestamp64Milli({endTime: Int64}))
+        AND time >= toStartOfInterval(fromUnixTimestamp64Milli({startTime: Int64}), INTERVAL ${interval.stepSize} ${intervalUnit})
+        AND time <= toStartOfInterval(fromUnixTimestamp64Milli({endTime: Int64}), INTERVAL ${interval.stepSize} ${intervalUnit})
         ${whereClause}
     )
     SELECT
-      time as x,
+      toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) as x,
       map(
         'avg_latency', round(toFloat64(avgMerge(avg_latency))),
         'p99_latency', round(toFloat64(quantileMerge(0.99)(p99_latency)))
       ) as y
     FROM filtered_data
-    GROUP BY time
-    ORDER BY time ASC
+    GROUP BY x
+    ORDER BY x ASC
     WITH FILL
-      FROM ${interval.timeFunction}(fromUnixTimestamp64Milli({startTime: Int64}))
-      TO ${interval.timeFunction}(fromUnixTimestamp64Milli({endTime: Int64}))
-      STEP INTERVAL 1 ${interval.step}
+      FROM toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
+      TO toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
+      STEP INTERVAL ${interval.stepSize} ${intervalUnit}
   `;
 }
 
@@ -627,7 +707,7 @@ function getRatelimitLatencyTimeseriesWhereClause(params: RatelimitLatencyTimese
   };
 }
 
-function createLatencyTimeseriesQuerier(interval: LatencyTimeInterval) {
+function createLatencyTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: RatelimitLatencyTimeseriesParams) => {
     const { whereClause, paramSchema } = getRatelimitLatencyTimeseriesWhereClause(args);
 
@@ -651,12 +731,26 @@ function createLatencyTimeseriesQuerier(interval: LatencyTimeInterval) {
   };
 }
 
-export const getRatelimitLatencyTimeseriesPerDay = createLatencyTimeseriesQuerier(
-  LATENCY_INTERVALS.day,
-);
-export const getRatelimitLatencyTimeseriesPerHour = createLatencyTimeseriesQuerier(
-  LATENCY_INTERVALS.hour,
-);
-export const getRatelimitLatencyTimeseriesPerMinute = createLatencyTimeseriesQuerier(
+export const getMinutelyLatencyTimeseries = createLatencyTimeseriesQuerier(
   LATENCY_INTERVALS.minute,
 );
+export const getFiveMinuteLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.fiveMinutes,
+);
+export const getFifteenMinuteLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.fifteenMinutes,
+);
+export const getThirtyMinuteLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.thirtyMinutes,
+);
+export const getHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(LATENCY_INTERVALS.hour);
+export const getTwoHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.twoHours,
+);
+export const getFourHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.fourHours,
+);
+export const getSixHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.sixHours,
+);
+export const getDailyLatencyTimeseries = createLatencyTimeseriesQuerier(LATENCY_INTERVALS.day);

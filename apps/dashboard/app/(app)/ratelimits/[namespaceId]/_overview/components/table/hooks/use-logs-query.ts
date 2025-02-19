@@ -1,4 +1,4 @@
-import { HISTORICAL_DATA_WINDOW } from "@/app/(app)/logs/constants";
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { useEffect, useMemo, useState } from "react";

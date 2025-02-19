@@ -1,8 +1,8 @@
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
-import { HISTORICAL_DATA_WINDOW } from "../../../constants";
 import { useFilters } from "../../../hooks/use-filters";
 import type { queryLogsPayload } from "../query-logs.schema";
 
