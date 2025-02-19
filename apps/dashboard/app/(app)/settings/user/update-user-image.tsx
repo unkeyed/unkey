@@ -1,4 +1,11 @@
 "use client";
+
+/**
+ * TODO: Remove or rework
+ * WorkOS doesn't allow changing of user images.
+ * Avatar Url is derived from Github profile or Google profile
+ */
+
 import type React from "react";
 import { type ChangeEvent, useCallback, useEffect, useState } from "react";
 

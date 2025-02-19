@@ -21,7 +21,6 @@ import { navigation } from "./constants";
 import { Filters, type Interval } from "./filters";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 const intervalParser = parseAsStringEnum(["60m", "24h", "7d", "30d", "90d"]).withDefault("7d");
 
@@ -32,7 +31,7 @@ export default async function RatelimitNamespacePage(props: {
     identifier?: string;
   };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
     where: (table, { eq, and, isNull }) =>

@@ -1,15 +1,15 @@
 import type { inferAsyncReturnType } from "@trpc/server";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 
-import { getAuth } from "@clerk/nextjs/server";
+import { getAuth } from "@/lib/auth/get-auth";
 import { newId } from "@unkey/id";
 import { type AuditLogBucket, type Workspace, db, schema } from "../db";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
-  const { userId, orgId, orgRole } = getAuth(req as any);
+  const { userId, orgId, orgRole } = await getAuth(req as any);
 
   let ws: (Workspace & { auditLogBucket: AuditLogBucket }) | undefined;
-  const tenantId = orgId ?? userId;
+  const tenantId = orgId;
   if (tenantId) {
     await db.transaction(async (tx) => {
       const res = await tx.query.workspaces.findFirst({
@@ -59,12 +59,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
             id: orgId,
             role: orgRole,
           }
-        : userId
-          ? {
-              id: userId,
-              role: "owner",
-            }
-          : null,
+        : null,
   };
 }
 

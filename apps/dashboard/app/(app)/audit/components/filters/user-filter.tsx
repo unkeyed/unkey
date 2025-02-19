@@ -1,6 +1,6 @@
 "use server";
 
-import { clerkClient } from "@clerk/nextjs/server";
+import { useOrganization } from "@/lib/auth/hooks/useOrganization";
 import { Filter } from "./filter";
 
 export const UserFilter: React.FC<{ tenantId: string }> = async ({ tenantId }) => {
@@ -8,23 +8,16 @@ export const UserFilter: React.FC<{ tenantId: string }> = async ({ tenantId }) =
     return null;
   }
 
-  const members = await clerkClient.organizations.getOrganizationMembershipList({
-    organizationId: tenantId,
-  });
+  const { memberships: members } = useOrganization();
 
   return (
     <Filter
       param="users"
       title="Users"
-      options={members
-        .filter((m) => Boolean(m.publicUserData))
-        .map((m) => ({
-          label:
-            m.publicUserData!.firstName && m.publicUserData!.lastName
-              ? `${m.publicUserData!.firstName} ${m.publicUserData!.lastName}`
-              : m.publicUserData!.identifier,
-          value: m.publicUserData!.userId,
-        }))}
+      options={members.map((m) => ({
+        label: m.user.fullName ? m.user.fullName : m.user.email,
+        value: m.user.id,
+      }))}
     />
   );
 };
