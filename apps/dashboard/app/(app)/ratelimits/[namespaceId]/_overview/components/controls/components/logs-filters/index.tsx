@@ -1,22 +1,55 @@
-import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
+import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
+
+import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { ratelimitOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 
-const FILTER_ITEMS: FilterItemConfig[] = [
-  {
-    id: "identifiers",
-    label: "Identifier",
-    shortcut: "p",
-    component: <div>Hello there!</div>,
-  },
-];
-
 export const LogsFilters = () => {
-  const { filters } = useFilters();
+  const { filters, updateFilters } = useFilters();
+
+  const identifierOperators = ratelimitOverviewFilterFieldConfig.identifiers.operators;
+  const options = identifierOperators.map((op) => ({
+    id: op,
+    label: op,
+  }));
+
+  const activeIdentifierFilter = filters.find((f) => f.field === "identifiers");
   return (
-    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters}>
+    <FiltersPopover
+      items={[
+        {
+          id: "identifiers",
+          label: "Identifier",
+          shortcut: "p",
+          component: (
+            <FilterOperatorInput
+              label="Identifier"
+              options={options}
+              defaultOption={activeIdentifierFilter?.operator}
+              defaultText={activeIdentifierFilter?.value as string}
+              onApply={(id, text) => {
+                const activeFiltersWithoutIdentifiers = filters.filter(
+                  (f) => f.field !== "identifiers",
+                );
+                updateFilters([
+                  ...activeFiltersWithoutIdentifiers,
+                  {
+                    field: "identifiers",
+                    id: crypto.randomUUID(),
+                    operator: id,
+                    value: text,
+                  },
+                ]);
+              }}
+            />
+          ),
+        },
+      ]}
+      activeFilters={filters}
+    >
       <div className="group">
         <Button
           variant="ghost"

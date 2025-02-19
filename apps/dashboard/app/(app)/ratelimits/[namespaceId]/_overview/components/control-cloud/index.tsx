@@ -1,4 +1,4 @@
-import { HISTORICAL_DATA_WINDOW } from "@/app/(app)/logs/constants";
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { ControlCloud } from "@/components/logs/control-cloud";
 import { useFilters } from "../../hooks/use-filters";
 

@@ -169,16 +169,19 @@ export const RatelimitLogsTable = () => {
         header: "Resets At",
         width: "auto",
         render: (log) => {
-          return (
+          const parsedReset = safeParseJson(log.response_body)?.reset;
+          return parsedReset ? (
             <div className="font-mono">
               <TimestampInfo
-                value={safeParseJson(log.response_body).reset}
+                value={safeParseJson(log.response_body)?.reset ?? "<Empty>"}
                 className={cn(
                   "font-mono group-hover:underline decoration-dotted",
                   selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
                 )}
               />
             </div>
+          ) : (
+            "<Empty>"
           );
         },
       },
