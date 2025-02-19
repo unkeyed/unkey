@@ -32,7 +32,6 @@ import { useState } from "react";
 import { navigation } from "../constants";
 import { InviteButton } from "./invite";
 
-
 export function TeamPageClient() {
   const { membership } = useUser();
   const isAdmin = membership?.role === "admin";
