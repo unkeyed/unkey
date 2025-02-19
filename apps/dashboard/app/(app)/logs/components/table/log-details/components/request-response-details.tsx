@@ -65,14 +65,16 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
       // biome-ignore lint/a11y/useKeyWithClickEvents: no need
       <div
         className={cn(
-          "flex w-full justify-between border-border border-solid pr-3 py-[10px] items-center cursor-pointer",
+          "flex w-full justify-between border-border border-solid pr-3 py-3 items-center cursor-pointer",
           "border-b",
           field.className,
         )}
         onClick={!field.skipTooltip ? () => handleClick(field) : undefined}
       >
-        <span className="text-sm text-content/65 pl-3">{field.label}</span>
-        {field.description(field.content as NonNullable<T[number]>)}
+        <span className="text-accent-9 text-[13px]">{field.label}</span>
+        <span className="text-accent-12 text-right w-3/4">
+          {field.description(field.content as NonNullable<T[number]>)}
+        </span>
       </div>
     );
 
@@ -84,7 +86,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
       <TooltipProvider key={`${field.label}-${index}`}>
         <Tooltip>
           <TooltipTrigger asChild>{baseContent}</TooltipTrigger>
-          <TooltipContent side="left">{field.tooltipContent}</TooltipContent>
+          <TooltipContent side="bottom">{field.tooltipContent}</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     );

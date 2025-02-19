@@ -1,15 +1,29 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strconv"
 	"syscall"
+	"time"
 
+	"github.com/unkeyed/unkey/go/cmd/api/routes"
+	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/config"
+	"github.com/unkeyed/unkey/go/pkg/database"
+	dbCache "github.com/unkeyed/unkey/go/pkg/database/middleware/cache"
+	"github.com/unkeyed/unkey/go/pkg/discovery"
 	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/membership"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -18,7 +32,8 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name: "api",
+	Name:        "api",
+	Description: "Run the API server",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:        "config",
@@ -26,14 +41,34 @@ var Cmd = &cli.Command{
 			Usage:       "Load configuration file",
 			Value:       "unkey.json",
 			DefaultText: "unkey.json",
-			EnvVars:     []string{"AGENT_CONFIG_FILE"},
+			EnvVars:     []string{"UNKEY_CONFIG_FILE"},
+		},
+		&cli.BoolFlag{
+			Name: "generate-config-schema",
 		},
 	},
 	Action: run,
 }
 
-func run(c *cli.Context) error {
-	configFile := c.String("config")
+// nolint:gocognit
+func run(cliC *cli.Context) error {
+
+	shutdowns := []func(ctx context.Context) error{}
+
+	if cliC.Bool("generate-config-schema") {
+		// nolint:exhaustruct
+		_, err := config.GenerateJsonSchema(nodeConfig{}, "schema.json")
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("Schema generated successfully and written to schema.json")
+
+		return nil
+	}
+	ctx := cliC.Context
+	clk := clock.New()
+	configFile := cliC.String("config")
 
 	// nolint:exhaustruct
 	cfg := nodeConfig{}
@@ -42,37 +77,69 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("unable to load config file: %w", err)
 	}
 
-	if cfg.NodeId == "" {
-		cfg.NodeId = uid.Node()
+	nodeID := uid.Node()
+	if cfg.Cluster != nil {
+		if cfg.Cluster.NodeID == "" {
+			cfg.Cluster.NodeID = nodeID
+		} else {
+			nodeID = cfg.Cluster.NodeID
+		}
 	}
 
 	if cfg.Region == "" {
 		cfg.Region = "unknown"
 	}
-	logger := logging.New(logging.Config{Development: true, NoColor: false})
-	logger = logger.With(
-		slog.String("nodeId", cfg.NodeId),
-		slog.String("platform", cfg.Platform),
-		slog.String("region", cfg.Region),
-		slog.String("version", version.Version),
-	)
-
+	logger := logging.New(logging.Config{Development: true, NoColor: true}).
+		With(
+			slog.String("nodeId", nodeID),
+			slog.String("platform", cfg.Platform),
+			slog.String("region", cfg.Region),
+			slog.String("version", version.Version),
+		)
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Error(c.Context, "panic",
+			logger.Error(ctx, "panic",
 				slog.Any("panic", r),
 				slog.String("stack", string(debug.Stack())),
 			)
 		}
 	}()
 
-	logger.Info(c.Context, "configration loaded", slog.String("file", configFile))
+	logger.Info(ctx, "configration loaded", slog.String("file", configFile))
+
+	db, err := database.New(database.Config{
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Logger:      logger,
+		Clock:       clock.New(),
+	}, dbCache.WithCaching(logger))
+	if err != nil {
+		return fmt.Errorf("unable to create db: %w", err)
+	}
+
+	defer db.Close()
+
+	c, shutdownCluster, err := setupCluster(cfg, logger)
+	if err != nil {
+		return fmt.Errorf("unable to create cluster: %w", err)
+	}
+	shutdowns = append(shutdowns, shutdownCluster...)
+
+	var ch clickhouse.Bufferer = clickhouse.NewNoop()
+	if cfg.Clickhouse != nil {
+		ch, err = clickhouse.New(clickhouse.Config{
+			URL:    cfg.Clickhouse.Url,
+			Logger: logger,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create clickhouse: %w", err)
+		}
+	}
 
 	srv, err := zen.New(zen.Config{
-		NodeId:     cfg.NodeId,
-		Logger:     logger,
-		Clickhouse: nil,
+		NodeID: nodeID,
+		Logger: logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
@@ -83,34 +150,143 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
 
-	srv.SetGlobalMiddleware(
-		// metrics should always run first, so it can capture the latency of the entire request
-		zen.WithMetrics(nil),
-		zen.WithLogging(logger),
-		zen.WithErrorHandling(),
-		zen.WithValidation(validator),
-	)
+	keySvc, err := keys.New(keys.Config{
+		Logger: logger,
+		DB:     db,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create key service: %w", err)
+	}
+
+	rlSvc, err := ratelimit.New(ratelimit.Config{
+		Logger:  logger,
+		Cluster: c,
+		Clock:   clk,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create ratelimit service: %w", err)
+	}
+
+	routes.Register(srv, &routes.Services{
+		Logger:      logger,
+		Database:    db,
+		EventBuffer: ch,
+		Keys:        keySvc,
+		Validator:   validator,
+		Ratelimit:   rlSvc,
+	})
 
 	go func() {
-		listenErr := srv.Listen(c.Context, fmt.Sprintf(":%s", cfg.Port))
+		listenErr := srv.Listen(ctx, fmt.Sprintf(":%d", cfg.HttpPort))
 		if listenErr != nil {
 			panic(listenErr)
 		}
 	}()
 
+	return gracefulShutdown(ctx, logger, shutdowns)
+}
+
+func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns []func(ctx context.Context) error) error {
 	cShutdown := make(chan os.Signal, 1)
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
 
 	<-cShutdown
-	logger.Info(c.Context, "shutting down")
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	logger.Info(ctx, "shutting down")
 
+	errors := []error{}
+	for i := len(shutdowns) - 1; i >= 0; i-- {
+		err := shutdowns[i](ctx)
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("errors occurred during shutdown: %v", errors)
+	}
 	return nil
 }
 
-func init() {
-	// nolint:exhaustruct
-	_, err := config.GenerateJsonSchema(nodeConfig{}, "schema.json")
-	if err != nil {
-		panic(err)
+func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, []func(ctx context.Context) error, error) {
+	if cfg.Cluster == nil {
+		return cluster.NewNoop("", net.ParseIP("127.0.0.1")), []func(ctx context.Context) error{}, nil
 	}
+
+	shutdowns := []func(ctx context.Context) error{}
+
+	gossipPort, err := strconv.ParseInt(cfg.Cluster.GossipPort, 10, 64)
+	if err != nil {
+		return nil, shutdowns, fmt.Errorf("unable to parse gossip port: %w", err)
+	}
+
+	m, err := membership.New(membership.Config{
+		NodeID:     cfg.Cluster.NodeID,
+		Addr:       net.ParseIP(""),
+		GossipPort: int(gossipPort),
+		Logger:     logger,
+	})
+	if err != nil {
+		return nil, shutdowns, fmt.Errorf("unable to create membership: %w", err)
+	}
+
+	rpcPort, err := strconv.ParseInt(cfg.Cluster.RpcPort, 10, 64)
+	if err != nil {
+		return nil, shutdowns, fmt.Errorf("unable to parse rpc port: %w", err)
+	}
+	c, err := cluster.New(cluster.Config{
+		Self: cluster.Node{
+
+			ID:      cfg.Cluster.NodeID,
+			Addr:    net.ParseIP(cfg.Cluster.AdvertiseAddr),
+			RpcAddr: "TO DO",
+		},
+		Logger:     logger,
+		Membership: m,
+		RpcPort:    int(rpcPort),
+	})
+	if err != nil {
+		return nil, shutdowns, fmt.Errorf("unable to create cluster: %w", err)
+	}
+	shutdowns = append(shutdowns, c.Shutdown)
+
+	var d discovery.Discoverer
+
+	switch {
+	case cfg.Cluster.Discovery.Static != nil:
+		{
+			d = &discovery.Static{
+				Addrs: cfg.Cluster.Discovery.Static.Addrs,
+			}
+			break
+		}
+
+	case cfg.Cluster.Discovery.Redis != nil:
+		{
+			rd, rErr := discovery.NewRedis(discovery.RedisConfig{
+				URL:    cfg.Cluster.Discovery.Redis.URL,
+				NodeID: cfg.Cluster.NodeID,
+				Addr:   cfg.Cluster.AdvertiseAddr,
+				Logger: logger,
+			})
+			if rErr != nil {
+				return nil, shutdowns, fmt.Errorf("unable to create redis discovery: %w", rErr)
+			}
+			shutdowns = append(shutdowns, rd.Shutdown)
+			d = rd
+			break
+		}
+	default:
+		{
+			return nil, nil, fmt.Errorf("missing discovery method")
+		}
+	}
+
+	err = m.Start(d)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to start membership: %w", err)
+	}
+
+	return c, shutdowns, nil
 }

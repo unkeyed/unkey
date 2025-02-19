@@ -12,41 +12,13 @@ export const optWorkspaceIntoBeta = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable opt you in to this beta feature. Please try again or contact support@unkey.dev",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Workspace not found, Please try again or contact support@unkey.dev.",
-      });
-    }
-
     switch (input.feature) {
       case "rbac": {
-        workspace.betaFeatures.rbac = true;
+        ctx.workspace.betaFeatures.rbac = true;
         break;
       }
       case "identities": {
-        workspace.betaFeatures.identities = true;
-        break;
-      }
-      case "ratelimit": {
-        workspace.betaFeatures.ratelimit = true;
-        break;
-      }
-      case "logsPage": {
-        workspace.betaFeatures.logsPage = true;
+        ctx.workspace.betaFeatures.identities = true;
         break;
       }
     }
@@ -55,18 +27,18 @@ export const optWorkspaceIntoBeta = t.procedure
         await tx
           .update(schema.workspaces)
           .set({
-            betaFeatures: workspace.betaFeatures,
+            betaFeatures: ctx.workspace.betaFeatures,
           })
-          .where(eq(schema.workspaces.id, workspace.id));
-        await insertAuditLogs(tx, {
-          workspaceId: workspace.id,
+          .where(eq(schema.workspaces.id, ctx.workspace.id));
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "workspace.opt_in",
-          description: `Opted ${workspace.id} into beta: ${input.feature}`,
+          description: `Opted ${ctx.workspace.id} into beta: ${input.feature}`,
           resources: [
             {
               type: "workspace",
-              id: workspace.id,
+              id: ctx.workspace.id,
             },
           ],
           context: {

@@ -1,7 +1,7 @@
 package clickhouse
 
 import (
-	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 )
 
 type Bufferer interface {

@@ -4,11 +4,15 @@ import { getTenantId } from "@/lib/auth";
 import { router } from "@/lib/trpc/routers";
 import { auth } from "@clerk/nextjs";
 import { createCallerFactory } from "@trpc/server";
+import type { AuditLogBucket, Workspace } from "@unkey/db";
 import { Button } from "@unkey/ui";
 import { GlobeLock } from "lucide-react";
 import Link from "next/link";
 
-export const CreateRatelimit: React.FC = async () => {
+type Props = {
+  workspace: Workspace & { auditLogBucket: AuditLogBucket };
+};
+export const CreateRatelimit: React.FC<Props> = async (props) => {
   const { sessionClaims, userId } = auth();
   if (!userId) {
     return null;
@@ -20,6 +24,7 @@ export const CreateRatelimit: React.FC = async () => {
     user: {
       id: userId,
     },
+    workspace: props.workspace,
     tenant: {
       id: tenantId,
       role: "",
@@ -28,10 +33,6 @@ export const CreateRatelimit: React.FC = async () => {
       location: "",
       userAgent: "",
     },
-  });
-
-  await trpc.workspace.optIntoBeta({
-    feature: "ratelimit",
   });
 
   const rootKey = await trpc.rootKey.create({

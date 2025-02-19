@@ -26,26 +26,6 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
   .query(async ({ ctx, input }) => {
     const { bucketName, events, users, rootKeys, cursor, limit, endTime, startTime } = input;
 
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Failed to retrieve workspace logs due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
-      });
-    }
-
     const selectedActorIds = [...rootKeys, ...users];
 
     const result = await queryAuditLogs(
@@ -58,7 +38,7 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
         events,
         limit,
       },
-      workspace,
+      ctx.workspace,
     );
 
     if (!result) {

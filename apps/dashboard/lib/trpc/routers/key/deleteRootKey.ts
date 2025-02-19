@@ -12,32 +12,11 @@ export const deleteRootKeys = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to delete this root key. Please try again or contact support@unkey.dev.",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
-
     const rootKeys = await db.query.keys.findMany({
       where: (table, { eq, inArray, isNull, and }) =>
         and(
           eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
-          eq(table.forWorkspaceId, workspace.id),
+          eq(table.forWorkspaceId, ctx.workspace.id),
           inArray(table.id, input.keyIds),
           isNull(table.deletedAt),
         ),
@@ -58,8 +37,9 @@ export const deleteRootKeys = t.procedure
           );
         await insertAuditLogs(
           tx,
+          ctx.workspace.auditLogBucket.id,
           rootKeys.map((key) => ({
-            workspaceId: workspace.id,
+            workspaceId: ctx.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "key.delete",
             description: `Deleted ${key.id}`,

@@ -12,33 +12,12 @@ export const removePermissionFromRootKey = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to remove permission from the root key. Please try again or contact support@unkey.dev",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
-
     await db
       .transaction(async (tx) => {
         const key = await tx.query.keys.findFirst({
           where: (table, { and, eq, isNull }) =>
             and(
-              eq(schema.keys.forWorkspaceId, workspace.id),
+              eq(schema.keys.forWorkspaceId, ctx.workspace.id),
               eq(schema.keys.id, input.rootKeyId),
               isNull(table.deletedAt),
             ),
@@ -77,8 +56,8 @@ export const removePermissionFromRootKey = t.procedure
               eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
             ),
           );
-        await insertAuditLogs(tx, {
-          workspaceId: workspace.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "authorization.disconnect_permission_and_key",
           description: `Disconnect ${input.permissionName} from ${input.rootKeyId}`,

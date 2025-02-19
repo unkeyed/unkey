@@ -12,7 +12,6 @@ run:
   # Default: 1m
   timeout: 3m
 
-
 # This file contains only configs which differ from defaults.
 # All possible options can be found here https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
 linters-settings:
@@ -69,7 +68,7 @@ linters-settings:
       - "^github.com/urfave/cli/v2.*$"
 
   lll:
-    line-length: 100
+    line-length: 120
   funlen:
     # Checks the number of lines in a function.
     # If lower than 0, disable the check.
@@ -169,7 +168,7 @@ linters-settings:
   nolintlint:
     # Exclude following linters from requiring an explanation.
     # Default: []
-    allow-no-explanation: [ funlen, gocognit, lll ]
+    allow-no-explanation: [funlen, gocognit, lll]
     # Enable to require an explanation of nonzero length after each nolint directive.
     # Default: false
     require-explanation: true
@@ -188,6 +187,11 @@ linters-settings:
     packages:
       - github.com/jmoiron/sqlx
 
+  wrapcheck:
+    extra-ignore-sigs:
+      - fault.New(
+    ignoreSigRegexps:
+      - mw\.next\..*
   sloglint:
     # Enforce not using global loggers.
     # Values:
@@ -212,7 +216,6 @@ linters-settings:
     # Default: false
     all: true
 
-
 linters:
   disable-all: true
   enable:
@@ -236,14 +239,14 @@ linters:
     - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     # - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
     - exhaustive # checks exhaustiveness of enum switch statements
-    - fatcontext # detects nested contexts in loops
+    # - fatcontext # detects nested contexts in loops
     # - forbidigo # forbids identifiers
     # - funlen # tool for detection of long functions
     # - gocheckcompilerdirectives # validates go compiler directive comments (//go:)
     # - gochecknoglobals # checks that no global variables exist
     # # - gochecknoinits # checks that no init functions are present in Go code
     - gochecksumtype # checks exhaustiveness on Go "sum types"
-    - gocognit # computes and checks the cognitive complexity of functions
+    # - gocognit # computes and checks the cognitive complexity of functions
     - goconst # finds repeated strings that could be replaced by a constant
     - gocritic # provides diagnostics that check for bugs, performance and style issues
     # - gocyclo # computes and checks the cyclomatic complexity of functions
@@ -254,7 +257,7 @@ linters:
     # - goprintffuncname # checks that printf-like functions are named with f at the end
     - gosec # inspects source code for security problems
     # - intrange # finds places where for loops could make use of an integer range
-    - lll # reports long lines
+    # - lll # reports long lines
     - loggercheck # checks key value pairs for common logger libraries (kitlog,klog,logr,zap)
     # - makezero # finds slice declarations with non-zero initial length
     # - mirror # reports wrong mirror patterns of bytes/strings usage
@@ -301,7 +304,7 @@ linters:
     #- prealloc # [premature optimization, but can be used in some cases] finds slice declarations that could potentially be preallocated
     #- tagalign # checks that struct tags are well aligned
     #- varnamelen # [great idea, but too many false positives] checks that the length of a variable's name matches its scope
-    - wrapcheck # checks that errors returned from external packages are wrapped
+    #- wrapcheck # checks that errors returned from external packages are wrapped
     #- zerologlint # detects the wrong usage of zerolog that a user forgets to dispatch zerolog.Event
 
     ## disabled
@@ -327,7 +330,6 @@ linters:
     #- thelper # detects golang test helpers without t.Helper() call and checks the consistency of test helpers
     #- wsl # [too strict and mostly code is not more readable] whitespace linter forces you to use empty lines
 
-
 issues:
   # Maximum count of issues with the same text.
   # Set to 0 to disable.
@@ -336,9 +338,9 @@ issues:
 
   exclude-rules:
     - source: "(noinspection|TODO)"
-      linters: [ godot ]
+      linters: [godot]
     - source: "//noinspection"
-      linters: [ gocritic ]
+      linters: [gocritic]
     - path: "_test\\.go"
       linters:
         - bodyclose

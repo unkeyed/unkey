@@ -35,19 +35,40 @@ const useDateTimeContext = () => {
   return context;
 };
 
-// Root Component
 type DateTimeRootProps = {
   children: React.ReactNode;
   className?: string;
   minDate?: Date;
   maxDate?: Date;
+  initialRange?: DateRange;
   onChange: (date?: DateRange, start?: TimeUnit, end?: TimeUnit) => void;
 };
 
-function DateTime({ children, className, onChange }: DateTimeRootProps) {
-  const [date, setDate] = useState<DateRange>();
-  const [startTime, setStartTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
-  const [endTime, setEndTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
+function DateTime({ children, className, onChange, initialRange }: DateTimeRootProps) {
+  const [date, setDate] = useState<DateRange | undefined>(initialRange);
+
+  // Initialize time states based on initialRange dates if provided
+  const [startTime, setStartTime] = useState<TimeUnit>(() => {
+    if (initialRange?.from) {
+      return {
+        HH: initialRange.from.getHours().toString().padStart(2, "0"),
+        mm: initialRange.from.getMinutes().toString().padStart(2, "0"),
+        ss: initialRange.from.getSeconds().toString().padStart(2, "0"),
+      };
+    }
+    return { HH: "00", mm: "00", ss: "00" };
+  });
+
+  const [endTime, setEndTime] = useState<TimeUnit>(() => {
+    if (initialRange?.to) {
+      return {
+        HH: initialRange.to.getHours().toString().padStart(2, "0"),
+        mm: initialRange.to.getMinutes().toString().padStart(2, "0"),
+        ss: initialRange.to.getSeconds().toString().padStart(2, "0"),
+      };
+    }
+    return { HH: "23", mm: "59", ss: "59" };
+  });
 
   const handleDateChange = (newRange: DateRange) => {
     setDate(newRange);
@@ -65,27 +86,26 @@ function DateTime({ children, className, onChange }: DateTimeRootProps) {
   };
 
   return (
-    <div className={`flex flex-col justify-center items-center w-fit gap-3 ${className}`}>
-      <DateTimeContext.Provider
-        value={{
-          date,
-          startTime,
-          endTime,
-          onDateChange: handleDateChange,
-          onStartTimeChange: handleStartTimeChange,
-          onEndTimeChange: handleEndTimeChange,
-        }}
-      >
+    <DateTimeContext.Provider
+      value={{
+        date,
+        startTime,
+        endTime,
+        onDateChange: handleDateChange,
+        onStartTimeChange: handleStartTimeChange,
+        onEndTimeChange: handleEndTimeChange,
+      }}
+    >
+      <div className={`flex flex-col w-80 justify-center items-center ${className}`}>
         {children}
-      </DateTimeContext.Provider>
-    </div>
+      </div>
+    </DateTimeContext.Provider>
   );
 }
 
 DateTime.displayName = "DateTime.root";
 
 DateTime.Calendar = Calendar;
-DateTime.Calendar.displayName = "DateTime.Calendar";
 
 DateTime.TimeInput = TimeInput;
 DateTime.TimeInput.displayName = "DateTime.TimeInput";

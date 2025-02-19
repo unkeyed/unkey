@@ -1,6 +1,7 @@
 package schema
 
 type ApiRequestV1 struct {
+	WorkspaceID     string   `ch:"workspace_id"`
 	RequestID       string   `ch:"request_id"`
 	Time            int64    `ch:"time"`
 	Host            string   `ch:"host"`

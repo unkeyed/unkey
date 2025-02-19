@@ -966,6 +966,11 @@ export interface operations {
            * @example key_1234
            */
           keyId: string;
+          /**
+           * @description By default Unkey soft deletes keys, so they may be recovered later. If you want to permanently delete it, set permanent=true. This might be necessary if you run into NOT_UNIQUE errors during key migration.
+           * @default false
+           */
+          permanent?: boolean;
         };
       };
     };
@@ -3065,11 +3070,17 @@ export interface operations {
            */
           start?: string;
           /**
-           * @description Your user’s Id. This will provide a link between Unkey and your customer record.
-           * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+           * @deprecated
+           * @description Deprecated, use `externalId`
            * @example team_123
            */
           ownerId?: string;
+          /**
+           * @description Your user’s Id. This will provide a link between Unkey and your customer record.
+           * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+           * @example user_123
+           */
+          externalId?: string;
           /**
            * @description This is a place for dynamic meta data, anything that feels useful for you should go here
            * @example {

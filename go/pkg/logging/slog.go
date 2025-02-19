@@ -24,7 +24,7 @@ func New(cfg Config) Logger {
 	switch {
 	case cfg.Development && !cfg.NoColor:
 		handler = tint.NewHandler(os.Stdout, &tint.Options{
-			AddSource:   true,
+			AddSource:   false,
 			Level:       slog.LevelInfo,
 			ReplaceAttr: nil,
 			TimeFormat:  time.StampMilli,

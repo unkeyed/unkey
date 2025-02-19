@@ -1,4 +1,3 @@
-import { DatePickerWithRange } from "@/app/(app)/logs/components/filters/components/custom-date-filter";
 import { DEFAULT_BUCKET_NAME } from "@/lib/trpc/routers/audit/fetch";
 import type { auditLogBucket, workspaces } from "@unkey/db/src/schema";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
@@ -7,6 +6,7 @@ import { Suspense } from "react";
 import type { ParsedParams } from "../../actions";
 import { BucketSelect } from "./bucket-select";
 import { ClearButton } from "./clear-button";
+import { DatePickerWithRange } from "./datepicker-with-range";
 import { Filter } from "./filter";
 import { RootKeyFilter } from "./root-key-filter";
 import { UserFilter } from "./user-filter";

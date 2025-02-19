@@ -1,8 +1,6 @@
-name: Test GO API Local
+name: Test Go API Local
 on:
   workflow_call:
-
-
 
 jobs:
   test_agent_local:
@@ -15,11 +13,10 @@ jobs:
         with:
           go: true
 
-
       - name: Build
         run: task build
         working-directory: go
 
       - name: Test
-        run: go test -cover -json -timeout=60m -failfast ./... | tparse -all -progress
+        run: task test
         working-directory: go

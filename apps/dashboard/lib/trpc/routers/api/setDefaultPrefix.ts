@@ -9,7 +9,12 @@ export const setDefaultApiPrefix = t.procedure
   .use(auth)
   .input(
     z.object({
-      defaultPrefix: z.string().max(8, "Prefix can be a maximum of 8 characters"),
+      defaultPrefix: z
+        .string()
+        .max(8, { message: "Prefixes cannot be longer than 8 characters" })
+        .refine((prefix) => !prefix.includes(" "), {
+          message: "Prefixes cannot contain spaces.",
+        }),
       keyAuthId: z.string(),
     }),
   )
@@ -17,10 +22,11 @@ export const setDefaultApiPrefix = t.procedure
     const keyAuth = await db.query.keyAuth
       .findFirst({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.keyAuthId), isNull(table.deletedAt)),
-        with: {
-          workspace: true,
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.keyAuthId),
+            isNull(table.deletedAt),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -29,7 +35,7 @@ export const setDefaultApiPrefix = t.procedure
             "We were unable to update the key auth. Please try again or contact support@unkey.dev",
         });
       });
-    if (!keyAuth || keyAuth.workspace.tenantId !== ctx.tenant.id) {
+    if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -52,8 +58,8 @@ export const setDefaultApiPrefix = t.procedure
                 "We were unable to update the API default prefix. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, {
-          workspaceId: keyAuth.workspace.id,
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,

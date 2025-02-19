@@ -42,7 +42,7 @@ export const DateTimeExample: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="flex flex-col w-full pt-12 justify-center items-center">
+          <div className="flex flex-col w-80 mx-auto pt-12 justify-center items-center">
             <DateTime
               onChange={(date?: Range, startTime?: TimeUnit, endTime?: TimeUnit) =>
                 handleChange(date, startTime, endTime)
@@ -50,7 +50,7 @@ export const DateTimeExample: React.FC = () => {
             >
               <DateTime.Calendar mode="range" />
               <DateTime.TimeInput type="range" />
-              <DateTime.Actions>
+              <DateTime.Actions className="px-2">
                 <Button
                   className="w-full"
                   onClick={() => handleApply(date, startTime, endTime)}

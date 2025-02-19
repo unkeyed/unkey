@@ -15,16 +15,11 @@ export const deleteNamespace = t.procedure
     const namespace = await db.query.ratelimitNamespaces
       .findFirst({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
-
-        with: {
-          workspace: {
-            columns: {
-              id: true,
-              tenantId: true,
-            },
-          },
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.namespaceId),
+            isNull(table.deletedAt),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -33,7 +28,7 @@ export const deleteNamespace = t.procedure
             "We are unable to delete namespace. Please try again or contact support@unkey.dev",
         });
       });
-    if (!namespace || namespace.workspace.tenantId !== ctx.tenant.id) {
+    if (!namespace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -47,7 +42,7 @@ export const deleteNamespace = t.procedure
         .set({ deletedAt: new Date() })
         .where(eq(schema.ratelimitNamespaces.id, input.namespaceId));
 
-      await insertAuditLogs(tx, {
+      await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
         workspaceId: namespace.workspaceId,
         actor: {
           type: "user",
@@ -86,8 +81,9 @@ export const deleteNamespace = t.procedure
           });
         await insertAuditLogs(
           tx,
+          ctx.workspace.auditLogBucket.id,
           overrides.map(({ id }) => ({
-            workspaceId: namespace.workspace.id,
+            workspaceId: ctx.workspace.id,
             actor: {
               type: "user",
               id: ctx.user.id,

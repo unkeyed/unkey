@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 
-import { TimeClock } from "@unkey/icons";
+import { Clock } from "@unkey/icons";
 import { useState } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
@@ -29,7 +29,7 @@ const MAX_VALUES = {
 const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   const { startTime, endTime, date, onStartTimeChange, onEndTimeChange } = useDateTimeContext();
   const [focus, setFocus] = useState(false);
-  const [time, setTime] = useState<TimeUnit>({ HH: "00", mm: "00", ss: "00" });
+  const [time, setTime] = useState<TimeUnit>(type === "start" ? startTime : endTime);
 
   const normalizeTimeUnit = (time: TimeUnit): TimeUnit => ({
     HH: time.HH.padStart(2, "0") || "00",
@@ -103,21 +103,22 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   };
 
   const inputClassNames = `
-    w-4 p-0 
-    border-none bg-transparent
-    text-xs text-center text-foreground
+    w-5
+    bg-transparent
     outline-none ring-0 focus:ring-0
+    text-center
+    text-gray-12 leading-6 tracking-normal font-medium text-[13px]
   `;
 
-  const renderTimeInput = (field: TimeField, ariaLabel: string) => (
+  const TimeInput: React.FC<{ field: TimeField; ariaLabel: string }> = (props): JSX.Element => (
     <input
       type="text"
-      value={time[field]}
-      onChange={(e) => handleChange(e.target.value, field)}
-      onBlur={(e) => handleBlur(e.target.value, field)}
+      value={time[props.field]}
+      onChange={(e) => handleChange(e.target.value, props.field)}
+      onBlur={(e) => handleBlur(e.target.value, props.field)}
       onFocus={handleFocus}
       placeholder="00"
-      aria-label={ariaLabel}
+      aria-label={props.ariaLabel}
       className={inputClassNames}
     />
   );
@@ -125,19 +126,17 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   return (
     <div
       className={cn(
-        "flex h-7 w-fit items-center justify-center px-4 gap-0 rounded border border-[1px] border-gray-4 text-xs text-gray-12",
-        focus ? "border-[1.5px] border-gray-10" : "",
+        "flex h-8 w-full items-center rounded rounded-3 border-[1px]  bg-gray-2 text-gray-12",
+        focus ? " border-gray-10" : "border-gray-4",
       )}
     >
-      <div className="text-gray-9 mr-2">
-        <TimeClock className="size-3 stroke-1.5" />
-      </div>
-      {renderTimeInput("HH", "Hours")}
-      <span className="text-gray-12">:</span>
-      {renderTimeInput("mm", "Minutes")}
-      <span className="text-gray-12">:</span>
-      {renderTimeInput("ss", "Seconds")}
-      <span className="text-gray-12"> </span>
+      <Clock className="text-gray-9 m-3 " />
+      <TimeInput field="HH" ariaLabel="Hours" />
+      <span className="text-gray-12 leading-6 tracking-normal font-medium text-[13px]">:</span>
+      <TimeInput field="mm" ariaLabel="Minutes" />
+      <span className="text-gray-12 leading-6 font-medium text-[13px]">:</span>
+      <TimeInput field="ss" ariaLabel="Seconds" />
+      <span className="text-gray-12 leading-6 font-medium text-[13px]"> </span>
       {/* AM/PM and timezone still needs to be implemented */}
       {/* {renderTimeInput("")} */}
     </div>
@@ -151,7 +150,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({ type, className }) => {
   return (
     <div
       className={cn(
-        "w-full h-full flex flex-row items-center justify-center gap-4 mt-2 px-1",
+        "w-full h-full flex flex-row items-center justify-center gap-2 mt-1",
         className,
       )}
     >

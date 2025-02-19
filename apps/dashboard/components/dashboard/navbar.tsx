@@ -26,7 +26,7 @@ export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({
 }) => {
   return (
     <nav className={cn("sticky top-0 bg-background", className)}>
-      <div className="flex items-center w-full pl-1 overflow-x-auto">
+      <div className="flex items-center w-full pl-2 overflow-x-auto">
         <ul className="flex flex-row gap-4">
           {navigation.map(({ label, href, segment: _segment, tag }) => (
             <NavItem
@@ -40,7 +40,7 @@ export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({
           ))}
         </ul>
       </div>
-      <Separator />
+      <Separator className="bg-gray-4" />
     </nav>
   );
 };

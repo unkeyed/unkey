@@ -1,14 +1,8 @@
 @tailwind base;
 
-
 @layer base {
   :root {
-    --chart-1: 0 75% 60%; /* Red */
-    --chart-2: 200 75% 55%; /* Blue */
-    --chart-3: 150 65% 50%; /* Green */
-    --chart-4: 25 85% 55%; /* Orange */
-    --chart-5: 340 70% 55%; /* Pink */
-    --cartesian-grid-stroke: 214 12% 89%;
+    --chart-selection: var(--accent-6);
 
     --white: 0 0% 100%;
     --black: 0 0% 0%;
@@ -40,27 +34,10 @@
 
     --border: 24, 6%, 83%;
     --ring: 24, 6%, 83%;
-
-    --amber-2: #fff9ed;
-    --amber-3: #fff4d5;
-    --amber-4: #ffecbc;
-    --amber-6: #ffd386;
-    --amber-11: #ad5700;
-
-    --red-2: #fff8f8;
-    --red-3: #ffefef;
-    --red-4: #ffe5e5;
-    --red-6: #f9c6c6;
-    --red-11: #cd2b31;
   }
 
   .dark {
-    --chart-1: 262 75% 65%; /* Lighter Red */
-    --chart-2: 200 70% 60%; /* Lighter blue */
-    --chart-3: 150 60% 55%; /* Lighter green */
-    --chart-4: 25 80% 60%; /* Lighter orange */
-    --chart-5: 340 65% 60%; /* Lighter pink */
-    --cartesian-grid-stroke: 0 0% 20%;
+    --chart-selection: var(--accent-9);
 
     --white: 0 0% 100%;
     --black: 0 0% 0%;
@@ -92,18 +69,6 @@
 
     --border: 12, 6%, 15%;
     --ring: 12, 6%, 15%;
-
-    --amber-2: #271700;
-    --amber-3: #341c00;
-    --amber-4: #3f2200;
-    --amber-6: #573300;
-    --amber-11: #f1a10d;
-
-    --red-2: #291415;
-    --red-3: #3c181a;
-    --red-4: #481a1d;
-    --red-6: #671e22;
-    --red-11: #ff6369;
   }
 }
 
@@ -139,4 +104,17 @@ code .line::before {
   display: inline-block;
   text-align: right;
   color: rgba(115, 138, 148, 0.4);
+}
+
+@keyframes fillLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-fill-left {
+  animation: fillLeft 1s ease-in-out;
 }

@@ -9,6 +9,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 )
 
+type EventBuffer interface {
+	BufferApiRequest(schema.ApiRequestV1)
+}
+
 func WithMetrics(eventBuffer EventBuffer) Middleware {
 	redactions := map[*regexp.Regexp]string{
 		regexp.MustCompile(`"key":\s*"[a-zA-Z0-9_]+"`):       `"key": "[REDACTED]"`,
@@ -43,7 +47,8 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 			}
 
 			eventBuffer.BufferApiRequest(schema.ApiRequestV1{
-				RequestID:       s.RequestID(),
+				WorkspaceID:     s.workspaceID,
+				RequestID:       s.requestID,
 				Time:            start.UnixMilli(),
 				Host:            s.r.Host,
 				Method:          s.r.Method,

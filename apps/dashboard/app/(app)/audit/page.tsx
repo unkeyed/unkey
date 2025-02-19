@@ -5,7 +5,7 @@ import { InputSearch } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { type SearchParams, getWorkspace, parseFilterParams } from "./actions";
 import { Filters } from "./components/filters";
-import { AuditLogTableClient } from "./components/table/audit-log-table-client";
+import { LogsClient } from "./components/logs-client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -35,7 +35,7 @@ export default async function AuditPage(props: Props) {
               selectedBucketName={parsedParams.bucketName}
             />
 
-            <AuditLogTableClient />
+            <LogsClient />
           </main>
         ) : (
           <Empty>

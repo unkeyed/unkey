@@ -104,14 +104,17 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
         '"plaintext": "<REDACTED>"',
       );
 
+      const url = new URL(c.req.url);
       c.executionCtx.waitUntil(
         analytics.insertApiRequest({
           request_id: c.get("requestId"),
           time: c.get("requestStartedAt"),
           workspace_id: await getWorkspaceId(c),
-          host: new URL(c.req.url).host,
+          host: url.host,
           method: c.req.method,
-          path: c.req.path,
+          path: `${url.pathname}${
+            url.searchParams.size > 0 ? "?" : ""
+          }${url.searchParams.toString()}`,
           request_headers: Object.entries(c.req.header()).map(([k, v]) => {
             if (k.toLowerCase() === "authorization") {
               return `${k}: <REDACTED>`;

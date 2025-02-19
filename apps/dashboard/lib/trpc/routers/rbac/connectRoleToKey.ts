@@ -76,7 +76,7 @@ export const connectRoleToKey = t.procedure
                 "We are unable to connect the role and key. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, {
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "authorization.connect_role_and_key",

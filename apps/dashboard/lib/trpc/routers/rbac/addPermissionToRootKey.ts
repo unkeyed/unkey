@@ -22,29 +22,9 @@ export const addPermissionToRootKey = t.procedure
       });
     }
 
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to add permission to the rootkey. Please try again or contact support@unkey.dev",
-        });
-      });
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
-
     const rootKey = await db.query.keys.findFirst({
       where: (table, { eq, and }) =>
-        and(eq(table.forWorkspaceId, workspace.id), eq(table.id, input.rootKeyId)),
+        and(eq(table.forWorkspaceId, ctx.workspace.id), eq(table.id, input.rootKeyId)),
       with: {
         permissions: {
           with: {
@@ -82,10 +62,10 @@ export const addPermissionToRootKey = t.procedure
                 "We are unable to add permission to the root key. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, [
+        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, [
           ...auditLogs,
           {
-            workspaceId: workspace.id,
+            workspaceId: ctx.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "authorization.connect_permission_and_key",
             description: `Attached ${p.id} to ${rootKey.id}`,

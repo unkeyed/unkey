@@ -26,37 +26,13 @@ export const changeWorkspacePlan = t.procedure
       apiVersion: "2023-10-16",
       typescript: true,
     });
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to change plans. Please try again or contact support@unkey.dev",
-        });
-      });
 
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Workspace not found, Please try again or contact support@unkey.dev.",
-      });
-    }
-    if (workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message:
-          "You do not have permission to modify this workspace. Please speak to your organization's administrator.",
-      });
-    }
     const now = new Date();
 
     if (
-      workspace.planChanged &&
-      workspace.planChanged.getUTCFullYear() === now.getUTCFullYear() &&
-      workspace.planChanged.getUTCMonth() === now.getUTCMonth()
+      ctx.workspace.planChanged &&
+      ctx.workspace.planChanged.getUTCFullYear() === now.getUTCFullYear() &&
+      ctx.workspace.planChanged.getUTCMonth() === now.getUTCMonth()
     ) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -65,8 +41,8 @@ export const changeWorkspacePlan = t.procedure
       });
     }
 
-    if (workspace.plan === input.plan) {
-      if (workspace.planDowngradeRequest) {
+    if (ctx.workspace.plan === input.plan) {
+      if (ctx.workspace.planDowngradeRequest) {
         // The user wants to resubscribe
         await db
           .transaction(async (tx) => {
@@ -77,15 +53,15 @@ export const changeWorkspacePlan = t.procedure
               })
               .where(eq(schema.workspaces.id, input.workspaceId));
 
-            await insertAuditLogs(tx, {
-              workspaceId: workspace.id,
+            await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+              workspaceId: ctx.workspace.id,
               actor: { type: "user", id: ctx.user.id },
               event: "workspace.update",
               description: "Removed downgrade request",
               resources: [
                 {
                   type: "workspace",
-                  id: workspace.id,
+                  id: ctx.workspace.id,
                 },
               ],
               context: {
@@ -121,15 +97,15 @@ export const changeWorkspacePlan = t.procedure
               planDowngradeRequest: "free",
             })
             .where(eq(schema.workspaces.id, input.workspaceId));
-          await insertAuditLogs(tx, {
-            workspaceId: workspace.id,
+          await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+            workspaceId: ctx.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "workspace.update",
             description: "Requested downgrade to 'free'",
             resources: [
               {
                 type: "workspace",
-                id: workspace.id,
+                id: ctx.workspace.id,
               },
             ],
             context: {
@@ -145,14 +121,14 @@ export const changeWorkspacePlan = t.procedure
         };
       }
       case "pro": {
-        if (!workspace.stripeCustomerId) {
+        if (!ctx.workspace.stripeCustomerId) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message: "You do not have a payment method. Please add one before upgrading.",
           });
         }
         const paymentMethods = await stripe.customers.listPaymentMethods(
-          workspace.stripeCustomerId,
+          ctx.workspace.stripeCustomerId,
         );
         if (!paymentMethods || paymentMethods.data.length === 0) {
           throw new TRPCError({
@@ -171,15 +147,15 @@ export const changeWorkspacePlan = t.procedure
                 planDowngradeRequest: null,
               })
               .where(eq(schema.workspaces.id, input.workspaceId));
-            await insertAuditLogs(tx, {
-              workspaceId: workspace.id,
+            await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+              workspaceId: ctx.workspace.id,
               actor: { type: "user", id: ctx.user.id },
               event: "workspace.update",
               description: "Changed plan to 'pro'",
               resources: [
                 {
                   type: "workspace",
-                  id: workspace.id,
+                  id: ctx.workspace.id,
                 },
               ],
               context: {

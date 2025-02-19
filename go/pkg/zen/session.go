@@ -3,6 +3,7 @@ package zen
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -16,26 +17,44 @@ import (
 // All references to sessions, request bodies or anything within must not be
 // used outside of the handler. Make a copy of them if you need to.
 type Session struct {
+	ctx       context.Context
 	requestID string
 
 	w http.ResponseWriter
 	r *http.Request
+
+	// The workspace making the request.
+	// We extract this from the root key or regular key
+	// and must set it before the metrics middleware finishes.
+	workspaceID string
 
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
 }
 
-func (s *Session) Init(w http.ResponseWriter, r *http.Request) error {
+func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
+	s.ctx = r.Context()
 	s.requestID = uid.Request()
 	s.w = w
 	s.r = r
 
+	s.workspaceID = ""
 	return nil
 }
 
 func (s *Session) Context() context.Context {
-	return s.r.Context()
+	return s.ctx
+
+}
+
+// AuthorizedWorkspaceID returns the workspaceID of the root key used as authentication mechanism.
+//
+// If the `WithRootKeyAuth` middleware is used, it is guaranteed to be populated.
+// The request would've aborted and returned early if authentication failed.
+// Otherwise an empty string is returned.
+func (s *Session) AuthorizedWorkspaceID() string {
+	return s.workspaceID
 }
 
 // Request returns the underlying http.Request.
@@ -45,16 +64,19 @@ func (s *Session) Request() *http.Request {
 	return s.r
 }
 
-func (s *Session) RequestID() string {
-	return s.requestID
-}
-
 func (s *Session) ResponseWriter() http.ResponseWriter {
 	return s.w
 }
 
 func (s *Session) BindBody(dst any) error {
-	err := json.Unmarshal(s.requestBody, dst)
+	var err error
+	s.requestBody, err = io.ReadAll(s.r.Body)
+	if err != nil {
+		return fault.Wrap(err, fault.WithDesc("unable to read request body", "The request body is malformed."))
+	}
+	defer s.r.Body.Close()
+
+	err = json.Unmarshal(s.requestBody, dst)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.WithDesc("failed to unmarshal request body", "The request body was not valid json."),
@@ -93,6 +115,10 @@ func (s *Session) JSON(status int, body any) error {
 	}
 	s.ResponseWriter().Header().Add("Content-Type", "application/json")
 	return s.send(status, b)
+}
+func (s *Session) Send(status int, body []byte) error {
+
+	return s.send(status, body)
 }
 
 // reset is called automatically before the session is returned to the pool.

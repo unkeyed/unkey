@@ -1,22 +1,30 @@
-version: '3'
+version: "3"
 
 tasks:
   install:
-    cmd:
-      go mod tidy
+    cmd: go mod tidy
   fmt:
     cmds:
       - go fmt ./...
       - task: lint
   test:
     cmds:
+      - docker pull mysql:latest
       - go test -cover -json -failfast ./... | tparse -all -progress
 
   build:
     cmds:
-      - go build -o unkey ./cmd/main.go
+      - go build -o unkey ./main.go
 
+  generate:
+    cmds:
+      - go generate ./...
+      - buf generate
 
   lint:
     cmds:
       - golangci-lint run
+
+  simulate:
+    cmds:
+      - go run github.com/jellevandenhooff/gosim/cmd/gosim test -v -run TestGosim

@@ -154,7 +154,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       cell: ({ row }) => (
         <div>
           <Dialog>
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger>
                 <Button variant="ghost" className="w-8 h-8 p-0">
                   <span className="sr-only">Open menu</span>

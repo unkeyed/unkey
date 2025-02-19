@@ -38,11 +38,21 @@ func New() (*Validator, error) {
 		// nolint:wrapcheck
 		return nil, fault.New("failed to create validator", messages...)
 	}
+	valid, docErrors := v.ValidateDocument()
+	if !valid {
+		messages := make([]fault.Wrapper, len(docErrors))
+		for i, e := range docErrors {
+			messages[i] = fault.WithDesc(e.Message, "")
+		}
+
+		return nil, fault.New("openapi document is invalid", messages...)
+	}
 	return &Validator{
 		validator: v,
 	}, nil
 }
 func (v *Validator) Validate(r *http.Request) (api.BadRequestError, bool) {
+
 	valid, errors := v.validator.ValidateHttpRequest(r)
 	if !valid {
 		valErr := api.BadRequestError{
@@ -51,14 +61,12 @@ func (v *Validator) Validate(r *http.Request) (api.BadRequestError, bool) {
 			Instance:  nil,
 			Status:    http.StatusBadRequest,
 			RequestId: ctxutil.GetRequestId(r.Context()),
-			Type:      "https://unkey.com/docs/api-reference/errors/TODO",
+			Type:      "https://unkey.com/docs/errors/bad_request",
 			Errors:    []api.ValidationError{},
 		}
 		if len(errors) >= 1 {
-			err := errors[0]
 
-			valErr.Title = err.Message
-			valErr.Detail = err.HowToFix
+			err := errors[0]
 
 			for _, e := range err.SchemaValidationErrors {
 
