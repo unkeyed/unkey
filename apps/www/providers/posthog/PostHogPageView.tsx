@@ -1,6 +1,6 @@
 "use client";
 
-import { useConsentManager } from "@koroflow/elements/headless";
+import { useConsentManager } from "@c15t/react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { useEffect } from "react";
@@ -11,6 +11,11 @@ export default function PostHogPageView(): null {
   const { consents } = useConsentManager();
   const posthog = usePostHog();
 
+  // callbacks.onConsentChange((consent) => {
+  //   if (consent.measurement) {
+  //     posthog.capture("$pageleave");
+  //   }
+  // });
   useEffect(() => {
     if (pathname && posthog && consents.measurement) {
       posthog.capture("$pageleave");

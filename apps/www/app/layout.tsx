@@ -2,7 +2,7 @@ import { Footer } from "@/components/footer/footer";
 import { Navigation } from "@/components/navbar/navigation";
 import { env } from "@/lib/env";
 import { PHProvider } from "@/providers/posthog/PostHogProvider";
-import { ConsentManagerProvider } from "@koroflow/elements/headless";
+import { ConsentManagerProvider } from "@c15t/react";
 
 import CookieBanner from "@/components/cookie-banner";
 import { GeistMono } from "geist/font/mono";
@@ -50,7 +50,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`[color-scheme:dark] scroll-smooth ${GeistSans.variable} ${GeistMono.variable}`}
+      className={`[color-scheme:dark] scroll-smooth dark ${GeistSans.variable} ${GeistMono.variable}`}
     >
       <ConsentManagerProvider initialGdprTypes={["necessary", "measurement"]}>
         <PHProvider>
