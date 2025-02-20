@@ -2,13 +2,12 @@ package membership
 
 import (
 	"encoding/json"
-	"net"
 )
 
 type Member struct {
 	// Global unique identifier for the node
 	NodeID string `json:"nodeId"`
-	Addr   net.IP `json:"addr"`
+	Addr   string `json:"addr"`
 }
 
 func (m Member) Marshal() ([]byte, error) {
