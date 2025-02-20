@@ -1,4 +1,4 @@
-package tracing
+package otel
 
 import (
 	"context"
@@ -13,7 +13,7 @@ func init() {
 	globalTracer = noop.NewTracerProvider()
 }
 
-func Start(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
 	// nolint:spancheck // the caller will end the span
 	return globalTracer.Tracer("main").Start(ctx, name, opts...)
 

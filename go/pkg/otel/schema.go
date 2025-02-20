@@ -1,4 +1,4 @@
-package tracing
+package otel
 
 import "fmt"
 

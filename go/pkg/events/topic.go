@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/go/pkg/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -54,7 +54,7 @@ func (t *topic[E]) Emit(ctx context.Context, event E) {
 	defer t.mu.Unlock()
 	for _, l := range t.listeners {
 		var span trace.Span
-		_, span = tracing.Start(ctx, fmt.Sprintf("topic.Emit:%s", l.id))
+		_, span = otel.Start(ctx, fmt.Sprintf("topic.Emit:%s", l.id))
 		span.SetAttributes(attribute.Int("channelSize", len(l.ch)))
 		l.ch <- event
 		span.End()

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
-	"github.com/unkeyed/unkey/apps/agent/pkg/port"
+	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/membership"
+	"github.com/unkeyed/unkey/go/pkg/port"
 )
 
 var CLUSTER_SIZES = []int{3, 9, 36}

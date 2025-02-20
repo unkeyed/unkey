@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/go/pkg/cache"
-	"github.com/unkeyed/unkey/go/pkg/tracing"
+	"github.com/unkeyed/unkey/go/"github.com/unkeyed/unkey/go/pkg/otel""
 	"go.opentelemetry.io/otel/attribute"
 )
 
