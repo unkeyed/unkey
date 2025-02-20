@@ -14,7 +14,14 @@ import {
 } from "@/components/ui/chart";
 import { Grid } from "@unkey/icons";
 import { useState } from "react";
-import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ReferenceArea,
+  ResponsiveContainer,
+  YAxis,
+} from "recharts";
 import { compactFormatter } from "../../../utils";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
@@ -86,7 +93,10 @@ export function LogsTimeseriesBarChart({
       if (!selection.startTimestamp || !selection.endTimestamp) {
         return;
       }
-      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
+      const [start, end] = [
+        selection.startTimestamp,
+        selection.endTimestamp,
+      ].sort((a, b) => a - b);
       onSelectionChange({ start, end });
     }
     setSelection({
@@ -111,7 +121,10 @@ export function LogsTimeseriesBarChart({
           <div className="text-accent-10 text-[11px] leading-4">REQUESTS</div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
             {compactFormatter.format(
-              (data ?? []).reduce((acc, crr) => acc + crr.success + crr.error, 0),
+              (data ?? []).reduce(
+                (acc, crr) => acc + crr.success + crr.error,
+                0
+              )
             )}
           </div>
         </div>
@@ -123,16 +136,22 @@ export function LogsTimeseriesBarChart({
               <div className="text-accent-10 text-[11px] leading-4">PASSED</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {compactFormatter.format((data ?? []).reduce((acc, crr) => acc + crr.success, 0))}
+              {compactFormatter.format(
+                (data ?? []).reduce((acc, crr) => acc + crr.success, 0)
+              )}
             </div>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-orange-9 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">BLOCKED</div>
+              <div className="text-accent-10 text-[11px] leading-4">
+                BLOCKED
+              </div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {compactFormatter.format((data ?? []).reduce((acc, crr) => acc + crr.error, 0))}
+              {compactFormatter.format(
+                (data ?? []).reduce((acc, crr) => acc + crr.error, 0)
+              )}
             </div>
           </div>
         </div>
@@ -168,7 +187,11 @@ export function LogsTimeseriesBarChart({
                   strokeOpacity: 0.7,
                 }}
                 content={({ active, payload, label }) => {
-                  if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
+                  if (
+                    !active ||
+                    !payload?.length ||
+                    payload?.[0]?.payload.total === 0
+                  ) {
                     return null;
                   }
                   return (
@@ -185,7 +208,9 @@ export function LogsTimeseriesBarChart({
                                 <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
                                   All
                                 </span>
-                                <span className="capitalize text-accent-12 text-xs">Total</span>
+                                <span className="capitalize text-accent-12 text-xs">
+                                  Total
+                                </span>
                               </div>
                               <div className="ml-auto">
                                 <span className="font-mono tabular-nums text-accent-12">
@@ -198,7 +223,8 @@ export function LogsTimeseriesBarChart({
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) => {
-                        const originalTimestamp = tooltipPayload[0]?.payload?.originalTimestamp;
+                        const originalTimestamp =
+                          tooltipPayload[0]?.payload?.originalTimestamp;
                         return originalTimestamp ? (
                           <div>
                             <span className="font-mono text-accent-9 text-xs px-4">
@@ -214,7 +240,12 @@ export function LogsTimeseriesBarChart({
                 }}
               />
               {Object.keys(config).map((key) => (
-                <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  stackId="a"
+                  fill={config[key].color}
+                />
               ))}
               {enableSelection && selection.start && selection.end && (
                 <ReferenceArea
@@ -230,11 +261,11 @@ export function LogsTimeseriesBarChart({
         </ResponsiveContainer>
       </div>
 
-      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between border-t-gray-2">
+      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now(),
+              data.at(-1)?.originalTimestamp ?? Date.now()
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               <div key={i} className="z-10">

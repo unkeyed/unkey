@@ -2,8 +2,6 @@ import { convertDateToLocal } from "@/components/logs/chart/utils/convert-date-t
 import { useFilters } from "../../hooks/use-filters";
 import { LogsTimeseriesBarChart } from "./bar-chart";
 import { useFetchRatelimitOverviewTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
-import { LogsTimeseriesAreaChart } from "./line-chart";
-import { useFetchRatelimitOverviewLatencyTimeseries } from "./line-chart/hooks/use-fetch-timeseries";
 
 export const RatelimitOverviewLogsCharts = ({
   namespaceId,
@@ -11,9 +9,10 @@ export const RatelimitOverviewLogsCharts = ({
   namespaceId: string;
 }) => {
   const { filters, updateFilters } = useFilters();
-  const { isError, isLoading, timeseries } = useFetchRatelimitOverviewTimeseries(namespaceId);
-  const { latencyIsError, latencyIsLoading, latencyTimeseries } =
-    useFetchRatelimitOverviewLatencyTimeseries(namespaceId);
+  const { isError, isLoading, timeseries } =
+    useFetchRatelimitOverviewTimeseries(namespaceId);
+  // const { latencyIsError, latencyIsLoading, latencyTimeseries } =
+  //   useFetchRatelimitOverviewLatencyTimeseries(namespaceId);
 
   const handleSelectionChange = ({
     start,
@@ -23,7 +22,7 @@ export const RatelimitOverviewLogsCharts = ({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field),
+      (f) => !["startTime", "endTime", "since"].includes(f.field)
     );
 
     updateFilters([
@@ -45,7 +44,7 @@ export const RatelimitOverviewLogsCharts = ({
 
   return (
     <div className="flex w-full h-[320px]">
-      <div className="w-1/2 border-r border-gray-4">
+      <div className="w-full">
         <LogsTimeseriesBarChart
           data={timeseries}
           isLoading={isLoading}
@@ -64,23 +63,23 @@ export const RatelimitOverviewLogsCharts = ({
           }}
         />
       </div>
-      <div className="w-1/2">
-        <LogsTimeseriesAreaChart
-          data={latencyTimeseries}
-          isLoading={latencyIsLoading}
-          isError={latencyIsError}
-          enableSelection
-          onSelectionChange={handleSelectionChange}
-          config={{
-            avgLatency: {
-              label: "Average Latency",
-            },
-            p99Latency: {
-              label: "P99 Latency",
-            },
-          }}
-        />
-      </div>
+      {/* <div className="w-1/2"> */}
+      {/*   <LogsTimeseriesAreaChart */}
+      {/*     data={latencyTimeseries} */}
+      {/*     isLoading={latencyIsLoading} */}
+      {/*     isError={latencyIsError} */}
+      {/*     enableSelection */}
+      {/*     onSelectionChange={handleSelectionChange} */}
+      {/*     config={{ */}
+      {/*       avgLatency: { */}
+      {/*         label: "Average Latency", */}
+      {/*       }, */}
+      {/*       p99Latency: { */}
+      {/*         label: "P99 Latency", */}
+      {/*       }, */}
+      {/*     }} */}
+      {/*   /> */}
+      {/* </div> */}
     </div>
   );
 };
