@@ -446,8 +446,8 @@ export const ratelimitOverviewLogs = z.object({
   request_id: z.string(),
   passed_count: z.number().int(),
   blocked_count: z.number().int(),
-  avg_latency: z.number().int(),
-  p99_latency: z.number().int(),
+  // avg_latency: z.number().int(),
+  // p99_latency: z.number().int(),
   override: z
     .object({
       limit: z.number().int(),
@@ -548,8 +548,7 @@ export function getRatelimitOverviewLogs(ch: Querier) {
     const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
 
     const query = ch.query({
-      query: `
-WITH filtered_ratelimits AS (
+      query: `WITH filtered_ratelimits AS (
     SELECT
         request_id,
         time,
@@ -565,35 +564,22 @@ WITH filtered_ratelimits AS (
              OR (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
              OR time < {cursorTime: Nullable(UInt64)})
 ),
-filtered_metrics AS (
-    SELECT 
-        request_id,
-        service_latency
-    FROM metrics.raw_api_requests_v1
-    WHERE workspace_id = {workspaceId: String}
-        AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-),
 aggregated_data AS (
     SELECT 
-        fr.identifier,
-        max(fr.time) as last_request_time,
-        max(fr.request_id) as last_request_id,
-        countIf(fr.status = 1) as passed_count,
-        countIf(fr.status = 0) as blocked_count,
-        round(avg(fm.service_latency)) as avg_latency,
-        round(quantile(0.99)(fm.service_latency)) as p99_latency
-    FROM filtered_ratelimits fr
-    LEFT JOIN filtered_metrics fm ON fr.request_id = fm.request_id
-    GROUP BY fr.identifier
+        identifier,
+        max(time) as last_request_time,
+        max(request_id) as last_request_id,
+        countIf(status = 1) as passed_count,
+        countIf(status = 0) as blocked_count
+    FROM filtered_ratelimits
+    GROUP BY identifier
 )
 SELECT 
     identifier,
     last_request_time as time,
     last_request_id as request_id,
     passed_count,
-    blocked_count,
-    avg_latency,
-    p99_latency
+    blocked_count
 FROM aggregated_data
 ORDER BY ${orderByClause}
 LIMIT {limit: Int}`,
@@ -606,7 +592,6 @@ LIMIT {limit: Int}`,
 }
 
 // ## OVERVIEW Timeseries
-
 export const ratelimitLatencyTimeseriesParams = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),

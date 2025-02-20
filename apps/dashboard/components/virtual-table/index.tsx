@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ArrowTriangleLineDown, ArrowTriangleLineUp, CircleCarretRight } from "@unkey/icons";
+import { CircleCarretRight, SquareChevronDown, SquareChevronUp } from "@unkey/icons";
 import { Fragment, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
 import { LoadingIndicator } from "./components/loading-indicator";
@@ -269,15 +269,15 @@ function SortIcon({ direction }: { direction?: SortDirection | null }) {
   // biome-ignore lint/style/useBlockStatements: <explanation>
   if (!direction)
     return (
-      <div className="flex -space-x-2">
-        <ArrowTriangleLineUp className="color-gray-9" size="md-regular" />
-        <ArrowTriangleLineDown className="color-gray-9" size="md-regular" />
+      <div className="flex -space-x-[2px]">
+        <SquareChevronUp className="color-gray-9" />
+        <SquareChevronDown className="color-gray-9" />
       </div>
     );
   return direction === "asc" ? (
-    <ArrowTriangleLineUp className="color-gray-9" size="md-regular" />
+    <SquareChevronUp className="color-gray-9" />
   ) : (
-    <ArrowTriangleLineDown className="color-gray-9" size="md-regular" />
+    <SquareChevronDown className="color-gray-9" />
   );
 }
 

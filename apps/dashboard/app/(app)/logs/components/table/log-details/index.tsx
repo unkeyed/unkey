@@ -1,5 +1,4 @@
 "use client";
-
 import { useMemo } from "react";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../../../constants";
 import { useLogsContext } from "../../../context/logs";
@@ -45,20 +44,39 @@ export const LogDetails = ({ distanceToTop }: Props) => {
       style={panelStyle}
     >
       <LogHeader log={log} onClose={handleClose} />
-
-      <LogSection details={log.request_headers} title="Request Header" />
       <LogSection
-        details={JSON.stringify(safeParseJson(log.request_body), null, 2)}
+        details={log.request_headers.length ? log.request_headers : "<EMPTY>"}
+        title="Request Header"
+      />
+      <LogSection
+        details={
+          JSON.stringify(safeParseJson(log.request_body), null, 2) === "null"
+            ? "<EMPTY>"
+            : JSON.stringify(safeParseJson(log.request_body), null, 2)
+        }
         title="Request Body"
       />
-      <LogSection details={log.response_headers} title="Response Header" />
       <LogSection
-        details={JSON.stringify(safeParseJson(log.response_body), null, 2)}
+        details={log.response_headers.length ? log.response_headers : "<EMPTY>"}
+        title="Response Header"
+      />
+      <LogSection
+        details={
+          JSON.stringify(safeParseJson(log.response_body), null, 2) === "null"
+            ? "<EMPTY>"
+            : JSON.stringify(safeParseJson(log.response_body), null, 2)
+        }
         title="Response Body"
       />
       <div className="mt-3" />
       <LogFooter log={log} />
-      <LogMetaSection content={JSON.stringify(extractResponseField(log, "meta"), null, 2)} />
+      <LogMetaSection
+        content={
+          JSON.stringify(extractResponseField(log, "meta"), null, 2) === "null"
+            ? "<EMPTY>"
+            : JSON.stringify(extractResponseField(log, "meta"), null, 2)
+        }
+      />
     </ResizablePanel>
   );
 };

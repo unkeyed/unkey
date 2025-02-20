@@ -1,7 +1,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const ArrowTriangleLineUp: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+export const SquareChevronUp: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
   return (
     <svg
@@ -12,20 +12,22 @@ export const ArrowTriangleLineUp: React.FC<IconProps> = ({ size = "xl-thin", ...
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="currentColor">
-        <line
+        <rect
+          height="12.5"
+          width="12.5"
           fill="none"
+          rx="2"
+          ry="2"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
-          x1="9"
-          x2="9"
-          y1="7.75"
-          y2="15.75"
+          x="2.75"
+          y="2.75"
         />
-        <path
-          d="M8.586,2.453l-3.058,4.516c-.225,.332,.013,.78,.414,.78h6.115c.401,0,.639-.448,.414-.78l-3.058-4.516c-.198-.293-.63-.293-.828,0Z"
+        <polyline
           fill="none"
+          points="6 10 9 7 12 10"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"

@@ -16,7 +16,7 @@ import { useRatelimitOverviewLogsQuery } from "./hooks/use-logs-query";
 import { useSort } from "./hooks/use-sort";
 import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
-const MAX_LATENCY = 10;
+// const MAX_LATENCY = 10;
 export type OverrideDetails = {
   overrideId?: string;
   limit: number;
@@ -103,54 +103,54 @@ export const RatelimitOverviewLogsTable = ({
           );
         },
       },
-      {
-        key: "avgLatency",
-        header: "Avg. Latency",
-        width: "7.5%",
-        sort: {
-          direction: getSortDirection("avg_latency"),
-          sortable: true,
-          onSort() {
-            toggleSort("avg_latency", true);
-          },
-        },
-        render: (log) => (
-          <div
-            className={cn(
-              "font-mono pr-4",
-              log.avg_latency > MAX_LATENCY
-                ? "text-orange-11 font-medium dark:text-warning-11"
-                : "text-accent-9",
-            )}
-          >
-            {Math.round(log.avg_latency)}ms
-          </div>
-        ),
-      },
-      {
-        key: "p99",
-        header: "P99 Latency",
-        width: "7.5%",
-        sort: {
-          direction: getSortDirection("p99_latency"),
-          sortable: true,
-          onSort() {
-            toggleSort("p99_latency", true);
-          },
-        },
-        render: (log) => (
-          <div
-            className={cn(
-              "font-mono pr-4",
-              log.p99_latency > MAX_LATENCY
-                ? "text-orange-11 font-medium dark:text-warning-11"
-                : "text-accent-9",
-            )}
-          >
-            {Math.round(log.p99_latency)}ms
-          </div>
-        ),
-      },
+      // {
+      //   key: "avgLatency",
+      //   header: "Avg. Latency",
+      //   width: "7.5%",
+      //   sort: {
+      //     direction: getSortDirection("avg_latency"),
+      //     sortable: true,
+      //     onSort() {
+      //       toggleSort("avg_latency", true);
+      //     },
+      //   },
+      //   render: (log) => (
+      //     <div
+      //       className={cn(
+      //         "font-mono pr-4",
+      //         log.avg_latency > MAX_LATENCY
+      //           ? "text-orange-11 font-medium dark:text-warning-11"
+      //           : "text-accent-9",
+      //       )}
+      //     >
+      //       {Math.round(log.avg_latency)}ms
+      //     </div>
+      //   ),
+      // },
+      // {
+      //   key: "p99",
+      //   header: "P99 Latency",
+      //   width: "7.5%",
+      //   sort: {
+      //     direction: getSortDirection("p99_latency"),
+      //     sortable: true,
+      //     onSort() {
+      //       toggleSort("p99_latency", true);
+      //     },
+      //   },
+      //   render: (log) => (
+      //     <div
+      //       className={cn(
+      //         "font-mono pr-4",
+      //         log.p99_latency > MAX_LATENCY
+      //           ? "text-orange-11 font-medium dark:text-warning-11"
+      //           : "text-accent-9",
+      //       )}
+      //     >
+      //       {Math.round(log.p99_latency)}ms
+      //     </div>
+      //   ),
+      // },
       {
         key: "lastRequest",
         header: "Last Request",
@@ -196,9 +196,8 @@ export const RatelimitOverviewLogsTable = ({
             <Empty.Icon className="w-auto" />
             <Empty.Title>Logs</Empty.Title>
             <Empty.Description className="text-left">
-              Keep track of all activity within your workspace. Logs automatically record key
-              actions like key creation, permission updates, and configuration changes, giving you a
-              clear history of resource requests.
+              No rate limit data to show. Once requests are made, you'll see a summary of passed and
+              blocked requests for each rate limit identifier.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
