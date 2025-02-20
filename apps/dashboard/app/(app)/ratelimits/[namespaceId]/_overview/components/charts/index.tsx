@@ -9,8 +9,7 @@ export const RatelimitOverviewLogsCharts = ({
   namespaceId: string;
 }) => {
   const { filters, updateFilters } = useFilters();
-  const { isError, isLoading, timeseries } =
-    useFetchRatelimitOverviewTimeseries(namespaceId);
+  const { isError, isLoading, timeseries } = useFetchRatelimitOverviewTimeseries(namespaceId);
   // const { latencyIsError, latencyIsLoading, latencyTimeseries } =
   //   useFetchRatelimitOverviewLatencyTimeseries(namespaceId);
 
@@ -22,7 +21,7 @@ export const RatelimitOverviewLogsCharts = ({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field)
+      (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
 
     updateFilters([
