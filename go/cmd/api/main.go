@@ -4,17 +4,18 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/unkeyed/unkey/go/cmd/api/routes"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/pkg/aws/ecs"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
@@ -96,6 +97,8 @@ func run(cliC *cli.Context) error {
 			slog.String("region", cfg.Region),
 			slog.String("version", version.Version),
 		)
+
+	logger.Info(ctx, "env", slog.String("env", strings.Join(os.Environ(), "\n")))
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
@@ -211,10 +214,32 @@ func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns []fu
 
 func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, []func(ctx context.Context) error, error) {
 	if cfg.Cluster == nil {
-		return cluster.NewNoop("", net.ParseIP("127.0.0.1")), []func(ctx context.Context) error{}, nil
+		return cluster.NewNoop("", "127.0.0.1"), []func(ctx context.Context) error{}, nil
 	}
 
 	shutdowns := []func(ctx context.Context) error{}
+
+	var advertiseAddr string
+	{
+		switch {
+		case cfg.Cluster.AdvertiseAddr.Static != nil:
+			{
+				advertiseAddr = *cfg.Cluster.AdvertiseAddr.Static
+			}
+		case cfg.Cluster.AdvertiseAddr.AwsEcsMetadata != nil && *cfg.Cluster.AdvertiseAddr.AwsEcsMetadata:
+
+			{
+				var getDnsErr error
+				advertiseAddr, getDnsErr = ecs.GetPrivateDnsName()
+				if getDnsErr != nil {
+					return nil, shutdowns, fmt.Errorf("unable to get private dns name: %w", getDnsErr)
+				}
+
+			}
+		default:
+			return nil, shutdowns, fmt.Errorf("invalid advertise address configuration")
+		}
+	}
 
 	gossipPort, err := strconv.ParseInt(cfg.Cluster.GossipPort, 10, 64)
 	if err != nil {
@@ -223,7 +248,7 @@ func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, []fun
 
 	m, err := membership.New(membership.Config{
 		NodeID:     cfg.Cluster.NodeID,
-		Addr:       net.ParseIP(""),
+		Addr:       advertiseAddr,
 		GossipPort: int(gossipPort),
 		Logger:     logger,
 	})
@@ -239,7 +264,7 @@ func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, []fun
 		Self: cluster.Node{
 
 			ID:      cfg.Cluster.NodeID,
-			Addr:    net.ParseIP(cfg.Cluster.AdvertiseAddr),
+			Addr:    advertiseAddr,
 			RpcAddr: "TO DO",
 		},
 		Logger:     logger,
@@ -267,7 +292,7 @@ func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, []fun
 			rd, rErr := discovery.NewRedis(discovery.RedisConfig{
 				URL:    cfg.Cluster.Discovery.Redis.URL,
 				NodeID: cfg.Cluster.NodeID,
-				Addr:   cfg.Cluster.AdvertiseAddr,
+				Addr:   advertiseAddr,
 				Logger: logger,
 			})
 			if rErr != nil {

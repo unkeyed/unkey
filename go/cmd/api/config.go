@@ -13,10 +13,13 @@ type nodeConfig struct {
 
 	Cluster *struct {
 		NodeID        string `json:"nodeId,omitempty" description:"A unique node id"`
-		AdvertiseAddr string `json:"advertiseAddr,omitempty" description:"The address to advertise to other nodes"`
-		RpcPort       string `json:"rpcPort" default:"7071" description:"The port used for RPC"`
-		GossipPort    string `json:"gossipPort" default:"7072" description:"The port used for gossip"`
-		Discovery     *struct {
+		AdvertiseAddr struct {
+			Static         *string `json:"static,omitempty" description:"The address to advertise to other nodes"`
+			AwsEcsMetadata *bool   `json:"awsEcsMetadata,omitempty" description:"Use AWS ECS metadata to retrieve the address of the current node"`
+		} `json:"advertiseAddr" description:"A mechanism of retrieving the address of the current node."`
+		RpcPort    string `json:"rpcPort" default:"7071" description:"The port used for RPC"`
+		GossipPort string `json:"gossipPort" default:"7072" description:"The port used for gossip"`
+		Discovery  *struct {
 			Static *struct {
 				Addrs []string `json:"addrs" minLength:"1" description:"List of node addresses"`
 			} `json:"static,omitempty" description:"Static cluster discovery configuration"`
