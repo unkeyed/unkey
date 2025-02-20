@@ -391,5 +391,5 @@ export const getThirtyMinuteLogsTimeseries = createTimeseriesQuerier(INTERVALS.t
 export const getHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.hour);
 export const getTwoHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.twoHours);
 export const getFourHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.fourHours);
-export const getSixHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.SixHours);
+export const getSixHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.sixHours);
 export const getDailyLogsTimeseries = createTimeseriesQuerier(INTERVALS.day);
