@@ -90,6 +90,14 @@ export const queryRatelimitOverviewLogs = rateLimitedProcedure(ratelimit.update)
 async function checkIfIdentifierHasOverride(logs: RatelimitOverviewLog[]) {
   const identifiers = [...new Set(logs.map((log) => log.identifier))];
 
+  // if there are no identifiers to check
+  if (identifiers.length === 0) {
+    return logs.map((log) => ({
+      ...log,
+      override: null,
+    }));
+  }
+
   const overrides = await db.query.ratelimitOverrides.findMany({
     where: (table, { and, isNull, inArray }) =>
       and(inArray(table.identifier, identifiers), isNull(table.deletedAt)),
@@ -102,7 +110,6 @@ async function checkIfIdentifierHasOverride(logs: RatelimitOverviewLog[]) {
     },
   });
 
-  // Create a Map for efficient override lookup
   const overrideMap = new Map(
     overrides.map((override) => [
       override.identifier,
@@ -117,9 +124,7 @@ async function checkIfIdentifierHasOverride(logs: RatelimitOverviewLog[]) {
 
   const logsWithOverrides = logs.map((log) => ({
     ...log,
-    ...(overrideMap.has(log.identifier) && {
-      override: overrideMap.get(log.identifier),
-    }),
+    override: overrideMap.get(log.identifier) || null,
   }));
 
   return logsWithOverrides;

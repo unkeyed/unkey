@@ -10,12 +10,15 @@ type Props = {
   placeholder?: string;
   isLoading: boolean;
   hideExplainer?: boolean;
+  hideClear?: boolean;
 };
+
 export const LogsLLMSearch = ({
   onSearch,
   isLoading,
   onClear,
   hideExplainer = false,
+  hideClear = false,
   placeholder = "Search and filter with AI…",
 }: Props) => {
   const [searchText, setSearchText] = useState("");
@@ -91,73 +94,76 @@ export const LogsLLMSearch = ({
               />
             )}
           </div>
-        </div>{" "}
-        {!hideExplainer && (
-          <TooltipProvider>
-            <Tooltip delayDuration={150}>
-              {searchText.length > 0 && !isLoading && (
-                <button
-                  aria-label="Clear search"
-                  onClick={() => {
-                    setSearchText("");
-                    onClear?.();
-                  }}
-                  type="button"
-                >
-                  <XMark className="size-4 text-accent-9" />
-                </button>
-              )}
-              <TooltipTrigger asChild>
-                {searchText.length === 0 && !isLoading && (
-                  <div>
-                    <CircleInfoSparkle className="size-4 text-accent-9" />
-                  </div>
-                )}
-              </TooltipTrigger>
-              <TooltipContent className="p-3 bg-gray-1 dark:bg-black drop-shadow-2xl border border-gray-6 rounded-lg text-accent-12 text-xs">
-                <div>
-                  <div className="font-medium mb-2 flex items-center gap-2 text-[13px]">
-                    <span>Try queries like:</span>
-                    <span className="text-[11px] text-gray-11">(click to use)</span>
-                  </div>
-                  <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
-                    <li className="flex items-center gap-2">
-                      <CaretRightOutline className="text-accent-9" />
-                      <button
-                        type="button"
-                        className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                        onClick={() => handlePresetQuery("Show failed requests today")}
-                      >
-                        "Show failed requests today"
-                      </button>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CaretRightOutline className="text-accent-9" />
-                      <button
-                        type="button"
-                        className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                        onClick={() => handlePresetQuery("auth errors in the last 3h")}
-                      >
-                        "Auth errors in the last 3h"
-                      </button>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CaretRightOutline className="size-2 text-accent-9" />
-                      <button
-                        type="button"
-                        className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                        onClick={() =>
-                          handlePresetQuery("API calls from a path that includes /api/v1/oz")
-                        }
-                      >
-                        "API calls from a path that includes /api/v1/oz"
-                      </button>
-                    </li>
-                  </ul>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        </div>
+
+        {!isLoading && (
+          <>
+            {searchText.length > 0 && !hideClear && (
+              <button
+                aria-label="Clear search"
+                onClick={() => {
+                  setSearchText("");
+                  onClear?.();
+                }}
+                type="button"
+              >
+                <XMark className="size-4 text-accent-9" />
+              </button>
+            )}
+            {searchText.length === 0 && !hideExplainer && (
+              <TooltipProvider>
+                <Tooltip delayDuration={150}>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <CircleInfoSparkle className="size-4 text-accent-9" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="p-3 bg-gray-1 dark:bg-black drop-shadow-2xl border border-gray-6 rounded-lg text-accent-12 text-xs">
+                    <div>
+                      <div className="font-medium mb-2 flex items-center gap-2 text-[13px]">
+                        <span>Try queries like:</span>
+                        <span className="text-[11px] text-gray-11">(click to use)</span>
+                      </div>
+                      <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
+                        <li className="flex items-center gap-2">
+                          <CaretRightOutline className="text-accent-9" />
+                          <button
+                            type="button"
+                            className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
+                            onClick={() => handlePresetQuery("Show failed requests today")}
+                          >
+                            "Show failed requests today"
+                          </button>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CaretRightOutline className="text-accent-9" />
+                          <button
+                            type="button"
+                            className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
+                            onClick={() => handlePresetQuery("auth errors in the last 3h")}
+                          >
+                            "Auth errors in the last 3h"
+                          </button>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CaretRightOutline className="size-2 text-accent-9" />
+                          <button
+                            type="button"
+                            className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
+                            onClick={() =>
+                              handlePresetQuery("API calls from a path that includes /api/v1/oz")
+                            }
+                          >
+                            "API calls from a path that includes /api/v1/oz"
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </>
         )}
       </div>
     </div>

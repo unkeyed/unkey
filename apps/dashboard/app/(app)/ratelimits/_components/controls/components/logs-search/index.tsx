@@ -31,9 +31,9 @@ export const LogsSearch = ({ setNamespaces, initialNamespaces }: LogsSearchProps
 
   return (
     <LogsLLMSearch
+      hideExplainer
       onClear={handleClear}
       placeholder="Search namespaces"
-      hideExplainer
       isLoading={searchNamespace.isLoading}
       onSearch={(query) =>
         searchNamespace.mutateAsync({

@@ -455,7 +455,7 @@ export const ratelimitOverviewLogs = z.object({
       overrideId: z.string(),
       async: z.boolean().nullable(),
     })
-    .optional(),
+    .nullable(),
 });
 
 export type RatelimitOverviewLog = z.infer<typeof ratelimitOverviewLogs>;
