@@ -30,14 +30,6 @@ const formSchema = z.object({
   name: z.string().refine((v) => v === v, "Please confirm the namespace name"),
   intent: z.string().refine((v) => v === intent, "Please confirm your intent"),
   namespaceId: validation.unkeyId,
-  workspaceId: validation.unkeyId.or(
-    z
-      .string()
-      .regex(
-        /^ws_[a-zA-Z0-9]{8,}$/,
-        "Workspace IDs must start with 'ws_' followed by at least 8 alphanumeric characters",
-      ),
-  ),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -137,11 +129,6 @@ export const DeleteNamespaceDialog = ({ isModalOpen, onOpenChange, namespace }: 
             </FormField>
 
             <input type="hidden" {...register("namespaceId")} defaultValue={namespace.id} />
-            <input
-              type="hidden"
-              {...register("workspaceId")}
-              defaultValue={namespace.workspaceId}
-            />
           </div>
 
           <DialogFooter className="px-6 py-4 border-t border-gray-4">

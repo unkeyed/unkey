@@ -5,23 +5,17 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { transformRatelimitFilters } from "./utils";
 
+//TODO: Refactor this endpoint once we move to AWS
 export const queryRatelimitLatencyTimeseries = rateLimitedProcedure(ratelimit.update)
   .input(ratelimitOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
-    // Validate workspace exists and belongs to tenant
-    const workspace = await db.query.workspaces
-      .findFirst({
+    const ratelimitNamespaces = await db.query.ratelimitNamespaces
+      .findMany({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-        with: {
-          ratelimitNamespaces: {
-            where: (table, { and, eq, isNull }) =>
-              and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
-            columns: {
-              id: true,
-            },
-          },
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -31,14 +25,14 @@ export const queryRatelimitLatencyTimeseries = rateLimitedProcedure(ratelimit.up
         });
       });
 
-    if (!workspace) {
+    if (!ratelimitNamespaces) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Ratelimit namespaces not found, please contact support using support@unkey.dev.",
       });
     }
 
-    if (workspace.ratelimitNamespaces.length === 0) {
+    if (ratelimitNamespaces.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Namespace not found",
@@ -51,8 +45,8 @@ export const queryRatelimitLatencyTimeseries = rateLimitedProcedure(ratelimit.up
     // Query clickhouse using our new ratelimit timeseries functions
     const result = await clickhouse.ratelimits.timeseries.latency[granularity]({
       ...transformedInputs,
-      workspaceId: workspace.id,
-      namespaceId: workspace.ratelimitNamespaces[0].id,
+      workspaceId: ctx.workspace.id,
+      namespaceId: ratelimitNamespaces[0].id,
     });
 
     if (result.err) {

@@ -26,14 +26,6 @@ import { InputTooltip } from "../_overview/components/table/components/logs-acti
 const formSchema = z.object({
   name: validation.name,
   namespaceId: validation.unkeyId,
-  workspaceId: validation.unkeyId.or(
-    z
-      .string()
-      .regex(
-        /^ws_[a-zA-Z0-9]{8,}$/,
-        "Workspace IDs must start with 'ws_' followed by at least 8 alphanumeric characters",
-      ),
-  ),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -86,7 +78,6 @@ export const NamespaceUpdateNameDialog = ({ isModalOpen, onOpenChange, namespace
     defaultValues: {
       name: namespace.name,
       namespaceId: namespace.id,
-      workspaceId: namespace.workspaceId,
     },
   });
 
@@ -111,7 +102,6 @@ export const NamespaceUpdateNameDialog = ({ isModalOpen, onOpenChange, namespace
     await updateName.mutateAsync({
       name: values.name,
       namespaceId: namespace.id,
-      workspaceId: namespace.workspaceId,
     });
   };
 
@@ -141,11 +131,6 @@ export const NamespaceUpdateNameDialog = ({ isModalOpen, onOpenChange, namespace
                 className="border border-gray-4 focus:border focus:border-gray-4 px-3 py-1 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4 rounded-md"
               />
               <input type="hidden" {...register("namespaceId")} defaultValue={namespace.id} />
-              <input
-                type="hidden"
-                {...register("workspaceId")}
-                defaultValue={namespace.workspaceId}
-              />
             </FormField>
           </div>
           <DialogFooter className="px-6 py-4 border-t border-gray-4">

@@ -24,37 +24,30 @@ export const queryRatelimitOverviewLogs = rateLimitedProcedure(ratelimit.update)
   .input(ratelimitQueryOverviewLogsPayload)
   .output(RatelimitOverviewLogsResponse)
   .query(async ({ ctx, input }) => {
-    // Get workspace
-    const workspace = await db.query.workspaces
-      .findFirst({
+    const ratelimitNamespaces = await db.query.ratelimitNamespaces
+      .findMany({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-        with: {
-          ratelimitNamespaces: {
-            where: (table, { and, eq, isNull }) =>
-              and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
-            columns: {
-              id: true,
-            },
-          },
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to retrieve ratelimit logs due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
+            "Failed to retrieve ratelimit timeseries analytics due to a workspace error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
         });
       });
 
-    if (!workspace) {
+    if (!ratelimitNamespaces) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Ratelimit namespaces not found, please contact support using support@unkey.dev.",
       });
     }
 
-    if (workspace.ratelimitNamespaces.length === 0) {
+    if (ratelimitNamespaces.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Namespace not found",
@@ -66,8 +59,8 @@ export const queryRatelimitOverviewLogs = rateLimitedProcedure(ratelimit.update)
       ...transformedInputs,
       cursorRequestId: input.cursor?.requestId ?? null,
       cursorTime: input.cursor?.time ?? null,
-      workspaceId: workspace.id,
-      namespaceId: workspace.ratelimitNamespaces[0].id,
+      workspaceId: ctx.workspace.id,
+      namespaceId: ratelimitNamespaces[0].id,
     });
 
     if (result.err) {
