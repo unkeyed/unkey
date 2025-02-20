@@ -8,13 +8,11 @@ export function transformFilters(
   let startTime = params.startTime;
   let endTime = params.endTime;
 
-  // If we have relativeTime filter `since`, ignore other time params
   if (params.since) {
     startTime = getTimestampFromRelative(params.since);
     endTime = Date.now();
   }
 
-  // Transform identifier filters
   const identifiers =
     params.identifiers?.filters.map((f) => ({
       operator: f.operator,
@@ -27,6 +25,12 @@ export function transformFilters(
       value: f.value,
     })) ?? [];
 
+  const sorts =
+    params.sorts?.map((sort) => ({
+      column: sort.column,
+      direction: sort.direction,
+    })) ?? null;
+
   return {
     limit: params.limit,
     startTime,
@@ -35,5 +39,6 @@ export function transformFilters(
     cursorTime: params.cursor?.time ?? null,
     status,
     cursorRequestId: params.cursor?.requestId ?? null,
+    sorts, // Add sorts to the returned params
   };
 }

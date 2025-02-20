@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CircleCarretRight } from "@unkey/icons";
+import { ArrowTriangleLineDown, ArrowTriangleLineUp, CircleCarretRight } from "@unkey/icons";
 import { Fragment, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
 import { LoadingIndicator } from "./components/loading-indicator";
@@ -7,7 +7,7 @@ import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
-import type { Column, SeparatorItem, VirtualTableProps } from "./types";
+import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
 const calculateTableLayout = (columns: Column<any>[]) => {
   return columns.map((column) => {
@@ -128,7 +128,8 @@ export function VirtualTable<TTableData>({
                     column.headerClassName,
                   )}
                 >
-                  <div className="truncate text-accent-12">{column.header}</div>
+                  <HeaderCell column={column} />
+                  {/* <div className="truncate text-accent-12">{column.header}</div> */}
                 </th>
               ))}
             </tr>
@@ -260,6 +261,53 @@ export function VirtualTable<TTableData>({
         </table>
         {isFetchingNextPage && <LoadingIndicator />}
       </div>
+    </div>
+  );
+}
+
+function SortIcon({ direction }: { direction?: SortDirection | null }) {
+  // biome-ignore lint/style/useBlockStatements: <explanation>
+  if (!direction)
+    return (
+      <div className="flex -space-x-2">
+        <ArrowTriangleLineUp className="color-gray-9" size="md-regular" />
+        <ArrowTriangleLineDown className="color-gray-9" size="md-regular" />
+      </div>
+    );
+  return direction === "asc" ? (
+    <ArrowTriangleLineUp className="color-gray-9" size="md-regular" />
+  ) : (
+    <ArrowTriangleLineDown className="color-gray-9" size="md-regular" />
+  );
+}
+
+function HeaderCell<T>({ column }: { column: Column<T> }) {
+  const { direction, onSort, sortable } = column.sort ?? {};
+  const handleSort = () => {
+    if (!sortable || !onSort) {
+      return;
+    }
+
+    const nextDirection = !direction ? "asc" : direction === "asc" ? "desc" : null;
+
+    onSort(nextDirection);
+  };
+
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+    <div
+      className={cn(
+        "flex items-center gap-1 truncate text-accent-12",
+        sortable && "cursor-pointer",
+      )}
+      onClick={sortable ? handleSort : undefined}
+    >
+      <span>{column.header}</span>
+      {sortable && (
+        <span className="flex-shrink-0">
+          <SortIcon direction={direction} />
+        </span>
+      )}
     </div>
   );
 }

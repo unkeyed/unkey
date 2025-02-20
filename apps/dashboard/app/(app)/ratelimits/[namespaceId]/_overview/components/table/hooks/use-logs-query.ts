@@ -4,6 +4,7 @@ import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryOverviewLogsPayload } from "../query-logs.schema";
+import { useSort } from "./use-sort";
 
 type UseLogsQueryParams = {
   limit?: number;
@@ -19,6 +20,8 @@ export function useRatelimitOverviewLogsQuery({ namespaceId, limit = 50 }: UseLo
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
+  const { sorts } = useSort();
+
   //Required for preventing double trpc call during initial render
   const dateNow = useMemo(() => Date.now(), []);
   const queryParams = useMemo(() => {
@@ -30,6 +33,7 @@ export function useRatelimitOverviewLogsQuery({ namespaceId, limit = 50 }: UseLo
       status: { filters: [] },
       namespaceId,
       since: "",
+      sorts: sorts.length > 0 ? sorts : null,
     };
 
     filters.forEach((filter) => {
@@ -79,7 +83,7 @@ export function useRatelimitOverviewLogsQuery({ namespaceId, limit = 50 }: UseLo
     });
 
     return params;
-  }, [filters, limit, dateNow, namespaceId]);
+  }, [filters, limit, dateNow, namespaceId, sorts]);
 
   // Main query for historical data
   const {

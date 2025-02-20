@@ -429,6 +429,15 @@ export const ratelimitOverviewLogsParams = z.object({
     .nullable(),
   cursorTime: z.number().int().nullable(),
   cursorRequestId: z.string().nullable(),
+
+  sorts: z
+    .array(
+      z.object({
+        column: z.enum(["time", "avg_latency", "p99_latency"]),
+        direction: z.enum(["asc", "desc"]),
+      }),
+    )
+    .nullable(),
 });
 
 export const ratelimitOverviewLogs = z.object({
@@ -463,6 +472,7 @@ export function getRatelimitOverviewLogs(ch: Querier) {
 
     const hasIdentifierFilters = args.identifiers && args.identifiers.length > 0;
     const hasStatusFilters = args.status && args.status.length > 0;
+    const hasSortingRules = args.sorts && args.sorts.length > 0;
 
     const statusCondition = !hasStatusFilters
       ? "TRUE"
@@ -497,6 +507,43 @@ export function getRatelimitOverviewLogs(ch: Querier) {
           })
           .filter(Boolean)
           .join(" OR ") || "TRUE";
+
+    const allowedColumns = new Map([
+      ["time", "last_request_time"],
+      ["avg_latency", "avg_latency"],
+      ["p99_latency", "p99_latency"],
+    ]);
+
+    const orderBy =
+      hasSortingRules && args.sorts
+        ? args.sorts.reduce((acc: string[], sort) => {
+            const column = allowedColumns.get(sort.column);
+            // Only add to ORDER BY if it's an allowed column to prevent injection
+            if (column) {
+              const direction =
+                sort.direction.toUpperCase() === "ASC" || sort.direction.toUpperCase() === "DESC"
+                  ? sort.direction.toUpperCase()
+                  : "DESC";
+              acc.push(`${column} ${direction}`);
+            }
+            return acc;
+          }, [])
+        : [];
+
+    // If time is explicitly sorted ASC, maintain that direction
+    const timeSort = args.sorts?.find((s) => s.column === "time");
+    const timeDirection = timeSort?.direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+    // Remove any existing time sort from the orderBy array
+    const orderByWithoutTime = orderBy.filter((clause) => !clause.startsWith("last_request_time"));
+
+    // Construct final ORDER BY clause with time and request_id always at the end
+    const orderByClause =
+      [
+        ...orderByWithoutTime,
+        `last_request_time ${timeDirection}`,
+        `request_id ${timeDirection}`,
+      ].join(", ") || "last_request_time DESC, request_id DESC"; // Fallback if empty
 
     const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
 
@@ -548,7 +595,7 @@ SELECT
     avg_latency,
     p99_latency
 FROM aggregated_data
-ORDER BY time DESC, request_id DESC
+ORDER BY ${orderByClause}
 LIMIT {limit: Int}`,
       params: extendedParamsSchema,
       schema: ratelimitOverviewLogs,

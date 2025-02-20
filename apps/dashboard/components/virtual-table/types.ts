@@ -7,12 +7,18 @@ type ColumnWidth =
   | { min: number; max: number } // Responsive range
   | { flex: number }; // Flex grow ratio
 
+export type SortDirection = "asc" | "desc" | null;
 export type Column<T> = {
   key: string;
   header?: string;
   width: ColumnWidth;
   headerClassName?: string;
   render: (item: T) => React.ReactNode;
+  sort?: {
+    sortable?: boolean;
+    onSort?: (direction: SortDirection) => void;
+    direction?: SortDirection;
+  };
 };
 
 export type TableConfig = {
