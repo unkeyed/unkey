@@ -13,7 +13,7 @@ export default async function RatelimitLogsPage({
     <div>
       <NamespaceNavbar
         activePage={{
-          href: `/ratelimits/${namespace.id}/settings`,
+          href: `/ratelimits/${namespace.id}/logs`,
           text: "Logs",
         }}
         namespace={namespace}

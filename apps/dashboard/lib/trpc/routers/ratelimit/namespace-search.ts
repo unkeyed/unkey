@@ -26,13 +26,11 @@ export const searchNamespace = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    const escapedQuery = input.query.replace(/[%_]/g, "\\$&");
-
     return await db.query.ratelimitNamespaces.findMany({
       where: (table, { isNull, and, like, eq }) =>
         and(
           eq(table.workspaceId, workspace.id),
-          like(table.name, `%${escapedQuery}%`),
+          like(table.name, `%${input.query}%`),
           isNull(table.deletedAt),
         ),
       columns: {
