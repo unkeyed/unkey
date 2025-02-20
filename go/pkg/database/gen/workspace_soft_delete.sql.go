@@ -12,17 +12,22 @@ import (
 
 const softDeleteWorkspace = `-- name: SoftDeleteWorkspace :execresult
 UPDATE ` + "`" + `workspaces` + "`" + `
-SET deleted_at = NOW()
+SET deleted_at = ?
 WHERE id = ?
 AND delete_protection = false
 `
 
+type SoftDeleteWorkspaceParams struct {
+	Now sql.NullTime `db:"now"`
+	ID  string       `db:"id"`
+}
+
 // SoftDeleteWorkspace
 //
 //	UPDATE `workspaces`
-//	SET deleted_at = NOW()
+//	SET deleted_at = ?
 //	WHERE id = ?
 //	AND delete_protection = false
-func (q *Queries) SoftDeleteWorkspace(ctx context.Context, id string) (sql.Result, error) {
-	return q.db.ExecContext(ctx, softDeleteWorkspace, id)
+func (q *Queries) SoftDeleteWorkspace(ctx context.Context, arg SoftDeleteWorkspaceParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, softDeleteWorkspace, arg.Now, arg.ID)
 }

@@ -58,6 +58,7 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
+					ctx:            context.Background(),
 					workspaceID:    "",
 					requestID:      "",
 					w:              nil,
@@ -120,6 +121,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 }
 
 func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
+	s.logger.Info(context.Background(), fmt.Sprintf("registering %s %s", route.Method(), route.Path()))
 	s.mux.HandleFunc(
 		fmt.Sprintf("%s %s", route.Method(), route.Path()),
 		func(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +134,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				s.returnSession(sess)
 			}()
 
-			err := sess.Init(w, r)
+			err := sess.init(w, r)
 			if err != nil {
 				s.logger.Error(context.Background(), "failed to init session")
 				return

@@ -25,7 +25,7 @@ type service struct {
 
 	shutdownCh chan struct{}
 
-	bucketsLock sync.RWMutex
+	bucketsMu sync.RWMutex
 	// identifier+sequence -> bucket
 	buckets map[string]*bucket
 
@@ -52,7 +52,7 @@ func New(config Config) (*service, error) {
 		logger:               config.Logger,
 		cluster:              config.Cluster,
 		shutdownCh:           make(chan struct{}),
-		bucketsLock:          sync.RWMutex{},
+		bucketsMu:            sync.RWMutex{},
 		buckets:              make(map[string]*bucket),
 		peerMu:               sync.RWMutex{},
 		peers:                make(map[string]peer),

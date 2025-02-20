@@ -82,11 +82,11 @@ export const FiltersPopover = ({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent
-        className="w-60 bg-gray-1 dark:bg-black drop-shadow-2xl p-2 border-gray-6 rounded-lg"
+        className="min-w-60 bg-gray-1  dark:bg-black drop-shadow-2xl p-2 border-gray-6 rounded-lg"
         align="start"
         onKeyDown={handleKeyDown}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 w-full">
           <PopoverHeader />
           {items.map((item, index) => (
             <FilterItem

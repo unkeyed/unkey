@@ -14,23 +14,21 @@ type nodeConfig struct {
 	Cluster *struct {
 		NodeID        string `json:"nodeId,omitempty" description:"A unique node id"`
 		AdvertiseAddr string `json:"advertiseAddr,omitempty" description:"The address to advertise to other nodes"`
-		RpcPort       int    `json:"rpcPort" default:"7071" description:"The port used for RPC"`
-		GossipPort    int    `json:"gossipPort" default:"7072" description:"The port used for gossip"`
+		RpcPort       string `json:"rpcPort" default:"7071" description:"The port used for RPC"`
+		GossipPort    string `json:"gossipPort" default:"7072" description:"The port used for gossip"`
 		Discovery     *struct {
 			Static *struct {
 				Addrs []string `json:"addrs" minLength:"1" description:"List of node addresses"`
 			} `json:"static,omitempty" description:"Static cluster discovery configuration"`
-			AwsCloudmap *struct {
-				ServiceName string `json:"serviceName" minLength:"1" description:"Cloudmap service name"`
-				Region      string `json:"region" minLength:"1" description:"Cloudmap region"`
-			} `json:"awsCloudmap,omitempty" description:"Cloudmap cluster discovery configuration"`
+			Redis *struct {
+				URL string `json:"url" minLength:"1" description:"Redis URL"`
+			} `json:"redis,omitempty" description:"Redis cluster discovery configuration"`
 		} `json:"discovery,omitempty" description:"Cluster discovery configuration, only one supported: static, cloudmap"`
 	} `json:"cluster,omitempty" description:"Cluster configuration"`
 
 	Logs *struct {
 		Color bool `json:"color" description:"Display color in logs"`
 	} `json:"logs,omitempty"`
-	RedisUrl   string `json:"redisUrl"`
 	Clickhouse *struct {
 		Url string `json:"url" minLength:"1"`
 	} `json:"clickhouse,omitempty"`

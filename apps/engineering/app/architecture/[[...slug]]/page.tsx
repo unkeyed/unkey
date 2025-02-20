@@ -36,9 +36,9 @@ export default async function Page(props: {
     >
       <DocsTitle>{page.data.title}</DocsTitle>
 
-      <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
+      <DocsDescription>{page.data.description}</DocsDescription>
 
-      <DocsBody className="font-mono text-sm">
+      <DocsBody>
         <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>
@@ -49,7 +49,11 @@ export async function generateStaticParams() {
   return architectureSource.generateParams();
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug?: string[] }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug?: string[] }>;
+}) {
   const page = architectureSource.getPage((await params).slug);
   if (!page) {
     notFound();

@@ -1,9 +1,20 @@
 {
-  "$schema": "schema.json",
-  "httpAddr": "0.0.0.0:7070",
-  "rpcAddr": ":7071",
-  "redisUrl": "${REDIS_URL}",
+  "$schema": "./schema.json",
+  "httpPort": 7070,
   "database": {
     "primary": "${DATABASE_PRIMARY_DSN}"
+  },
+  "logs": {
+    "color": true
+  },
+  "cluster": {
+    "rpcPort": "${RPC_PORT}",
+    "gossipPort": "${GOSSIP_PORT}",
+    "advertiseAddr": "${HOSTNAME}",
+    "discovery": {
+      "redis": {
+        "url": "${REDIS_URL}"
+      }
+    }
   }
 }

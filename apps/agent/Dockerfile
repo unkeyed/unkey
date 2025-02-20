@@ -1,4 +1,4 @@
-FROM golang:1.22 AS builder
+FROM golang:1.23-alpine AS builder
 
 
 
@@ -10,7 +10,7 @@ COPY . .
 ARG VERSION
 RUN go build -o bin/unkey -ldflags "-X 'github.com/unkeyed/unkey/apps/agent/pkg/version.Version=${VERSION}'"  ./cmd/main.go
 
-FROM golang:1.22
+FROM golang:1.23-alpine
 WORKDIR  /usr/local/bin
 COPY --from=builder /go/src/github.com/unkeyed/unkey/apps/agent/bin/unkey .
 COPY --from=builder /go/src/github.com/unkeyed/unkey/apps/agent/config.production.json .

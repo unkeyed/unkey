@@ -10,13 +10,14 @@ import (
 
 func (db *database) InsertRatelimitOverride(ctx context.Context, override entities.RatelimitOverride) error {
 
-	err := db.write().InsertOverride(ctx, gen.InsertOverrideParams{
+	err := db.write().InsertRatelimitOverride(ctx, gen.InsertRatelimitOverrideParams{
 		ID:          override.ID,
 		WorkspaceID: override.WorkspaceID,
 		NamespaceID: override.NamespaceID,
 		Identifier:  override.Identifier,
 		Limit:       override.Limit,
 		Duration:    int32(override.Duration.Milliseconds()), // nolint:gosec
+		CreatedAt:   db.clock.Now(),
 	})
 	if err != nil {
 

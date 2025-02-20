@@ -30,35 +30,48 @@ services:
       - mysql
     ports:
       - 3900:3900
-
+  apiv2_lb:
+    container_name: apiv2_lb
+    image: nginx:latest
+    volumes:
+      - ./nginx.apiv2.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - apiv2
+    ports:
+      - 7070:7070
 
   apiv2:
-
-
-    command:  [ "api", "--config", "config.docker.json"]
-    build:
-      context: ../go
-      dockerfile: ./Dockerfile
-    ports:
-      - "7070:7070"
-    depends_on:
-      - mysql
-      - clickhouse
-      - redis
-    environment:
-      DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey"
-      CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
-      REDIS_URL: "redis://redis:6379"
-
-  agent:
     deploy:
       replicas: 3
       endpoint_mode: vip
 
-    command:  [ "/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
+    command: ["api", "--config", "config.docker.json"]
+    build:
+      context: ../go
+      dockerfile: ./Dockerfile
+    depends_on:
+      - mysql
+      - redis
+      - clickhouse
+    environment:
+      GOSSIP_PORT: 9090
+      RPC_PORT: 9091
+      DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey?parseTime=true"
+      CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
+      REDIS_URL: "redis://redis:6379"
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+
+  agent:
+    command: ["/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
     build:
       context: ../apps/agent
       dockerfile: ./Dockerfile
+    ports:
+      - 8080:8080
     depends_on:
       - s3
       - clickhouse
@@ -73,18 +86,6 @@ services:
       VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
-
-
-  agent_lb:
-    container_name: agent_lb
-    image: nginx:latest
-    volumes:
-      - ./nginx.agent.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - agent
-    ports:
-      - 8080:8080
-
 
   chproxy:
     build:
@@ -102,7 +103,7 @@ services:
       CLICKHOUSE_URL: http://default:password@clickhouse:8123
       BASIC_AUTH: proxy:password
     ports:
-      - '7123:7123'
+      - "7123:7123"
   clickhouse:
     image: bitnami/clickhouse:latest
     container_name: clickhouse
@@ -110,8 +111,8 @@ services:
       CLICKHOUSE_ADMIN_USER: default
       CLICKHOUSE_ADMIN_PASSWORD: password
     ports:
-      - '8123:8123'
-      - '9000:9000'
+      - "8123:8123"
+      - "9000:9000"
     volumes:
       - clickhouse:/bitnami/clickhouse
 
@@ -136,15 +137,7 @@ services:
     volumes:
       - s3:/data
 
-  redis:
-    image: redis:latest
-    ports:
-      - 6379:6379
-
   api:
-    # deploy:
-    #   replicas: 3
-    #   endpoint_mode: vip
     build:
       context: ..
       dockerfile: ./apps/api/Dockerfile.dev
@@ -160,18 +153,17 @@ services:
         "--var=DATABASE_HOST:planetscale:3900",
         "--var=DATABASE_USERNAME:unkey",
         "--var=DATABASE_PASSWORD:password",
-        "--var=AGENT_URL:http://agent_lb:8080",
+        "--var=AGENT_URL:http://agent:8080",
         "--var=AGENT_TOKEN:agent-auth-secret",
         "--var=EMIT_METRICS_LOGS:false",
         "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0",
         "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
         "--var=CLICKHOUSE_INSERT_URL:http://proxy:password@chproxy:7123",
-
       ]
 
     depends_on:
       - planetscale
-      - agent_lb
+      - agent
       - clickhouse
       - chproxy
 
@@ -186,7 +178,6 @@ services:
   #     volumes:
   #       - ./prometheus:/etc/prometheus
   #       - prometheus:/prometheus
-
 
   # grafana:
   #   image: grafana/grafana

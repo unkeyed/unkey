@@ -10,7 +10,13 @@ export const createKey = t.procedure
   .use(auth)
   .input(
     z.object({
-      prefix: z.string().optional(),
+      prefix: z
+        .string()
+        .max(8, { message: "Prefixes cannot be longer than 8 characters" })
+        .refine((prefix) => !prefix.includes(" "), {
+          message: "Prefixes cannot contain spaces.",
+        })
+        .optional(),
       bytes: z.number().int().gte(16).default(16),
       keyAuthId: z.string(),
       ownerId: z.string().nullish(),

@@ -28,23 +28,18 @@
           "type": "object",
           "description": "Cluster discovery configuration, only one supported: static, cloudmap",
           "properties": {
-            "awsCloudmap": {
+            "redis": {
               "type": "object",
-              "description": "Cloudmap cluster discovery configuration",
+              "description": "Redis cluster discovery configuration",
               "properties": {
-                "region": {
+                "url": {
                   "type": "string",
-                  "description": "Cloudmap region",
-                  "minLength": 1
-                },
-                "serviceName": {
-                  "type": "string",
-                  "description": "Cloudmap service name",
+                  "description": "Redis URL",
                   "minLength": 1
                 }
               },
               "additionalProperties": false,
-              "required": ["serviceName", "region"]
+              "required": ["url"]
             },
             "static": {
               "type": "object",
@@ -66,10 +61,9 @@
           "additionalProperties": false
         },
         "gossipPort": {
-          "type": "integer",
+          "type": "string",
           "description": "The port used for gossip",
-          "format": "int32",
-          "default": 7072
+          "default": "7072"
         },
         "nodeId": {
           "type": "string",
@@ -140,14 +134,11 @@
       "type": "string",
       "description": "The platform this agent is running on"
     },
-    "redisUrl": {
-      "type": "string"
-    },
     "region": {
       "type": "string",
       "description": "The region this agent is running in"
     }
   },
   "additionalProperties": true,
-  "required": ["httpPort", "redisUrl", "database"]
+  "required": ["httpPort", "database"]
 }

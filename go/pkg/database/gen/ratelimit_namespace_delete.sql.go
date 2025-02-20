@@ -12,15 +12,20 @@ import (
 
 const deleteRatelimitNamespace = `-- name: DeleteRatelimitNamespace :execresult
 UPDATE ` + "`" + `ratelimit_namespaces` + "`" + `
-SET deleted_at = NOW()
+SET deleted_at = ?
 WHERE id = ?
 `
+
+type DeleteRatelimitNamespaceParams struct {
+	Now sql.NullTime `db:"now"`
+	ID  string       `db:"id"`
+}
 
 // DeleteRatelimitNamespace
 //
 //	UPDATE `ratelimit_namespaces`
-//	SET deleted_at = NOW()
+//	SET deleted_at = ?
 //	WHERE id = ?
-func (q *Queries) DeleteRatelimitNamespace(ctx context.Context, id string) (sql.Result, error) {
-	return q.db.ExecContext(ctx, deleteRatelimitNamespace, id)
+func (q *Queries) DeleteRatelimitNamespace(ctx context.Context, arg DeleteRatelimitNamespaceParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteRatelimitNamespace, arg.Now, arg.ID)
 }

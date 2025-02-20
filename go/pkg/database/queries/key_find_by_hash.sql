@@ -1,3 +1,6 @@
--- name: FindKeyByID :one
-SELECT * FROM `keys`
-WHERE id = sqlc.arg(id);
+
+-- name: FindKeyByHash :one
+SELECT
+    *
+FROM `keys`
+WHERE hash = sqlc.arg(hash);

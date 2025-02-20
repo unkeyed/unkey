@@ -52,6 +52,7 @@ func New(config Config) (*membership, error) {
 	memberlistConfig.AdvertisePort = config.GossipPort
 	memberlistConfig.BindPort = config.GossipPort
 	memberlistConfig.Events = b
+	memberlistConfig.LogOutput = logger{config.Logger}
 
 	list, err := memberlist.Create(memberlistConfig)
 	if err != nil {
