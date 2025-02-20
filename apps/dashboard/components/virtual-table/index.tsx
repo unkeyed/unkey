@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CircleCarretRight, SquareChevronDown, SquareChevronUp } from "@unkey/icons";
+import { CaretDown, CaretExpandY, CaretUp, CircleCarretRight } from "@unkey/icons";
 import { Fragment, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
 import { LoadingIndicator } from "./components/loading-indicator";
@@ -267,17 +267,11 @@ export function VirtualTable<TTableData>({
 
 function SortIcon({ direction }: { direction?: SortDirection | null }) {
   // biome-ignore lint/style/useBlockStatements: <explanation>
-  if (!direction)
-    return (
-      <div className="flex -space-x-[2px]">
-        <SquareChevronUp className="color-gray-9" />
-        <SquareChevronDown className="color-gray-9" />
-      </div>
-    );
+  if (!direction) return <CaretExpandY className="color-gray-9" />;
   return direction === "asc" ? (
-    <SquareChevronUp className="color-gray-9" />
+    <CaretUp className="color-gray-9" size="sm-thin" />
   ) : (
-    <SquareChevronDown className="color-gray-9" />
+    <CaretDown className="color-gray-9" size="sm-thin" />
   );
 }
 

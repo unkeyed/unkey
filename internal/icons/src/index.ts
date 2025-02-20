@@ -45,5 +45,6 @@ export * from "./icons/clone";
 export * from "./icons/circle-info";
 export * from "./icons/progress-bar";
 export * from "./icons/arrow-triangle-line-down";
-export * from "./icons/square-chevron-up";
-export * from "./icons/square-chevron-down";
+export * from "./icons/caret-up";
+export * from "./icons/caret-down";
+export * from "./icons/caret-expand-y";
