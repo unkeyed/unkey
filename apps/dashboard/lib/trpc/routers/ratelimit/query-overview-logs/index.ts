@@ -98,17 +98,24 @@ async function checkIfIdentifierHasOverride(logs: RatelimitOverviewLog[]) {
     }));
   }
 
-  const overrides = await db.query.ratelimitOverrides.findMany({
-    where: (table, { and, isNull, inArray }) =>
-      and(inArray(table.identifier, identifiers), isNull(table.deletedAt)),
-    columns: {
-      identifier: true,
-      limit: true,
-      duration: true,
-      id: true,
-      async: true,
-    },
-  });
+  const overrides = await db.query.ratelimitOverrides
+    .findMany({
+      where: (table, { and, isNull, inArray }) =>
+        and(inArray(table.identifier, identifiers), isNull(table.deletedAt)),
+      columns: {
+        identifier: true,
+        limit: true,
+        duration: true,
+        id: true,
+        async: true,
+      },
+    })
+    .catch((_err) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to retrieve rate limit overrides. Please try again later.",
+      });
+    });
 
   const overrideMap = new Map(
     overrides.map((override) => [
