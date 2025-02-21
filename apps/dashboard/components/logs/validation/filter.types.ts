@@ -17,6 +17,19 @@ export type NumberConfig<TOperator extends string = string> = BaseFieldConfig<nu
   getColorClass?: (value: number) => string;
 };
 
+interface SortableConfig {
+  sortable?: boolean;
+  defaultSortDirection?: "asc" | "desc";
+  sortWeight?: number;
+}
+
+export interface SortableNumberConfig<TOperator extends string = string>
+  extends NumberConfig<TOperator>,
+    SortableConfig {}
+export interface SortableStringConfig<TOperator extends string = string>
+  extends StringConfig<TOperator>,
+    SortableConfig {}
+
 export type StringConfig<TOperator extends string = string> = BaseFieldConfig<string, TOperator> & {
   type: "string";
   validValues?: readonly string[];

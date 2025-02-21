@@ -44,50 +44,89 @@ export type RatelimitLogsTimeseriesParams = z.infer<typeof ratelimitLogsTimeseri
 
 type TimeInterval = {
   table: string;
-  timeFunction: string;
   step: string;
+  stepSize: number;
 };
 
 const INTERVALS: Record<string, TimeInterval> = {
   minute: {
     table: "ratelimits.ratelimits_per_minute_v1",
-    timeFunction: "toStartOfMinute",
     step: "MINUTE",
+    stepSize: 1,
+  },
+  fiveMinutes: {
+    table: "ratelimits.ratelimits_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 5,
+  },
+  fifteenMinutes: {
+    table: "ratelimits.ratelimits_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 15,
+  },
+  thirtyMinutes: {
+    table: "ratelimits.ratelimits_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 30,
   },
   hour: {
     table: "ratelimits.ratelimits_per_hour_v1",
-    timeFunction: "toStartOfHour",
     step: "HOUR",
+    stepSize: 1,
+  },
+  twoHours: {
+    table: "ratelimits.ratelimits_per_hour_v1",
+    step: "HOURS",
+    stepSize: 2,
+  },
+  fourHours: {
+    table: "ratelimits.ratelimits_per_hour_v1",
+    step: "HOURS",
+    stepSize: 4,
+  },
+  sixHours: {
+    table: "ratelimits.ratelimits_per_hour_v1",
+    step: "HOURS",
+    stepSize: 6,
   },
   day: {
     table: "ratelimits.ratelimits_per_day_v1",
-    timeFunction: "toStartOfDay",
     step: "DAY",
+    stepSize: 1,
   },
   month: {
     table: "ratelimits.ratelimits_per_month_v1",
-    timeFunction: "toStartOfMonth",
     step: "MONTH",
+    stepSize: 1,
   },
 } as const;
 
 function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
+  // Map step to ClickHouse interval unit
+  const intervalUnit = {
+    MINUTE: "minute",
+    MINUTES: "minute",
+    HOUR: "hour",
+    HOURS: "hour",
+    DAY: "day",
+    MONTH: "month",
+  }[interval.step];
+
   return `
     SELECT
-      time as x,
+      toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) as x,
       map(
         'passed', sum(passed),
         'total', sum(total)
       ) as y
     FROM ${interval.table}
     ${whereClause}
-    GROUP BY time
-    ORDER BY time ASC
+    GROUP BY x
+    ORDER BY x ASC
     WITH FILL
-      FROM ${interval.timeFunction}(fromUnixTimestamp64Milli({startTime: Int64}))
-      TO ${interval.timeFunction}(fromUnixTimestamp64Milli({endTime: Int64}))
-      STEP INTERVAL 1 ${interval.step}
-  `;
+      FROM toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
+      TO toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
+      STEP INTERVAL ${interval.stepSize} ${intervalUnit}`;
 }
 
 function getRatelimitLogsTimeseriesWhereClause(
@@ -152,10 +191,18 @@ function createTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
-export const getRatelimitsPerMinute = createTimeseriesQuerier(INTERVALS.minute);
-export const getRatelimitsPerHour = createTimeseriesQuerier(INTERVALS.hour);
-export const getRatelimitsPerDay = createTimeseriesQuerier(INTERVALS.day);
-export const getRatelimitsPerMonth = createTimeseriesQuerier(INTERVALS.month);
+export const getMinutelyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.minute);
+export const getFiveMinuteRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.fiveMinutes);
+export const getFifteenMinuteRatelimitTimeseries = createTimeseriesQuerier(
+  INTERVALS.fifteenMinutes,
+);
+export const getThirtyMinuteRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.thirtyMinutes);
+export const getHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.hour);
+export const getTwoHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.twoHours);
+export const getFourHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.fourHours);
+export const getSixHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.sixHours);
+export const getDailyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.day);
+export const getMonthlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.month);
 
 const getRatelimitLastUsedParameters = z.object({
   workspaceId: z.string(),
@@ -356,3 +403,387 @@ LIMIT {limit: Int}`,
     return query(parameters);
   };
 }
+
+// ## OVERVIEWS
+export const ratelimitOverviewLogsParams = z.object({
+  workspaceId: z.string(),
+  namespaceId: z.string(),
+  limit: z.number().int(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  status: z
+    .array(
+      z.object({
+        value: z.enum(["blocked", "passed"]),
+        operator: z.literal("is"),
+      }),
+    )
+    .nullable(),
+  identifiers: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  cursorTime: z.number().int().nullable(),
+  cursorRequestId: z.string().nullable(),
+
+  sorts: z
+    .array(
+      z.object({
+        column: z.enum(["time", "avg_latency", "p99_latency"]),
+        direction: z.enum(["asc", "desc"]),
+      }),
+    )
+    .nullable(),
+});
+
+export const ratelimitOverviewLogs = z.object({
+  time: z.number().int(),
+  identifier: z.string(),
+  request_id: z.string(),
+  passed_count: z.number().int(),
+  blocked_count: z.number().int(),
+  // avg_latency: z.number().int(),
+  // p99_latency: z.number().int(),
+  override: z
+    .object({
+      limit: z.number().int(),
+      duration: z.number().int(),
+      overrideId: z.string(),
+      async: z.boolean().nullable(),
+    })
+    .optional()
+    .nullable(),
+});
+
+export type RatelimitOverviewLog = z.infer<typeof ratelimitOverviewLogs>;
+export type RatelimitOverviewLogsParams = z.infer<typeof ratelimitOverviewLogsParams>;
+
+interface ExtendedParamsOverviewLogs extends RatelimitOverviewLogsParams {
+  [key: string]: unknown;
+}
+
+export function getRatelimitOverviewLogs(ch: Querier) {
+  return async (args: RatelimitOverviewLogsParams) => {
+    const paramSchemaExtension: Record<string, z.ZodType> = {};
+    const parameters: ExtendedParamsOverviewLogs = { ...args };
+
+    const hasIdentifierFilters = args.identifiers && args.identifiers.length > 0;
+    const hasStatusFilters = args.status && args.status.length > 0;
+    const hasSortingRules = args.sorts && args.sorts.length > 0;
+
+    const statusCondition = !hasStatusFilters
+      ? "TRUE"
+      : args.status
+          ?.map((filter, index) => {
+            if (filter.operator === "is") {
+              const paramName = `statusValue_${index}`;
+              paramSchemaExtension[paramName] = z.boolean();
+              parameters[paramName] = filter.value === "passed";
+              return `passed = {${paramName}: Boolean}`;
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE";
+
+    const identifierConditions = !hasIdentifierFilters
+      ? "TRUE"
+      : args.identifiers
+          ?.map((p, index) => {
+            const paramName = `identifierValue_${index}`;
+            paramSchemaExtension[paramName] = z.string();
+            parameters[paramName] = p.value;
+            switch (p.operator) {
+              case "is":
+                return `identifier = {${paramName}: String}`;
+              case "contains":
+                return `like(identifier, CONCAT('%', {${paramName}: String}, '%'))`;
+              default:
+                return null;
+            }
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE";
+
+    const allowedColumns = new Map([
+      ["time", "last_request_time"],
+      ["avg_latency", "avg_latency"],
+      ["p99_latency", "p99_latency"],
+    ]);
+
+    const orderBy =
+      hasSortingRules && args.sorts
+        ? args.sorts.reduce((acc: string[], sort) => {
+            const column = allowedColumns.get(sort.column);
+            // Only add to ORDER BY if it's an allowed column to prevent injection
+            if (column) {
+              const direction =
+                sort.direction.toUpperCase() === "ASC" || sort.direction.toUpperCase() === "DESC"
+                  ? sort.direction.toUpperCase()
+                  : "DESC";
+              acc.push(`${column} ${direction}`);
+            }
+            return acc;
+          }, [])
+        : [];
+
+    // If time is explicitly sorted ASC, maintain that direction
+    const timeSort = args.sorts?.find((s) => s.column === "time");
+    const timeDirection = timeSort?.direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+    // Remove any existing time sort from the orderBy array
+    const orderByWithoutTime = orderBy.filter((clause) => !clause.startsWith("last_request_time"));
+
+    // Construct final ORDER BY clause with time and request_id always at the end
+    const orderByClause =
+      [
+        ...orderByWithoutTime,
+        `last_request_time ${timeDirection}`,
+        `request_id ${timeDirection}`,
+      ].join(", ") || "last_request_time DESC, request_id DESC"; // Fallback if empty
+
+    const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
+
+    const query = ch.query({
+      query: `WITH filtered_ratelimits AS (
+    SELECT
+        request_id,
+        time,
+        identifier,
+        toUInt8(passed) as status
+    FROM ratelimits.raw_ratelimits_v1
+    WHERE workspace_id = {workspaceId: String}
+        AND namespace_id = {namespaceId: String}
+        AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+        AND (${identifierConditions})
+        AND (${statusCondition})
+        AND (({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
+             OR (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
+             OR time < {cursorTime: Nullable(UInt64)})
+),
+aggregated_data AS (
+    SELECT 
+        identifier,
+        max(time) as last_request_time,
+        max(request_id) as last_request_id,
+        countIf(status = 1) as passed_count,
+        countIf(status = 0) as blocked_count
+    FROM filtered_ratelimits
+    GROUP BY identifier
+)
+SELECT 
+    identifier,
+    last_request_time as time,
+    last_request_id as request_id,
+    passed_count,
+    blocked_count
+FROM aggregated_data
+ORDER BY ${orderByClause}
+LIMIT {limit: Int}`,
+      params: extendedParamsSchema,
+      schema: ratelimitOverviewLogs,
+    });
+
+    return query(parameters);
+  };
+}
+
+// ## OVERVIEW Timeseries
+export const ratelimitLatencyTimeseriesParams = z.object({
+  workspaceId: z.string(),
+  namespaceId: z.string(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  identifiers: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+});
+
+export const ratelimitLatencyTimeseriesDataPoint = z.object({
+  x: dateTimeToUnix,
+  y: z.object({
+    avg_latency: z.number().default(0),
+    p99_latency: z.number().default(0),
+  }),
+});
+
+export type RatelimitLatencyTimeseriesDataPoint = z.infer<
+  typeof ratelimitLatencyTimeseriesDataPoint
+>;
+export type RatelimitLatencyTimeseriesParams = z.infer<typeof ratelimitLatencyTimeseriesParams>;
+
+const LATENCY_INTERVALS: Record<string, TimeInterval> = {
+  minute: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    step: "MINUTE",
+    stepSize: 1,
+  },
+  fiveMinutes: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 5,
+  },
+  fifteenMinutes: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 15,
+  },
+  thirtyMinutes: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 30,
+  },
+  hour: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    step: "HOUR",
+    stepSize: 1,
+  },
+  twoHours: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    step: "HOURS",
+    stepSize: 2,
+  },
+  fourHours: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    step: "HOURS",
+    stepSize: 4,
+  },
+  sixHours: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    step: "HOURS",
+    stepSize: 6,
+  },
+  day: {
+    table: "ratelimits.ratelimits_identifier_latency_stats_per_day_v1",
+    step: "DAY",
+    stepSize: 1,
+  },
+} as const;
+
+function createLatencyTimeseriesQuery(interval: TimeInterval, whereClause: string) {
+  // Map step to ClickHouse interval unit
+  const intervalUnit = {
+    MINUTE: "minute",
+    MINUTES: "minute",
+    HOUR: "hour",
+    HOURS: "hour",
+    DAY: "day",
+  }[interval.step];
+
+  return `
+    WITH filtered_data AS (
+      SELECT
+        time,
+        workspace_id,
+        namespace_id,
+        identifier,
+        avg_latency,
+        p99_latency
+      FROM ${interval.table}
+      WHERE workspace_id = {workspaceId: String}
+        AND namespace_id = {namespaceId: String}
+        AND time >= toStartOfInterval(fromUnixTimestamp64Milli({startTime: Int64}), INTERVAL ${interval.stepSize} ${intervalUnit})
+        AND time <= toStartOfInterval(fromUnixTimestamp64Milli({endTime: Int64}), INTERVAL ${interval.stepSize} ${intervalUnit})
+        ${whereClause}
+    )
+    SELECT
+      toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) as x,
+      map(
+        'avg_latency', round(toFloat64(avgMerge(avg_latency))),
+        'p99_latency', round(toFloat64(quantileMerge(0.99)(p99_latency)))
+      ) as y
+    FROM filtered_data
+    GROUP BY x
+    ORDER BY x ASC
+    WITH FILL
+      FROM toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
+      TO toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
+      STEP INTERVAL ${interval.stepSize} ${intervalUnit}
+  `;
+}
+
+function getRatelimitLatencyTimeseriesWhereClause(params: RatelimitLatencyTimeseriesParams): {
+  whereClause: string;
+  paramSchema: z.ZodType<any>;
+} {
+  const conditions: string[] = [];
+  const paramSchemaExtension: Record<string, z.ZodString> = {};
+
+  if (params.identifiers?.length) {
+    const identifierConditions = params.identifiers
+      .map((p, index) => {
+        const paramName = `identifierValue_${index}`;
+        paramSchemaExtension[paramName] = z.string();
+        switch (p.operator) {
+          case "is":
+            return `identifier = {${paramName}: String}`;
+          case "contains":
+            return `like(identifier, CONCAT('%', {${paramName}: String}, '%'))`;
+        }
+      })
+      .join(" OR ");
+    conditions.push(`AND (${identifierConditions})`);
+  }
+
+  return {
+    whereClause: conditions.join(" "),
+    paramSchema: ratelimitLatencyTimeseriesParams.extend(paramSchemaExtension),
+  };
+}
+
+function createLatencyTimeseriesQuerier(interval: TimeInterval) {
+  return (ch: Querier) => async (args: RatelimitLatencyTimeseriesParams) => {
+    const { whereClause, paramSchema } = getRatelimitLatencyTimeseriesWhereClause(args);
+
+    const parameters = {
+      ...args,
+      ...(args.identifiers?.reduce(
+        (acc, i, index) => ({
+          // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
+          ...acc,
+          [`identifierValue_${index}`]: i.value,
+        }),
+        {},
+      ) ?? {}),
+    };
+
+    return ch.query({
+      query: createLatencyTimeseriesQuery(interval, whereClause),
+      params: paramSchema,
+      schema: ratelimitLatencyTimeseriesDataPoint,
+    })(parameters);
+  };
+}
+
+export const getMinutelyLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.minute,
+);
+export const getFiveMinuteLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.fiveMinutes,
+);
+export const getFifteenMinuteLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.fifteenMinutes,
+);
+export const getThirtyMinuteLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.thirtyMinutes,
+);
+export const getHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(LATENCY_INTERVALS.hour);
+export const getTwoHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.twoHours,
+);
+export const getFourHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.fourHours,
+);
+export const getSixHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.sixHours,
+);
+export const getDailyLatencyTimeseries = createLatencyTimeseriesQuerier(LATENCY_INTERVALS.day);
