@@ -37,7 +37,7 @@ export const QuickNavPopover = ({
   const [open, setOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
-  useKeyboardShortcut(shortcutKey, () => {
+  useKeyboardShortcut({ key: shortcutKey, ctrl: true }, () => {
     setOpen((prev) => !prev);
   });
 
@@ -62,19 +62,16 @@ export const QuickNavPopover = ({
     }
     switch (e.key) {
       case "ArrowDown":
-      case "j":
         e.preventDefault();
         setFocusedIndex((prev) => (prev === null ? 0 : (prev + 1) % items.length));
         break;
       case "ArrowUp":
-      case "k":
         e.preventDefault();
         setFocusedIndex((prev) =>
           prev === null ? items.length - 1 : (prev - 1 + items.length) % items.length,
         );
         break;
       case "Enter":
-      case "l":
       case "ArrowRight":
         e.preventDefault();
         if (focusedIndex !== null) {
@@ -118,7 +115,7 @@ const PopoverHeader = ({
 }) => (
   <div className="flex w-full justify-between items-center px-2 py-1">
     <span className="text-gray-9 text-[13px]">{title}</span>
-    <KeyboardButton shortcut={shortcutKey} />
+    <KeyboardButton shortcut={shortcutKey} modifierKey="⌃" />
   </div>
 );
 

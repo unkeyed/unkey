@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type { Querier } from "./client/interface";
-import { dateTimeToUnix } from "./util";
 
 export const getLogsClickhousePayload = z.object({
   workspaceId: z.string(),
@@ -190,7 +189,7 @@ export const logsTimeseriesParams = z.object({
 });
 
 export const logsTimeseriesDataPoint = z.object({
-  x: dateTimeToUnix,
+  x: z.number().int(),
   y: z.object({
     success: z.number().int().default(0),
     error: z.number().int().default(0),
@@ -257,18 +256,31 @@ const INTERVALS: Record<string, TimeInterval> = {
 } as const;
 
 function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
-  // Map step to ClickHouse interval unit
+  // For SQL interval definitions
   const intervalUnit = {
     MINUTE: "minute",
     MINUTES: "minute",
     HOUR: "hour",
     HOURS: "hour",
     DAY: "day",
+    MONTH: "month",
   }[interval.step];
+
+  // For millisecond step calculation
+  const msPerUnit = {
+    MINUTE: 60_000,
+    MINUTES: 60_000,
+    HOUR: 3600_000,
+    HOURS: 3600_000,
+    DAY: 86400_000,
+    MONTH: 2592000_000,
+  }[interval.step];
+
+  const stepMs = msPerUnit! * interval.stepSize;
 
   return `
     SELECT
-      toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) as x,
+      toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3))) as x,
       map(
           'success', SUM(IF(response_status >= 200 AND response_status < 300, count, 0)),
           'warning', SUM(IF(response_status >= 400 AND response_status < 500, count, 0)),
@@ -280,9 +292,9 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
     GROUP BY x
     ORDER BY x ASC
     WITH FILL
-      FROM toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
-      TO toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
-      STEP INTERVAL ${interval.stepSize} ${intervalUnit}`;
+      FROM toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3)))
+      TO toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3)))
+      STEP ${stepMs}`;
 }
 
 function getLogsTimeseriesWhereClause(

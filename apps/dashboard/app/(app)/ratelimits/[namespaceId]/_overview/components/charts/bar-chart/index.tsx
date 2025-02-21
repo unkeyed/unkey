@@ -73,7 +73,7 @@ export function LogsTimeseriesBarChart({
       setSelection((prev) => ({
         ...prev,
         end: e.activeLabel,
-        startTimestamp: timestamp,
+        endTimestamp: timestamp,
       }));
     }
   };
@@ -87,6 +87,7 @@ export function LogsTimeseriesBarChart({
         return;
       }
       const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
+
       onSelectionChange({ start, end });
     }
     setSelection({
@@ -219,8 +220,16 @@ export function LogsTimeseriesBarChart({
               {enableSelection && selection.start && selection.end && (
                 <ReferenceArea
                   isAnimationActive
-                  x1={Math.min(Number(selection.start), Number(selection.end))}
-                  x2={Math.max(Number(selection.start), Number(selection.end))}
+                  x1={
+                    selection.start && selection.end
+                      ? Math.min(Number(selection.start), Number(selection.end))
+                      : selection.start
+                  }
+                  x2={
+                    selection.start && selection.end
+                      ? Math.max(Number(selection.start), Number(selection.end))
+                      : selection.end
+                  }
                   fill="hsl(var(--chart-selection))"
                   radius={[4, 4, 0, 0]}
                 />

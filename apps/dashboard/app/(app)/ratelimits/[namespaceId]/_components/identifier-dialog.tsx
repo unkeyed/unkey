@@ -25,7 +25,7 @@ import { Button } from "@unkey/ui";
 import type { PropsWithChildren, ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import type { OverrideDetails } from "../../../logs-table";
+import type { OverrideDetails } from "../types";
 import { InputTooltip } from "./input-tooltip";
 
 const overrideValidationSchema = z.object({
@@ -183,7 +183,7 @@ export const IdentifierDialog = ({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmitForm)}>
-          <div className="flex flex-col gap-4 py-4 px-6 bg-accent-2">
+          <div className="flex flex-col gap-4 p-5 pt-4 bg-accent-2">
             <FormField
               label="Identifier"
               tooltip="The identifier you use when ratelimiting."
@@ -252,7 +252,7 @@ export const IdentifierDialog = ({
             </FormField>
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t border-gray-4">
+          <DialogFooter className="p-6 border-t border-gray-4">
             <div className="w-full flex flex-col gap-2 items-center justify-center">
               <Button
                 type="submit"
