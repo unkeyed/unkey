@@ -1,20 +1,10 @@
 "use client";
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/components/ui/toaster";
 import { Clone, Layers3, PenWriting3 } from "@unkey/icons";
 import Link from "next/link";
-import {
-  type KeyboardEvent,
-  type PropsWithChildren,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type KeyboardEvent, type PropsWithChildren, useEffect, useRef, useState } from "react";
 import { useFilters } from "../../../../../hooks/use-filters";
 import type { OverrideDetails } from "../../../logs-table";
 import { IdentifierDialog } from "./identifier-dialog";
@@ -38,9 +28,7 @@ export const TableActionPopover = ({
   const menuItems = useRef<HTMLDivElement[]>([]);
   const { filters, updateFilters } = useFilters();
 
-  const timeFilters = filters.filter((f) =>
-    ["startTime", "endTime", "since"].includes(f.field)
-  );
+  const timeFilters = filters.filter((f) => ["startTime", "endTime", "since"].includes(f.field));
 
   const getTimeParams = () => {
     const params = new URLSearchParams({
@@ -85,7 +73,7 @@ export const TableActionPopover = ({
       value: identifier,
     };
     const existingFilters = filters.filter(
-      (f) => !(f.field === "identifiers" && f.value === identifier)
+      (f) => !(f.field === "identifiers" && f.value === identifier),
     );
     updateFilters([...existingFilters, newFilter]);
     setOpen(false);
@@ -104,9 +92,7 @@ export const TableActionPopover = ({
     e.stopPropagation();
 
     const activeElement = document.activeElement;
-    const currentIndex = menuItems.current.findIndex(
-      (item) => item === activeElement
-    );
+    const currentIndex = menuItems.current.findIndex((item) => item === activeElement);
 
     switch (e.key) {
       case "Tab":
@@ -197,9 +183,7 @@ export const TableActionPopover = ({
             hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3"
               >
                 <Layers3 size="md-regular" />
-                <span className="text-[13px] text-accent-12 font-medium">
-                  Go to logs
-                </span>
+                <span className="text-[13px] text-accent-12 font-medium">Go to logs</span>
               </div>
             </Link>
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
@@ -216,9 +200,7 @@ export const TableActionPopover = ({
               onClick={handleCopy}
             >
               <Clone size="md-regular" />
-              <span className="text-[13px] text-accent-12 font-medium">
-                Copy identifier
-              </span>
+              <span className="text-[13px] text-accent-12 font-medium">Copy identifier</span>
             </div>
 
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
@@ -235,9 +217,7 @@ export const TableActionPopover = ({
               onClick={handleEditClick}
             >
               <PenWriting3 size="md-regular" />
-              <span className="text-[13px] font-medium">
-                Override Identifier
-              </span>
+              <span className="text-[13px] font-medium">Override Identifier</span>
             </div>
           </div>
         </PopoverContent>

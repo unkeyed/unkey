@@ -54,9 +54,7 @@ describe("useRatelimitLogsQuery filter processing", () => {
 
   it("handles valid status filter", () => {
     mockFilters = [{ field: "status", operator: "is", value: "rejected" }];
-    const { result } = renderHook(() =>
-      useRatelimitLogsQuery({ namespaceId: "test-namespace" })
-    );
+    const { result } = renderHook(() => useRatelimitLogsQuery({ namespaceId: "test-namespace" }));
     expect(result.current.isPolling).toBe(false);
   });
 
@@ -66,9 +64,7 @@ describe("useRatelimitLogsQuery filter processing", () => {
       { field: "identifiers", operator: "is", value: "test-id" },
       { field: "requestIds", operator: "is", value: "req-123" },
     ];
-    const { result } = renderHook(() =>
-      useRatelimitLogsQuery({ namespaceId: "test-namespace" })
-    );
+    const { result } = renderHook(() => useRatelimitLogsQuery({ namespaceId: "test-namespace" }));
     expect(result.current.isPolling).toBe(false);
   });
 
@@ -88,9 +84,7 @@ describe("useRatelimitLogsQuery filter processing", () => {
       { field: "startTime", operator: "is", value: mockDate - 3600000 },
       { field: "since", operator: "is", value: "1h" },
     ];
-    const { result } = renderHook(() =>
-      useRatelimitLogsQuery({ namespaceId: "test-namespace" })
-    );
+    const { result } = renderHook(() => useRatelimitLogsQuery({ namespaceId: "test-namespace" }));
     expect(result.current.isPolling).toBe(false);
   });
 });
@@ -152,7 +146,7 @@ describe("useRatelimitLogsQuery realtime logs", () => {
           pollIntervalMs,
           namespaceId: "test-namespace",
         }),
-      { initialProps: { startPolling: true, pollIntervalMs: 1000 } }
+      { initialProps: { startPolling: true, pollIntervalMs: 1000 } },
     );
 
     expect(result.current.historicalLogs).toHaveLength(2);

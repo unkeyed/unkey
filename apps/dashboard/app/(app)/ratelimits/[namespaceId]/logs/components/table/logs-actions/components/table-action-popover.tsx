@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "@/components/ui/toaster";
 import { Clipboard, ClipboardCheck, InputSearch, PenWriting3 } from "@unkey/icons";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type KeyboardEvent, type PropsWithChildren, useEffect, useRef, useState } from "react";
 import { useRatelimitLogsContext } from "../../../../context/logs";
 import { useFilters } from "../../../../hooks/use-filters";
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export const TableActionPopover = ({ children, identifier }: PropsWithChildren<Props>) => {
+  const { push } = useRouter();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
@@ -93,6 +95,8 @@ export const TableActionPopover = ({ children, identifier }: PropsWithChildren<P
         e.preventDefault();
         if (activeElement === menuItems.current[0]) {
           handleCopy(e);
+        } else if (activeElement === menuItems.current[1]) {
+          push(`/ratelimits/${namespaceId}/overrides?identifier=${identifier}`);
         } else if (activeElement === menuItems.current[2]) {
           handleFilterClick(e);
         }
