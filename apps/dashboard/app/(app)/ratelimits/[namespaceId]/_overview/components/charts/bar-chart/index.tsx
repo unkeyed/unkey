@@ -13,7 +13,6 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Grid } from "@unkey/icons";
-import { getTimezoneOffset } from "date-fns-tz";
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
 import { compactFormatter } from "../../../utils";
@@ -88,14 +87,8 @@ export function LogsTimeseriesBarChart({
         return;
       }
       const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
-      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      const tzOffset = getTimezoneOffset(userTimeZone);
-
-      const localStart = start + tzOffset;
-      const localEnd = end + tzOffset;
-
-      onSelectionChange({ start: localStart, end: localEnd });
+      onSelectionChange({ start, end });
     }
     setSelection({
       start: "",

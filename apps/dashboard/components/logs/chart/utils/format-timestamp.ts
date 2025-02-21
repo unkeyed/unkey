@@ -1,12 +1,5 @@
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
-import { addMinutes, format } from "date-fns";
-
-export const formatTimestampTooltip = (value: string | number) => {
-  const date = new Date(value);
-  const offset = new Date().getTimezoneOffset() * -1;
-  const localDate = addMinutes(date, offset);
-  return format(localDate, "MMM dd HH:mm aa");
-};
+import { addMinutes, format, fromUnixTime } from "date-fns";
 
 export const formatTimestampLabel = (timestamp: string | number | Date) => {
   const date = new Date(timestamp);
@@ -38,4 +31,19 @@ export const formatTimestampForChart = (
     default:
       return format(localDate, "Pp");
   }
+};
+
+const unixMicroToDate = (unix: string | number): Date => {
+  return fromUnixTime(Number(unix) / 1000 / 1000);
+};
+
+const isUnixMicro = (unix: string | number): boolean => {
+  const digitLength = String(unix).length === 16;
+  const isNum = !Number.isNaN(Number(unix));
+  return isNum && digitLength;
+};
+
+export const formatTimestampTooltip = (value: string | number) => {
+  const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
+  return format(date, "MMM dd HH:mm:ss");
 };
