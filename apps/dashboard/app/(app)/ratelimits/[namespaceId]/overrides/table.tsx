@@ -27,7 +27,7 @@ type Props = {
 
 export const Overrides: React.FC<Props> = async ({ workspaceId, namespaceId, ratelimits }) => {
   return (
-    <Table className="no-scrollbar">
+    <Table className="no-scrollbar mt-4">
       <TableHeader>
         <TableRow>
           <TableHead>Identifier</TableHead>

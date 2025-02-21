@@ -10,18 +10,26 @@
  * https://nucleoapp.com/license
  */
 import type React from "react";
-import type { IconProps } from "../props";
+import { type IconProps, sizeMap } from "../props";
 
-export const BarsFilter: React.FC<IconProps> = (props) => {
+export const BarsFilter: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
+
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor">
         <line
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="5.25"
           x2="12.75"
           y1="9"
@@ -32,7 +40,7 @@ export const BarsFilter: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="2.75"
           x2="15.25"
           y1="4.25"
@@ -43,7 +51,7 @@ export const BarsFilter: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="8"
           x2="10"
           y1="13.75"
