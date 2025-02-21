@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/unkeyed/unkey/go/cmd/api"
+	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/urfave/cli/v2"
 )
 
@@ -15,6 +16,7 @@ func main() {
 
 		Commands: []*cli.Command{
 			api.Cmd,
+			healthcheck.Cmd,
 		},
 	}
 

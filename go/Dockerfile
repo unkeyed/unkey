@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.23 AS builder
 
 
 
@@ -8,13 +8,14 @@ RUN go mod download
 
 COPY . .
 ARG VERSION
+ENV CGO_ENABLED=0
 RUN go build -o bin/unkey -ldflags "-X 'github.com/unkeyed/unkey/go/pkg/version.Version=${VERSION}'"  ./main.go
 
-FROM golang:1.23-alpine
-WORKDIR  /usr/local/bin
-COPY --from=builder /go/src/github.com/unkeyed/unkey/go/bin/unkey .
-COPY --from=builder /go/src/github.com/unkeyed/unkey/go/config.docker.json .
-COPY --from=builder /go/src/github.com/unkeyed/unkey/go/config.ecs.json .
+FROM gcr.io/distroless/static-debian12
+# FROM scratch
+COPY --from=builder /go/src/github.com/unkeyed/unkey/go/bin/unkey /
+COPY --from=builder /go/src/github.com/unkeyed/unkey/go/config.docker.json /
+COPY --from=builder /go/src/github.com/unkeyed/unkey/go/config.ecs.json /
 
 
-ENTRYPOINT [ "/usr/local/bin/unkey"]
+ENTRYPOINT  [ "/unkey"]
