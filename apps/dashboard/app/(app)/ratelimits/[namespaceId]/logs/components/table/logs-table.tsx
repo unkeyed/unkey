@@ -146,7 +146,9 @@ export const RatelimitLogsTable = () => {
         header: "Limit",
         width: "auto",
         render: (log) => {
-          return <div className="font-mono">{safeParseJson(log.response_body).limit}</div>;
+          return (
+            <div className="font-mono">{safeParseJson(log.response_body)?.limit ?? "<EMPTY>"}</div>
+          );
         },
       },
       {
@@ -154,8 +156,11 @@ export const RatelimitLogsTable = () => {
         header: "Duration",
         width: "auto",
         render: (log) => {
+          const parsedDuration = safeParseJson(log.request_body)?.duration;
           return (
-            <div className="font-mono">{msToSeconds(safeParseJson(log.request_body).duration)}</div>
+            <div className="font-mono">
+              {parsedDuration ? msToSeconds(parsedDuration) : "<EMPTY>"}
+            </div>
           );
         },
       },
@@ -164,16 +169,19 @@ export const RatelimitLogsTable = () => {
         header: "Resets At",
         width: "auto",
         render: (log) => {
-          return (
+          const parsedReset = safeParseJson(log.response_body)?.reset;
+          return parsedReset ? (
             <div className="font-mono">
               <TimestampInfo
-                value={safeParseJson(log.response_body).reset}
+                value={safeParseJson(log.response_body)?.reset ?? "<EMPTY>"}
                 className={cn(
                   "font-mono group-hover:underline decoration-dotted",
                   selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
                 )}
               />
             </div>
+          ) : (
+            "<Empty>"
           );
         },
       },
@@ -216,9 +224,8 @@ export const RatelimitLogsTable = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>Logs</Empty.Title>
             <Empty.Description className="text-left">
-              Keep track of all activity within your workspace. Logs automatically record key
-              actions like key creation, permission updates, and configuration changes, giving you a
-              clear history of resource requests.
+              No ratelimit logs yet. Once API requests start coming in, you'll see a detailed view
+              of your rate limits, including passed and blocked requests, across your API endpoints.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a

@@ -1,5 +1,5 @@
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { LiveSwitchButton } from "@/components/logs/live-switch-button";
-import { HISTORICAL_DATA_WINDOW } from "../../../constants";
 import { useRatelimitLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
 
