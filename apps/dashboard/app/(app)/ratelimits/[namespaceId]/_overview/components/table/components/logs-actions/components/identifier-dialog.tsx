@@ -71,7 +71,9 @@ const FormField = ({ label, tooltip, error, children }: FormFieldProps) => (
       )}
     </Label>
     {children}
-    {error && <span className="text-error-10 text-[13px] font-medium">{error}</span>}
+    {error && (
+      <span className="text-error-10 text-[13px] font-medium">{error}</span>
+    )}
   </div>
 );
 
@@ -81,7 +83,7 @@ type Props = PropsWithChildren<{
   identifier: string;
   isLoading?: boolean;
   namespaceId: string;
-  overrideDetails?: OverrideDetails;
+  overrideDetails?: OverrideDetails | null;
 }>;
 
 export const IdentifierDialog = ({
@@ -105,7 +107,11 @@ export const IdentifierDialog = ({
       limit: overrideDetails?.limit ?? 10,
       duration: overrideDetails?.duration ?? 60_000,
       async:
-        overrideDetails?.async === undefined ? "unset" : overrideDetails.async ? "async" : "sync",
+        overrideDetails?.async === undefined
+          ? "unset"
+          : overrideDetails.async
+          ? "async"
+          : "sync",
     },
   });
 

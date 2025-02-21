@@ -11,7 +11,7 @@ export const LogsTableAction = ({
 }: {
   identifier: string;
   namespaceId: string;
-  overrideDetails?: OverrideDetails;
+  overrideDetails?: OverrideDetails | null;
 }) => {
   return (
     <TableActionPopover
@@ -21,7 +21,7 @@ export const LogsTableAction = ({
     >
       <Button
         className={cn(
-          "group-data-[state=open]:bg-gray-6 px-2 bg-gray-5 hover:bg-gray-6 group border-none size-5",
+          "group-data-[state=open]:bg-gray-6 px-2 bg-gray-5 hover:bg-gray-6 group border-none size-5"
         )}
         size="icon"
       >
