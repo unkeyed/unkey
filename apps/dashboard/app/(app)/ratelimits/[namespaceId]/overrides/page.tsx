@@ -6,25 +6,6 @@ import { OverridesTable } from "./overrides-table";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
-async function getLastUsedTimes(workspaceId: string, namespaceId: string, identifiers: string[]) {
-  const results = await Promise.all(
-    identifiers.map(async (identifier) => {
-      const lastUsed = await clickhouse.ratelimits.latest({
-        workspaceId,
-        namespaceId,
-        identifier: [identifier],
-        limit: 1,
-      });
-      return {
-        identifier,
-        lastUsed: lastUsed.val?.at(0)?.time ?? null,
-      };
-    }),
-  );
-
-  return Object.fromEntries(results.map(({ identifier, lastUsed }) => [identifier, lastUsed]));
-}
-
 export default async function OverridePage({
   params: { namespaceId },
 }: {
@@ -58,4 +39,23 @@ export default async function OverridePage({
       />
     </div>
   );
+}
+
+async function getLastUsedTimes(workspaceId: string, namespaceId: string, identifiers: string[]) {
+  const results = await Promise.all(
+    identifiers.map(async (identifier) => {
+      const lastUsed = await clickhouse.ratelimits.latest({
+        workspaceId,
+        namespaceId,
+        identifier: [identifier],
+        limit: 1,
+      });
+      return {
+        identifier,
+        lastUsed: lastUsed.val?.at(0)?.time ?? null,
+      };
+    }),
+  );
+
+  return Object.fromEntries(results.map(({ identifier, lastUsed }) => [identifier, lastUsed]));
 }
