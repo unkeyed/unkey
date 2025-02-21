@@ -32,7 +32,7 @@ export const ratelimitLogsTimeseriesParams = z.object({
 });
 
 export const ratelimitLogsTimeseriesDataPoint = z.object({
-  x: dateTimeToUnix,
+  x: z.number().int(),
   y: z.object({
     passed: z.number().int().default(0),
     total: z.number().int().default(0),
@@ -102,19 +102,20 @@ const INTERVALS: Record<string, TimeInterval> = {
 } as const;
 
 function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
-  // Map step to ClickHouse interval unit
   const intervalUnit = {
-    MINUTE: "minute",
-    MINUTES: "minute",
-    HOUR: "hour",
-    HOURS: "hour",
-    DAY: "day",
-    MONTH: "month",
+    MINUTE: 60_000, // milliseconds in a minute
+    MINUTES: 60_000,
+    HOUR: 3600_000, // milliseconds in an hour
+    HOURS: 3600_000,
+    DAY: 86400_000, // milliseconds in a day
+    MONTH: 2592000_000, // approximate milliseconds in a month (30 days)
   }[interval.step];
+
+  const stepMs = intervalUnit! * interval.stepSize;
 
   return `
     SELECT
-      toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) as x,
+      toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${interval.step}) AS DateTime64(3))) as x,
       map(
         'passed', sum(passed),
         'total', sum(total)
@@ -124,9 +125,9 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
     GROUP BY x
     ORDER BY x ASC
     WITH FILL
-      FROM toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
-      TO toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
-      STEP INTERVAL ${interval.stepSize} ${intervalUnit}`;
+      FROM toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${interval.step}) AS DateTime64(3)))
+      TO toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${interval.step}) AS DateTime64(3)))
+      STEP ${stepMs}`;
 }
 
 function getRatelimitLogsTimeseriesWhereClause(
@@ -547,7 +548,6 @@ export function getRatelimitOverviewLogs(ch: Querier) {
       ].join(", ") || "last_request_time DESC, request_id DESC"; // Fallback if empty
 
     const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
-
     const query = ch.query({
       query: `WITH filtered_ratelimits AS (
     SELECT

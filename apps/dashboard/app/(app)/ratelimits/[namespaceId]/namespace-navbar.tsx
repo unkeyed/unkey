@@ -51,7 +51,7 @@ export const NamespaceNavbar = ({
                     label: ns.name,
                     href: `/ratelimits/${ns.id}`,
                   }))}
-                  shortcutKey="R"
+                  shortcutKey="N"
                 >
                   <div className="text-accent-10 group-hover:text-accent-12">{namespace.name}</div>
                 </QuickNavPopover>

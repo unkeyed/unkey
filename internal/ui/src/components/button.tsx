@@ -15,7 +15,7 @@ const buttonVariants = cva(
         primary:
           "bg-gray-12 hover:bg-gray-1  text-accent-1 hover:text-accent-12 border border-black dark:border-white hover:border-gray-4 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-3 drop-shadow-button duration-250",
         destructive:
-          "text-error-9 border border-gray-6 hover:border-error-8 hover:bg-error-4 focus-visible:border-error-9 ring-2 ring-transparent focus-visible:ring-error-3",
+          "text-gray-1 bg-error-9 border border-error-7 hover:bg-error-10 hover:border-error-8 active:bg-error-11 disabled:bg-error-5 disabled:border-error-4 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-3 focus-visible:border-error-8 transition-colors duration-150",
         ghost:
           "text-accent-12 hover:bg-gray-3 ring-2 ring-transparent focus-visible:ring-accent-12",
       },

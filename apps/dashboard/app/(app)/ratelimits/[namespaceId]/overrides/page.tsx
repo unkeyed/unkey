@@ -1,15 +1,10 @@
-import { PageHeader } from "@/components/dashboard/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Empty } from "@unkey/ui";
-import { CreateNewOverride } from "./create-new-override";
-import { Overrides } from "./table";
+import { clickhouse } from "@/lib/clickhouse";
+import { NamespaceNavbar } from "../namespace-navbar";
+import { getWorkspaceDetailsWithOverrides } from "../namespace.actions";
+import { OverridesTable } from "./overrides-table";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
-
-import { PageContent } from "@/components/page-content";
-import { NamespaceNavbar } from "../namespace-navbar";
-import { getWorkspaceDetailsWithOverrides } from "../namespace.actions";
 
 export default async function OverridePage({
   params: { namespaceId },
@@ -17,6 +12,14 @@ export default async function OverridePage({
   params: { namespaceId: string };
 }) {
   const { namespace, workspace } = await getWorkspaceDetailsWithOverrides(namespaceId);
+
+  const lastUsedTimes = namespace.overrides?.length
+    ? await getLastUsedTimes(
+        namespace.workspaceId,
+        namespace.id,
+        namespace.overrides.map((o) => o.identifier),
+      )
+    : {};
 
   return (
     <div>
@@ -28,33 +31,31 @@ export default async function OverridePage({
         namespace={namespace}
         ratelimitNamespaces={workspace.ratelimitNamespaces}
       />
-      <PageContent>
-        <PageHeader
-          className="m-0 mb-2"
-          title="Overridden identifiers"
-          actions={[
-            <Badge variant="secondary" className="h-8" key="overrides">
-              {Intl.NumberFormat().format(namespace.overrides?.length)} /{" "}
-              {Intl.NumberFormat().format(workspace.features.ratelimitOverrides ?? 5)} used{" "}
-            </Badge>,
-          ]}
-        />
 
-        <CreateNewOverride namespaceId={namespace.id} />
-        {namespace.overrides?.length === 0 ? (
-          <Empty>
-            <Empty.Icon />
-            <Empty.Title>No custom ratelimits found</Empty.Title>
-            <Empty.Description>Create your first override below</Empty.Description>
-          </Empty>
-        ) : (
-          <Overrides
-            workspaceId={namespace.workspaceId}
-            namespaceId={namespace.id}
-            ratelimits={namespace.overrides}
-          />
-        )}
-      </PageContent>
+      <OverridesTable
+        namespaceId={namespace.id}
+        ratelimits={namespace.overrides}
+        lastUsedTimes={lastUsedTimes}
+      />
     </div>
   );
+}
+
+async function getLastUsedTimes(workspaceId: string, namespaceId: string, identifiers: string[]) {
+  const results = await Promise.all(
+    identifiers.map(async (identifier) => {
+      const lastUsed = await clickhouse.ratelimits.latest({
+        workspaceId,
+        namespaceId,
+        identifier: [identifier],
+        limit: 1,
+      });
+      return {
+        identifier,
+        lastUsed: lastUsed.val?.at(0)?.time ?? null,
+      };
+    }),
+  );
+
+  return Object.fromEntries(results.map(({ identifier, lastUsed }) => [identifier, lastUsed]));
 }

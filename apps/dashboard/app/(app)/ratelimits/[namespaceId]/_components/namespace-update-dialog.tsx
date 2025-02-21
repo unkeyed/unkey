@@ -21,7 +21,7 @@ import { useRouter } from "next/navigation";
 import type { PropsWithChildren, ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { InputTooltip } from "../_overview/components/table/components/logs-actions/components/input-tooltip";
+import { InputTooltip } from "./input-tooltip";
 
 const formSchema = z.object({
   name: validation.name,

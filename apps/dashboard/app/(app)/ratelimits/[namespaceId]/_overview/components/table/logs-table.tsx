@@ -17,13 +17,6 @@ import { useSort } from "./hooks/use-sort";
 import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
 // const MAX_LATENCY = 10;
-export type OverrideDetails = {
-  overrideId?: string;
-  limit: number;
-  duration: number;
-  async?: boolean | null;
-};
-
 export const RatelimitOverviewLogsTable = ({
   namespaceId,
 }: {
@@ -168,13 +161,20 @@ export const RatelimitOverviewLogsTable = ({
               value={log.time}
               className={cn("font-mono group-hover:underline decoration-dotted")}
             />
-            <div className="invisible group-hover:visible">
-              <LogsTableAction
-                overrideDetails={log.override}
-                identifier={log.identifier}
-                namespaceId={namespaceId}
-              />
-            </div>
+          </div>
+        ),
+      },
+      {
+        key: "actions",
+        header: "",
+        width: "7.5%",
+        render: (log) => (
+          <div className="text-end">
+            <LogsTableAction
+              overrideDetails={log.override}
+              identifier={log.identifier}
+              namespaceId={namespaceId}
+            />
           </div>
         ),
       },

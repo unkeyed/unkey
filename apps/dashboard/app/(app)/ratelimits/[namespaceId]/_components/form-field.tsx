@@ -1,7 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { CircleInfo } from "@unkey/icons";
 import type { ReactNode } from "react";
-import { InputTooltip } from "../_overview/components/table/components/logs-actions/components/input-tooltip";
+import { InputTooltip } from "./input-tooltip";
 
 type FormFieldProps = {
   label: string;
