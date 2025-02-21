@@ -45,7 +45,7 @@ export const QuickNavPopover = ({
     setOpen(false);
     if (onItemSelect) {
       onItemSelect(item);
-      return;
+      return
     }
     if (item.onClick) {
       item.onClick();
