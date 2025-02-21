@@ -35,7 +35,13 @@
         "UNKEY_WEBHOOK_KEYS_API_ID",
         "UNKEY_WORKSPACE_ID",
         "VERCEL_INTEGRATION_CLIENT_ID",
-        "VERCEL_INTEGRATION_CLIENT_SECRET"
+        "VERCEL_INTEGRATION_CLIENT_SECRET",
+        "AUTH_PROVIDER",
+        "WORKOS_COOKIE_PASSWORD",
+        "WORKOS_API_KEY",
+        "WORKOS_CLIENT_ID",
+        "NEXT_PUBLIC_WORKOS_REDIRECT_URI"
+        "
       ],
       "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
     },
