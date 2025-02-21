@@ -54,7 +54,7 @@ describe("useRatelimitLogsQuery filter processing", () => {
 
   it("handles valid status filter", () => {
     mockFilters = [{ field: "status", operator: "is", value: "rejected" }];
-    const { result } = renderHook(() => useRatelimitLogsQuery());
+    const { result } = renderHook(() => useRatelimitLogsQuery({ namespaceId: "test-namespace" }));
     expect(result.current.isPolling).toBe(false);
   });
 
@@ -64,7 +64,7 @@ describe("useRatelimitLogsQuery filter processing", () => {
       { field: "identifiers", operator: "is", value: "test-id" },
       { field: "requestIds", operator: "is", value: "req-123" },
     ];
-    const { result } = renderHook(() => useRatelimitLogsQuery());
+    const { result } = renderHook(() => useRatelimitLogsQuery({ namespaceId: "test-namespace" }));
     expect(result.current.isPolling).toBe(false);
   });
 
@@ -75,7 +75,7 @@ describe("useRatelimitLogsQuery filter processing", () => {
       { field: "requestIds", operator: "is", value: true },
       { field: "status", operator: "is", value: {} },
     ];
-    renderHook(() => useRatelimitLogsQuery());
+    renderHook(() => useRatelimitLogsQuery({ namespaceId: "test-namspace" }));
     expect(consoleMock).toHaveBeenCalledTimes(3);
   });
 
@@ -84,7 +84,7 @@ describe("useRatelimitLogsQuery filter processing", () => {
       { field: "startTime", operator: "is", value: mockDate - 3600000 },
       { field: "since", operator: "is", value: "1h" },
     ];
-    const { result } = renderHook(() => useRatelimitLogsQuery());
+    const { result } = renderHook(() => useRatelimitLogsQuery({ namespaceId: "test-namespace" }));
     expect(result.current.isPolling).toBe(false);
   });
 });
@@ -140,7 +140,12 @@ describe("useRatelimitLogsQuery realtime logs", () => {
     });
 
     const { result, rerender } = renderHook(
-      ({ startPolling, pollIntervalMs }) => useRatelimitLogsQuery({ startPolling, pollIntervalMs }),
+      ({ startPolling, pollIntervalMs }) =>
+        useRatelimitLogsQuery({
+          startPolling,
+          pollIntervalMs,
+          namespaceId: "test-namespace",
+        }),
       { initialProps: { startPolling: true, pollIntervalMs: 1000 } },
     );
 

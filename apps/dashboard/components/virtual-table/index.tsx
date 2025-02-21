@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CircleCarretRight } from "@unkey/icons";
+import { CaretDown, CaretExpandY, CaretUp, CircleCarretRight } from "@unkey/icons";
 import { Fragment, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
 import { LoadingIndicator } from "./components/loading-indicator";
@@ -7,7 +7,7 @@ import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
-import type { Column, SeparatorItem, VirtualTableProps } from "./types";
+import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
 const calculateTableLayout = (columns: Column<any>[]) => {
   return columns.map((column) => {
@@ -113,17 +113,23 @@ export function VirtualTable<TTableData>({
             ))}
           </colgroup>
 
-          <thead className="sticky top-0 z-10 bg-background">
+          <thead className="sticky top-0 z-10">
+            <tr>
+              <th colSpan={columns.length} className="p-0">
+                <div className="absolute inset-x-[-8px] top-0 bottom-[0px] bg-gray-1" />
+              </th>
+            </tr>
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
                   className={cn(
-                    "text-sm font-medium text-accent-12 py-1 text-left",
+                    "text-sm font-medium text-accent-12 py-1 text-left relative",
                     column.headerClassName,
                   )}
                 >
-                  <div className="truncate text-accent-12">{column.header}</div>
+                  <HeaderCell column={column} />
+                  {/* <div className="truncate text-accent-12">{column.header}</div> */}
                 </th>
               ))}
             </tr>
@@ -255,6 +261,47 @@ export function VirtualTable<TTableData>({
         </table>
         {isFetchingNextPage && <LoadingIndicator />}
       </div>
+    </div>
+  );
+}
+
+function SortIcon({ direction }: { direction?: SortDirection | null }) {
+  // biome-ignore lint/style/useBlockStatements: <explanation>
+  if (!direction) return <CaretExpandY className="color-gray-9" />;
+  return direction === "asc" ? (
+    <CaretUp className="color-gray-9" size="sm-thin" />
+  ) : (
+    <CaretDown className="color-gray-9" size="sm-thin" />
+  );
+}
+
+function HeaderCell<T>({ column }: { column: Column<T> }) {
+  const { direction, onSort, sortable } = column.sort ?? {};
+  const handleSort = () => {
+    if (!sortable || !onSort) {
+      return;
+    }
+
+    const nextDirection = !direction ? "asc" : direction === "asc" ? "desc" : null;
+
+    onSort(nextDirection);
+  };
+
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+    <div
+      className={cn(
+        "flex items-center gap-1 truncate text-accent-12",
+        sortable && "cursor-pointer",
+      )}
+      onClick={sortable ? handleSort : undefined}
+    >
+      <span>{column.header}</span>
+      {sortable && (
+        <span className="flex-shrink-0">
+          <SortIcon direction={direction} />
+        </span>
+      )}
     </div>
   );
 }

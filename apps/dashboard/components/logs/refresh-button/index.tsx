@@ -7,8 +7,8 @@ import { useState } from "react";
 type RefreshButtonProps = {
   onRefresh: () => void;
   isEnabled: boolean;
-  isLive: boolean;
-  toggleLive: (value: boolean) => void;
+  isLive?: boolean;
+  toggleLive?: (value: boolean) => void;
 };
 
 const REFRESH_TIMEOUT_MS = 1000;
@@ -28,7 +28,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
 
     const isLiveBefore = Boolean(isLive);
     setIsLoading(true);
-    toggleLive(false);
+    toggleLive?.(false);
     onRefresh();
 
     if (refreshTimeout) {
@@ -38,7 +38,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
     const timeout = setTimeout(() => {
       setIsLoading(false);
       if (isLiveBefore) {
-        toggleLive(true);
+        toggleLive?.(true);
       }
     }, REFRESH_TIMEOUT_MS);
     setRefreshTimeout(timeout);
