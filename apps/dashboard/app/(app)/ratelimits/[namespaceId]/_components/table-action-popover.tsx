@@ -9,6 +9,7 @@ export type MenuItem = {
   icon: React.ReactNode;
   onClick: (e: React.MouseEvent<Element, MouseEvent> | React.KeyboardEvent<Element>) => void;
   className?: string;
+  disabled?: boolean;
 };
 
 type BaseTableActionPopoverProps = PropsWithChildren<{
@@ -29,10 +30,14 @@ export const TableActionPopover = ({
 
   useEffect(() => {
     if (open) {
-      setFocusIndex(0);
-      menuItems.current[0]?.focus();
+      // Find first non-disabled item
+      const firstEnabledIndex = items.findIndex((item) => !item.disabled);
+      setFocusIndex(firstEnabledIndex >= 0 ? firstEnabledIndex : 0);
+      if (firstEnabledIndex >= 0) {
+        menuItems.current[firstEnabledIndex]?.focus();
+      }
     }
-  }, [open]);
+  }, [open, items]);
 
   const handleKeyDown = (e: React.KeyboardEvent<Element>) => {
     e.stopPropagation();
@@ -41,31 +46,43 @@ export const TableActionPopover = ({
     const currentIndex = menuItems.current.findIndex((item) => item === activeElement);
     const itemCount = items.length;
 
-    switch (e.key) {
-      case "Tab":
-        e.preventDefault();
-        if (!e.shiftKey) {
-          setFocusIndex((currentIndex + 1) % itemCount);
-          menuItems.current[(currentIndex + 1) % itemCount]?.focus();
-        } else {
-          setFocusIndex((currentIndex - 1 + itemCount) % itemCount);
-          menuItems.current[(currentIndex - 1 + itemCount) % itemCount]?.focus();
+    const findNextEnabledIndex = (startIndex: number, direction: 1 | -1) => {
+      let index = startIndex;
+      for (let i = 0; i < itemCount; i++) {
+        index = (index + direction + itemCount) % itemCount;
+        if (!items[index].disabled) {
+          return index;
         }
+      }
+      return startIndex;
+    };
+
+    switch (e.key) {
+      case "Tab": {
+        e.preventDefault();
+        const nextIndex = findNextEnabledIndex(currentIndex, e.shiftKey ? -1 : 1);
+        setFocusIndex(nextIndex);
+        menuItems.current[nextIndex]?.focus();
         break;
+      }
 
       case "j":
-      case "ArrowDown":
+      case "ArrowDown": {
         e.preventDefault();
-        setFocusIndex((currentIndex + 1) % itemCount);
-        menuItems.current[(currentIndex + 1) % itemCount]?.focus();
+        const nextDownIndex = findNextEnabledIndex(currentIndex, 1);
+        setFocusIndex(nextDownIndex);
+        menuItems.current[nextDownIndex]?.focus();
         break;
+      }
 
       case "k":
-      case "ArrowUp":
+      case "ArrowUp": {
         e.preventDefault();
-        setFocusIndex((currentIndex - 1 + itemCount) % itemCount);
-        menuItems.current[(currentIndex - 1 + itemCount) % itemCount]?.focus();
+        const nextUpIndex = findNextEnabledIndex(currentIndex, -1);
+        setFocusIndex(nextUpIndex);
+        menuItems.current[nextUpIndex]?.focus();
         break;
+      }
 
       case "Escape":
         e.preventDefault();
@@ -77,7 +94,7 @@ export const TableActionPopover = ({
       case "l":
       case " ":
         e.preventDefault();
-        if (activeElement === menuItems.current[currentIndex]) {
+        if (activeElement === menuItems.current[currentIndex] && !items[currentIndex].disabled) {
           items[currentIndex].onClick(e);
         }
         break;
@@ -95,7 +112,10 @@ export const TableActionPopover = ({
         align={align}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
-          menuItems.current[0]?.focus();
+          const firstEnabledIndex = items.findIndex((item) => !item.disabled);
+          if (firstEnabledIndex >= 0) {
+            menuItems.current[firstEnabledIndex]?.focus();
+          }
         }}
         onCloseAutoFocus={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => {
@@ -125,14 +145,20 @@ export const TableActionPopover = ({
                 }
               }}
               role="menuitem"
-              tabIndex={focusIndex === index ? 0 : -1}
+              aria-disabled={item.disabled}
+              tabIndex={!item.disabled && focusIndex === index ? 0 : -1}
               className={cn(
-                "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3",
+                "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
+                !item.disabled &&
+                  "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3",
+                item.disabled && "cursor-not-allowed opacity-50",
                 item.className,
               )}
               onClick={(e) => {
-                item.onClick(e);
-                setOpen(false);
+                if (!item.disabled) {
+                  item.onClick(e);
+                  setOpen(false);
+                }
               }}
             >
               {item.icon}

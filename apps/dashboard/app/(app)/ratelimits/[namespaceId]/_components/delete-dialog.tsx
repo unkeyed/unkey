@@ -12,7 +12,6 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
-import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -34,7 +33,6 @@ type Props = PropsWithChildren<{
 }>;
 
 export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier }: Props) => {
-  const router = useRouter();
   const { ratelimit } = trpc.useUtils();
 
   const {
@@ -58,8 +56,8 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
         description: "Changes may take up to 60s to propagate globally",
       });
       onOpenChange(false);
-      router.push("/ratelimits/");
       ratelimit.overview.logs.query.invalidate();
+      ratelimit.logs.queryRatelimitTimeseries.invalidate();
     },
     onError(err) {
       toast.error("Failed to delete override", {

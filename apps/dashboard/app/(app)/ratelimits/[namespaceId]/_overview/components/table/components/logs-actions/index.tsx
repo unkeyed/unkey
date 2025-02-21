@@ -25,26 +25,22 @@ export const LogsTableAction = ({
   const router = useRouter();
   const { filters } = useFilters();
 
-  // Keep the time params logic
   const timeFilters = filters.filter((f) => ["startTime", "endTime", "since"].includes(f.field));
 
   const getTimeParams = () => {
     const params = new URLSearchParams({
       identifiers: `contains:${identifier}`,
     });
-
     const timeMap = {
       startTime: timeFilters.find((f) => f.field === "startTime")?.value,
       endTime: timeFilters.find((f) => f.field === "endTime")?.value,
       since: timeFilters.find((f) => f.field === "since")?.value,
     };
-
     Object.entries(timeMap).forEach(([key, value]) => {
       if (value) {
         params.append(key, value.toString());
       }
     });
-
     return params.toString();
   };
 
@@ -72,7 +68,7 @@ export const LogsTableAction = ({
     },
     {
       id: "override",
-      label: "Override Identifier",
+      label: overrideDetails ? "Update Override" : "Override Identifier",
       icon: <PenWriting3 size="md-regular" />,
       className: "text-orange-11 hover:bg-orange-2 focus:bg-orange-3",
       onClick: (e) => {
@@ -84,10 +80,17 @@ export const LogsTableAction = ({
       id: "delete",
       label: "Delete Override",
       icon: <Trash size="md-regular" />,
-      className: "text-error-11 hover:bg-error-3 focus:bg-error-3",
+      className: `${
+        overrideDetails?.overrideId
+          ? "text-error-10 hover:bg-error-3 focus:bg-error-3"
+          : "text-error-10 cursor-not-allowed bg-error-3"
+      }`,
+      disabled: !overrideDetails?.overrideId,
       onClick: (e) => {
         e.stopPropagation();
-        setIsDeleteModalOpen(true);
+        if (overrideDetails?.overrideId) {
+          setIsDeleteModalOpen(true);
+        }
       },
     },
   ];
