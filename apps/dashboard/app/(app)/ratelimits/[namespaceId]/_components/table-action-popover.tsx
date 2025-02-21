@@ -30,7 +30,6 @@ export const TableActionPopover = ({
 
   useEffect(() => {
     if (open) {
-      // Find first non-disabled item
       const firstEnabledIndex = items.findIndex((item) => !item.disabled);
       setFocusIndex(firstEnabledIndex >= 0 ? firstEnabledIndex : 0);
       if (firstEnabledIndex >= 0) {
