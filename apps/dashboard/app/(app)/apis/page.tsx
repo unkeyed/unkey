@@ -25,7 +25,8 @@ export default async function ApisOverviewPage(props: Props) {
     workspaceId: workspace.id,
     limit: DEFAULT_OVERVIEW_FETCH_LIMIT,
   });
-  const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
+
+  const unpaid = false; // temporarily remove this feature until TBD 
 
   return (
     <div>
