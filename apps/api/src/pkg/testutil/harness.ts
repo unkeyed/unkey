@@ -211,7 +211,6 @@ export abstract class Harness {
       description: null,
       createdAtM: Date.now(),
       updatedAtM: null,
-      deletedAtM: null,
     };
 
     return this.db.primary.transaction(async (tx) => {
@@ -239,7 +238,6 @@ export abstract class Harness {
       description: null,
       createdAtM: Date.now(),
       updatedAtM: null,
-      deletedAtM: null,
     };
     return this.db.primary.transaction(async (tx) => {
       const found = await tx.query.roles.findFirst({
@@ -275,6 +273,9 @@ export abstract class Harness {
       planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
+      createdAtM: Date.now(),
+      updatedAtM: null,
+      deletedAtM: null,
     };
     const userWorkspace: Workspace = {
       id: newId("test"),
@@ -294,6 +295,9 @@ export abstract class Harness {
       planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
+      createdAtM: Date.now(),
+      updatedAtM: null,
+      deletedAtM: null,
     };
 
     const unkeyKeyAuth: KeyAuth = {

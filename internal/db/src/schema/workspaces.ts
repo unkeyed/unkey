@@ -18,6 +18,7 @@ import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { secrets } from "./secrets";
 import { deleteProtection } from "./util/delete_protection";
+import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
 export const workspaces = mysqlTable(
@@ -106,6 +107,7 @@ export const workspaces = mysqlTable(
      */
     enabled: boolean("enabled").notNull().default(true),
     ...deleteProtection,
+    ...lifecycleDatesMigration,
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

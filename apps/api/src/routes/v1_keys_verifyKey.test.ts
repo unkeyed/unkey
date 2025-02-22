@@ -827,7 +827,7 @@ describe("key is soft deleted", () => {
     const key = await h.createKey();
     await h.db.primary
       .update(schema.keys)
-      .set({ deletedAt: new Date() })
+      .set({ deletedAt: new Date(), deletedAtM: Date.now() })
       .where(eq(schema.keys.id, key.keyId));
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -853,7 +853,7 @@ describe("key exists but keyspace is soft deleted", () => {
 
     await h.db.primary
       .update(schema.keyAuth)
-      .set({ deletedAt: new Date() })
+      .set({ deletedAt: new Date(), deletedAtM: Date.now() })
       .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -879,7 +879,7 @@ describe("key exists but api is soft deleted", () => {
 
     await h.db.primary
       .update(schema.apis)
-      .set({ deletedAt: new Date() })
+      .set({ deletedAt: new Date(), deletedAtM: Date.now() })
       .where(eq(schema.apis.id, h.resources.userApi.id));
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({

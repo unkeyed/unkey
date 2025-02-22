@@ -31,7 +31,6 @@ export async function upsertPermission(ctx: Context, name: string): Promise<Perm
       updatedAt: null,
       createdAtM: Date.now(),
       updatedAtM: null,
-      deletedAtM: null,
     };
 
     await tx

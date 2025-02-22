@@ -117,7 +117,11 @@ export const registerV1ApisDeleteKeys = (app: App) =>
           .select({ count: sql<string>`count(*)` })
           .from(schema.keys)
           .where(where);
-        await tx.update(schema.keys).set({ deletedAt: new Date() }).where(where).execute();
+        await tx
+          .update(schema.keys)
+          .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+          .where(where)
+          .execute();
         deletedKeys = Number.parseInt(keys.at(0)?.count ?? "0");
       });
     }

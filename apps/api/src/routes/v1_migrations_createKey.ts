@@ -494,7 +494,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             updatedAt: null,
             createdAtM: Date.now(),
             updatedAtM: null,
-            deletedAtM: null,
             workspaceId: authorizedWorkspaceId,
           });
         }
@@ -508,7 +507,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             updatedAt: null,
             createdAtM: Date.now(),
             updatedAtM: null,
-            deletedAtM: null,
             workspaceId: authorizedWorkspaceId,
           });
         }
@@ -532,6 +530,8 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             keyId: key.keyId,
             encrypted: encryptionResponse.encrypted,
             encryptionKeyId: encryptionResponse.keyId,
+            createdAt: Date.now(),
+            updatedAt: null,
           });
         }
       }),
