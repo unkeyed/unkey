@@ -112,6 +112,9 @@ export abstract class Harness {
         workspaceId: this.resources.unkeyWorkspace.id,
         createdAt: new Date(),
         updatedAt: null,
+        createdAtM: Date.now(),
+        updatedAtM: null,
+        deletedAtM: null,
       }));
 
       await this.db.primary.insert(schema.permissions).values(create);
@@ -206,6 +209,9 @@ export abstract class Harness {
       createdAt: new Date(),
       updatedAt: null,
       description: null,
+      createdAtM: Date.now(),
+      updatedAtM: null,
+      deletedAtM: null,
     };
 
     return this.db.primary.transaction(async (tx) => {
@@ -231,6 +237,9 @@ export abstract class Harness {
       createdAt: new Date(),
       updatedAt: null,
       description: null,
+      createdAtM: Date.now(),
+      updatedAtM: null,
+      deletedAtM: null,
     };
     return this.db.primary.transaction(async (tx) => {
       const found = await tx.query.roles.findFirst({
@@ -326,6 +335,9 @@ export abstract class Harness {
       createdAt: new Date(),
       deletedAt: null,
       deleteProtection: true,
+      createdAtM: Date.now(),
+      updatedAtM: null,
+      deletedAtM: null,
     };
     const userApi: Api = {
       id: newId("test"),
@@ -337,6 +349,9 @@ export abstract class Harness {
       createdAt: new Date(),
       deletedAt: null,
       deleteProtection: true,
+      createdAtM: Date.now(),
+      updatedAtM: null,
+      deletedAtM: null,
     };
 
     return {

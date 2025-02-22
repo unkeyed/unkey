@@ -10,6 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
+import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const permissions = mysqlTable(
@@ -25,6 +26,7 @@ export const permissions = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    ...lifecycleDatesMigration,
   },
   (table) => {
     return {
@@ -64,6 +66,7 @@ export const keysPermissions = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    ...lifecycleDatesMigration,
   },
   (table) => {
     return {
@@ -102,6 +105,7 @@ export const roles = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    ...lifecycleDatesMigration,
   },
   (table) => {
     return {
@@ -143,6 +147,7 @@ export const rolesPermissions = mysqlTable(
     createdAt: datetime("created_at", { mode: "date", fsp: 3 })
       .notNull()
       .$defaultFn(() => new Date()),
+    ...lifecycleDatesMigration,
   },
   (table) => {
     return {
@@ -187,6 +192,7 @@ export const keysRoles = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    ...lifecycleDatesMigration,
   },
   (table) => {
     return {

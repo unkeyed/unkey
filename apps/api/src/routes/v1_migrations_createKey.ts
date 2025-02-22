@@ -492,6 +492,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             createdAt: new Date(),
             roleId,
             updatedAt: null,
+            createdAtM: Date.now(),
+            updatedAtM: null,
+            deletedAtM: null,
             workspaceId: authorizedWorkspaceId,
           });
         }
@@ -503,6 +506,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             permissionId,
             tempId: 0,
             updatedAt: null,
+            createdAtM: Date.now(),
+            updatedAtM: null,
+            deletedAtM: null,
             workspaceId: authorizedWorkspaceId,
           });
         }
