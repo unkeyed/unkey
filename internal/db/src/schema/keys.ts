@@ -15,7 +15,7 @@ import { identities, ratelimits } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
-import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { lifecycleDatesMigration, lifecycleDatesV2 } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
@@ -149,7 +149,7 @@ export const encryptedKeys = mysqlTable(
     keyId: varchar("key_id", { length: 256 })
       .notNull()
       .references(() => keys.id, { onDelete: "cascade" }),
-
+    ...lifecycleDatesV2,
     ...embeddedEncrypted,
   },
   (table) => ({

@@ -191,6 +191,9 @@ export const registerV1RatelimitLimit = (app: App) =>
             name: req.namespace,
             deletedAt: null,
             updatedAt: null,
+            createdAtM: Date.now(),
+            deletedAtM: null,
+            updatedAtM: null,
             workspaceId: rootKey.authorizedWorkspaceId,
           };
           try {

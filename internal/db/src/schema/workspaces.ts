@@ -11,18 +11,15 @@ import {
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { auditLogBucket } from "./audit_logs";
-import { gateways } from "./gateway";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
-import { llmGateways } from "./llm-gateway";
-import { verificationMonitors } from "./monitor_verifications";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { secrets } from "./secrets";
 import { deleteProtection } from "./util/delete_protection";
+import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
-import { webhooks } from "./webhooks";
 
 export const workspaces = mysqlTable(
   "workspaces",
@@ -110,6 +107,7 @@ export const workspaces = mysqlTable(
      */
     enabled: boolean("enabled").notNull().default(true),
     ...deleteProtection,
+    ...lifecycleDatesMigration,
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
@@ -131,10 +129,6 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   permissions: many(permissions),
   ratelimitNamespaces: many(ratelimitNamespaces),
   secrets: many(secrets),
-  gateways: many(gateways),
-  llmGateways: many(llmGateways),
-  webhooks: many(webhooks),
-  verificationMonitors: many(verificationMonitors),
   keySpaces: many(keyAuth),
   identities: many(identities),
   auditLogBuckets: many(auditLogBucket, {

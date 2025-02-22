@@ -25,6 +25,11 @@ export const permissions = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    createdAtM: bigint("created_at_m", { mode: "number" })
+      .notNull()
+      .default(0)
+      .$defaultFn(() => Date.now()),
+    updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
   (table) => {
     return {
@@ -64,6 +69,11 @@ export const keysPermissions = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    createdAtM: bigint("created_at_m", { mode: "number" })
+      .notNull()
+      .default(0)
+      .$defaultFn(() => Date.now()),
+    updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
   (table) => {
     return {
@@ -102,6 +112,11 @@ export const roles = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    createdAtM: bigint("created_at_m", { mode: "number" })
+      .notNull()
+      .default(0)
+      .$defaultFn(() => Date.now()),
+    updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
   (table) => {
     return {
@@ -143,6 +158,11 @@ export const rolesPermissions = mysqlTable(
     createdAt: datetime("created_at", { mode: "date", fsp: 3 })
       .notNull()
       .$defaultFn(() => new Date()),
+    createdAtM: bigint("created_at_m", { mode: "number" })
+      .notNull()
+      .default(0)
+      .$defaultFn(() => Date.now()),
+    updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
   (table) => {
     return {
@@ -187,6 +207,11 @@ export const keysRoles = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    createdAtM: bigint("created_at_m", { mode: "number" })
+      .notNull()
+      .default(0)
+      .$defaultFn(() => Date.now()),
+    updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
   (table) => {
     return {
