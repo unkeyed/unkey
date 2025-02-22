@@ -133,7 +133,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
       } else {
         await tx
           .update(schema.keys)
-          .set({ deletedAt: new Date() })
+          .set({ deletedAt: new Date(), deletedAtM: Date.now() })
           .where(eq(schema.keys.id, key.id));
       }
 

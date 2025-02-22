@@ -48,6 +48,9 @@ export const createWorkspace = t.procedure
       planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
+      createdAtM: Date.now(),
+      updatedAtM: null,
+      deletedAtM: null,
     };
     await db
       .transaction(async (tx) => {

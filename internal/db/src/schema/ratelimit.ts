@@ -8,6 +8,7 @@ import {
   unique,
   varchar,
 } from "drizzle-orm/mysql-core";
+import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const ratelimitNamespaces = mysqlTable(
@@ -23,6 +24,7 @@ export const ratelimitNamespaces = mysqlTable(
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
     deletedAt: datetime("deleted_at", { mode: "date" }),
+    ...lifecycleDatesMigration,
   },
   (table) => {
     return {
@@ -76,6 +78,7 @@ export const ratelimitOverrides = mysqlTable(
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
     deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
+    ...lifecycleDatesMigration,
   },
   (table) => {
     return {

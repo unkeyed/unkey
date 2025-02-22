@@ -525,7 +525,7 @@ export const vercelRouter = t.router({
       await db.transaction(async (tx) => {
         await tx
           .update(schema.vercelBindings)
-          .set({ deletedAt: new Date() })
+          .set({ deletedAt: new Date(), deletedAtM: Date.now() })
           .where(eq(schema.vercelBindings.id, binding.id));
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: binding.vercelIntegrations.workspace.id,
@@ -582,7 +582,7 @@ export const vercelRouter = t.router({
         await db.transaction(async (tx) => {
           await tx
             .update(schema.vercelBindings)
-            .set({ deletedAt: new Date() })
+            .set({ deletedAt: new Date(), deletedAtM: Date.now() })
             .where(eq(schema.vercelBindings.id, binding.id));
           await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,

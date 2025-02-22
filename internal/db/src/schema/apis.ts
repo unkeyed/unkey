@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import { datetime, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { deleteProtection } from "./util/delete_protection";
+import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const apis = mysqlTable(
@@ -21,6 +22,7 @@ export const apis = mysqlTable(
     createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
     deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
 
+    ...lifecycleDatesMigration,
     ...deleteProtection,
   },
   (table) => ({

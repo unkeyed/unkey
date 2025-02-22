@@ -779,6 +779,9 @@ export async function upsertPermissions(
         description: null,
         createdAt: new Date(),
         updatedAt: null,
+        createdAtM: Date.now(),
+        updatedAtM: null,
+        deletedAtM: null,
       };
 
       newPermissions.push(permission);

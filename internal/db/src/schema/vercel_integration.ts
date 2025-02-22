@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 // db.ts
 import { datetime, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const vercelIntegrations = mysqlTable("vercel_integrations", {
@@ -12,6 +13,7 @@ export const vercelIntegrations = mysqlTable("vercel_integrations", {
   accessToken: varchar("access_token", { length: 256 }).notNull(),
   createdAt: datetime("created_at", { fsp: 3 }),
   deletedAt: datetime("deleted_at", { fsp: 3 }),
+  ...lifecycleDatesMigration,
 });
 
 export const vercelBindings = mysqlTable(
@@ -34,6 +36,7 @@ export const vercelBindings = mysqlTable(
     deletedAt: datetime("deleted_at", { fsp: 3 }),
     // userId
     lastEditedBy: varchar("last_edited_by", { length: 256 }).notNull(),
+    ...lifecycleDatesMigration,
   },
   (table) => ({
     uniqueProjectEnvironmentResourceIndex: uniqueIndex("project_environment_resource_type_idx").on(

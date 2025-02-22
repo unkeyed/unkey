@@ -95,7 +95,10 @@ export const registerV1ApisDeleteApi = (app: App) =>
     const rootKeyId = auth.key.id;
 
     await db.primary.transaction(async (tx) => {
-      await tx.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
+      await tx
+        .update(schema.apis)
+        .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+        .where(eq(schema.apis.id, apiId));
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: authorizedWorkspaceId,
@@ -124,7 +127,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
       });
       await tx
         .update(schema.keys)
-        .set({ deletedAt: new Date() })
+        .set({ deletedAt: new Date(), deletedAtM: Date.now() })
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!)));
 
       await insertUnkeyAuditLog(
