@@ -20,7 +20,7 @@ export default async function SettingsKeysPage(_props: {
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
   });
   if (!workspace) {
     return redirect("/new");
@@ -30,7 +30,7 @@ export default async function SettingsKeysPage(_props: {
     where: (table, { eq, and, or, isNull, gt }) =>
       and(
         eq(table.forWorkspaceId, workspace.id),
-        isNull(table.deletedAt),
+        isNull(table.deletedAtM),
         or(isNull(table.expires), gt(table.expires, new Date())),
       ),
     limit: 100,

@@ -29,7 +29,7 @@ export const queryRatelimitOverviewLogs = rateLimitedProcedure(ratelimit.update)
         where: (table, { and, eq, isNull }) =>
           and(
             eq(table.workspaceId, ctx.workspace.id),
-            and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
+            and(eq(table.id, input.namespaceId), isNull(table.deletedAtM)),
           ),
       })
       .catch((_err) => {
@@ -101,7 +101,7 @@ async function checkIfIdentifierHasOverride(logs: RatelimitOverviewLog[]) {
   const overrides = await db.query.ratelimitOverrides
     .findMany({
       where: (table, { and, isNull, inArray }) =>
-        and(inArray(table.identifier, identifiers), isNull(table.deletedAt)),
+        and(inArray(table.identifier, identifiers), isNull(table.deletedAtM)),
       columns: {
         identifier: true,
         limit: true,

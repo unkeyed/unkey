@@ -69,9 +69,9 @@ export const vercelRouter = t.router({
             workspaceId: env().UNKEY_WORKSPACE_ID,
             forWorkspaceId: integration.workspace.id,
             expires: null,
-            createdAt: new Date(),
+            createdAtM: Date.now(),
             remaining: null,
-            deletedAt: null,
+            deletedAtM: null,
           });
           await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,
@@ -112,8 +112,8 @@ export const vercelRouter = t.router({
           const vercelBindingId = newId("vercelBinding");
           await tx.insert(schema.vercelBindings).values({
             id: vercelBindingId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAtM: Date.now(),
+            updatedAtM: Date.now(),
             resourceId: keyId,
             resourceType: "rootKey",
             vercelEnvId: setRootKeyRes.val.created.id,
@@ -163,8 +163,9 @@ export const vercelRouter = t.router({
           const vercelBindingId = newId("vercelBinding");
           await tx.insert(schema.vercelBindings).values({
             id: vercelBindingId,
-            createdAt: new Date(Date.now()),
-            updatedAt: new Date(Date.now()),
+            createdAtM: Date.now(),
+            updatedAtM: null,
+            deletedAtM: null,
             resourceType: "apiId",
             resourceId: apiId,
             vercelEnvId: setApiIdRes.val.created.id,
@@ -250,7 +251,7 @@ export const vercelRouter = t.router({
             .set({
               resourceId: input.apiId,
               vercelEnvId: res.val.created.id,
-              updatedAt: new Date(),
+              updatedAtM: Date.now(),
               lastEditedBy: ctx.user.id,
             })
             .where(eq(schema.vercelBindings.id, existingBinding.id));
@@ -283,8 +284,8 @@ export const vercelRouter = t.router({
           const vercelBindingId = newId("vercelBinding");
           await tx.insert(schema.vercelBindings).values({
             id: vercelBindingId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAtM: Date.now(),
+            updatedAtM: Date.now(),
             resourceType: "apiId",
             resourceId: input.apiId,
             vercelEnvId: res.val.created.id,
@@ -370,9 +371,9 @@ export const vercelRouter = t.router({
           workspaceId: env().UNKEY_WORKSPACE_ID,
           forWorkspaceId: integration.workspace.id,
           expires: null,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
           remaining: null,
-          deletedAt: null,
+          deletedAtM: null,
         });
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: integration.workspace.id,
@@ -415,7 +416,7 @@ export const vercelRouter = t.router({
             .set({
               resourceId: keyId,
               vercelEnvId: res.val.created.id,
-              updatedAt: new Date(),
+              updatedAtM: Date.now(),
               lastEditedBy: ctx.user.id,
             })
             .where(eq(schema.vercelBindings.id, existingBinding.id));
@@ -448,8 +449,8 @@ export const vercelRouter = t.router({
           const vercelBindingId = newId("vercelBinding");
           await tx.insert(schema.vercelBindings).values({
             id: vercelBindingId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAtM: Date.now(),
+            updatedAtM: Date.now(),
             resourceType: "rootKey",
             resourceId: keyId,
             vercelEnvId: res.val.created.id,
@@ -525,7 +526,7 @@ export const vercelRouter = t.router({
       await db.transaction(async (tx) => {
         await tx
           .update(schema.vercelBindings)
-          .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+          .set({ deletedAtM: Date.now() })
           .where(eq(schema.vercelBindings.id, binding.id));
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: binding.vercelIntegrations.workspace.id,
@@ -582,7 +583,7 @@ export const vercelRouter = t.router({
         await db.transaction(async (tx) => {
           await tx
             .update(schema.vercelBindings)
-            .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+            .set({ deletedAtM: Date.now() })
             .where(eq(schema.vercelBindings.id, binding.id));
           await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
             workspaceId: integration.workspace.id,

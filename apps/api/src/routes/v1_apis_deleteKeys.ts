@@ -70,7 +70,7 @@ export const registerV1ApisDeleteKeys = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAtM)),
           with: {
             keyAuth: true,
           },
@@ -111,17 +111,13 @@ export const registerV1ApisDeleteKeys = (app: App) =>
         deletedKeys = Number.parseInt(keys.at(0)?.count ?? "0");
       });
     } else {
-      const where = and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt));
+      const where = and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAtM));
       await db.primary.transaction(async (tx) => {
         const keys = await tx
           .select({ count: sql<string>`count(*)` })
           .from(schema.keys)
           .where(where);
-        await tx
-          .update(schema.keys)
-          .set({ deletedAt: new Date(), deletedAtM: Date.now() })
-          .where(where)
-          .execute();
+        await tx.update(schema.keys).set({ deletedAtM: Date.now() }).where(where).execute();
         deletedKeys = Number.parseInt(keys.at(0)?.count ?? "0");
       });
     }

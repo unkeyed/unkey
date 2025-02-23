@@ -31,7 +31,7 @@ export default async function ApiPage(props: {
 
   const api = await db.query.apis.findFirst({
     where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.apiId), isNull(table.deletedAt)),
+      and(eq(table.id, props.params.apiId), isNull(table.deletedAtM)),
     with: {
       workspace: true,
     },
@@ -59,7 +59,7 @@ export default async function ApiPage(props: {
     await Promise.all([
       db.query.keyAuth.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, api.keyAuthId!), isNull(table.deletedAt)),
+          and(eq(table.id, api.keyAuthId!), isNull(table.deletedAtM)),
       }),
       getVerificationsPerInterval(query).then((res) => res.val!),
       getActiveKeysPerInterval(query).then((res) => res.val!),

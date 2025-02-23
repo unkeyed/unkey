@@ -18,7 +18,7 @@ export const deleteOverride = t.procedure
           and(
             eq(table.workspaceId, ctx.workspace.id),
             eq(table.id, input.id),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
           ),
         with: {
           namespace: {
@@ -47,7 +47,7 @@ export const deleteOverride = t.procedure
     await db.transaction(async (tx) => {
       await tx
         .update(schema.ratelimitOverrides)
-        .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+        .set({ deletedAtM: Date.now() })
         .where(eq(schema.ratelimitOverrides.id, override.id))
         .catch((_err) => {
           throw new TRPCError({

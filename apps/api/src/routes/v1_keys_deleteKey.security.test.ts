@@ -16,7 +16,7 @@ runCommonRouteTests<V1KeysDeleteKeyRequest>({
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: rh.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     return {

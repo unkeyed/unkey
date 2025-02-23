@@ -13,7 +13,7 @@ export const queryRatelimitTimeseries = rateLimitedProcedure(ratelimit.update)
         where: (table, { and, eq, isNull }) =>
           and(
             eq(table.workspaceId, ctx.workspace.id),
-            and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
+            and(eq(table.id, input.namespaceId), isNull(table.deletedAtM)),
           ),
       })
       .catch((_err) => {

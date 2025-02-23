@@ -19,7 +19,7 @@ test("soft deletes key", async (t) => {
     hash: await sha256(key),
     start: key.slice(0, 8),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.delete_key`]);
@@ -40,8 +40,8 @@ test("soft deletes key", async (t) => {
     where: (table, { eq }) => eq(table.id, keyId),
   });
   expect(found).toBeDefined();
-  expect(found!.deletedAt).toBeDefined();
-  expect(found!.deletedAt!.getTime() - Date.now()).toBeLessThan(10_000); // 10s play});
+  expect(found!.deletedAtM).toBeDefined();
+  expect(found!.deletedAtM! - Date.now()).toBeLessThan(10_000); // 10s play});
 });
 
 test("hard deletes key", async (t) => {
@@ -54,7 +54,7 @@ test("hard deletes key", async (t) => {
     hash: await sha256(key),
     start: key.slice(0, 8),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.delete_key`]);

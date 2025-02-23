@@ -17,7 +17,7 @@ test("return multiple overrides for the same namespace", async (t) => {
     id: namespaceId,
     name: namespaceName,
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
 
   // Insert multiple overrides
@@ -66,7 +66,7 @@ test("return empty list when no overrides exist", async (t) => {
     id: namespaceId,
     name: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
 
   const res = await h.get<V1RatelimitListOverridesResponse>({
@@ -93,7 +93,7 @@ test("return empty list when none exist", async (t) => {
     id: namespaceId,
     name: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
 
   // Insert an override with a different identifier

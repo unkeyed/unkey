@@ -59,7 +59,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
         }
         const ws = await db.query.workspaces.findFirst({
           where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeCustomerId, invoice.customer!.toString()), isNull(table.deletedAt)),
+            and(eq(table.stripeCustomerId, invoice.customer!.toString()), isNull(table.deletedAtM)),
         });
         if (!ws) {
           throw new Error("workspace does not exist");

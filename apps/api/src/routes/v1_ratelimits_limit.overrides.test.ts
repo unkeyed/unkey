@@ -12,7 +12,7 @@ describe("without override", () => {
     const namespace = {
       id: newId("test"),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       name: "namespace",
     };
     await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
@@ -48,7 +48,7 @@ describe("with serverside override", () => {
     const namespace = {
       id: newId("test"),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       name: "namespace",
     };
     await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
@@ -64,7 +64,7 @@ describe("with serverside override", () => {
     await h.db.primary.insert(schema.ratelimitOverrides).values({
       id: newId("test"),
       identifier,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       limit: overrideLimit,
       duration,
       namespaceId: namespace.id,
@@ -92,7 +92,7 @@ describe("with serverside override", () => {
     const namespace = {
       id: newId("test"),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       name: "namespace",
     };
     await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
@@ -109,7 +109,7 @@ describe("with serverside override", () => {
     await h.db.primary.insert(schema.ratelimitOverrides).values({
       id: newId("test"),
       identifier: `${identifierPrefix}*`, // wildcard to match everything with the prefix
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       limit: overrideLimit,
       duration,
       namespaceId: namespace.id,
@@ -137,7 +137,7 @@ describe("with serverside override", () => {
     const namespace = {
       id: newId("test"),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       name: "namespace",
     };
     await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
@@ -156,7 +156,7 @@ describe("with serverside override", () => {
     await h.db.primary.insert(schema.ratelimitOverrides).values({
       id: newId("test"),
       identifier: `${identifierPrefix}*`, // wildcard to match everything with the prefix
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       limit: wildcardOverrideLimit,
       duration,
       namespaceId: namespace.id,
@@ -166,7 +166,7 @@ describe("with serverside override", () => {
     await h.db.primary.insert(schema.ratelimitOverrides).values({
       id: newId("test"),
       identifier: identifier,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       limit: exactOverrideLimit,
       duration,
       namespaceId: namespace.id,

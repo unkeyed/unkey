@@ -20,7 +20,7 @@ export default async function SuccessPage() {
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
   });
 
   if (!workspace?.features.successPage) {
@@ -80,7 +80,7 @@ export default async function SuccessPage() {
     "Ratelimit Overrides": schema.ratelimitOverrides,
   };
 
-  const t0 = new Date("2024-01-01");
+  const t0 = new Date("2024-01-01").getTime();
   return (
     <div>
       <div className="w-full">
@@ -130,7 +130,7 @@ export default async function SuccessPage() {
                     count: count(),
                   })
                   .from(table)
-                  .where(and(isNotNull(table.createdAt), gte(table.createdAt, t0)))
+                  .where(and(isNotNull(table.createdAtM), gte(table.createdAtM, t0)))
                   .groupBy(sql`date`)
                   .orderBy(sql`date ASC`)
                   .execute()

@@ -23,7 +23,7 @@ export const createOverride = t.procedure
           and(
             eq(table.workspaceId, ctx.workspace.id),
             eq(table.id, input.namespaceId),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
           ),
       })
       .catch((_err) => {
@@ -56,8 +56,8 @@ export const createOverride = t.procedure
               limit: input.limit,
               duration: input.duration,
               async: input.async ?? false,
-              updatedAt: new Date(),
-              deletedAt: null,
+              updatedAtM: Date.now(),
+              deletedAtM: null,
             })
             .where(sql`namespace_id = ${namespace.id} AND identifier = ${input.identifier}`);
         } else {
@@ -69,7 +69,7 @@ export const createOverride = t.procedure
             limit: input.limit,
             duration: input.duration,
             async: input.async ?? false,
-            createdAt: new Date(),
+            createdAtM: Date.now(),
           });
         }
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {

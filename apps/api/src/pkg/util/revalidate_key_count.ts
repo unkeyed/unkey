@@ -7,7 +7,7 @@ export async function revalidateKeyCount(db: Database, keyAuthId: string): Promi
   const rows = await db
     .select({ count: sql<string>`count(*)` })
     .from(schema.keys)
-    .where(and(eq(schema.keys.keyAuthId, keyAuthId), isNull(schema.keys.deletedAt)));
+    .where(and(eq(schema.keys.keyAuthId, keyAuthId), isNull(schema.keys.deletedAtM)));
 
   await db
     .update(schema.keyAuth)

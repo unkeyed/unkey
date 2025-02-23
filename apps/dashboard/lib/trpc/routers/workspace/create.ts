@@ -43,8 +43,6 @@ export const createWorkspace = t.procedure
       planLockedUntil: null,
       planChanged: null,
       subscriptions,
-      createdAt: new Date(),
-      deletedAt: null,
       planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,

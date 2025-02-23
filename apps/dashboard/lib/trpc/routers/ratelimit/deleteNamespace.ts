@@ -18,7 +18,7 @@ export const deleteNamespace = t.procedure
           and(
             eq(table.workspaceId, ctx.workspace.id),
             eq(table.id, input.namespaceId),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
           ),
       })
       .catch((_err) => {
@@ -39,7 +39,7 @@ export const deleteNamespace = t.procedure
     await db.transaction(async (tx) => {
       await tx
         .update(schema.ratelimitNamespaces)
-        .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+        .set({ deletedAtM: Date.now() })
         .where(eq(schema.ratelimitNamespaces.id, input.namespaceId));
 
       await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
@@ -70,7 +70,7 @@ export const deleteNamespace = t.procedure
       if (overrides.length > 0) {
         await tx
           .update(schema.ratelimitOverrides)
-          .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+          .set({ deletedAtM: Date.now() })
           .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
           .catch((_err) => {
             throw new TRPCError({
