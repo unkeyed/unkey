@@ -48,7 +48,7 @@ export const keys = mysqlTable(
     ownerId: varchar("owner_id", { length: 256 }),
     identityId: varchar("identity_id", { length: 256 }),
     meta: text("meta"),
-    // createdAt: datetime("created_at", { fsp: 3 }).notNull(), // unix milli
+    //createdAt: datetime("created_at", { fsp: 3 }).notNull().default(sql`CURRENT_TIMESTAMP(3)`), // unix milli
     expires: datetime("expires", { fsp: 3 }), // unix milli,
     ...lifecycleDatesMigration,
     /**
