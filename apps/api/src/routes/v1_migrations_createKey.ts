@@ -480,7 +480,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           environment: key.environment ?? null,
           createdAtM: Date.now(),
           updatedAtM: null,
-
           lastRefillAt: null,
         });
 
@@ -498,7 +497,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           const permissionId = permissions[permission];
           permissionConnections.push({
             keyId: key.keyId,
-
             createdAtM: Date.now(),
             permissionId,
             tempId: 0,

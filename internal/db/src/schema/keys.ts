@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -48,7 +48,7 @@ export const keys = mysqlTable(
     ownerId: varchar("owner_id", { length: 256 }),
     identityId: varchar("identity_id", { length: 256 }),
     meta: text("meta"),
-    createdAt: datetime("created_at", { fsp: 3 }).notNull().default(sql`CURRENT_TIMESTAMP(3)`), // unix milli
+    //createdAt: datetime("created_at", { fsp: 3 }).notNull().default(sql`CURRENT_TIMESTAMP(3)`), // unix milli
     expires: datetime("expires", { fsp: 3 }), // unix milli,
     ...lifecycleDatesMigration,
     /**
@@ -58,7 +58,7 @@ export const keys = mysqlTable(
      *
      * `deletedAt == null` means the key is active.
      */
-    deletedAt: datetime("deleted_at", { fsp: 3 }),
+    // deletedAt: datetime("deleted_at", { fsp: 3 }),
     /**
      * You can refill uses to keys at a desired interval
      *
@@ -98,12 +98,12 @@ export const keys = mysqlTable(
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
     keyAuthAndDeletedIndex: index("key_auth_id_deleted_at_idx").on(
       table.keyAuthId,
-      table.deletedAt,
+      table.deletedAtM,
     ),
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
     ownerIdIndex: index("owner_id_idx").on(table.ownerId),
     identityIdIndex: index("identity_id_idx").on(table.identityId),
-    deletedIndex: index("deleted_at_idx").on(table.deletedAt, table.deletedAtM),
+    deletedIndex: index("deleted_at_idx").on(table.deletedAtM, table.deletedAtM),
   }),
 );
 
