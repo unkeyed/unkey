@@ -39,6 +39,13 @@ export default async function RolesPage(props: Props) {
                     columns: {
                       keyId: true,
                     },
+                    with: {
+                      key: {
+                        columns: {
+                          deletedAt: true,
+                        },
+                      },
+                    },
                   },
                 },
               },
@@ -63,7 +70,9 @@ export default async function RolesPage(props: Props) {
   }
   for (const role of permission.roles) {
     for (const key of role.role.keys) {
-      connectedKeys.add(key.keyId);
+      if (key.key.deletedAt === null) {
+        connectedKeys.add(key.keyId);
+      }
     }
   }
   const shouldShowTooltip = permission.name.length > 16;
