@@ -7,6 +7,7 @@ import type { TaskContext } from "vitest";
 import {
   type Api,
   type Database,
+  type InsertPermission,
   type KeyAuth,
   type Permission,
   type Role,
@@ -104,7 +105,7 @@ export abstract class Harness {
       createdAtM: Date.now(),
     });
     if (permissions && permissions.length > 0) {
-      const create: Permission[] = permissions.map((name) => ({
+      const create: InsertPermission[] = permissions.map((name) => ({
         id: newId("test"),
         name,
         key: name,

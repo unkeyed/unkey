@@ -1,4 +1,4 @@
-import { type Permission, and, db, eq, schema } from "@/lib/db";
+import { type InsertPermission, type Permission, and, db, eq, schema } from "@/lib/db";
 
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
@@ -762,7 +762,7 @@ export async function upsertPermissions(
         and(eq(table.workspaceId, workspaceId), inArray(table.name, names)),
     });
 
-    const newPermissions: Permission[] = [];
+    const newPermissions: InsertPermission[] = [];
     const auditLogs: UnkeyAuditLog[] = [];
 
     const permissions = names.map((name) => {
@@ -772,14 +772,13 @@ export async function upsertPermissions(
         return existingPermission;
       }
 
-      const permission = {
+      const permission: Permission = {
         id: newId("permission"),
         workspaceId,
         name,
         description: null,
         updatedAtM: null,
         createdAtM: Date.now(),
-        deletedAtM: null,
       };
 
       newPermissions.push(permission);
