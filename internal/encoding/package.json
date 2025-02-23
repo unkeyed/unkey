@@ -7,6 +7,6 @@
   "author": "Andreas Thomas",
   "devDependencies": {
     "typescript": "^5.5.3",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.1"
   }
 }
