@@ -7,11 +7,11 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
 import { DatabaseError } from "@planetscale/database";
 import {
-  type EncryptedKey,
-  type Identity,
-  type Key,
-  type KeyPermission,
-  type KeyRole,
+  type InsertEncryptedKey,
+  type InsertIdentity,
+  type InsertKey,
+  type InsertKeyPermission,
+  type InsertKeyRole,
   schema,
 } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -316,11 +316,11 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
       }
     }
 
-    const createIdentities: Array<Identity> = [];
-    const keys: Array<Key> = [];
-    const encryptedKeys: Array<EncryptedKey> = [];
-    const roleConnections: Array<KeyRole> = [];
-    const permissionConnections: Array<KeyPermission> = [];
+    const createIdentities: Array<InsertIdentity> = [];
+    const keys: Array<InsertKey> = [];
+    const encryptedKeys: Array<InsertEncryptedKey> = [];
+    const roleConnections: Array<InsertKeyRole> = [];
+    const permissionConnections: Array<InsertKeyPermission> = [];
 
     const requestWithKeyIds = req.map((r) => ({
       ...r,
@@ -480,6 +480,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           environment: key.environment ?? null,
           createdAtM: Date.now(),
           updatedAtM: null,
+
           lastRefillAt: null,
         });
 
@@ -497,6 +498,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           const permissionId = permissions[permission];
           permissionConnections.push({
             keyId: key.keyId,
+
             createdAtM: Date.now(),
             permissionId,
             tempId: 0,

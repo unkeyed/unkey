@@ -55,6 +55,8 @@ export default async function Page(props: Props) {
       createdAtM: Date.now(),
       updatedAtM: null,
       deletedAtM: null,
+      createdAt: new Date(),
+      deletedAt: null,
     };
     await db.insert(schema.vercelIntegrations).values(integration).execute();
   }

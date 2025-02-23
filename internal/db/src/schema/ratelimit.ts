@@ -1,5 +1,13 @@
-import { relations } from "drizzle-orm";
-import { boolean, int, mysqlEnum, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
+import { relations, sql } from "drizzle-orm";
+import {
+  boolean,
+  datetime,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  unique,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -11,11 +19,12 @@ export const ratelimitNamespaces = mysqlTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 512 }).notNull(),
-    // createdAt: datetime("created_at", { mode: "date", fsp: 3 })
-    //   .notNull()
-    //   .$defaultFn(() => new Date()),
-    // updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
-    // deletedAt: datetime("deleted_at", { mode: "date" }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP(3)`)
+      .$defaultFn(() => new Date()),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }).$onUpdateFn(() => new Date()),
+    deletedAt: datetime("deleted_at", { mode: "date" }).$defaultFn(() => new Date()),
     ...lifecycleDatesMigration,
   },
   (table) => {
@@ -65,10 +74,11 @@ export const ratelimitOverrides = mysqlTable(
      */
     sharding: mysqlEnum("sharding", ["edge"]),
 
-    //  createdAt: datetime("created_at", { mode: "date", fsp: 3 })
-    //    .notNull()
-    //    .$defaultFn(() => new Date()),
-    //  updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP(3)`)
+      .$defaultFn(() => new Date()),
+    //  updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }).$onUpdateFn(() => new Date()),
     //  deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
     ...lifecycleDatesMigration,
   },
