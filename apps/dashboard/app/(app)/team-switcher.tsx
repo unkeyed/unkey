@@ -1,6 +1,7 @@
 "use client";
 
 import { Loading } from "@/components/dashboard/loading";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,17 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useUser } from "@/lib/auth/hooks";
 import { Check, ChevronsUpDown, Plus, UserPlus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useMemo, useState } from "react";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
-
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Link from "next/link";
 
 type Props = {
   workspace: {
@@ -28,37 +26,34 @@ type Props = {
   };
 };
 export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
-  const { isLoaded, setActive, userMemberships } = useOrganizationList({
-    userMemberships: {
-      infinite: true,
-      pageSize: 100,
-    },
-  });
-  const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
   const router = useRouter();
-  async function changeOrg(orgId: string | null) {
-    if (!setActive) {
-      return;
-    }
+  const { memberships: userMemberships, switchOrganization, loading } = useUser();
+  const currentOrgMembership = userMemberships.find(
+    (membership) => membership.organization.id === user?.orgId,
+  );
+
+  async function changeWorkspace(orgId: string | null) {
     try {
-      await setActive({
-        organization: orgId,
-      });
+      if (!orgId) {
+        return;
+      }
+      await switchOrganization(orgId);
     } finally {
       router.refresh();
     }
   }
+
   const [search, _setSearch] = useState("");
   const filteredOrgs = useMemo(() => {
-    if (!userMemberships.data) {
+    if (!userMemberships || userMemberships.length === 0) {
       return [];
     }
     if (search === "") {
-      return userMemberships.data;
+      return userMemberships;
     }
-    return userMemberships.data?.filter(({ organization }) =>
-      organization.name.toLowerCase().includes(search.toLowerCase()),
+    return userMemberships.filter((m) =>
+      m.organization.name.toLowerCase().includes(search.toLowerCase()),
     );
   }, [search, userMemberships])!;
 
@@ -67,19 +62,14 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
       <DropdownMenuTrigger className="flex items-center justify-between w-full h-10 gap-2 px-2 overflow-hidden rounded-[0.625rem] bg-background border-border border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content">
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
           <Avatar className="w-5 h-5">
-            {currentOrg?.imageUrl ? (
-              <AvatarImage src={currentOrg.imageUrl} alt={props.workspace.name} />
-            ) : user?.imageUrl ? (
-              <AvatarImage
-                src={user.imageUrl}
-                alt={user?.username ?? user?.fullName ?? "Profile picture"}
-              />
+            {user?.avatarUrl ? (
+              <AvatarImage src={user.avatarUrl} alt={user?.fullName ?? "Profile picture"} />
             ) : null}
             <AvatarFallback className="flex items-center justify-center w-8 h-8 text-gray-700 bg-gray-100 border border-gray-500 rounded">
               {props.workspace.name.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          {!isLoaded ? (
+          {loading.memberships ? (
             <Loading />
           ) : (
             <Tooltip>
@@ -101,12 +91,12 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
         <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
         <DropdownMenuItem
           className="flex items-center justify-between"
-          onClick={() => changeOrg(null)}
+          onClick={() => changeWorkspace(null)}
         >
-          <span className={currentOrg === null ? "font-medium" : undefined}>
-            {user?.username ?? user?.fullName ?? "Personal Workspace"}
+          <span className={currentOrgMembership === null ? "font-medium" : undefined}>
+            {user?.fullName ?? "Personal Workspace"}
           </span>
-          {currentOrg === null ? <Check className="w-4 h-4" /> : null}
+          {currentOrgMembership === null ? <Check className="w-4 h-4" /> : null}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
 
@@ -117,17 +107,19 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
               <DropdownMenuItem
                 key={membership.id}
                 className="flex items-center justify-between"
-                onClick={() => changeOrg(membership.organization.id)}
+                onClick={() => changeWorkspace(membership.organization.id)}
               >
                 <span
                   className={
-                    membership.organization.id === currentOrg?.id ? "font-medium" : undefined
+                    membership.organization.id === currentOrgMembership?.organization.id
+                      ? "font-medium"
+                      : undefined
                   }
                 >
                   {" "}
                   {membership.organization.name}
                 </span>
-                {membership.organization.id === currentOrg?.id ? (
+                {membership.organization.id === currentOrgMembership?.organization.id ? (
                   <Check className="w-4 h-4" />
                 ) : null}
               </DropdownMenuItem>
@@ -141,7 +133,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
               <span>Create Workspace</span>
             </Link>
           </DropdownMenuItem>
-          {membership?.role === "admin" ? (
+          {currentOrgMembership?.role === "admin" ? (
             <Link href="/settings/team">
               <DropdownMenuItem>
                 <UserPlus className="w-4 h-4 mr-2 " />
