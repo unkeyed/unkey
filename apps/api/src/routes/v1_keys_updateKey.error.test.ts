@@ -49,7 +49,7 @@ test("reject invalid refill config", async (t) => {
     remaining: 10,
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
 
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(key);
 

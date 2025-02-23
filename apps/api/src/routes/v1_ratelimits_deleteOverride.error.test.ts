@@ -19,7 +19,7 @@ test("Missing Namespace", async (t) => {
   const namespace = {
     id: namespaceId,
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
     name: newId("test"),
   };
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);

@@ -31,7 +31,7 @@ export const createInvoiceTask = task({
 
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, workspaceId), isNull(table.deletedAt)),
+        and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
     });
 
     if (!workspace) {

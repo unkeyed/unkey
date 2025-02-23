@@ -187,11 +187,8 @@ export const registerV1RatelimitLimit = (app: App) =>
           }
           let namespace: RatelimitNamespace = {
             id: newId("ratelimitNamespace"),
-            createdAt: new Date(),
-            name: req.namespace,
-            deletedAt: null,
-            updatedAt: null,
             createdAtM: Date.now(),
+            name: req.namespace,
             deletedAtM: null,
             updatedAtM: null,
             workspaceId: rootKey.authorizedWorkspaceId,

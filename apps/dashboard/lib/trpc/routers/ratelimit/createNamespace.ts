@@ -22,7 +22,7 @@ export const createNamespace = t.procedure
           name: input.name,
           workspaceId: ctx.workspace.id,
 
-          createdAt: new Date(),
+          createdAtM: Date.now(),
         });
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: ctx.workspace.id,

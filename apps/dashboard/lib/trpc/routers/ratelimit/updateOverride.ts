@@ -21,7 +21,7 @@ export const updateOverride = t.procedure
           and(
             eq(table.workspaceId, ctx.workspace.id),
             eq(table.id, input.id),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
           ),
         with: {
           namespace: {
@@ -54,7 +54,7 @@ export const updateOverride = t.procedure
           .set({
             limit: input.limit,
             duration: input.duration,
-            updatedAt: new Date(),
+            updatedAtM: Date.now(),
             async: input.async,
           })
           .where(eq(schema.ratelimitOverrides.id, override.id))

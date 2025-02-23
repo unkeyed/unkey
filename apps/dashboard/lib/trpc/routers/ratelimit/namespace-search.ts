@@ -10,7 +10,7 @@ export const searchNamespace = rateLimitedProcedure(ratelimit.update)
         and(
           eq(table.workspaceId, ctx.workspace.id),
           like(table.name, `%${input.query}%`),
-          isNull(table.deletedAt),
+          isNull(table.deletedAtM),
         ),
       columns: {
         id: true,

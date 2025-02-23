@@ -27,9 +27,9 @@ export default async function Page(props: Props) {
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, getTenantId()), isNull(table.deletedAt)),
+      and(eq(table.tenantId, getTenantId()), isNull(table.deletedAtM)),
     with: {
-      apis: { where: (table, { isNull }) => isNull(table.deletedAt) },
+      apis: { where: (table, { isNull }) => isNull(table.deletedAtM) },
     },
   });
 
@@ -52,8 +52,6 @@ export default async function Page(props: Props) {
       workspaceId: workspace.id,
       vercelTeamId: val.teamId,
       accessToken: val.accessToken,
-      createdAt: new Date(),
-      deletedAt: null,
       createdAtM: Date.now(),
       updatedAtM: null,
       deletedAtM: null,

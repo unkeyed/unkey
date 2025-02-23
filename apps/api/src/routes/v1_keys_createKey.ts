@@ -272,7 +272,7 @@ export const registerV1KeysCreateKey = (app: App) =>
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>
-            and(eq(table.id, req.apiId), isNull(table.deletedAt)),
+            and(eq(table.id, req.apiId), isNull(table.deletedAtM)),
           with: {
             keyAuth: true,
           },
@@ -371,7 +371,8 @@ export const registerV1KeysCreateKey = (app: App) =>
         workspaceId: authorizedWorkspaceId,
         forWorkspaceId: null,
         expires: req.expires ? new Date(req.expires) : null,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
+        updatedAtM: null,
         ratelimitAsync: req.ratelimit?.async ?? req.ratelimit?.type === "fast",
         ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
@@ -379,7 +380,6 @@ export const registerV1KeysCreateKey = (app: App) =>
         refillDay: req.refill?.interval === "daily" ? null : req?.refill?.refillDay ?? 1,
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
-        deletedAt: null,
         enabled: req.enabled,
         environment: req.environment ?? null,
         identityId: identity?.id,
@@ -609,10 +609,11 @@ export async function upsertIdentity(
     .values({
       id: newId("identity"),
       createdAt: Date.now(),
+      updatedAt: null,
+
       environment: "default",
       meta: {},
       externalId,
-      updatedAt: null,
       workspaceId,
     })
     .onDuplicateKeyUpdate({

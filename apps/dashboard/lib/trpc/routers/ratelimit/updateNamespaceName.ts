@@ -19,7 +19,7 @@ export const updateNamespaceName = t.procedure
         where: (table, { eq, and, isNull }) =>
           and(
             eq(table.workspaceId, ctx.workspace.id),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
             eq(table.id, input.namespaceId),
           ),
       })

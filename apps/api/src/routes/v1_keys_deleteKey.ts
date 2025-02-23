@@ -62,7 +62,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
 
     const data = await cache.keyById.swr(keyId, async () => {
       const dbRes = await db.readonly.query.keys.findFirst({
-        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
+        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAtM)),
         with: {
           identity: true,
           encrypted: true,
@@ -133,7 +133,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
       } else {
         await tx
           .update(schema.keys)
-          .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+          .set({ deletedAtM: Date.now() })
           .where(eq(schema.keys.id, key.id));
       }
 

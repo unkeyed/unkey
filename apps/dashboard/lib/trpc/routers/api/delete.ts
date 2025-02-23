@@ -18,7 +18,7 @@ export const deleteApi = t.procedure
           and(
             eq(table.workspaceId, ctx.workspace.id),
             eq(table.id, input.apiId),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
           ),
       })
       .catch((_err) => {
@@ -45,7 +45,7 @@ export const deleteApi = t.procedure
       await db.transaction(async (tx) => {
         await tx
           .update(schema.apis)
-          .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+          .set({ deletedAtM: Date.now() })
           .where(eq(schema.apis.id, input.apiId));
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: api.workspaceId,
@@ -75,7 +75,7 @@ export const deleteApi = t.procedure
         if (keyIds.length > 0) {
           await tx
             .update(schema.keys)
-            .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+            .set({ deletedAtM: Date.now() })
             .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
           await insertAuditLogs(
             tx,

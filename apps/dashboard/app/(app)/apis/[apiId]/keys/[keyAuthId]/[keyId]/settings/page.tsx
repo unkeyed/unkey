@@ -32,7 +32,7 @@ export default async function SettingsPage(props: Props) {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
-    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAtM)),
     with: {
       workspace: true,
       keyAuth: { with: { api: true } },

@@ -27,7 +27,7 @@ export default async function OverrideSettings(props: Props) {
       and(
         eq(table.namespaceId, props.params.namespaceId),
         eq(table.id, props.params.overrideId),
-        isNull(schema.keys.deletedAt),
+        isNull(schema.keys.deletedAtM),
       ),
     with: {
       workspace: true,

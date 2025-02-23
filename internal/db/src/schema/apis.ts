@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { datetime, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
@@ -19,8 +19,8 @@ export const apis = mysqlTable(
     ipWhitelist: varchar("ip_whitelist", { length: 512 }),
     authType: mysqlEnum("auth_type", ["key", "jwt"]),
     keyAuthId: varchar("key_auth_id", { length: 256 }).unique(),
-    createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
-    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
+    // createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
+    // deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
 
     ...lifecycleDatesMigration,
     ...deleteProtection,

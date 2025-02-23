@@ -167,7 +167,7 @@ export const registerLegacyKeysCreate = (app: App) =>
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>
-            and(eq(table.id, req.apiId), isNull(table.deletedAt)),
+            and(eq(table.id, req.apiId), isNull(table.deletedAtM)),
           with: {
             keyAuth: true,
           },
@@ -220,12 +220,12 @@ export const registerLegacyKeysCreate = (app: App) =>
         workspaceId: authorizedWorkspaceId,
         forWorkspaceId: null,
         expires: req.expires ? new Date(req.expires) : null,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         ratelimitLimit: req.ratelimit?.limit,
         ratelimitDuration: req.ratelimit?.refillRate,
         ratelimitAsync: req.ratelimit?.type === "fast",
         remaining: req.remaining,
-        deletedAt: null,
+        deletedAtM: null,
       });
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: authorizedWorkspaceId,

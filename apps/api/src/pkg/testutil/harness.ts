@@ -101,7 +101,7 @@ export abstract class Harness {
       start,
       workspaceId: this.resources.unkeyWorkspace.id,
       forWorkspaceId: this.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
     if (permissions && permissions.length > 0) {
       const create: Permission[] = permissions.map((name) => ({
@@ -110,10 +110,8 @@ export abstract class Harness {
         key: name,
         description: null,
         workspaceId: this.resources.unkeyWorkspace.id,
-        createdAt: new Date(),
-        updatedAt: null,
-        createdAtM: Date.now(),
         updatedAtM: null,
+        createdAtM: Date.now(),
         deletedAtM: null,
       }));
 
@@ -156,7 +154,7 @@ export abstract class Harness {
       hash,
       start: key.slice(0, 8),
       workspaceId: this.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     for (const role of opts?.roles ?? []) {
@@ -184,7 +182,7 @@ export abstract class Harness {
           })
           .onDuplicateKeyUpdate({
             set: {
-              updatedAt: new Date(),
+              updatedAtM: Date.now(),
             },
           })
           .catch((err) => {
@@ -206,11 +204,9 @@ export abstract class Harness {
       id: newId("test"),
       name,
       workspaceId,
-      createdAt: new Date(),
-      updatedAt: null,
-      description: null,
       createdAtM: Date.now(),
       updatedAtM: null,
+      description: null,
     };
 
     return this.db.primary.transaction(async (tx) => {
@@ -233,11 +229,9 @@ export abstract class Harness {
       id: newId("test"),
       name,
       workspaceId,
-      createdAt: new Date(),
-      updatedAt: null,
-      description: null,
       createdAtM: Date.now(),
       updatedAtM: null,
+      description: null,
     };
     return this.db.primary.transaction(async (tx) => {
       const found = await tx.query.roles.findFirst({
@@ -268,12 +262,10 @@ export abstract class Harness {
       subscriptions: null,
       planLockedUntil: null,
       planChanged: null,
-      createdAt: new Date(),
-      deletedAt: null,
+      createdAtM: Date.now(),
       planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
-      createdAtM: Date.now(),
       updatedAtM: null,
       deletedAtM: null,
     };
@@ -290,12 +282,10 @@ export abstract class Harness {
       subscriptions: null,
       planLockedUntil: null,
       planChanged: null,
-      createdAt: new Date(),
-      deletedAt: null,
+      createdAtM: Date.now(),
       planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
-      createdAtM: Date.now(),
       updatedAtM: null,
       deletedAtM: null,
     };
@@ -303,10 +293,8 @@ export abstract class Harness {
     const unkeyKeyAuth: KeyAuth = {
       id: newId("test"),
       workspaceId: unkeyWorkspace.id,
-      createdAt: new Date(),
-      deletedAt: null,
-      storeEncryptedKeys: false,
       createdAtM: Date.now(),
+      storeEncryptedKeys: false,
       updatedAtM: null,
       deletedAtM: null,
       defaultPrefix: null,
@@ -317,10 +305,8 @@ export abstract class Harness {
     const userKeyAuth: KeyAuth = {
       id: newId("test"),
       workspaceId: userWorkspace.id,
-      createdAt: new Date(),
-      deletedAt: null,
-      storeEncryptedKeys: false,
       createdAtM: Date.now(),
+      storeEncryptedKeys: false,
       updatedAtM: null,
       deletedAtM: null,
       defaultPrefix: null,
@@ -336,10 +322,8 @@ export abstract class Harness {
       authType: "key",
       keyAuthId: unkeyKeyAuth.id,
       ipWhitelist: null,
-      createdAt: new Date(),
-      deletedAt: null,
-      deleteProtection: true,
       createdAtM: Date.now(),
+      deleteProtection: true,
       updatedAtM: null,
       deletedAtM: null,
     };
@@ -350,10 +334,8 @@ export abstract class Harness {
       authType: "key",
       keyAuthId: userKeyAuth.id,
       ipWhitelist: null,
-      createdAt: new Date(),
-      deletedAt: null,
-      deleteProtection: true,
       createdAtM: Date.now(),
+      deleteProtection: true,
       updatedAtM: null,
       deletedAtM: null,
     };
