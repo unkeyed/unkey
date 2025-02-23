@@ -125,7 +125,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
             limit: req.limit,
             duration: req.duration,
             async: req.async,
-            updatedAt: new Date(),
+            updatedAtM: Date.now(),
           })
           .where(eq(schema.ratelimitOverrides.id, override.id));
 
@@ -150,7 +150,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
         await tx.insert(schema.ratelimitOverrides).values({
           id: overrideId,
           workspaceId: auth.authorizedWorkspaceId,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
           namespaceId: namespace.id,
           identifier: req.identifier,
           limit: req.limit,

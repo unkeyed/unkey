@@ -27,8 +27,6 @@ export async function upsertPermission(ctx: Context, name: string): Promise<Perm
       workspaceId: ctx.workspace!.id,
       name,
       description: null,
-      createdAt: new Date(),
-      updatedAt: null,
       createdAtM: Date.now(),
       updatedAtM: null,
     };

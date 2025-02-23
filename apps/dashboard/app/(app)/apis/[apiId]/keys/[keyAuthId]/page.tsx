@@ -25,7 +25,7 @@ export default async function APIKeysPage(props: {
 
   const keyAuth = await db.query.keyAuth.findFirst({
     where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.keyAuthId), isNull(table.deletedAt)),
+      and(eq(table.id, props.params.keyAuthId), isNull(table.deletedAtM)),
     with: {
       workspace: true,
       api: true,

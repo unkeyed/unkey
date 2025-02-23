@@ -22,7 +22,7 @@ test("returns 200", async (t) => {
     hash: await sha256(key),
     start: key.slice(0, 8),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
 
   const res = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
@@ -50,7 +50,7 @@ describe("bad request", () => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     const res = await h.post<any, ErrorResponse>({
@@ -77,7 +77,7 @@ describe("with temporary key", () => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       expires: new Date(Date.now() + 5000),
     });
 
@@ -118,8 +118,8 @@ describe("with ip whitelist", () => {
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
-        deletedAt: null,
+        createdAtM: Date.now(),
+        deletedAtM: null,
       });
 
       const apiId = newId("api");
@@ -130,8 +130,8 @@ describe("with ip whitelist", () => {
         authType: "key",
         keyAuthId: keyAuthId,
         ipWhitelist: ["100.100.100.100"].join(","),
-        createdAt: new Date(),
-        deletedAt: null,
+        createdAtM: Date.now(),
+        deletedAtM: null,
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -141,7 +141,7 @@ describe("with ip whitelist", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       });
 
       const res = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
@@ -166,8 +166,8 @@ describe("with ip whitelist", () => {
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthid,
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
-        deletedAt: null,
+        createdAtM: Date.now(),
+        deletedAtM: null,
       });
 
       const apiId = newId("test");
@@ -178,8 +178,8 @@ describe("with ip whitelist", () => {
         authType: "key",
         keyAuthId: keyAuthid,
         ipWhitelist: ["100.100.100.100"].join(","),
-        createdAt: new Date(),
-        deletedAt: null,
+        createdAtM: Date.now(),
+        deletedAtM: null,
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -189,7 +189,7 @@ describe("with ip whitelist", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       });
 
       const res = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({

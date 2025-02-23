@@ -64,7 +64,7 @@ for (const { limit, duration, rps, seconds } of testCases) {
     const namespace = {
       id: newId("test"),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       name: "namespace",
     };
     await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);

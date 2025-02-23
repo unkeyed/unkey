@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
   const keys = await db.query.keys.findMany({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.keyAuthId, keyAuthId), isNull(table.deletedAt)),
+      and(eq(table.keyAuthId, keyAuthId), isNull(table.deletedAtM)),
     limit: 100,
     with: {
       identity: {

@@ -36,7 +36,7 @@ export const rbacRouter = t.router({
 
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
       if (!workspace) {
         throw new TRPCError({
@@ -88,7 +88,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
 
       if (!workspace) {
@@ -167,7 +167,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
@@ -206,9 +206,9 @@ export const rbacRouter = t.router({
       await db.transaction(async (tx) => {
         await tx
           .insert(schema.rolesPermissions)
-          .values({ ...tuple, createdAt: new Date() })
+          .values({ ...tuple, createdAtM: Date.now() })
           .onDuplicateKeyUpdate({
-            set: { ...tuple, updatedAt: new Date() },
+            set: { ...tuple, updatedAtM: Date.now() },
           });
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: tuple.workspaceId,
@@ -242,7 +242,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
       if (!workspace) {
         throw new TRPCError({
@@ -292,7 +292,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
@@ -331,9 +331,9 @@ export const rbacRouter = t.router({
       await db.transaction(async (tx) => {
         await tx
           .insert(schema.keysRoles)
-          .values({ ...tuple, createdAt: new Date() })
+          .values({ ...tuple, createdAtM: Date.now() })
           .onDuplicateKeyUpdate({
-            set: { ...tuple, updatedAt: new Date() },
+            set: { ...tuple, updatedAtM: Date.now() },
           });
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: tuple.workspaceId,
@@ -367,7 +367,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
       if (!workspace) {
         throw new TRPCError({
@@ -396,7 +396,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
 
       if (!workspace) {
@@ -482,7 +482,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.id),
@@ -530,7 +530,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
@@ -583,7 +583,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
 
       if (!workspace) {
@@ -635,7 +635,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           permissions: {
             where: (table, { eq }) => eq(table.id, input.id),
@@ -661,7 +661,7 @@ export const rbacRouter = t.router({
           .set({
             name: input.name,
             description: input.description,
-            updatedAt: new Date(),
+            updatedAtM: Date.now(),
           })
           .where(eq(schema.permissions.id, input.id));
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
@@ -695,7 +695,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           permissions: {
             where: (table, { eq }) => eq(table.id, input.permissionId),
@@ -777,10 +777,8 @@ export async function upsertPermissions(
         workspaceId,
         name,
         description: null,
-        createdAt: new Date(),
-        updatedAt: null,
-        createdAtM: Date.now(),
         updatedAtM: null,
+        createdAtM: Date.now(),
         deletedAtM: null,
       };
 

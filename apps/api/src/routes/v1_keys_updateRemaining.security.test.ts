@@ -21,7 +21,7 @@ runCommonRouteTests<V1KeysUpdateRemainingRequest>({
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: rh.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
     return {
       method: "POST",
@@ -64,7 +64,7 @@ describe("correct roles", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       });
 
       const root = await h.createRootKey(

@@ -59,11 +59,11 @@ export async function prepareDatabase(url?: string): Promise<{
         id: ROW_IDS.rootWorkspace,
         tenantId: "user_REPLACE_ME",
         name: "Unkey",
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         betaFeatures: {},
         features: {},
       })
-      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+      .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
 
     s.message("Created root workspace");
 
@@ -84,7 +84,7 @@ export async function prepareDatabase(url?: string): Promise<{
         id: ROW_IDS.rootKeySpace,
         workspaceId: ROW_IDS.rootWorkspace,
       })
-      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+      .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
     s.message("Created root keyspace");
 
     /**
@@ -98,9 +98,9 @@ export async function prepareDatabase(url?: string): Promise<{
         workspaceId: ROW_IDS.rootWorkspace,
         authType: "key",
         keyAuthId: ROW_IDS.rootKeySpace,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       })
-      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+      .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
     s.message("Created root api");
 
     s.stop("seed done");

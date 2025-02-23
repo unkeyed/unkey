@@ -9,14 +9,14 @@ export const getWorkspaceDetails = async (namespaceId: string, fallbackUrl = "/r
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     columns: {
       name: true,
       tenantId: true,
     },
     with: {
       ratelimitNamespaces: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        where: (table, { isNull }) => isNull(table.deletedAtM),
         columns: {
           id: true,
           workspaceId: true,
@@ -48,7 +48,7 @@ export const getWorkspaceDetailsWithOverrides = async (
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     columns: {
       name: true,
       tenantId: true,
@@ -56,7 +56,7 @@ export const getWorkspaceDetailsWithOverrides = async (
     },
     with: {
       ratelimitNamespaces: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        where: (table, { isNull }) => isNull(table.deletedAtM),
         columns: {
           id: true,
           workspaceId: true,
@@ -71,7 +71,7 @@ export const getWorkspaceDetailsWithOverrides = async (
               duration: true,
               async: true,
             },
-            where: (table, { isNull }) => isNull(table.deletedAt),
+            where: (table, { isNull }) => isNull(table.deletedAtM),
           },
         },
       },

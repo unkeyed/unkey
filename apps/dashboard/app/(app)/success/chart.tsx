@@ -10,7 +10,7 @@ type Props = {
   title: string;
   description?: string;
   query: () => Promise<{ date: string; count: number }[]>;
-  t0: Date;
+  t0: number;
 };
 
 export const Chart: React.FC<Props> = async ({ t0, query, title, description }) => {
@@ -18,7 +18,7 @@ export const Chart: React.FC<Props> = async ({ t0, query, title, description }) 
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
   });
 
   if (!workspace?.features.successPage) {

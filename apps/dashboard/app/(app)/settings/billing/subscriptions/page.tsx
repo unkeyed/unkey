@@ -14,7 +14,7 @@ export default async function PlanPage() {
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
   });
   if (!workspace) {
     return redirect("/new");

@@ -73,7 +73,7 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
     async () =>
       db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+          and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
         with: {
           identities: {
             where: (table, { or, like }) =>

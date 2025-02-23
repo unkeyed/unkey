@@ -14,7 +14,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
     await db.transaction(async (tx) => {
       const res = await tx.query.workspaces.findFirst({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+          and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
         with: {
           auditLogBuckets: {
             where: (table, { eq }) => eq(table.name, "unkey_mutations"),

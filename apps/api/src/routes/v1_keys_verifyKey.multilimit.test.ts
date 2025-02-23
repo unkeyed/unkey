@@ -20,7 +20,7 @@ describe("without identities", () => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -63,7 +63,7 @@ describe("without identities", () => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -107,7 +107,7 @@ describe("without identities", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       });
 
       const res = await h.post<V1KeysVerifyKeyRequest, ErrorResponse>({
@@ -287,7 +287,7 @@ describe("with identity", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         identityId,
       });
 
@@ -383,7 +383,7 @@ describe("with identity", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         identityId,
       });
 
@@ -481,7 +481,7 @@ describe("with identity", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         identityId,
       });
 
@@ -579,7 +579,7 @@ describe("with identity", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         identityId,
       });
 
@@ -712,7 +712,7 @@ describe("with identity", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         identityId,
         ratelimitAsync: true,
         ratelimitLimit: 1,
@@ -785,7 +785,7 @@ describe("with identity", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         identityId,
       });
 

@@ -91,7 +91,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
     const keyFound = await db.query.keys.findFirst({
       columns: { id: true, forWorkspaceId: true },
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.hash, hashedToken), isNull(table.deletedAt)),
+        and(eq(table.hash, hashedToken), isNull(table.deletedAtM)),
     });
     if (!keyFound) {
       foundKeys.push({
@@ -107,7 +107,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
       where: (table, { and, eq, isNull }) =>
         and(
           eq(table.id, keyFound?.forWorkspaceId ? keyFound?.forWorkspaceId : ""),
-          isNull(table.deletedAt),
+          isNull(table.deletedAtM),
         ),
     });
     if (!ws) {

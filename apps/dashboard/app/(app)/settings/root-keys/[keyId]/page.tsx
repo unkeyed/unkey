@@ -30,7 +30,7 @@ export default async function RootKeyPage(props: {
     where: eq(schema.workspaces.tenantId, tenantId),
     with: {
       apis: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        where: (table, { isNull }) => isNull(table.deletedAtM),
         columns: {
           id: true,
           name: true,
@@ -82,7 +82,7 @@ export default async function RootKeyPage(props: {
         eq(table.workspaceId, UNKEY_WORKSPACE_ID),
         eq(table.forWorkspaceId, workspace.id),
         eq(table.id, props.params.keyId),
-        isNull(table.deletedAt),
+        isNull(table.deletedAtM),
       ),
     with: {
       keyAuth: {

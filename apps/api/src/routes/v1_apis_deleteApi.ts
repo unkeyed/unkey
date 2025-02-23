@@ -75,7 +75,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
      * for delete protection.
      */
     const api = await db.readonly.query.apis.findFirst({
-      where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+      where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAtM)),
       with: {
         keyAuth: true,
       },
@@ -95,10 +95,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
     const rootKeyId = auth.key.id;
 
     await db.primary.transaction(async (tx) => {
-      await tx
-        .update(schema.apis)
-        .set({ deletedAt: new Date(), deletedAtM: Date.now() })
-        .where(eq(schema.apis.id, apiId));
+      await tx.update(schema.apis).set({ deletedAtM: Date.now() }).where(eq(schema.apis.id, apiId));
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: authorizedWorkspaceId,
@@ -120,14 +117,14 @@ export const registerV1ApisDeleteApi = (app: App) =>
 
       const keyIds = await tx.query.keys.findMany({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.keyAuthId, api.keyAuthId!), isNull(table.deletedAt)),
+          and(eq(table.keyAuthId, api.keyAuthId!), isNull(table.deletedAtM)),
         columns: {
           id: true,
         },
       });
       await tx
         .update(schema.keys)
-        .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+        .set({ deletedAtM: Date.now() })
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!)));
 
       await insertUnkeyAuditLog(

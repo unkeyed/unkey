@@ -39,7 +39,7 @@ export default async function Page(props: Props) {
         },
       },
       keys: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        where: (table, { isNull }) => isNull(table.deletedAtM),
         with: {
           keyAuth: {
             with: {

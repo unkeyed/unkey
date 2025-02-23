@@ -86,7 +86,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
         with: {
           overrides: {
             where: (table, { eq, and, isNull }) =>
-              and(isNull(table.deletedAt), eq(table.identifier, identifier)),
+              and(isNull(table.deletedAtM), eq(table.identifier, identifier)),
           },
         },
       });
@@ -107,7 +107,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
       }
       await tx
         .update(schema.ratelimitOverrides)
-        .set({ deletedAt: new Date(), deletedAtM: Date.now() })
+        .set({ deletedAtM: Date.now() })
         .where(eq(schema.ratelimitOverrides.id, override.id));
 
       await insertUnkeyAuditLog(c, tx, {

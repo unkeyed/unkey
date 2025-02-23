@@ -70,13 +70,13 @@ export const createRootKey = t.procedure
           workspaceId: env().UNKEY_WORKSPACE_ID,
           forWorkspaceId: ctx.workspace.id,
           expires: null,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
           remaining: null,
           refillAmount: null,
           refillDay: null,
           lastRefillAt: null,
-          deletedAt: null,
           enabled: true,
+          deletedAtM: null,
         });
 
         auditLogs.push({
