@@ -24,7 +24,6 @@ async function main() {
       .from(table)
       .where(isNull(table.createdAtM))
       .then((res) => res.at(0)?.count ?? 0);
-    console.log({ count });
 
     let processed = 0;
     let cursor = "";
