@@ -16,7 +16,6 @@ import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
-import { secrets } from "./secrets";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
@@ -125,7 +124,6 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   roles: many(roles),
   permissions: many(permissions),
   ratelimitNamespaces: many(ratelimitNamespaces),
-  secrets: many(secrets),
   keySpaces: many(keyAuth),
   identities: many(identities),
   auditLogBuckets: many(auditLogBucket, {

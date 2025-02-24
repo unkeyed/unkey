@@ -15,9 +15,7 @@ export const permissions = mysqlTable(
   "permissions",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
 
@@ -55,12 +53,8 @@ export const keysPermissions = mysqlTable(
   {
     tempId: bigint("temp_id", { mode: "number" }).autoincrement().notNull(),
     keyId: varchar("key_id", { length: 256 }).notNull(),
-    permissionId: varchar("permission_id", { length: 256 })
-      .notNull()
-      .references(() => permissions.id, { onDelete: "cascade" }),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    permissionId: varchar("permission_id", { length: 256 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
@@ -96,9 +90,7 @@ export const roles = mysqlTable(
   "roles",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
 
@@ -135,15 +127,9 @@ export const rolesRelations = relations(roles, ({ one, many }) => ({
 export const rolesPermissions = mysqlTable(
   "roles_permissions",
   {
-    roleId: varchar("role_id", { length: 256 })
-      .notNull()
-      .references(() => roles.id, { onDelete: "cascade" }),
-    permissionId: varchar("permission_id", { length: 256 })
-      .notNull()
-      .references(() => permissions.id, { onDelete: "cascade" }),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    roleId: varchar("role_id", { length: 256 }).notNull(),
+    permissionId: varchar("permission_id", { length: 256 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
@@ -181,15 +167,9 @@ export const rolesPermissionsRelations = relations(rolesPermissions, ({ one }) =
 export const keysRoles = mysqlTable(
   "keys_roles",
   {
-    keyId: varchar("key_id", { length: 256 })
-      .notNull()
-      .references(() => keys.id, { onDelete: "cascade" }),
-    roleId: varchar("role_id", { length: 256 })
-      .notNull()
-      .references(() => roles.id, { onDelete: "cascade" }),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    keyId: varchar("key_id", { length: 256 }).notNull(),
+    roleId: varchar("role_id", { length: 256 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()

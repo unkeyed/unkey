@@ -29,9 +29,7 @@ export const keys = mysqlTable(
     /**
      * This is the workspace that owns the key.
      */
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
     /**
      * For internal keys, this is the workspace that the key is for.
@@ -133,12 +131,8 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
 export const encryptedKeys = mysqlTable(
   "encrypted_keys",
   {
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    keyId: varchar("key_id", { length: 256 })
-      .notNull()
-      .references(() => keys.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    keyId: varchar("key_id", { length: 256 }).notNull(),
     ...lifecycleDatesV2,
     ...embeddedEncrypted,
   },

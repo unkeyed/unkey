@@ -7,9 +7,7 @@ import { workspaces } from "./workspaces";
 
 export const keyAuth = mysqlTable("key_auth", {
   id: varchar("id", { length: 256 }).primaryKey(),
-  workspaceId: varchar("workspace_id", { length: 256 })
-    .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
   ...lifecycleDatesMigration,
 

@@ -7,9 +7,7 @@ export const ratelimitNamespaces = mysqlTable(
   "ratelimit_namespaces",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
 
     ...lifecycleDatesMigration,
@@ -36,12 +34,8 @@ export const ratelimitOverrides = mysqlTable(
   "ratelimit_overrides",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    namespaceId: varchar("namespace_id", { length: 256 })
-      .notNull()
-      .references(() => ratelimitNamespaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    namespaceId: varchar("namespace_id", { length: 256 }).notNull(),
     identifier: varchar("identifier", { length: 512 }).notNull(),
 
     limit: int("limit").notNull(),

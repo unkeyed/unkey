@@ -10,9 +10,7 @@ export const apis = mysqlTable(
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     name: varchar("name", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     /**
      * comma separated ips
      */
