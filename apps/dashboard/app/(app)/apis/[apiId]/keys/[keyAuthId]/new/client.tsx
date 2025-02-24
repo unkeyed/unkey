@@ -674,9 +674,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                   </FormItem>
                                 )}
                               />
-                              <FormDescription>
-                                How many requests may be performed in a given interval
-                              </FormDescription>
                             </div>
                             {form.formState.errors.ratelimit && (
                               <p className="text-xs text-center text-content-alert">
