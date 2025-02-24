@@ -2,7 +2,7 @@
 title: FormInput
 description: A form input component with built-in label, description, and error handling capabilities.
 ---
-import { 
+import {
   DefaultFormInputVariant,
   RequiredFormInputVariant,
   SuccessFormInputVariant,
@@ -67,27 +67,12 @@ Example of a FormInput with multiple props configured for a specific use case.
 ## Props
 The FormInput component extends the standard Input component props with additional form-specific properties:
 
-<AutoTypeTable
-    name="FormInputProps"
-    type={`import { InputProps } from "../input"
-import { ReactNode } from "react"
-export interface FormInputProps extends InputProps {
-  /** Text label for the input field */
-  label?: string;
-  /** Helper text providing additional context */
-  description?: string;
-  /** Whether the field is required */
-  required?: boolean;
-  /** Error message to display when validation fails */
-  error?: string;
-  /** ID for the input element, auto-generated if not provided */
-  id?: string;
-  /** Additional class names to apply to the fieldset wrapper */
-  className?: string;
-  /** Visual state variant passed to the underlying Input component */
-  variant?: 'default' | 'success' | 'warning' | 'error';
-}`}
-/>
+  <AutoTypeTable
+      name="DocumentedFormInputProps"
+      path="../../internal/ui/src/components/form/index.tsx"
+
+    />
+
 
 ## Accessibility
 FormInput is built with accessibility in mind:
