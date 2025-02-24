@@ -1,0 +1,5 @@
+{
+  "title": "API",
+  "root": false,
+  "pages": ["config", "ratelimiting"]
+}
