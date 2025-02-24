@@ -8,8 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -21,12 +19,11 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo } from "@unkey/icons";
-import { Button } from "@unkey/ui";
-import type { PropsWithChildren, ReactNode } from "react";
+import { Button, FormInput } from "@unkey/ui";
+import type { PropsWithChildren } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OverrideDetails } from "../types";
-import { InputTooltip } from "./input-tooltip";
 
 const overrideValidationSchema = z.object({
   identifier: z
@@ -48,32 +45,6 @@ const overrideValidationSchema = z.object({
 });
 
 type FormValues = z.infer<typeof overrideValidationSchema>;
-
-type FormFieldProps = {
-  label: string;
-  tooltip?: string;
-  error?: string;
-  children: ReactNode;
-};
-
-const FormField = ({ label, tooltip, error, children }: FormFieldProps) => (
-  // biome-ignore lint/a11y/useKeyWithClickEvents: no need for button
-  <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
-    <Label
-      className="text-gray-11 text-[13px] flex items-center"
-      onClick={(e) => e.preventDefault()}
-    >
-      {label}
-      {tooltip && (
-        <InputTooltip desc={tooltip}>
-          <CircleInfo size="md-regular" className="text-accent-8 ml-[10px]" />
-        </InputTooltip>
-      )}
-    </Label>
-    {children}
-    {error && <span className="text-error-10 text-[13px] font-medium">{error}</span>}
-  </div>
-);
 
 type Props = PropsWithChildren<{
   isModalOpen: boolean;
@@ -184,59 +155,45 @@ export const IdentifierDialog = ({
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmitForm)}>
           <div className="flex flex-col gap-4 p-5 pt-4 bg-accent-2">
-            <FormField
+            <FormInput
               label="Identifier"
-              tooltip="The identifier you use when ratelimiting."
+              description="The identifier you use when ratelimiting."
               error={errors.identifier?.message}
-            >
-              <Input
-                {...register("identifier")}
-                readOnly
-                disabled
-                className="border-gray-4 focus:border-gray-5 px-3 py-1"
-              />
-            </FormField>
+              {...register("identifier")}
+              readOnly
+              disabled
+            />
 
-            <FormField
+            <FormInput
               label="Limit"
-              tooltip="How many requests can be made within a given window."
+              description="How many requests can be made within a given window."
               error={errors.limit?.message}
-            >
-              <Input
-                {...register("limit")}
-                type="number"
-                placeholder="Enter amount (3, 7, 10, 12…)"
-                className="border border-gray-4 focus:border focus:border-gray-4 px-3 py-1 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4 rounded-md"
-              />
-            </FormField>
+              {...register("limit")}
+              type="number"
+              placeholder="Enter amount (3, 7, 10, 12…)"
+            />
 
-            <FormField
+            <FormInput
               label="Duration"
-              tooltip="Duration of each window in milliseconds."
+              description="Duration of each window in milliseconds."
               error={errors.duration?.message}
-            >
-              <div className="relative">
-                <Input
-                  {...register("duration")}
-                  type="number"
-                  placeholder="Enter milliseconds (60000, 100000, 1200000…)"
-                  className="border border-gray-4 focus:border focus:border-gray-4 px-3 py-1 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4 rounded-md"
-                />
+              {...register("duration")}
+              type="number"
+              placeholder="Enter milliseconds (60000, 100000, 1200000…)"
+              rightIcon={
                 <Badge className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-accent-4 text-accent-11 hover:bg-accent-6 ">
                   MS
                 </Badge>
-              </div>
-            </FormField>
+              }
+            />
 
-            <FormField
-              label="Override Type"
-              tooltip="Override the mode, async is faster but slightly less accurate."
-              error={errors.async?.message}
-            >
-              <Controller
-                control={control}
-                name="async"
-                render={({ field }) => (
+            <Controller
+              control={control}
+              name="async"
+              render={({ field }) => (
+                <div className="space-y-1">
+                  <div className="text-gray-11 text-[13px] flex items-center">Override Type</div>
+
                   <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger className="flex h-8 w-full items-center justify-between rounded-md bg-transparent px-3 py-2 text-[13px] border border-gray-4 focus:border focus:border-gray-4 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4">
                       <SelectValue />
@@ -247,9 +204,14 @@ export const IdentifierDialog = ({
                       <SelectItem value="sync">Sync</SelectItem>
                     </SelectContent>
                   </Select>
-                )}
-              />
-            </FormField>
+
+                  <output className="text-gray-9 flex gap-2 items-center">
+                    <CircleInfo size="md-regular" aria-hidden="true" />
+                    <span>Override the mode, async is faster but slightly less accurate.</span>
+                  </output>
+                </div>
+              )}
+            />
           </div>
 
           <DialogFooter className="p-6 border-t border-gray-4">

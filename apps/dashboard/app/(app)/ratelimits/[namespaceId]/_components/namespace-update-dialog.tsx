@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { validation } from "@unkey/validation";
 import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
@@ -37,11 +37,7 @@ type Props = PropsWithChildren<{
   };
 }>;
 
-export const NamespaceUpdateNameDialog = ({
-  isModalOpen,
-  onOpenChange,
-  namespace,
-}: Props) => {
+export const NamespaceUpdateNameDialog = ({ isModalOpen, onOpenChange, namespace }: Props) => {
   const router = useRouter();
   const {
     register,
@@ -95,22 +91,14 @@ export const NamespaceUpdateNameDialog = ({
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-4 py-4 px-6 bg-accent-2">
-            <FormField
+            <FormInput
               label="Name"
-              tooltip="Update the name of your namespace"
+              description="Update the name of your namespace"
               error={errors.name?.message}
-            >
-              <Input
-                {...register("name")}
-                placeholder="Enter namespace name"
-                className="border border-gray-4 focus:border focus:border-gray-4 px-3 py-1 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4 rounded-md"
-              />
-              <input
-                type="hidden"
-                {...register("namespaceId")}
-                defaultValue={namespace.id}
-              />
-            </FormField>
+              placeholder="Enter namespace name"
+              {...register("name")}
+            />
+            <input type="hidden" {...register("namespaceId")} defaultValue={namespace.id} />
           </div>
           <DialogFooter className="px-6 py-4 border-t border-gray-4">
             <div className="w-full flex flex-col gap-2 items-center justify-center">
@@ -123,9 +111,7 @@ export const NamespaceUpdateNameDialog = ({
               >
                 Update Namespace
               </Button>
-              <div className="text-gray-9 text-xs">
-                Name changes are applied immediately
-              </div>
+              <div className="text-gray-9 text-xs">Name changes are applied immediately</div>
             </div>
           </DialogFooter>
         </form>

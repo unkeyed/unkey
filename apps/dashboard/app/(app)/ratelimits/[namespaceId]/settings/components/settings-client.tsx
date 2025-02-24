@@ -1,15 +1,15 @@
 "use client";
 
+import { revalidateTag } from "@/app/actions";
 import { SettingCard } from "@/components/settings-card";
+import { toast } from "@/components/ui/toaster";
+import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { Clone } from "@unkey/icons";
 import { Button, Input } from "@unkey/ui";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
-import { revalidateTag } from "@/app/actions";
-import { toast } from "@/components/ui/toaster";
-import { tags } from "@/lib/cache";
-import { useRouter } from "next/navigation";
 
 type Props = {
   namespace: {
@@ -19,8 +19,7 @@ type Props = {
   };
 };
 export const SettingsClient = ({ namespace }: Props) => {
-  const [isNamespaceNameDeleteModalOpen, setIsNamespaceNameDeleteModalOpen] =
-    useState(false);
+  const [isNamespaceNameDeleteModalOpen, setIsNamespaceNameDeleteModalOpen] = useState(false);
   const [namespaceName, setNamespaceName] = useState(namespace.name);
   const [isUpdating, setIsUpdating] = useState(false);
   const router = useRouter();
@@ -82,11 +81,7 @@ export const SettingsClient = ({ namespace }: Props) => {
                   className="h-9"
                   onClick={handleUpdateName}
                   loading={isUpdating}
-                  disabled={
-                    isUpdating ||
-                    namespaceName === namespace.name ||
-                    !namespaceName
-                  }
+                  disabled={isUpdating || namespaceName === namespace.name || !namespaceName}
                 >
                   Save
                 </Button>

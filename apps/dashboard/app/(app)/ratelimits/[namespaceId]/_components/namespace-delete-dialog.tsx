@@ -36,11 +36,7 @@ type Props = PropsWithChildren<{
   };
 }>;
 
-export const DeleteNamespaceDialog = ({
-  isModalOpen,
-  onOpenChange,
-  namespace,
-}: Props) => {
+export const DeleteNamespaceDialog = ({ isModalOpen, onOpenChange, namespace }: Props) => {
   const router = useRouter();
   const {
     register,
@@ -60,8 +56,7 @@ export const DeleteNamespaceDialog = ({
   const deleteNamespace = trpc.ratelimit.namespace.delete.useMutation({
     onSuccess() {
       toast.success("Namespace Deleted", {
-        description:
-          "Your namespace and all its overridden identifiers have been deleted.",
+        description: "Your namespace and all its overridden identifiers have been deleted.",
       });
       revalidateTag(tags.namespace(namespace.id));
       router.push("/ratelimits");
@@ -96,23 +91,16 @@ export const DeleteNamespaceDialog = ({
           <div className="flex flex-col gap-4 py-4 px-6 bg-accent-2">
             <p className="text-gray-11 text-[13px]">
               <span className="font-medium">Warning: </span>
-              Deleting this namespace while it is in use may cause your current
-              requests to fail. You will lose access to analytical data.
+              Deleting this namespace while it is in use may cause your current requests to fail.
+              You will lose access to analytical data.
             </p>
 
             <div className="space-y-1">
               <p className="text-gray-11 text-[13px]">
-                Type{" "}
-                <span className="text-gray-12 font-medium">
-                  {namespace.name}
-                </span>{" "}
-                to confirm
+                Type <span className="text-gray-12 font-medium">{namespace.name}</span> to confirm
               </p>
 
-              <Input
-                {...register("name")}
-                placeholder={`Enter "${namespace.name}" to confirm`}
-              />
+              <Input {...register("name")} placeholder={`Enter "${namespace.name}" to confirm`} />
             </div>
           </div>
 

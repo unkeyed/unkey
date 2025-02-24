@@ -11,9 +11,7 @@ type Props = {
 };
 
 export default async function SettingsPage(props: Props) {
-  const { namespace, ratelimitNamespaces } = await getWorkspaceDetails(
-    props.params.namespaceId
-  );
+  const { namespace, ratelimitNamespaces } = await getWorkspaceDetails(props.params.namespaceId);
 
   return (
     <div>

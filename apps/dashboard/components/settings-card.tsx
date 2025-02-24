@@ -35,7 +35,7 @@ export function SettingCard({
         "px-6 py-3 w-full flex gap-6 justify-between items-center",
         borderRadiusClass,
         borderClass,
-        className
+        className,
       )}
     >
       <div className="flex flex-col gap-1 text-sm">
