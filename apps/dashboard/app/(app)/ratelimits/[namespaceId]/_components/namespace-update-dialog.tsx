@@ -8,20 +8,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircleInfo } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Input } from "@unkey/ui";
 import { validation } from "@unkey/validation";
 import { useRouter } from "next/navigation";
-import type { PropsWithChildren, ReactNode } from "react";
+import type { PropsWithChildren } from "react";
+
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { InputTooltip } from "./input-tooltip";
 
 const formSchema = z.object({
   name: validation.name,
@@ -29,32 +26,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-type FormFieldProps = {
-  label: string;
-  tooltip?: string;
-  error?: string;
-  children: ReactNode;
-};
-
-const FormField = ({ label, tooltip, error, children }: FormFieldProps) => (
-  // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
-  <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
-    <Label
-      className="text-gray-11 text-[13px] flex items-center"
-      onClick={(e) => e.preventDefault()}
-    >
-      {label}
-      {tooltip && (
-        <InputTooltip desc={tooltip}>
-          <CircleInfo size="md-regular" className="text-accent-8 ml-[10px]" />
-        </InputTooltip>
-      )}
-    </Label>
-    {children}
-    {error && <span className="text-error-10 text-[13px] font-medium">{error}</span>}
-  </div>
-);
 
 type Props = PropsWithChildren<{
   isModalOpen: boolean;
@@ -66,7 +37,11 @@ type Props = PropsWithChildren<{
   };
 }>;
 
-export const NamespaceUpdateNameDialog = ({ isModalOpen, onOpenChange, namespace }: Props) => {
+export const NamespaceUpdateNameDialog = ({
+  isModalOpen,
+  onOpenChange,
+  namespace,
+}: Props) => {
   const router = useRouter();
   const {
     register,
@@ -108,7 +83,7 @@ export const NamespaceUpdateNameDialog = ({ isModalOpen, onOpenChange, namespace
   return (
     <Dialog open={isModalOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className="bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-4 rounded-lg p-0 gap-0"
+        className="bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-4 rounded-2xl p-0 gap-0"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
         }}
@@ -130,7 +105,11 @@ export const NamespaceUpdateNameDialog = ({ isModalOpen, onOpenChange, namespace
                 placeholder="Enter namespace name"
                 className="border border-gray-4 focus:border focus:border-gray-4 px-3 py-1 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4 rounded-md"
               />
-              <input type="hidden" {...register("namespaceId")} defaultValue={namespace.id} />
+              <input
+                type="hidden"
+                {...register("namespaceId")}
+                defaultValue={namespace.id}
+              />
             </FormField>
           </div>
           <DialogFooter className="px-6 py-4 border-t border-gray-4">
@@ -144,7 +123,9 @@ export const NamespaceUpdateNameDialog = ({ isModalOpen, onOpenChange, namespace
               >
                 Update Namespace
               </Button>
-              <div className="text-gray-9 text-xs">Name changes are applied immediately</div>
+              <div className="text-gray-9 text-xs">
+                Name changes are applied immediately
+              </div>
             </div>
           </DialogFooter>
         </form>

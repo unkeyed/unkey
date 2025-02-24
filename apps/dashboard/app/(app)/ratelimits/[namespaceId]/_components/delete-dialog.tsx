@@ -32,7 +32,12 @@ type Props = PropsWithChildren<{
   identifier: string;
 }>;
 
-export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier }: Props) => {
+export const DeleteDialog = ({
+  isModalOpen,
+  onOpenChange,
+  overrideId,
+  identifier,
+}: Props) => {
   const { ratelimit } = trpc.useUtils();
 
   const {
@@ -77,7 +82,7 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
   return (
     <Dialog open={isModalOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className="bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-4 rounded-lg p-0 gap-0"
+        className="bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-4 rounded-2xl p-0 gap-0"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
         }}
@@ -92,13 +97,15 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
           <div className="flex flex-col gap-4 py-4 px-6 bg-accent-2">
             <p className="text-gray-11 text-[13px]">
               <span className="font-medium">Warning: </span>
-              Are you sure you want to delete this override? The identifier associated with this
-              override will now use the default limits.
+              Are you sure you want to delete this override? The identifier
+              associated with this override will now use the default limits.
             </p>
 
             <div className="space-y-1">
               <p className="text-gray-11 text-[13px]">
-                Type <span className="text-gray-12 font-medium">{identifier}</span> to confirm
+                Type{" "}
+                <span className="text-gray-12 font-medium">{identifier}</span>{" "}
+                to confirm
               </p>
 
               <Input
