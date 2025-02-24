@@ -6,9 +6,7 @@ import { workspaces } from "./workspaces";
 
 export const vercelIntegrations = mysqlTable("vercel_integrations", {
   id: varchar("id", { length: 256 }).primaryKey(),
-  workspaceId: varchar("workspace_id", { length: 256 })
-    .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
   vercelTeamId: varchar("team_id", { length: 256 }),
   accessToken: varchar("access_token", { length: 256 }).notNull(),
   ...lifecycleDatesMigration,
@@ -18,12 +16,8 @@ export const vercelBindings = mysqlTable(
   "vercel_bindings",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    integrationId: varchar("integration_id", { length: 256 })
-      .notNull()
-      .references(() => vercelIntegrations.id, { onDelete: "cascade" }),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    integrationId: varchar("integration_id", { length: 256 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),
     environment: mysqlEnum("environment", ["development", "preview", "production"]).notNull(),
     resourceId: varchar("resource_id", { length: 256 }).notNull(),

@@ -31,18 +31,6 @@ export type InsertRatelimitOverride = InferInsertModel<typeof schema.ratelimitOv
 export type RatelimitNamespace = InferSelectModel<typeof schema.ratelimitNamespaces>;
 export type InsertRatelimitNamespace = InferInsertModel<typeof schema.ratelimitNamespaces>;
 
-export type Secret = InferSelectModel<typeof schema.secrets>;
-export type InsertSecret = InferInsertModel<typeof schema.secrets>;
-
-export type VerificationMonitor = InferSelectModel<typeof schema.verificationMonitors>;
-export type InsertVerificationMonitor = InferInsertModel<typeof schema.verificationMonitors>;
-
-export type Webhook = InferSelectModel<typeof schema.webhooks>;
-export type InsertWebhook = InferInsertModel<typeof schema.webhooks>;
-
-export type Event = InferSelectModel<typeof schema.events>;
-export type InsertEvent = InferInsertModel<typeof schema.events>;
-
 export type EncryptedKey = InferSelectModel<typeof schema.encryptedKeys>;
 export type InsertEncryptedKey = InferInsertModel<typeof schema.encryptedKeys>;
 
