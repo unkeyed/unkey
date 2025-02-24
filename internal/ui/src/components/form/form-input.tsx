@@ -1,14 +1,16 @@
 import { CircleInfo, TriangleWarning2 } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../../lib/utils";
-import { Input, type InputProps } from "../input";
+import { type DocumentedInputProps, Input, type InputProps } from "../input";
 
-export interface FormInputProps extends InputProps {
+// Hack to populate fumadocs' AutoTypeTable
+export type DocumentedFormInputProps = DocumentedInputProps & {
   label?: string;
   description?: string;
   required?: boolean;
   error?: string;
-}
+};
+export type FormInputProps = InputProps & DocumentedFormInputProps;
 
 export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
   ({ label, description, error, required, id, className, variant, ...props }, ref) => {
