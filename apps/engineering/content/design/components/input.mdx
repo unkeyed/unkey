@@ -1,0 +1,97 @@
+---
+title: Input
+description: A text input field component with different states, validations, and icon support.
+---
+
+import { Input } from "@unkey/ui"
+import { RenderComponentWithSnippet } from "@/app/components/render"
+import { 
+  InputDefaultVariant, 
+  InputSuccessVariant,
+  InputWarningVariant,
+  InputErrorVariant,
+  InputDisabledVariant,
+  InputWithDefaultValue,
+  InputWithPasswordToggle,
+  InputWithBothIcons 
+} from "./input/input.variants.tsx"
+import { Row } from "@/app/components/row"
+
+# Input
+
+A versatile input component that supports various states, validations, and icon placements. Use it to collect user input with appropriate visual feedback and enhanced usability through icons.
+
+## Default
+
+The default input style with neutral colors. Can include optional icons for better visual context.
+
+<InputDefaultVariant />
+
+## States
+
+Input components can reflect different states through visual styling:
+
+### Success State
+
+Use the success state to indicate valid input or successful validation. The checkmark icon provides immediate visual feedback.
+
+<InputSuccessVariant />
+
+### Warning State
+
+The warning state can be used to show potential issues that don't prevent form submission. The alert icon draws attention to the warning state.
+
+<InputWarningVariant />
+
+### Error State
+
+Use the error state to indicate invalid input that needs correction. The alert icon emphasizes the error state.
+
+<InputErrorVariant />
+
+### Disabled State
+
+Use the disabled state when user interaction should be prevented, such as during form submission or when the input depends on other conditions.
+
+<InputDisabledVariant />
+
+### With Default Value State
+
+Input pre-populated with an initial value that users can modify or build upon.
+
+<InputWithDefaultValue />
+
+## Interactive Elements
+
+### Password Toggle
+
+Example of an input with a clickable icon to toggle password visibility.
+
+<InputWithPasswordToggle />
+
+### Search with Icons
+
+Example of an input with both leading and trailing icons for enhanced functionality.
+
+<InputWithBothIcons />
+
+## Props
+
+The Input component accepts all standard HTML input attributes plus the following:
+
+- `variant`: 'default' | 'success' | 'warning' | 'error'
+- `leftIcon`: ReactNode - Optional icon component to display on the left side
+- `rightIcon`: ReactNode - Optional icon component to display on the right side
+- `wrapperClassName`: string - Optional className for the wrapper div
+- All standard HTML input attributes are supported
+
+## Icon Guidelines
+
+When using icons with the Input component:
+
+- Icons should be sized appropriately (recommended: 16x16px using `h-4 w-4` classes)
+- Icons inherit colors based on the input's variant state
+- Interactive icons (like password toggle) should be wrapped in buttons
+- Avoid using too many icons which might clutter the interface
+- Left icons are typically used for input type indication (search, email, etc.)
+- Right icons are commonly used for interactive elements (password toggle, clear button, etc.)
