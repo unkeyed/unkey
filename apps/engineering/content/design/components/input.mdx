@@ -3,16 +3,18 @@ title: Input
 description: A text input field component with different states, validations, and icon support.
 ---
 import { RenderComponentWithSnippet } from "@/app/components/render"
-import { 
-  InputDefaultVariant, 
+import {
+  InputDefaultVariant,
   InputSuccessVariant,
   InputWarningVariant,
   InputErrorVariant,
   InputDisabledVariant,
   InputWithDefaultValue,
   InputWithPasswordToggle,
-  InputWithBothIcons 
+  InputWithBothIcons
 } from "./input/input.variants.tsx"
+
+
 
 # Input
 
@@ -77,18 +79,9 @@ Example of an input with both leading and trailing icons for enhanced functional
 The Input component accepts all standard HTML input attributes plus the following:
 
   <AutoTypeTable
-      name="InputProps"
-      type={`import { ReactNode } from "react"
-export interface InputProps {
-  /** Determines the visual style and state of the input */
-  variant?: 'default' | 'success' | 'warning' | 'error';
-  /** Optional icon component to display on the left side */
-  leftIcon?: ReactNode;
-  /** Optional icon component to display on the right side */
-  rightIcon?: ReactNode;
-  /** Additional classes to apply to the wrapper div */
-  wrapperClassName?: string;
-}`}
+      name="DocumentedInputProps"
+      path="../../internal/ui/src/components/input.tsx"
+
     />
 
 
