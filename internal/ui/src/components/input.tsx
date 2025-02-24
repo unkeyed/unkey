@@ -49,13 +49,14 @@ const inputWrapperVariants = cva("relative flex items-center w-full", {
   },
 });
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement>,
-    VariantProps<typeof inputVariants> {
+// Hack to populate fumadocs' AutoTypeTable
+export type DocumentedInputProps = VariantProps<typeof inputVariants> & {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   wrapperClassName?: string;
-}
+};
+
+export type InputProps = DocumentedInputProps & React.InputHTMLAttributes<HTMLInputElement>;
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, variant, type, leftIcon, rightIcon, wrapperClassName, ...props }, ref) => {
