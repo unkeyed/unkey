@@ -22,9 +22,7 @@ export const keys = mysqlTable(
   "keys",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    keyAuthId: varchar("key_auth_id", { length: 256 })
-      .notNull()
-      .references(() => keyAuth.id, { onDelete: "cascade" }),
+    keyAuthId: varchar("key_auth_id", { length: 256 }).notNull(),
     hash: varchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
 
@@ -48,17 +46,9 @@ export const keys = mysqlTable(
     ownerId: varchar("owner_id", { length: 256 }),
     identityId: varchar("identity_id", { length: 256 }),
     meta: text("meta"),
-    //createdAt: datetime("created_at", { fsp: 3 }).notNull().default(sql`CURRENT_TIMESTAMP(3)`), // unix milli
     expires: datetime("expires", { fsp: 3 }), // unix milli,
     ...lifecycleDatesMigration,
-    /**
-     * When a key is revoked, we set this time field to mark it as deleted.
-     *
-     * All places where we show keys, should filter by this field.
-     *
-     * `deletedAt == null` means the key is active.
-     */
-    // deletedAt: datetime("deleted_at", { fsp: 3 }),
+
     /**
      * You can refill uses to keys at a desired interval
      *
@@ -103,7 +93,7 @@ export const keys = mysqlTable(
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
     ownerIdIndex: index("owner_id_idx").on(table.ownerId),
     identityIdIndex: index("identity_id_idx").on(table.identityId),
-    deletedIndex: index("deleted_at_idx").on(table.deletedAtM, table.deletedAtM),
+    deletedIndex: index("deleted_at_idx").on(table.deletedAtM),
   }),
 );
 

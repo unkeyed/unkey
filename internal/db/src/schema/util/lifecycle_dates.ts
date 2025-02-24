@@ -15,6 +15,10 @@ export const lifecycleDatesV2 = {
   updatedAt: bigint("updated_at", { mode: "number" }).$onUpdateFn(() => Date.now()),
 };
 
+export const softDelete = {
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+};
+
 /**
  * Over time I want to move all of our timestamps to bigints,
  *
