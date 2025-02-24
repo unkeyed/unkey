@@ -1,0 +1,57 @@
+---
+title: Rate Limiting Architecture
+---
+
+Rate limiting is a critical component of our infrastructure, ensuring accurate and robust rate limiting for our customers. This document provides an in-depth look at our rate limiting architecture, explaining each component and concept in detail.
+
+## Cluster Formation
+
+### Redis for Initial Discovery:
+
+Redis serves as a temporary storage solution to facilitate the initial discovery of nodes. Each node writes its unique identifier and network address to Redis with a 60-second Time-To-Live (TTL), ensuring information is refreshed and stale data is removed. This allows for quick cluster formation without pre-configuring nodes with peer addresses.
+
+### Memberlist for Cluster Management:
+
+After discovery through Redis, nodes switch to using HashiCorp’s memberlist library, which handles node joining, leaving, and failure detection via a gossip protocol. This protocol allows for decentralized communication and efficient scaling with the number of nodes.
+
+## Load Balancing
+
+Our architecture employs both global and regional load balancers. The global load balancer directs traffic to regional load balancers, which then distribute traffic randomly across nodes within a region. This random distribution requires coordination among nodes to ensure accurate rate limiting.
+
+## Rate Limit Coordination Strategies
+
+### Full Replication:
+
+Every request is replicated to all nodes, providing high accuracy but resulting in high network overhead.
+
+### Limit Exceeded Notification:
+
+Nodes notify others only when a rate limit is exceeded, minimizing communication but reducing accuracy.
+
+### Hybrid Approach:
+
+Origin Node Concept: Consistent hashing determines a specific "origin node" for each client identifier. The origin node acts as the source of truth for rate limiting data.
+
+Nodes cache rate limit data locally and asynchronously update the origin node, reducing latency. When a node detects a limit exceedance, it broadcasts this information to all nodes to prevent further requests.
+
+## Implementation Details
+
+### Consistent Hashing:
+
+Maps each client identifier to a point on a hash ring, with nodes also assigned points. The node closest to the client identifier is the origin node, ensuring even load distribution and minimizing consultation needs.
+
+### Async Updates and Broadcast Mechanism:
+
+Nodes handle requests locally and asynchronously update the origin node, reducing client latency. A broadcast is triggered when the origin node count exceeds a limit, quickly informing all nodes to maintain rate limit integrity.
+
+## Future Considerations
+
+### Global Coordination:
+
+We aim to extend cluster coordination beyond regional boundaries using a global gossip protocol for consistent rate limiting across regions.
+
+### Service Discovery Transition:
+
+We plan to move from Redis to AWS Cloud Map for service discovery, providing a more integrated and scalable solution within AWS infrastructure.
+
+This architecture strikes a balance between accuracy and efficiency, offering a robust solution for managing rate limiting across a distributed system.
