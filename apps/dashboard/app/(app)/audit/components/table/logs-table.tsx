@@ -1,11 +1,12 @@
 "use client";
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
-import { VirtualTable } from "@/components/virtual-table";
+import { VirtualTable, type VirtualTableRef } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { FunctionSquare, KeySquare } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { useAuditLogsQuery } from "./hooks/use-logs-query";
 import {
   getAuditRowClassName,
@@ -17,13 +18,21 @@ import {
 type Props = {
   selectedLog: AuditLog | null;
   setSelectedLog: (log: AuditLog | null) => void;
+  onMount: (distanceToTop: number) => void;
 };
 
-export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
+export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) => {
+  const tableRef = useRef<VirtualTableRef>(null);
   const { historicalLogs, loadMore, isLoadingMore, isLoading } = useAuditLogsQuery({});
+
+  useEffect(() => {
+    const distanceToTop = tableRef.current?.containerRef?.getBoundingClientRect().top ?? 0;
+    onMount(distanceToTop);
+  }, [onMount]);
 
   return (
     <VirtualTable
+      ref={tableRef}
       data={historicalLogs}
       columns={columns}
       isLoading={isLoading}
