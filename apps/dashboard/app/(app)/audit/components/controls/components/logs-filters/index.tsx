@@ -1,52 +1,52 @@
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
-import {
-  type FilterItemConfig,
-  FiltersPopover,
-} from "@/components/logs/checkbox/filters-popover";
+import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { MethodsFilter } from "./components/methods-filter";
-import { PathsFilter } from "./components/paths-filter";
+import type { WorkspaceProps } from "../../../logs-client";
+import { BucketFilter } from "./components/bucket-filter";
 import { EventsFilter } from "./components/events-filter";
+import { RootKeysFilter } from "./components/root-keys-filter";
+import { UsersFilter } from "./components/users-filter";
 
-const FILTER_ITEMS: FilterItemConfig[] = [
-  {
-    id: "events",
-    label: "Events",
-    shortcut: "e",
-    component: <EventsFilter />,
-  },
-  {
-    id: "users",
-    label: "Users",
-    shortcut: "m",
-    component: <MethodsFilter />,
-  },
-  {
-    id: "root-keys",
-    label: "Root Keys",
-    shortcut: "p",
-    component: <PathsFilter />,
-  },
-  {
-    id: "bucket",
-    label: "Bucket",
-    shortcut: "b",
-    component: <PathsFilter />,
-  },
-];
-
-export const LogsFilters = () => {
+export const LogsFilters = (props: WorkspaceProps) => {
   const { filters } = useFilters();
   return (
-    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters}>
+    <FiltersPopover
+      items={[
+        {
+          id: "events",
+          label: "Events",
+          shortcut: "e",
+          component: <EventsFilter />,
+        },
+        {
+          id: "users",
+          label: "Users",
+          shortcut: "m",
+          component: <UsersFilter users={props.members} />,
+        },
+        {
+          id: "root-keys",
+          label: "Root Keys",
+          shortcut: "p",
+          component: <RootKeysFilter rootKeys={props.rootKeys} />,
+        },
+        {
+          id: "bucket",
+          label: "Bucket",
+          shortcut: "b",
+          component: <BucketFilter bucketFilter={props.buckets} />,
+        },
+      ]}
+      activeFilters={filters}
+    >
       <div className="group">
         <Button
           variant="ghost"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2",
-            filters.length > 0 ? "bg-gray-4" : ""
+            filters.length > 0 ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs"
           aria-haspopup="true"

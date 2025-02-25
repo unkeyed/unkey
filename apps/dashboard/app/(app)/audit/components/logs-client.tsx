@@ -7,7 +7,24 @@ import { AuditLogsControls } from "./controls";
 import { AuditLogDetails } from "./table/log-details";
 import { AuditLogsTable } from "./table/logs-table";
 
-export const LogsClient = () => {
+export type WorkspaceProps = {
+  rootKeys: {
+    id: string;
+    name: string | null;
+  }[];
+  buckets: {
+    id: string;
+    name: string;
+  }[];
+  members:
+    | {
+        label: string;
+        value: string;
+      }[]
+    | null;
+};
+
+export const LogsClient = (props: WorkspaceProps) => {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
@@ -17,7 +34,7 @@ export const LogsClient = () => {
 
   return (
     <>
-      <AuditLogsControls />
+      <AuditLogsControls {...props} />
       <AuditLogsControlCloud />
       <AuditLogsTable
         onMount={handleDistanceToTop}

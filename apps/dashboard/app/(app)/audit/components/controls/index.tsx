@@ -1,9 +1,10 @@
+import type { WorkspaceProps } from "../logs-client";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
-export function AuditLogsControls() {
+export function AuditLogsControls(props: WorkspaceProps) {
   return (
     <div className="flex flex-col border-b border-gray-4 ">
       <div className="px-3 py-1 w-full justify-between flex items-center">
@@ -12,7 +13,7 @@ export function AuditLogsControls() {
             <LogsSearch />
           </div>
           <div className="flex gap-2 items-center">
-            <LogsFilters />
+            <LogsFilters {...props} />
           </div>
           <div className="flex gap-2 items-center">
             <LogsDateTime />

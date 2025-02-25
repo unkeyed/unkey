@@ -11,14 +11,12 @@ export const EventsFilter = () => {
   return (
     <FilterCheckbox
       showScroll
-      options={Object.values(unkeyAuditLogEvents.Values).map<EventsOption>(
-        (value, index) => ({
-          id: index,
-          display: value,
-          label: value,
-          checked: false,
-        })
-      )}
+      options={Object.values(unkeyAuditLogEvents.Values).map<EventsOption>((value, index) => ({
+        id: index,
+        display: value,
+        label: value,
+        checked: false,
+      }))}
       filterField="status"
       checkPath="status"
       renderOptionContent={(checkbox) => (

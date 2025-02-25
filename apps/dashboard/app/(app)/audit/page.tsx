@@ -10,7 +10,7 @@ export const runtime = "edge";
 
 export default async function AuditPage() {
   const tenantId = getTenantId();
-  const workspace = await getWorkspace(tenantId);
+  const { workspace, members } = await getWorkspace(tenantId);
 
   return (
     <div>
@@ -20,7 +20,11 @@ export default async function AuditPage() {
         </Navbar.Breadcrumbs>
       </Navbar>
       {workspace.auditLogBuckets.length > 0 ? (
-        <LogsClient />
+        <LogsClient
+          rootKeys={workspace.keys}
+          buckets={workspace.auditLogBuckets}
+          members={members}
+        />
       ) : (
         <Empty>
           <Empty.Icon />
