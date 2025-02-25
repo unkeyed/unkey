@@ -13,6 +13,7 @@ export const BucketFilter = ({
 
   return (
     <FilterCheckbox
+      selectionMode="single"
       showScroll
       options={(bucketFilter ?? []).map((rootKey, index) => ({
         label: rootKey.name,
