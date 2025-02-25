@@ -1,5 +1,5 @@
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { cn } from "@/lib/utils";
-import type { AuditData } from "../../../audit.type";
 
 /**
  * Determines the event type based on the event name
@@ -76,7 +76,7 @@ export const AUDIT_STATUS_STYLES = {
 /**
  * Get the style configuration for an audit log entry
  */
-export const getAuditStatusStyle = (item: AuditData) => {
+export const getAuditStatusStyle = (item: AuditLog) => {
   const eventType = getEventType(item.auditLog.event);
   return AUDIT_STATUS_STYLES[eventType];
 };
@@ -84,11 +84,7 @@ export const getAuditStatusStyle = (item: AuditData) => {
 /**
  * Get the row class name for an audit log entry
  */
-export const getAuditRowClassName = (
-  item: AuditData,
-  isSelected: boolean,
-  logSelected: boolean,
-) => {
+export const getAuditRowClassName = (item: AuditLog, isSelected: boolean, logSelected: boolean) => {
   const eventType = getEventType(item.auditLog.event);
   const style = AUDIT_STATUS_STYLES[eventType];
 
@@ -109,7 +105,7 @@ export const getAuditRowClassName = (
 /**
  * Get the selected class name for an audit log entry
  */
-export const getAuditSelectedClassName = (item: AuditData, isSelected: boolean) => {
+export const getAuditSelectedClassName = (item: AuditLog, isSelected: boolean) => {
   if (!isSelected) {
     return "";
   }

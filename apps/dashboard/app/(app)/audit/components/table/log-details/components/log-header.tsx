@@ -1,10 +1,10 @@
-import type { AuditData } from "@/app/(app)/audit/audit.type";
 import { Badge } from "@/components/ui/badge";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 
 type Props = {
-  log: AuditData;
+  log: AuditLog;
   onClose: () => void;
 };
 
