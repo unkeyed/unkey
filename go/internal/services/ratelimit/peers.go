@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/tracing"
+	"github.com/unkeyed/unkey/go/"github.com/unkeyed/unkey/go/pkg/otel""
 )
 
 type peer struct {

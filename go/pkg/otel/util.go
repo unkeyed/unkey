@@ -1,4 +1,4 @@
-package tracing
+package otel
 
 import (
 	"go.opentelemetry.io/otel/codes"

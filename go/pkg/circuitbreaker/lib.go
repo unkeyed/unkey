@@ -9,7 +9,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/logging"
-	"github.com/unkeyed/unkey/go/pkg/tracing"
+	"github.com/unkeyed/unkey/go/"github.com/unkeyed/unkey/go/pkg/otel""
 )
 
 type CB[Res any] struct {
