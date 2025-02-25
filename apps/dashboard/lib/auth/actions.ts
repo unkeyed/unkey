@@ -219,7 +219,7 @@ export async function getWorkspace(tenantId: string): Promise<any> {
   }
   return await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
   });
 }
 
