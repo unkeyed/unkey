@@ -12,6 +12,7 @@ export type SavedFiltersGroup = {
   id: string;
   createdAt: number;
   filters: QuerySearchParams;
+  bookmarked?: boolean;
 };
 
 export const useBookmarkedFilters = () => {
@@ -25,7 +26,8 @@ export const useBookmarkedFilters = () => {
     // Group current filters
     const currentGroup = filters.reduce(
       (acc, filter) => {
-        const { field, value, operator } = filter;
+        let { field, value, operator } = filter;
+        value = value.toString();
 
         if (["startTime", "endTime", "since"].includes(field)) {
           //@ts-expect-error fix later
@@ -55,14 +57,18 @@ export const useBookmarkedFilters = () => {
     );
 
     if (!exists) {
+      const oldWithoutBookmark = savedFilters.filter((saved) => !saved.bookmarked).slice(0, 9);
+      const oldWithBookmark = savedFilters.filter((saved) => saved.bookmarked);
       const newSavedFilters = [
-        ...savedFilters,
+        ...oldWithoutBookmark,
+        ...oldWithBookmark,
         {
           id: crypto.randomUUID(),
           createdAt: Date.now(),
           filters: currentGroup,
+          bookmarked: false,
         },
-      ].slice(-5); // Keep last 5 unique combinations
+      ].sort((a, b) => b.createdAt - a.createdAt);
 
       localStorage.setItem("savedFilters", JSON.stringify(newSavedFilters));
     }
@@ -104,9 +110,26 @@ export const useBookmarkedFilters = () => {
     },
     [updateFilters],
   );
+  const toggleBookmark = (groupId: string) => {
+    const savedFilters = JSON.parse(
+      localStorage.getItem("savedFilters") || "[]",
+    ) as SavedFiltersGroup[];
+    const updatedFilters = savedFilters.map((filter) => {
+      if (filter.id === groupId) {
+        return {
+          ...filter,
+          bookmarked: !filter.bookmarked,
+        };
+      }
+      return filter;
+    });
+    localStorage.setItem("savedFilters", JSON.stringify(updatedFilters) || "[]");
+    return updatedFilters;
+  };
 
   return {
     savedFilters: JSON.parse(localStorage.getItem("savedFilters") || "[]") as SavedFiltersGroup[],
     applyFilterGroup,
+    toggleBookmark,
   };
 };

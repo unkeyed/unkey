@@ -9,38 +9,36 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-
 import type React from "react";
-import { type IconProps, sizeMap } from "../props";
+import type { IconProps } from "../props";
 
-export const Clock: React.FC<IconProps> = ({ size, ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
+export const Storage: React.FC<IconProps> = (props) => {
   return (
-    <svg
-      {...props}
-      height={pixelSize}
-      width={pixelSize}
-      viewBox="0 0 12 12"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
       <g fill="currentColor">
-        <circle
-          cx="6"
-          cy="6"
+        <path
+          d="M9 1.13a6.38 3 0 1 0 0 6 6.38 3 0 1 0 0-6z"
           fill="none"
-          r="5.25"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth={strokeWidth}
+          strokeWidth="1.5"
         />
         <path
-          d="m6,3.25v2.75l2,1.75"
+          d="M15.38 13.88c0 1.66-2.85 3-6.38 2.99s-6.38-1.34-6.38-3"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth={strokeWidth}
+          strokeWidth="1.5"
+        />
+        <path
+          d="M15.38 9c0 1.66-2.85 3-6.38 3s-6.38-1.34-6.38-3"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.5"
         />
       </g>
     </svg>

@@ -1,4 +1,3 @@
-// Clean external types that map to detailed internal types
 type Size = "sm" | "md" | "lg" | "xl";
 type Weight = "thin" | "regular" | "bold";
 
@@ -23,4 +22,5 @@ export type IconProps = {
   className?: string;
   title?: string;
   size?: IconSize;
+  filled?: boolean;
 };
