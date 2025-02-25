@@ -1,11 +1,11 @@
 "use client";
 import { RED_STATES, YELLOW_STATES } from "@/app/(app)/logs/constants";
 import { extractResponseField, getRequestHeader } from "@/app/(app)/logs/utils";
+import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
-import { RequestResponseDetails } from "./request-response-details";
 
 type Props = {
   log: RatelimitLog;

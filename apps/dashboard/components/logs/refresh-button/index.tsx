@@ -61,7 +61,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
       {isLoading && <div className="absolute inset-0 bg-accent-6 animate-fill-left" />}
       <Refresh3 className="size-4 relative z-10" />
       <span className="font-medium text-[13px] relative z-10">Refresh</span>
-      <KeyboardButton shortcut="r" modifierKey="⌃" />
+      <KeyboardButton shortcut="r" modifierKey="CTRL" />
     </Button>
   );
 };

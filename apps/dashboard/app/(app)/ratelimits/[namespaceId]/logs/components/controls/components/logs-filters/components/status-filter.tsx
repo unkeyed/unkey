@@ -1,4 +1,5 @@
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
+import { useFilters } from "../../../../../hooks/use-filters";
 
 type StatusOption = {
   id: number;
@@ -26,6 +27,7 @@ const options: StatusOption[] = [
 ];
 
 export const StatusFilter = () => {
+  const { filters, updateFilters } = useFilters();
   return (
     <FilterCheckbox
       options={options}
@@ -40,6 +42,8 @@ export const StatusFilter = () => {
       createFilterValue={(option) => ({
         value: option.status,
       })}
+      updateFilters={updateFilters}
+      filters={filters}
     />
   );
 };

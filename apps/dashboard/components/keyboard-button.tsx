@@ -1,7 +1,7 @@
 import { Button } from "@unkey/ui";
 import type { ComponentProps } from "react";
 
-type ModifierKey = "⌘" | "⇧" | "⌃" | "⌥";
+type ModifierKey = "⌘" | "⇧" | "CTRL" | "⌥";
 
 interface KeyboardButtonProps extends ComponentProps<typeof Button> {
   shortcut: string;
@@ -26,7 +26,7 @@ export const KeyboardButton = ({
       {...props}
     >
       <div>
-        {modifierKey}
+        {modifierKey && <>{modifierKey}+</>}
         {<span className="font-mono">{shortcut.toUpperCase()}</span>}
       </div>
     </Button>

@@ -1,3 +1,4 @@
+import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import type { ResponseStatus } from "@/app/(app)/logs/types";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 
@@ -38,6 +39,7 @@ const options: StatusOption[] = [
 ];
 
 export const StatusFilter = () => {
+  const { filters, updateFilters } = useFilters();
   return (
     <FilterCheckbox
       options={options}
@@ -61,6 +63,8 @@ export const StatusFilter = () => {
                 : "bg-success-9",
         },
       })}
+      filters={filters}
+      updateFilters={updateFilters}
     />
   );
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import { extractResponseField, safeParseJson } from "@/app/(app)/logs/utils";
+import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import { useMemo } from "react";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../../../constants";
 import { useRatelimitLogsContext } from "../../../context/logs";
@@ -8,10 +9,6 @@ import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
 import { LogMetaSection } from "./components/log-meta";
 import { LogSection } from "./components/log-section";
-import ResizablePanel from "./resizable-panel";
-
-const PANEL_MAX_WIDTH = 600;
-const PANEL_MIN_WIDTH = 400;
 
 const createPanelStyle = (distanceToTop: number) => ({
   top: `${distanceToTop}px`,
@@ -38,8 +35,6 @@ export const RatelimitLogDetails = ({ distanceToTop }: Props) => {
 
   return (
     <ResizablePanel
-      minW={PANEL_MIN_WIDTH}
-      maxW={PANEL_MAX_WIDTH}
       onClose={handleClose}
       className="absolute right-0 bg-gray-1 dark:bg-black font-mono drop-shadow-2xl overflow-y-auto z-20 p-4"
       style={panelStyle}

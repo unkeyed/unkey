@@ -1,13 +1,13 @@
 "use client";
 
-import type { AuditData } from "@/app/(app)/audit/audit.type";
-import { RequestResponseDetails } from "@/app/(app)/logs/components/table/log-details/components/request-response-details";
+import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { FunctionSquare, KeySquare } from "lucide-react";
 
 type Props = {
-  log: AuditData;
+  log: AuditLog;
 };
 
 export const LogFooter = ({ log }: Props) => {

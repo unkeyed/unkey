@@ -1,20 +1,48 @@
 "use client";
 
-import { useState } from "react";
-import type { AuditData } from "../audit.type";
-import { AuditLogsTable } from "./table/audit-logs-table";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { useCallback, useState } from "react";
+import { AuditLogsControlCloud } from "./control-cloud";
+import { AuditLogsControls } from "./controls";
 import { AuditLogDetails } from "./table/log-details";
+import { AuditLogsTable } from "./table/logs-table";
 
-// INFO: Hacky way to create distance from top. This will be fixed when this page gets a refactor.
-const DISTANCE_TO_TOP = 9;
-export const LogsClient = () => {
-  const [selectedLog, setSelectedLog] = useState<AuditData | null>(null);
+export type WorkspaceProps = {
+  rootKeys: {
+    id: string;
+    name: string | null;
+  }[];
+  buckets: {
+    id: string;
+    name: string;
+  }[];
+  members:
+    | {
+        label: string;
+        value: string;
+      }[]
+    | null;
+};
+
+export const LogsClient = (props: WorkspaceProps) => {
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
+
+  const handleDistanceToTop = useCallback((distanceToTop: number) => {
+    setTableDistanceToTop(distanceToTop);
+  }, []);
 
   return (
     <>
-      <AuditLogsTable selectedLog={selectedLog} setSelectedLog={setSelectedLog} />
+      <AuditLogsControls {...props} />
+      <AuditLogsControlCloud />
+      <AuditLogsTable
+        onMount={handleDistanceToTop}
+        selectedLog={selectedLog}
+        setSelectedLog={setSelectedLog}
+      />
       <AuditLogDetails
-        distanceToTop={DISTANCE_TO_TOP}
+        distanceToTop={tableDistanceToTop}
         selectedLog={selectedLog}
         setSelectedLog={setSelectedLog}
       />

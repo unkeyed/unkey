@@ -1,45 +1,31 @@
-import { DEFAULT_FETCH_COUNT } from "@/app/(app)/audit/components/table/constants";
+import { auditQueryLogsPayload } from "@/app/(app)/audit/components/table/query-logs.schema";
 import { type Workspace, db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { type User, clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
-import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { type AuditLogWithTargets, type AuditQueryLogsParams, auditLog } from "./schema";
+import { transformFilters } from "./utils";
 
-export const DEFAULT_BUCKET_NAME = "unkey_mutations";
-export type AuditLogWithTargets = SelectAuditLog & {
-  targets: Array<SelectAuditLogTarget>;
-};
-export const getAuditLogsInput = z.object({
-  bucketName: z.string().default(DEFAULT_BUCKET_NAME),
-  events: z.array(z.string()).default([]),
-  users: z.array(z.string()).default([]),
-  rootKeys: z.array(z.string()).default([]),
-  cursor: z.string().nullish(),
-  limit: z.number().min(1).max(100).default(DEFAULT_FETCH_COUNT).optional(),
-  startTime: z.number().nullish(),
-  endTime: z.number().nullish(),
+const AuditLogsResponse = z.object({
+  auditLogs: z.array(auditLog),
+  hasMore: z.boolean(),
+  nextCursor: z
+    .object({
+      time: z.number().int(),
+      auditId: z.string(),
+    })
+    .optional(),
 });
 
-export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
-  .input(getAuditLogsInput)
+type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
+
+export const fetchAuditLog = rateLimitedProcedure(ratelimit.read)
+  .input(auditQueryLogsPayload)
+  .output(AuditLogsResponse)
   .query(async ({ ctx, input }) => {
-    const { bucketName, events, users, rootKeys, cursor, limit, endTime, startTime } = input;
-
-    const selectedActorIds = [...rootKeys, ...users];
-
-    const result = await queryAuditLogs(
-      {
-        cursor,
-        users: selectedActorIds,
-        bucketName,
-        endTime,
-        startTime,
-        events,
-        limit,
-      },
-      ctx.workspace,
-    );
+    const params = transformFilters(input);
+    const result = await queryAuditLogs(params, ctx.workspace);
 
     if (!result) {
       throw new TRPCError({
@@ -48,10 +34,10 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    const { slicedItems, hasMore } = omitLastItemForPagination(result.logs, limit);
+    const { slicedItems, hasMore } = omitLastItemForPagination(result.logs, params.limit);
     const uniqueUsers = await fetchUsersFromLogs(slicedItems);
 
-    const items = slicedItems.map((l) => {
+    const items: AuditLogsResponse["auditLogs"] = slicedItems.map((l) => {
       const user = uniqueUsers[l.actorId];
       return {
         user: user
@@ -86,23 +72,31 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
     });
 
     return {
-      items,
-      nextCursor: hasMore && items.length > 0 ? items[items.length - 1].auditLog.id : null,
+      auditLogs: items,
+      hasMore,
+      nextCursor:
+        hasMore && items.length > 0
+          ? {
+              time: items[items.length - 1].auditLog.time,
+              auditId: items[items.length - 1].auditLog.id,
+            }
+          : undefined,
     };
   });
 
-export type QueryOptions = Omit<z.infer<typeof getAuditLogsInput>, "rootKeys">;
+export const queryAuditLogs = async (
+  params: Omit<AuditQueryLogsParams, "workspaceId">,
+  workspace: Workspace,
+) => {
+  const events = (params.events ?? []).map((e) => e.value);
+  const userValues = (params.users ?? []).map((u) => u.value);
+  const rootKeyValues = (params.rootKeys ?? []).map((r) => r.value);
+  const users = [...userValues, ...rootKeyValues];
 
-export const queryAuditLogs = async (options: QueryOptions, workspace: Workspace) => {
-  const {
-    bucketName,
-    events = [],
-    startTime,
-    endTime,
-    users = [],
-    cursor,
-    limit = DEFAULT_FETCH_COUNT,
-  } = options;
+  const cursor =
+    params.cursorTime !== null && params.cursorAuditId !== null
+      ? { time: params.cursorTime, auditId: params.cursorAuditId }
+      : null;
 
   const retentionDays =
     workspace.features.auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
@@ -110,34 +104,36 @@ export const queryAuditLogs = async (options: QueryOptions, workspace: Workspace
 
   return db.query.auditLogBucket.findFirst({
     where: (table, { eq, and }) =>
-      and(eq(table.workspaceId, workspace.id), eq(table.name, bucketName)),
+      and(eq(table.workspaceId, workspace.id), eq(table.name, params.bucket)),
     with: {
       logs: {
-        where: (table, { and, inArray, between, lt }) =>
+        where: (table, { and, or, inArray, between, lt, eq }) =>
           and(
             events.length > 0 ? inArray(table.event, events) : undefined,
             between(
               table.createdAt,
-              Math.max(startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
-              endTime ?? Date.now(),
+              Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
+              params.endTime ?? Date.now(),
             ),
             users.length > 0 ? inArray(table.actorId, users) : undefined,
-            cursor ? lt(table.id, cursor) : undefined,
+            cursor
+              ? or(
+                  lt(table.time, cursor.time),
+                  and(eq(table.time, cursor.time), lt(table.id, cursor.auditId)),
+                )
+              : undefined,
           ),
         with: {
           targets: true,
         },
         orderBy: (table, { desc }) => desc(table.id),
-        limit: limit + 1,
+        limit: params.limit + 1,
       },
     },
   });
 };
 
-export function omitLastItemForPagination(
-  items: AuditLogWithTargets[],
-  limit = DEFAULT_FETCH_COUNT,
-) {
+export function omitLastItemForPagination(items: AuditLogWithTargets[], limit: number) {
   // If we got limit + 1 results, there are more pages
   const hasMore = items.length > limit;
   // Remove the extra item we used to check for more pages
