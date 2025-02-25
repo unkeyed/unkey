@@ -6,7 +6,7 @@ import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = () => {
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.ratelimit.logs.ratelimitLlmSearch.useMutation({
+  const queryLLMForStructuredOutput = trpc.audit.llmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(

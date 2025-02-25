@@ -7,6 +7,7 @@ import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
 import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
+import { auditLogsSearch } from "./audit/llm-search";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -140,6 +141,7 @@ export const router = t.router({
   }),
   audit: t.router({
     logs: fetchAuditLog,
+    llmSearch: auditLogsSearch,
   }),
 });
 
