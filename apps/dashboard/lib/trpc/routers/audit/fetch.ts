@@ -107,7 +107,7 @@ export const queryAuditLogs = async (
       and(eq(table.workspaceId, workspace.id), eq(table.name, params.bucket)),
     with: {
       logs: {
-        where: (table, { and, inArray, between, lt, eq }) =>
+        where: (table, { and, or, inArray, between, lt, eq }) =>
           and(
             events.length > 0 ? inArray(table.event, events) : undefined,
             between(
@@ -116,7 +116,12 @@ export const queryAuditLogs = async (
               params.endTime ?? Date.now(),
             ),
             users.length > 0 ? inArray(table.actorId, users) : undefined,
-            cursor ? and(eq(table.time, cursor.time), lt(table.id, cursor.auditId)) : undefined,
+            cursor
+              ? or(
+                  lt(table.time, cursor.time),
+                  and(eq(table.time, cursor.time), lt(table.id, cursor.auditId)),
+                )
+              : undefined,
           ),
         with: {
           targets: true,
