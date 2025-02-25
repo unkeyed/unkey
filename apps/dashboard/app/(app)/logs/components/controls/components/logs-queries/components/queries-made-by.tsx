@@ -1,9 +1,9 @@
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { CircleHalfDottedClock } from "@unkey/icons";
-import Image from "next/image";
 
 type QueriesMadeByProps = {
   userName?: string;
-  userImageSrc?: string;
+  userImageSrc: string;
   createdString: string;
 };
 
@@ -13,13 +13,13 @@ export const QueriesMadeBy = ({ userName, userImageSrc, createdString }: Queries
       {/* User Avatar */}
       {userName && <span className="font-mono font-normal text-xs text-gray-9">by</span>}
       {userName && (
-        <Image
-          className="rounded-full border border-gray-4 border-[1px]"
-          src={userImageSrc ?? "/images/user.png"}
-          width={21}
-          height={21}
-          alt="Picture of the user"
-        />
+        <Avatar className="h-[21px] w-[21px]">
+          <AvatarImage
+            src={userImageSrc}
+            alt={userName}
+            className="rounded-full border border-gray-4 border-[1px] "
+          />
+        </Avatar>
       )}
       {userName && (
         <span className="font-mono font-medium leading-4 text-xs text-gray-12">{userName}</span>

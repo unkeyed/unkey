@@ -20,16 +20,16 @@ export const Bookmark: React.FC<IconProps> = ({ size, filled, ...props }) => {
       {...props}
       height={pixelSize}
       width={pixelSize}
-      viewBox="0 0 18 18"
+      viewBox="0 0 20 20"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
+      <g fill="currentColor">
         <path
-          d="M15 16.5l-6-3.75-6 3.75v-13.5a1.5 1.5 0 0 1 1.5-1.5h9a1.5 1.5 0 0 1 1.5 1.5v13.5z"
+          d="m16,18l-6-4-6,4V6c0-1.657,1.343-3,3-3h6c1.657,0,3,1.343,3,3v11Z"
           fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
-          strokeLinecap="square"
-          strokeMiterlimit="10"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
       </g>

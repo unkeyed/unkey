@@ -1,11 +1,13 @@
 import { cn } from "@/lib/utils";
 import { ChartBarAxisY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { useState } from "react";
 import { QueriesPopover } from "./components/queries-popover";
 
 export const LogsQueries = () => {
+  const [open, setOpen] = useState(false);
   return (
-    <QueriesPopover>
+    <QueriesPopover open={open} setOpen={setOpen}>
       <div className="group">
         <Button
           variant="ghost"

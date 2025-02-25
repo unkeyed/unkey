@@ -17,9 +17,11 @@ export const QueriesPill = ({ value }: QueriesPillType) => {
     wording = "5xx";
   }
   return (
-    <div className="h-6 bg-gray-3 inline-flex justify-start items-center py-1.5 px-2 rounded rounded-md gap-2 ">
+    <div className="h-6 bg-gray-3 inline-flex justify-start items-center py-1.5 px-2 rounded rounded-md gap-2">
       {color && <div className={cn("w-2 h-2 rounded-[2px]", color)} />}
-      <span className="font-mono font-medium text-xs text-gray-12 text-xs">{wording}</span>
+      <span className="font-mono font-medium text-xs text-gray-12 text-xs ellipsis overflow-clip">
+        {wording}
+      </span>
     </div>
   );
 };

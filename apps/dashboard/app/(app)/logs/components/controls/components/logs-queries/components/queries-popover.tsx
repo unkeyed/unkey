@@ -1,255 +1,130 @@
+import type { LogsFilterValue, QuerySearchParams } from "@/app/(app)/logs/filters.schema";
 import { useBookmarkedFilters } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
 import type { SavedFiltersGroup } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
+import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { type PropsWithChildren, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { type PropsWithChildren, useCallback, useState } from "react";
 import { QueriesItem } from "./queries-item";
 import { QueriesTabs } from "./queries-tabs";
 
-// import type { filterOutputSchema } from "@/app/(app)/logs/filters.schema";
-// type filterType = {id: string, createdAt: number, daysAgoText: string, filters: typeof filterOutputSchema[], user: {name: string, url: string}};
-const filters: SavedFiltersGroup[] = [
-  {
-    id: "1",
-    createdAt: new Date().getTime(),
-    filters: {
-      status: [
-        {
-          value: "200",
-          operator: "is",
-        },
-        {
-          value: "400",
-          operator: "is",
-        },
-        {
-          value: "500",
-          operator: "is",
-        },
-      ],
-      methods: [
-        {
-          value: "GET",
-          operator: "is",
-        },
-        {
-          value: "PUT",
-          operator: "is",
-        },
-        {
-          value: "DELETE",
-          operator: "is",
-        },
-      ],
-      paths: [
-        {
-          value: "v1/keys.verifykey",
-          operator: "is",
-        },
-      ],
-      host: null,
-      requestId: null,
-    },
-  },
-  {
-    id: "2",
-    createdAt: new Date().getTime(),
-    filters: {
-      status: [
-        {
-          value: "400",
-          operator: "is",
-        },
-        {
-          value: "500",
-          operator: "is",
-        },
-      ],
-      methods: [
-        {
-          value: "GET",
-          operator: "is",
-        },
-      ],
-      paths: [],
-      host: null,
-      requestId: null,
-    },
-  },
-  {
-    id: "3",
-    createdAt: new Date().getTime(),
-    filters: {
-      status: [
-        {
-          value: "500",
-          operator: "is",
-        },
-      ],
-      methods: [],
-      paths: [],
-      host: null,
-      requestId: null,
-    },
-  },
-  {
-    id: "4",
-    createdAt: new Date().getTime(),
-    filters: {
-      status: [],
-      methods: [],
-      paths: [
-        {
-          value: "v1/keys.verifykey",
-          operator: "is",
-        },
-      ],
-      host: null,
-      requestId: null,
-    },
-  },
-  {
-    id: "5",
-    createdAt: new Date().getTime(),
-    filters: {
-      status: [
-        {
-          value: "200",
-          operator: "is",
-        },
-        {
-          value: "400",
-          operator: "is",
-        },
-        {
-          value: "500",
-          operator: "is",
-        },
-      ],
-      methods: [
-        {
-          value: "GET",
-          operator: "is",
-        },
-        {
-          value: "PUT",
-          operator: "is",
-        },
-        {
-          value: "DELETE",
-          operator: "is",
-        },
-      ],
-      paths: [
-        {
-          value: "v1/keys.verifykey",
-          operator: "is",
-        },
-      ],
-      host: null,
-      requestId: null,
-    },
-  },
-  {
-    id: "6",
-    createdAt: new Date().getTime(),
-    filters: {
-      status: [
-        {
-          value: "500",
-          operator: "is",
-        },
-      ],
-      methods: [
-        {
-          value: "GET",
-          operator: "is",
-        },
-        {
-          value: "PUT",
-          operator: "is",
-        },
-        {
-          value: "DELETE",
-          operator: "is",
-        },
-      ],
-      paths: [
-        {
-          value: "v1/keys.verifykey",
-          operator: "is",
-        },
-      ],
-      host: null,
-      requestId: null,
-    },
-  },
-];
-
-const users = [
-  { name: "chronark", url: "/images/team/andreas.jpeg", since: "2d ago" },
-  { name: "James Perkins", url: "/images/team/james.jpg", since: "3d ago" },
-  { name: "chronark", url: "/images/team/andreas.jpeg", since: "4d ago" },
-  { name: "James Perkins", url: "/images/team/james.jpg", since: "1w ago" },
-  { name: "Oz", url: "/images/team/james.jpg", since: "1w ago" },
-  { name: "chronark", url: "/images/team/andreas.jpeg", since: "2w ago" },
-];
-
-export const QueriesPopover = ({ children }: PropsWithChildren) => {
-  const [open, setOpen] = useState(false);
-  const [focusedTabIndex, setFocusedTabIndex] = useState(1);
+type QueriesPopoverProps = PropsWithChildren<{
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}>;
+export const QueriesPopover = ({ open, setOpen, children }: QueriesPopoverProps) => {
+  const [focusedTabIndex, setFocusedTabIndex] = useState(0);
   const [selectedQueryIndex, setSelectedQueryIndex] = useState(0);
-  const saved = useBookmarkedFilters();
+  const { savedFilters, toggleBookmark } = useBookmarkedFilters();
+  const { updateFilters } = useFilters();
+  const { user } = useUser();
+  const [filterGroups, setfilterGroups] = useState<SavedFiltersGroup[]>(savedFilters);
+  const [isDisabled, setIsDisabled] = useState(savedFilters.length === 0);
 
-  useKeyboardShortcut("Q", () => {
-    setOpen((prev) => !prev);
-    if (!open) {
+  useCallback(() => {
+    updateGroups(savedFilters);
+  }, [savedFilters]);
+
+  const updateGroups = (newGroups: SavedFiltersGroup[]) => {
+    setfilterGroups(newGroups);
+  };
+  useKeyboardShortcut("q", () => {
+    setIsDisabled(savedFilters.length === 0);
+    if (!open && !isDisabled) {
       setOpen(true);
       setSelectedQueryIndex(0);
-      setFocusedTabIndex(1);
-      saved.savedFilters.map((item, index) => {
-        console.log("Saved Filter", item, "Index", index);
-      });
+      setFocusedTabIndex(0);
     } else {
       setOpen(false);
       setFocusedTabIndex(0);
     }
   });
-  const handleBookmarkChanged = (index: number, isSaved: boolean) => {
-    console.log("Bookmark changed index:", index, "Save State", isSaved);
+
+  const handleTabChange = (index: number) => {
+    updateGroups(savedFilters);
+    // changeTabGroupLists();
+    setFocusedTabIndex(index);
+  };
+
+  const handleSelectedQuery = (index: number) => {
+    const fieldList: QuerySearchParams = savedFilters[index].filters;
+    const newFilters: LogsFilterValue[] = [];
+    Object.entries(fieldList).forEach(([key, values]) => {
+      if (typeof values !== "object") {
+        return;
+      }
+      values?.forEach((value) =>
+        newFilters.push({
+          id: crypto.randomUUID(),
+          field: key as keyof QuerySearchParams,
+          operator: value.operator,
+          value: value.value,
+        }),
+      );
+    });
+
+    if (newFilters) {
+      updateFilters(newFilters);
+    }
+    setSelectedQueryIndex(index);
+  };
+
+  const handleBookmarkChanged = (groupId: string) => {
+    const newGroups = toggleBookmark(groupId);
+    updateGroups(newGroups);
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <div className="flex flex-row items-center">{children}</div>
+      <PopoverTrigger asChild disabled={true}>
+        {children}
       </PopoverTrigger>
       <PopoverContent
-        className="flex flex-col w-[430px] bg-white dark:bg-black rounded-lg p-2 pb-0 h-[924px] shadow-shadow-black-a5 shadow-shadow-black-a3 shadow-shadow-inverted-2 dark:shadow-[0_12px_32px_-16px_rgba(255,255,255,0.1)] dark:shadow-[0_12px_60px_0px_rgba(255,255,255,0.15)] dark:shadow-[0_0px_0px_1px_rgba(255,255,255,0.1)] border-none"
+        onFocus={() => updateGroups(savedFilters)}
+        className="flex flex-col w-[430px] bg-white dark:bg-black rounded-lg p-2 pb-0 max-h-[924px] shadow-shadow-black-a5 shadow-shadow-black-a3 shadow-shadow-inverted-2 dark:shadow-[0_12px_32px_-16px_rgba(255,255,255,0.1)] dark:shadow-[0_12px_60px_0px_rgba(255,255,255,0.15)] dark:shadow-[0_0px_0px_1px_rgba(255,255,255,0.1)] border-none"
         align="start"
         // onKeyDown={handleKeyNavigation}
       >
         <div className="flex flex-row w-full">
           <PopoverHeader />
         </div>
-
-        <QueriesTabs selectedTab={focusedTabIndex} onChange={setFocusedTabIndex} />
+        <QueriesTabs selectedTab={focusedTabIndex} onChange={handleTabChange} />
         <div className="flex flex-col w-full h-full overflow-y-auto m-0 p-0 pt-[8px] scrollbar-hide">
-          {filters
-            ? filters.map((filterItem, index) => (
+          {filterGroups.length === 0 && <EmptyQueries selectedTab={focusedTabIndex} />}
+          {focusedTabIndex === 0 &&
+            filterGroups?.map((filterItem: SavedFiltersGroup, index: number) => {
+              return (
                 <QueriesItem
                   key={filterItem.id}
-                  user={users[index]}
+                  user={user}
                   filterList={filterItem}
                   index={index}
-                  total={filters.length}
+                  total={filterGroups.length}
                   selectedIndex={selectedQueryIndex}
-                  querySelected={setSelectedQueryIndex}
+                  querySelected={handleSelectedQuery}
                   changeBookmark={handleBookmarkChanged}
                 />
-              ))
-            : null}
+              );
+            })}
+          {focusedTabIndex === 1 &&
+            filterGroups
+              .filter((filter) => filter.bookmarked)
+              .map((filterItem: SavedFiltersGroup, index: number) => {
+                return (
+                  <QueriesItem
+                    key={filterItem.id}
+                    user={user}
+                    filterList={filterItem}
+                    index={index}
+                    total={filterGroups.filter((filter) => filter.bookmarked).length}
+                    selectedIndex={selectedQueryIndex}
+                    querySelected={handleSelectedQuery}
+                    changeBookmark={handleBookmarkChanged}
+                  />
+                );
+              })}
         </div>
       </PopoverContent>
     </Popover>
@@ -266,6 +141,25 @@ const PopoverHeader = () => {
         shortcut="Q"
         className="p-0 m-0 min-w-5 w-5 h-5 rounded-[5px] mt-1.5 mr-1.5"
       />
+    </div>
+  );
+};
+type EmptyQueriesProps = {
+  selectedTab: number;
+};
+const EmptyQueries = ({ selectedTab }: EmptyQueriesProps) => {
+  return (
+    <div className="flex w-full h-fit justify-between p-2">
+      {selectedTab === 0 && (
+        <span className="flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded rounded-[8px] pb-[9px]">
+          No Recent Queries...
+        </span>
+      )}
+      {selectedTab === 1 && (
+        <span className="flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded rounded-[8px] pb-[9px]">
+          No Recent Saved Queries...
+        </span>
+      )}
     </div>
   );
 };
