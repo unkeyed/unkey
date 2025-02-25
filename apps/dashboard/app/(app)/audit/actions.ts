@@ -40,12 +40,6 @@ export const getWorkspace = async (tenantId: string) => {
           },
           orderBy: (table, { asc }) => asc(table.createdAt),
         },
-        keys: {
-          columns: {
-            id: true,
-            name: true,
-          },
-        },
       },
     });
 
