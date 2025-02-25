@@ -2,9 +2,6 @@
 import { TimestampInfo } from "@/components/timestamp-info";
 import { VirtualTable } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
-import { trpc } from "@/lib/trpc/client";
-import { Empty } from "@unkey/ui";
-import type { AuditData } from "../../audit.type";
 import {
   getAuditRowClassName,
   getAuditSelectedClassName,
@@ -14,74 +11,25 @@ import {
 import { FunctionSquare, KeySquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useAuditLogParams } from "../../query-state";
+import { useAuditLogsQuery } from "./hooks/use-logs-query";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 
 type Props = {
-  selectedLog: AuditData | null;
-  setSelectedLog: (log: AuditData | null) => void;
+  selectedLog: AuditLog | null;
+  setSelectedLog: (log: AuditLog | null) => void;
 };
 
 export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
-  const { setCursor, searchParams } = useAuditLogParams();
-
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-  } = trpc.audit.fetch.useInfiniteQuery(
-    {
-      bucketName: searchParams.bucket ?? undefined,
-      limit: 50,
-      users: searchParams.users,
-      events: searchParams.events,
-      rootKeys: searchParams.rootKeys,
-      startTime: searchParams.startTime,
-      endTime: searchParams.endTime,
-    },
-    {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
-      initialCursor: searchParams.cursor,
-      staleTime: Number.POSITIVE_INFINITY,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-    }
-  );
-
-  const flattenedData = data?.pages.flatMap((page) => page.items) ?? [];
-
-  const handleLoadMore = () => {
-    if (hasNextPage && !isFetchingNextPage && data?.pages.length) {
-      const currentLastPage = data.pages[data.pages.length - 1];
-      fetchNextPage().then(() => {
-        if (currentLastPage.nextCursor) {
-          setCursor(currentLastPage.nextCursor);
-        }
-      });
-    }
-  };
-
-  if (isError) {
-    return (
-      <Empty>
-        <Empty.Title>Failed to load audit logs</Empty.Title>
-        <Empty.Description>
-          There was a problem fetching the audit logs. Please try refreshing the
-          page or contact support if the issue persists.
-        </Empty.Description>
-      </Empty>
-    );
-  }
+  const { historicalLogs, loadMore, isLoadingMore, isLoading } =
+    useAuditLogsQuery({});
 
   return (
     <VirtualTable
-      data={flattenedData}
+      data={historicalLogs}
       columns={columns}
       isLoading={isLoading}
-      isFetchingNextPage={isFetchingNextPage}
-      onLoadMore={handleLoadMore}
+      isFetchingNextPage={isLoadingMore}
+      onLoadMore={loadMore}
       rowClassName={(log) =>
         getAuditRowClassName(
           log,
@@ -100,7 +48,7 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
   );
 };
 
-export const columns: Column<AuditData>[] = [
+export const columns: Column<AuditLog>[] = [
   {
     key: "time",
     header: "Time",

@@ -4,15 +4,29 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { type User, clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import { transformFilters } from "./utils";
+import { z } from "zod";
 import {
-  auditLogsResponse,
+  auditLog,
   type AuditLogWithTargets,
   type AuditQueryLogsParams,
 } from "./schema";
 
+const AuditLogsResponse = z.object({
+  auditLogs: z.array(auditLog),
+  hasMore: z.boolean(),
+  nextCursor: z
+    .object({
+      time: z.number().int(),
+      auditId: z.string(),
+    })
+    .optional(),
+});
+
+type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
+
 export const fetchAuditLog = rateLimitedProcedure(ratelimit.read)
   .input(auditQueryLogsPayload)
-  .output(auditLogsResponse)
+  .output(AuditLogsResponse)
   .query(async ({ ctx, input }) => {
     const params = transformFilters(input);
     const result = await queryAuditLogs(params, ctx.workspace);
@@ -30,7 +44,7 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.read)
     );
     const uniqueUsers = await fetchUsersFromLogs(slicedItems);
 
-    const items = slicedItems.map((l) => {
+    const items: AuditLogsResponse["auditLogs"] = slicedItems.map((l) => {
       const user = uniqueUsers[l.actorId];
       return {
         user: user

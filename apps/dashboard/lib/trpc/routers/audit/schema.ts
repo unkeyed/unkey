@@ -1,51 +1,40 @@
 import { DEFAULT_BUCKET_NAME } from "@/app/(app)/audit/components/table/query-logs.schema";
 import { z } from "zod";
 
-export const auditLogsResponse = z.object({
-  auditLogs: z.array(
-    z.object({
-      user: z
-        .object({
-          username: z.string().nullable(),
-          firstName: z.string().nullable(),
-          lastName: z.string().nullable(),
-          imageUrl: z.string().nullable(),
-        })
-        .optional(),
-      auditLog: z.object({
-        id: z.string(),
-        time: z.number(),
-        actor: z.object({
-          id: z.string(),
-          name: z.string().nullable(),
-          type: z.string(),
-        }),
-        location: z.string().nullable(),
-        description: z.string(),
-        userAgent: z.string().nullable(),
-        event: z.string(),
-        workspaceId: z.string(),
-        targets: z.array(
-          z.object({
-            id: z.string(),
-            type: z.string(),
-            name: z.string().nullable(),
-            meta: z.unknown(),
-          })
-        ),
-      }),
-    })
-  ),
-  hasMore: z.boolean(),
-  nextCursor: z
+export const auditLog = z.object({
+  user: z
     .object({
-      time: z.number().int(),
-      auditId: z.string(),
+      username: z.string().nullable(),
+      firstName: z.string().nullable(),
+      lastName: z.string().nullable(),
+      imageUrl: z.string().nullable(),
     })
     .optional(),
+  auditLog: z.object({
+    id: z.string(),
+    time: z.number(),
+    actor: z.object({
+      id: z.string(),
+      name: z.string().nullable(),
+      type: z.string(),
+    }),
+    location: z.string().nullable(),
+    description: z.string(),
+    userAgent: z.string().nullable(),
+    event: z.string(),
+    workspaceId: z.string(),
+    targets: z.array(
+      z.object({
+        id: z.string(),
+        type: z.string(),
+        name: z.string().nullable(),
+        meta: z.unknown(),
+      })
+    ),
+  }),
 });
 
-export type AuditLogsResponse = z.infer<typeof auditLogsResponse>;
+export type AuditLog = z.infer<typeof auditLog>;
 
 export type AuditLogWithTargets = {
   workspaceId: string;

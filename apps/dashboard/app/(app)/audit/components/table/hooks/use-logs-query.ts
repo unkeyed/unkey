@@ -1,19 +1,20 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
-import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { useEffect, useMemo, useState } from "react";
-import type { AuditQueryLogsPayload } from "../query-logs.schema";
+import {
+  DEFAULT_BUCKET_NAME,
+  type AuditQueryLogsPayload,
+} from "../query-logs.schema";
 import { useFilters } from "../../../hooks/use-filters";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 
 type UseLogsQueryParams = {
   limit?: number;
 };
 
-export function useRatelimitOverviewLogsQuery({
-  limit = 50,
-}: UseLogsQueryParams) {
+export function useAuditLogsQuery({ limit = 50 }: UseLogsQueryParams) {
   const [historicalLogsMap, setHistoricalLogsMap] = useState(
-    () => new Map<string, RatelimitOverviewLog>()
+    () => new Map<string, AuditLog>()
   );
 
   const { filters } = useFilters();
@@ -33,8 +34,8 @@ export function useRatelimitOverviewLogsQuery({
       events: { filters: [] },
       users: { filters: [] },
       rootKeys: { filters: [] },
-      bucket: "",
       since: "",
+      bucket: DEFAULT_BUCKET_NAME,
     };
 
     filters.forEach((filter) => {
@@ -94,6 +95,15 @@ export function useRatelimitOverviewLogsQuery({
           params.since = filter.value;
           break;
         }
+
+        case "bucket": {
+          if (typeof filter.value !== "string") {
+            console.error("Bucket filter value type has to be 'string'");
+            return;
+          }
+          params.bucket = filter.value;
+          break;
+        }
       }
     });
 
@@ -108,7 +118,7 @@ export function useRatelimitOverviewLogsQuery({
     isLoading,
   } = trpc.audit.logs.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialCursor: { requestId: null, time: null },
+    initialCursor: { auditId: null, time: null },
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -117,10 +127,10 @@ export function useRatelimitOverviewLogsQuery({
   // Update historical logs effect
   useEffect(() => {
     if (initialData) {
-      const newMap = new Map<string, RatelimitOverviewLog>();
+      const newMap = new Map<string, AuditLog>();
       initialData.pages.forEach((page) => {
-        page.ratelimitOverviewLogs.forEach((log) => {
-          newMap.set(log.identifier, log);
+        page.auditLogs.forEach((log) => {
+          newMap.set(log.auditLog.id, log);
         });
       });
       setHistoricalLogsMap(newMap);
