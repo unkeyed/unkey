@@ -7,7 +7,16 @@ import type { UserResource } from "@clerk/types";
 import { Bookmark, ChartActivity2, Check, Clock, Conversion, Layers2, Link4 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { format } from "date-fns";
+import {
+  differenceInDays,
+  differenceInHours,
+  differenceInMinutes,
+  differenceInMonths,
+  differenceInSeconds,
+  differenceInWeeks,
+  differenceInYears,
+  format,
+} from "date-fns";
 import { type PropsWithChildren, useState } from "react";
 import { QueriesMadeBy } from "./queries-made-by";
 import { QueriesPill } from "./queries-pill";
@@ -41,6 +50,7 @@ export const QueriesToast = ({ children, message }: QueriesToastProps) => {
     </div>
   );
 };
+
 export const QueriesItem = ({
   filterList,
   user,
@@ -50,14 +60,53 @@ export const QueriesItem = ({
   querySelected,
   changeBookmark,
 }: QueriesItemProps) => {
-  const { status, methods, paths, startTime, endTime } = filterList.filters;
-  const startDateTime = startTime ? format(new Date(startTime * 1000), "MMM d HH:mm:ss.SS") : "";
-  const endDateTime = endTime ? format(new Date(endTime * 1000), "MMM d HH:mm:ss.SS") : "";
-  const timeValue = `${startDateTime} - ${endDateTime}`;
+  const { status, methods, paths, startTime, endTime, since } = filterList.filters;
+  const startDateTime = startTime
+    ? format(new Date(Number(startTime) * 1000), "MMM d HH:mm:ss.SS")
+    : null;
+  const endDateTime = endTime
+    ? format(new Date(Number(endTime) * 1000), "MMM d HH:mm:ss.SS")
+    : null;
+  // const timeValue = startDateTime ? `${startDateTime} - ${endDateTime}` : since ? since[0].value : "";
+
   const [isSaved, setIsSaved] = useState(filterList.bookmarked);
   const [tooltipMessage, setTooltipMessage] = useState<"Saved!" | "Save Query">(
     isSaved ? "Saved!" : "Save Query",
   );
+
+  const getTimeAgo = (date: number) => {
+    const now = new Date();
+    const seconds = differenceInSeconds(now, date);
+    if (seconds < 60) {
+      return `${seconds}s ago`;
+    }
+    const minutes = differenceInMinutes(now, date);
+    if (minutes < 60) {
+      return `${minutes}m ago`;
+    }
+    const hours = differenceInHours(now, date);
+    if (hours < 24) {
+      return `${hours}h ago`;
+    }
+    const days = differenceInDays(now, date);
+    if (days < 7) {
+      return `${days}d ago`;
+    }
+
+    const weeks = differenceInWeeks(now, date);
+    if (weeks < 4) {
+      return `${weeks}w ago`;
+    }
+
+    const months = differenceInMonths(now, date);
+    if (months < 12) {
+      return `${months} month(s) ago`;
+    }
+
+    const years = differenceInYears(now, date);
+    return `${years} year(s) ago`;
+  };
+
   const [toolTipOpen, setToolTipOpen] = useState(false);
   const handleBookmarkChanged = () => {
     const newValue = !isSaved;
@@ -83,24 +132,41 @@ export const QueriesItem = ({
   const handleSelection = (index: number) => {
     querySelected(index);
   };
-
+  const TimeFilter = ({
+    startTime,
+    endTime,
+    since,
+  }: { startTime?: string; endTime?: string; since?: string }) => {
+    return (
+      <div className="flex flex-row justify-start items-center gap-2 truncate">
+        <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
+          Time
+        </div>
+        <Clock size="md-thin" />
+        <span className="font-mono font-normal text-xs text-gray-9">is</span>
+        {startTime && <QueriesPill value={startTime} className="ellipsis" />}
+        {endTime && <QueriesPill value={endTime} className="ellipsis" />}
+        {since && <QueriesPill value={since} className="ellipsis" />}
+      </div>
+    );
+  };
   return (
     <div className="w-full">
       <div
         className={cn(
-          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded rounded-[8px] pb-[9px]",
+          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded rounded-[8px] pb-[9px] w-full",
           index === selectedIndex ? "bg-gray-2" : "",
         )}
       >
         <div
-          className={cn("flex flex-col w-full", `tabIndex-${index}`)}
+          className={cn("flex flex-col w-11/12", `tabIndex-${index}`)}
           role="button"
           onClick={() => handleSelection(index)}
           onKeyUp={(e) => e.key === "Enter" && console.log("clicked", index)}
           tabIndex={index}
         >
           {/* Change bg-gray-3 back to 2  */}
-          <div className="w-full pt-[7px] px-[8px]">
+          <div className=" pt-[7px] px-[8px]">
             {/* Top Row for each */}
             <div className="flex flex-row justify-start items-center h-6">
               <div className="inline-flex gap-2 w-full">
@@ -111,13 +177,13 @@ export const QueriesItem = ({
             </div>
 
             {/* Filters */}
-            <div className="flex flex-row mt-2">
+            <div className="flex flex-row mt-2 w-full">
               {/* Vertical Line on Left */}
               <div className="flex flex-col ml-[9px] border-l-[1px] border-l-gray-5 w-[1px]" />
               <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
                 {/* Map Thru each Status filter */}
                 {status && status.length > 0 && (
-                  <div className="flex flex-row justify-start items-center gap-2">
+                  <div className="flex flex-row justify-start items-center gap-2 w-full">
                     <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
                       Status
                     </div>
@@ -132,7 +198,7 @@ export const QueriesItem = ({
                 )}
                 {/* Map Thru each Method filter */}
                 {methods && methods.length > 0 && (
-                  <div className="flex flex-row justify-start items-center gap-2 ellipsis w-44">
+                  <div className="flex flex-row justify-start items-center gap-2 w-full ellipsis">
                     <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
                       Method
                     </div>
@@ -147,7 +213,7 @@ export const QueriesItem = ({
                 )}
                 {/* Map Thru each Path filter */}
                 {paths && paths.length > 0 && (
-                  <div className="flex flex-row justify-start items-center gap-2 ">
+                  <div className="flex flex-row justify-start items-center gap-2 w-full">
                     <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
                       Path
                     </div>
@@ -158,39 +224,22 @@ export const QueriesItem = ({
                     <QueriesPill value={paths[0].value} />
                   </div>
                 )}
-                {startTime && (
-                  <div className="flex flex-row justify-start items-center gap-2 w-56">
-                    <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
-                      Time
-                    </div>
-                    <Clock className="size-3 ml-[1px]" />
-                    <span className="font-mono font-normal text-xs text-gray-9">is</span>
-                    <QueriesPill value={timeValue} />
-                  </div>
-                )}
-                {/* {since && since.length > 0 && (
-                  <div className="flex flex-row justify-start items-center gap-2">
-                    <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
-                      Path
-                    </div>
-                    <Link4 className="size-3 ml-[1px]" />
-                    <span className="font-mono font-normal text-xs text-gray-9">
-                      {since[0]?.operator}
-                    </span>
-                    <QueriesPill value={paths[0].value} />
-                  </div>
-                )} */}
+                <TimeFilter
+                  startTime={startDateTime ?? undefined}
+                  endTime={endDateTime ?? undefined}
+                  since={since ? since?.toString() : undefined}
+                />
               </div>
             </div>
             <QueriesMadeBy
               userName={user?.username ?? ""}
               userImageSrc={user?.imageUrl ?? ""}
-              createdString={"2 days ago"}
+              createdString={getTimeAgo(filterList.createdAt)}
             />
           </div>
         </div>
         <div
-          className="flex flex-col h-full pr-2 mt-1.5"
+          className="flex flex-col h-[24px] pr-2 mt-1.5 w-[24px]"
           onMouseEnter={() => setToolTipOpen(true)}
           onMouseLeave={() => setToolTipOpen(false)}
         >

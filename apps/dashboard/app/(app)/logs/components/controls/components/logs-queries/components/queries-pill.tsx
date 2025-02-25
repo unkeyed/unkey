@@ -2,8 +2,9 @@ import { cn } from "@/lib/utils";
 
 type QueriesPillType = {
   value: string | number;
+  className?: string;
 };
-export const QueriesPill = ({ value }: QueriesPillType) => {
+export const QueriesPill = ({ value, className }: QueriesPillType) => {
   let color = undefined;
   let wording = value;
   if (value === 200 || value === "200") {
@@ -17,11 +18,14 @@ export const QueriesPill = ({ value }: QueriesPillType) => {
     wording = "5xx";
   }
   return (
-    <div className="h-6 bg-gray-3 inline-flex justify-start items-center py-1.5 px-2 rounded rounded-md gap-2">
+    <div
+      className={cn(
+        "h-6 bg-gray-3 inline-flex justify-start items-center py-1.5 px-2 rounded rounded-md gap-2 ",
+        className,
+      )}
+    >
       {color && <div className={cn("w-2 h-2 rounded-[2px]", color)} />}
-      <span className="font-mono font-medium text-xs text-gray-12 text-xs ellipsis overflow-clip">
-        {wording}
-      </span>
+      <span className="font-mono font-medium text-xs text-gray-12 text-xs truncate">{wording}</span>
     </div>
   );
 };

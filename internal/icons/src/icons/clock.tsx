@@ -11,14 +11,15 @@
  */
 
 import type React from "react";
-import type { IconProps } from "../props";
+import { type IconProps, sizeMap } from "../props";
 
-export const Clock: React.FC<IconProps> = (props) => {
+export const Clock: React.FC<IconProps> = ({ size, ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
     <svg
-      className={props.className}
-      height="12"
-      width="12"
+      {...props}
+      height={pixelSize}
+      width={pixelSize}
       viewBox="0 0 12 12"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -31,7 +32,7 @@ export const Clock: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
         <path
           d="m6,3.25v2.75l2,1.75"
@@ -39,7 +40,7 @@ export const Clock: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>
