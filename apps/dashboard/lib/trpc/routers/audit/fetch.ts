@@ -3,13 +3,9 @@ import { type Workspace, db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { type User, clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
-import { transformFilters } from "./utils";
 import { z } from "zod";
-import {
-  auditLog,
-  type AuditLogWithTargets,
-  type AuditQueryLogsParams,
-} from "./schema";
+import { type AuditLogWithTargets, type AuditQueryLogsParams, auditLog } from "./schema";
+import { transformFilters } from "./utils";
 
 const AuditLogsResponse = z.object({
   auditLogs: z.array(auditLog),
@@ -38,10 +34,7 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.read)
       });
     }
 
-    const { slicedItems, hasMore } = omitLastItemForPagination(
-      result.logs,
-      params.limit
-    );
+    const { slicedItems, hasMore } = omitLastItemForPagination(result.logs, params.limit);
     const uniqueUsers = await fetchUsersFromLogs(slicedItems);
 
     const items: AuditLogsResponse["auditLogs"] = slicedItems.map((l) => {
@@ -93,7 +86,7 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.read)
 
 export const queryAuditLogs = async (
   params: Omit<AuditQueryLogsParams, "workspaceId">,
-  workspace: Workspace
+  workspace: Workspace,
 ) => {
   const events = (params.events ?? []).map((e) => e.value);
   const userValues = (params.users ?? []).map((u) => u.value);
@@ -106,11 +99,8 @@ export const queryAuditLogs = async (
       : null;
 
   const retentionDays =
-    workspace.features.auditLogRetentionDays ?? workspace.plan === "free"
-      ? 30
-      : 90;
-  const retentionCutoffUnixMilli =
-    Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    workspace.features.auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
+  const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
   return db.query.auditLogBucket.findFirst({
     where: (table, { eq, and }) =>
@@ -122,16 +112,11 @@ export const queryAuditLogs = async (
             events.length > 0 ? inArray(table.event, events) : undefined,
             between(
               table.createdAt,
-              Math.max(
-                params.startTime ?? retentionCutoffUnixMilli,
-                retentionCutoffUnixMilli
-              ),
-              params.endTime ?? Date.now()
+              Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
+              params.endTime ?? Date.now(),
             ),
             users.length > 0 ? inArray(table.actorId, users) : undefined,
-            cursor
-              ? and(eq(table.time, cursor.time), lt(table.id, cursor.auditId))
-              : undefined
+            cursor ? and(eq(table.time, cursor.time), lt(table.id, cursor.auditId)) : undefined,
           ),
         with: {
           targets: true,
@@ -143,10 +128,7 @@ export const queryAuditLogs = async (
   });
 };
 
-export function omitLastItemForPagination(
-  items: AuditLogWithTargets[],
-  limit: number
-) {
+export function omitLastItemForPagination(items: AuditLogWithTargets[], limit: number) {
   // If we got limit + 1 results, there are more pages
   const hasMore = items.length > limit;
   // Remove the extra item we used to check for more pages
@@ -155,30 +137,27 @@ export function omitLastItemForPagination(
 }
 
 export const fetchUsersFromLogs = async (
-  logs: AuditLogWithTargets[]
+  logs: AuditLogWithTargets[],
 ): Promise<Record<string, User>> => {
   try {
     // Get unique user IDs from logs
-    const userIds = [
-      ...new Set(
-        logs.filter((l) => l.actorType === "user").map((l) => l.actorId)
-      ),
-    ];
+    const userIds = [...new Set(logs.filter((l) => l.actorType === "user").map((l) => l.actorId))];
 
     // Fetch all users in parallel
     const users = await Promise.all(
-      userIds.map((userId) =>
-        clerkClient.users.getUser(userId).catch(() => null)
-      )
+      userIds.map((userId) => clerkClient.users.getUser(userId).catch(() => null)),
     );
 
     // Convert array to record object
-    return users.reduce((acc, user) => {
-      if (user) {
-        acc[user.id] = user;
-      }
-      return acc;
-    }, {} as Record<string, User>);
+    return users.reduce(
+      (acc, user) => {
+        if (user) {
+          acc[user.id] = user;
+        }
+        return acc;
+      },
+      {} as Record<string, User>,
+    );
   } catch (error) {
     console.error("Error fetching users:", error);
     return {};

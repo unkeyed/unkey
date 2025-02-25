@@ -3,7 +3,7 @@ import { getTimestampFromRelative } from "@/lib/utils";
 import type { AuditQueryLogsParams } from "./schema";
 
 export function transformFilters(
-  params: AuditQueryLogsPayload
+  params: AuditQueryLogsPayload,
 ): Omit<AuditQueryLogsParams, "workspaceId"> {
   let startTime = params.startTime;
   let endTime = params.endTime;

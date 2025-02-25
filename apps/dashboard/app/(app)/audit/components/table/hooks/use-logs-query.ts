@@ -1,35 +1,27 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
-import { useEffect, useMemo, useState } from "react";
-import {
-  DEFAULT_BUCKET_NAME,
-  type AuditQueryLogsPayload,
-} from "../query-logs.schema";
-import { useFilters } from "../../../hooks/use-filters";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { useEffect, useMemo, useState } from "react";
+import { useFilters } from "../../../hooks/use-filters";
+import { type AuditQueryLogsPayload, DEFAULT_BUCKET_NAME } from "../query-logs.schema";
 
 type UseLogsQueryParams = {
   limit?: number;
 };
 
 export function useAuditLogsQuery({ limit = 50 }: UseLogsQueryParams) {
-  const [historicalLogsMap, setHistoricalLogsMap] = useState(
-    () => new Map<string, AuditLog>()
-  );
+  const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, AuditLog>());
 
   const { filters } = useFilters();
 
-  const historicalLogs = useMemo(
-    () => Array.from(historicalLogsMap.values()),
-    [historicalLogsMap]
-  );
+  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   //Required for preventing double trpc call during initial render
   const dateNow = useMemo(() => Date.now(), []);
   const queryParams = useMemo(() => {
     const params: AuditQueryLogsPayload = {
       limit,
-      startTime: dateNow - HISTORICAL_DATA_WINDOW,
+      startTime: dateNow - HISTORICAL_DATA_WINDOW * 2 * 7,
       endTime: dateNow,
       events: { filters: [] },
       users: { filters: [] },
@@ -78,9 +70,7 @@ export function useAuditLogsQuery({ limit = 50 }: UseLogsQueryParams) {
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(
-              `${filter.field} filter value type has to be 'string'`
-            );
+            console.error(`${filter.field} filter value type has to be 'string'`);
             return;
           }
           params[filter.field] = filter.value;

@@ -25,7 +25,7 @@ export const getWorkspace = async (tenantId: string) => {
     console.error(
       `Failed to fetch workspace for tenant ID ${tenantId}: ${
         error instanceof Error ? error.message : "Unknown error"
-      }`
+      }`,
     );
     throw error;
   }

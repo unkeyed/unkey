@@ -26,8 +26,8 @@ export default async function AuditPage() {
           <Empty.Icon />
           <Empty.Title>No logs</Empty.Title>
           <Empty.Description>
-            There are no audit logs available yet. Create a key or another
-            resource and come back here.
+            There are no audit logs available yet. Create a key or another resource and come back
+            here.
           </Empty.Description>
         </Empty>
       )}

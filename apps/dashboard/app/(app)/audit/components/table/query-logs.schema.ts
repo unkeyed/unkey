@@ -13,7 +13,7 @@ export const auditQueryLogsPayload = z.object({
         z.object({
           operator: z.literal("is"),
           value: z.string(),
-        })
+        }),
       ),
     })
     .nullable(),
@@ -23,7 +23,7 @@ export const auditQueryLogsPayload = z.object({
         z.object({
           operator: z.literal("is"),
           value: z.string(),
-        })
+        }),
       ),
     })
     .nullable(),
@@ -33,7 +33,7 @@ export const auditQueryLogsPayload = z.object({
         z.object({
           operator: z.literal("is"),
           value: z.string(),
-        })
+        }),
       ),
     })
     .nullable(),

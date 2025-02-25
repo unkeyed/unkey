@@ -29,7 +29,7 @@ export const auditLog = z.object({
         type: z.string(),
         name: z.string().nullable(),
         meta: z.unknown(),
-      })
+      }),
     ),
   }),
 });
@@ -77,7 +77,7 @@ export const auditQueryLogsParamsSchema = z.object({
       z.object({
         operator: z.literal("is"),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   users: z
@@ -85,7 +85,7 @@ export const auditQueryLogsParamsSchema = z.object({
       z.object({
         operator: z.literal("is"),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   rootKeys: z
@@ -93,7 +93,7 @@ export const auditQueryLogsParamsSchema = z.object({
       z.object({
         operator: z.literal("is"),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),

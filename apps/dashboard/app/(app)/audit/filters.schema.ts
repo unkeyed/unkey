@@ -51,13 +51,11 @@ export const auditLogsFilterFieldEnum = z.enum([
 export const auditFilterOutputSchema = createFilterOutputSchema(
   auditLogsFilterFieldEnum,
   auditLogsFilterOperatorEnum,
-  auditLogsFilterFieldConfig
+  auditLogsFilterFieldConfig,
 );
 
 // Types
-export type AuditLogsFilterOperator = z.infer<
-  typeof auditLogsFilterOperatorEnum
->;
+export type AuditLogsFilterOperator = z.infer<typeof auditLogsFilterOperatorEnum>;
 export type AuditLogsFilterField = z.infer<typeof auditLogsFilterFieldEnum>;
 
 export type FilterFieldConfigs = {
@@ -74,10 +72,7 @@ export type AuditLogsFilterUrlValue = Pick<
   FilterValue<AuditLogsFilterField, AuditLogsFilterOperator>,
   "value" | "operator"
 >;
-export type AuditLogsFilterValue = FilterValue<
-  AuditLogsFilterField,
-  AuditLogsFilterOperator
->;
+export type AuditLogsFilterValue = FilterValue<AuditLogsFilterField, AuditLogsFilterOperator>;
 
 export type QuerySearchParams = {
   events: AuditLogsFilterUrlValue[] | null;

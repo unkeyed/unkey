@@ -12,9 +12,7 @@ import type {
   QuerySearchParams,
 } from "../filters.schema";
 
-const parseAsFilterValArray = parseAsFilterValueArray<AuditLogsFilterOperator>([
-  "is",
-]);
+const parseAsFilterValArray = parseAsFilterValueArray<AuditLogsFilterOperator>(["is"]);
 
 export const auditQueryParamsPayload = {
   events: parseAsFilterValArray,
@@ -27,9 +25,7 @@ export const auditQueryParamsPayload = {
 } as const;
 
 export const useFilters = () => {
-  const [searchParams, setSearchParams] = useQueryStates(
-    auditQueryParamsPayload
-  );
+  const [searchParams, setSearchParams] = useQueryStates(auditQueryParamsPayload);
 
   const filters = useMemo(() => {
     const activeFilters: AuditLogsFilterValue[] = [];
@@ -143,7 +139,7 @@ export const useFilters = () => {
 
       setSearchParams(newParams);
     },
-    [setSearchParams]
+    [setSearchParams],
   );
 
   const removeFilter = useCallback(
@@ -151,7 +147,7 @@ export const useFilters = () => {
       const newFilters = filters.filter((f) => f.id !== id);
       updateFilters(newFilters);
     },
-    [filters, updateFilters]
+    [filters, updateFilters],
   );
 
   return {

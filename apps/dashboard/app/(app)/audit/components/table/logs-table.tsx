@@ -1,18 +1,18 @@
 "use client";
 import { TimestampInfo } from "@/components/timestamp-info";
+import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { cn } from "@unkey/ui/src/lib/utils";
+import { FunctionSquare, KeySquare } from "lucide-react";
+import { useAuditLogsQuery } from "./hooks/use-logs-query";
 import {
   getAuditRowClassName,
   getAuditSelectedClassName,
   getAuditStatusStyle,
   getEventType,
 } from "./utils/get-row-class";
-import { FunctionSquare, KeySquare } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@unkey/ui/src/lib/utils";
-import { useAuditLogsQuery } from "./hooks/use-logs-query";
-import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 
 type Props = {
   selectedLog: AuditLog | null;
@@ -20,8 +20,7 @@ type Props = {
 };
 
 export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
-  const { historicalLogs, loadMore, isLoadingMore, isLoading } =
-    useAuditLogsQuery({});
+  const { historicalLogs, loadMore, isLoadingMore, isLoading } = useAuditLogsQuery({});
 
   return (
     <VirtualTable
@@ -34,7 +33,7 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
         getAuditRowClassName(
           log,
           selectedLog?.auditLog.id === log.auditLog.id,
-          Boolean(selectedLog)
+          Boolean(selectedLog),
         )
       }
       selectedItem={selectedLog}
@@ -78,16 +77,12 @@ export const columns: Column<AuditLog>[] = [
         ) : log.auditLog.actor.type === "key" ? (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
             <KeySquare className="w-4 h-4" />
-            <span className="font-mono text-xs truncate">
-              {log.auditLog.actor.id}
-            </span>
+            <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
           </div>
         ) : (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
             <FunctionSquare className="w-4 h-4" />
-            <span className="font-mono text-xs truncate">
-              {log.auditLog.actor.id}
-            </span>
+            <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
           </div>
         )}
       </div>
@@ -106,7 +101,7 @@ export const columns: Column<AuditLog>[] = [
           <Badge
             className={cn(
               "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-              style.badge.default
+              style.badge.default,
             )}
           >
             {eventType}
@@ -130,9 +125,7 @@ export const columns: Column<AuditLog>[] = [
     header: "Description",
     width: "auto",
     render: (log) => (
-      <div className="font-mono text-xs truncate w-[200px]">
-        {log.auditLog.description}
-      </div>
+      <div className="font-mono text-xs truncate w-[200px]">{log.auditLog.description}</div>
     ),
   },
 ];

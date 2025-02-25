@@ -4,9 +4,7 @@ import type { AuditData } from "../../../audit.type";
 /**
  * Determines the event type based on the event name
  */
-export const getEventType = (
-  event: string
-): "create" | "update" | "delete" | "other" => {
+export const getEventType = (event: string): "create" | "update" | "delete" | "other" => {
   const eventLower = event.toLowerCase();
 
   if (eventLower.includes("create") || eventLower.includes("add")) {
@@ -89,7 +87,7 @@ export const getAuditStatusStyle = (item: AuditData) => {
 export const getAuditRowClassName = (
   item: AuditData,
   isSelected: boolean,
-  logSelected: boolean
+  logSelected: boolean,
 ) => {
   const eventType = getEventType(item.auditLog.event);
   const style = AUDIT_STATUS_STYLES[eventType];
@@ -104,17 +102,14 @@ export const getAuditRowClassName = (
     logSelected && {
       "opacity-50 z-0": !isSelected,
       "opacity-100 z-10": isSelected,
-    }
+    },
   );
 };
 
 /**
  * Get the selected class name for an audit log entry
  */
-export const getAuditSelectedClassName = (
-  item: AuditData,
-  isSelected: boolean
-) => {
+export const getAuditSelectedClassName = (item: AuditData, isSelected: boolean) => {
   if (!isSelected) {
     return "";
   }
