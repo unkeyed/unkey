@@ -20,7 +20,7 @@ export default async function RolesPage() {
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     with: {
       permissions: true,
       roles: {
@@ -29,7 +29,7 @@ export default async function RolesPage() {
             with: {
               key: {
                 columns: {
-                  deletedAt: true,
+                  deletedAtM: true,
                 },
               },
             },
@@ -51,7 +51,7 @@ export default async function RolesPage() {
    * Filter out all the soft deleted keys cause I'm not smart enough to do it with drizzle
    */
   workspace.roles = workspace.roles.map((role) => {
-    role.keys = role.keys.filter(({ key }) => key.deletedAt === null);
+    role.keys = role.keys.filter(({ key }) => key.deletedAtM === null);
     return role;
   });
 

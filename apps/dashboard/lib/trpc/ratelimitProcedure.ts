@@ -12,7 +12,12 @@ export const ratelimit = env().UNKEY_ROOT_KEY
         limit: 25,
         duration: "3s",
       }),
-
+      read: new Ratelimit({
+        rootKey: env().UNKEY_ROOT_KEY ?? "",
+        namespace: "trpc_read",
+        limit: 100,
+        duration: "10s",
+      }),
       update: new Ratelimit({
         rootKey: env().UNKEY_ROOT_KEY ?? "",
         namespace: "trpc_update",

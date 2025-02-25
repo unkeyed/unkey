@@ -206,7 +206,7 @@ export class KeyService {
   private async getData(hash: string) {
     const dbStart = performance.now();
     const query = this.db.readonly.query.keys.findFirst({
-      where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
+      where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAtM)),
       with: {
         encrypted: true,
         workspace: {
@@ -263,10 +263,10 @@ export class KeyService {
     if (!dbRes?.keyAuth?.api) {
       return null;
     }
-    if (dbRes.keyAuth.deletedAt) {
+    if (dbRes.keyAuth.deletedAtM) {
       return null;
     }
-    if (dbRes.keyAuth.api.deletedAt) {
+    if (dbRes.keyAuth.api.deletedAtM) {
       return null;
     }
 
@@ -545,7 +545,7 @@ export class KeyService {
     const ratelimits: {
       [name: string | "default"]: Required<RatelimitRequest>;
     } = {};
-    if ("default" in data.ratelimits && typeof req.ratelimits === "undefined") {
+    if (data.ratelimits && "default" in data.ratelimits && typeof req.ratelimits === "undefined") {
       ratelimits.default = {
         identity: data.key.id,
         name: data.ratelimits.default.name,

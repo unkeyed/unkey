@@ -103,7 +103,7 @@ export const registerV1KeysWhoAmI = (app: App) =>
     const hash = await sha256(secret);
     const { val: data, err } = await cache.keyByHash.swr(hash, async () => {
       const dbRes = await db.readonly.query.keys.findFirst({
-        where: (table, { eq, and, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
+        where: (table, { eq, and, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAtM)),
         with: {
           keyAuth: {
             with: {
@@ -167,7 +167,7 @@ export const registerV1KeysWhoAmI = (app: App) =>
           }
         : undefined,
       meta: meta,
-      createdAt: key.createdAt.getTime(),
+      createdAt: key.createdAtM,
       enabled: key.enabled,
       environment: key.environment ?? undefined,
     });

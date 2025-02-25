@@ -21,7 +21,7 @@ export default async function RolesPage() {
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     with: {
       permissions: {
         orderBy: [asc(permissions.name)],
@@ -30,7 +30,7 @@ export default async function RolesPage() {
             with: {
               key: {
                 columns: {
-                  deletedAt: true,
+                  deletedAtM: true,
                 },
               },
             },
@@ -52,7 +52,7 @@ export default async function RolesPage() {
    * Filter out all the soft deleted keys cause I'm not smart enough to do it with drizzle
    */
   workspace.permissions = workspace.permissions.map((permission) => {
-    permission.keys = permission.keys.filter(({ key }) => key.deletedAt === null);
+    permission.keys = permission.keys.filter(({ key }) => key.deletedAtM === null);
     return permission;
   });
   return (

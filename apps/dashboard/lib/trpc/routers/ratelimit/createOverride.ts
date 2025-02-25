@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
-import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { db, schema, sql } from "@/lib/db";
 import { newId } from "@unkey/id";
 import { auth, t } from "../../trpc";
 export const createOverride = t.procedure
@@ -23,7 +23,7 @@ export const createOverride = t.procedure
           and(
             eq(table.workspaceId, ctx.workspace.id),
             eq(table.id, input.namespaceId),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
           ),
       })
       .catch((_err) => {
@@ -44,45 +44,42 @@ export const createOverride = t.procedure
     const id = newId("ratelimitOverride");
     await db
       .transaction(async (tx) => {
-        const existing = await tx
-          .select({ count: sql`count(*)` })
-          .from(schema.ratelimitOverrides)
-          .where(
-            and(
-              eq(schema.ratelimitOverrides.namespaceId, namespace.id),
-              isNull(schema.ratelimitOverrides.deletedAt),
-            ),
-          )
-          .then((res) => Number(res.at(0)?.count ?? 0));
-        const max =
-          typeof ctx.workspace.features.ratelimitOverrides === "number"
-            ? ctx.workspace.features.ratelimitOverrides
-            : 5;
-        if (existing >= max) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: `A plan Upgrade is required, you can only override ${max} identifiers.`,
+        const existing = await tx.query.ratelimitOverrides.findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.namespaceId, namespace.id), eq(table.identifier, input.identifier)),
+        });
+
+        if (existing) {
+          await tx
+            .update(schema.ratelimitOverrides)
+            .set({
+              limit: input.limit,
+              duration: input.duration,
+              async: input.async ?? false,
+              updatedAtM: Date.now(),
+              deletedAtM: null,
+            })
+            .where(sql`namespace_id = ${namespace.id} AND identifier = ${input.identifier}`);
+        } else {
+          await tx.insert(schema.ratelimitOverrides).values({
+            id,
+            workspaceId: ctx.workspace.id,
+            namespaceId: namespace.id,
+            identifier: input.identifier,
+            limit: input.limit,
+            duration: input.duration,
+            async: input.async ?? false,
+            createdAtM: Date.now(),
           });
         }
-
-        await tx.insert(schema.ratelimitOverrides).values({
-          workspaceId: ctx.workspace.id,
-          namespaceId: namespace.id,
-          identifier: input.identifier,
-          id,
-          limit: input.limit,
-          duration: input.duration,
-          createdAt: new Date(),
-          async: input.async,
-        });
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
           workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,
           },
-          event: "ratelimit.set_override",
-          description: `Created ${input.identifier}`,
+          event: existing ? "ratelimit.update" : "ratelimit.set_override",
+          description: existing ? `Updated ${input.identifier}` : `Created ${input.identifier}`,
           resources: [
             {
               type: "ratelimitNamespace",
@@ -90,7 +87,7 @@ export const createOverride = t.procedure
             },
             {
               type: "ratelimitOverride",
-              id,
+              id: existing ? existing.id : id,
             },
           ],
           context: {

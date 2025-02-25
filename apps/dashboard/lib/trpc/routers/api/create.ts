@@ -22,7 +22,7 @@ export const createApi = t.procedure
       await db.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: ctx.workspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       });
     } catch (_err) {
       throw new TRPCError({
@@ -44,7 +44,7 @@ export const createApi = t.procedure
             keyAuthId,
             authType: "key",
             ipWhitelist: null,
-            createdAt: new Date(),
+            createdAtM: Date.now(),
           })
           .catch((_err) => {
             throw new TRPCError({

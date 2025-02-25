@@ -156,7 +156,7 @@ async function getWorkspaceId(c: Context<HonoEnv>): Promise<string> {
   const { cache, db, logger } = c.get("services");
   const { val, err } = await cache.workspaceIdByRootKeyHash.swr(hash, async () => {
     const key = await db.readonly.query.keys.findFirst({
-      where: (table, { eq, and, isNull }) => and(isNull(table.deletedAt), eq(table.hash, hash)),
+      where: (table, { eq, and, isNull }) => and(isNull(table.deletedAtM), eq(table.hash, hash)),
     });
     if (!key) {
       return null;

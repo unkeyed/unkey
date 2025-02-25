@@ -76,7 +76,7 @@ export const registerLegacyApisListKeys = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAtM)),
           with: {
             keyAuth: true,
           },
@@ -104,7 +104,7 @@ export const registerLegacyApisListKeys = (app: App) =>
       });
     }
     const keysWhere: Parameters<typeof and> = [
-      isNull(schema.keys.deletedAt),
+      isNull(schema.keys.deletedAtM),
       eq(schema.keys.keyAuthId, api.keyAuthId),
     ];
     if (ownerId) {
@@ -127,7 +127,7 @@ export const registerLegacyApisListKeys = (app: App) =>
     const total = await db.readonly
       .select({ count: sql<string>`count(*)` })
       .from(schema.keys)
-      .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt)));
+      .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAtM)));
 
     return c.json({
       keys: keys.map((k) => ({
@@ -138,7 +138,7 @@ export const registerLegacyApisListKeys = (app: App) =>
         name: k.name ?? undefined,
         ownerId: k.ownerId ?? undefined,
         meta: k.meta ? JSON.parse(k.meta) : undefined,
-        createdAt: k.createdAt.getTime() ?? undefined,
+        createdAt: k.createdAtM ?? undefined,
         expires: k.expires?.getTime() ?? undefined,
         ratelimit:
           k.ratelimitAsync !== null && k.ratelimitLimit !== null && k.ratelimitDuration !== null

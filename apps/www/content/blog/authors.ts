@@ -37,4 +37,9 @@ export const authors: Authors = {
     role: "Developer",
     image: { src: "/images/team/michael.jpg" },
   },
+  oz: {
+    name: "Oguzhan Olguncu",
+    role: "Developer",
+    image: { src: "/images/team/oz.jpeg" },
+  },
 };

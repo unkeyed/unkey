@@ -105,7 +105,7 @@ export const registerV1ApisListKeys = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAtM)),
           with: {
             keyAuth: true,
           },
@@ -163,14 +163,14 @@ export const registerV1ApisListKeys = (app: App) =>
     async function loadKeys() {
       const keySpace = await db.readonly.query.keyAuth.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, api!.keyAuthId!), isNull(schema.keys.deletedAt)),
+          and(eq(table.id, api!.keyAuthId!), isNull(schema.keys.deletedAtM)),
 
         with: {
           keys: {
             where: (table, { and, isNull, gt, eq }) =>
               and(
                 ...[
-                  isNull(table.deletedAt),
+                  isNull(table.deletedAtM),
                   cursor ? gt(table.id, cursor) : undefined,
                   identity
                     ? eq(table.identityId, identity.id)
@@ -302,7 +302,7 @@ export const registerV1ApisListKeys = (app: App) =>
         name: k.name ?? undefined,
         ownerId: k.ownerId ?? undefined,
         meta: k.meta ? JSON.parse(k.meta) : undefined,
-        createdAt: k.createdAt.getTime() ?? undefined,
+        createdAt: k.createdAtM ?? undefined,
         updatedAt: k.updatedAtM ?? undefined,
         expires: k.expires?.getTime() ?? undefined,
         ratelimit:

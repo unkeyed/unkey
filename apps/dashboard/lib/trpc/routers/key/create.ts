@@ -83,7 +83,8 @@ export const createKey = t.procedure
           workspaceId: ctx.workspace.id,
           forWorkspaceId: null,
           expires: input.expires ? new Date(input.expires) : null,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
+          updatedAtM: null,
           ratelimitAsync: input.ratelimit?.async,
           ratelimitLimit: input.ratelimit?.limit,
           ratelimitDuration: input.ratelimit?.duration,
@@ -91,7 +92,6 @@ export const createKey = t.procedure
           refillDay: input.refill?.refillDay ?? null,
           refillAmount: input.refill?.amount ?? null,
           lastRefillAt: input.refill ? new Date() : null,
-          deletedAt: null,
           enabled: input.enabled,
           environment: input.environment,
         });

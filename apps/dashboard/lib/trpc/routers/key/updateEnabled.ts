@@ -15,7 +15,7 @@ export const updateKeyEnabled = t.procedure
     const key = await db.query.keys
       .findFirst({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.keyId), isNull(table.deletedAt)),
+          and(eq(table.id, input.keyId), isNull(table.deletedAtM)),
         with: {
           workspace: true,
         },

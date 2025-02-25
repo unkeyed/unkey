@@ -184,7 +184,7 @@ const workspaces = await io.runTask("list workspaces", async () =>
             isNotNull(table.stripeCustomerId),
             isNotNull(table.subscriptions),
             not(eq(table.plan, "free")),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
         ),
     }),
 );

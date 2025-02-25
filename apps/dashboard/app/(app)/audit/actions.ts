@@ -6,7 +6,7 @@ export const getWorkspace = async (tenantId: string) => {
   try {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { eq, and, isNull }) =>
-        and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+        and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
       with: {
         auditLogBuckets: {
           columns: {

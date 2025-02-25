@@ -1,28 +1,16 @@
 import { relations } from "drizzle-orm";
-import {
-  boolean,
-  datetime,
-  int,
-  mysqlEnum,
-  mysqlTable,
-  unique,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { boolean, int, mysqlEnum, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
+import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const ratelimitNamespaces = mysqlTable(
   "ratelimit_namespaces",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
-    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
-    deletedAt: datetime("deleted_at", { mode: "date" }),
+
+    ...lifecycleDatesMigration,
   },
   (table) => {
     return {
@@ -46,12 +34,8 @@ export const ratelimitOverrides = mysqlTable(
   "ratelimit_overrides",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    namespaceId: varchar("namespace_id", { length: 256 })
-      .notNull()
-      .references(() => ratelimitNamespaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    namespaceId: varchar("namespace_id", { length: 256 }).notNull(),
     identifier: varchar("identifier", { length: 512 }).notNull(),
 
     limit: int("limit").notNull(),
@@ -71,11 +55,7 @@ export const ratelimitOverrides = mysqlTable(
      */
     sharding: mysqlEnum("sharding", ["edge"]),
 
-    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
-    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
+    ...lifecycleDatesMigration,
   },
   (table) => {
     return {

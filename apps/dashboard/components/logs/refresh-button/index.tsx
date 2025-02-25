@@ -1,3 +1,4 @@
+import { KeyboardButton } from "@/components/keyboard-button";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { Refresh3 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -7,8 +8,8 @@ import { useState } from "react";
 type RefreshButtonProps = {
   onRefresh: () => void;
   isEnabled: boolean;
-  isLive: boolean;
-  toggleLive: (value: boolean) => void;
+  isLive?: boolean;
+  toggleLive?: (value: boolean) => void;
 };
 
 const REFRESH_TIMEOUT_MS = 1000;
@@ -17,7 +18,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  useKeyboardShortcut("r", () => {
+  useKeyboardShortcut({ ctrl: true, key: "r" }, () => {
     isEnabled && handleRefresh();
   });
 
@@ -28,7 +29,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
 
     const isLiveBefore = Boolean(isLive);
     setIsLoading(true);
-    toggleLive(false);
+    toggleLive?.(false);
     onRefresh();
 
     if (refreshTimeout) {
@@ -38,7 +39,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
     const timeout = setTimeout(() => {
       setIsLoading(false);
       if (isLiveBefore) {
-        toggleLive(true);
+        toggleLive?.(true);
       }
     }, REFRESH_TIMEOUT_MS);
     setRefreshTimeout(timeout);
@@ -60,6 +61,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
       {isLoading && <div className="absolute inset-0 bg-accent-6 animate-fill-left" />}
       <Refresh3 className="size-4 relative z-10" />
       <span className="font-medium text-[13px] relative z-10">Refresh</span>
+      <KeyboardButton shortcut="r" modifierKey="⌃" />
     </Button>
   );
 };

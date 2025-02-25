@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net"
 	"strings"
 	"sync"
 	"time"
@@ -19,7 +18,7 @@ import (
 
 type Config struct {
 	NodeID     string
-	Addr       net.IP
+	Addr       string
 	GossipPort int
 	Logger     logging.Logger
 }
@@ -139,7 +138,7 @@ func (m *membership) Members() ([]Member, error) {
 		if m.State == memberlist.StateAlive {
 			members = append(members, Member{
 				NodeID: m.Name,
-				Addr:   m.Addr,
+				Addr:   m.Addr.String(),
 			})
 		}
 	}

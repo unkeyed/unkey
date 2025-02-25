@@ -44,7 +44,7 @@ export const FiltersPopover = ({
     }
 
     if (activeFilter) {
-      if (e.key === "ArrowLeft" || e.key === "h") {
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
         setActiveFilter(null);
       }
@@ -53,19 +53,16 @@ export const FiltersPopover = ({
 
     switch (e.key) {
       case "ArrowDown":
-      case "j":
         e.preventDefault();
         setFocusedIndex((prev) => (prev === null ? 0 : (prev + 1) % items.length));
         break;
       case "ArrowUp":
-      case "k":
         e.preventDefault();
         setFocusedIndex((prev) =>
           prev === null ? items.length - 1 : (prev - 1 + items.length) % items.length,
         );
         break;
       case "Enter":
-      case "l":
       case "ArrowRight":
         e.preventDefault();
         if (focusedIndex !== null) {
@@ -129,7 +126,7 @@ const FilterItem = ({
   const contentRef = useRef<HTMLDivElement>(null);
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if ((e.key === "ArrowLeft" || e.key === "h") && open) {
+    if (e.key === "ArrowLeft" && open) {
       e.preventDefault();
       setOpen(false);
       itemRef.current?.focus();

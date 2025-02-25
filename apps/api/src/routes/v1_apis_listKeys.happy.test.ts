@@ -25,7 +25,7 @@ test("get api", async (t) => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
   }
   await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
@@ -67,7 +67,7 @@ test("returns identity", async (t) => {
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
       identityId: identity.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
   }
 
@@ -107,7 +107,7 @@ test("filter by ownerId", async (t) => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       ownerId: i % 2 === 0 ? ownerId : undefined,
     });
   }
@@ -147,7 +147,7 @@ test("filter by externalId", async (t) => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       identityId: i % 2 === 0 ? identity.id : undefined,
     });
   }
@@ -186,7 +186,7 @@ test("returns roles and permissions", async (t) => {
     hash: await sha256(key),
     start: key.slice(0, 8),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
   await h.db.primary.insert(schema.roles).values({
     id: roleId,
@@ -239,7 +239,7 @@ test("with limit", async (t) => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
   }
   await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
@@ -271,7 +271,7 @@ test("with cursor", async (t) => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
   }
   await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);

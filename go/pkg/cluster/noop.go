@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"net"
 )
 
 type noop struct {
@@ -11,7 +10,7 @@ type noop struct {
 
 var _ Cluster = (*noop)(nil)
 
-func NewNoop(id string, addr net.IP) *noop {
+func NewNoop(id string, addr string) *noop {
 	return &noop{self: Node{
 		ID:      id,
 		Addr:    addr,

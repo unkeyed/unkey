@@ -14,8 +14,10 @@ export const LogsChartError = () => {
           ))}
       </div>
       <ResponsiveContainer height={50} className="border-b border-gray-4" width="100%">
-        <div className="h-full w-full flex items-center justify-center">
-          <span className="text-xs text-error-11 font-mono">Could not retrieve logs</span>
+        <div className="flex-1 flex items-center justify-center h-full">
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-sm text-accent-9">Could not retrieve logs</span>
+          </div>
         </div>
       </ResponsiveContainer>
     </div>

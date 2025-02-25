@@ -19,7 +19,7 @@ You are an SEO Expert & Content Writer specializing in creating technical conten
 2. **Quality Assurance:**
    - **Remove Stopwords:** Ensure that keywords do not include common stopwords (e.g., "for," "and," "the," "of," etc.).
    - **Remove Brand Names:** Ensure that keywords do not include brand names (e.g., "GitHub", "YouTube", "npm", etc.).
-   - **Remove README keywords:** Ensure to exclude from instructive headers or titles (e.g., "getting started", "installation", etc.) of readmes.		
+   - **Remove README keywords:** Ensure to exclude from instructive headers or titles (e.g., "getting started", "installation", etc.) of readmes.
 
 **Guidelines:**
 - Prioritize keywords that directly relate to the main term and its subtopics.
@@ -51,9 +51,9 @@ export async function getOrCreateKeywordsFromTitles(args: { term: string }) {
   const promptTitles = `Below is a list of titles separated by semicolons (';') from the top organic search results currently ranking for the term '${term}'.
           Given that some pages might be SEO optimized, there's a chance that we can extract keywords from the page titles.
           Create a list of keywords that are directly related to the main term and its subtopics form the titles of the pages.
-          
+
           Given that some title contain the brand of the website (e.g. github, youtube, etc.) OR the section of the website (e.g. blog, docs, etc.), ensure to not treat them as keywords.
-  
+
           ==========
           ${searchResponse.serperOrganicResults
             .map(
@@ -89,7 +89,7 @@ export async function getOrCreateKeywordsFromTitles(args: { term: string }) {
     )
     .onDuplicateKeyUpdate({
       set: {
-        updatedAt: sql`now()`,
+        updatedAt: sql`CURRENT_TIMESTAMP(3)`,
       },
     });
 
@@ -125,7 +125,7 @@ export async function getOrCreateKeywordsFromHeaders(args: { term: string }) {
       }
       return `
           ==========
-          The headers for the organic result "${firecrawlResponse.sourceUrl}" (ensure you're referencing this url as the sourceUrl for the keyword) are: 
+          The headers for the organic result "${firecrawlResponse.sourceUrl}" (ensure you're referencing this url as the sourceUrl for the keyword) are:
           ${firecrawlResponse.markdown?.match(/^##\s+(.*)$/gm)?.join("\n")}
           ==========
           `;
@@ -134,7 +134,7 @@ export async function getOrCreateKeywordsFromHeaders(args: { term: string }) {
 
   const promptHeaders = `Below is a list of h1 headers, separated by semicolons (';'), from the top organic search results currently ranking for the term '${term}'. Given that some pages might be SEO optimized, there's a chance that we can extract keywords from them.
           Create a list of keywords that are directly related to the main term and its subtopics form the h1 headers of the pages.
-  
+
           ==========
           ${context}
           ==========
@@ -164,7 +164,7 @@ export async function getOrCreateKeywordsFromHeaders(args: { term: string }) {
     )
     .onDuplicateKeyUpdate({
       set: {
-        updatedAt: sql`now()`,
+        updatedAt: sql`CURRENT_TIMESTAMP(3)`,
       },
     });
   return db.query.keywords.findMany({

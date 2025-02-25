@@ -19,7 +19,7 @@ export const removePermissionFromRootKey = t.procedure
             and(
               eq(schema.keys.forWorkspaceId, ctx.workspace.id),
               eq(schema.keys.id, input.rootKeyId),
-              isNull(table.deletedAt),
+              isNull(table.deletedAtM),
             ),
           with: {
             permissions: {

@@ -20,7 +20,6 @@ import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { llmSearch } from "./logs/llm-search";
-import { queryDistinctPaths } from "./logs/query-distinct-paths";
 import { queryLogs } from "./logs/query-logs";
 import { queryTimeseries } from "./logs/query-timeseries";
 import { createPlainIssue } from "./plain";
@@ -29,8 +28,10 @@ import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
-import { queryDistinctIdentifiers } from "./ratelimit/query-distinct-identifiers";
+import { searchNamespace } from "./ratelimit/namespace-search";
+import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
+import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
@@ -111,9 +112,15 @@ export const router = t.router({
       query: queryRatelimitLogs,
       ratelimitLlmSearch,
       queryRatelimitTimeseries,
-      queryDistinctIdentifiers,
+    }),
+    overview: t.router({
+      logs: t.router({
+        query: queryRatelimitOverviewLogs,
+        queryRatelimitLatencyTimeseries,
+      }),
     }),
     namespace: t.router({
+      search: searchNamespace,
       create: createNamespace,
       update: t.router({
         name: updateNamespaceName,
@@ -128,7 +135,6 @@ export const router = t.router({
   }),
   logs: t.router({
     queryLogs,
-    queryDistinctPaths,
     queryTimeseries,
     llmSearch,
   }),

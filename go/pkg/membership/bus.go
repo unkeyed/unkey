@@ -19,7 +19,7 @@ func (b *bus) NotifyJoin(node *memberlist.Node) {
 
 	b.onJoin.Emit(context.Background(), Member{
 		NodeID: node.Name,
-		Addr:   node.Addr,
+		Addr:   node.Addr.String(),
 	})
 }
 
@@ -29,7 +29,7 @@ func (b *bus) NotifyLeave(node *memberlist.Node) {
 
 	b.onLeave.Emit(context.Background(), Member{
 		NodeID: node.Name,
-		Addr:   node.Addr,
+		Addr:   node.Addr.String(),
 	})
 }
 
@@ -40,7 +40,7 @@ func (b *bus) NotifyUpdate(node *memberlist.Node) {
 
 	b.onUpdate.Emit(context.Background(), Member{
 		NodeID: node.Name,
-		Addr:   node.Addr,
+		Addr:   node.Addr.String(),
 	})
 
 }
