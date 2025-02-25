@@ -1,40 +1,20 @@
 "use client";
-
+import { TimestampInfo } from "@/components/timestamp-info";
 import { VirtualTable } from "@/components/virtual-table";
+import type { Column } from "@/components/virtual-table/types";
 import { trpc } from "@/lib/trpc/client";
 import { Empty } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import type { AuditData } from "../../audit.type";
+import {
+  getAuditRowClassName,
+  getAuditSelectedClassName,
+  getAuditStatusStyle,
+  getEventType,
+} from "./utils/get-row-class";
+import { FunctionSquare, KeySquare } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { useAuditLogParams } from "../../query-state";
-import { columns } from "./columns";
-import { DEFAULT_FETCH_COUNT } from "./constants";
-import { getEventType } from "./utils";
-
-const STATUS_STYLES: Record<
-  "create" | "update" | "delete" | "other",
-  { base: string; hover: string; selected: string }
-> = {
-  create: {
-    base: "text-accent-11",
-    hover: "hover:bg-accent-3",
-    selected: "bg-accent-3",
-  },
-  other: {
-    base: "text-accent-11 ",
-    hover: "hover:bg-accent-3",
-    selected: "bg-accent-3",
-  },
-  update: {
-    base: "text-warning-11 ",
-    hover: "hover:bg-warning-3",
-    selected: "bg-warning-3",
-  },
-  delete: {
-    base: "text-error-11",
-    hover: "hover:bg-error-3",
-    selected: "bg-error-3",
-  },
-};
 
 type Props = {
   selectedLog: AuditData | null;
@@ -44,25 +24,31 @@ type Props = {
 export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
   const { setCursor, searchParams } = useAuditLogParams();
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
-    trpc.audit.fetch.useInfiniteQuery(
-      {
-        bucketName: searchParams.bucket ?? undefined,
-        limit: DEFAULT_FETCH_COUNT,
-        users: searchParams.users,
-        events: searchParams.events,
-        rootKeys: searchParams.rootKeys,
-        startTime: searchParams.startTime,
-        endTime: searchParams.endTime,
-      },
-      {
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-        initialCursor: searchParams.cursor,
-        staleTime: Number.POSITIVE_INFINITY,
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
-      },
-    );
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+  } = trpc.audit.fetch.useInfiniteQuery(
+    {
+      bucketName: searchParams.bucket ?? undefined,
+      limit: 50,
+      users: searchParams.users,
+      events: searchParams.events,
+      rootKeys: searchParams.rootKeys,
+      startTime: searchParams.startTime,
+      endTime: searchParams.endTime,
+    },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      initialCursor: searchParams.cursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    }
+  );
 
   const flattenedData = data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -77,36 +63,13 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
     }
   };
 
-  const getRowClassName = (item: AuditData) => {
-    const eventType = getEventType(item.auditLog.event);
-    const style = STATUS_STYLES[eventType];
-
-    return cn(
-      style.base,
-      style.hover,
-      "group rounded-md",
-      selectedLog && {
-        "opacity-50 z-0": selectedLog.auditLog.id !== item.auditLog.id,
-        "opacity-100 z-10": selectedLog.auditLog.id === item.auditLog.id,
-      },
-    );
-  };
-
-  const getSelectedClassName = (item: AuditData, isSelected: boolean) => {
-    if (!isSelected) {
-      return "";
-    }
-    const style = STATUS_STYLES[getEventType(item.auditLog.event)];
-    return style.selected;
-  };
-
   if (isError) {
     return (
       <Empty>
         <Empty.Title>Failed to load audit logs</Empty.Title>
         <Empty.Description>
-          There was a problem fetching the audit logs. Please try refreshing the page or contact
-          support if the issue persists.
+          There was a problem fetching the audit logs. Please try refreshing the
+          page or contact support if the issue persists.
         </Empty.Description>
       </Empty>
     );
@@ -119,14 +82,109 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
       isLoading={isLoading}
       isFetchingNextPage={isFetchingNextPage}
       onLoadMore={handleLoadMore}
-      rowClassName={getRowClassName}
+      rowClassName={(log) =>
+        getAuditRowClassName(
+          log,
+          selectedLog?.auditLog.id === log.auditLog.id,
+          Boolean(selectedLog)
+        )
+      }
       selectedItem={selectedLog}
       onRowClick={setSelectedLog}
-      selectedClassName={getSelectedClassName}
+      selectedClassName={getAuditSelectedClassName}
       keyExtractor={(log) => log.auditLog.id}
       config={{
-        loadingRows: DEFAULT_FETCH_COUNT,
+        loadingRows: 50,
       }}
     />
   );
 };
+
+export const columns: Column<AuditData>[] = [
+  {
+    key: "time",
+    header: "Time",
+    width: "150px",
+    headerClassName: "pl-2",
+    render: (log) => {
+      return (
+        <TimestampInfo
+          value={log.auditLog.time}
+          className="font-mono group-hover:underline decoration-dotted pl-2"
+        />
+      );
+    },
+  },
+  {
+    key: "actor",
+    header: "Actor",
+    width: "15%",
+    render: (log) => (
+      <div className="flex items-center gap-3 truncate">
+        {log.auditLog.actor.type === "user" && log.user ? (
+          <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
+            <span className="text-xs whitespace-nowrap">
+              {`${log.user.firstName ?? ""} ${log.user.lastName ?? ""}`}
+            </span>
+          </div>
+        ) : log.auditLog.actor.type === "key" ? (
+          <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
+            <KeySquare className="w-4 h-4" />
+            <span className="font-mono text-xs truncate">
+              {log.auditLog.actor.id}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
+            <FunctionSquare className="w-4 h-4" />
+            <span className="font-mono text-xs truncate">
+              {log.auditLog.actor.id}
+            </span>
+          </div>
+        )}
+      </div>
+    ),
+  },
+  {
+    key: "action",
+    header: "Action",
+    width: "15%",
+    render: (log) => {
+      const eventType = getEventType(log.auditLog.event);
+      const style = getAuditStatusStyle(log);
+
+      return (
+        <div className="flex items-center gap-3 group/action">
+          <Badge
+            className={cn(
+              "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
+              style.badge.default
+            )}
+          >
+            {eventType}
+          </Badge>
+        </div>
+      );
+    },
+  },
+  {
+    key: "event",
+    header: "Event",
+    width: "20%",
+    render: (log) => (
+      <div className="flex items-center gap-2 font-mono text-xs truncate">
+        <span>{log.auditLog.event}</span>
+      </div>
+    ),
+  },
+  {
+    key: "event-description",
+    header: "Description",
+    width: "auto",
+    render: (log) => (
+      <div className="font-mono text-xs truncate w-[200px]">
+        {log.auditLog.description}
+      </div>
+    ),
+  },
+];

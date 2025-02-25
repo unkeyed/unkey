@@ -1,9 +1,11 @@
-import { DEFAULT_FETCH_COUNT } from "@/app/(app)/audit/components/table/constants";
 import { type Workspace, db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { type User, clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
-import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
+import type {
+  SelectAuditLog,
+  SelectAuditLogTarget,
+} from "@unkey/db/src/schema";
 import { z } from "zod";
 
 export const DEFAULT_BUCKET_NAME = "unkey_mutations";
@@ -16,7 +18,7 @@ export const getAuditLogsInput = z.object({
   users: z.array(z.string()).default([]),
   rootKeys: z.array(z.string()).default([]),
   cursor: z.string().nullish(),
-  limit: z.number().min(1).max(100).default(DEFAULT_FETCH_COUNT).optional(),
+  limit: z.number().min(1).max(100).default(50).optional(),
   startTime: z.number().nullish(),
   endTime: z.number().nullish(),
 });
@@ -24,7 +26,16 @@ export const getAuditLogsInput = z.object({
 export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
   .input(getAuditLogsInput)
   .query(async ({ ctx, input }) => {
-    const { bucketName, events, users, rootKeys, cursor, limit, endTime, startTime } = input;
+    const {
+      bucketName,
+      events,
+      users,
+      rootKeys,
+      cursor,
+      limit,
+      endTime,
+      startTime,
+    } = input;
 
     const selectedActorIds = [...rootKeys, ...users];
 
@@ -38,7 +49,7 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
         events,
         limit,
       },
-      ctx.workspace,
+      ctx.workspace
     );
 
     if (!result) {
@@ -48,7 +59,10 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    const { slicedItems, hasMore } = omitLastItemForPagination(result.logs, limit);
+    const { slicedItems, hasMore } = omitLastItemForPagination(
+      result.logs,
+      limit
+    );
     const uniqueUsers = await fetchUsersFromLogs(slicedItems);
 
     const items = slicedItems.map((l) => {
@@ -87,13 +101,19 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
 
     return {
       items,
-      nextCursor: hasMore && items.length > 0 ? items[items.length - 1].auditLog.id : null,
+      nextCursor:
+        hasMore && items.length > 0
+          ? items[items.length - 1].auditLog.id
+          : null,
     };
   });
 
 export type QueryOptions = Omit<z.infer<typeof getAuditLogsInput>, "rootKeys">;
 
-export const queryAuditLogs = async (options: QueryOptions, workspace: Workspace) => {
+export const queryAuditLogs = async (
+  options: QueryOptions,
+  workspace: Workspace
+) => {
   const {
     bucketName,
     events = [],
@@ -105,8 +125,11 @@ export const queryAuditLogs = async (options: QueryOptions, workspace: Workspace
   } = options;
 
   const retentionDays =
-    workspace.features.auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
-  const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    workspace.features.auditLogRetentionDays ?? workspace.plan === "free"
+      ? 30
+      : 90;
+  const retentionCutoffUnixMilli =
+    Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
   return db.query.auditLogBucket.findFirst({
     where: (table, { eq, and }) =>
@@ -118,11 +141,14 @@ export const queryAuditLogs = async (options: QueryOptions, workspace: Workspace
             events.length > 0 ? inArray(table.event, events) : undefined,
             between(
               table.createdAt,
-              Math.max(startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
-              endTime ?? Date.now(),
+              Math.max(
+                startTime ?? retentionCutoffUnixMilli,
+                retentionCutoffUnixMilli
+              ),
+              endTime ?? Date.now()
             ),
             users.length > 0 ? inArray(table.actorId, users) : undefined,
-            cursor ? lt(table.id, cursor) : undefined,
+            cursor ? lt(table.id, cursor) : undefined
           ),
         with: {
           targets: true,
@@ -136,7 +162,7 @@ export const queryAuditLogs = async (options: QueryOptions, workspace: Workspace
 
 export function omitLastItemForPagination(
   items: AuditLogWithTargets[],
-  limit = DEFAULT_FETCH_COUNT,
+  limit = DEFAULT_FETCH_COUNT
 ) {
   // If we got limit + 1 results, there are more pages
   const hasMore = items.length > limit;
@@ -146,27 +172,30 @@ export function omitLastItemForPagination(
 }
 
 export const fetchUsersFromLogs = async (
-  logs: AuditLogWithTargets[],
+  logs: AuditLogWithTargets[]
 ): Promise<Record<string, User>> => {
   try {
     // Get unique user IDs from logs
-    const userIds = [...new Set(logs.filter((l) => l.actorType === "user").map((l) => l.actorId))];
+    const userIds = [
+      ...new Set(
+        logs.filter((l) => l.actorType === "user").map((l) => l.actorId)
+      ),
+    ];
 
     // Fetch all users in parallel
     const users = await Promise.all(
-      userIds.map((userId) => clerkClient.users.getUser(userId).catch(() => null)),
+      userIds.map((userId) =>
+        clerkClient.users.getUser(userId).catch(() => null)
+      )
     );
 
     // Convert array to record object
-    return users.reduce(
-      (acc, user) => {
-        if (user) {
-          acc[user.id] = user;
-        }
-        return acc;
-      },
-      {} as Record<string, User>,
-    );
+    return users.reduce((acc, user) => {
+      if (user) {
+        acc[user.id] = user;
+      }
+      return acc;
+    }, {} as Record<string, User>);
   } catch (error) {
     console.error("Error fetching users:", error);
     return {};

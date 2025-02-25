@@ -1,0 +1,124 @@
+import { cn } from "@/lib/utils";
+import type { AuditData } from "../../../audit.type";
+
+/**
+ * Determines the event type based on the event name
+ */
+export const getEventType = (
+  event: string
+): "create" | "update" | "delete" | "other" => {
+  const eventLower = event.toLowerCase();
+
+  if (eventLower.includes("create") || eventLower.includes("add")) {
+    return "create";
+  }
+
+  if (
+    eventLower.includes("update") ||
+    eventLower.includes("edit") ||
+    eventLower.includes("modify")
+  ) {
+    return "update";
+  }
+
+  if (eventLower.includes("delete") || eventLower.includes("remove")) {
+    return "delete";
+  }
+
+  return "other";
+};
+
+export const AUDIT_STATUS_STYLES = {
+  create: {
+    base: "text-success-11",
+    hover: "hover:bg-success-3",
+    selected: "bg-success-3",
+    badge: {
+      default: "bg-success-4 text-success-11 group-hover:bg-success-5",
+      selected: "bg-success-5 text-success-12 hover:bg-success-5",
+    },
+    background: "bg-success-2",
+    focusRing: "focus:ring-success-7",
+  },
+  update: {
+    base: "text-warning-11",
+    hover: "hover:bg-warning-3",
+    selected: "bg-warning-3",
+    badge: {
+      default: "bg-warning-4 text-warning-11 group-hover:bg-warning-5",
+      selected: "bg-warning-5 text-warning-12 hover:bg-warning-5",
+    },
+    background: "bg-warning-2",
+    focusRing: "focus:ring-warning-7",
+  },
+  delete: {
+    base: "text-error-11",
+    hover: "hover:bg-error-3",
+    selected: "bg-error-3",
+    badge: {
+      default: "bg-error-4 text-error-11 group-hover:bg-error-5",
+      selected: "bg-error-5 text-error-12 hover:bg-error-5",
+    },
+    background: "bg-error-2",
+    focusRing: "focus:ring-error-7",
+  },
+  other: {
+    base: "text-accent-11",
+    hover: "hover:bg-accent-3",
+    selected: "bg-accent-3",
+    badge: {
+      default: "bg-accent-4 text-accent-11 group-hover:bg-accent-5",
+      selected: "bg-accent-5 text-accent-12 hover:bg-accent-5",
+    },
+    background: "bg-accent-2",
+    focusRing: "focus:ring-accent-7",
+  },
+};
+
+/**
+ * Get the style configuration for an audit log entry
+ */
+export const getAuditStatusStyle = (item: AuditData) => {
+  const eventType = getEventType(item.auditLog.event);
+  return AUDIT_STATUS_STYLES[eventType];
+};
+
+/**
+ * Get the row class name for an audit log entry
+ */
+export const getAuditRowClassName = (
+  item: AuditData,
+  isSelected: boolean,
+  logSelected: boolean
+) => {
+  const eventType = getEventType(item.auditLog.event);
+  const style = AUDIT_STATUS_STYLES[eventType];
+
+  return cn(
+    style.base,
+    style.hover,
+    "group rounded-md",
+    "focus:outline-none focus:ring-1 focus:ring-opacity-40",
+    style.focusRing,
+    isSelected && style.selected,
+    logSelected && {
+      "opacity-50 z-0": !isSelected,
+      "opacity-100 z-10": isSelected,
+    }
+  );
+};
+
+/**
+ * Get the selected class name for an audit log entry
+ */
+export const getAuditSelectedClassName = (
+  item: AuditData,
+  isSelected: boolean
+) => {
+  if (!isSelected) {
+    return "";
+  }
+
+  const style = AUDIT_STATUS_STYLES[getEventType(item.auditLog.event)];
+  return style.selected;
+};
