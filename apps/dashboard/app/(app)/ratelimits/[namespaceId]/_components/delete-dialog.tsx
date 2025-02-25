@@ -77,7 +77,7 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
   return (
     <Dialog open={isModalOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className="bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-4 rounded-lg p-0 gap-0"
+        className="bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-4 rounded-2xl p-0 gap-0"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
         }}
