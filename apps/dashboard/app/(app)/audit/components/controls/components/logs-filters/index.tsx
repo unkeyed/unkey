@@ -1,4 +1,4 @@
-import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
+import { useFilters } from "@/app/(app)/audit/hooks/use-filters";
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -27,7 +27,7 @@ export const LogsFilters = (props: WorkspaceProps) => {
           component: <UsersFilter users={props.members} />,
         },
         {
-          id: "root-keys",
+          id: "rootKeys",
           label: "Root Keys",
           shortcut: "p",
           component: <RootKeysFilter rootKeys={props.rootKeys} />,

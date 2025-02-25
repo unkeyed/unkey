@@ -1,3 +1,4 @@
+import { useFilters } from "@/app/(app)/audit/hooks/use-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 
 export const BucketFilter = ({
@@ -8,23 +9,27 @@ export const BucketFilter = ({
     name: string | null;
   }[];
 }) => {
+  const { filters, updateFilters } = useFilters();
+
   return (
     <FilterCheckbox
       showScroll
       options={(bucketFilter ?? []).map((rootKey, index) => ({
         label: rootKey.name,
-        value: rootKey.id,
+        value: rootKey.name,
         checked: false,
         id: index,
       }))}
-      filterField="status"
-      checkPath="status"
+      filterField="bucket"
+      checkPath="value"
       renderOptionContent={(checkbox) => (
         <div className="text-accent-12 text-xs">{checkbox.label}</div>
       )}
       createFilterValue={(option) => ({
-        value: option.value,
+        value: option.value ?? "",
       })}
+      filters={filters}
+      updateFilters={updateFilters}
     />
   );
 };
