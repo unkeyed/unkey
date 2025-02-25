@@ -15,7 +15,7 @@ async function main() {
         isNotNull(table.stripeCustomerId),
         isNotNull(table.subscriptions),
         not(eq(table.plan, "free")),
-        isNull(table.deletedAt),
+        isNull(table.deletedAtM),
       ),
   });
   // hack to filter out workspaces with `{}` as subscriptions

@@ -1,6 +1,5 @@
 "use client";
 import { LogsTimeseriesBarChart } from "@/components/logs/chart";
-import { convertDateToLocal } from "@/components/logs/chart/utils/convert-date-to-local";
 import { useRatelimitLogsContext } from "../../context/logs";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchRatelimitTimeseries } from "./hooks/use-fetch-timeseries";
@@ -29,13 +28,13 @@ export function RatelimitLogsChart({
       ...activeFilters,
       {
         field: "startTime",
-        value: convertDateToLocal(start),
+        value: start,
         id: crypto.randomUUID(),
         operator: "is",
       },
       {
         field: "endTime",
-        value: convertDateToLocal(end),
+        value: end,
         id: crypto.randomUUID(),
         operator: "is",
       },

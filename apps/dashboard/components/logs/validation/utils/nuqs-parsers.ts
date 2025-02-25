@@ -55,3 +55,44 @@ export const parseAsFilterValueArray = <TOperator extends FilterOperator>(
     return value.map((v) => `${v.operator}:${v.value}`).join(",");
   },
 });
+
+const VALID_DIRECTIONS = ["asc", "desc"] as const;
+export type SortDirection = (typeof VALID_DIRECTIONS)[number];
+
+export type SortUrlValue<TColumn extends string> = {
+  column: TColumn;
+  direction: SortDirection;
+};
+
+export const parseAsSortArray = <TColumn extends string>(): Parser<
+  SortUrlValue<TColumn>[] | null
+> => ({
+  parse: (str: string | null) => {
+    if (!str) {
+      return null;
+    }
+    try {
+      return str.split(",").map((item) => {
+        const [column, direction] = item.split(":");
+        if (!column || !direction) {
+          throw new Error("Invalid sort format");
+        }
+        if (!VALID_DIRECTIONS.includes(direction as SortDirection)) {
+          throw new Error("Invalid direction");
+        }
+        return {
+          column: column as TColumn,
+          direction: direction as SortDirection,
+        };
+      });
+    } catch {
+      return null;
+    }
+  },
+  serialize: (value: SortUrlValue<TColumn>[] | null) => {
+    if (!value?.length) {
+      return "";
+    }
+    return value.map((v) => `${v.column}:${v.direction}`).join(",");
+  },
+});

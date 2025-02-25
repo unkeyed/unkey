@@ -25,7 +25,7 @@ test("Set ratelimit override", async (t) => {
     id: namespaceId,
     workspaceId: h.resources.userWorkspace.id,
     name: randomUUID(),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
 
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);

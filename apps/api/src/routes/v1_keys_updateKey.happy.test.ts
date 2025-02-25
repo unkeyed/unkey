@@ -21,7 +21,7 @@ test("returns 200", async (t) => {
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(key);
 
@@ -56,7 +56,7 @@ test("update all", async (t) => {
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(key);
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
@@ -109,7 +109,7 @@ test("update ratelimit", async (t) => {
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(key);
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
@@ -554,7 +554,7 @@ test("delete expires", async (t) => {
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
   };
   await h.db.primary.insert(schema.keys).values(key);
@@ -796,7 +796,7 @@ test("update should not affect undefined fields", async (t) => {
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
     ownerId: "ownerId",
     expires: new Date(Date.now() + 60 * 60 * 1000),
   };
@@ -842,7 +842,7 @@ test("update enabled true", async (t) => {
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
     enabled: false,
   };
   await h.db.primary.insert(schema.keys).values(key);
@@ -880,7 +880,7 @@ test("update enabled false", async (t) => {
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
     enabled: true,
   };
   await h.db.primary.insert(schema.keys).values(key);
@@ -918,7 +918,7 @@ test("omit enabled update", async (t) => {
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
     enabled: true,
   };
   await h.db.primary.insert(schema.keys).values(key);
@@ -1026,7 +1026,7 @@ describe("When refillDay is omitted.", () => {
       remaining: 10,
       hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
 
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     };
     await h.db.primary.insert(schema.keys).values(key);
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);

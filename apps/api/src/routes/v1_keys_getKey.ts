@@ -49,7 +49,7 @@ export const registerV1KeysGetKey = (app: App) =>
 
     const { val: data, err } = await cache.keyById.swr(keyId, async () => {
       const dbRes = await db.readonly.query.keys.findFirst({
-        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
+        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAtM)),
         with: {
           encrypted: true,
           permissions: { with: { permission: true } },
@@ -146,7 +146,7 @@ export const registerV1KeysGetKey = (app: App) =>
       name: key.name ?? undefined,
       ownerId: key.ownerId ?? undefined,
       meta: key.meta ? JSON.parse(key.meta) : undefined,
-      createdAt: key.createdAt.getTime(),
+      createdAt: key.createdAtM,
       updatedAt: key.updatedAtM ?? undefined,
       expires: key.expires?.getTime() ?? undefined,
       remaining: key.remaining ?? undefined,

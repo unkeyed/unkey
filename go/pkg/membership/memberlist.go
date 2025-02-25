@@ -4,23 +4,21 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fmsg"
 	"github.com/hashicorp/memberlist"
 	"github.com/unkeyed/unkey/go/pkg/discovery"
 	"github.com/unkeyed/unkey/go/pkg/events"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
 type Config struct {
 	NodeID     string
-	Addr       net.IP
+	Addr       string
 	GossipPort int
 	Logger     logging.Logger
 }
@@ -126,7 +124,7 @@ func (m *membership) Start(discover discovery.Discoverer) error {
 				return joinErr
 			})
 		if err != nil {
-			return fault.Wrap(err, fmsg.With("Failed to join"))
+			return fault.Wrap(err, fault.WithDesc("Failed to join", ""))
 		}
 
 	}
@@ -140,7 +138,7 @@ func (m *membership) Members() ([]Member, error) {
 		if m.State == memberlist.StateAlive {
 			members = append(members, Member{
 				NodeID: m.Name,
-				Addr:   m.Addr,
+				Addr:   m.Addr.String(),
 			})
 		}
 	}

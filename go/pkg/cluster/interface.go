@@ -2,13 +2,12 @@ package cluster
 
 import (
 	"context"
-	"net"
 )
 
 type Node struct {
 	ID      string
 	RpcAddr string
-	Addr    net.IP
+	Addr    string
 }
 
 // Cluster abstracts away membership and consistent hashing.

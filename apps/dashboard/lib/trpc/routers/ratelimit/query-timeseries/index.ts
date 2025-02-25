@@ -8,20 +8,13 @@ import { transformRatelimitFilters } from "./utils";
 export const queryRatelimitTimeseries = rateLimitedProcedure(ratelimit.update)
   .input(ratelimitQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
-    // Validate workspace exists and belongs to tenant
-    const workspace = await db.query.workspaces
-      .findFirst({
+    const ratelimitNamespaces = await db.query.ratelimitNamespaces
+      .findMany({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-        with: {
-          ratelimitNamespaces: {
-            where: (table, { and, eq, isNull }) =>
-              and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
-            columns: {
-              id: true,
-            },
-          },
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            and(eq(table.id, input.namespaceId), isNull(table.deletedAtM)),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -31,14 +24,14 @@ export const queryRatelimitTimeseries = rateLimitedProcedure(ratelimit.update)
         });
       });
 
-    if (!workspace) {
+    if (!ratelimitNamespaces) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Ratelimit namespaces not found, please contact support using support@unkey.dev.",
       });
     }
 
-    if (workspace.ratelimitNamespaces.length === 0) {
+    if (ratelimitNamespaces.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Namespace not found",
@@ -51,8 +44,8 @@ export const queryRatelimitTimeseries = rateLimitedProcedure(ratelimit.update)
     // Query clickhouse using our new ratelimit timeseries functions
     const result = await clickhouse.ratelimits.timeseries[granularity]({
       ...transformedInputs,
-      workspaceId: workspace.id,
-      namespaceId: workspace.ratelimitNamespaces[0].id,
+      workspaceId: ctx.workspace.id,
+      namespaceId: ratelimitNamespaces[0].id,
     });
 
     if (result.err) {

@@ -17,7 +17,7 @@
     "@unkey/tsconfig": "workspace:^",
     "@vitest/ui": "^1.6.0",
     "typescript": "^5.5.3",
-    "vitest": "^1.6.0",
+    "vitest": "^1.6.1",
     "wrangler": "^3.92.0"
   },
   "dependencies": {

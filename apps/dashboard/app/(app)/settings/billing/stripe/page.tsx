@@ -23,7 +23,7 @@ export default async function StripeRedirect(props: Props) {
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
   });
   if (!ws) {
     return redirect("/new");

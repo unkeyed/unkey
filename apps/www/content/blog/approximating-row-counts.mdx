@@ -71,7 +71,7 @@ if (keySpace.sizeLastUpdatedAt < Date.now() - 60_000) {
   const count = await db
     .select({ count: sql<string>`count(*)` })
     .from(schema.keys)
-    .where(and(eq(schema.keys.keySpaceId, keySpace.id), isNull(schema.keys.deletedAt)));
+    .where(and(eq(schema.keys.keySpaceId, keySpace.id), isNull(schema.keys.deletedAtM)));
 
   keySpace.sizeApprox = Number.parseInt(count?.at(0)?.count ?? "0");
   keySpace.sizeLastUpdatedAt = Date.now();

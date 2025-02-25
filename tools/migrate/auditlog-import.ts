@@ -95,7 +95,7 @@ async function main() {
         actorName: log.actorName,
         actorMeta: log.actorMeta ? JSON.parse(log.actorMeta) : null,
         createdAt: Date.now(),
-        updatedAt: null,
+        updatedAtM: null,
       });
 
       const resources: Array<{
@@ -116,7 +116,7 @@ async function main() {
           name: r.name,
           meta: r.meta,
           createdAt: Date.now(),
-          updatedAt: null,
+          updatedAtM: null,
         });
       }
     }

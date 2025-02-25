@@ -130,14 +130,14 @@ export default async function RolesPage(props: Props) {
               <Metric
                 className="border rounded-lg"
                 label="Created At"
-                value={format(permission.createdAt, "PPPP")}
+                value={format(permission.createdAtM, "PPPP")}
               />
               <Metric
                 className="border rounded-lg"
                 label="Updated At"
                 value={
-                  permission.updatedAt
-                    ? format(permission.updatedAt?.toDateString(), "PPPP")
+                  permission.updatedAtM
+                    ? format(new Date(permission.updatedAtM).toDateString(), "PPPP")
                     : "Not updated yet"
                 }
               />

@@ -21,8 +21,19 @@
       "description": "Cluster configuration",
       "properties": {
         "advertiseAddr": {
-          "type": "string",
-          "description": "The address to advertise to other nodes"
+          "type": "object",
+          "description": "A mechanism of retrieving the address of the current node.",
+          "properties": {
+            "awsEcsMetadata": {
+              "type": "boolean",
+              "description": "Use AWS ECS metadata to retrieve the address of the current node"
+            },
+            "static": {
+              "type": "string",
+              "description": "The address to advertise to other nodes"
+            }
+          },
+          "additionalProperties": false
         },
         "discovery": {
           "type": "object",
@@ -76,7 +87,7 @@
         }
       },
       "additionalProperties": false,
-      "required": ["rpcPort", "gossipPort"]
+      "required": ["advertiseAddr", "rpcPort", "gossipPort"]
     },
     "database": {
       "type": "object",

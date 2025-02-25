@@ -34,7 +34,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
         await db.query.keys.findMany({
           where: (table, { isNotNull, isNull, and, gt, or, eq }) => {
             const baseConditions = and(
-              isNull(table.deletedAt),
+              isNull(table.deletedAtM),
               isNotNull(table.refillAmount),
               gt(table.refillAmount, table.remaining),
               or(isNull(table.refillDay), eq(table.refillDay, today)),

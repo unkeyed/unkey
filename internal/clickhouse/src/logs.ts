@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type { Querier } from "./client/interface";
-import { dateTimeToUnix } from "./util";
 
 export const getLogsClickhousePayload = z.object({
   workspaceId: z.string(),
@@ -190,7 +189,7 @@ export const logsTimeseriesParams = z.object({
 });
 
 export const logsTimeseriesDataPoint = z.object({
-  x: dateTimeToUnix,
+  x: z.number().int(),
   y: z.object({
     success: z.number().int().default(0),
     error: z.number().int().default(0),
@@ -204,46 +203,98 @@ export type LogsTimeseriesParams = z.infer<typeof logsTimeseriesParams>;
 
 type TimeInterval = {
   table: string;
-  timeFunction: string;
   step: string;
+  stepSize: number;
 };
 
 const INTERVALS: Record<string, TimeInterval> = {
   minute: {
     table: "metrics.api_requests_per_minute_v1",
-    timeFunction: "toStartOfMinute",
     step: "MINUTE",
+    stepSize: 1,
+  },
+  fiveMinutes: {
+    table: "metrics.api_requests_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 5,
+  },
+  fifteenMinutes: {
+    table: "metrics.api_requests_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 15,
+  },
+  thirtyMinutes: {
+    table: "metrics.api_requests_per_minute_v1",
+    step: "MINUTES",
+    stepSize: 30,
   },
   hour: {
     table: "metrics.api_requests_per_hour_v1",
-    timeFunction: "toStartOfHour",
     step: "HOUR",
+    stepSize: 1,
+  },
+  twoHours: {
+    table: "metrics.api_requests_per_hour_v1",
+    step: "HOURS",
+    stepSize: 2,
+  },
+  fourHours: {
+    table: "metrics.api_requests_per_hour_v1",
+    step: "HOURS",
+    stepSize: 4,
+  },
+  sixHours: {
+    table: "metrics.api_requests_per_hour_v1",
+    step: "HOURS",
+    stepSize: 6,
   },
   day: {
     table: "metrics.api_requests_per_day_v1",
-    timeFunction: "toStartOfDay",
     step: "DAY",
+    stepSize: 1,
   },
 } as const;
 
 function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
+  // For SQL interval definitions
+  const intervalUnit = {
+    MINUTE: "minute",
+    MINUTES: "minute",
+    HOUR: "hour",
+    HOURS: "hour",
+    DAY: "day",
+    MONTH: "month",
+  }[interval.step];
+
+  // For millisecond step calculation
+  const msPerUnit = {
+    MINUTE: 60_000,
+    MINUTES: 60_000,
+    HOUR: 3600_000,
+    HOURS: 3600_000,
+    DAY: 86400_000,
+    MONTH: 2592000_000,
+  }[interval.step];
+
+  const stepMs = msPerUnit! * interval.stepSize;
+
   return `
     SELECT
-    time as x,
-    map(
-        'success', SUM(IF(response_status >= 200 AND response_status < 300, count, 0)),
-        'warning', SUM(IF(response_status >= 400 AND response_status < 500, count, 0)),
-        'error', SUM(IF(response_status >= 500, count, 0)),
-        'total', SUM(count)
-    ) as y
-FROM ${interval.table}
-${whereClause}
-GROUP BY time
-ORDER BY time ASC
-WITH FILL
-    FROM ${interval.timeFunction}(fromUnixTimestamp64Milli({startTime: Int64}))
-    TO ${interval.timeFunction}(fromUnixTimestamp64Milli({endTime: Int64}))
-    STEP INTERVAL 1 ${interval.step}  `;
+      toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3))) as x,
+      map(
+          'success', SUM(IF(response_status >= 200 AND response_status < 300, count, 0)),
+          'warning', SUM(IF(response_status >= 400 AND response_status < 500, count, 0)),
+          'error', SUM(IF(response_status >= 500, count, 0)),
+          'total', SUM(count)
+      ) as y
+    FROM ${interval.table}
+    ${whereClause}
+    GROUP BY x
+    ORDER BY x ASC
+    WITH FILL
+      FROM toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3)))
+      TO toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3)))
+      STEP ${stepMs}`;
 }
 
 function getLogsTimeseriesWhereClause(
@@ -346,5 +397,11 @@ function createTimeseriesQuerier(interval: TimeInterval) {
 }
 
 export const getMinutelyLogsTimeseries = createTimeseriesQuerier(INTERVALS.minute);
+export const getFiveMinuteLogsTimeseries = createTimeseriesQuerier(INTERVALS.fiveMinutes);
+export const getFifteenMinuteLogsTimeseries = createTimeseriesQuerier(INTERVALS.fifteenMinutes);
+export const getThirtyMinuteLogsTimeseries = createTimeseriesQuerier(INTERVALS.thirtyMinutes);
 export const getHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.hour);
+export const getTwoHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.twoHours);
+export const getFourHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.fourHours);
+export const getSixHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.sixHours);
 export const getDailyLogsTimeseries = createTimeseriesQuerier(INTERVALS.day);

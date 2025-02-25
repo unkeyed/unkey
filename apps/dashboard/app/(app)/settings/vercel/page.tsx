@@ -23,16 +23,16 @@ export default async function Page(props: Props) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     with: {
       apis: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        where: (table, { isNull }) => isNull(table.deletedAtM),
       },
       vercelIntegrations: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        where: (table, { isNull }) => isNull(table.deletedAtM),
         with: {
           vercelBindings: {
-            where: (table, { isNull }) => isNull(table.deletedAt),
+            where: (table, { isNull }) => isNull(table.deletedAtM),
           },
         },
       },

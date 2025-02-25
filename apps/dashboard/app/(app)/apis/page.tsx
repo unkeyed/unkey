@@ -20,10 +20,10 @@ export default async function ApisOverviewPage(props: Props) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     with: {
       apis: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        where: (table, { isNull }) => isNull(table.deletedAtM),
       },
     },
   });
@@ -39,7 +39,7 @@ export default async function ApisOverviewPage(props: Props) {
       keys: await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
-        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt))),
+        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAtM))),
     })),
   );
 

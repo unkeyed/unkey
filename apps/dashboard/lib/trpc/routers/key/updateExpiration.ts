@@ -39,7 +39,7 @@ export const updateKeyExpiration = t.procedure
           and(
             eq(table.workspaceId, ctx.workspace.id),
             eq(table.id, input.keyId),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
           ),
       })
       .catch((_err) => {

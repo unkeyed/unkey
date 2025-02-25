@@ -87,7 +87,7 @@ export const registerV1RatelimitGetOverride = (app: App) =>
       with: {
         overrides: {
           where: (table, { eq, and, isNull }) =>
-            and(isNull(table.deletedAt), eq(table.identifier, identifier)),
+            and(isNull(table.deletedAtM), eq(table.identifier, identifier)),
         },
       },
     });

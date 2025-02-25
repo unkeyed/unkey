@@ -291,7 +291,7 @@ const ConnectedResource: React.FC<{
               <DropdownMenuLabel className="flex items-center justify-between w-full gap-2">
                 <span className="text-sm text-content">
                   Edited{" "}
-                  {ms(Date.now() - props.binding?.updatedAt.getTime(), {
+                  {ms(Date.now() - props.binding!.updatedAtM!, {
                     long: true,
                   })}{" "}
                   ago by {props.binding?.updatedBy.name}

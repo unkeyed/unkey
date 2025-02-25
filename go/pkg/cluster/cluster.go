@@ -87,7 +87,7 @@ func (c *cluster) keepInSync() {
 				err := c.ring.AddNode(ctx, ring.Node[Node]{
 					ID: node.NodeID,
 					Tags: Node{
-						RpcAddr: fmt.Sprintf("%s:%d", node.Addr.String(), c.rpcPort),
+						RpcAddr: fmt.Sprintf("%s:%d", node.Addr, c.rpcPort),
 						ID:      node.NodeID,
 						Addr:    node.Addr,
 					},

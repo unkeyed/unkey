@@ -9,9 +9,7 @@ export const keyMigrationErrors = mysqlTable("key_migration_errors", {
     .notNull()
     .$defaultFn(() => Date.now()),
 
-  workspaceId: varchar("workspace_id", { length: 256 })
-    .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
   message: json("message")
     .$type<{

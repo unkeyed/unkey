@@ -17,7 +17,7 @@ test("returns an empty verifications array", async (t) => {
     hash: await sha256(key),
     start: key.slice(0, 8),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_key`]);
   const res = await h.get<V1KeysGetVerificationsResponse>({
@@ -45,7 +45,7 @@ test("ownerId works too", async (t) => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       ownerId,
     });
   }

@@ -31,7 +31,7 @@ export function PageLayout({ children, rootKey: key, params: { keyId } }: Props)
         </CardHeader>
         <CardContent className="flex flex-wrap justify-between divide-x [&>div:first-child]:pl-0">
           <Metric label="ID" value={<span className="font-mono">{key.id}</span>} />
-          <Metric label="Created At" value={key.createdAt.toDateString()} />
+          <Metric label="Created At" value={new Date(key.createdAtM).toDateString()} />
           <Metric
             label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"}
             value={key.expires ? ms(key.expires.getTime() - Date.now()) : "-"}

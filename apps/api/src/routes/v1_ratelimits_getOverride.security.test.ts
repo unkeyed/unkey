@@ -17,7 +17,7 @@ runCommonRouteTests<V1RatelimitGetOverrideRequest>({
     const namespace = {
       id: namespaceId,
       workspaceId: rh.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       name: newId("test"),
     };
     await rh.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
@@ -52,7 +52,7 @@ describe("correct roles", () => {
         const namespace = {
           id: namespaceId,
           workspaceId: h.resources.userWorkspace.id,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
           name: randomUUID(),
         };
         await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
@@ -94,7 +94,7 @@ describe("incorrect roles", () => {
       const namespace = {
         id: namespaceId,
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         name: randomUUID(),
       };
       await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
