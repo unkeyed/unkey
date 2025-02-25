@@ -26,7 +26,7 @@ export const auditQueryParamsPayload = {
   since: parseAsRelativeTime,
 } as const;
 
-export const useAuditFilters = () => {
+export const useFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(
     auditQueryParamsPayload
   );

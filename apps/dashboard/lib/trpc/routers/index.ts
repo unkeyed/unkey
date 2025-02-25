@@ -139,7 +139,7 @@ export const router = t.router({
     llmSearch,
   }),
   audit: t.router({
-    fetch: fetchAuditLog,
+    logs: fetchAuditLog,
   }),
 });
 
