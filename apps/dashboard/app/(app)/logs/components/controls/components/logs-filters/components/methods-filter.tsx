@@ -1,3 +1,4 @@
+import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 
 type MethodOption = {
@@ -15,6 +16,7 @@ const options: MethodOption[] = [
 ] as const;
 
 export const MethodsFilter = () => {
+  const { filters, updateFilters } = useFilters();
   return (
     <FilterCheckbox
       options={options}
@@ -26,6 +28,8 @@ export const MethodsFilter = () => {
       createFilterValue={(option) => ({
         value: option.method,
       })}
+      filters={filters}
+      updateFilters={updateFilters}
     />
   );
 };
