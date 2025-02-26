@@ -130,8 +130,12 @@ export async function setPermissions(
 
   const [key, existingPermissions, connectedPermissions] = await Promise.all([
     db.primary.query.keys.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, keyId)),
+      where: (table, { eq, and, isNull }) =>
+        and(
+          eq(table.workspaceId, auth.authorizedWorkspaceId),
+          eq(table.id, keyId),
+          isNull(table.deletedAtM),
+        ),
     }),
     db.primary.query.permissions.findMany({
       where: (table, { eq, or, and, inArray }) =>
