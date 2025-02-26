@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getCurrentUser, listMemberships, refreshSession } from "../actions";
+import { getCurrentUser, listMemberships, switchOrg } from "../actions";
 import type { Membership, User } from "../types";
 
 type ErrorState = {
@@ -88,10 +88,20 @@ export function useUser() {
     try {
       setLoadingState("switch", true);
       clearError("switch");
-      await refreshSession(orgId);
-      await fetchUser(); // user.orgId will change
+      
+      const result = await switchOrg(orgId);
+      
+      if (result.success) {
+        // Refresh the page to update the app with the new organization context
+        window.location.reload();
+      } else {
+        throw new Error(result.error || "Failed to switch organization");
+      }
     } catch (err) {
-      setError("switch", err instanceof Error ? err : new Error("Failed to switch organization"));
+      setError(
+        "switch", 
+        err instanceof Error ? err : new Error("Failed to switch organization")
+      );
     } finally {
       setLoadingState("switch", false);
     }

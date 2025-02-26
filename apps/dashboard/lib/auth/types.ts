@@ -87,8 +87,15 @@ export type InvitationListResponse = ListResponse<Invitation>;
 export interface SessionValidationResult {
   isValid: boolean;
   shouldRefresh: boolean;
+  token?: string;
   userId?: string;
   orgId?: string | null;
+}
+
+export interface SessionRefreshResult {
+  newToken: string;
+  expiresAt: Date;
+  session: SessionData | null;
 }
 
 export interface SessionData {

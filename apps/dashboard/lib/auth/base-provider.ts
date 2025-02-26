@@ -14,7 +14,7 @@ import {
   type OAuthResult,
   type OrgInviteParams,
   type Organization,
-  type SessionData,
+  SessionRefreshResult,
   type SessionValidationResult,
   type SignInViaOAuthOptions,
   type StateChangeResponse,
@@ -29,7 +29,7 @@ import {
 export abstract class BaseAuthProvider {
   // Session Management
   abstract validateSession(sessionToken: string): Promise<SessionValidationResult>;
-  abstract refreshSession(orgId?: string): Promise<SessionData | null>;
+  abstract refreshSession(sessionToken: string): Promise<SessionRefreshResult>;
 
   // Authentication
   abstract signInViaEmail(email: string): Promise<EmailAuthResult>;
@@ -55,6 +55,7 @@ export abstract class BaseAuthProvider {
   abstract updateOrg(params: UpdateOrgParams): Promise<Organization>;
   protected abstract createOrg(name: string): Promise<Organization>;
   abstract getOrg(orgId: string): Promise<Organization>;
+  abstract switchOrg(newOrgId: string): Promise<SessionRefreshResult>
 
   // Membership Management
   abstract listMemberships(): Promise<MembershipListResponse>;
@@ -149,7 +150,13 @@ export abstract class BaseAuthProvider {
         publicPaths: middlewareConfig.publicPaths,
       });
 
-      if (this.isPublicPath(pathname, middlewareConfig.publicPaths)) {
+      // Add refresh endpoint to public paths
+      const allPublicPaths = [
+        ...middlewareConfig.publicPaths,
+        "/api/auth/refresh"
+      ];
+
+      if (this.isPublicPath(pathname, allPublicPaths)) {
         console.debug("Public path detected, proceeding without auth check");
         return NextResponse.next();
       }
@@ -169,8 +176,34 @@ export abstract class BaseAuthProvider {
 
         if (validationResult.shouldRefresh) {
           try {
-            await this.refreshSession();
-            return NextResponse.next();
+            // Call the refresh route handler because you can only modify cookies in a route handlers or server action
+            // and you can't call a server action from middleware
+            const refreshResponse = await fetch(`${request.nextUrl.origin}/api/auth/refresh`, {
+              method: 'POST',
+              headers: {
+                'x-current-token': token,
+              },
+            });
+
+            if (!refreshResponse.ok) {
+              console.debug("Session refresh failed, redirecting to login: ", 
+                await refreshResponse.text());
+              const response = this.redirectToLogin(request, middlewareConfig);
+              response.cookies.delete(middlewareConfig.cookieName);
+              return response;
+            }
+
+            // Create a next response
+            const response = NextResponse.next();
+            
+            // Copy cookies from refresh response
+            refreshResponse.headers.forEach((value, key) => {
+              if (key.toLowerCase() === 'set-cookie') {
+                response.headers.append('Set-Cookie', value);
+              }
+            });
+            
+            return response;
           } catch (error) {
             console.debug("Session refresh failed, redirecting to login: ", error);
             const response = this.redirectToLogin(request, middlewareConfig);

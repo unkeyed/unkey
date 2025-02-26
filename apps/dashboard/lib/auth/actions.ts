@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "../db";
-import { deleteCookie, setCookies } from "./cookies";
+import { deleteCookie, setCookie, setCookies } from "./cookies";
 import { auth } from "./server";
 import {
   AuthErrorCode,
@@ -140,10 +140,37 @@ export async function listMemberships(): Promise<MembershipListResponse> {
   return await auth.listMemberships();
 }
 
-export async function refreshSession(orgId: string): Promise<SessionData | null> {
+export async function switchOrg(orgId: string): Promise<{ success: boolean; error?: string }> {
   const user = await requireAuth();
   await requireOrgAccess(orgId, user.id);
-  return await auth.refreshSession(orgId);
+  if (!orgId) {
+    return { success: false, error: "Missing organization ID" };
+  }
+  
+  try {
+    const { newToken, expiresAt } = await auth.switchOrg(orgId);
+    
+    // Set the new cookie
+    await setCookie({
+      name: UNKEY_SESSION_COOKIE,
+      value: newToken,
+      options: {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: '/',
+        maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000)
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Organization switch failed:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to switch organization"
+    };
+  }
 }
 
 // OAuth
