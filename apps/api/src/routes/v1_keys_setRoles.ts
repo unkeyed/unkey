@@ -126,8 +126,12 @@ export async function setRoles(
 
   const [key, existingRoles, connectedRoles] = await Promise.all([
     db.primary.query.keys.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, keyId)),
+      where: (table, { eq, and, isNull }) =>
+        and(
+          eq(table.workspaceId, auth.authorizedWorkspaceId),
+          eq(table.id, keyId),
+          isNull(table.deletedAt),
+        ),
     }),
     db.primary.query.roles.findMany({
       where: (table, { eq, or, and, inArray }) =>
