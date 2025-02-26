@@ -17,7 +17,12 @@ export const createKey = t.procedure
           message: "Prefixes cannot contain spaces.",
         })
         .optional(),
-      bytes: z.number().int().gte(16).default(16),
+      bytes: z
+        .number()
+        .int()
+        .min(8, { message: "Key must be between 8 and 255 bytes long" })
+        .max(255, { message: "Key must be between 8 and 255 bytes long" })
+        .default(16),
       keyAuthId: z.string(),
       ownerId: z.string().nullish(),
       meta: z.record(z.unknown()).optional(),
@@ -39,13 +44,16 @@ export const createKey = t.procedure
         .optional(),
       enabled: z.boolean().default(true),
       environment: z.string().optional(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const keyAuth = await db.query.keyAuth
       .findFirst({
         where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.keyAuthId)
+          ),
         with: {
           api: true,
         },

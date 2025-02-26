@@ -8,7 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -21,8 +27,8 @@ const formSchema = z.object({
   keyAuthId: z.string(),
   defaultBytes: z
     .number()
-    .min(16, "Byte size needs to be at least 16")
-    .max(255, "Byte size cannot exceed 255")
+    .min(8, "Key must be between 8 and 255 bytes long")
+    .max(255, "Key must be between 8 and 255 bytes long")
     .optional(),
 });
 
@@ -62,7 +68,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.defaultBytes === keyAuth.defaultBytes || !values.defaultBytes) {
       return toast.error(
-        "Please provide a different byte-size than already existing one as default",
+        "Please provide a different byte-size than already existing one as default"
       );
     }
     await setDefaultBytes.mutateAsync(values);
@@ -75,8 +81,8 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
           <CardHeader>
             <CardTitle>Default Bytes</CardTitle>
             <CardDescription>
-              Set default Bytes for the keys under this API. Default byte size must be between{" "}
-              <span className="font-bold">8 to 255</span>
+              Set default Bytes for the keys under this API. Default byte size
+              must be between <span className="font-bold">8 to 255</span>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -96,7 +102,11 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
                         className="max-w-sm"
                         {...field}
                         autoComplete="off"
-                        onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}
+                        onChange={(e) =>
+                          field.onChange(
+                            Number(e.target.value.replace(/\D/g, ""))
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
