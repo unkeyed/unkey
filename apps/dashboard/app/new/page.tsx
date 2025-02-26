@@ -14,6 +14,8 @@ import { CreateRatelimit } from "./create-ratelimit";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   searchParams: {
     workspaceId?: string;

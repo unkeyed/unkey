@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { LogsClient } from "./components/logs-client";
 
 import { Navigation } from "@/components/navigation/navigation";
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const tenantId = await getTenantId();
 

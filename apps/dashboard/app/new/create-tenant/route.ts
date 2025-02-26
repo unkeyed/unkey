@@ -2,6 +2,8 @@ import { auth } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(_request: NextRequest) {
   const user = await auth.getCurrentUser();
   if (!user) {
