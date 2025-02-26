@@ -1,12 +1,12 @@
 "use client";
 
+import { ResizablePanel } from "@/components/logs/details/resizable-panel";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { useMemo } from "react";
-import type { AuditData } from "../../../audit.type";
-import { DEFAULT_DRAGGABLE_WIDTH, PANEL_MAX_WIDTH, PANEL_MIN_WIDTH } from "../../../constants";
+import { DEFAULT_DRAGGABLE_WIDTH } from "../../../constants";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
 import { LogSection } from "./components/log-section";
-import { ResizablePanel } from "./resizable-panel";
 
 const createPanelStyle = (distanceToTop: number) => ({
   top: `${distanceToTop}px`,
@@ -17,8 +17,8 @@ const createPanelStyle = (distanceToTop: number) => ({
 
 type Props = {
   distanceToTop: number;
-  selectedLog: AuditData | null;
-  setSelectedLog: (log: AuditData | null) => void;
+  selectedLog: AuditLog | null;
+  setSelectedLog: (log: AuditLog | null) => void;
 };
 
 export const AuditLogDetails = ({ distanceToTop, selectedLog, setSelectedLog }: Props) => {
@@ -34,8 +34,6 @@ export const AuditLogDetails = ({ distanceToTop, selectedLog, setSelectedLog }: 
 
   return (
     <ResizablePanel
-      minW={PANEL_MIN_WIDTH}
-      maxW={PANEL_MAX_WIDTH}
       onClose={handleClose}
       className="absolute right-0 bg-gray-1 dark:bg-black font-mono drop-shadow-2xl overflow-y-auto z-20 p-4"
       style={panelStyle}

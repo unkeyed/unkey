@@ -4,11 +4,7 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Navbar } from "@/components/navbar";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/components/ui/toaster";
-import { Dots, Gauge } from "@unkey/icons";
-import { useState } from "react";
-import { DeleteNamespaceDialog } from "./_components/namespace-delete-dialog";
-import { NamespaceUpdateNameDialog } from "./_components/namespace-update-dialog";
+import { ChevronExpandY, Gauge } from "@unkey/icons";
 
 export const NamespaceNavbar = ({
   namespace,
@@ -29,9 +25,6 @@ export const NamespaceNavbar = ({
     text: string;
   };
 }) => {
-  const [isNamespaceNameUpdateModalOpen, setIsNamespaceNameUpdateModalOpen] = useState(false);
-
-  const [isNamespaceNameDeleteModalOpen, setIsNamespaceNameDeleteModalOpen] = useState(false);
   return (
     <>
       <Navbar>
@@ -43,57 +36,16 @@ export const NamespaceNavbar = ({
             className="group"
             noop
           >
-            <div className="flex gap-[10px] items-center">
-              <div className="flex items-center gap-2 group hover:bg-gray-3 rounded-lg p-1">
-                <QuickNavPopover
-                  items={ratelimitNamespaces.map((ns) => ({
-                    id: ns.id,
-                    label: ns.name,
-                    href: `/ratelimits/${ns.id}`,
-                  }))}
-                  shortcutKey="N"
-                >
-                  <div className="text-accent-10 group-hover:text-accent-12">{namespace.name}</div>
-                </QuickNavPopover>
-
-                <QuickNavPopover
-                  shortcutKey="D"
-                  title="Namespace actions..."
-                  items={[
-                    {
-                      id: "edit",
-                      hideRightIcon: true,
-                      label: "Edit namespace",
-                      onClick() {
-                        setIsNamespaceNameUpdateModalOpen(true);
-                      },
-                    },
-                    {
-                      id: "copy",
-                      label: "Copy ID",
-                      hideRightIcon: true,
-                      onClick: () => {
-                        navigator.clipboard.writeText(namespace.id);
-                        toast.success("Copied to clipboard", {
-                          description: namespace.id,
-                        });
-                      },
-                    },
-                    {
-                      id: "delete",
-                      hideRightIcon: true,
-                      itemClassName: "hover:bg-error-3",
-                      label: <div className="text-error-11">Delete namespace</div>,
-                      onClick() {
-                        setIsNamespaceNameDeleteModalOpen(true);
-                      },
-                    },
-                  ]}
-                >
-                  <Dots />
-                </QuickNavPopover>
-              </div>
-            </div>
+            <QuickNavPopover
+              items={ratelimitNamespaces.map((ns) => ({
+                id: ns.id,
+                label: ns.name,
+                href: `/ratelimits/${ns.id}`,
+              }))}
+              shortcutKey="N"
+            >
+              <div className="text-accent-10 group-hover:text-accent-12">{namespace.name}</div>
+            </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
             <QuickNavPopover
@@ -116,7 +68,10 @@ export const NamespaceNavbar = ({
               ]}
               shortcutKey="M"
             >
-              <div className="hover:bg-gray-3 rounded-lg p-1">{activePage.text}</div>
+              <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
+                {activePage.text}
+                <ChevronExpandY className="size-4" />
+              </div>
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
@@ -131,16 +86,6 @@ export const NamespaceNavbar = ({
           </Badge>
         </Navbar.Actions>
       </Navbar>
-      <NamespaceUpdateNameDialog
-        namespace={namespace}
-        onOpenChange={setIsNamespaceNameUpdateModalOpen}
-        isModalOpen={isNamespaceNameUpdateModalOpen}
-      />
-      <DeleteNamespaceDialog
-        namespace={namespace}
-        onOpenChange={setIsNamespaceNameDeleteModalOpen}
-        isModalOpen={isNamespaceNameDeleteModalOpen}
-      />
     </>
   );
 };

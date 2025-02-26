@@ -89,7 +89,7 @@ type User = { id: string; email: string };
 type Project = { name: string; description: string };
 
 /**
- * Next we'll be creating a store. A store is really just a small abstraction 
+ * Next we'll be creating a store. A store is really just a small abstraction
  * over a key-value database.
  */
 const memory = new MemoryStore({ persistentMap: new Map() });
@@ -101,7 +101,7 @@ const memory = new MemoryStore({ persistentMap: new Map() });
  * The `ctx` object is provided in the request handler and allows us to do some
  * background work without blocking the request.
  */
-const cache = createCache({ 
+const cache = createCache({
     user: new Namespace<User>(ctx, {
       stores: [memory],
       fresh: 60_000,
@@ -125,7 +125,7 @@ console.log(user);
 /**
  * To make full use of the SWR capabilities, we can use the `swr` method, which
  * will automatically handle the cache misses and cache updates for us.
- * This will check all stores for the value, and if it's not found, it will 
+ * This will check all stores for the value, and if it's not found, it will
  * call the provided function to get the value and cache it automatically.
  */
 const user = await cache.user.swr("userId", async () => {
@@ -151,7 +151,7 @@ const cloudflare = new CloudflareStore({
   cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
 });
 
-const cache = createCache({ 
+const cache = createCache({
   user: new Namespace<User>(ctx, {
     // memory is checked first, then cloudflare if memory misses
     stores: [memory, cloudflare],
@@ -168,10 +168,10 @@ console.log(user);
 ### Middleware
 
 There are two middlewares available out of the box:
-- **Metrics**: Collects and forwards metrics on cache hits, misses, latency and evictions. 
+- **Metrics**: Collects and forwards metrics on cache hits, misses, latency and evictions.
 
   `import { withMetrics } from "@unkey/cache/middleware";`
-- **Encryption**: Automatically encrypts and decrypts cache values. 
+- **Encryption**: Automatically encrypts and decrypts cache values.
 
   `import { withEncryption } from "@unkey/cache/middleware";`
 
@@ -184,4 +184,3 @@ At launch we ship with a memory store and a Cloudflare store, but everything is 
 Whether you're dealing with the limitations of serverless functions or simply need a nice caching abstraction, `@unkey/cache` has you covered.
 
 As usual, everything is open source, check out our [GitHub repository](https://github.com/unkeyed/unkey/tree/main/packages/cache) and our [documentation](https://www.unkey.com/docs/libraries/ts/cache/overview) for more information. We can't wait to see what you build with it!
-
