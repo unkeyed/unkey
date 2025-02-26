@@ -5,7 +5,7 @@ import {
   type Organization as WorkOSOrganization,
 } from "@workos-inc/node";
 import { BaseAuthProvider } from "./base-provider";
-import { getCookie, updateCookie } from "./cookies";
+import { getCookie } from "./cookies";
 import {
   AuthErrorCode,
   type EmailAuthResult,
@@ -17,7 +17,7 @@ import {
   type OrgInviteParams,
   type Organization,
   PENDING_SESSION_COOKIE,
-  type SessionData,
+  SessionRefreshResult,
   type SessionValidationResult,
   type SignInViaOAuthOptions,
   UNKEY_SESSION_COOKIE,
@@ -57,7 +57,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      const session = await this.provider.userManagement.loadSealedSession({
+      const session = this.provider.userManagement.loadSealedSession({
         sessionData: sessionToken,
         cookiePassword: this.cookiePassword,
       });
@@ -83,44 +83,43 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async refreshSession(orgId?: string): Promise<SessionData | null> {
-    const token = await getCookie(UNKEY_SESSION_COOKIE);
-    if (!token) {
-      console.error("No session found");
-      return null;
+  async refreshSession(sessionToken: string | null): Promise<SessionRefreshResult> {
+    if (!sessionToken) {
+      throw new Error("No session token provided");
     }
-
+  
     try {
       const session = this.provider.userManagement.loadSealedSession({
-        sessionData: token,
+        sessionData: sessionToken,
         cookiePassword: this.cookiePassword,
       });
-
+  
       const refreshResult = await session.refresh({
         cookiePassword: this.cookiePassword,
-        ...(orgId && { organizationId: orgId }),
       });
-
+  
       if (refreshResult.authenticated && refreshResult.session) {
-        await updateCookie(UNKEY_SESSION_COOKIE, refreshResult.sealedSession);
+        // Set expiration to 7 days from now
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+        
         return {
-          userId: refreshResult.session.user.id,
-          orgId: refreshResult.session.organizationId ?? null,
+          newToken: refreshResult.sealedSession!,
+          expiresAt,
+          session: {
+            userId: refreshResult.session.user.id,
+            orgId: refreshResult.session.organizationId ?? null,
+          }
         };
       }
-
-      await updateCookie(
-        UNKEY_SESSION_COOKIE,
-        null,
-        "reason" in refreshResult ? refreshResult.reason : "Session refresh failed",
-      );
-      return null;
+  
+      throw new Error("reason" in refreshResult ? refreshResult.reason : "Session refresh failed");
     } catch (error) {
       console.error("Session refresh error:", {
         error: error instanceof Error ? error.message : "Unknown error",
-        token: `${token.substring(0, 10)}...`,
+        token: sessionToken ? `${sessionToken.substring(0, 10)}...` : "no token",
       });
-      return null;
+      throw error;
     }
   }
 
@@ -233,6 +232,57 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       return this.transformOrganizationData(org);
     } catch (error) {
       throw this.handleError(error);
+    }
+  }
+
+  async switchOrg(newOrgId: string): Promise<SessionRefreshResult> {
+    // Get current session token
+    const currentToken = await getCookie(UNKEY_SESSION_COOKIE);
+    if (!currentToken) {
+      throw new Error("No active session found");
+    }
+  
+    try {
+      // Load the current session
+      const session = this.provider.userManagement.loadSealedSession({
+        sessionData: currentToken,
+        cookiePassword: this.cookiePassword,
+      });
+  
+      // Authenticate first to get the current user info
+      const authResult = await session.authenticate();
+      if (!authResult.authenticated) {
+        throw new Error("Session authentication failed");
+      }
+  
+      // Create a new session with the new organization ID
+      const refreshResult = await session.refresh({
+        cookiePassword: this.cookiePassword,
+        organizationId: newOrgId,
+      });
+  
+      if (!refreshResult.authenticated || !refreshResult.session) {
+        throw new Error("Organization switch failed");
+      }
+  
+      // Set expiration to 7 days from now
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      
+      return {
+        newToken: refreshResult.sealedSession!,
+        expiresAt,
+        session: {
+          userId: refreshResult.session.user.id,
+          orgId: newOrgId,
+        }
+      };
+    } catch (error) {
+      console.error("Organization switch error:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        newOrgId,
+      });
+      throw error;
     }
   }
 
