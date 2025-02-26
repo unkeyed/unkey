@@ -39,10 +39,7 @@ export type ApiListFilterUrlValue = Pick<
   FilterValue<ApiListFilterField, ApiListFilterOperator>,
   "value" | "operator"
 >;
-export type ApiListFilterValue = FilterValue<
-  ApiListFilterField,
-  ApiListFilterOperator
->;
+export type ApiListFilterValue = FilterValue<ApiListFilterField, ApiListFilterOperator>;
 
 export type ApiListQuerySearchParams = {
   startTime?: number | null;

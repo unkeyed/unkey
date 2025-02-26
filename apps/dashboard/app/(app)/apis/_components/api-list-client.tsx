@@ -42,11 +42,7 @@ export const ApiListClient = ({ apiList }: { apiList: API[] }) => {
       <ApiListControlCloud />
 
       <div className="p-5">
-        {apiList.length > 0 ? (
-          <NamespaceGrid apiList={apiList} />
-        ) : (
-          <EmptyNamespaces />
-        )}
+        {apiList.length > 0 ? <NamespaceGrid apiList={apiList} /> : <EmptyNamespaces />}
       </div>
     </div>
   );

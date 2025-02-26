@@ -5,14 +5,14 @@ import { useMemo } from "react";
 import type { VerificationQueryTimeseriesPayload } from "./query-timeseries.schema";
 import { useFilters } from "./use-filters";
 
-export const useFetchVerificationTimeseries = (keyspaceId: string) => {
+export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
   const { filters } = useFilters();
   const dateNow = useMemo(() => Date.now(), []);
 
   const queryParams = useMemo(() => {
     const params: VerificationQueryTimeseriesPayload = {
-      keyspaceId,
-      startTime: dateNow - TIMESERIES_DATA_WINDOW,
+      keyspaceId: keyspaceId ?? "",
+      startTime: dateNow - TIMESERIES_DATA_WINDOW * 24,
       endTime: dateNow,
       since: "",
     };
@@ -22,9 +22,7 @@ export const useFetchVerificationTimeseries = (keyspaceId: string) => {
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(
-              `${filter.field} filter value type has to be 'number'`
-            );
+            console.error(`${filter.field} filter value type has to be 'number'`);
             return;
           }
           params[filter.field] = filter.value;
@@ -44,10 +42,12 @@ export const useFetchVerificationTimeseries = (keyspaceId: string) => {
     return params;
   }, [filters, dateNow, keyspaceId]);
 
-  const { data, isLoading, isError } =
-    trpc.api.logs.queryVerificationTimeseries.useQuery(queryParams, {
+  const { data, isLoading, isError } = trpc.api.logs.queryVerificationTimeseries.useQuery(
+    queryParams,
+    {
       refetchInterval: queryParams.endTime ? false : 10_000,
-    });
+    },
+  );
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),

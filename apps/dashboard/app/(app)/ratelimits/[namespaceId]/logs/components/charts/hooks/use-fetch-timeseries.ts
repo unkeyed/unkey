@@ -34,9 +34,7 @@ export const useFetchRatelimitTimeseries = (namespaceId: string) => {
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(
-              `${filter.field} filter value type has to be 'number'`
-            );
+            console.error(`${filter.field} filter value type has to be 'number'`);
             return;
           }
           params[filter.field] = filter.value;
@@ -56,10 +54,12 @@ export const useFetchRatelimitTimeseries = (namespaceId: string) => {
     return params;
   }, [filters, dateNow, namespaceId]);
 
-  const { data, isLoading, isError } =
-    trpc.ratelimit.logs.queryRatelimitTimeseries.useQuery(queryParams, {
+  const { data, isLoading, isError } = trpc.ratelimit.logs.queryRatelimitTimeseries.useQuery(
+    queryParams,
+    {
       refetchInterval: queryParams.endTime ? false : 10_000,
-    });
+    },
+  );
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),

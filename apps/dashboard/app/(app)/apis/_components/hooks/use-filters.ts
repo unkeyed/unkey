@@ -55,7 +55,7 @@ export const useFilters = () => {
 
       setSearchParams(newParams);
     },
-    [setSearchParams]
+    [setSearchParams],
   );
 
   const removeFilter = useCallback(
@@ -63,7 +63,7 @@ export const useFilters = () => {
       const newFilters = filters.filter((f) => f.id !== id);
       updateFilters(newFilters);
     },
-    [filters, updateFilters]
+    [filters, updateFilters],
   );
 
   return {

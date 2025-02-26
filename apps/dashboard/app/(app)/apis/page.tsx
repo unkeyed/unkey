@@ -17,6 +17,7 @@ type Props = {
 export type API = {
   id: string;
   name: string;
+  keyspaceId: string | null;
   keys: {
     count: number;
   }[];
@@ -42,16 +43,12 @@ export default async function ApisOverviewPage(props: Props) {
     workspace.apis.map(async (api) => ({
       id: api.id,
       name: api.name,
+      keyspaceId: api.keyAuthId,
       keys: await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
-        .where(
-          and(
-            eq(schema.keys.keyAuthId, api.keyAuthId!),
-            isNull(schema.keys.deletedAtM)
-          )
-        ),
-    }))
+        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAtM))),
+    })),
   );
 
   // const unpaid =

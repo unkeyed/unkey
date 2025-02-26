@@ -1,11 +1,5 @@
 "use client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
 import { Empty } from "@unkey/ui";
@@ -47,7 +41,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
             placeholder="Search.."
             onChange={(e) => {
               const filtered = apis.filter((a) =>
-                a.name.toLowerCase().includes(e.target.value.toLowerCase())
+                a.name.toLowerCase().includes(e.target.value.toLowerCase()),
               );
               setLocalData(filtered);
             }}
@@ -68,9 +62,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
                 <CardContent>
                   <dl className="divide-y divide-gray-100 text-sm leading-6 ">
                     <div className="flex justify-between gap-x-4 py-3">
-                      <dt className="text-gray-500 dark:text-gray-400">
-                        API Keys
-                      </dt>
+                      <dt className="text-gray-500 dark:text-gray-400">API Keys</dt>
                       <dd className="flex items-start gap-x-2">
                         <div className="font-medium text-gray-900 dark:text-gray-200">
                           {api.keys.at(0)?.count ?? 0}

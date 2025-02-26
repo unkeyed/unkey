@@ -7,10 +7,9 @@ import { transformVerificationFilters } from "./utils";
 export const queryVerificationTimeseries = rateLimitedProcedure(ratelimit.read)
   .input(verificationQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
-    const { params: transformedInputs, granularity } =
-      transformVerificationFilters(input);
+    const { params: transformedInputs, granularity } = transformVerificationFilters(input);
 
-    const result = await clickhouse.verifications.timeseries["perHour"]({
+    const result = await clickhouse.verifications.timeseries[granularity]({
       ...transformedInputs,
       workspaceId: ctx.workspace.id,
       keyspaceId: input.keyspaceId,

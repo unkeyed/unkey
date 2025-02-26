@@ -14,10 +14,5 @@ export const LogsRefresh = () => {
     refresh();
   };
 
-  return (
-    <RefreshButton
-      onRefresh={handleRefresh}
-      isEnabled={Boolean(hasRelativeFilter)}
-    />
-  );
+  return <RefreshButton onRefresh={handleRefresh} isEnabled={Boolean(hasRelativeFilter)} />;
 };

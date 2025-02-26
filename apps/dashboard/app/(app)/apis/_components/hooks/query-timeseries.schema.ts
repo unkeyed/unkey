@@ -7,6 +7,4 @@ export const verificationQueryTimeseriesPayload = z.object({
   keyspaceId: z.string(),
 });
 
-export type VerificationQueryTimeseriesPayload = z.infer<
-  typeof verificationQueryTimeseriesPayload
->;
+export type VerificationQueryTimeseriesPayload = z.infer<typeof verificationQueryTimeseriesPayload>;

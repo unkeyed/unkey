@@ -8,7 +8,7 @@ export const formatTimestampLabel = (timestamp: string | number | Date) => {
 
 export const formatTimestampForChart = (
   value: string | number,
-  granularity: CompoundTimeseriesGranularity
+  granularity: CompoundTimeseriesGranularity,
 ) => {
   const date = new Date(value);
   const offset = new Date().getTimezoneOffset() * -1;
@@ -35,13 +35,8 @@ export const formatTimestampForChart = (
       return format(localDate, "MMM d");
     case "perWeek":
       return format(localDate, "MMM d");
-    case "per2Weeks":
-      return format(localDate, "MMM d");
     case "perMonth":
       return format(localDate, "MMM yyyy");
-    case "perQuarter":
-      return format(localDate, "QQQ yyyy");
-
     default:
       return format(localDate, "Pp");
   }
