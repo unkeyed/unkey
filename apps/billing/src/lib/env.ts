@@ -3,17 +3,6 @@ import { z } from "zod";
 export function env() {
   const parsed = z
     .object({
-      DATABASE_HOST: z.string(),
-      DATABASE_USERNAME: z.string(),
-      DATABASE_PASSWORD: z.string(),
-      CLICKHOUSE_URL: z.string(),
-      STRIPE_SECRET_KEY: z.string(),
-
-      STRIPE_PRODUCT_ID_KEY_VERIFICATIONS: z.string(),
-      STRIPE_PRODUCT_ID_RATELIMITS: z.string(),
-      STRIPE_PRODUCT_ID_PRO_PLAN: z.string(),
-      STRIPE_PRODUCT_ID_SUPPORT: z.string(),
-
       FIRECRAWL_API_KEY: z.string(),
       SERPER_API_KEY: z.string(),
     })
