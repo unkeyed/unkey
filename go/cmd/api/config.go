@@ -1,7 +1,7 @@
 package api
 
 type nodeConfig struct {
-	Platform  string `json:"platform,omitempty" description:"Operating system platform identifier (e.g., linux, darwin, windows)"`
+	Platform  string `json:"platform,omitempty" description:"Cloud platform identifier (e.g., aws, gcp, hetzner)"`
 	Image     string `json:"image,omitempty" description:"Container image identifier including repository and tag"`
 	HttpPort  int    `json:"httpPort" default:"7070" description:"HTTP port for the API server to listen on"`
 	Schema    string `json:"$schema,omitempty" description:"JSON Schema URI for configuration validation"`
