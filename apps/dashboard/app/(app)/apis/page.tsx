@@ -5,9 +5,10 @@ import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { Nodes } from "@unkey/icons";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiList } from "./client";
+
+export const dynamic = "force-dynamic";
 
 type Props = {
   searchParams: { new?: boolean };

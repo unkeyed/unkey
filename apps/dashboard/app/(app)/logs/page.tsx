@@ -7,6 +7,8 @@ import { Layers3 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { LogsClient } from "./components/logs-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const tenantId = await getTenantId();
 

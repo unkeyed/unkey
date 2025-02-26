@@ -7,6 +7,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   searchParams: {
     new_plan: "free" | "pro" | undefined;

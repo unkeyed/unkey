@@ -14,6 +14,7 @@ import Stripe from "stripe";
 import { Chart } from "./chart";
 
 export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function SuccessPage() {
   const tenantId = await getTenantId();
