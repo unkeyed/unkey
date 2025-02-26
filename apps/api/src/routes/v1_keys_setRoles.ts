@@ -130,7 +130,7 @@ export async function setRoles(
         and(
           eq(table.workspaceId, auth.authorizedWorkspaceId),
           eq(table.id, keyId),
-          isNull(table.deletedAt),
+          isNull(table.deletedAtM),
         ),
     }),
     db.primary.query.roles.findMany({

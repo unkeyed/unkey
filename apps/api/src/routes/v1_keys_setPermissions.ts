@@ -134,7 +134,7 @@ export async function setPermissions(
         and(
           eq(table.workspaceId, auth.authorizedWorkspaceId),
           eq(table.id, keyId),
-          isNull(table.deletedAt),
+          isNull(table.deletedAtM),
         ),
     }),
     db.primary.query.permissions.findMany({
