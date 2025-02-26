@@ -38,7 +38,7 @@ type Props = {
 
 const formSchema = z.object({
   name: validation.name,
-  description: validation.description.optional(),
+  description: validation.description,
 });
 
 export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
@@ -52,7 +52,6 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
   const createPermission = trpc.rbac.createPermission.useMutation({
     onSuccess() {
       toast.success("Permission created");
-
       router.refresh();
       form.reset({
         name: "",
@@ -66,6 +65,9 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (values.description === "") {
+      delete values.description;
+    }
     createPermission.mutate(values);
   }
   function handleDialogOpenChange(newState: boolean) {
@@ -116,9 +118,14 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
                   </FormLabel>
                   <FormControl>
                     <Textarea
-                      rows={form.getValues().description?.split("\n").length ?? 3}
+                      rows={3}
                       placeholder="Create a new domain in this account."
                       {...field}
+                      onBlur={(e) => {
+                        if (e.target.value === "") {
+                          return;
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
