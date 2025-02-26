@@ -2,35 +2,23 @@ import { formatTimestampForChart } from "@/components/logs/chart/utils/format-ti
 import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
-import { useFilters } from "../../../hooks/use-filters";
-import type { RatelimitQueryTimeseriesPayload } from "../query-timeseries.schema";
+import type { VerificationQueryTimeseriesPayload } from "./query-timeseries.schema";
+import { useFilters } from "./use-filters";
 
-export const useFetchRatelimitTimeseries = (namespaceId: string) => {
+export const useFetchVerificationTimeseries = (keyspaceId: string) => {
   const { filters } = useFilters();
   const dateNow = useMemo(() => Date.now(), []);
 
   const queryParams = useMemo(() => {
-    const params: RatelimitQueryTimeseriesPayload = {
-      namespaceId,
+    const params: VerificationQueryTimeseriesPayload = {
+      keyspaceId,
       startTime: dateNow - TIMESERIES_DATA_WINDOW,
       endTime: dateNow,
-      identifiers: { filters: [] },
       since: "",
     };
 
     filters.forEach((filter) => {
       switch (filter.field) {
-        case "identifiers": {
-          if (typeof filter.value !== "string") {
-            console.error("Identifier filter value type has to be 'string'");
-            return;
-          }
-          params.identifiers?.filters.push({
-            operator: filter.operator as "is" | "contains",
-            value: filter.value,
-          });
-          break;
-        }
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
@@ -54,20 +42,32 @@ export const useFetchRatelimitTimeseries = (namespaceId: string) => {
     });
 
     return params;
-  }, [filters, dateNow, namespaceId]);
+  }, [filters, dateNow, keyspaceId]);
 
   const { data, isLoading, isError } =
-    trpc.ratelimit.logs.queryRatelimitTimeseries.useQuery(queryParams, {
+    trpc.api.logs.queryVerificationTimeseries.useQuery(queryParams, {
       refetchInterval: queryParams.endTime ? false : 10_000,
     });
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),
     originalTimestamp: ts.x,
-    success: ts.y.passed,
-    error: ts.y.total - ts.y.passed,
+    valid: ts.y.valid,
+    insufficient_permissions: ts.y.insufficient_permissions,
+    rate_limited: ts.y.rate_limited,
+    forbidden: ts.y.forbidden,
+    disabled: ts.y.disabled,
+    expired: ts.y.expired,
+    usage_exceeded: ts.y.usage_exceeded,
     total: ts.y.total,
+    success: ts.y.valid,
+    error: ts.y.total - ts.y.valid,
   }));
 
-  return { timeseries, isLoading, isError };
+  return {
+    timeseries,
+    isLoading,
+    isError,
+    granularity: data?.granularity,
+  };
 };

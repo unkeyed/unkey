@@ -1,4 +1,4 @@
-import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
+import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { addMinutes, format, fromUnixTime } from "date-fns";
 
 export const formatTimestampLabel = (timestamp: string | number | Date) => {
@@ -8,7 +8,7 @@ export const formatTimestampLabel = (timestamp: string | number | Date) => {
 
 export const formatTimestampForChart = (
   value: string | number,
-  granularity: TimeseriesGranularity,
+  granularity: CompoundTimeseriesGranularity
 ) => {
   const date = new Date(value);
   const offset = new Date().getTimezoneOffset() * -1;
@@ -28,6 +28,20 @@ export const formatTimestampForChart = (
       return format(localDate, "MMM d, HH:mm");
     case "perDay":
       return format(localDate, "MMM d");
+
+    case "per12Hours":
+      return format(localDate, "MMM d, HH:mm");
+    case "per3Days":
+      return format(localDate, "MMM d");
+    case "perWeek":
+      return format(localDate, "MMM d");
+    case "per2Weeks":
+      return format(localDate, "MMM d");
+    case "perMonth":
+      return format(localDate, "MMM yyyy");
+    case "perQuarter":
+      return format(localDate, "QQQ yyyy");
+
     default:
       return format(localDate, "Pp");
   }

@@ -136,3 +136,195 @@ export function getVerificationsPerMonth(ch: Querier) {
     return ch.query({ query, params, schema })(args);
   };
 }
+
+export const verificationTimeseriesParams = z.object({
+  workspaceId: z.string(),
+  keyspaceId: z.string(),
+  keyId: z.string().optional(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  tags: z.array(z.string()).nullable(),
+  outcomes: z.array(outcome).nullable(),
+});
+
+export const verificationTimeseriesDataPoint = z.object({
+  x: z.number().int(),
+  y: z.object({
+    total: z.number().int().default(0),
+    valid: z.number().int().default(0),
+    insufficient_permissions: z.number().int().default(0),
+    rate_limited: z.number().int().default(0),
+    forbidden: z.number().int().default(0),
+    disabled: z.number().int().default(0),
+    expired: z.number().int().default(0),
+    usage_exceeded: z.number().int().default(0),
+  }),
+});
+
+export type VerificationTimeseriesDataPoint = z.infer<
+  typeof verificationTimeseriesDataPoint
+>;
+export type VerificationTimeseriesParams = z.infer<
+  typeof verificationTimeseriesParams
+>;
+
+type TimeInterval = {
+  table: string;
+  step: string;
+  stepSize: number;
+};
+
+const INTERVALS: Record<string, TimeInterval> = {
+  hour: {
+    table: "verifications.key_verifications_per_hour_v3",
+    step: "HOUR",
+    stepSize: 1,
+  },
+  twoHours: {
+    table: "verifications.key_verifications_per_hour_v3",
+    step: "HOURS",
+    stepSize: 2,
+  },
+  fourHours: {
+    table: "verifications.key_verifications_per_hour_v3",
+    step: "HOURS",
+    stepSize: 4,
+  },
+  sixHours: {
+    table: "verifications.key_verifications_per_hour_v3",
+    step: "HOURS",
+    stepSize: 6,
+  },
+  twelveHours: {
+    table: "verifications.key_verifications_per_hour_v3",
+    step: "HOURS",
+    stepSize: 12,
+  },
+  day: {
+    table: "verifications.key_verifications_per_day_v3",
+    step: "DAY",
+    stepSize: 1,
+  },
+  threeDays: {
+    table: "verifications.key_verifications_per_day_v3",
+    step: "DAYS",
+    stepSize: 3,
+  },
+  week: {
+    table: "verifications.key_verifications_per_day_v3",
+    step: "DAYS",
+    stepSize: 7,
+  },
+  twoWeeks: {
+    table: "verifications.key_verifications_per_day_v3",
+    step: "DAYS",
+    stepSize: 14,
+  },
+  // Monthly-based intervals
+  month: {
+    table: "verifications.key_verifications_per_month_v3",
+    step: "MONTH",
+    stepSize: 1,
+  },
+  quarter: {
+    table: "verifications.key_verifications_per_month_v3",
+    step: "MONTHS",
+    stepSize: 3,
+  },
+} as const;
+
+function createVerificationTimeseriesQuery(
+  interval: TimeInterval,
+  whereClause: string
+) {
+  const intervalUnit = {
+    HOUR: "hour",
+    HOURS: "hour",
+    DAY: "day",
+    DAYS: "day",
+    MONTH: "month",
+    MONTHS: "month",
+  }[interval.step];
+
+  return `
+    SELECT
+      toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) as x,
+      map(
+          'total', SUM(count),
+          'valid', SUM(IF(outcome = 'VALID', count, 0)),
+          'insufficient_permissions', SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0)),
+          'rate_limited', SUM(IF(outcome = 'RATE_LIMITED', count, 0)),
+          'forbidden', SUM(IF(outcome = 'FORBIDDEN', count, 0)),
+          'disabled', SUM(IF(outcome = 'DISABLED', count, 0)),
+          'expired', SUM(IF(outcome = 'EXPIRED', count, 0)),
+          'usage_exceeded', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))
+      ) as y
+    FROM ${interval.table}
+    ${whereClause}
+    GROUP BY x
+    ORDER BY x ASC
+    WITH FILL
+      FROM toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
+      TO toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit})
+      STEP INTERVAL ${interval.stepSize} ${intervalUnit}
+  `;
+}
+
+function getVerificationTimeseriesWhereClause(
+  params: VerificationTimeseriesParams
+): string {
+  const conditions = [
+    "workspace_id = {workspaceId: String}",
+    "key_space_id = {keyspaceId: String}",
+    "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+    "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+  ];
+
+  // Add tags filter if provided
+  if (params.tags && params.tags.length > 0) {
+    conditions.push("(hasAny(tags, {tags: Array(String)}))");
+  }
+
+  // Add outcomes filter if provided
+  if (params.outcomes && params.outcomes.length > 0) {
+    conditions.push("(outcome IN {outcomes: Array(String)})");
+  }
+
+  return conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+}
+
+function createVerificationTimeseriesQuerier(interval: TimeInterval) {
+  return (ch: Querier) => async (args: VerificationTimeseriesParams) => {
+    const whereClause = getVerificationTimeseriesWhereClause(args);
+    const query = createVerificationTimeseriesQuery(interval, whereClause);
+
+    return ch.query({
+      query,
+      params: verificationTimeseriesParams,
+      schema: verificationTimeseriesDataPoint,
+    })(args);
+  };
+}
+
+export const getHourlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.hour);
+export const getTwoHourlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.twoHours);
+export const getFourHourlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.fourHours);
+export const getSixHourlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.sixHours);
+export const getTwelveHourlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.twelveHours);
+export const getDailyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.day);
+export const getThreeDayVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.threeDays);
+export const getWeeklyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.week);
+export const getTwoWeeklyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.twoWeeks);
+export const getMonthlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.month);
+export const getQuarterlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.quarter);

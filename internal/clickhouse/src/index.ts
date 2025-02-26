@@ -1,4 +1,8 @@
-import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from "./active_keys";
+import {
+  getActiveKeysPerDay,
+  getActiveKeysPerHour,
+  getActiveKeysPerMonth,
+} from "./active_keys";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import { getLatestVerifications } from "./latest_verifications";
@@ -43,9 +47,20 @@ import { insertApiRequest } from "./requests";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
+  getDailyVerificationTimeseries,
+  getFourHourlyVerificationTimeseries,
+  getHourlyVerificationTimeseries,
+  getMonthlyVerificationTimeseries,
+  getQuarterlyVerificationTimeseries,
+  getSixHourlyVerificationTimeseries,
+  getThreeDayVerificationTimeseries,
+  getTwelveHourlyVerificationTimeseries,
+  getTwoHourlyVerificationTimeseries,
+  getTwoWeeklyVerificationTimeseries,
   getVerificationsPerDay,
   getVerificationsPerHour,
   getVerificationsPerMonth,
+  getWeeklyVerificationTimeseries,
   insertVerification,
 } from "./verifications";
 
@@ -91,6 +106,19 @@ export class ClickHouse {
       perDay: getVerificationsPerDay(this.querier),
       perMonth: getVerificationsPerMonth(this.querier),
       latest: getLatestVerifications(this.querier),
+      timeseries: {
+        perHour: getHourlyVerificationTimeseries(this.querier),
+        per2Hours: getTwoHourlyVerificationTimeseries(this.querier),
+        per4Hours: getFourHourlyVerificationTimeseries(this.querier),
+        per6Hours: getSixHourlyVerificationTimeseries(this.querier),
+        per12Hours: getTwelveHourlyVerificationTimeseries(this.querier),
+        perDay: getDailyVerificationTimeseries(this.querier),
+        per3Days: getThreeDayVerificationTimeseries(this.querier),
+        perWeek: getWeeklyVerificationTimeseries(this.querier),
+        per2Weeks: getTwoWeeklyVerificationTimeseries(this.querier),
+        perMonth: getMonthlyVerificationTimeseries(this.querier),
+        perQuarter: getQuarterlyVerificationTimeseries(this.querier),
+      },
     };
   }
   public get activeKeys() {
