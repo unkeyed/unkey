@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Check, ChevronsUpDown, Plus, UserPlus } from "lucide-react";
+import { Check, Plus, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useMemo, useState } from "react";
@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChevronExpandY } from "@unkey/icons";
 import Link from "next/link";
 
 type Props = {
@@ -95,7 +96,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
           )}
         </div>
 
-        <ChevronsUpDown className="hidden w-5 h-5 shrink-0 md:block [stroke-width:1px]" />
+        <ChevronExpandY className="hidden w-5 h-5 shrink-0 md:block [stroke-width:1px]" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="absolute left-0 w-96 max-sm:left-0">
         <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
