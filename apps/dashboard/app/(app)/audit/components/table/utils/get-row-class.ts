@@ -28,9 +28,9 @@ export const getEventType = (event: string): "create" | "update" | "delete" | "o
 
 export const AUDIT_STATUS_STYLES = {
   create: {
-    base: "text-success-11",
+    base: "text-accent-11",
     hover: "hover:bg-success-3",
-    selected: "bg-success-3",
+    selected: "bg-success-3 text-success-11",
     badge: {
       default: "bg-success-4 text-success-11 group-hover:bg-success-5",
       selected: "bg-success-5 text-success-12 hover:bg-success-5",
@@ -39,9 +39,9 @@ export const AUDIT_STATUS_STYLES = {
     focusRing: "focus:ring-success-7",
   },
   update: {
-    base: "text-warning-11",
+    base: "text-accent-11",
     hover: "hover:bg-warning-3",
-    selected: "bg-warning-3",
+    selected: "bg-warning-3 text-warning-11",
     badge: {
       default: "bg-warning-4 text-warning-11 group-hover:bg-warning-5",
       selected: "bg-warning-5 text-warning-12 hover:bg-warning-5",
@@ -50,15 +50,15 @@ export const AUDIT_STATUS_STYLES = {
     focusRing: "focus:ring-warning-7",
   },
   delete: {
-    base: "text-error-11",
-    hover: "hover:bg-error-3",
-    selected: "bg-error-3",
+    base: "text-accent-11",
+    hover: "hover:bg-orange-3",
+    selected: "bg-orange-3 text-orange-11",
     badge: {
-      default: "bg-error-4 text-error-11 group-hover:bg-error-5",
-      selected: "bg-error-5 text-error-12 hover:bg-error-5",
+      default: "bg-orange-4 text-orange-11 group-hover:bg-orange-5",
+      selected: "bg-orange-5 text-orange-12 hover:bg-orange-5",
     },
-    background: "bg-error-2",
-    focusRing: "focus:ring-error-7",
+    background: "bg-orange-2",
+    focusRing: "focus:ring-orange-7",
   },
   other: {
     base: "text-accent-11",

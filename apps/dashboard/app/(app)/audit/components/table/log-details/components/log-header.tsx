@@ -2,6 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
+import { AUDIT_STATUS_STYLES, getEventType } from "../../utils/get-row-class";
 
 type Props = {
   log: AuditLog;
@@ -9,15 +11,17 @@ type Props = {
 };
 
 export const LogHeader = ({ onClose, log }: Props) => {
+  const eventType = getEventType(log.auditLog.event);
+  const styles = AUDIT_STATUS_STYLES[eventType];
+
   return (
     <div className="border-b-[1px] flex justify-between items-center border-gray-4 pb-3 w-full">
       <div className="flex gap-2 items-center flex-1 min-w-0">
-        <Badge className="uppercase px-[6px] rounded-md font-mono bg-accent-4 text-accent-11 hover:bg-accent-5">
+        <Badge className={cn("uppercase px-[6px] rounded-md font-mono ", styles.badge.selected)}>
           {log.auditLog.event}
         </Badge>
       </div>
-
-      <div className="flex gap-1 items-center ">
+      <div className="flex gap-1 items-center">
         <div className="flex gap-3">
           <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
             <XMark className="text-gray-12 stroke-2" />

@@ -34,7 +34,7 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) 
     <VirtualTable
       ref={tableRef}
       data={historicalLogs}
-      columns={columns}
+      columns={columns(selectedLog)}
       isLoading={isLoading}
       isFetchingNextPage={isLoadingMore}
       onLoadMore={loadMore}
@@ -56,7 +56,7 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) 
   );
 };
 
-export const columns: Column<AuditLog>[] = [
+export const columns = (selectedLog: AuditLog | null): Column<AuditLog>[] => [
   {
     key: "time",
     header: "Time",
@@ -104,13 +104,14 @@ export const columns: Column<AuditLog>[] = [
     render: (log) => {
       const eventType = getEventType(log.auditLog.event);
       const style = getAuditStatusStyle(log);
+      const isSelected = log.auditLog.id === selectedLog?.auditLog.id;
 
       return (
         <div className="flex items-center gap-3 group/action">
           <Badge
             className={cn(
               "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-              style.badge.default,
+              isSelected ? style.badge.selected : style.badge.default,
             )}
           >
             {eventType}
