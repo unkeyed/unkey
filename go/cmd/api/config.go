@@ -1,46 +1,47 @@
 package api
 
 type nodeConfig struct {
-	Platform  string `json:"platform,omitempty" description:"The platform this agent is running on"`
-	Image     string `json:"image,omitempty" description:"The image this agent is running"`
-	HttpPort  int    `json:"httpPort" default:"7070" description:"Port to listen on"`
-	Schema    string `json:"$schema,omitempty" description:"Make jsonschema happy"`
-	Region    string `json:"region,omitempty" description:"The region this agent is running in"`
+	Platform  string `json:"platform,omitempty" description:"Operating system platform identifier (e.g., linux, darwin, windows)"`
+	Image     string `json:"image,omitempty" description:"Container image identifier including repository and tag"`
+	HttpPort  int    `json:"httpPort" default:"7070" description:"HTTP port for the API server to listen on"`
+	Schema    string `json:"$schema,omitempty" description:"JSON Schema URI for configuration validation"`
+	Region    string `json:"region,omitempty" description:"Geographic region identifier where this node is deployed"`
 	Heartbeat *struct {
-		URL      string `json:"url" minLength:"1" description:"URL to send heartbeat to"`
-		Interval int    `json:"interval" min:"1" description:"Interval in seconds to send heartbeat"`
-	} `json:"heartbeat,omitempty" description:"Send heartbeat to a URL"`
+		URL      string `json:"url" minLength:"1" description:"Complete URL endpoint where heartbeat signals will be sent"`
+		Interval int    `json:"interval" min:"1" description:"Time between heartbeat signals in seconds"`
+	} `json:"heartbeat,omitempty" description:"Configuration for health check heartbeat mechanism"`
 
 	Cluster *struct {
-		NodeID        string `json:"nodeId,omitempty" description:"A unique node id"`
+		NodeID        string `json:"nodeId,omitempty" description:"Unique identifier for this node within the cluster"`
 		AdvertiseAddr struct {
-			Static         *string `json:"static,omitempty" description:"The address to advertise to other nodes"`
-			AwsEcsMetadata *bool   `json:"awsEcsMetadata,omitempty" description:"Use AWS ECS metadata to retrieve the address of the current node"`
-		} `json:"advertiseAddr" description:"A mechanism of retrieving the address of the current node."`
-		RpcPort    string `json:"rpcPort" default:"7071" description:"The port used for RPC"`
-		GossipPort string `json:"gossipPort" default:"7072" description:"The port used for gossip"`
+			Static         *string `json:"static,omitempty" description:"Static IP address or hostname for node discovery"`
+			AwsEcsMetadata *bool   `json:"awsEcsMetadata,omitempty" description:"Enable automatic address discovery using AWS ECS container metadata"`
+		} `json:"advertiseAddr" description:"Node address advertisement configuration for cluster communication"`
+		RpcPort    string `json:"rpcPort" default:"7071" description:"Port used for internal RPC communication between nodes"`
+		GossipPort string `json:"gossipPort" default:"7072" description:"Port used for cluster membership and failure detection"`
 		Discovery  *struct {
 			Static *struct {
-				Addrs []string `json:"addrs" minLength:"1" description:"List of node addresses"`
-			} `json:"static,omitempty" description:"Static cluster discovery configuration"`
+				Addrs []string `json:"addrs" minLength:"1" description:"List of seed node addresses for static cluster configuration"`
+			} `json:"static,omitempty" description:"Static cluster membership configuration"`
 			Redis *struct {
-				URL string `json:"url" minLength:"1" description:"Redis URL"`
-			} `json:"redis,omitempty" description:"Redis cluster discovery configuration"`
-		} `json:"discovery,omitempty" description:"Cluster discovery configuration, only one supported: static, cloudmap"`
-	} `json:"cluster,omitempty" description:"Cluster configuration"`
+				URL string `json:"url" minLength:"1" description:"Redis connection string for dynamic cluster discovery"`
+			} `json:"redis,omitempty" description:"Redis-based cluster discovery configuration"`
+		} `json:"discovery,omitempty" description:"Cluster node discovery mechanism configuration"`
+	} `json:"cluster,omitempty" description:"Distributed cluster configuration settings"`
 
 	Logs *struct {
-		Color bool `json:"color" description:"Display color in logs"`
+		Color bool `json:"color" description:"Enable ANSI color codes in log output"`
 	} `json:"logs,omitempty"`
 	Clickhouse *struct {
-		Url string `json:"url" minLength:"1"`
+		Url string `json:"url" minLength:"1" description:"ClickHouse database connection string"`
 	} `json:"clickhouse,omitempty"`
 
 	Database struct {
-		// DSN of the primary database for reads and writes.
-		Primary string `json:"primary"`
-
-		// An optional read replica DSN.
-		ReadonlyReplica string `json:"readonlyReplica,omitempty"`
+		Primary         string `json:"primary" description:"Primary database connection string for read and write operations"`
+		ReadonlyReplica string `json:"readonlyReplica,omitempty" description:"Optional read-replica database connection string for read operations"`
 	} `json:"database"`
+
+	Otel *struct {
+		OtlpEndpoint string `json:"otlpEndpoint" description:"OpenTelemetry collector endpoint for metrics, traces, and logs"`
+	} `json:"otel,omitempty" description:"OpenTelemetry observability configuration"`
 }

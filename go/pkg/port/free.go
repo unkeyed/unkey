@@ -2,15 +2,14 @@ package port
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"sync"
-	"time"
 )
 
 // FreePort is a utility to find a free port.
 type FreePort struct {
-	sync.RWMutex
+	mu       sync.RWMutex
 	min      int
 	max      int
 	attempts int
@@ -21,12 +20,12 @@ type FreePort struct {
 }
 
 func New() *FreePort {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
 	return &FreePort{
 		min:      10000,
 		max:      65535,
 		attempts: 10,
 		assigned: map[int]bool{},
+		mu:       sync.RWMutex{},
 	}
 }
 func (f *FreePort) Get() int {
@@ -40,17 +39,19 @@ func (f *FreePort) Get() int {
 
 // Get returns a free port.
 func (f *FreePort) GetWithError() (int, error) {
-	f.Lock()
-	defer f.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	for i := 0; i < f.attempts; i++ {
 
-		port := rand.Intn(f.max-f.min) + f.min
+		// nolint:gosec
+		// This isn't cryptography
+		port := rand.IntN(f.max-f.min) + f.min
 		if f.assigned[port] {
 			continue
 		}
 
-		ln, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: port})
+		ln, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: port, Zone: ""})
 		if err != nil {
 			continue
 		}

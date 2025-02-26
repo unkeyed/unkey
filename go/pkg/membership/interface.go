@@ -3,8 +3,9 @@ package membership
 import "github.com/unkeyed/unkey/go/pkg/discovery"
 
 // Membership defines the interface for cluster membership management.
-// It handles node discovery, joining/leaving clusters, member listing,
-// and membership event subscriptions.
+// It provides functionality for node discovery, cluster joining/leaving,
+// member listing, and membership event subscriptions. The implementation
+// uses a gossip protocol to maintain eventually consistent cluster state.
 type Membership interface {
 	// Start initializes the membership system and joins the cluster using
 	// the provided discovery mechanism. It should only be called once.
@@ -42,4 +43,7 @@ type Membership interface {
 	//
 	// The returned channel will be closed when the membership system is shut down.
 	SubscribeLeaveEvents() <-chan Member
+
+	// Addr returns the node's advertised address.
+	Addr() string
 }

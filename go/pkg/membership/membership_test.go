@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/discovery"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
 	"github.com/unkeyed/unkey/go/pkg/port"
@@ -19,31 +20,44 @@ func TestJoin2Nodes(t *testing.T) {
 	freePort := port.New()
 
 	m1, err := membership.New(membership.Config{
-		NodeId:   "node_1",
-		SerfAddr: fmt.Sprintf("localhost:%d", freePort.Get()),
-		RpcAddr:  fmt.Sprintf("http://localhost:%d", freePort.Get()),
-		Logger:   logging.New(nil),
+		NodeID:     "node_1",
+		Addr:       fmt.Sprintf("localhost:%d", freePort.Get()),
+		GossipPort: freePort.Get(),
+		Logger:     logging.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	m2, err := membership.New(membership.Config{
-		NodeId:   "node_2",
-		SerfAddr: fmt.Sprintf("localhost:%d", freePort.Get()),
-		RpcAddr:  fmt.Sprintf("http://localhost:%d", freePort.Get()),
-		Logger:   logging.New(nil),
+		NodeID:     "node_2",
+		Addr:       fmt.Sprintf("localhost:%d", freePort.Get()),
+		GossipPort: freePort.Get(),
+		Logger:     logging.NewNoop(),
 	})
 	require.NoError(t, err)
 
-	members, err := m1.Join()
+	err = m1.Start(&discovery.Static{Addrs: []string{}})
 	require.NoError(t, err)
-	require.Equal(t, 1, members)
+	m1Members, err := m1.Members()
+	require.NoError(t, err)
+	require.Len(t, m1Members, 1)
 
-	_, err = m2.Join(m1.SerfAddr())
+	err = m2.Start(&discovery.Static{Addrs: []string{m1.Addr()}})
+	require.NoError(t, err)
+
 	require.NoError(t, err)
 	require.Eventually(t, func() bool {
-		members, err := m2.Members()
+
+		m1Members, err := m1.Members()
 		require.NoError(t, err)
-		return len(members) == 2
+		return len(m1Members) == 2
+
+	}, 10*time.Second, 100*time.Millisecond)
+
+	require.Eventually(t, func() bool {
+
+		m2Members, err := m2.Members()
+		require.NoError(t, err)
+		return len(m2Members) == 2
 
 	}, 10*time.Second, 100*time.Millisecond)
 
@@ -79,10 +93,10 @@ func TestJoin_emits_join_event(t *testing.T) {
 			var err error
 			for i := 0; i < clusterSize; i++ {
 				members[i], err = membership.New(membership.Config{
-					NodeId:   fmt.Sprintf("node_%d", i),
-					SerfAddr: fmt.Sprintf("localhost:%d", freePort.Get()),
-					RpcAddr:  fmt.Sprintf("http://localhost:%d", freePort.Get()),
-					Logger:   logging.New(nil),
+					NodeID:     fmt.Sprintf("node_%d", i),
+					Addr:       fmt.Sprintf("localhost:%d", freePort.Get()),
+					GossipPort: freePort.Get(),
+					Logger:     logging.NewNoop(),
 				})
 				require.NoError(t, err)
 
@@ -95,22 +109,22 @@ func TestJoin_emits_join_event(t *testing.T) {
 			go func() {
 				for event := range joinEvents {
 					joinMu.Lock()
-					join[event.NodeId] = true
+					join[event.Addr] = true
 					joinMu.Unlock()
 				}
 			}()
 
-			serfAddrs := make([]string, 0)
+			peerAddrs := make([]string, 0)
 			for _, m := range members {
-				_, err = m.Join(serfAddrs...)
+				err = m.Start(&discovery.Static{Addrs: peerAddrs})
 				require.NoError(t, err)
-				serfAddrs = append(serfAddrs, m.SerfAddr())
+				peerAddrs = append(peerAddrs, m.Addr())
 			}
 
 			for _, n := range members[1:] {
 				require.Eventually(t, func() bool {
 					joinMu.RLock()
-					ok := join[n.NodeId()]
+					ok := join[n.Addr()]
 					joinMu.RUnlock()
 					return ok
 				}, 30*time.Second, 100*time.Millisecond)
@@ -135,7 +149,7 @@ func TestLeave_emits_leave_event(t *testing.T) {
 			go func() {
 				for event := range leaveEvents {
 					leftMu.Lock()
-					left[event.NodeId] = true
+					left[event.Addr] = true
 					leftMu.Unlock()
 				}
 			}()
@@ -148,7 +162,7 @@ func TestLeave_emits_leave_event(t *testing.T) {
 			for _, n := range nodes[1:] {
 				require.Eventually(t, func() bool {
 					leftMu.RLock()
-					l := left[n.NodeId()]
+					l := left[n.Addr()]
 					leftMu.RUnlock()
 					return l
 				}, 30*time.Second, 100*time.Millisecond)
@@ -165,20 +179,20 @@ func runMany(t *testing.T, n int) []membership.Membership {
 	var err error
 	for i := 0; i < n; i++ {
 		members[i], err = membership.New(membership.Config{
-			NodeId:   fmt.Sprintf("node_%d", i),
-			SerfAddr: fmt.Sprintf("localhost:%d", freePort.Get()),
-			RpcAddr:  fmt.Sprintf("http://localhost:%d", freePort.Get()),
-			Logger:   logging.New(nil),
+			NodeID:     fmt.Sprintf("node_%d", i),
+			GossipPort: freePort.Get(),
+			Addr:       fmt.Sprintf("localhost:%d", freePort.Get()),
+			Logger:     logging.NewNoop(),
 		})
 		require.NoError(t, err)
 
 	}
 
-	serfAddrs := make([]string, 0)
+	peerAddrs := make([]string, 0)
 	for _, m := range members {
-		_, err = m.Join(serfAddrs...)
+		err = m.Start(discovery.Static{Addrs: peerAddrs})
 		require.NoError(t, err)
-		serfAddrs = append(serfAddrs, m.SerfAddr())
+		peerAddrs = append(peerAddrs, m.Addr())
 	}
 
 	for _, m := range members {

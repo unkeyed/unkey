@@ -25,6 +25,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/discovery"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
+	"github.com/unkeyed/unkey/go/pkg/otel"
+	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -54,7 +56,7 @@ var Cmd = &cli.Command{
 // nolint:gocognit
 func run(cliC *cli.Context) error {
 
-	shutdowns := []func(ctx context.Context) error{}
+	shutdowns := []shutdown.ShutdownFn{}
 
 	if cliC.Bool("generate-config-schema") {
 		// nolint:exhaustruct
@@ -110,6 +112,18 @@ func run(cliC *cli.Context) error {
 	}()
 
 	logger.Info(ctx, "configration loaded", slog.String("file", configFile))
+
+	if cfg.Otel != nil {
+		shutdownOtel, grafanaErr := otel.InitGrafana(ctx, otel.Config{
+			GrafanaEndpoint: cfg.Otel.OtlpEndpoint,
+			Application:     "api",
+			Version:         version.Version,
+		})
+		if grafanaErr != nil {
+			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
+		}
+		shutdowns = append(shutdowns, shutdownOtel...)
+	}
 
 	db, err := database.New(database.Config{
 		PrimaryDSN:  cfg.Database.Primary,
@@ -189,7 +203,7 @@ func run(cliC *cli.Context) error {
 	return gracefulShutdown(ctx, logger, shutdowns)
 }
 
-func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns []func(ctx context.Context) error) error {
+func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns []shutdown.ShutdownFn) error {
 	cShutdown := make(chan os.Signal, 1)
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
 
@@ -212,12 +226,11 @@ func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns []fu
 	return nil
 }
 
-func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, []func(ctx context.Context) error, error) {
+func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, []shutdown.ShutdownFn, error) {
+	shutdowns := []shutdown.ShutdownFn{}
 	if cfg.Cluster == nil {
-		return cluster.NewNoop("", "127.0.0.1"), []func(ctx context.Context) error{}, nil
+		return cluster.NewNoop("", "127.0.0.1"), shutdowns, nil
 	}
-
-	shutdowns := []func(ctx context.Context) error{}
 
 	var advertiseAddr string
 	{

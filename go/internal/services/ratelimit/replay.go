@@ -7,7 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/go/"github.com/unkeyed/unkey/go/pkg/otel""
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 )
 
 // consumes the replay buffer and sends out replay requests to peers

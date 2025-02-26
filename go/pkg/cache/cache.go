@@ -13,6 +13,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type cache[K comparable, V any] struct {
@@ -62,7 +65,7 @@ func New[K comparable, V any](config Config[K, V]) *cache[K, V] {
 
 	otter, err := builder.CollectStats().Cost(func(key K, value swrEntry[V]) uint32 {
 		return 1
-	}).WithTTL(time.Hour).Build()
+	}).WithTTL(config.Stale).Build()
 	if err != nil {
 		panic(err)
 	}
@@ -85,22 +88,47 @@ func New[K comparable, V any](config Config[K, V]) *cache[K, V] {
 		inflightRefreshes: make(map[K]bool),
 	}
 
+	go c.collectMetrics()
+
 	return c
+
+}
+
+func (c *cache[K, V]) collectMetrics() {
+
+	attributes := metric.WithAttributes(
+		attribute.String("resource", c.resource),
+	)
+
+	t := time.NewTicker(time.Second * 5)
+	for range t.C {
+		ctx := context.Background()
+
+		metrics.Cache.Size.Record(ctx, int64(c.otter.Size()), attributes)
+
+		stats := c.otter.Stats()
+		metrics.Cache.Hits.Record(ctx, stats.Hits(), attributes)
+		metrics.Cache.Misses.Record(ctx, stats.Misses(), attributes)
+		metrics.Cache.Evicted.Record(ctx, stats.EvictedCount(), attributes)
+
+	}
 
 }
 
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 
-	e, ok := c.otter.Get(key)
+	e, ok := c.get(ctx, key)
 	if !ok {
 		// This hack is necessary because you can not return nil as V
 		var v V
+
 		return v, Miss
 	}
 
 	now := c.clock.Now()
 
 	if now.Before(e.Stale) {
+
 		return e.Value, e.Hit
 	}
 
@@ -118,9 +146,21 @@ func (c *cache[K, V]) SetNull(ctx context.Context, key K) {
 func (c *cache[K, V]) Set(ctx context.Context, key K, value V) {
 	c.set(ctx, key, value)
 }
+
+func (c *cache[K, V]) get(ctx context.Context, key K) (swrEntry[V], bool) {
+	t0 := c.clock.Now()
+	v, ok := c.otter.Get(key)
+	t1 := c.clock.Now()
+
+	metrics.Cache.ReadLatency.Record(ctx, t1.UnixMilli()-t0.UnixMilli(), metric.WithAttributes(
+		attribute.String("resource", c.resource),
+	))
+
+	return v, ok
+}
+
 func (c *cache[K, V]) set(_ context.Context, key K, value ...V) {
 	now := c.clock.Now()
-
 	e := swrEntry[V]{
 		Value: value[0],
 		Fresh: now.Add(c.fresh),
@@ -223,7 +263,7 @@ func (c *cache[K, V]) SWR(
 	translateError func(error) CacheHit,
 ) (V, error) {
 	now := c.clock.Now()
-	e, ok := c.otter.Get(key)
+	e, ok := c.get(ctx, key)
 	if ok {
 		// Cache Hit
 

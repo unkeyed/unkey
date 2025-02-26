@@ -4,6 +4,7 @@ go 1.23.4
 
 require (
 	connectrpc.com/connect v1.16.2
+	connectrpc.com/otelconnect v0.7.1
 	github.com/ClickHouse/clickhouse-go/v2 v2.31.0
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/danielgtaylor/huma v1.14.3
@@ -47,6 +48,7 @@ require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
+	github.com/axiomhq/axiom-go v0.20.2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -66,7 +68,6 @@ require (
 	github.com/dprotaso/go-yit v0.0.0-20240618133044-5a0af90af097 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gammazero/deque v1.0.0 // indirect
 	github.com/getkin/kin-openapi v0.127.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect

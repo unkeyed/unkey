@@ -1,8 +1,6 @@
 package zen
 
-import (
-	"github.com/unkeyed/unkey/go/"github.com/unkeyed/unkey/go/pkg/otel""
-)
+import "github.com/unkeyed/unkey/go/pkg/otel/tracing"
 
 func WithTracing() Middleware {
 

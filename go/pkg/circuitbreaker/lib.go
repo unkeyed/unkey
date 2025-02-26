@@ -9,7 +9,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/logging"
-	"github.com/unkeyed/unkey/go/"github.com/unkeyed/unkey/go/pkg/otel""
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 )
 
 type CB[Res any] struct {
@@ -148,7 +148,7 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 var _ CircuitBreaker[any] = (*CB[any])(nil)
 
 func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)) (res Res, err error) {
-	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "Do"))
+	ctx, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.Do", cb.config.name))
 	defer span.End()
 
 	err = cb.preflight(ctx)
@@ -156,7 +156,7 @@ func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)
 		return res, err
 	}
 
-	ctx, fnSpan := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "fn"))
+	ctx, fnSpan := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.fn", cb.config.name))
 	res, err = fn(ctx)
 	fnSpan.End()
 
@@ -168,7 +168,7 @@ func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)
 
 // preflight checks if the circuit is ready to accept a request
 func (cb *CB[Res]) preflight(ctx context.Context) error {
-	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "preflight"))
+	ctx, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.preflight", cb.config.name))
 	defer span.End()
 	cb.Lock()
 	defer cb.Unlock()
@@ -205,7 +205,7 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 
 // postflight updates the circuit breaker state based on the result of the request
 func (cb *CB[Res]) postflight(ctx context.Context, err error) {
-	_, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "postflight"))
+	_, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.postflight", cb.config.name))
 	defer span.End()
 	cb.Lock()
 	defer cb.Unlock()

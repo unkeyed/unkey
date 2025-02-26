@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
@@ -26,14 +29,11 @@ type Config struct {
 	Version     string
 }
 
-// Closer is a function that closes the global tracer.
-type ShutdownFunc func(ctx context.Context) error
-
 // InitGrafana initializes the global tracer and metric providers.
 // It returns a slice of ShutdownFuncs that should be called when the
 // application is shutting down.
-func InitGrafana(ctx context.Context, config Config) ([]ShutdownFunc, error) {
-	shutdowns := make([]ShutdownFunc, 0)
+func InitGrafana(ctx context.Context, config Config) ([]shutdown.ShutdownFn, error) {
+	shutdowns := make([]shutdown.ShutdownFn, 0)
 
 	traceExporter, err := otlptrace.New(ctx, otlptracehttp.NewClient())
 	if err != nil {
@@ -44,7 +44,7 @@ func InitGrafana(ctx context.Context, config Config) ([]ShutdownFunc, error) {
 	traceProvider := trace.NewTracerProvider(trace.WithBatcher(traceExporter))
 	shutdowns = append(shutdowns, traceProvider.Shutdown)
 
-	globalTracer = traceProvider
+	tracing.SetGlobalTraceProvider(traceProvider)
 
 	metricExporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpoint(config.GrafanaEndpoint))
 	if err != nil {
@@ -55,8 +55,10 @@ func InitGrafana(ctx context.Context, config Config) ([]ShutdownFunc, error) {
 	meterProvider := metric.NewMeterProvider(metric.WithReader(metric.NewPeriodicReader(metricExporter)))
 	shutdowns = append(shutdowns, meterProvider.Shutdown)
 
-	globalMetrics = meterProvider
-
+	err = metrics.Init(meterProvider.Meter(config.Application))
+	if err != nil {
+		return nil, fmt.Errorf("unable to init custom metrics: %w", err)
+	}
 	// Collect runtime metrics as well
 	err = runtime.Start(
 		runtime.WithMeterProvider(meterProvider),
