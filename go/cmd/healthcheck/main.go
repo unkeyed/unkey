@@ -26,6 +26,7 @@ func run(cliC *cli.Context) error {
 		return fmt.Errorf("You must provide a url like so: 'unkey healthcheck <url>'")
 	}
 
+	// nolint:gosec
 	res, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to perform healthcheck: %w", err)

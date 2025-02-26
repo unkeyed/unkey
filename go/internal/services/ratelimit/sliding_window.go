@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/logging"
-	"github.com/unkeyed/unkey/go/pkg/tracing"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
 

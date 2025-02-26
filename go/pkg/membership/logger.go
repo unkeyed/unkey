@@ -8,8 +8,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/logging"
 )
 
-// logger implements io.Writer interface to integrate with memberlist's logging system
-// and routes logs to the application's structured logging system.
+// logger implements io.Writer interface to integrate memberlist's logging system
+// with the application's structured logging system.
 type logger struct {
 	logger logging.Logger
 }
