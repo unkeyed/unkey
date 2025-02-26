@@ -5,9 +5,7 @@ export const formSchema = z.object({
     .number({
       errorMap: (issue, { defaultError }) => ({
         message:
-          issue.code === "invalid_type"
-            ? "Key must be between 8 and 255 bytes long"
-            : defaultError,
+          issue.code === "invalid_type" ? "Key must be between 8 and 255 bytes long" : defaultError,
       }),
     })
     .min(8, { message: "Key must be between 8 and 255 bytes long" })
@@ -36,7 +34,7 @@ export const formSchema = z.object({
       },
       {
         message: "Must be valid json",
-      }
+      },
     )
     .optional(),
   limitEnabled: z.boolean().default(false),
@@ -99,9 +97,7 @@ export const formSchema = z.object({
         .number({
           errorMap: (issue, { defaultError }) => ({
             message:
-              issue.code === "invalid_type"
-                ? "Duration must be greater than 0"
-                : defaultError,
+              issue.code === "invalid_type" ? "Duration must be greater than 0" : defaultError,
           }),
         })
         .positive({ message: "Refill interval must be greater than 0" }),
@@ -109,9 +105,7 @@ export const formSchema = z.object({
         .number({
           errorMap: (issue, { defaultError }) => ({
             message:
-              issue.code === "invalid_type"
-                ? "Refill limit must be greater than 0"
-                : defaultError,
+              issue.code === "invalid_type" ? "Refill limit must be greater than 0" : defaultError,
           }),
         })
         .positive({ message: "Limit must be greater than 0" }),

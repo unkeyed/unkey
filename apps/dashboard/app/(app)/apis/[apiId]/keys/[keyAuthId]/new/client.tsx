@@ -50,12 +50,7 @@ type Props = {
   defaultPrefix: string | null;
 };
 
-export const CreateKey = ({
-  apiId,
-  keyAuthId,
-  defaultBytes,
-  defaultPrefix,
-}: Props) => {
+export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Props) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
@@ -93,7 +88,7 @@ export const CreateKey = ({
     },
     onError(err) {
       console.error(err);
-      
+
       toast.error(err.message || "An unknown error occurred");
     },
   });
@@ -141,8 +136,7 @@ export const CreateKey = ({
         refill?.amount && refill.interval !== "none"
           ? {
               amount: refill.amount,
-              refillDay:
-                refill.interval === "daily" ? null : refill.refillDay ?? 1,
+              refillDay: refill.interval === "daily" ? null : refill.refillDay ?? 1,
             }
           : undefined,
       enabled: true,
@@ -151,9 +145,7 @@ export const CreateKey = ({
     router.refresh();
   }
 
-  const snippet = `curl -XPOST '${
-    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys.verifyKey' \\
+  const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys.verifyKey' \\
   -H 'Content-Type: application/json' \\
   -d '{
     "key": "${key.data?.key}"
@@ -203,17 +195,13 @@ export const CreateKey = ({
             </div>
             <Alert>
               <AlertCircle className="w-4 h-4" />
-              <AlertTitle>
-                This key is only shown once and can not be recovered{" "}
-              </AlertTitle>
+              <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
               <AlertDescription>
                 Please pass it on to your user or store it somewhere safe.
               </AlertDescription>
             </Alert>
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
-              <pre className="overflow-x-auto">
-                {showKey ? key.data.key : maskedKey}
-              </pre>
+              <pre className="overflow-x-auto">{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data.key} />
@@ -221,22 +209,15 @@ export const CreateKey = ({
             </Code>
           </div>
 
-          <p className="my-2 font-medium text-center text-gray-700 ">
-            Try verifying it:
-          </p>
+          <p className="my-2 font-medium text-center text-gray-700 ">Try verifying it:</p>
           <Code className="flex items-start justify-between w-full gap-4 my-8 overflow-hidden max-sm:text-xs ">
             <div className="max-sm:mt-10">
               <pre className="ph-no-capture">
-                {showKeyInSnippet
-                  ? snippet
-                  : snippet.replace(key.data.key, maskedKey)}
+                {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
               </pre>
             </div>
             <div className="flex items-center justify-between gap-4 max-ms:top-2 max-sm:absolute max-sm:right-11 ">
-              <VisibleButton
-                isVisible={showKeyInSnippet}
-                setIsVisible={setShowKeyInSnippet}
-              />
+              <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
               <CopyButton value={snippet} />
             </div>
           </Code>
@@ -265,9 +246,7 @@ export const CreateKey = ({
         <>
           <div>
             <div className="w-full">
-              <h2 className="text-2xl font-semibold tracking-tight">
-                Create a new key
-              </h2>
+              <h2 className="text-2xl font-semibold tracking-tight">Create a new key</h2>
               <Form {...form}>
                 <form
                   className="flex flex-col h-full gap-8 mt-4 md:flex-row"
@@ -296,12 +275,9 @@ export const CreateKey = ({
                             />
                           </FormControl>
                           <FormDescription>
-                            Using a prefix can make it easier for your users to
-                            distinguish between apis. Don't add a trailing
-                            underscore, we'll do that automatically:{" "}
-                            <span className="font-mono font-light">
-                              {"<prefix>_randombytes"}
-                            </span>
+                            Using a prefix can make it easier for your users to distinguish between
+                            apis. Don't add a trailing underscore, we'll do that automatically:{" "}
+                            <span className="font-mono font-light">{"<prefix>_randombytes"}</span>
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -322,8 +298,8 @@ export const CreateKey = ({
                             <Input type="number" {...field} />
                           </FormControl>
                           <FormDescription>
-                            How long the key will be. Longer keys are harder to
-                            guess and more secure.
+                            How long the key will be. Longer keys are harder to guess and more
+                            secure.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -344,8 +320,8 @@ export const CreateKey = ({
                             <Input {...field} />
                           </FormControl>
                           <FormDescription>
-                            This is the id of the user or workspace in your
-                            system, so you can identify users from an API key.
+                            This is the id of the user or workspace in your system, so you can
+                            identify users from an API key.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -366,8 +342,7 @@ export const CreateKey = ({
                             <Input {...field} />
                           </FormControl>
                           <FormDescription>
-                            To make it easier to identify a particular key, you
-                            can provide a name.
+                            To make it easier to identify a particular key, you can provide a name.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -388,9 +363,8 @@ export const CreateKey = ({
                             <Input {...field} />
                           </FormControl>
                           <FormDescription>
-                            Separate keys into different environments, for
-                            example <strong>test</strong> and{" "}
-                            <strong>live</strong>.
+                            Separate keys into different environments, for example{" "}
+                            <strong>test</strong> and <strong>live</strong>.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -409,9 +383,7 @@ export const CreateKey = ({
                             name="ratelimitEnabled"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="sr-only">
-                                  Ratelimit
-                                </FormLabel>
+                                <FormLabel className="sr-only">Ratelimit</FormLabel>
                                 <FormControl>
                                   <Switch
                                     onCheckedChange={(e) => {
@@ -448,8 +420,7 @@ export const CreateKey = ({
                                       />
                                     </FormControl>
                                     <FormDescription>
-                                      The maximum number of requests in the
-                                      given fixed window.
+                                      The maximum number of requests in the given fixed window.
                                     </FormDescription>
                                     <FormMessage />
                                   </FormItem>
@@ -461,9 +432,7 @@ export const CreateKey = ({
                                 name="ratelimit.duration"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>
-                                      Refill Interval (milliseconds)
-                                    </FormLabel>
+                                    <FormLabel>Refill Interval (milliseconds)</FormLabel>
                                     <FormControl>
                                       <Input
                                         placeholder="1000"
@@ -477,8 +446,7 @@ export const CreateKey = ({
                                       />
                                     </FormControl>
                                     <FormDescription>
-                                      The time window in milliseconds for the
-                                      rate limit to reset.
+                                      The time window in milliseconds for the rate limit to reset.
                                     </FormDescription>
                                     <FormMessage />
                                   </FormItem>
@@ -503,9 +471,7 @@ export const CreateKey = ({
                             name="limitEnabled"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="sr-only">
-                                  Limited Use
-                                </FormLabel>
+                                <FormLabel className="sr-only">Limited Use</FormLabel>
                                 <FormControl>
                                   <Switch
                                     onCheckedChange={(e) => {
@@ -524,8 +490,8 @@ export const CreateKey = ({
                         {form.watch("limitEnabled") ? (
                           <>
                             <p className="text-xs text-content-subtle">
-                              How many times this key can be used before it gets
-                              disabled automatically.
+                              How many times this key can be used before it gets disabled
+                              automatically.
                             </p>
                             <div className="flex flex-col gap-4 mt-4">
                               <FormField
@@ -541,15 +507,12 @@ export const CreateKey = ({
                                         type="number"
                                         {...field}
                                         value={
-                                          form.getValues("limitEnabled")
-                                            ? field.value
-                                            : undefined
+                                          form.getValues("limitEnabled") ? field.value : undefined
                                         }
                                       />
                                     </FormControl>
                                     <FormDescription>
-                                      Enter the remaining amount of uses for
-                                      this key.
+                                      Enter the remaining amount of uses for this key.
                                     </FormDescription>
                                     <FormMessage />
                                   </FormItem>
@@ -561,23 +524,14 @@ export const CreateKey = ({
                                 render={({ field }) => (
                                   <FormItem className="">
                                     <FormLabel>Refill Rate</FormLabel>
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      value={field.value}
-                                    >
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                       <SelectTrigger>
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="none">
-                                          None
-                                        </SelectItem>
-                                        <SelectItem value="daily">
-                                          Daily
-                                        </SelectItem>
-                                        <SelectItem value="monthly">
-                                          Monthly
-                                        </SelectItem>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="daily">Daily</SelectItem>
+                                        <SelectItem value="monthly">Monthly</SelectItem>
                                       </SelectContent>
                                     </Select>
                                     <FormDescription>
@@ -595,9 +549,7 @@ export const CreateKey = ({
                                 name="limit.refill.amount"
                                 render={({ field }) => (
                                   <FormItem className="mt-4">
-                                    <FormLabel>
-                                      Number of uses per interval
-                                    </FormLabel>
+                                    <FormLabel>Number of uses per interval</FormLabel>
                                     <FormControl>
                                       <Input
                                         placeholder="100"
@@ -605,15 +557,12 @@ export const CreateKey = ({
                                         type="number"
                                         {...field}
                                         value={
-                                          form.getValues("limitEnabled")
-                                            ? field.value
-                                            : "undefined"
+                                          form.getValues("limitEnabled") ? field.value : "undefined"
                                         }
                                       />
                                     </FormControl>
                                     <FormDescription>
-                                      Enter the number of uses to refill per
-                                      interval.
+                                      Enter the number of uses to refill per interval.
                                     </FormDescription>
                                     <FormMessage defaultValue="Please enter a value if interval is selected" />
                                   </FormItem>
@@ -622,17 +571,14 @@ export const CreateKey = ({
                               <FormField
                                 control={form.control}
                                 disabled={
-                                  form.watch("limit.refill.amount") ===
-                                    undefined ||
-                                  form.watch("limit.refill.interval") !==
-                                    "monthly"
+                                  form.watch("limit.refill.amount") === undefined ||
+                                  form.watch("limit.refill.interval") !== "monthly"
                                 }
                                 name="limit.refill.refillDay"
                                 render={({ field }) => (
                                   <FormItem className="mt-2">
                                     <FormLabel>
-                                      On which day of the month should we refill
-                                      the key?
+                                      On which day of the month should we refill the key?
                                     </FormLabel>
                                     <FormControl>
                                       <div className="flex flex-col">
@@ -657,8 +603,7 @@ export const CreateKey = ({
                                 )}
                               />
                               <FormDescription>
-                                How many requests may be performed in a given
-                                interval
+                                How many requests may be performed in a given interval
                               </FormDescription>
                             </div>
                             {form.formState.errors.ratelimit && (
@@ -677,16 +622,11 @@ export const CreateKey = ({
 
                           <FormField
                             control={form.control}
-                            disabled={
-                              form.getValues("limit.refill.interval") ===
-                              "daily"
-                            }
+                            disabled={form.getValues("limit.refill.interval") === "daily"}
                             name="expireEnabled"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="sr-only">
-                                  Expiration
-                                </FormLabel>
+                                <FormLabel className="sr-only">Expiration</FormLabel>
                                 <FormControl>
                                   <Switch
                                     onCheckedChange={(e) => {
@@ -706,8 +646,7 @@ export const CreateKey = ({
                           <>
                             <p className="text-xs text-content-subtle">
                               {" "}
-                              Automatically revoke this key after a certain
-                              date.
+                              Automatically revoke this key after a certain date.
                             </p>
                             <div className="flex flex-col gap-4 mt-4">
                               <FormField
@@ -729,8 +668,8 @@ export const CreateKey = ({
                                       />
                                     </FormControl>
                                     <FormDescription>
-                                      This api key will automatically be revoked
-                                      after the given date.
+                                      This api key will automatically be revoked after the given
+                                      date.
                                     </FormDescription>
                                     <FormMessage />
                                   </FormItem>
@@ -756,9 +695,7 @@ export const CreateKey = ({
                             name="metaEnabled"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="sr-only">
-                                  Metadata
-                                </FormLabel>
+                                <FormLabel className="sr-only">Metadata</FormLabel>
                                 <FormControl>
                                   <Switch
                                     onCheckedChange={(e) => {
@@ -777,9 +714,8 @@ export const CreateKey = ({
                         {form.watch("metaEnabled") ? (
                           <>
                             <p className="text-xs text-content-subtle">
-                              Store json, or any other data you want to
-                              associate with this key. Whenever you verify this
-                              key, we'll return the metadata to you. Enter
+                              Store json, or any other data you want to associate with this key.
+                              Whenever you verify this key, we'll return the metadata to you. Enter
                               custom metadata as a JSON object.Format Json
                             </p>
 
@@ -797,9 +733,7 @@ export const CreateKey = ({
                                         placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
                                         {...field}
                                         value={
-                                          form.getValues("metaEnabled")
-                                            ? field.value
-                                            : undefined
+                                          form.getValues("metaEnabled") ? field.value : undefined
                                         }
                                       />
                                     </FormControl>
@@ -812,12 +746,8 @@ export const CreateKey = ({
                                       onClick={(_e) => {
                                         try {
                                           if (field.value) {
-                                            const parsed = JSON.parse(
-                                              field.value
-                                            );
-                                            field.onChange(
-                                              JSON.stringify(parsed, null, 2)
-                                            );
+                                            const parsed = JSON.parse(field.value);
+                                            field.onChange(JSON.stringify(parsed, null, 2));
                                             form.clearErrors("meta");
                                           }
                                         } catch (_e) {
@@ -866,5 +796,4 @@ export const CreateKey = ({
   );
 };
 
-const getDatePlusTwoMinutes = () =>
-  format(addMinutes(new Date(), 2), "yyyy-MM-dd'T'HH:mm");
+const getDatePlusTwoMinutes = () => format(addMinutes(new Date(), 2), "yyyy-MM-dd'T'HH:mm");

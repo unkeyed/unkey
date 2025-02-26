@@ -44,16 +44,13 @@ export const createKey = t.procedure
         .optional(),
       enabled: z.boolean().default(true),
       environment: z.string().optional(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const keyAuth = await db.query.keyAuth
       .findFirst({
         where: (table, { and, eq }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.keyAuthId)
-          ),
+          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
         with: {
           api: true,
         },
