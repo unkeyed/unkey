@@ -116,7 +116,7 @@ export const registerV1KeysAddRoles = (app: App) =>
           and(
             eq(table.workspaceId, auth.authorizedWorkspaceId),
             eq(table.id, req.keyId),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
           ),
       }),
       db.primary.query.roles.findMany({

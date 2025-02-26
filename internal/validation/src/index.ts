@@ -29,7 +29,7 @@ const name = z.string().min(3).max(256);
  *
  * @example The description of a permission
  */
-const description = z.string().min(3).max(256);
+const description = z.string().min(3).max(256).optional().or(z.literal(""));
 
 const unkeyId = z
   .string()

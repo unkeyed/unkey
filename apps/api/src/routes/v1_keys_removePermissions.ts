@@ -89,7 +89,7 @@ export const registerV1KeysRemovePermissions = (app: App) =>
           and(
             eq(table.workspaceId, auth.authorizedWorkspaceId),
             eq(table.id, req.keyId),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
           ),
       }),
 
