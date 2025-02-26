@@ -9,7 +9,7 @@ export async function GET(_request: NextRequest) {
   }
   if (!user.orgId) {
     const newOrgId = await auth.createTenant({
-      name: "Personal Workspace",
+      name: "Personal",
       userId: user.id,
     });
 
