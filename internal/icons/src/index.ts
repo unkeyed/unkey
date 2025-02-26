@@ -47,3 +47,4 @@ export * from "./icons/progress-bar";
 export * from "./icons/caret-up";
 export * from "./icons/caret-down";
 export * from "./icons/caret-expand-y";
+export * from "./icons/key";
