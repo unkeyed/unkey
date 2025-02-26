@@ -12,6 +12,9 @@ import { Suspense } from "react";
 import { SearchField } from "./filter";
 import { Navigation } from "./navigation";
 import { Row } from "./row";
+
+export const dynamic = "force-dynamic";
+
 type Props = {
   searchParams: {
     search?: string;

@@ -6,6 +6,8 @@ import { DEFAULT_OVERVIEW_FETCH_LIMIT } from "./_components/constants";
 import { fetchApiOverview } from "./actions";
 import { Navigation } from "./navigation";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   searchParams: { new?: boolean };
 };

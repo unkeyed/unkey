@@ -13,6 +13,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { navigation } from "../constants";
 import { Client } from "./client";
+
+export const dynamic = "force-dynamic";
+
 type Props = {
   searchParams: {
     configurationId?: string;

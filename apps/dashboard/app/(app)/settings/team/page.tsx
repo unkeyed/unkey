@@ -9,6 +9,8 @@ import Link from "next/link";
 import { navigation } from "../constants";
 import { TeamPageClient } from "./team-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function TeamPage() {
   const user = await getCurrentUser();
   if (!user || !user.orgId) {
