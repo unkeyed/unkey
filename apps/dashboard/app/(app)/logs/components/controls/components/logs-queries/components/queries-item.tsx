@@ -1,5 +1,5 @@
 // import { type PropsWithChildren, useEffect, useState } from "react";
-
+"use client";
 import type { SavedFiltersGroup } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ import { type PropsWithChildren, useState } from "react";
 import { QueriesMadeBy } from "./queries-made-by";
 import { QueriesPill } from "./queries-pill";
 import type { LogsFilterUrlValue } from "@/app/(app)/logs/filters.schema";
+import { formatTimestampTooltip } from "@/components/logs/chart/utils/format-timestamp";
 
 type QueriesItemProps = {
   filterList: SavedFiltersGroup;
@@ -85,12 +86,14 @@ export const QueriesItem = ({
   changeBookmark,
 }: QueriesItemProps) => {
   const { status, methods, paths, startTime, endTime, since } = filterList.filters;
-  const startDateTime = startTime
-    ? format(new Date(Number(startTime) * 1000), "MMM d HH:mm:ss.SS")
-    : null;
-  const endDateTime = endTime
-    ? format(new Date(Number(endTime) * 1000), "MMM d HH:mm:ss.SS")
-    : null;
+  console.log("startTime", startTime);
+  
+  // const startDateTime = startTime
+  //   ? format(new Date(Number(startTime) * 1000), "MMM d HH:mm:ss.SS")
+  //   : null;
+  // const endDateTime = endTime
+  //   ? format(new Date(Number(endTime) * 1000), "MMM d HH:mm:ss.SS")
+  //   : null;
   // const timeValue = startDateTime ? `${startDateTime} - ${endDateTime}` : since ? since[0].value : "";
 
   const [isSaved, setIsSaved] = useState(filterList.bookmarked);
@@ -249,10 +252,10 @@ export const QueriesItem = ({
                      <QueriesPathOverflow pathsList={paths.slice(1)} />
                   </div>
                 )}
-                {(startDateTime || endDateTime || since) && (
+                {(startTime || endTime || since) && (
                   <TimeFilter
-                    startTime={startDateTime ?? undefined}
-                    endTime={endDateTime ?? undefined}
+                    startTime={startTime ? formatTimestampTooltip(startTime): undefined}
+                    endTime={endTime ? formatTimestampTooltip(endTime) : undefined}
                     since={since ? since?.toString() : undefined}
                   />)
                 }

@@ -44,6 +44,8 @@ const isUnixMicro = (unix: string | number): boolean => {
 };
 
 export const formatTimestampTooltip = (value: string | number) => {
+  console.log({value});
+  
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
   return format(date, "MMM dd HH:mm:ss");
 };
