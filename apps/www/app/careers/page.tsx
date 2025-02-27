@@ -64,8 +64,7 @@ export default async function Careers() {
             <div className="mx-auto flex-flex-col ">
               <h2 className="blog-heading-gradient text-6xl font-medium mt-12">Open Positions</h2>
               <p className="mt-6 font-normal leading-7 text-balance">
-                Unkey is 100% remote. We currently live in Germany, Turkey and the United
-                States.
+                Unkey is 100% remote. We currently live in Germany, Turkey and the United States.
               </p>
             </div>
           </div>
