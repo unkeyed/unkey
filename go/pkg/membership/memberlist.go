@@ -16,11 +16,16 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
+// Config specifies the configuration options for creating a new membership instance.
 type Config struct {
-	NodeID     string
-	Addr       string
+	// NodeID is the unique identifier for this node
+	NodeID string
+	// Addr is the network address this node will listen on
+	Addr string
+	// GossipPort is the port used for cluster membership gossip protocol
 	GossipPort int
-	Logger     logging.Logger
+	// Logger is the logging interface used for membership-related logs
+	Logger logging.Logger
 }
 
 type membership struct {
@@ -37,6 +42,9 @@ type membership struct {
 
 var _ Membership = (*membership)(nil)
 
+// New creates a new membership instance with the provided configuration.
+// It initializes the memberlist with default LAN configuration and sets up event buses.
+// Returns the new membership instance and any error encountered during creation.
 func New(config Config) (*membership, error) {
 
 	b := &bus{
@@ -143,4 +151,8 @@ func (m *membership) Members() ([]Member, error) {
 		}
 	}
 	return members, nil
+}
+
+func (m *membership) Addr() string {
+	return m.self.Addr
 }
