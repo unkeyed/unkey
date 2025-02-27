@@ -88,8 +88,8 @@ test("when the key has been deleted", async (t) => {
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
-    createdAt: new Date(),
-    deletedAt: new Date(),
+    createdAtM: Date.now(),
+    deletedAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(key);
 
@@ -106,7 +106,7 @@ test("when the key has been deleted", async (t) => {
       enabled: false,
     },
   });
-  expect(res.status).toEqual(404);
+  expect(res.status, `Expected 404, got: ${JSON.stringify(res)}`).toEqual(404);
   expect(res.body).toMatchObject({
     error: {
       code: "NOT_FOUND",

@@ -292,6 +292,8 @@ describe("roles", () => {
 
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
+    const plaintext = crypto.randomUUID();
+
     const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
       url: "/v1/migrations.createKeys",
       headers: {
@@ -301,7 +303,7 @@ describe("roles", () => {
       body: [
         {
           start: "start_",
-          plaintext: "plaintext",
+          plaintext,
           apiId: h.resources.userApi.id,
           permissions,
         },
