@@ -1,6 +1,6 @@
 "use client";
 
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { Gear } from "@unkey/icons";
 
 // Reusable for settings where we only change the link

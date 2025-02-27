@@ -8,7 +8,7 @@ import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -26,6 +26,7 @@ import ms from "ms";
 import { notFound } from "next/navigation";
 import PermissionTree from "./permission-list";
 import { VerificationTable } from "./verification-table";
+import { Navigation } from "./navigation";
 export default async function APIKeyDetailPage(props: {
   params: {
     apiId: string;
@@ -264,33 +265,7 @@ export default async function APIKeyDetailPage(props: {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
-            {api.name}
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Ellipsis />
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}/${key.id}`}
-            isIdentifier
-            active
-          >
-            {key.id}
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {key.id}
-            <CopyButton value={key.id} />
-          </Badge>
-
-          <CreateKeyButton apiId={api.id} keyAuthId={key.keyAuthId} />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation api={api} apiKey={key}/>
 
       <PageContent>
         <div className="flex flex-col">

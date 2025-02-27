@@ -1,6 +1,6 @@
 "use client";
 
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { Nodes } from "@unkey/icons";
 import { CreateApiButton } from "./create-api-button";
 

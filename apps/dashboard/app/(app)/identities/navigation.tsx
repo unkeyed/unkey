@@ -1,6 +1,6 @@
 "use client";
 
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { Fingerprint } from "@unkey/icons";
 
 export function Navigation() {

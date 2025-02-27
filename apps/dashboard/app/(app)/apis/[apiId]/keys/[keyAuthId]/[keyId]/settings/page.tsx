@@ -1,6 +1,6 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import { UpdateKeyName } from "./update-key-name";
 import { UpdateKeyOwnerId } from "./update-key-owner-id";
 import { UpdateKeyRatelimit } from "./update-key-ratelimit";
 import { UpdateKeyRemaining } from "./update-key-remaining";
+import { Navigation } from "./navigation";
 
 type Props = {
   params: {
@@ -44,38 +45,8 @@ export default async function SettingsPage(props: Props) {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
-            {key.keyAuth.api.name}
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Ellipsis />
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}/${key.id}`}
-            isIdentifier
-          >
-            {key.id}
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}/${key.id}/settings`}
-            active
-          >
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {key.id}
-            <CopyButton value={key.id} />
-          </Badge>
-          <CreateKeyButton apiId={key.keyAuth.api.id} keyAuthId={key.keyAuth.id} />
-        </Navbar.Actions>
-      </Navbar>
-
+      <Navigation apiId={props.params.apiId} apiKey={key}/>
+    
       <PageContent>
         <div className="mb-20 flex flex-col gap-8 ">
           <Link

@@ -2,8 +2,8 @@ import { getTenantId } from "@/lib/auth";
 import { Empty } from "@unkey/ui";
 import { getWorkspace } from "./actions";
 import { LogsClient } from "./components/logs-client";
-import { Navigation } from "./navigation";
-
+import { Navigation } from "@/components/navigation/navigation";
+import { InputSearch } from "@unkey/icons";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -13,7 +13,7 @@ export default async function AuditPage() {
 
   return (
     <div>
-      <Navigation />
+      <Navigation href="/audit" name="Audit" icon={<InputSearch/>}/>
       {workspace.auditLogBuckets.length > 0 ? (
         <LogsClient
           rootKeys={workspace.keys}

@@ -3,8 +3,9 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { LogsClient } from "./components/logs-client";
-import { Navigation } from "./navigation";
+import { Layers3 } from "@unkey/icons";
 
+import { Navigation } from "@/components/navigation/navigation";
 export default async function Page() {
   const tenantId = getTenantId();
 
@@ -19,7 +20,7 @@ export default async function Page() {
 
   return (
     <div>
-      <Navigation />
+      <Navigation href="/logs" name="Logs" icon={<Layers3/>} />
       <LogsClient />
     </div>
   );

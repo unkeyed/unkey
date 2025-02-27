@@ -1,5 +1,5 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { Nodes } from "@unkey/icons";
 import { notFound } from "next/navigation";
 import { CreateKey } from "./client";
+import { Navigation } from "./navigation";
 
 export default async function CreateKeypage(props: {
   params: {
@@ -30,33 +31,8 @@ export default async function CreateKeypage(props: {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
-            {keyAuth.api.name}
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}>
-            Keys
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            active
-            href={`/apis/${props.params.apiId}/keys/${keyAuth.id}/new`}
-          >
-            Create new key
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge
-            key="apiId"
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {keyAuth.api.id}
-            <CopyButton value={keyAuth.api.id} />
-          </Badge>
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation apiId={props.params.apiId} keyA={keyAuth}/>
+      
 
       <PageContent>
         <CreateKey

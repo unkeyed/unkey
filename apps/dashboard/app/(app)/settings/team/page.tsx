@@ -21,7 +21,7 @@ import { useAuth, useClerk, useOrganization } from "@clerk/nextjs";
 
 import { Loading } from "@/components/dashboard/loading";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
 import {
   Select,
@@ -35,7 +35,7 @@ import { toast } from "@/components/ui/toaster";
 import type { MembershipRole } from "@clerk/types";
 import { Gear } from "@unkey/icons";
 import Link from "next/link";
-import { Navigation } from "../_navigation/navigation";
+import { Navigation } from "@/components/navigation/navigation";
 import { navigation } from "../constants";
 
 type Member = {
@@ -52,7 +52,7 @@ export default function TeamPage() {
   if (!organization) {
     return (
       <div>
-        <Navigation href="/settings/team" />
+        <Navigation href="/settings/team" name="Settings" icon={<Gear/>} />
         <PageContent>
           <SubMenu navigation={navigation} segment="team" />
           <div className="mb-20 flex flex-col gap-8 mt-8">
@@ -102,13 +102,7 @@ export default function TeamPage() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/team" active>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/settings/team" icon={<Gear />} name="Settings"/>
       <PageContent>
         <SubMenu navigation={navigation} segment="team" />
         <div className="mb-20 flex flex-col gap-8 mt-8">

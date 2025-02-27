@@ -1,6 +1,6 @@
 "use client";
 
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { Gauge } from "@unkey/icons";
 import { CreateNamespaceButton } from "./_components/create-namespace-button";
 export function Navigation() {

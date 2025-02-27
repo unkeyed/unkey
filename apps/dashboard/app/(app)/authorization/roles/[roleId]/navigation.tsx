@@ -1,6 +1,6 @@
 "use client";
 
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import type { Role } from "@unkey/db";
 import { ShieldKey } from "@unkey/icons";
 import { Button } from "@unkey/ui";

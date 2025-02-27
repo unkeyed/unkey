@@ -1,6 +1,6 @@
 "use client";
 
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import Link from "next/link";

@@ -1,6 +1,6 @@
 "use client";
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
 import type { Permission } from "@unkey/db";
 import { ShieldKey } from "@unkey/icons";

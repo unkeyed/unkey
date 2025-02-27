@@ -5,12 +5,13 @@ import { notFound } from "next/navigation";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Nodes } from "@unkey/icons";
 import { navigation } from "../../constants";
 import { Keys } from "./keys";
+import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -37,28 +38,8 @@ export default async function APIKeysPage(props: {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
-            {keyAuth.api.name}
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link active href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}>
-            Keys
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge
-            key="apiId"
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {keyAuth.api.id}
-            <CopyButton value={keyAuth.api.id} />
-          </Badge>
-          <CreateKeyButton apiId={keyAuth.api.id} keyAuthId={keyAuth.api.keyAuthId!} />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation apiId={props.params.apiId} keyA={keyAuth}/>
+      
 
       <PageContent>
         <SubMenu navigation={navigation(keyAuth.api.id, keyAuth.id!)} segment="keys" />

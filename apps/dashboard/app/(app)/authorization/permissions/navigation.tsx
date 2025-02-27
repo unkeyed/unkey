@@ -1,6 +1,6 @@
 "use client";
 
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
 import { ShieldKey } from "@unkey/icons";
 import { Button } from "@unkey/ui";

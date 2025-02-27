@@ -1,7 +1,7 @@
 "use client";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Badge } from "@/components/ui/badge";
 import { ChevronExpandY, Gauge } from "@unkey/icons";

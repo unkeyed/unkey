@@ -2,7 +2,7 @@ import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
 import { navigation } from "./constants";
 import { type Interval, IntervalSelect } from "./select";
+import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -141,25 +142,7 @@ export default async function ApiPage(props: {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} active isIdentifier>
-            {api.name}
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge
-            key="apiId"
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {api.id}
-            <CopyButton value={api.id} />
-          </Badge>
-          <CreateKeyButton apiId={api.id} keyAuthId={api.keyAuthId!} />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation api={api}/>
 
       <PageContent>
         <SubMenu navigation={navigation(api.id, api.keyAuthId!)} segment="overview" />

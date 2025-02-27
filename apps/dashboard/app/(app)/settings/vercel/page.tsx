@@ -1,5 +1,5 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
@@ -11,7 +11,7 @@ import { Button } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Navigation } from "../_navigation/navigation";
+import { Navigation } from "@/components/navigation/navigation";
 import { navigation } from "../constants";
 import { Client } from "./client";
 type Props = {
@@ -52,7 +52,7 @@ export default async function Page(props: Props) {
   if (!integration) {
     return (
       <div>
-        <Navigation href="/settings/vercel" />
+        <Navigation href="/settings/vercel" name="Settings" icon={<Gear/>} />
         <PageContent>
           <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />
@@ -165,13 +165,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/settings/billing" icon={<Gear />} name="Settings"/>
       <PageContent>
         <SubMenu navigation={navigation} segment="vercel" />
         <div className="mt-8" />
