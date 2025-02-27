@@ -1,45 +1,52 @@
 "use client";
+
+import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/overview/schemas";
+import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { BookOpen } from "lucide-react";
-import Link from "next/link";
-import type { API } from "../page";
+import { ApiListGrid } from "./api-list-grid";
 import { ApiListControlCloud } from "./control-cloud";
 import { ApiListControls } from "./controls";
 import { CreateApiButton } from "./create-api-button";
-import { ApiListCard } from "./api-list-card";
 
-export const ApiListClient = ({ apiList }: { apiList: API[] }) => {
+export const ApiListClient = ({
+  initialData,
+}: {
+  initialData: ApisOverviewResponse;
+}) => {
   return (
     <div className="flex flex-col">
       <ApiListControls />
       <ApiListControlCloud />
-
-      <div className="p-5">
-        {apiList.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-7xl">
-            {apiList.map((api) => (
-              <ApiListCard api={api} key={api.id} />
-            ))}
+      {initialData.apiList.length > 0 ? (
+        <div className="p-5">
+          <ApiListGrid initialData={initialData} />
+        </div>
+      ) : (
+        <div className="h-screen flex items-center justify-center -translate-y-32">
+          <div className="flex justify-center items-center">
+            <Empty className="m-0 p-0">
+              <Empty.Icon />
+              <Empty.Title>No APIs found</Empty.Title>
+              <Empty.Description>
+                You haven&apos;t created any APIs yet. Create one to get started.
+              </Empty.Description>
+              <Empty.Actions className="mt-4 ">
+                <CreateApiButton />
+                <a
+                  href="https://www.unkey.com/docs/introduction"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button>
+                    <BookBookmark />
+                    Documentation
+                  </Button>
+                </a>
+              </Empty.Actions>
+            </Empty>
           </div>
-        ) : (
-          <Empty>
-            <Empty.Icon />
-            <Empty.Title>No APIs found</Empty.Title>
-            <Empty.Description>
-              You haven&apos;t created any APIs yet. Create one to get started.
-            </Empty.Description>
-            <Empty.Actions>
-              <CreateApiButton key="createApi" />
-              <Link href="/docs" target="_blank">
-                <Button>
-                  <BookOpen />
-                  Read the docs
-                </Button>
-              </Link>
-            </Empty.Actions>
-          </Empty>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

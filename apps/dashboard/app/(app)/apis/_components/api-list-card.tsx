@@ -1,23 +1,22 @@
 "use client";
 import { StatsCard } from "@/components/stats-card";
-import { MetricStats } from "@/components/stats-card/components/metric-stats";
-import { Key, ProgressBar } from "@unkey/icons";
-import type { API } from "../page";
-import { useFetchVerificationTimeseries } from "./hooks/use-query-timeseries";
 import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
+import { MetricStats } from "@/components/stats-card/components/metric-stats";
+import type { ApiOverview } from "@/lib/trpc/routers/api/overview/schemas";
+import { Key, ProgressBar } from "@unkey/icons";
+import { useFetchVerificationTimeseries } from "./hooks/use-query-timeseries";
 
 type Props = {
-  api: API;
+  api: ApiOverview;
 };
 
 export const ApiListCard = ({ api }: Props) => {
-  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(
-    api.keyspaceId
-  );
+  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(api.keyspaceId);
 
   const passed = timeseries?.reduce((acc, crr) => acc + crr.success, 0) ?? 0;
   const blocked = timeseries?.reduce((acc, crr) => acc + crr.error, 0) ?? 0;
 
+  const keyCount = api.keys.reduce((acc, crr) => acc + crr.count, 0);
   return (
     <StatsCard
       name={api.name}
@@ -51,7 +50,7 @@ export const ApiListCard = ({ api }: Props) => {
           <div className="flex items-center gap-2 min-w-0 max-w-[40%]">
             <Key className="text-accent-11 flex-shrink-0" />
             <div className="text-xs text-accent-9 truncate">
-              {api.keys.length ? `${api.keys.length} Key(s)` : "No data"}
+              {keyCount > 0 ? `${keyCount} ${keyCount === 1 ? "Key" : "Keys"}` : "No data"}
             </div>
           </div>
         </>

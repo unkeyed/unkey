@@ -1,6 +1,7 @@
 import { t } from "../trpc";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
+import { queryApisOverview } from "./api/overview";
 import { queryVerificationTimeseries } from "./api/query-timeseries";
 import { setDefaultApiBytes } from "./api/setDefaultBytes";
 import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
@@ -86,6 +87,9 @@ export const router = t.router({
     updateDeleteProtection: updateAPIDeleteProtection,
     logs: t.router({
       queryVerificationTimeseries,
+    }),
+    overview: t.router({
+      queryApisOverview,
     }),
   }),
   workspace: t.router({
