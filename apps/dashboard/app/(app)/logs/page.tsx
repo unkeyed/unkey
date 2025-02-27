@@ -29,4 +29,4 @@ export default async function Page() {
       <LogsClient />
     </div>
   );
-};
+}
