@@ -7,12 +7,15 @@ export function RefreshHandler() {
   const searchParams = useSearchParams();
   
   useEffect(() => {
-    if (searchParams && searchParams.get('refresh') === 'true') {
-      // Remove the query parameter
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
+    const newOrg = searchParams && searchParams.get('refresh') === 'true';
+    
+    if (newOrg) {
+      // Remove the refresh parameter from the URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('refresh');
+      window.history.replaceState({}, '', newUrl.toString());
       
-      // Force a full page refresh
+      // Force a page refresh to ensure we're using the new org context
       window.location.reload();
     }
   }, [searchParams]);
