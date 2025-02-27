@@ -38,6 +38,34 @@ test("returns 200", async (t) => {
   expect(res.body.valid).toBe(true);
 });
 
+test("returns a requestId", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+  await h.db.primary.insert(schema.keys).values({
+    id: newId("test"),
+    keyAuthId: h.resources.userKeyAuth.id,
+    hash: await sha256(key),
+    start: key.slice(0, 8),
+    workspaceId: h.resources.userWorkspace.id,
+    createdAtM: Date.now(),
+  });
+
+  const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+    url: "/v1/keys.verifyKey",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: {
+      key,
+      apiId: h.resources.userApi.id,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+  expect(res.body.requestId).toBeDefined();
+});
+
 describe("bad request", () => {
   test("returns 400", async (t) => {
     const h = await IntegrationHarness.init(t);
