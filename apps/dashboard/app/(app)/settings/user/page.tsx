@@ -1,10 +1,9 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Navigation } from "../_navigation/navigation";
 import { redirect } from "next/navigation";
+import { Navigation } from "../_navigation/navigation";
 import { navigation } from "../constants";
 import { UpdateTheme } from "./update-theme";
 import { UpdateUserEmail } from "./update-user-email";
@@ -26,7 +25,7 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <Navigation href="/settings/user"/>
+      <Navigation href="/settings/user" />
       <PageContent>
         <SubMenu navigation={navigation} segment="user" />
 

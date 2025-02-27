@@ -1,14 +1,9 @@
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ShieldKey } from "@unkey/icons";
-import { Button } from "@unkey/ui";
 import { notFound, redirect } from "next/navigation";
-import { DeleteRole } from "./delete-role";
-import { type NestedPermissions, Tree } from "./tree";
-import { UpdateRole } from "./update-role";
 import { Navigation } from "./navigation";
+import { type NestedPermissions, Tree } from "./tree";
 
 export const revalidate = 0;
 
@@ -111,7 +106,7 @@ export default async function RolesPage(props: Props) {
 
   return (
     <div>
-      <Navigation role={role}/>
+      <Navigation role={role} />
       <PageContent>
         <div className="flex flex-col min-h-screen gap-8">
           <div className="flex items-center justify-between">

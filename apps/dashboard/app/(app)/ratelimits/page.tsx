@@ -30,7 +30,7 @@ export default async function RatelimitOverviewPage() {
 
   return (
     <div>
-      <Navigation/>
+      <Navigation />
       <RatelimitClient ratelimitNamespaces={workspace.ratelimitNamespaces} />
     </div>
   );

@@ -10,8 +10,8 @@ import { redirect } from "next/navigation";
 import { parseAsInteger, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import { SearchField } from "./filter";
-import { Row } from "./row";
 import { Navigation } from "./navigation";
+import { Row } from "./row";
 type Props = {
   searchParams: {
     search?: string;
@@ -38,7 +38,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navigation/>
+      <Navigation />
       <PageContent>
         <SearchField />
         <div className="flex flex-col gap-8 mb-20 mt-8">

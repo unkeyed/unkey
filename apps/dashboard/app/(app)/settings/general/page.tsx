@@ -1,16 +1,15 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { Navigation } from "../_navigation/navigation";
 import { navigation } from "../constants";
 import { UpdateWorkspaceImage } from "./update-workspace-image";
 import { UpdateWorkspaceName } from "./update-workspace-name";
-import { Navigation } from "../_navigation/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +26,7 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <Navigation href="/settings/general"/>
+      <Navigation href="/settings/general" />
       <PageContent>
         <SubMenu navigation={navigation} segment="general" />
         <div className="mb-20 flex flex-col gap-8 mt-8">

@@ -1,11 +1,9 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { asc, db } from "@/lib/db";
 import { permissions } from "@unkey/db/src/schema";
-import { ShieldKey } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
@@ -58,7 +56,7 @@ export default async function RolesPage() {
   });
   return (
     <div>
-      <Navigation numberOfPermissions={workspace.permissions.length}/>
+      <Navigation numberOfPermissions={workspace.permissions.length} />
 
       <PageContent>
         <SubMenu navigation={navigation} segment="permissions" />

@@ -19,7 +19,7 @@ export default async function Page() {
 
   return (
     <div>
-      <Navigation/>
+      <Navigation />
       <LogsClient />
     </div>
   );

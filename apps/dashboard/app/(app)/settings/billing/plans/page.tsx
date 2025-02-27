@@ -20,7 +20,7 @@ export default async function Page() {
 
   return (
     <div>
-      <Navigation/>
+      <Navigation />
       <PageContent>
         <div>
           <Link

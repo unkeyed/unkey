@@ -1,5 +1,4 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
@@ -10,8 +9,8 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
-import { Navigation } from "./navigation";
 import { CreateNewRole } from "./create-new-role";
+import { Navigation } from "./navigation";
 
 export const revalidate = 0;
 

@@ -1,12 +1,10 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Gear } from "@unkey/icons";
 import { redirect } from "next/navigation";
-import { Client } from "./client";
 import { Navigation } from "../navigation";
+import { Client } from "./client";
 
 export const revalidate = 0;
 
@@ -31,7 +29,7 @@ export default async function SettingsKeysPage(_props: {
 
   return (
     <div>
-      <Navigation/>
+      <Navigation />
       <PageContent>
         <PageHeader
           title="Create a new Root Key"

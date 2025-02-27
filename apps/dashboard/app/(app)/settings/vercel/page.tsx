@@ -11,9 +11,9 @@ import { Button } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Navigation } from "../_navigation/navigation";
 import { navigation } from "../constants";
 import { Client } from "./client";
-import { Navigation } from "../_navigation/navigation";
 type Props = {
   searchParams: {
     configurationId?: string;
@@ -52,7 +52,7 @@ export default async function Page(props: Props) {
   if (!integration) {
     return (
       <div>
-        <Navigation href="/settings/vercel"/>
+        <Navigation href="/settings/vercel" />
         <PageContent>
           <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />

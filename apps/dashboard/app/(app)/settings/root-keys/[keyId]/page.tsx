@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogTrigger } from "@/components/ui/dialog";
@@ -6,10 +5,10 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./history/access-table";
+import { Navigation } from "./navigation";
 import { PageLayout } from "./page-layout";
 import { DialogAddPermissionsForAPI } from "./permissions/add-permission-for-api";
 import { Api } from "./permissions/api";
@@ -17,7 +16,6 @@ import { Legacy } from "./permissions/legacy";
 import { apiPermissions } from "./permissions/permissions";
 import { Workspace } from "./permissions/workspace";
 import { UpdateRootKeyName } from "./update-root-key-name";
-import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -129,7 +127,7 @@ export default async function RootKeyPage(props: {
 
   return (
     <div>
-      <Navigation keyId={key.id}/>
+      <Navigation keyId={key.id} />
       <PageContent>
         <PageLayout params={{ keyId: key.id }} rootKey={key}>
           <div className="flex flex-col gap-4">

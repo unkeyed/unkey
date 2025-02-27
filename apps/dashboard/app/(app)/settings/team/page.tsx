@@ -35,8 +35,8 @@ import { toast } from "@/components/ui/toaster";
 import type { MembershipRole } from "@clerk/types";
 import { Gear } from "@unkey/icons";
 import Link from "next/link";
-import { navigation } from "../constants";
 import { Navigation } from "../_navigation/navigation";
+import { navigation } from "../constants";
 
 type Member = {
   id: string;
@@ -52,7 +52,7 @@ export default function TeamPage() {
   if (!organization) {
     return (
       <div>
-        <Navigation href="/settings/team"/>
+        <Navigation href="/settings/team" />
         <PageContent>
           <SubMenu navigation={navigation} segment="team" />
           <div className="mb-20 flex flex-col gap-8 mt-8">

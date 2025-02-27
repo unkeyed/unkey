@@ -63,7 +63,7 @@ export default async function RolesPage(props: Props) {
 
   return (
     <div>
-      <Navigation permissionId={props.params.permissionId} permission={permission}/>
+      <Navigation permissionId={props.params.permissionId} permission={permission} />
       <PageContent>
         <div className="flex flex-col min-h-screen gap-4">
           <div className="flex gap-4 mb-20">

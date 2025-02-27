@@ -35,7 +35,7 @@ export default async function SettingsKeysPage(_props: {
 
   return (
     <div>
-      <Navigation/>
+      <Navigation />
       <PageContent>
         <SubMenu navigation={navigation} segment="root-keys" />
 
