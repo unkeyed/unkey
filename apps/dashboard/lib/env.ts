@@ -65,6 +65,7 @@ const stripeSchema = z.object({
   STRIPE_PRODUCT_ID_KEY_VERIFICATIONS: z.string(),
   STRIPE_PRODUCT_ID_PRO_PLAN: z.string(),
   STRIPE_PRODUCT_ID_SUPPORT: z.string(),
+  STRIPE_PRODUCT_ID_SCALE_PLAN: z.string(),
 });
 
 const stripeParsed = stripeSchema.safeParse(process.env);

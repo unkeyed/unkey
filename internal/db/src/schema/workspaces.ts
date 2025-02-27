@@ -61,6 +61,8 @@ export const workspaces = mysqlTable(
       .notNull(),
     features: json("features")
       .$type<{
+        requestsQuota?: number;
+
         /**
          * enable audit log retention by specifiying the number of days
          *

@@ -1,7 +1,6 @@
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { currentUser } from "@clerk/nextjs";
 import { Empty } from "@unkey/ui";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -19,7 +18,6 @@ export default async function StripeRedirect(props: Props) {
   if (!tenantId) {
     return redirect("/auth/sign-in");
   }
-  const user = await currentUser();
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -45,14 +43,32 @@ export default async function StripeRedirect(props: Props) {
     typescript: true,
   });
 
-  // If they have a subscription already, we display the portal
-  if (ws.stripeCustomerId) {
+  if (ws.stripeCustomerId && ws.stripeSubscriptionId) {
     const session = await stripe.billingPortal.sessions.create({
       customer: ws.stripeCustomerId,
       return_url: headers().get("referer") ?? "https://app.unkey.com",
     });
 
     return redirect(session.url);
+  }
+
+  // If they have a stripe account already, we display the portal
+  if (ws.stripeCustomerId) {
+    const session = await stripe.checkout.sessions.create({
+      customer: ws.stripeCustomerId,
+      return_url: headers().get("referer") ?? "https://app.unkey.com",
+    });
+
+    if (!session.url) {
+      throw new Error("Stripe session URL is missing");
+    }
+    return redirect(session.url);
+  }
+
+  const product = await stripe.products.retrieve(e.STRIPE_PRODUCT_ID_SCALE_PLAN);
+
+  if (!product) {
+    throw new Error("Product not found");
   }
 
   // If they don't have a subscription, we send them to the checkout
@@ -67,16 +83,28 @@ export default async function StripeRedirect(props: Props) {
     successUrl += `&new_plan=${new_plan}`;
   }
 
+  const t = new Date();
+  t.setUTCMonth(t.getUTCMonth() + 1);
+  t.setUTCDate(1);
+  t.setUTCHours(0, 0, 0, 0);
+
   const cancelUrl = headers().get("referer") ?? baseUrl;
   const session = await stripe.checkout.sessions.create({
-    client_reference_id: ws.id,
-    customer_email: user?.emailAddresses.at(0)?.emailAddress,
-    billing_address_collection: "auto",
-    mode: "setup",
+    mode: "subscription",
     success_url: successUrl,
     cancel_url: cancelUrl,
     currency: "USD",
-    customer_creation: "always",
+    allow_promotion_codes: true,
+    subscription_data: {
+      proration_behavior: "create_prorations",
+      billing_cycle_anchor: t.getTime() / 1000,
+    },
+    line_items: [
+      {
+        price: product.default_price as string,
+        quantity: 1,
+      },
+    ],
   });
 
   if (!session.url) {
