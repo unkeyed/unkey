@@ -1,6 +1,8 @@
 // import { type PropsWithChildren, useEffect, useState } from "react";
 "use client";
+import type { LogsFilterUrlValue } from "@/app/(app)/logs/filters.schema";
 import type { SavedFiltersGroup } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
+import { formatTimestampTooltip } from "@/components/logs/chart/utils/format-timestamp";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import type { UserResource } from "@clerk/types";
@@ -15,13 +17,10 @@ import {
   differenceInSeconds,
   differenceInWeeks,
   differenceInYears,
-  format,
 } from "date-fns";
 import { type PropsWithChildren, useState } from "react";
 import { QueriesMadeBy } from "./queries-made-by";
 import { QueriesPill } from "./queries-pill";
-import type { LogsFilterUrlValue } from "@/app/(app)/logs/filters.schema";
-import { formatTimestampTooltip } from "@/components/logs/chart/utils/format-timestamp";
 
 type QueriesItemProps = {
   filterList: SavedFiltersGroup;
@@ -56,24 +55,27 @@ type QueriesPathOverflowProps = PropsWithChildren<{
   pathsList?: LogsFilterUrlValue[];
 }>;
 export const QueriesPathOverflow = ({ pathsList }: QueriesPathOverflowProps) => {
-  const newPathsList = [{value:"v1/path/test", operator: "is"}, {value:"v1/path/test2", operator: "is"}, {value:"v1/path/test3", operator: "is"}];
+  const newPathsList = [
+    { value: "v1/path/test", operator: "is" },
+    { value: "v1/path/test2", operator: "is" },
+    { value: "v1/path/test3", operator: "is" },
+  ];
   return (
-      <Tooltip>
-        <TooltipTrigger>
-          <QueriesPill value={`+${newPathsList.length} more`} className="text-gray-10"/>
-        </TooltipTrigger>
-        <TooltipContent
-          className="flex h-full py-1.5 px-3 bg-white text-gray-12 ßrounded-lg font-500 text-[12px] justify-center items-center leading-6 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.3)] shadow-[0_12px_60px_1px_rgba(0,0,0,0.15)] shadow-[0_0px_0px_1px_rgba(0,0,0,0.1)]"
-          side="bottom"
-        >
-          <ul>
+    <Tooltip>
+      <TooltipTrigger>
+        <QueriesPill value={`+${newPathsList.length} more`} className="text-gray-10" />
+      </TooltipTrigger>
+      <TooltipContent
+        className="flex h-full py-1.5 px-3 bg-white text-gray-12 ßrounded-lg font-500 text-[12px] justify-center items-center leading-6 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.3)] shadow-[0_12px_60px_1px_rgba(0,0,0,0.15)] shadow-[0_0px_0px_1px_rgba(0,0,0,0.1)]"
+        side="bottom"
+      >
+        <ul>
           {newPathsList.map((path, index) => (
-              <li key={`path-${path.value}-${index}`}>{path.value}</li>
-            ))}
-          </ul>
-        </TooltipContent>
-      </Tooltip>
-      
+            <li key={`path-${path.value}-${index}`}>{path.value}</li>
+          ))}
+        </ul>
+      </TooltipContent>
+    </Tooltip>
   );
 };
 export const QueriesItem = ({
@@ -86,8 +88,7 @@ export const QueriesItem = ({
   changeBookmark,
 }: QueriesItemProps) => {
   const { status, methods, paths, startTime, endTime, since } = filterList.filters;
-  console.log("startTime", startTime);
-  
+
   // const startDateTime = startTime
   //   ? format(new Date(Number(startTime) * 1000), "MMM d HH:mm:ss.SS")
   //   : null;
@@ -163,7 +164,11 @@ export const QueriesItem = ({
     startTime,
     endTime,
     since,
-  }: { startTime?: string; endTime?: string; since?: string }) => {
+  }: {
+    startTime?: string;
+    endTime?: string;
+    since?: string;
+  }) => {
     return (
       <div className="flex flex-row justify-start items-center gap-2 truncate">
         <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
@@ -249,16 +254,16 @@ export const QueriesItem = ({
                       {paths[0]?.operator}
                     </span>
                     <QueriesPill value={paths[0].value} />
-                     <QueriesPathOverflow pathsList={paths.slice(1)} />
+                    <QueriesPathOverflow pathsList={paths.slice(1)} />
                   </div>
                 )}
                 {(startTime || endTime || since) && (
                   <TimeFilter
-                    startTime={startTime ? formatTimestampTooltip(startTime): undefined}
+                    startTime={startTime ? formatTimestampTooltip(startTime) : undefined}
                     endTime={endTime ? formatTimestampTooltip(endTime) : undefined}
                     since={since ? since?.toString() : undefined}
-                  />)
-                }
+                  />
+                )}
               </div>
             </div>
             <QueriesMadeBy

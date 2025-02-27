@@ -6,11 +6,11 @@ import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useUser } from "@clerk/nextjs";
+import { BookBookmark, Bookmark, ClockRotateClockwise } from "@unkey/icons";
+import { Button, Empty } from "@unkey/ui";
 import { type PropsWithChildren, useCallback, useState } from "react";
 import { QueriesItem } from "./queries-item";
 import { QueriesTabs } from "./queries-tabs";
-import { Button, Empty } from "@unkey/ui";
-import { ClockRotateClockwise, Bookmark, BookBookmark } from "@unkey/icons";
 
 type QueriesPopoverProps = PropsWithChildren<{
   open: boolean;
@@ -152,25 +152,33 @@ type EmptyQueriesProps = {
 const EmptyQueries = ({ selectedTab }: EmptyQueriesProps) => {
   return (
     <div className="flex w-full h-full justify-between p-2">
-          <Empty>
-            <Empty.Icon>{selectedTab === 0 ? <ClockRotateClockwise size="2xl-thin" className="text-accent-12 p-0 m-0"/>: <Bookmark size="2xl-thin" className="w-full h-full text-accent-12 p-0 m-0"/>}</Empty.Icon>
-            <Empty.Title>{selectedTab === 0 ? "No recent queries" : "No saved queries"}</Empty.Title>
-            <Empty.Description>
-              {selectedTab === 1 ? "Query using the filters, and they will show up here" : "Save your recent queries and they will remain here"}
-            </Empty.Description>
-            <Empty.Actions>
-            <a
-              href="https://www.unkey.com/docs/introduction"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button>
-                <BookBookmark />
-                Documentation
-              </Button>
-            </a>
-            </Empty.Actions>
-          </Empty>
+      <Empty>
+        <Empty.Icon>
+          {selectedTab === 0 ? (
+            <ClockRotateClockwise size="2xl-thin" className="text-accent-12 p-0 m-0" />
+          ) : (
+            <Bookmark size="2xl-thin" className="w-full h-full text-accent-12 p-0 m-0" />
+          )}
+        </Empty.Icon>
+        <Empty.Title>{selectedTab === 0 ? "No recent queries" : "No saved queries"}</Empty.Title>
+        <Empty.Description>
+          {selectedTab === 1
+            ? "Query using the filters, and they will show up here"
+            : "Save your recent queries and they will remain here"}
+        </Empty.Description>
+        <Empty.Actions>
+          <a
+            href="https://www.unkey.com/docs/introduction"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button>
+              <BookBookmark />
+              Documentation
+            </Button>
+          </a>
+        </Empty.Actions>
+      </Empty>
     </div>
   );
 };

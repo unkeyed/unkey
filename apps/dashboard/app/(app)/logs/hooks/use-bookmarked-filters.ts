@@ -1,5 +1,5 @@
 import type { FilterUrlValue } from "@/components/logs/validation/filter.types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import {
   type LogsFilterField,
   type LogsFilterValue,
@@ -17,11 +17,7 @@ export type SavedFiltersGroup = {
 
 export const useBookmarkedFilters = () => {
   const { filters, updateFilters } = useFilters();
-  const [savedFilters, setSavedFilters] = useState<SavedFiltersGroup[]>([]);
-  useEffect(() => {
-    const savedFilters = JSON.parse(localStorage.getItem("savedFilters") || "[]") as SavedFiltersGroup[];
-    setSavedFilters(savedFilters);
-  }, [filters]);
+
   useEffect(() => {
     if (!filters.length) {
       return;
@@ -132,7 +128,20 @@ export const useBookmarkedFilters = () => {
   };
 
   return {
-    savedFilters,
+    savedFilters: (
+      JSON.parse(localStorage.getItem("savedFilters") || "[]") as SavedFiltersGroup[]
+    ).map((filter) => ({
+      ...filter,
+      filters: {
+        ...filter.filters,
+        startTime: Number.isNaN(Number(filter.filters.startTime))
+          ? null
+          : Number(filter.filters.startTime),
+        endTime: Number.isNaN(Number(filter.filters.endTime))
+          ? null
+          : Number(filter.filters.endTime),
+      },
+    })),
     applyFilterGroup,
     toggleBookmark,
   };
