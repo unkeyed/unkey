@@ -9,6 +9,8 @@ import { useUser } from "@clerk/nextjs";
 import { type PropsWithChildren, useCallback, useState } from "react";
 import { QueriesItem } from "./queries-item";
 import { QueriesTabs } from "./queries-tabs";
+import { Button, Empty } from "@unkey/ui";
+import { ClockRotateClockwise, Bookmark, BookBookmark } from "@unkey/icons";
 
 type QueriesPopoverProps = PropsWithChildren<{
   open: boolean;
@@ -83,7 +85,7 @@ export const QueriesPopover = ({ open, setOpen, children }: QueriesPopoverProps)
       </PopoverTrigger>
       <PopoverContent
         onFocus={() => updateGroups(savedFilters)}
-        className="flex flex-col w-[430px] bg-white dark:bg-black rounded-lg p-2 pb-0 max-h-[924px] shadow-shadow-black-a5 shadow-shadow-black-a3 shadow-shadow-inverted-2 dark:shadow-[0_12px_32px_-16px_rgba(255,255,255,0.1)] dark:shadow-[0_12px_60px_0px_rgba(255,255,255,0.15)] dark:shadow-[0_0px_0px_1px_rgba(255,255,255,0.1)] border-none"
+        className="flex flex-col w-[430px] bg-white dark:bg-black rounded-lg p-2 pb-0 h-[600px] max-h-[924px] shadow-shadow-black-a5 shadow-shadow-black-a3 shadow-shadow-inverted-2 dark:shadow-[0_12px_32px_-16px_rgba(255,255,255,0.1)] dark:shadow-[0_12px_60px_0px_rgba(255,255,255,0.15)] dark:shadow-[0_0px_0px_1px_rgba(255,255,255,0.1)] border-none"
         align="start"
         // onKeyDown={handleKeyNavigation}
       >
@@ -149,17 +151,26 @@ type EmptyQueriesProps = {
 };
 const EmptyQueries = ({ selectedTab }: EmptyQueriesProps) => {
   return (
-    <div className="flex w-full h-fit justify-between p-2">
-      {selectedTab === 0 && (
-        <span className="flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded rounded-[8px] pb-[9px]">
-          No Recent Queries...
-        </span>
-      )}
-      {selectedTab === 1 && (
-        <span className="flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded rounded-[8px] pb-[9px]">
-          No Recent Saved Queries...
-        </span>
-      )}
+    <div className="flex w-full h-full justify-between p-2">
+          <Empty>
+            <Empty.Icon>{selectedTab === 0 ? <ClockRotateClockwise size="2xl-thin" className="text-accent-12 p-0 m-0"/>: <Bookmark size="2xl-thin" className="w-full h-full text-accent-12 p-0 m-0"/>}</Empty.Icon>
+            <Empty.Title>{selectedTab === 0 ? "No recent queries" : "No saved queries"}</Empty.Title>
+            <Empty.Description>
+              {selectedTab === 1 ? "Query using the filters, and they will show up here" : "Save your recent queries and they will remain here"}
+            </Empty.Description>
+            <Empty.Actions>
+            <a
+              href="https://www.unkey.com/docs/introduction"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button>
+                <BookBookmark />
+                Documentation
+              </Button>
+            </a>
+            </Empty.Actions>
+          </Empty>
     </div>
   );
 };

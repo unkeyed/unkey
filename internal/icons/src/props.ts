@@ -1,4 +1,4 @@
-type Size = "sm" | "md" | "lg" | "xl";
+type Size = "sm" | "md" | "lg" | "xl" | "2xl";
 type Weight = "thin" | "regular" | "bold";
 
 type IconSize = `${Size}-${Weight}`;
@@ -16,6 +16,9 @@ export const sizeMap = {
   "xl-thin": { size: 18, strokeWidth: 1 },
   "xl-regular": { size: 18, strokeWidth: 2 },
   "xl-bold": { size: 18, strokeWidth: 3 },
+  "2xl-thin": { size: 30, strokeWidth: 1 },
+  "2xl-regular": { size: 30, strokeWidth: 2 },
+  "2xl-bold": { size: 30, strokeWidth: 3 },
 } as const;
 
 export type IconProps = {
