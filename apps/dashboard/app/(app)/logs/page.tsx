@@ -1,5 +1,3 @@
-"use server";
-
 import { Navbar } from "@/components/navbar";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
