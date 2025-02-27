@@ -15,8 +15,8 @@ export async function GET(_request: NextRequest) {
       userId: user.id,
     });
 
-    // refresh session with the new orgId
-    await auth.refreshSession(newOrgId);
+    // switch into the new org/workspace
+    await auth.switchOrg(newOrgId);
   }
 
   return redirect("/new");
