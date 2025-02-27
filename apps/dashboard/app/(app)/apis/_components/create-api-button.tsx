@@ -1,22 +1,20 @@
 "use client";
+
 import { revalidate } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
-import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
@@ -35,11 +33,16 @@ export const CreateApiButton = ({
   defaultOpen,
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  const router = useRouter();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid, isSubmitting },
+  } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
-
-  const [open, setOpen] = useState(defaultOpen ?? false);
 
   const create = trpc.api.create.useMutation({
     async onSuccess(res) {
@@ -52,10 +55,10 @@ export const CreateApiButton = ({
       toast.error(err.message);
     },
   });
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     create.mutate(values);
   }
-  const router = useRouter();
 
   return (
     <>
@@ -66,42 +69,46 @@ export const CreateApiButton = ({
             Create New API
           </Button>
         </DialogTrigger>
-        <DialogContent className="border-border w-11/12 max-sm: ">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="my-api"
-                        {...field}
-                        className=" dark:focus:border-gray-700"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      This is just a human readable name for you and not visible to anyone else
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+        <DialogContent
+          className="bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-4 rounded-lg p-0 gap-0"
+          onOpenAutoFocus={(e) => {
+            // Prevent auto-focus behavior
+            e.preventDefault();
+          }}
+        >
+          <DialogHeader className="border-b border-gray-4">
+            <DialogTitle className="px-6 py-4 text-gray-12 font-medium text-base">
+              Create New API
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="flex flex-col gap-4 p-5 pt-4 bg-accent-2">
+              <FormInput
+                label="Name"
+                description="This is just a human readable name for you and not visible to anyone else"
+                error={errors.name?.message}
+                {...register("name")}
+                placeholder="my-api"
               />
+            </div>
 
-              <DialogFooter className="flex-row justify-end gap-2 pt-4 ">
+            <DialogFooter className="p-6 border-t border-gray-4">
+              <div className="w-full flex flex-col gap-2 items-center justify-center">
                 <Button
-                  variant="primary"
-                  disabled={create.isLoading || !form.formState.isValid}
-                  className="mt-4 "
                   type="submit"
+                  variant="primary"
+                  disabled={create.isLoading || isSubmitting || !isValid}
+                  loading={create.isLoading || isSubmitting}
+                  className="h-10 w-full rounded-lg"
                 >
-                  {create.isLoading ? <Loading /> : "Create"}
+                  {create.isLoading ? <Loading /> : "Create API"}
                 </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                <div className="text-gray-9 text-xs">
+                  You'll be redirected to your new API dashboard after creation
+                </div>
+              </div>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </>
