@@ -12,6 +12,7 @@ import { notFound, redirect } from "next/navigation";
 import { CreateApi } from "./create-api";
 import { CreateRatelimit } from "./create-ratelimit";
 import { CreateWorkspace } from "./create-workspace";
+import { RefreshHandler } from "./create-tenant/refresh-handler";
 import { Keys } from "./keys";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,7 @@ export default async function (props: Props) {
     }
     return (
       <div className="container m-16 mx-auto">
+        <RefreshHandler />
         <PageHeader
           title="Unkey"
           description="Create your first key"
@@ -78,6 +80,7 @@ export default async function (props: Props) {
     }
     return (
       <div className="container m-16 mx-auto">
+        <RefreshHandler />
         <PageHeader
           title="Unkey"
           description="Choose your adventure"
@@ -151,6 +154,7 @@ export default async function (props: Props) {
     }
     return (
       <div className="container m-16 mx-auto">
+        <RefreshHandler />
         <PageHeader
           title="Unkey"
           description="Create your API"
@@ -186,6 +190,7 @@ export default async function (props: Props) {
     }
     return (
       <div className="container m-16 mx-auto">
+        <RefreshHandler />
         <PageHeader
           title="Unkey"
           description="Create your ratelimit namespace"
@@ -270,6 +275,7 @@ export default async function (props: Props) {
 
   return (
     <div className="container m-16 mx-auto">
+      <RefreshHandler />
       <PageHeader title="Unkey" description="Create your workspace" />
       <Separator className="my-8" />
       <CreateWorkspace />
