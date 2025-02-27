@@ -1,11 +1,9 @@
 "use server";
-
-import { Navbar } from "@/components/navbar";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Layers3 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { LogsClient } from "./components/logs-client";
+import { Navigation } from "./navigation";
 
 export default async function Page() {
   const tenantId = getTenantId();
@@ -21,11 +19,7 @@ export default async function Page() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Layers3 />}>
-          <Navbar.Breadcrumbs.Link href="/logs">Logs</Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation/>
       <LogsClient />
     </div>
   );

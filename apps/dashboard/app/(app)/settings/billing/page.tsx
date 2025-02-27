@@ -24,6 +24,7 @@ import { redirect } from "next/navigation";
 import Stripe from "stripe";
 import { navigation } from "../constants";
 import { UserPaymentMethod } from "./user-payment-method";
+import { Navigation } from "../_navigation/navigation";
 
 export const revalidate = 0;
 
@@ -41,13 +42,7 @@ export default async function BillingPage() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/settings/billing"/>
       <PageContent>
         <SubMenu navigation={navigation} segment="billing" />
         <div className="flex flex-col gap-8 lg:flex-row mt-8 ">

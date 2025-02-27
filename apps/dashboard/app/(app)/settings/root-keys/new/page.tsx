@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { Gear } from "@unkey/icons";
 import { redirect } from "next/navigation";
 import { Client } from "./client";
+import { Navigation } from "../navigation";
 
 export const revalidate = 0;
 
@@ -30,14 +31,7 @@ export default async function SettingsKeysPage(_props: {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/root-keys">Root Keys</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link active href="/settings/root-keys/new">
-            Create new key
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation/>
       <PageContent>
         <PageHeader
           title="Create a new Root Key"

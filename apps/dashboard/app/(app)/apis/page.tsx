@@ -8,6 +8,7 @@ import { Nodes } from "@unkey/icons";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiList } from "./client";
+import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -47,17 +48,7 @@ export default async function ApisOverviewPage(props: Props) {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <CreateApiButton
-            key="createApi"
-            defaultOpen={apis.length === 0 || props.searchParams.new}
-          />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation isNewApi={!!props.searchParams.new} apisLength={apis.length} />
       <PageContent>
         {unpaid ? (
           <div className="mt-10 flex min-h-[400px] flex-col items-center  justify-center space-y-6 rounded-lg border border-dashed px-4 md:mt-24">

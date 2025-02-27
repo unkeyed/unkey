@@ -1,4 +1,4 @@
-import { Navbar } from "@/components/navbar";
+import { Navigation } from "./navigation";
 import { getTenantId } from "@/lib/auth";
 import { InputSearch } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
@@ -14,11 +14,7 @@ export default async function AuditPage() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<InputSearch />}>
-          <Navbar.Breadcrumbs.Link href="/audit">Audit</Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+       <Navigation />
       {workspace.auditLogBuckets.length > 0 ? (
         <LogsClient
           rootKeys={workspace.keys}

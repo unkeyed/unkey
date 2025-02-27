@@ -3,7 +3,7 @@ import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Gear } from "@unkey/icons";
+import { Navigation } from "../_navigation/navigation";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
 import { UpdateTheme } from "./update-theme";
@@ -26,13 +26,7 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/user" active>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/settings/user"/>
       <PageContent>
         <SubMenu navigation={navigation} segment="user" />
 

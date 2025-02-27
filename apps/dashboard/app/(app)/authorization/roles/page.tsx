@@ -4,13 +4,13 @@ import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ShieldKey } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
+import { Navigation } from "./navigation";
 import { CreateNewRole } from "./create-new-role";
 
 export const revalidate = 0;
@@ -57,26 +57,7 @@ export default async function RolesPage() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<ShieldKey />}>
-          <Navbar.Breadcrumbs.Link href="/authorization/roles">
-            Authorization
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="/authorization/roles" active>
-            Roles
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge variant="secondary" className="h-8">
-            {Intl.NumberFormat().format(workspace.roles.length)} /{" "}
-            {Intl.NumberFormat().format(Number.POSITIVE_INFINITY)} used{" "}
-          </Badge>
-          <CreateNewRole
-            trigger={<Button variant="primary">Create New Role</Button>}
-            permissions={workspace.permissions}
-          />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation workspace={workspace} />
 
       <PageContent>
         <SubMenu navigation={navigation} segment="roles" />

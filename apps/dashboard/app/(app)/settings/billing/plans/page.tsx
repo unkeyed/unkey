@@ -1,14 +1,13 @@
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChangePlanButton } from "./button";
 import { tiers } from "./constants";
+import { Navigation } from "./navigation";
 
 export default async function Page() {
   const tenantId = getTenantId();
@@ -21,14 +20,7 @@ export default async function Page() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/billing">Billing</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="/settings/billing/plans" active>
-            Plans
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation/>
       <PageContent>
         <div>
           <Link

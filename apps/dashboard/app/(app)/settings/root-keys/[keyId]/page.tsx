@@ -17,6 +17,7 @@ import { Legacy } from "./permissions/legacy";
 import { apiPermissions } from "./permissions/permissions";
 import { Workspace } from "./permissions/workspace";
 import { UpdateRootKeyName } from "./update-root-key-name";
+import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -128,20 +129,7 @@ export default async function RootKeyPage(props: {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/root-keys">Root Keys</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/settings/root-keys/${key.id}`}
-            active
-            isIdentifier
-            className="w-[100px] truncate"
-          >
-            {key.id}
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
-
+      <Navigation keyId={key.id}/>
       <PageContent>
         <PageLayout params={{ keyId: key.id }} rootKey={key}>
           <div className="flex flex-col gap-4">

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { navigation } from "../constants";
 import { Client } from "./client";
+import { Navigation } from "../_navigation/navigation";
 type Props = {
   searchParams: {
     configurationId?: string;
@@ -51,13 +52,7 @@ export default async function Page(props: Props) {
   if (!integration) {
     return (
       <div>
-        <Navbar>
-          <Navbar.Breadcrumbs icon={<Gear />}>
-            <Navbar.Breadcrumbs.Link href="/settings/vercel" active>
-              Settings
-            </Navbar.Breadcrumbs.Link>
-          </Navbar.Breadcrumbs>
-        </Navbar>
+        <Navigation href="/settings/vercel"/>
         <PageContent>
           <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />
