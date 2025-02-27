@@ -1,5 +1,4 @@
 "use server";
-
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/query-overview/schemas";
 
@@ -28,18 +27,25 @@ export async function fetchApiOverview({
       }
       return and(...conditions);
     },
+    with: {
+      keyAuth: {
+        columns: {
+          sizeApprox: true,
+        },
+      },
+    },
     orderBy: (table, { asc }) => [asc(table.id)],
-    limit: Number(limit) + 1, // Fetch one extra to determine if there are more
+    limit: limit + 1, // Fetch one extra to determine if there are more
   });
 
   const apis = await query;
   const hasMore = apis.length > limit;
   const apiItems = hasMore ? apis.slice(0, limit) : apis;
-
   const nextCursor =
     hasMore && apiItems.length > 0 ? { id: apiItems[apiItems.length - 1].id } : undefined;
 
-  const apiList = await apiItemsWithKeyCounts(apiItems);
+  const apiList = await apiItemsWithApproxKeyCounts(apiItems);
+
   return {
     apiList,
     hasMore,
@@ -48,20 +54,13 @@ export async function fetchApiOverview({
   };
 }
 
-export async function apiItemsWithKeyCounts(apiItems: Array<any>) {
-  return await Promise.all(
-    apiItems.map(async (api) => {
-      const keyCountResult = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(schema.keys)
-        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAtM)));
-      const keyCount = Number(keyCountResult[0]?.count || 0);
-      return {
-        id: api.id,
-        name: api.name,
-        keyspaceId: api.keyAuthId,
-        keys: [{ count: keyCount }],
-      };
-    }),
-  );
+export async function apiItemsWithApproxKeyCounts(apiItems: Array<any>) {
+  return apiItems.map((api) => {
+    return {
+      id: api.id,
+      name: api.name,
+      keyspaceId: api.keyAuthId,
+      keys: [{ count: api.keyAuth?.sizeApprox || 0 }],
+    };
+  });
 }

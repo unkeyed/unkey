@@ -1,4 +1,4 @@
-import { apiItemsWithKeyCounts } from "@/app/(app)/apis/actions";
+import { apiItemsWithApproxKeyCounts } from "@/app/(app)/apis/actions";
 import { db, sql } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { z } from "zod";
@@ -20,8 +20,15 @@ export const overviewApiSearch = rateLimitedProcedure(ratelimit.read)
           ),
           isNull(table.deletedAtM),
         ),
+      with: {
+        keyAuth: {
+          columns: {
+            sizeApprox: true,
+          },
+        },
+      },
     });
 
-    const apiList = apiItemsWithKeyCounts(apis);
+    const apiList = await apiItemsWithApproxKeyCounts(apis);
     return apiList;
   });
