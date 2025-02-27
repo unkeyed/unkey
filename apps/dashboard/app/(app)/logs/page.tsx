@@ -1,4 +1,3 @@
-"use server";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Layers3 } from "@unkey/icons";
