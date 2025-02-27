@@ -29,12 +29,12 @@ export async function getAuth(_req?: Request): Promise<GetAuthResult> {
     if (!validationResult.isValid) {
       if (validationResult.shouldRefresh) {
         try {
-          const refreshedData = await auth.refreshSession();
-          if (!refreshedData) {
+          const refreshedData = await auth.refreshSession(sessionToken);
+          if (!refreshedData.session) {
             return { userId: null, orgId: null, orgRole: null };
           }
-          userId = refreshedData.userId;
-          orgId = refreshedData.orgId;
+          userId = refreshedData.session.userId;
+          orgId = refreshedData.session.orgId;
         } catch (error) {
           console.error(error);
           return { userId: null, orgId: null, orgRole: null };

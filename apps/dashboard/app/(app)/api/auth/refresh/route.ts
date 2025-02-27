@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     // Call refreshSession logic here and get new token
     const { newToken, expiresAt } = await auth.refreshSession(currentToken);
     
-    // Set the new cookie using your utility
+    // Set the new cookie
     await setCookie({
       name: UNKEY_SESSION_COOKIE,
       value: newToken,
