@@ -1,8 +1,8 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { insertAuditLogs } from "@/lib/audit";
+import { auth } from "@/lib/auth/server";
 import { db, schema } from "@/lib/db";
-import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
 import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
@@ -14,6 +14,8 @@ import { CreateRatelimit } from "./create-ratelimit";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   searchParams: {
     workspaceId?: string;
@@ -24,7 +26,18 @@ type Props = {
 };
 
 export default async function (props: Props) {
-  const { userId } = auth();
+  const user = await auth.getCurrentUser();
+  // make typescript happy
+  if (!user) {
+    return redirect("/auth/sign-in");
+  }
+
+  const { id: userId, orgId } = user;
+
+  // if they don't have an orgId, create one for them
+  if (!orgId) {
+    return redirect("/new/create-tenant");
+  }
 
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({
@@ -195,19 +208,21 @@ export default async function (props: Props) {
       </div>
     );
   }
-  if (userId) {
-    const personalWorkspace = await db.query.workspaces.findFirst({
+  if (orgId) {
+    // do they already have a workspace?
+    // they might if they have been invited to one
+    const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.tenantId, userId), isNull(table.deletedAtM)),
     });
 
     // if no personal workspace exists, we create one
-    if (!personalWorkspace) {
+    if (!workspace) {
       const workspaceId = newId("workspace");
       await db.transaction(async (tx) => {
         await tx.insert(schema.workspaces).values({
           id: workspaceId,
-          tenantId: userId,
+          tenantId: orgId,
           name: "Personal",
           plan: "free",
           stripeCustomerId: null,
@@ -218,36 +233,36 @@ export default async function (props: Props) {
           createdAtM: Date.now(),
         });
 
-        const bucketId = newId("auditLogBucket");
-        await tx.insert(schema.auditLogBucket).values({
-          id: bucketId,
-          workspaceId,
-          name: "unkey_mutations",
-          retentionDays: 30,
-          deleteProtection: true,
-        });
-
-        await insertAuditLogs(tx, bucketId, {
-          workspaceId: workspaceId,
-          event: "workspace.create",
-          actor: {
-            type: "user",
-            id: userId,
-          },
-          description: `Created ${workspaceId}`,
-          resources: [
-            {
-              type: "workspace",
-              id: workspaceId,
+          const bucketId = newId("auditLogBucket");
+          await tx.insert(schema.auditLogBucket).values({
+            id: bucketId,
+            workspaceId,
+            name: "unkey_mutations",
+            retentionDays: 30,
+            deleteProtection: true,
+          });
+  
+          await insertAuditLogs(tx, bucketId, {
+            workspaceId: workspaceId,
+            event: "workspace.create",
+            actor: {
+              type: "user",
+              id: userId,
             },
-          ],
+            description: `Created ${workspaceId}`,
+            resources: [
+              {
+                type: "workspace",
+                id: workspaceId,
+              },
+            ],
 
-          context: {
-            userAgent: headers().get("user-agent") ?? undefined,
-            location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
-          },
+            context: {
+              userAgent: headers().get("user-agent") ?? undefined,
+              location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+            },
+          });
         });
-      });
 
       return redirect(`/new?workspaceId=${workspaceId}`);
     }

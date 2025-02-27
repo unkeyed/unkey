@@ -1,15 +1,17 @@
 import { Code } from "@/components/ui/code";
 import { insertAuditLogs } from "@/lib/audit";
 import { getTenantId } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { PostHogClient } from "@/lib/posthog";
-import { currentUser } from "@clerk/nextjs";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { Empty } from "@unkey/ui";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
+
+export const dynamic = "force-dynamic";
 
 type Props = {
   searchParams: {
@@ -20,8 +22,8 @@ type Props = {
 
 export default async function StripeSuccess(props: Props) {
   const { session_id, new_plan } = props.searchParams;
-  const tenantId = getTenantId();
-  const user = await currentUser();
+  const user = await auth.getCurrentUser();
+  const tenantId = await getTenantId();
   if (!tenantId || !user) {
     return redirect("/auth/sign-in");
   }

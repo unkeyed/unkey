@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { useUser } from "@/lib/auth/hooks";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
-import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Code2 } from "lucide-react";
@@ -36,10 +36,10 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useUser();
   const router = useRouter();
 
-  if (isLoaded && user) {
+  if (!loading.user && user) {
     PostHogIdentify({ user });
   }
   const createApi = trpc.api.create.useMutation({
