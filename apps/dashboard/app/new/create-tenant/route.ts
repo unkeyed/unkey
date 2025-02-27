@@ -19,5 +19,5 @@ export async function GET(_request: NextRequest) {
     await auth.switchOrg(newOrgId);
   }
 
-  return redirect("/new");
+  return redirect("/new?refresh=true");
 }
