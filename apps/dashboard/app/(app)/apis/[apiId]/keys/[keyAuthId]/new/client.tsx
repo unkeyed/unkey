@@ -88,7 +88,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      toast.error(err.message || "An unknown error occurred");
     },
   });
 
