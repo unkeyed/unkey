@@ -19,10 +19,6 @@ export default async function Page() {
     return notFound();
   }
 
-  return <LogsContainerPage />;
-}
-
-const LogsContainerPage = () => {
   return (
     <div>
       <Navbar>
