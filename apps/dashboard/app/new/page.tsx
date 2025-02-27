@@ -213,7 +213,7 @@ export default async function (props: Props) {
     // they might if they have been invited to one
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, userId), isNull(table.deletedAtM)),
+        and(eq(table.tenantId, orgId), isNull(table.deletedAtM)),
     });
 
     // if no personal workspace exists, we create one
