@@ -1,8 +1,12 @@
 "use client";
 
-import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/overview/schemas";
+import type {
+  ApiOverview,
+  ApisOverviewResponse,
+} from "@/lib/trpc/routers/api/query-overview/schemas";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { useState } from "react";
 import { ApiListGrid } from "./api-list-grid";
 import { ApiListControlCloud } from "./control-cloud";
 import { ApiListControls } from "./controls";
@@ -13,13 +17,20 @@ export const ApiListClient = ({
 }: {
   initialData: ApisOverviewResponse;
 }) => {
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [apiList, setApiList] = useState<ApiOverview[]>(initialData.apiList);
   return (
     <div className="flex flex-col">
-      <ApiListControls />
+      <ApiListControls apiList={apiList} onApiListChange={setApiList} onSearch={setIsSearching} />
       <ApiListControlCloud />
       {initialData.apiList.length > 0 ? (
         <div className="p-5">
-          <ApiListGrid initialData={initialData} />
+          <ApiListGrid
+            isSearching={isSearching}
+            initialData={initialData}
+            setApiList={setApiList}
+            apiList={apiList}
+          />
         </div>
       ) : (
         <div className="h-screen flex items-center justify-center -translate-y-32">

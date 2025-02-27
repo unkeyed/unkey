@@ -2,7 +2,7 @@
 import { StatsCard } from "@/components/stats-card";
 import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
-import type { ApiOverview } from "@/lib/trpc/routers/api/overview/schemas";
+import type { ApiOverview } from "@/lib/trpc/routers/api/query-overview/schemas";
 import { Key, ProgressBar } from "@unkey/icons";
 import { useFetchVerificationTimeseries } from "./hooks/use-query-timeseries";
 

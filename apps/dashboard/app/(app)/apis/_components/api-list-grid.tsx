@@ -1,15 +1,25 @@
-import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/overview/schemas";
+import type {
+  ApiOverview,
+  ApisOverviewResponse,
+} from "@/lib/trpc/routers/api/query-overview/schemas";
 import { ChevronDown } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import type { Dispatch, SetStateAction } from "react";
 import { ApiListCard } from "./api-list-card";
 import { useFetchApiOverview } from "./hooks/use-fetch-api-overview";
 
 export const ApiListGrid = ({
   initialData,
+  setApiList,
+  apiList,
+  isSearching,
 }: {
   initialData: ApisOverviewResponse;
+  apiList: ApiOverview[];
+  setApiList: Dispatch<SetStateAction<ApiOverview[]>>;
+  isSearching?: boolean;
 }) => {
-  const { total, loadMore, isLoading, hasMore, apiList } = useFetchApiOverview(initialData);
+  const { total, loadMore, isLoading, hasMore } = useFetchApiOverview(initialData, setApiList);
 
   return (
     <>
@@ -24,11 +34,11 @@ export const ApiListGrid = ({
           Showing {apiList.length} of {total} APIs
         </div>
 
-        {hasMore && (
+        {!isSearching && hasMore && (
           <Button onClick={loadMore} disabled={isLoading}>
             {isLoading ? (
               <div className="flex items-center space-x-2">
-                <div className="animate-spin h-4 w-4 border-2 border-gray-5 border-t-transparent rounded-full" />
+                <div className="animate-spin h-4 w-4 border-2 border-gray-7 border-t-transparent rounded-full" />
                 <span>Loading...</span>
               </div>
             ) : (

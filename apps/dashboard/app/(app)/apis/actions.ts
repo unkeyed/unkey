@@ -1,7 +1,7 @@
 "use server";
 
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
-import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/overview/schemas";
+import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/query-overview/schemas";
 
 export type ApiOverviewOptions = {
   workspaceId: string;
@@ -39,14 +39,23 @@ export async function fetchApiOverview({
   const nextCursor =
     hasMore && apiItems.length > 0 ? { id: apiItems[apiItems.length - 1].id } : undefined;
 
-  const apiList = await Promise.all(
+  const apiList = await apiItemsWithKeyCounts(apiItems);
+  return {
+    apiList,
+    hasMore,
+    nextCursor,
+    total,
+  };
+}
+
+export async function apiItemsWithKeyCounts(apiItems: Array<any>) {
+  return await Promise.all(
     apiItems.map(async (api) => {
       const keyCountResult = await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAtM)));
       const keyCount = Number(keyCountResult[0]?.count || 0);
-
       return {
         id: api.id,
         name: api.name,
@@ -55,11 +64,4 @@ export async function fetchApiOverview({
       };
     }),
   );
-
-  return {
-    apiList,
-    hasMore,
-    nextCursor,
-    total,
-  };
 }

@@ -1,11 +1,16 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
-import type { ApiOverview, ApisOverviewResponse } from "@/lib/trpc/routers/api/overview/schemas";
-import { useEffect, useState } from "react";
+import type {
+  ApiOverview,
+  ApisOverviewResponse,
+} from "@/lib/trpc/routers/api/query-overview/schemas";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { DEFAULT_OVERVIEW_FETCH_LIMIT } from "../constants";
 
-export const useFetchApiOverview = (initialData: ApisOverviewResponse) => {
-  const [apiList, setApiList] = useState<ApiOverview[]>(initialData.apiList);
+export const useFetchApiOverview = (
+  initialData: ApisOverviewResponse,
+  setApiList: Dispatch<SetStateAction<ApiOverview[]>>,
+) => {
   const [hasMore, setHasMore] = useState(initialData.hasMore);
   const [cursor, setCursor] = useState(initialData.nextCursor);
   const [total, setTotal] = useState(initialData.total);
@@ -32,7 +37,7 @@ export const useFetchApiOverview = (initialData: ApisOverviewResponse) => {
       setTotal(data.total);
     }
     setIsFetchingMore(false);
-  }, [total, data]);
+  }, [total, data, setApiList]);
 
   const loadMore = () => {
     if (!hasMore || isFetchingMore || !cursor) {
@@ -44,7 +49,7 @@ export const useFetchApiOverview = (initialData: ApisOverviewResponse) => {
   };
 
   const isLoading = isFetchingMore || isFetching;
-  return { isLoading, total, loadMore, hasMore, apiList };
+  return { isLoading, total, loadMore, hasMore };
 };
 
 export function sortApisByKeyCount(apiOverview: ApiOverview[]) {
