@@ -164,7 +164,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navigation href="/settings/billing" icon={<Gear />} name="Settings" />
+      <Navigation href="/settings/vercel" icon={<Gear />} name="Settings" />
       <PageContent>
         <SubMenu navigation={navigation} segment="vercel" />
         <div className="mt-8" />
