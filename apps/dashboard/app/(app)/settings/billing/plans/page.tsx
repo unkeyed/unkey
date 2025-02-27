@@ -10,6 +10,8 @@ import { notFound } from "next/navigation";
 import { ChangePlanButton } from "./button";
 import { tiers } from "./constants";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
