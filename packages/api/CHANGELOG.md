@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.34.0
+
+### Minor Changes
+
+- 8b69b15: feat: return requestId
+
 ## 0.33.1
 
 ### Patch Changes
