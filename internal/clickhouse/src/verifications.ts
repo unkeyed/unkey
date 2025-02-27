@@ -143,8 +143,6 @@ export const verificationTimeseriesParams = z.object({
   keyId: z.string().optional(),
   startTime: z.number().int(),
   endTime: z.number().int(),
-  tags: z.array(z.string()).nullable(),
-  outcomes: z.array(outcome).nullable(),
 });
 
 export const verificationTimeseriesDataPoint = z.object({
@@ -152,12 +150,6 @@ export const verificationTimeseriesDataPoint = z.object({
   y: z.object({
     total: z.number().int().default(0),
     valid: z.number().int().default(0),
-    insufficient_permissions: z.number().int().default(0),
-    rate_limited: z.number().int().default(0),
-    forbidden: z.number().int().default(0),
-    disabled: z.number().int().default(0),
-    expired: z.number().int().default(0),
-    usage_exceeded: z.number().int().default(0),
   }),
 });
 
@@ -257,13 +249,7 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
       toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3))) as x,
       map(
           'total', SUM(count),
-          'valid', SUM(IF(outcome = 'VALID', count, 0)),
-          'insufficient_permissions', SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0)),
-          'rate_limited', SUM(IF(outcome = 'RATE_LIMITED', count, 0)),
-          'forbidden', SUM(IF(outcome = 'FORBIDDEN', count, 0)),
-          'disabled', SUM(IF(outcome = 'DISABLED', count, 0)),
-          'expired', SUM(IF(outcome = 'EXPIRED', count, 0)),
-          'usage_exceeded', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))
+          'valid', SUM(IF(outcome = 'VALID', count, 0))
       ) as y
     FROM ${interval.table}
     ${whereClause}
@@ -275,7 +261,7 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
       STEP ${stepMs}`;
 }
 
-function getVerificationTimeseriesWhereClause(params: VerificationTimeseriesParams): string {
+function getVerificationTimeseriesWhereClause(): string {
   const conditions = [
     "workspace_id = {workspaceId: String}",
     "key_space_id = {keyspaceId: String}",
@@ -283,22 +269,12 @@ function getVerificationTimeseriesWhereClause(params: VerificationTimeseriesPara
     "time <= fromUnixTimestamp64Milli({endTime: Int64})",
   ];
 
-  // Add tags filter if provided
-  if (params.tags && params.tags.length > 0) {
-    conditions.push("(hasAny(tags, {tags: Array(String)}))");
-  }
-
-  // Add outcomes filter if provided
-  if (params.outcomes && params.outcomes.length > 0) {
-    conditions.push("(outcome IN {outcomes: Array(String)})");
-  }
-
   return conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 }
 
 function createVerificationTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: VerificationTimeseriesParams) => {
-    const whereClause = getVerificationTimeseriesWhereClause(args);
+    const whereClause = getVerificationTimeseriesWhereClause();
     const query = createVerificationTimeseriesQuery(interval, whereClause);
 
     return ch.query({
