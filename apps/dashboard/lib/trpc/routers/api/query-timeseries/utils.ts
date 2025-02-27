@@ -24,8 +24,6 @@ export function transformVerificationFilters(params: VerificationQueryTimeseries
 
   return {
     params: {
-      tags: [],
-      outcomes: [],
       startTime: timeConfig.startTime,
       endTime: timeConfig.endTime,
     },
