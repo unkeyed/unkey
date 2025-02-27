@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { MoreHorizontal } from "lucide-react";
