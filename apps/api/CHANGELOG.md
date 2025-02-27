@@ -1,5 +1,11 @@
 # api
 
+## 0.3.0
+
+### Minor Changes
+
+- 8b69b15: feat: return requestId
+
 ## 0.2.0
 
 ### Minor Changes
