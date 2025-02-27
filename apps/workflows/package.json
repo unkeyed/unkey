@@ -12,7 +12,10 @@
   },
   "dependencies": {
     "@planetscale/database": "^1.19.0",
+    "@unkey/billing": "workspace:^",
+    "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
-    "@unkey/id": "workspace:^"
+    "@unkey/id": "workspace:^",
+    "stripe": "^14.23.0"
   }
 }

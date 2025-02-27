@@ -182,15 +182,6 @@ importers:
       '@types/js-yaml':
         specifier: ^4.0.9
         version: 4.0.9
-      '@unkey/billing':
-        specifier: workspace:^
-        version: link:../../internal/billing
-      '@unkey/clickhouse':
-        specifier: workspace:^
-        version: link:../../internal/clickhouse
-      '@unkey/db':
-        specifier: workspace:^
-        version: link:../../internal/db
       '@unkey/error':
         specifier: workspace:^
         version: link:../../packages/error
@@ -221,9 +212,6 @@ importers:
       react-dom:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
-      stripe:
-        specifier: ^14.23.0
-        version: 14.23.0
       zod:
         specifier: ^3.23.5
         version: 3.23.8
@@ -803,12 +791,21 @@ importers:
       '@planetscale/database':
         specifier: ^1.19.0
         version: 1.19.0
+      '@unkey/billing':
+        specifier: workspace:^
+        version: link:../../internal/billing
+      '@unkey/clickhouse':
+        specifier: workspace:^
+        version: link:../../internal/clickhouse
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
       '@unkey/id':
         specifier: workspace:^
         version: link:../../internal/id
+      stripe:
+        specifier: ^14.23.0
+        version: 14.23.0
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20241022.0
@@ -1048,7 +1045,7 @@ importers:
     devDependencies:
       checkly:
         specifier: latest
-        version: 4.19.1(@types/node@20.14.9)(typescript@5.5.3)
+        version: 4.15.0(@types/node@20.14.9)(typescript@5.5.3)
       ts-node:
         specifier: 10.9.1
         version: 10.9.1(@types/node@20.14.9)(typescript@5.5.3)
@@ -13085,8 +13082,8 @@ packages:
       get-func-name: 2.0.2
     dev: true
 
-  /checkly@4.19.1(@types/node@20.14.9)(typescript@5.5.3):
-    resolution: {integrity: sha512-KtUzvKWvY4Pa1O2is7s4UK9w3X4G8jVsYntdXLDzwfajsg22bq4qa+n3w2uZehGmbIrUmL638alG76XrRQ5PDQ==}
+  /checkly@4.15.0(@types/node@20.14.9)(typescript@5.5.3):
+    resolution: {integrity: sha512-uGvz/3BBL/fs0y/jCylcRIP8XMOn65OXyBsg6NJB+7UKw2SHvpRDAR2frgRYBXKrKXrmrrhaCNEtNudvnJ/iaA==}
     engines: {node: '>=16.0.0'}
     hasBin: true
     dependencies:
