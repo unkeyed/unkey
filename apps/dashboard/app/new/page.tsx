@@ -221,7 +221,7 @@ export default async function (props: Props) {
         and(eq(table.tenantId, orgId), isNull(table.deletedAtM)),
     });
 
-    // if no personal workspace exists, we create one
+    // if no initial workspace exists, we create one
     if (!workspace) {
       const workspaceId = newId("workspace");
       await db.transaction(async (tx) => {
