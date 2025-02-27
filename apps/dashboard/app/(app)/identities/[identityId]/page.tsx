@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +16,6 @@ import {
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { Fingerprint } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
@@ -59,7 +57,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navigation identityId={props.params.identityId}/>
+      <Navigation identityId={props.params.identityId} />
       <PageContent>
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between gap-8">

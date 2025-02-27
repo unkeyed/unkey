@@ -1,4 +1,5 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
 import {
   Card,
@@ -15,15 +16,14 @@ import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
+import { Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
-import { Navigation } from "@/components/navigation/navigation";
 import { navigation } from "../constants";
 import { UserPaymentMethod } from "./user-payment-method";
-import { Gear } from "@unkey/icons";
 
 export const revalidate = 0;
 
@@ -41,7 +41,7 @@ export default async function BillingPage() {
 
   return (
     <div>
-      <Navigation href="/settings/billing" name="Settings" icon={<Gear/>} />
+      <Navigation href="/settings/billing" name="Settings" icon={<Gear />} />
       <PageContent>
         <SubMenu navigation={navigation} segment="billing" />
         <div className="flex flex-col gap-8 lg:flex-row mt-8 ">

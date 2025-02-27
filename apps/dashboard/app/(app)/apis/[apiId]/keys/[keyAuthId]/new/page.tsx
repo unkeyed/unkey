@@ -1,10 +1,6 @@
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
-import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Nodes } from "@unkey/icons";
 import { notFound } from "next/navigation";
 import { CreateKey } from "./client";
 import { Navigation } from "./navigation";
@@ -31,8 +27,7 @@ export default async function CreateKeypage(props: {
 
   return (
     <div>
-      <Navigation apiId={props.params.apiId} keyA={keyAuth}/>
-      
+      <Navigation apiId={props.params.apiId} keyA={keyAuth} />
 
       <PageContent>
         <CreateKey

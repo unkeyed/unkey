@@ -1,10 +1,10 @@
 "use client";
 
 import { Navbar } from "@/components/navigation/navbar";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 // Reusable for settings where we only change the link
-export function Navigation({ href, name, icon }: { href: string, name: string, icon: ReactNode }) {
+export function Navigation({ href, name, icon }: { href: string; name: string; icon: ReactNode }) {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={icon}>

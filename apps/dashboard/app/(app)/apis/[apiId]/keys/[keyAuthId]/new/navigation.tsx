@@ -1,10 +1,9 @@
 "use client";
 
-import { Navbar } from "@/components/navigation/navbar";
-import { Nodes } from "@unkey/icons";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { CopyButton } from "@/components/dashboard/copy-button";
+import { Navbar } from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
+import { Nodes } from "@unkey/icons";
 
 type KeyAuthProps = {
   id: string;
@@ -26,31 +25,28 @@ interface NavigationProps {
 export function Navigation({ apiId, keyA }: NavigationProps) {
   return (
     <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${apiId}`} isIdentifier>
-            {keyA.api.name}
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${apiId}/keys/${keyA.id}`}>
-            Keys
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            active
-            href={`/apis/${apiId}/keys/${keyA.id}/new`}
-          >
-            Create new key
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge
-            key="apiId"
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {keyA.api.id}
-            <CopyButton value={keyA.api.id} />
-          </Badge>
-        </Navbar.Actions>
-      </Navbar>
-  )
+      <Navbar.Breadcrumbs icon={<Nodes />}>
+        <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={`/apis/${apiId}`} isIdentifier>
+          {keyA.api.name}
+        </Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={`/apis/${apiId}/keys/${keyA.id}`}>
+          Keys
+        </Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link active href={`/apis/${apiId}/keys/${keyA.id}/new`}>
+          Create new key
+        </Navbar.Breadcrumbs.Link>
+      </Navbar.Breadcrumbs>
+      <Navbar.Actions>
+        <Badge
+          key="apiId"
+          variant="secondary"
+          className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+        >
+          {keyA.api.id}
+          <CopyButton value={keyA.api.id} />
+        </Badge>
+      </Navbar.Actions>
+    </Navbar>
+  );
 }

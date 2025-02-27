@@ -2,13 +2,8 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
-import { Badge } from "@/components/ui/badge";
-import { Nodes } from "@unkey/icons";
 import { navigation } from "../../constants";
 import { Keys } from "./keys";
 import { Navigation } from "./navigation";
@@ -38,8 +33,7 @@ export default async function APIKeysPage(props: {
 
   return (
     <div>
-      <Navigation apiId={props.params.apiId} keyA={keyAuth}/>
-      
+      <Navigation apiId={props.params.apiId} keyA={keyAuth} />
 
       <PageContent>
         <SubMenu navigation={navigation(keyAuth.api.id, keyAuth.id!)} segment="keys" />

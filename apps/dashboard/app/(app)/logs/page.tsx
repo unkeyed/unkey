@@ -1,9 +1,9 @@
 "use server";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Layers3 } from "@unkey/icons";
 import { notFound } from "next/navigation";
 import { LogsClient } from "./components/logs-client";
-import { Layers3 } from "@unkey/icons";
 
 import { Navigation } from "@/components/navigation/navigation";
 export default async function Page() {
@@ -20,7 +20,7 @@ export default async function Page() {
 
   return (
     <div>
-      <Navigation href="/logs" name="Logs" icon={<Layers3/>} />
+      <Navigation href="/logs" name="Logs" icon={<Layers3 />} />
       <LogsClient />
     </div>
   );

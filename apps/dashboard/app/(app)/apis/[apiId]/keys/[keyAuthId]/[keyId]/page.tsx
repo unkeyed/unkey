@@ -6,9 +6,6 @@ import { CreateNewPermission } from "@/app/(app)/authorization/permissions/creat
 import type { NestedPermissions } from "@/app/(app)/authorization/roles/[roleId]/tree";
 import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -18,15 +15,14 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { Nodes } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
+import { Navigation } from "./navigation";
 import PermissionTree from "./permission-list";
 import { VerificationTable } from "./verification-table";
-import { Navigation } from "./navigation";
 export default async function APIKeyDetailPage(props: {
   params: {
     apiId: string;
@@ -265,7 +261,7 @@ export default async function APIKeyDetailPage(props: {
 
   return (
     <div>
-      <Navigation api={api} apiKey={key}/>
+      <Navigation api={api} apiKey={key} />
 
       <PageContent>
         <div className="flex flex-col">

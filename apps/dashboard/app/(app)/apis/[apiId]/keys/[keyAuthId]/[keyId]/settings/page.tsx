@@ -1,17 +1,14 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
-import { Nodes } from "@unkey/icons";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteKey } from "./delete-key";
+import { Navigation } from "./navigation";
 import { UpdateKeyEnabled } from "./update-key-enabled";
 import { UpdateKeyExpiration } from "./update-key-expiration";
 import { UpdateKeyMetadata } from "./update-key-metadata";
@@ -19,7 +16,6 @@ import { UpdateKeyName } from "./update-key-name";
 import { UpdateKeyOwnerId } from "./update-key-owner-id";
 import { UpdateKeyRatelimit } from "./update-key-ratelimit";
 import { UpdateKeyRemaining } from "./update-key-remaining";
-import { Navigation } from "./navigation";
 
 type Props = {
   params: {
@@ -45,8 +41,8 @@ export default async function SettingsPage(props: Props) {
 
   return (
     <div>
-      <Navigation apiId={props.params.apiId} apiKey={key}/>
-    
+      <Navigation apiId={props.params.apiId} apiKey={key} />
+
       <PageContent>
         <div className="mb-20 flex flex-col gap-8 ">
           <Link

@@ -1,10 +1,6 @@
 import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
@@ -12,12 +8,11 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { Nodes } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
 import { navigation } from "./constants";
-import { type Interval, IntervalSelect } from "./select";
 import { Navigation } from "./navigation";
+import { type Interval, IntervalSelect } from "./select";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -142,7 +137,7 @@ export default async function ApiPage(props: {
 
   return (
     <div>
-      <Navigation api={api}/>
+      <Navigation api={api} />
 
       <PageContent>
         <SubMenu navigation={navigation(api.id, api.keyAuthId!)} segment="overview" />

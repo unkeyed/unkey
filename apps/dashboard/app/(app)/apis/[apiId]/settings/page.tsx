@@ -1,23 +1,19 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
-import { Nodes } from "@unkey/icons";
 import { notFound, redirect } from "next/navigation";
 import { navigation } from "../constants";
 import { DefaultBytes } from "./default-bytes";
 import { DefaultPrefix } from "./default-prefix";
 import { DeleteApi } from "./delete-api";
 import { DeleteProtection } from "./delete-protection";
+import { Navigation } from "./navigation";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
-import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +54,7 @@ export default async function SettingsPage(props: Props) {
 
   return (
     <div>
-      <Navigation api={api}/>
+      <Navigation api={api} />
 
       <PageContent>
         <SubMenu navigation={navigation(api.id, api.keyAuthId!)} segment="settings" />
