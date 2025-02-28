@@ -1,10 +1,9 @@
-import { Navbar } from "@/components/navbar";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Gauge } from "@unkey/icons";
 import { redirect } from "next/navigation";
-import { CreateNamespaceButton } from "./_components/create-namespace-button";
+
 import { RatelimitClient } from "./_components/ratelimit-client";
+import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -31,14 +30,7 @@ export default async function RatelimitOverviewPage() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <CreateNamespaceButton />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation />
       <RatelimitClient ratelimitNamespaces={workspace.ratelimitNamespaces} />
     </div>
   );
