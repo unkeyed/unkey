@@ -1,6 +1,5 @@
 import { CreateApiButton } from "./_components/create-api-button";
 
-import { Navbar } from "@/components/navbar";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { BookBookmark, Nodes } from "@unkey/icons";
@@ -9,6 +8,7 @@ import { redirect } from "next/navigation";
 import { ApiListClient } from "./_components/api-list-client";
 import { DEFAULT_OVERVIEW_FETCH_LIMIT } from "./_components/constants";
 import { fetchApiOverview } from "./actions";
+import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -37,18 +37,7 @@ export default async function ApisOverviewPage(props: Props) {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <CreateApiButton
-            key="createApi"
-            defaultOpen={initialData.apiList.length === 0 || props.searchParams.new}
-          />
-        </Navbar.Actions>
-      </Navbar>
-
+            <Navigation isNewApi={!!props.searchParams.new} apisLength={initialData.total} />
       {unpaid ? (
         <div className="h-screen flex items-center justify-center">
           <div className="flex justify-center items-center">

@@ -1,5 +1,5 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
+import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
 import {
   Card,
@@ -41,13 +41,7 @@ export default async function BillingPage() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/settings/billing" name="Settings" icon={<Gear />} />
       <PageContent>
         <SubMenu navigation={navigation} segment="billing" />
         <div className="flex flex-col gap-8 lg:flex-row mt-8 ">

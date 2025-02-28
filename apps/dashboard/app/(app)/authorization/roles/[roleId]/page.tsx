@@ -1,13 +1,9 @@
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ShieldKey } from "@unkey/icons";
-import { Button } from "@unkey/ui";
 import { notFound, redirect } from "next/navigation";
-import { DeleteRole } from "./delete-role";
+import { Navigation } from "./navigation";
 import { type NestedPermissions, Tree } from "./tree";
-import { UpdateRole } from "./update-role";
 
 export const revalidate = 0;
 
@@ -110,25 +106,7 @@ export default async function RolesPage(props: Props) {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<ShieldKey />}>
-          <Navbar.Breadcrumbs.Link href="/authorization/roles">
-            Authorization
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="/authorization/roles">Roles</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/authorization/permissions/${props.params.roleId}`}
-            isIdentifier
-            active
-          >
-            {props.params.roleId}
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <UpdateRole role={role} trigger={<Button>Update Role</Button>} />
-          <DeleteRole role={role} trigger={<Button variant="destructive">Delete Role</Button>} />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation role={role} />
       <PageContent>
         <div className="flex flex-col min-h-screen gap-8">
           <div className="flex items-center justify-between">

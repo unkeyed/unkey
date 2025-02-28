@@ -1,10 +1,9 @@
-import { Navbar } from "@/components/navbar";
+import { Navigation } from "@/components/navigation/navigation";
 import { getTenantId } from "@/lib/auth";
 import { InputSearch } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { getWorkspace } from "./actions";
 import { LogsClient } from "./components/logs-client";
-
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -14,11 +13,7 @@ export default async function AuditPage() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<InputSearch />}>
-          <Navbar.Breadcrumbs.Link href="/audit">Audit</Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/audit" name="Audit" icon={<InputSearch />} />
       {workspace.auditLogBuckets.length > 0 ? (
         <LogsClient
           rootKeys={workspace.keys}
