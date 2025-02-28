@@ -1,3 +1,4 @@
+import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
 import type {
   ApiOverview,
   ApisOverviewResponse,
@@ -21,26 +22,23 @@ export const ApiListGrid = ({
 }) => {
   const { total, loadMore, isLoading, hasMore } = useFetchApiOverview(initialData, setApiList);
 
-  // Render empty state without unmounting the component
   if (apiList.length === 0) {
     return (
-      <div className="h-full min-h-[300px] flex items-center justify-center">
-        <div className="flex justify-center items-center">
-          <Empty className="m-0 p-0">
-            <Empty.Icon />
-            <Empty.Title>No APIs found</Empty.Title>
-            <Empty.Description>
-              No APIs match your search criteria. Try a different search term.
-            </Empty.Description>
-          </Empty>
-        </div>
-      </div>
+      <EmptyComponentSpacer>
+        <Empty className="m-0 p-0">
+          <Empty.Icon />
+          <Empty.Title>No APIs found</Empty.Title>
+          <Empty.Description>
+            No APIs match your search criteria. Try a different search term.
+          </Empty.Description>
+        </Empty>
+      </EmptyComponentSpacer>
     );
   }
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5 w-full p-5">
         {apiList.map((api) => (
           <ApiListCard api={api} key={api.id} />
         ))}

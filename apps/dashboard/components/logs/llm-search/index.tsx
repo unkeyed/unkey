@@ -33,7 +33,6 @@ export const LogsLLMSearch = ({
   searchMode = "manual",
   debounceTime = 500,
 }: Props) => {
-  // ===== STATE AND REFS =====
   const [searchText, setSearchText] = useState("");
   const [isClearingState, setIsClearingState] = useState(false);
 

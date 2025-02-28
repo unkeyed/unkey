@@ -54,6 +54,7 @@ export const useSearchStrategy = (onSearch: (query: string) => void, debounceTim
   /**
    * Throttled search with initial debounce - debounce first query, throttle subsequent searches
    */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   const throttledSearch = useCallback(
     (search: string) => {
       const now = Date.now();

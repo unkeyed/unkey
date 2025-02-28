@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
 import type {
   ApiOverview,
   ApisOverviewResponse,
@@ -24,24 +25,22 @@ export const ApiListClient = ({
 
   if (unpaid) {
     return (
-      <div className="h-full min-h-[300px] flex items-center justify-center">
-        <div className="flex justify-center items-center">
-          <Empty className="border border-gray-6 rounded-lg bg-gray-1">
-            <Empty.Title className="text-xl">Upgrade your plan</Empty.Title>
-            <Empty.Description>
-              Team workspaces is a paid feature. Please switch to a paid plan to continue using it.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 ">
-              <a href="/settings/billing" target="_blank" rel="noopener noreferrer">
-                <Button>
-                  <BookBookmark />
-                  Subscribe
-                </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
-        </div>
-      </div>
+      <EmptyComponentSpacer>
+        <Empty className="border border-gray-6 rounded-lg bg-gray-1">
+          <Empty.Title className="text-xl">Upgrade your plan</Empty.Title>
+          <Empty.Description>
+            Team workspaces is a paid feature. Please switch to a paid plan to continue using it.
+          </Empty.Description>
+          <Empty.Actions className="mt-4 ">
+            <a href="/settings/billing" target="_blank" rel="noopener noreferrer">
+              <Button>
+                <BookBookmark />
+                Subscribe
+              </Button>
+            </a>
+          </Empty.Actions>
+        </Empty>
+      </EmptyComponentSpacer>
     );
   }
 
@@ -50,39 +49,35 @@ export const ApiListClient = ({
       <ApiListControls apiList={apiList} onApiListChange={setApiList} onSearch={setIsSearching} />
       <ApiListControlCloud />
       {initialData.apiList.length > 0 ? (
-        <div className="p-5">
-          <ApiListGrid
-            isSearching={isSearching}
-            initialData={initialData}
-            setApiList={setApiList}
-            apiList={apiList}
-          />
-        </div>
+        <ApiListGrid
+          isSearching={isSearching}
+          initialData={initialData}
+          setApiList={setApiList}
+          apiList={apiList}
+        />
       ) : (
-        <div className="h-full min-h-[300px] flex items-center justify-center">
-          <div className="flex justify-center items-center">
-            <Empty className="m-0 p-0">
-              <Empty.Icon />
-              <Empty.Title>No APIs found</Empty.Title>
-              <Empty.Description>
-                You haven&apos;t created any APIs yet. Create one to get started.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 ">
-                <CreateApiButton />
-                <a
-                  href="https://www.unkey.com/docs/introduction"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button>
-                    <BookBookmark />
-                    Documentation
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
-          </div>
-        </div>
+        <EmptyComponentSpacer>
+          <Empty className="m-0 p-0">
+            <Empty.Icon />
+            <Empty.Title>No APIs found</Empty.Title>
+            <Empty.Description>
+              You haven&apos;t created any APIs yet. Create one to get started.
+            </Empty.Description>
+            <Empty.Actions className="mt-4 ">
+              <CreateApiButton />
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button>
+                  <BookBookmark />
+                  Documentation
+                </Button>
+              </a>
+            </Empty.Actions>
+          </Empty>
+        </EmptyComponentSpacer>
       )}
     </div>
   );
