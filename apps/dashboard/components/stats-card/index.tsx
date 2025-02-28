@@ -1,5 +1,6 @@
 "use client";
 import { ProgressBar } from "@unkey/icons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -31,12 +32,28 @@ export const StatsCard = ({
             <div className="flex flex-col">
               <div className="flex gap-2 md:gap-3 items-center">
                 <span className="flex-shrink-0">{icon}</span>
-                <div className="text-accent-12 font-semibold truncate">{name}</div>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <div className="text-accent-12 font-semibold truncate w-[180px] text-left">
+                      {name}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-12 text-gray-1 px-3 py-2 border border-accent-6 shadow-md font-medium text-xs">
+                    {name}
+                  </TooltipContent>
+                </Tooltip>
               </div>
               {secondaryId && (
-                <div className="text-accent-11 text-xxs overflow-hidden text-ellipsis max-w-full">
-                  {secondaryId}
-                </div>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <div className="text-left text-accent-11 text-xxs overflow-hidden text-ellipsis max-w-full w-[200px]">
+                      {secondaryId}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-12 text-gray-1 px-3 py-2 border border-accent-6 shadow-md font-medium text-xs">
+                    {secondaryId}
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
             {rightContent && <div className="flex-shrink-0 ml-auto">{rightContent}</div>}

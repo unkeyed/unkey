@@ -51,7 +51,7 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
       placeholder="Search API using name or ID"
       isLoading={searchApiOverview.isLoading}
       loadingText="Searching APIs..."
-      searchOnChange
+      searchMode="allowTypeDuringSearch"
       onSearch={(query) =>
         searchApiOverview.mutateAsync({
           query,

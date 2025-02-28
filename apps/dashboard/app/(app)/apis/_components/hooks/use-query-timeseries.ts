@@ -1,11 +1,12 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { VerificationQueryTimeseriesPayload } from "./query-timeseries.schema";
 import { useFilters } from "./use-filters";
 
 export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
+  const [enabled, setEnabled] = useState(false);
   const { filters } = useFilters();
   const dateNow = useMemo(() => Date.now(), []);
 
@@ -42,10 +43,18 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
     return params;
   }, [filters, dateNow, keyspaceId]);
 
+  useEffect(() => {
+    // Implement a 2-second delay before enabling queries to prevent excessive ClickHouse load
+    // during component mounting cycles. This throttling is critical when users are actively searching/filtering, to avoid
+    // overwhelming the database with redundant or intermediate query states.
+    setTimeout(() => setEnabled(true), 2000);
+  }, []);
+
   const { data, isLoading, isError } = trpc.api.logs.queryVerificationTimeseries.useQuery(
     queryParams,
     {
       refetchInterval: queryParams.endTime ? false : 10_000,
+      enabled,
     },
   );
 

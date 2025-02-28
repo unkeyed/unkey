@@ -46,7 +46,7 @@ export const LogsSearch = ({ setNamespaces, initialNamespaces }: LogsSearchProps
       placeholder="Search namespaces"
       loadingText="Searching namespaces..."
       isLoading={searchNamespace.isLoading}
-      searchOnChange
+      searchMode="allowTypeDuringSearch"
       onSearch={(query) =>
         searchNamespace.mutateAsync({
           query,

@@ -1,7 +1,5 @@
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { BookBookmark } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
 import { ApiListClient } from "./_components/api-list-client";
 import { DEFAULT_OVERVIEW_FETCH_LIMIT } from "./_components/constants";
@@ -36,29 +34,7 @@ export default async function ApisOverviewPage(props: Props) {
   return (
     <div>
       <Navigation isNewApi={!!props.searchParams.new} apisLength={initialData.total} />
-      {unpaid ? (
-        <div className="h-screen flex items-center justify-center">
-          <div className="flex justify-center items-center">
-            <Empty className="border border-gray-6 rounded-lg bg-gray-1">
-              <Empty.Title className="text-xl">Upgrade your plan</Empty.Title>
-              <Empty.Description>
-                Team workspaces is a paid feature. Please switch to a paid plan to continue using
-                it.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 ">
-                <a href="/settings/billing" target="_blank" rel="noopener noreferrer">
-                  <Button>
-                    <BookBookmark />
-                    Subscribe
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
-          </div>
-        </div>
-      ) : (
-        <ApiListClient initialData={initialData} />
-      )}
+      <ApiListClient initialData={initialData} unpaid={unpaid} />
     </div>
   );
 }

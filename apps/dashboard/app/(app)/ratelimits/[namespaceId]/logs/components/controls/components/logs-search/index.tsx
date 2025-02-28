@@ -45,8 +45,7 @@ export const LogsSearch = () => {
   return (
     <LogsLLMSearch
       isLoading={queryLLMForStructuredOutput.isLoading}
-      // Without this 0 value, search component will try to show transition state
-      debounceTime={0}
+      searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({
           query,

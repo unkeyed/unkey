@@ -1,8 +1,12 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { cn } from "@/lib/utils";
-import { CaretRightOutline, CircleInfoSparkle, Magnifier, Refresh3, XMark } from "@unkey/icons";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
+import { SearchActions } from "./components/search-actions";
+import { SearchIcon } from "./components/search-icon";
+import { SearchInput } from "./components/search-input";
+import { useSearchStrategy } from "./hooks/use-search-strategy";
+
+type SearchMode = "allowTypeDuringSearch" | "debounced" | "manual";
 
 type Props = {
   onSearch: (query: string) => void;
@@ -13,7 +17,7 @@ type Props = {
   hideClear?: boolean;
   loadingText?: string;
   clearingText?: string;
-  searchOnChange?: boolean;
+  searchMode?: SearchMode;
   debounceTime?: number;
 };
 
@@ -26,110 +30,100 @@ export const LogsLLMSearch = ({
   placeholder = "Search and filter with AI…",
   loadingText = "AI consults the Palantír...",
   clearingText = "Clearing search...",
-  searchOnChange = false,
+  searchMode = "manual",
   debounceTime = 500,
 }: Props) => {
+  // ===== STATE AND REFS =====
   const [searchText, setSearchText] = useState("");
   const [isClearingState, setIsClearingState] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Combined loading state that accounts for both search and clear operations
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const isClearing = isClearingState;
   const isProcessing = isLoading || isClearing;
 
+  const { debouncedSearch, throttledSearch, executeSearch, clearDebounceTimer, resetSearchState } =
+    useSearchStrategy(onSearch, debounceTime);
   useKeyboardShortcut("s", () => {
     inputRef.current?.click();
     inputRef.current?.focus();
   });
 
-  // Function to debounce clearing
-  const debouncedClear = () => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
+  const handleClear = () => {
+    clearDebounceTimer();
     setIsClearingState(true);
 
-    debounceTimerRef.current = setTimeout(() => {
+    setTimeout(() => {
       onClear?.();
-      setIsClearingState(false);
-    }, debounceTime);
-  };
+      setSearchText("");
+    }, 0);
 
-  const handleSearch = async (search: string) => {
-    const query = search.trim();
-    if (query) {
-      try {
-        onSearch(query);
-      } catch (error) {
-        console.error("Search failed:", error);
-      }
-    }
+    setIsClearingState(false);
+    resetSearchState();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const wasEmpty = searchText !== "";
+    const wasFilled = searchText !== "";
 
     setSearchText(value);
 
-    // If text was deleted completely, call onClear
-    if (wasEmpty && value === "") {
-      debouncedClear();
+    // Handle clearing
+    if (wasFilled && value === "") {
+      handleClear();
+      return;
     }
 
-    if (searchOnChange && value !== "") {
-      // Clear any existing timer
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+    // Skip if empty
+    if (value === "") {
+      return;
+    }
 
-      // Set a new timer
-      debounceTimerRef.current = setTimeout(() => {
-        handleSearch(value);
-      }, debounceTime);
+    // Apply appropriate search strategy based on mode
+    switch (searchMode) {
+      case "allowTypeDuringSearch":
+        throttledSearch(value);
+        break;
+      case "debounced":
+        debouncedSearch(value);
+        break;
+      case "manual":
+        // Do nothing - search triggered on Enter key or preset click
+        break;
     }
   };
-
-  // Clean up the timer when the component unmounts
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       e.preventDefault();
-
-      // Always clear the input and debounce the onClear call
       setSearchText("");
-      debouncedClear();
-
-      // Blur the input by directly using the ref
+      handleClear();
       inputRef.current?.blur();
     }
 
     if (e.key === "Enter") {
       e.preventDefault();
       if (searchText !== "") {
-        handleSearch(searchText);
+        executeSearch(searchText);
       } else {
-        debouncedClear();
+        handleClear();
       }
     }
   };
 
   const handlePresetQuery = (query: string) => {
     setSearchText(query);
-    handleSearch(query);
+    executeSearch(query);
   };
 
+  // Clean up timers on unmount
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  useEffect(() => {
+    return clearDebounceTimer();
+  }, []);
+
   return (
-    <div className="group relative">
+    <div className="group relative" data-testid="logs-llm-search">
       <div
         className={cn(
           "group-data-[state=open]:bg-gray-4 px-2 flex items-center w-80 gap-2 border rounded-lg py-1 h-8 border-none cursor-pointer hover:bg-gray-3",
@@ -141,102 +135,34 @@ export const LogsLLMSearch = ({
       >
         <div className="flex items-center gap-2 w-80">
           <div className="flex-shrink-0">
-            {isProcessing ? (
-              <Refresh3 className="text-accent-10 size-4 animate-spin" />
-            ) : (
-              <Magnifier className="text-accent-9 size-4" />
-            )}
+            <SearchIcon isProcessing={isProcessing} />
           </div>
 
           <div className="flex-1">
-            {isProcessing ? (
-              <div className="text-accent-11 text-[13px] animate-pulse">
-                {isLoading ? loadingText : clearingText}
-              </div>
-            ) : (
-              <input
-                ref={inputRef}
-                type="text"
-                value={searchText}
-                onKeyDown={handleKeyDown}
-                onChange={handleInputChange}
-                placeholder={placeholder}
-                className="text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6 w-full"
-                disabled={isLoading}
-              />
-            )}
+            <SearchInput
+              value={searchText}
+              placeholder={placeholder}
+              isProcessing={isProcessing}
+              isLoading={isLoading}
+              loadingText={loadingText}
+              clearingText={clearingText}
+              searchMode={searchMode}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              inputRef={inputRef}
+            />
           </div>
         </div>
 
-        {!isProcessing && (
-          <>
-            {searchText.length > 0 && !hideClear && (
-              <button
-                aria-label="Clear search"
-                onClick={() => {
-                  setSearchText("");
-                  debouncedClear();
-                }}
-                type="button"
-              >
-                <XMark className="size-4 text-accent-9" />
-              </button>
-            )}
-            {searchText.length === 0 && !hideExplainer && (
-              <TooltipProvider>
-                <Tooltip delayDuration={150}>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <CircleInfoSparkle className="size-4 text-accent-9" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent className="p-3 bg-gray-1 dark:bg-black drop-shadow-2xl border border-gray-6 rounded-lg text-accent-12 text-xs">
-                    <div>
-                      <div className="font-medium mb-2 flex items-center gap-2 text-[13px]">
-                        <span>Try queries like:</span>
-                        <span className="text-[11px] text-gray-11">(click to use)</span>
-                      </div>
-                      <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
-                        <li className="flex items-center gap-2">
-                          <CaretRightOutline className="text-accent-9" />
-                          <button
-                            type="button"
-                            className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                            onClick={() => handlePresetQuery("Show failed requests today")}
-                          >
-                            "Show failed requests today"
-                          </button>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CaretRightOutline className="text-accent-9" />
-                          <button
-                            type="button"
-                            className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                            onClick={() => handlePresetQuery("auth errors in the last 3h")}
-                          >
-                            "Auth errors in the last 3h"
-                          </button>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CaretRightOutline className="size-2 text-accent-9" />
-                          <button
-                            type="button"
-                            className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                            onClick={() =>
-                              handlePresetQuery("API calls from a path that includes /api/v1/oz")
-                            }
-                          >
-                            "API calls from a path that includes /api/v1/oz"
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </>
-        )}
+        <SearchActions
+          searchText={searchText}
+          hideClear={hideClear}
+          hideExplainer={hideExplainer}
+          isProcessing={isProcessing}
+          searchMode={searchMode}
+          onClear={handleClear}
+          onSelectExample={handlePresetQuery}
+        />
       </div>
     </div>
   );

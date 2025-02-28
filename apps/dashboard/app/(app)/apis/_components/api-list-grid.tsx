@@ -3,7 +3,7 @@ import type {
   ApisOverviewResponse,
 } from "@/lib/trpc/routers/api/query-overview/schemas";
 import { ChevronDown } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Empty } from "@unkey/ui";
 import type { Dispatch, SetStateAction } from "react";
 import { ApiListCard } from "./api-list-card";
 import { useFetchApiOverview } from "./hooks/use-fetch-api-overview";
@@ -21,6 +21,23 @@ export const ApiListGrid = ({
 }) => {
   const { total, loadMore, isLoading, hasMore } = useFetchApiOverview(initialData, setApiList);
 
+  // Render empty state without unmounting the component
+  if (apiList.length === 0) {
+    return (
+      <div className="h-full min-h-[300px] flex items-center justify-center">
+        <div className="flex justify-center items-center">
+          <Empty className="m-0 p-0">
+            <Empty.Icon />
+            <Empty.Title>No APIs found</Empty.Title>
+            <Empty.Description>
+              No APIs match your search criteria. Try a different search term.
+            </Empty.Description>
+          </Empty>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5 w-full">
@@ -28,12 +45,10 @@ export const ApiListGrid = ({
           <ApiListCard api={api} key={api.id} />
         ))}
       </div>
-
       <div className="flex flex-col items-center justify-center mt-8 space-y-4">
         <div className="text-center text-sm text-accent-11">
           Showing {apiList.length} of {total} APIs
         </div>
-
         {!isSearching && hasMore && (
           <Button onClick={loadMore} disabled={isLoading}>
             {isLoading ? (

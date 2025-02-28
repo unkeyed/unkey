@@ -14,11 +14,37 @@ import { CreateApiButton } from "./create-api-button";
 
 export const ApiListClient = ({
   initialData,
+  unpaid,
 }: {
   initialData: ApisOverviewResponse;
+  unpaid: boolean;
 }) => {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [apiList, setApiList] = useState<ApiOverview[]>(initialData.apiList);
+
+  if (unpaid) {
+    return (
+      <div className="h-full min-h-[300px] flex items-center justify-center">
+        <div className="flex justify-center items-center">
+          <Empty className="border border-gray-6 rounded-lg bg-gray-1">
+            <Empty.Title className="text-xl">Upgrade your plan</Empty.Title>
+            <Empty.Description>
+              Team workspaces is a paid feature. Please switch to a paid plan to continue using it.
+            </Empty.Description>
+            <Empty.Actions className="mt-4 ">
+              <a href="/settings/billing" target="_blank" rel="noopener noreferrer">
+                <Button>
+                  <BookBookmark />
+                  Subscribe
+                </Button>
+              </a>
+            </Empty.Actions>
+          </Empty>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col">
       <ApiListControls apiList={apiList} onApiListChange={setApiList} onSearch={setIsSearching} />
@@ -33,7 +59,7 @@ export const ApiListClient = ({
           />
         </div>
       ) : (
-        <div className="h-screen flex items-center justify-center -translate-y-32">
+        <div className="h-full min-h-[300px] flex items-center justify-center">
           <div className="flex justify-center items-center">
             <Empty className="m-0 p-0">
               <Empty.Icon />
