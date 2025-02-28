@@ -1,25 +1,20 @@
 import { Code } from "@/components/ui/code";
-import { insertAuditLogs } from "@/lib/audit";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { PostHogClient } from "@/lib/posthog";
 import { currentUser } from "@clerk/nextjs";
-import { defaultProSubscriptions } from "@unkey/billing";
 import { Empty } from "@unkey/ui";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 
 type Props = {
   searchParams: {
     session_id: string;
-    new_plan: "free" | "pro" | undefined;
   };
 };
 
 export default async function StripeSuccess(props: Props) {
-  const { session_id, new_plan } = props.searchParams;
+  const { session_id } = props.searchParams;
   const tenantId = getTenantId();
   const user = await currentUser();
   if (!tenantId || !user) {
@@ -55,7 +50,9 @@ export default async function StripeSuccess(props: Props) {
     typescript: true,
   });
 
-  const session = await stripe.checkout.sessions.retrieve(session_id);
+  const session = await stripe.checkout.sessions.retrieve(session_id, {
+    expand: ["subscription"],
+  });
   if (!session) {
     return (
       <Empty>
@@ -82,54 +79,19 @@ export default async function StripeSuccess(props: Props) {
     );
   }
 
-  const isUpgradingPlan = new_plan && new_plan !== ws.plan && new_plan === "pro";
-  const h = headers();
+  // @ts-expect-error
+  const subscription: Stripe.Subscription | null = session.subscription;
 
   await db.transaction(async (tx) => {
     await tx
       .update(schema.workspaces)
       .set({
         stripeCustomerId: customer.id,
-        stripeSubscriptionId: session.subscription as string,
-        trialEnds: null,
-        ...(isUpgradingPlan
-          ? {
-              plan: new_plan,
-              planChanged: new Date(),
-              subscriptions: defaultProSubscriptions(),
-              planDowngradeRequest: null,
-            }
-          : {}),
+        stripeSubscriptionId: subscription?.id ?? null,
+        plan: subscription ? "pro" : "free",
       })
       .where(eq(schema.workspaces.id, ws.id));
-
-    if (isUpgradingPlan) {
-      await insertAuditLogs(tx, ws.auditLogBuckets[0].id, {
-        workspaceId: ws.id,
-        actor: { type: "user", id: user.id },
-        event: "workspace.update",
-        description: "Changed plan to 'pro'",
-        resources: [
-          {
-            type: "workspace",
-            id: ws.id,
-          },
-        ],
-        context: {
-          location: h.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
-          userAgent: h.get("user-agent") ?? undefined,
-        },
-      });
-    }
   });
-
-  if (isUpgradingPlan) {
-    PostHogClient.capture({
-      distinctId: tenantId,
-      event: "plan_changed",
-      properties: { plan: new_plan, workspace: ws.id },
-    });
-  }
 
   return redirect("/settings/billing");
 }
