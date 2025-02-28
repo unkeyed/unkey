@@ -7,8 +7,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useUser } from "@clerk/nextjs";
 import { type PropsWithChildren, useCallback, useState } from "react";
-import { EmptyQueries } from "../../../../../../../../components/logs/queries/empty";
-import { QueriesItem } from "../../../../../../../../components/logs/queries/list-group";
+import { EmptyQueries } from "./empty";
+import { ListGroup } from "./list-group";
 import { QueriesTabs } from "./queries-tabs";
 
 type QueriesPopoverProps = PropsWithChildren<{
@@ -84,7 +84,7 @@ export const QueriesPopover = ({ open, setOpen, children }: QueriesPopoverProps)
       </PopoverTrigger>
       <PopoverContent
         onFocus={() => updateGroups(savedFilters)}
-        className="flex flex-col w-full min-w-[430px] max-h-[924px] bg-white dark:bg-black rounded-lg p-2 pb-0  shadow-shadow-black-a5 shadow-shadow-black-a3 shadow-shadow-inverted-2 dark:shadow-[0_12px_32px_-16px_rgba(255,255,255,0.1),0_12px_60px_0px_rgba(255,255,255,0.15),0_0px_0px_1px_rgba(255,255,255,0.1)] border-none shring-0"
+        className="flex flex-col w-[440px] h-[600px] max-h-[924px] bg-white dark:bg-black rounded-lg p-2 pb-0  shadow-shadow-black-a5 shadow-shadow-black-a3 shadow-shadow-inverted-2 dark:shadow-[0_12px_32px_-16px_rgba(255,255,255,0.1),0_12px_60px_0px_rgba(255,255,255,0.15),0_0px_0px_1px_rgba(255,255,255,0.1)] border-none shring-0"
         align="start"
         // onKeyDown={handleKeyNavigation}
       >
@@ -93,11 +93,11 @@ export const QueriesPopover = ({ open, setOpen, children }: QueriesPopoverProps)
         </div>
         <QueriesTabs selectedTab={focusedTabIndex} onChange={handleTabChange} />
         <div className="flex flex-col w-full h-full overflow-y-auto m-0 p-0 pt-[8px] scrollbar-hide">
-          {filterGroups.length === 0 && <EmptyQueries selectedTab={focusedTabIndex} />}
+          <EmptyQueries selectedTab={focusedTabIndex} list={filterGroups} />
           {focusedTabIndex === 0 &&
             filterGroups?.map((filterItem: SavedFiltersGroup, index: number) => {
               return (
-                <QueriesItem
+                <ListGroup
                   key={filterItem.id}
                   user={user}
                   filterList={filterItem}
@@ -114,7 +114,7 @@ export const QueriesPopover = ({ open, setOpen, children }: QueriesPopoverProps)
               .filter((filter) => filter.bookmarked)
               .map((filterItem: SavedFiltersGroup, index: number) => {
                 return (
-                  <QueriesItem
+                  <ListGroup
                     key={filterItem.id}
                     user={user}
                     filterList={filterItem}

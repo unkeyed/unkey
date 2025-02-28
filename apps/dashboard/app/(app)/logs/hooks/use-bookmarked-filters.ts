@@ -26,8 +26,8 @@ export const useBookmarkedFilters = () => {
     // Group current filters
     const currentGroup = filters.reduce(
       (acc, filter) => {
-        let { field, value, operator } = filter;
-        value = value.toString();
+        const { field, value, operator } = filter;
+        // value = value.toString();
 
         if (["startTime", "endTime", "since"].includes(field)) {
           //@ts-expect-error fix later
@@ -146,3 +146,18 @@ export const useBookmarkedFilters = () => {
     toggleBookmark,
   };
 };
+
+// savedFilters: (
+//   JSON.parse(localStorage.getItem("savedFilters") || "[]") as SavedFiltersGroup[]
+// ).map((filter) => ({
+//   ...filter,
+//   filters: {
+//     ...filter.filters,
+//     startTime: Number.isNaN(Number(filter.filters.startTime))
+//       ? null
+//       : Number(filter.filters.startTime),
+//     endTime: Number.isNaN(Number(filter.filters.endTime))
+//       ? null
+//       : Number(filter.filters.endTime),
+//   },
+// })),

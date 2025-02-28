@@ -11,7 +11,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
     onChange(index);
   };
   return (
-    <div className="flex mt-2 h-[45px] flex-row justify-center items-center h-10 w-full border-b-[1px] border-gray-6 p-0 m-0 gap-2 ">
+    <div className="flex mt-2 h-[45px] flex-row justify-center items-center w-full border-b-[1px] border-gray-6 p-0 m-0 gap-2 shrink-0">
       <Button
         variant="ghost"
         className={cn(
@@ -29,7 +29,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         <div className="w-full">Recent</div>
         <div
           className={cn(
-            "absolute bottom-0 w-full bg-transparent w-full h-[2px] pb-0 mb-0 ml-[2px]",
+            "absolute bottom-0 w-full bg-transparent h-[2px] pb-0 mb-0 ml-[2px]",
             selectedTab === 0 ? "bg-accent-12" : "",
           )}
         />
@@ -46,13 +46,13 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         title="Saved queries"
         onClick={() => handleSelection(1)}
       >
-        <div className="text-gray-9 h-4 w-4">
+        <div className="w-4 h-4 text-gray-9">
           <Bookmark size="sm-regular" className="text-gray-9 py-[1.5px]" />
         </div>
         <div className="w-full">Saved</div>
         <div
           className={cn(
-            "absolute bottom-0 w-full bg-transparent w-full h-[2px] pb-0 mb-0 ",
+            "absolute bottom-0 w-full bg-transparent h-[2px] pb-0 mb-0 ",
             selectedTab === 1 ? "bg-accent-12" : "",
           )}
         />

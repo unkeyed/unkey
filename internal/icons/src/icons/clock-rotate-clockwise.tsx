@@ -15,15 +15,41 @@ import { type IconProps, sizeMap } from "../props";
 export const ClockRotateClockwise: React.FC<IconProps> = ({ size, filled, ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
 
-  return (<svg
-    height={pixelSize}
-    width={pixelSize} {...props} viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-    <g fill="currentColor" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1.5 9c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5-3.36 7.5-7.5 7.5a7.5 7.5 0 0 1-6.31-3.45" fill="none" stroke="currentColor" strokeLinecap="round" strokeMiterlimit="10" strokeWidth={strokeWidth} />
-      <path d="M9 4.5v4.5l3 2.25" fill="none" stroke="currentColor" strokeLinecap="round" strokeMiterlimit="10" strokeWidth={strokeWidth} />
-      <path d="M2.25 16.5v-3.75h3.75" fill="none" stroke="currentColor" strokeLinecap="round" strokeMiterlimit="10" strokeWidth={strokeWidth} />
-    </g>
-  </svg>
+  return (
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      {...props}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g fill="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <path
+          d="M1.5 9c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5-3.36 7.5-7.5 7.5a7.5 7.5 0 0 1-6.31-3.45"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeMiterlimit="10"
+          strokeWidth={strokeWidth}
+        />
+        <path
+          d="M9 4.5v4.5l3 2.25"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeMiterlimit="10"
+          strokeWidth={strokeWidth}
+        />
+        <path
+          d="M2.25 16.5v-3.75h3.75"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeMiterlimit="10"
+          strokeWidth={strokeWidth}
+        />
+      </g>
+    </svg>
     // <svg
     //   {...props}
     //   height={pixelSize}
