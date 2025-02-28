@@ -20,7 +20,7 @@ const RatelimitOverviewLogsResponse = z.object({
 
 type RatelimitOverviewLogsResponse = z.infer<typeof RatelimitOverviewLogsResponse>;
 
-export const queryRatelimitOverviewLogs = rateLimitedProcedure(ratelimit.update)
+export const queryRatelimitOverviewLogs = rateLimitedProcedure(ratelimit.read)
   .input(ratelimitQueryOverviewLogsPayload)
   .output(RatelimitOverviewLogsResponse)
   .query(async ({ ctx, input }) => {

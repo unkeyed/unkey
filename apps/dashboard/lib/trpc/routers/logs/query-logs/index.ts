@@ -20,7 +20,7 @@ const LogsResponse = z.object({
 
 type LogsResponse = z.infer<typeof LogsResponse>;
 
-export const queryLogs = rateLimitedProcedure(ratelimit.update)
+export const queryLogs = rateLimitedProcedure(ratelimit.read)
   .input(queryLogsPayload)
   .output(LogsResponse)
   .query(async ({ ctx, input }) => {

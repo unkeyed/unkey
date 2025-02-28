@@ -1,6 +1,7 @@
 import { LogsLLMSearch } from "@/components/logs/llm-search";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { useRef } from "react";
 
 type LogsSearchProps = {
   setNamespaces: (namespaces: { id: string; name: string }[]) => void;
@@ -8,8 +9,13 @@ type LogsSearchProps = {
 };
 
 export const LogsSearch = ({ setNamespaces, initialNamespaces }: LogsSearchProps) => {
+  const isSearchingRef = useRef<boolean>(false);
+
   const searchNamespace = trpc.ratelimit.namespace.search.useMutation({
     onSuccess(data) {
+      if (!isSearchingRef.current) {
+        isSearchingRef.current = true;
+      }
       setNamespaces(data);
     },
     onError(error) {
@@ -26,7 +32,11 @@ export const LogsSearch = ({ setNamespaces, initialNamespaces }: LogsSearchProps
   });
 
   const handleClear = () => {
-    setNamespaces(initialNamespaces);
+    // Only reset if we have performed a search
+    if (isSearchingRef.current) {
+      setNamespaces(initialNamespaces);
+      isSearchingRef.current = false;
+    }
   };
 
   return (
@@ -34,7 +44,9 @@ export const LogsSearch = ({ setNamespaces, initialNamespaces }: LogsSearchProps
       hideExplainer
       onClear={handleClear}
       placeholder="Search namespaces"
+      loadingText="Searching namespaces..."
       isLoading={searchNamespace.isLoading}
+      searchOnChange
       onSearch={(query) =>
         searchNamespace.mutateAsync({
           query,

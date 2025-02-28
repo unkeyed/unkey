@@ -1,8 +1,6 @@
-import { CreateApiButton } from "./_components/create-api-button";
-
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { BookBookmark, Nodes } from "@unkey/icons";
+import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
 import { ApiListClient } from "./_components/api-list-client";
@@ -37,7 +35,7 @@ export default async function ApisOverviewPage(props: Props) {
 
   return (
     <div>
-            <Navigation isNewApi={!!props.searchParams.new} apisLength={initialData.total} />
+      <Navigation isNewApi={!!props.searchParams.new} apisLength={initialData.total} />
       {unpaid ? (
         <div className="h-screen flex items-center justify-center">
           <div className="flex justify-center items-center">

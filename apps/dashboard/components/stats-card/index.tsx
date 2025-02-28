@@ -26,18 +26,25 @@ export const StatsCard = ({
     <div className="flex flex-col border border-gray-6 rounded-xl overflow-hidden">
       <div className="h-[120px]">{chart}</div>
       <Link href={linkPath}>
-        <div className="p-6 border-t border-gray-6 flex flex-col gap-1">
-          <div className="flex justify-between items-center">
+        <div className="p-4 md:p-6 border-t border-gray-6 flex flex-col gap-1">
+          <div className="flex justify-between items-center flex-wrap">
             <div className="flex flex-col">
-              <div className="flex gap-3 items-center">
-                {icon}
-                <div className="text-accent-12 font-semibold">{name}</div>
+              <div className="flex gap-2 md:gap-3 items-center">
+                <span className="flex-shrink-0">{icon}</span>
+                <div className="text-accent-12 font-semibold truncate">{name}</div>
               </div>
-              {secondaryId && <div className="text-accent-11 text-xxs">{secondaryId}</div>}
+              {secondaryId && (
+                <div className="text-accent-11 text-xxs overflow-hidden text-ellipsis max-w-full">
+                  {secondaryId}
+                </div>
+              )}
             </div>
-            {rightContent}
+            {rightContent && <div className="flex-shrink-0 ml-auto">{rightContent}</div>}
           </div>
-          <div className="flex items-center w-full justify-between gap-4">{stats}</div>
+
+          <div className="flex items-center w-full justify-between gap-3 md:gap-4 mt-2 flex-wrap">
+            {stats}
+          </div>
         </div>
       </Link>
     </div>

@@ -2,7 +2,7 @@ import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { cn } from "@/lib/utils";
 import { CaretRightOutline, CircleInfoSparkle, Magnifier, Refresh3, XMark } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   onSearch: (query: string) => void;
@@ -11,6 +11,10 @@ type Props = {
   isLoading: boolean;
   hideExplainer?: boolean;
   hideClear?: boolean;
+  loadingText?: string;
+  clearingText?: string;
+  searchOnChange?: boolean;
+  debounceTime?: number;
 };
 
 export const LogsLLMSearch = ({
@@ -20,14 +24,38 @@ export const LogsLLMSearch = ({
   hideExplainer = false,
   hideClear = false,
   placeholder = "Search and filter with AI…",
+  loadingText = "AI consults the Palantír...",
+  clearingText = "Clearing search...",
+  searchOnChange = false,
+  debounceTime = 500,
 }: Props) => {
   const [searchText, setSearchText] = useState("");
+  const [isClearingState, setIsClearingState] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Combined loading state that accounts for both search and clear operations
+  const isClearing = isClearingState;
+  const isProcessing = isLoading || isClearing;
 
   useKeyboardShortcut("s", () => {
     inputRef.current?.click();
     inputRef.current?.focus();
   });
+
+  // Function to debounce clearing
+  const debouncedClear = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    setIsClearingState(true);
+
+    debounceTimerRef.current = setTimeout(() => {
+      onClear?.();
+      setIsClearingState(false);
+    }, debounceTime);
+  };
 
   const handleSearch = async (search: string) => {
     const query = search.trim();
@@ -40,14 +68,58 @@ export const LogsLLMSearch = ({
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const wasEmpty = searchText !== "";
+
+    setSearchText(value);
+
+    // If text was deleted completely, call onClear
+    if (wasEmpty && value === "") {
+      debouncedClear();
+    }
+
+    if (searchOnChange && value !== "") {
+      // Clear any existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      // Set a new timer
+      debounceTimerRef.current = setTimeout(() => {
+        handleSearch(value);
+      }, debounceTime);
+    }
+  };
+
+  // Clean up the timer when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       e.preventDefault();
-      (document.activeElement as HTMLElement)?.blur();
+
+      // Always clear the input and debounce the onClear call
+      setSearchText("");
+      debouncedClear();
+
+      // Blur the input by directly using the ref
+      inputRef.current?.blur();
     }
+
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSearch(searchText);
+      if (searchText !== "") {
+        handleSearch(searchText);
+      } else {
+        debouncedClear();
+      }
     }
   };
 
@@ -64,12 +136,12 @@ export const LogsLLMSearch = ({
           "focus-within:bg-gray-4",
           "transition-all duration-200",
           searchText.length > 0 ? "bg-gray-4" : "",
-          isLoading ? "bg-gray-4" : "",
+          isProcessing ? "bg-gray-4" : "",
         )}
       >
         <div className="flex items-center gap-2 w-80">
           <div className="flex-shrink-0">
-            {isLoading ? (
+            {isProcessing ? (
               <Refresh3 className="text-accent-10 size-4 animate-spin" />
             ) : (
               <Magnifier className="text-accent-9 size-4" />
@@ -77,9 +149,9 @@ export const LogsLLMSearch = ({
           </div>
 
           <div className="flex-1">
-            {isLoading ? (
+            {isProcessing ? (
               <div className="text-accent-11 text-[13px] animate-pulse">
-                AI consults the Palantír...
+                {isLoading ? loadingText : clearingText}
               </div>
             ) : (
               <input
@@ -87,7 +159,7 @@ export const LogsLLMSearch = ({
                 type="text"
                 value={searchText}
                 onKeyDown={handleKeyDown}
-                onChange={(e) => setSearchText(e.target.value)}
+                onChange={handleInputChange}
                 placeholder={placeholder}
                 className="text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6 w-full"
                 disabled={isLoading}
@@ -96,14 +168,14 @@ export const LogsLLMSearch = ({
           </div>
         </div>
 
-        {!isLoading && (
+        {!isProcessing && (
           <>
             {searchText.length > 0 && !hideClear && (
               <button
                 aria-label="Clear search"
                 onClick={() => {
                   setSearchText("");
-                  onClear?.();
+                  debouncedClear();
                 }}
                 type="button"
               >

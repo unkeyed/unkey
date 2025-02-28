@@ -3,7 +3,6 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { ApiOverview } from "@/lib/trpc/routers/api/query-overview/schemas";
 import { useRef } from "react";
-
 type Props = {
   apiList: ApiOverview[];
   onApiListChange: (apiList: ApiOverview[]) => void;
@@ -13,7 +12,6 @@ type Props = {
 export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
   const originalApiList = useRef<ApiOverview[]>([]);
   const isSearchingRef = useRef<boolean>(false);
-
   const searchApiOverview = trpc.api.overview.search.useMutation({
     onSuccess(data) {
       // Store original list before first search
@@ -52,6 +50,8 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
       onClear={handleClear}
       placeholder="Search API using name or ID"
       isLoading={searchApiOverview.isLoading}
+      loadingText="Searching APIs..."
+      searchOnChange
       onSearch={(query) =>
         searchApiOverview.mutateAsync({
           query,
