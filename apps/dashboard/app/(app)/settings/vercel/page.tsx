@@ -1,5 +1,5 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
+import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
@@ -51,13 +51,7 @@ export default async function Page(props: Props) {
   if (!integration) {
     return (
       <div>
-        <Navbar>
-          <Navbar.Breadcrumbs icon={<Gear />}>
-            <Navbar.Breadcrumbs.Link href="/settings/vercel" active>
-              Settings
-            </Navbar.Breadcrumbs.Link>
-          </Navbar.Breadcrumbs>
-        </Navbar>
+        <Navigation href="/settings/vercel" name="Settings" icon={<Gear />} />
         <PageContent>
           <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />
@@ -170,13 +164,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/settings/vercel" icon={<Gear />} name="Settings" />
       <PageContent>
         <SubMenu navigation={navigation} segment="vercel" />
         <div className="mt-8" />

@@ -1,15 +1,12 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RootKeyTable } from "@/components/dashboard/root-key-table";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Gear } from "@unkey/icons";
-import { Button } from "@unkey/ui";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
+import { Navigation } from "./navigation";
 
 export const revalidate = 0;
 
@@ -38,18 +35,7 @@ export default async function SettingsKeysPage(_props: {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/root-keys" active>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Link key="create-root-key" href="/settings/root-keys/new">
-            <Button variant="primary">Create New Root Key</Button>
-          </Link>
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation />
       <PageContent>
         <SubMenu navigation={navigation} segment="root-keys" />
 

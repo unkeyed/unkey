@@ -1,11 +1,9 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { asc, db } from "@/lib/db";
 import { permissions } from "@unkey/db/src/schema";
-import { ShieldKey } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
@@ -13,6 +11,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
 import { CreateNewPermission } from "./create-new-permission";
+import { Navigation } from "./navigation";
 
 export const revalidate = 0;
 
@@ -57,23 +56,7 @@ export default async function RolesPage() {
   });
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<ShieldKey />}>
-          <Navbar.Breadcrumbs.Link href="/authorization/roles">
-            Authorization
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="/authorization/permissions" active>
-            Permissions
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge variant="secondary" className="h-8">
-            {Intl.NumberFormat().format(workspace.permissions.length)} /{" "}
-            {Intl.NumberFormat().format(Number.POSITIVE_INFINITY)} used{" "}
-          </Badge>
-          <CreateNewPermission trigger={<Button variant="primary">Create New Permission</Button>} />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation numberOfPermissions={workspace.permissions.length} />
 
       <PageContent>
         <SubMenu navigation={navigation} segment="permissions" />

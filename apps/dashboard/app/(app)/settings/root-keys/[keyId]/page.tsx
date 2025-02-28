@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogTrigger } from "@/components/ui/dialog";
@@ -6,10 +5,10 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./history/access-table";
+import { Navigation } from "./navigation";
 import { PageLayout } from "./page-layout";
 import { DialogAddPermissionsForAPI } from "./permissions/add-permission-for-api";
 import { Api } from "./permissions/api";
@@ -128,20 +127,7 @@ export default async function RootKeyPage(props: {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/root-keys">Root Keys</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/settings/root-keys/${key.id}`}
-            active
-            isIdentifier
-            className="w-[100px] truncate"
-          >
-            {key.id}
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
-
+      <Navigation keyId={key.id} />
       <PageContent>
         <PageLayout params={{ keyId: key.id }} rootKey={key}>
           <div className="flex flex-col gap-4">
