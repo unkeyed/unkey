@@ -9,7 +9,6 @@ export const changeWorkspaceName = t.procedure
   .input(
     z.object({
       name: z.string().min(3, "workspace names must contain at least 3 characters"),
-      workspaceId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -20,7 +19,7 @@ export const changeWorkspaceName = t.procedure
           .set({
             name: input.name,
           })
-          .where(eq(schema.workspaces.id, input.workspaceId))
+          .where(eq(schema.workspaces.id, ctx.workspace.id))
           .catch((_err) => {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",

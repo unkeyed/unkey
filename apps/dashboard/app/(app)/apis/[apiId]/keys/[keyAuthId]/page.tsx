@@ -1,4 +1,4 @@
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
@@ -20,7 +20,7 @@ export default async function APIKeysPage(props: {
     keyAuthId: string;
   };
 }) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const keyAuth = await db.query.keyAuth.findFirst({
     where: (table, { eq, and, isNull }) =>
@@ -30,7 +30,7 @@ export default async function APIKeysPage(props: {
       api: true,
     },
   });
-  if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
+  if (!keyAuth || keyAuth.workspace.orgId !== orgId) {
     return notFound();
   }
 

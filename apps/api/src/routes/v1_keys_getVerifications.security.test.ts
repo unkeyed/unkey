@@ -77,7 +77,8 @@ test("cannot read keys from a different workspace", async (t) => {
   const workspaceId = newId("workspace");
   await h.db.primary.insert(schema.workspaces).values({
     id: workspaceId,
-    tenantId: randomUUID(),
+    clerkTenantId: randomUUID(),
+    orgId: newId("test"),
     name: randomUUID(),
     features: {},
     betaFeatures: {},

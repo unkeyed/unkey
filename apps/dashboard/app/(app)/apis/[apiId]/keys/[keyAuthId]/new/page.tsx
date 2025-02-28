@@ -2,7 +2,7 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Nodes } from "@unkey/icons";
 import { notFound } from "next/navigation";
@@ -14,7 +14,7 @@ export default async function CreateKeypage(props: {
     keyAuthId: string;
   };
 }) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const keyAuth = await db.query.keyAuth.findFirst({
     where: (table, { eq, and, isNull }) =>
@@ -24,7 +24,7 @@ export default async function CreateKeypage(props: {
       api: true,
     },
   });
-  if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
+  if (!keyAuth || keyAuth.workspace.orgId !== orgId) {
     return notFound();
   }
 

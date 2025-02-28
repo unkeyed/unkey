@@ -163,10 +163,10 @@ export class Ratelimit implements Ratelimiter {
     const timeout =
       this.config.timeout === false
         ? null
-        : this.config.timeout ?? {
+        : (this.config.timeout ?? {
             ms: 5000,
             fallback: () => ({ success: false, limit: 0, remaining: 0, reset: Date.now() }),
-          };
+          });
 
     let timeoutId: any = null;
     try {

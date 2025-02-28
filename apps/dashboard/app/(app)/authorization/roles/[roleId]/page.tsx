@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ShieldKey } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -46,10 +46,10 @@ function sortNestedPermissions(nested: NestedPermissions) {
 }
 
 export default async function RolesPage(props: Props) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.tenantId, tenantId),
+    where: (table, { eq }) => eq(table.orgId, orgId),
     with: {
       roles: {
         where: (table, { eq }) => eq(table.id, props.params.roleId),

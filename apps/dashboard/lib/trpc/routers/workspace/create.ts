@@ -32,7 +32,8 @@ export const createWorkspace = t.procedure
 
     const workspace: Workspace = {
       id: newId("workspace"),
-      tenantId: orgId,
+      clerkTenantId: orgId,
+      orgId: orgId,
       name: input.name,
       plan: "pro",
       stripeCustomerId: null,

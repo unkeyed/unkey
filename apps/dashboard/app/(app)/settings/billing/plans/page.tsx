@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -13,9 +13,9 @@ import { tiers } from "./constants";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.tenantId, tenantId),
+    where: (table, { eq }) => eq(table.orgId, orgId),
   });
   if (!workspace) {
     return notFound();

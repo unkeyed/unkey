@@ -11,15 +11,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useUser } from "@/lib/auth/hooks";
+import { ChevronExpandY } from "@unkey/icons";
 import { Check, Plus, UserPlus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useMemo, useState } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronExpandY } from "@unkey/icons";
-import Link from "next/link";
-import { useUser } from "@/lib/auth/hooks";
 
 type Props = {
   workspace: {
@@ -70,62 +70,53 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
               {props.workspace.name.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          {loading.memberships ? (
-            <Loading />
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="overflow-hidden text-sm font-medium text-ellipsis">
-                  {props.workspace.name}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className="text-sm font-medium">{props.workspace.name}</span>
-              </TooltipContent>
-            </Tooltip>
-          )}
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="overflow-hidden text-sm font-medium text-ellipsis">
+                {props.workspace.name}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span className="text-sm font-medium">{props.workspace.name}</span>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         <ChevronExpandY className="hidden w-5 h-5 shrink-0 md:block [stroke-width:1px]" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="absolute left-0 w-96 max-sm:left-0">
-        <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
-        <DropdownMenuItem
-          className="flex items-center justify-between"
-          onClick={() => changeWorkspace(null)}
-        >
-          <span className={currentOrgMembership === null ? "font-medium" : undefined}>
-            {user?.fullName ?? "Personal Workspace"}
-          </span>
-          {currentOrgMembership === null ? <Check className="w-4 h-4" /> : null}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
         <DropdownMenuGroup>
-          <ScrollArea className="h-96">
-            {filteredOrgs.map((membership) => (
-              <DropdownMenuItem
-                key={membership.id}
-                className="flex items-center justify-between"
-                onClick={() => changeWorkspace(membership.organization.id)}
-              >
-                <span
-                  className={
-                    membership.organization.id === currentOrgMembership?.organization.id
-                      ? "font-medium"
-                      : undefined
-                  }
+          {loading.memberships ? (
+            <div className="w-full justify-center flex">
+              <Loading />
+            </div>
+          ) : (
+            <ScrollArea className="max-h-96">
+              {filteredOrgs.map((membership) => (
+                <DropdownMenuItem
+                  key={membership.id}
+                  className="flex items-center justify-between"
+                  onClick={() => changeWorkspace(membership.organization.id)}
                 >
-                  {" "}
-                  {membership.organization.name}
-                </span>
-                {membership.organization.id === currentOrgMembership?.organization.id ? (
-                  <Check className="w-4 h-4" />
-                ) : null}
-              </DropdownMenuItem>
-            ))}
-          </ScrollArea>
+                  <span
+                    className={
+                      membership.organization.id === currentOrgMembership?.organization.id
+                        ? "font-medium"
+                        : undefined
+                    }
+                  >
+                    {" "}
+                    {membership.organization.name}
+                  </span>
+                  {membership.organization.id === currentOrgMembership?.organization.id ? (
+                    <Check className="w-4 h-4" />
+                  ) : null}
+                </DropdownMenuItem>
+              ))}
+            </ScrollArea>
+          )}
           <DropdownMenuSeparator />
 
           <DropdownMenuItem>

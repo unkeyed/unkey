@@ -4,7 +4,7 @@ import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Metric } from "@/components/ui/metric";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ShieldKey } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -22,10 +22,10 @@ type Props = {
 };
 
 export default async function RolesPage(props: Props) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.tenantId, tenantId),
+    where: (table, { eq }) => eq(table.orgId, orgId),
     with: {
       permissions: {
         where: (table, { eq }) => eq(table.id, props.params.permissionId),

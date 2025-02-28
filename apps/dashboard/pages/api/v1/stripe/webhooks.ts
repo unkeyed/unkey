@@ -64,7 +64,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
         if (!ws) {
           throw new Error("workspace does not exist");
         }
-        const users = await getUsers(ws.tenantId);
+        const users = await getUsers(ws.orgId!);
         const date = invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date();
         for await (const user of users) {
           await resend.sendPaymentIssue({

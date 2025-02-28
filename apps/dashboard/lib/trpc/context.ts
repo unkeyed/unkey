@@ -9,12 +9,11 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
   const { userId, orgId, orgRole } = await getAuth(req as any);
 
   let ws: (Workspace & { auditLogBucket: AuditLogBucket }) | undefined;
-  const tenantId = orgId;
-  if (tenantId) {
+  if (orgId) {
     await db.transaction(async (tx) => {
       const res = await tx.query.workspaces.findFirst({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
         with: {
           auditLogBuckets: {
             where: (table, { eq }) => eq(table.name, "unkey_mutations"),

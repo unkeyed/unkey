@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, count, db, gte, isNotNull, schema, sql } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -17,11 +17,10 @@ export const revalidate = 60;
 export const dynamic = "force-dynamic";
 
 export default async function SuccessPage() {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
 
   if (!workspace?.features.successPage) {

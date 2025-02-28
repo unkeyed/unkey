@@ -88,9 +88,9 @@ export function useUser() {
     try {
       setLoadingState("switch", true);
       clearError("switch");
-      
+
       const result = await switchOrg(orgId);
-      
+
       if (result.success) {
         // Refresh the page to update the app with the new organization context
         window.location.reload();
@@ -98,10 +98,7 @@ export function useUser() {
         throw new Error(result.error || "Failed to switch organization");
       }
     } catch (err) {
-      setError(
-        "switch", 
-        err instanceof Error ? err : new Error("Failed to switch organization")
-      );
+      setError("switch", err instanceof Error ? err : new Error("Failed to switch organization"));
     } finally {
       setLoadingState("switch", false);
     }

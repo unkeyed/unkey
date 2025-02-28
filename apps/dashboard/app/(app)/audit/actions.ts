@@ -1,68 +1,50 @@
-import { db } from "@/lib/db";
-import { clerkClient } from "@clerk/nextjs";
+import { auth } from "@/lib/auth/server";
+import { type Workspace, db } from "@/lib/db";
 import { redirect } from "next/navigation";
 
-export const getWorkspace = async (tenantId: string) => {
-  try {
-    let members = null;
-
-    if (!tenantId.startsWith("user_")) {
-      try {
-        const membersOfOrg = await clerkClient.organizations.getOrganizationMembershipList({
-          organizationId: tenantId,
-        });
-        members = membersOfOrg
-          .filter((m) => Boolean(m.publicUserData))
-          .map((m) => ({
-            label:
-              m.publicUserData!.firstName && m.publicUserData!.lastName
-                ? `${m.publicUserData!.firstName} ${m.publicUserData!.lastName}`
-                : m.publicUserData!.identifier,
-            value: m.publicUserData!.userId,
-          }));
-      } catch (memberError) {
-        console.error(
-          `Failed to fetch organization members for tenant ID ${tenantId}: ${
-            memberError instanceof Error ? memberError.message : "Unknown error"
-          }`,
-        );
-      }
-    }
-
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
-      with: {
-        auditLogBuckets: {
-          columns: {
-            id: true,
-            name: true,
-          },
-          orderBy: (table, { asc }) => asc(table.createdAt),
+export async function getWorkspace(orgId: string): Promise<{
+  workspace: Workspace & { auditLogBuckets: Array<{ id: string; name: string }> };
+  rootKeys: Array<{ id: string; name: string | null }>;
+  members: Array<{
+    name: string;
+    id: string;
+  }>;
+}> {
+  const workspace = await db.query.workspaces.findFirst({
+    where: (table, { eq, and, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    with: {
+      auditLogBuckets: {
+        columns: {
+          id: true,
+          name: true,
         },
+        orderBy: (table, { asc }) => asc(table.createdAt),
       },
-    });
+    },
+  });
 
-    if (!workspace) {
-      return redirect("/auth/signin");
-    }
+  if (!workspace) {
+    return redirect("/auth/signin");
+  }
 
-    const rootKeys = await db.query.keys.findMany({
-      where: (table, { eq }) => eq(table.forWorkspaceId, workspace?.id),
+  const [rootKeys, members] = await Promise.all([
+    db.query.keys.findMany({
+      where: (table, { eq }) => eq(table.forWorkspaceId, workspace.id),
 
       columns: {
         id: true,
         name: true,
       },
-    });
+    }),
+    auth.getOrganizationMemberList(orgId),
+  ]);
 
-    return { workspace: { ...workspace, keys: rootKeys }, members };
-  } catch (error) {
-    console.error(
-      `Failed to fetch workspace for tenant ID ${tenantId}: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
-    );
-    throw error;
-  }
-};
+  return {
+    workspace,
+    rootKeys,
+    members: members.data.map((m) => ({
+      name: m.user.email,
+      id: m.user.id,
+    })),
+  };
+}

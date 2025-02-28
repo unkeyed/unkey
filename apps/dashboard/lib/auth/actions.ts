@@ -18,7 +18,6 @@ import {
   type OrgInviteParams,
   type Organization,
   PENDING_SESSION_COOKIE,
-  type SessionData,
   type SignInViaOAuthOptions,
   UNKEY_SESSION_COOKIE,
   type User,
@@ -146,10 +145,10 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
   if (!orgId) {
     return { success: false, error: "Missing organization ID" };
   }
-  
+
   try {
     const { newToken, expiresAt } = await auth.switchOrg(orgId);
-    
+
     // Set the new cookie
     await setCookie({
       name: UNKEY_SESSION_COOKIE,
@@ -158,17 +157,17 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
         httpOnly: true,
         secure: true,
         sameSite: "lax",
-        path: '/',
-        maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000)
-      }
+        path: "/",
+        maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+      },
     });
 
     return { success: true };
   } catch (error) {
     console.error("Organization switch failed:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Failed to switch organization"
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to switch organization",
     };
   }
 }
@@ -236,17 +235,16 @@ export async function createTenant(params: { name: string; userId: string }): Pr
   return await auth.createTenant(params);
 }
 
-export async function getWorkspace(tenantId: string): Promise<any> {
-  if (!tenantId) {
+export async function getWorkspace(orgId: string): Promise<any> {
+  if (!orgId) {
     throw new Error("TenantId/orgId is required to look up workspace");
   }
   const user = await requireAuth();
-  if (tenantId !== user.orgId) {
+  if (orgId !== user.orgId) {
     throw new Error("Unauthorized to view other users memberships");
   }
   return await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
 }
 
