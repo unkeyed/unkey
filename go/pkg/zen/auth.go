@@ -21,6 +21,7 @@ func Bearer(s *Session) (string, error) {
 	}
 
 	bearer := strings.TrimPrefix(header, "Bearer ")
+	bearer = strings.TrimSpace(bearer)
 	if bearer == "" {
 		return "", fault.New("invalid token", fault.WithTag(fault.UNAUTHORIZED))
 	}
