@@ -128,11 +128,10 @@ func (s *Session) BindQuery(dst interface{}) error {
 			continue
 		}
 
-		// Handle different field types
+		// nolint:exhaustive
 		switch fieldValue.Kind() {
 		case reflect.String:
 			{
-
 				fieldValue.SetString(values[0])
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -182,6 +181,7 @@ func (s *Session) BindQuery(dst interface{}) error {
 				slice := reflect.MakeSlice(fieldValue.Type(), len(values), len(values))
 
 				for j, val := range values {
+					// nolint:exhaustive
 					switch sliceType {
 					case reflect.String:
 						{

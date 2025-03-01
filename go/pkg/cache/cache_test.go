@@ -78,7 +78,6 @@ func TestRefresh(t *testing.T) {
 }
 
 func TestNull(t *testing.T) {
-	t.Skip()
 
 	c := cache.New[string, string](cache.Config[string, string]{
 		MaxSize:  10_000,

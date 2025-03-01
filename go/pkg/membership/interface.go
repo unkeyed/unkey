@@ -44,6 +44,7 @@ type Membership interface {
 	// The returned channel will be closed when the membership system is shut down.
 	SubscribeLeaveEvents() <-chan Member
 
-	// Addr returns the node's advertised address.
-	Addr() string
+	// Self returns information about the local node
+	// for use in tests and diagnostics.
+	Self() Member
 }

@@ -20,18 +20,18 @@ func TestJoin2Nodes(t *testing.T) {
 	freePort := port.New()
 
 	m1, err := membership.New(membership.Config{
-		NodeID:     "node_1",
-		Addr:       fmt.Sprintf("localhost:%d", freePort.Get()),
-		GossipPort: freePort.Get(),
-		Logger:     logging.NewNoop(),
+		NodeID:        "node_1",
+		AdvertiseAddr: "127.0.0.1",
+		GossipPort:    freePort.Get(),
+		Logger:        logging.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	m2, err := membership.New(membership.Config{
-		NodeID:     "node_2",
-		Addr:       fmt.Sprintf("localhost:%d", freePort.Get()),
-		GossipPort: freePort.Get(),
-		Logger:     logging.NewNoop(),
+		NodeID:        "node_2",
+		AdvertiseAddr: "127.0.0.1",
+		GossipPort:    freePort.Get(),
+		Logger:        logging.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -41,7 +41,7 @@ func TestJoin2Nodes(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, m1Members, 1)
 
-	err = m2.Start(&discovery.Static{Addrs: []string{m1.Addr()}})
+	err = m2.Start(&discovery.Static{Addrs: []string{m1.Self().Addr}})
 	require.NoError(t, err)
 
 	require.NoError(t, err)
@@ -85,48 +85,57 @@ func TestMembers_returns_all_members(t *testing.T) {
 // Test whether nodes correctly emit a join event when they join the cluster
 // When a node joins, a listener to the `JoinEvents` topic should receive a message with the member that jioned.
 func TestJoin_emits_join_event(t *testing.T) {
-
 	for _, clusterSize := range CLUSTER_SIZES {
 		t.Run(fmt.Sprintf("cluster size %d", clusterSize), func(t *testing.T) {
 			freePort := port.New()
 			members := make([]membership.Membership, clusterSize)
+
+			// Store node IDs for later reference
+			nodeIDs := make([]string, clusterSize)
+
 			var err error
 			for i := 0; i < clusterSize; i++ {
+				nodeID := fmt.Sprintf("node_%d", i)
+				nodeIDs[i] = nodeID
+
 				members[i], err = membership.New(membership.Config{
-					NodeID:     fmt.Sprintf("node_%d", i),
-					Addr:       fmt.Sprintf("localhost:%d", freePort.Get()),
-					GossipPort: freePort.Get(),
-					Logger:     logging.NewNoop(),
+					NodeID:        nodeID,
+					AdvertiseAddr: "127.0.0.1",
+					GossipPort:    freePort.Get(),
+					Logger:        logging.NewNoop(),
 				})
 				require.NoError(t, err)
-
 			}
 
 			joinEvents := members[0].SubscribeJoinEvents()
 			joinMu := sync.RWMutex{}
-			join := make(map[string]bool)
+			joinedNodes := make(map[string]bool) // Track by NodeID
 
 			go func() {
 				for event := range joinEvents {
 					joinMu.Lock()
-					join[event.Addr] = true
+					joinedNodes[event.NodeID] = true // Store by NodeID
 					joinMu.Unlock()
 				}
 			}()
 
+			// First node is already "joined" to itself, so we need to track the others
 			peerAddrs := make([]string, 0)
 			for _, m := range members {
 				err = m.Start(&discovery.Static{Addrs: peerAddrs})
 				require.NoError(t, err)
-				peerAddrs = append(peerAddrs, m.Addr())
+
+				peerAddrs = append(peerAddrs, m.Self().Addr)
 			}
 
-			for _, n := range members[1:] {
+			// Check if each node (except the first) has joined
+			for i := 1; i < clusterSize; i++ {
+				nodeID := nodeIDs[i]
 				require.Eventually(t, func() bool {
 					joinMu.RLock()
-					ok := join[n.Addr()]
+					hasJoined := joinedNodes[nodeID]
 					joinMu.RUnlock()
-					return ok
+					return hasJoined
 				}, 30*time.Second, 100*time.Millisecond)
 			}
 		})
@@ -136,20 +145,24 @@ func TestJoin_emits_join_event(t *testing.T) {
 // Test whether nodes correctly emit a leave event when they leave the cluster
 // When a node leaves, a listener to the `LeaveEvents` topic should receive a message with the member that left.
 func TestLeave_emits_leave_event(t *testing.T) {
-
 	for _, clusterSize := range CLUSTER_SIZES {
 		t.Run(fmt.Sprintf("cluster size %d", clusterSize), func(t *testing.T) {
-
 			nodes := runMany(t, clusterSize)
+
+			// Store nodeIDs for later reference
+			nodeIDs := make([]string, clusterSize)
+			for i, n := range nodes {
+				nodeIDs[i] = n.Self().NodeID
+			}
 
 			leaveEvents := nodes[0].SubscribeLeaveEvents()
 			leftMu := sync.RWMutex{}
-			left := make(map[string]bool)
+			leftNodes := make(map[string]bool) // Track by NodeID
 
 			go func() {
 				for event := range leaveEvents {
 					leftMu.Lock()
-					left[event.Addr] = true
+					leftNodes[event.NodeID] = true // Store by NodeID
 					leftMu.Unlock()
 				}
 			}()
@@ -159,18 +172,19 @@ func TestLeave_emits_leave_event(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			for _, n := range nodes[1:] {
+			// Check each node (except the first) if it has left
+			for i := 1; i < clusterSize; i++ {
+				nodeID := nodeIDs[i]
 				require.Eventually(t, func() bool {
 					leftMu.RLock()
-					l := left[n.Addr()]
+					hasLeft := leftNodes[nodeID]
 					leftMu.RUnlock()
-					return l
+					return hasLeft
 				}, 30*time.Second, 100*time.Millisecond)
 			}
 		})
 	}
 }
-
 func runMany(t *testing.T, n int) []membership.Membership {
 
 	freePort := port.New()
@@ -179,10 +193,10 @@ func runMany(t *testing.T, n int) []membership.Membership {
 	var err error
 	for i := 0; i < n; i++ {
 		members[i], err = membership.New(membership.Config{
-			NodeID:     fmt.Sprintf("node_%d", i),
-			GossipPort: freePort.Get(),
-			Addr:       fmt.Sprintf("localhost:%d", freePort.Get()),
-			Logger:     logging.NewNoop(),
+			NodeID:        fmt.Sprintf("node_%d", i),
+			AdvertiseAddr: "127.0.0.1",
+			GossipPort:    freePort.Get(),
+			Logger:        logging.NewNoop(),
 		})
 		require.NoError(t, err)
 
@@ -192,7 +206,7 @@ func runMany(t *testing.T, n int) []membership.Membership {
 	for _, m := range members {
 		err = m.Start(discovery.Static{Addrs: peerAddrs})
 		require.NoError(t, err)
-		peerAddrs = append(peerAddrs, m.Addr())
+		peerAddrs = append(peerAddrs, m.Self().Addr)
 	}
 
 	for _, m := range members {

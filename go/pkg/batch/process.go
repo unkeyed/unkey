@@ -52,6 +52,7 @@ func (bp *BatchProcessor[T]) process() {
 	t := time.NewTimer(bp.config.FlushInterval)
 	flushAndReset := func() {
 		if len(bp.batch) > 0 {
+
 			bp.flush(context.Background(), bp.batch)
 			bp.batch = bp.batch[:0]
 		}
