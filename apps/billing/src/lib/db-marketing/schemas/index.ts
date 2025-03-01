@@ -5,3 +5,4 @@ export * from "./keywords";
 export * from "./firecrawl";
 export * from "./sections";
 export * from "./evals";
+export * from "./takeaways-schema";
