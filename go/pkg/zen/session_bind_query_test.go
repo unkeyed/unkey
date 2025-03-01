@@ -1,8 +1,8 @@
-// session_test.go
-
+// nolint:exhaustruct
 package zen
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -168,7 +168,7 @@ func TestSession_BindQuery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a request with the query string
-			req := httptest.NewRequest("GET", "/?"+tt.queryString, nil)
+			req := httptest.NewRequest(http.MethodGet, "/?"+tt.queryString, nil)
 
 			// Create a session
 			sess := &Session{
@@ -198,7 +198,7 @@ func TestSession_BindQuery(t *testing.T) {
 
 func TestSession_BindQuery_EdgeCases(t *testing.T) {
 	t.Run("empty query string", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/", nil)
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		sess := &Session{r: req}
 
 		target := &struct {
@@ -217,7 +217,7 @@ func TestSession_BindQuery_EdgeCases(t *testing.T) {
 		queryValues.Add("name", "John Doe")
 		queryValues.Add("tag", "special character: &")
 
-		req := httptest.NewRequest("GET", "/?"+queryValues.Encode(), nil)
+		req := httptest.NewRequest(http.MethodGet, "/?"+queryValues.Encode(), nil)
 		sess := &Session{r: req}
 
 		target := &struct {
@@ -232,7 +232,7 @@ func TestSession_BindQuery_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("field with json tag options", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/?name=test&count=10", nil)
+		req := httptest.NewRequest(http.MethodGet, "/?name=test&count=10", nil)
 		sess := &Session{r: req}
 
 		target := &struct {
@@ -250,7 +250,7 @@ func TestSession_BindQuery_EdgeCases(t *testing.T) {
 func TestSession_BindQuery_Init(t *testing.T) {
 	t.Run("verify session initialization and reuse", func(t *testing.T) {
 		// Create a request with query params
-		req := httptest.NewRequest("GET", "/?name=test&age=30", nil)
+		req := httptest.NewRequest(http.MethodGet, "/?name=test&age=30", nil)
 		w := httptest.NewRecorder()
 
 		// Create and initialize a session
