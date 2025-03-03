@@ -161,19 +161,25 @@ func (c *cache[K, V]) get(ctx context.Context, key K) (swrEntry[V], bool) {
 
 func (c *cache[K, V]) set(_ context.Context, key K, value ...V) {
 	now := c.clock.Now()
-	e := swrEntry[V]{
+
+	if len(value) == 0 {
+		// Set NULL
+		var v V
+		c.otter.Set(key, swrEntry[V]{
+			Value: v,
+			Fresh: now.Add(c.fresh),
+			Stale: now.Add(c.stale),
+			Hit:   Null,
+		})
+		return
+	}
+
+	c.otter.Set(key, swrEntry[V]{
 		Value: value[0],
 		Fresh: now.Add(c.fresh),
 		Stale: now.Add(c.stale),
-		Hit:   Null,
-	}
-	if len(value) > 0 {
-		e.Value = value[0]
-		e.Hit = Hit
-	} else {
-		e.Hit = Miss
-	}
-	c.otter.Set(key, e)
+		Hit:   Hit,
+	})
 
 }
 
