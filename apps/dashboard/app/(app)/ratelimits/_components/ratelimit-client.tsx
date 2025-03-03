@@ -48,8 +48,8 @@ export const RatelimitClient = ({
             <Empty.Icon />
             <Empty.Title>No Namespaces found</Empty.Title>
             <Empty.Description>
-              You haven't created any Namespaces yet. Create one by performing a
-              limit request as shown below.
+              You haven't created any Namespaces yet. Create one by performing a limit request as
+              shown below.
             </Empty.Description>
 
             <div className="w-full mt-8 mb-8">
@@ -62,11 +62,7 @@ export const RatelimitClient = ({
             </div>
 
             <Empty.Actions>
-              <a
-                href="/docs/ratelimiting/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href="/docs/ratelimiting/introduction" target="_blank" rel="noopener noreferrer">
                 <Button className="flex items-center w-full gap-2">
                   <BookOpen className="w-4 h-4" />
                   Read the docs
