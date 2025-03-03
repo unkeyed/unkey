@@ -5,12 +5,11 @@ export const formSchema = z.object({
     .number({
       errorMap: (issue, { defaultError }) => ({
         message:
-          issue.code === "invalid_type"
-            ? "Amount must be a number and greater than 0"
-            : defaultError,
+          issue.code === "invalid_type" ? "Key must be between 8 and 255 bytes long" : defaultError,
       }),
     })
-    .min(16)
+    .min(8, { message: "Key must be between 8 and 255 bytes long" })
+    .max(255, { message: "Key must be between 8 and 255 bytes long" })
     .default(16),
   prefix: z
     .string()

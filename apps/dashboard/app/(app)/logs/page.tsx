@@ -1,12 +1,11 @@
 "use server";
-
-import { Navbar } from "@/components/navbar";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Layers3 } from "lucide-react";
+import { Layers3 } from "@unkey/icons";
 import { notFound } from "next/navigation";
 import { LogsClient } from "./components/logs-client";
 
+import { Navigation } from "@/components/navigation/navigation";
 export default async function Page() {
   const tenantId = getTenantId();
 
@@ -19,18 +18,10 @@ export default async function Page() {
     return notFound();
   }
 
-  return <LogsContainerPage />;
-}
-
-const LogsContainerPage = () => {
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Layers3 />}>
-          <Navbar.Breadcrumbs.Link href="/logs">Logs</Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/logs" name="Logs" icon={<Layers3 />} />
       <LogsClient />
     </div>
   );
-};
+}

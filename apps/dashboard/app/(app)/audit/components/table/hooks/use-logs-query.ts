@@ -21,7 +21,7 @@ export function useAuditLogsQuery({ limit = 50 }: UseLogsQueryParams) {
   const queryParams = useMemo(() => {
     const params: AuditQueryLogsPayload = {
       limit,
-      startTime: dateNow - HISTORICAL_DATA_WINDOW * 2 * 7,
+      startTime: dateNow - HISTORICAL_DATA_WINDOW,
       endTime: dateNow,
       events: { filters: [] },
       users: { filters: [] },

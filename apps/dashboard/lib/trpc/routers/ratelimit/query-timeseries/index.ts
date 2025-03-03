@@ -5,7 +5,7 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { transformRatelimitFilters } from "./utils";
 
-export const queryRatelimitTimeseries = rateLimitedProcedure(ratelimit.update)
+export const queryRatelimitTimeseries = rateLimitedProcedure(ratelimit.read)
   .input(ratelimitQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
     const ratelimitNamespaces = await db.query.ratelimitNamespaces

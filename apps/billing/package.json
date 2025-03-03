@@ -27,9 +27,6 @@
     "@trigger.dev/sdk": "3.3.1",
     "@trigger.dev/slack": "3.3.1",
     "@types/js-yaml": "^4.0.9",
-    "@unkey/billing": "workspace:^",
-    "@unkey/clickhouse": "workspace:^",
-    "@unkey/db": "workspace:^",
     "@unkey/error": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/resend": "workspace:^",
@@ -40,7 +37,6 @@
     "github-slugger": "^2.0.0",
     "js-yaml": "^4.1.0",
     "react-dom": "^18",
-    "stripe": "^14.23.0",
     "zod": "^3.23.5"
   },
   "devDependencies": {
