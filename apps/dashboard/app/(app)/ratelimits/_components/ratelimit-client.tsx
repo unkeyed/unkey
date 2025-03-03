@@ -37,7 +37,7 @@ export const RatelimitClient = ({
       <RatelimitListControlCloud />
 
       {namespaces.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5 w-full p-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
           {namespaces.map((namespace) => (
             <NamespaceCard namespace={namespace} key={namespace.id} />
           ))}
@@ -48,8 +48,8 @@ export const RatelimitClient = ({
             <Empty.Icon />
             <Empty.Title>No Namespaces found</Empty.Title>
             <Empty.Description>
-              You haven't created any Namespaces yet. Create one by performing a limit request as
-              shown below.
+              You haven't created any Namespaces yet. Create one by performing a
+              limit request as shown below.
             </Empty.Description>
 
             <div className="w-full mt-8 mb-8">
@@ -62,7 +62,11 @@ export const RatelimitClient = ({
             </div>
 
             <Empty.Actions>
-              <a href="/docs/ratelimiting/introduction" target="_blank" rel="noopener noreferrer">
+              <a
+                href="/docs/ratelimiting/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button className="flex items-center w-full gap-2">
                   <BookOpen className="w-4 h-4" />
                   Read the docs
