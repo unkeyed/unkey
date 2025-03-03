@@ -1,4 +1,3 @@
-// GenericTimeseriesChart.tsx
 "use client";
 
 import { formatTimestampTooltip } from "@/components/logs/chart/utils/format-timestamp";
@@ -13,25 +12,28 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, YAxis } from "rechar
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 
-type TimeseriesData = {
+// Generic base type that all timeseries data must include
+export type BaseTimeseriesData = {
   originalTimestamp: number;
   total: number;
-  [key: string]: any;
+  [key: string]: any; // Allow for any additional properties
 };
 
-type LogsTimeseriesBarChartProps = {
-  data?: TimeseriesData[];
+export type TimeseriesChartProps<T extends BaseTimeseriesData> = {
+  data?: T[];
   config: ChartConfig;
   isLoading?: boolean;
   isError?: boolean;
+  tooltipExtraContent?: (payload: any) => React.ReactNode;
 };
 
-export function LogsTimeseriesBarChart({
+export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
   data,
   config,
   isError,
   isLoading,
-}: LogsTimeseriesBarChartProps) {
+  tooltipExtraContent,
+}: TimeseriesChartProps<T>) {
   if (isError) {
     return <LogsChartError />;
   }
@@ -90,6 +92,7 @@ export function LogsTimeseriesBarChart({
                           </div>
                         </div>
                       </div>
+                      {tooltipExtraContent?.(payload)}
                     </div>
                   }
                   className="rounded-lg shadow-lg border border-gray-4"
