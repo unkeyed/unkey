@@ -65,7 +65,7 @@ linters-settings:
       - "^golang.org/x/tools/go/analysis.Analyzer$"
       - "^google.golang.org/protobuf/.+Options$"
       - "^gopkg.in/yaml.v3.Node$"
-      - "^github.com/urfave/cli/v2.*$"
+      - "^github.com/urfave/cli/v3.*$"
 
   lll:
     line-length: 120
@@ -210,12 +210,6 @@ linters-settings:
     # Default: ""
     context: "scope"
 
-  tenv:
-    # The option `all` will run against whole test files (`_test.go`) regardless of method/function signatures.
-    # Otherwise, only methods that take `*testing.T`, `*testing.B`, and `testing.TB` as arguments are checked.
-    # Default: false
-    all: true
-
 linters:
   disable-all: true
   enable:
@@ -281,7 +275,6 @@ linters:
     - spancheck # checks for mistakes with OpenTelemetry/Census spans
     - sqlclosecheck # checks that sql.Rows and sql.Stmt are closed
     # - stylecheck # is a replacement for golint
-    - tenv # detects using os.Setenv instead of t.Setenv since Go1.17
     # - testableexamples # checks if examples are testable (have an expected output)
     # - testifylint # checks usage of github.com/stretchr/testify
     - tparallel # detects inappropriate usage of t.Parallel() method in your Go test codes

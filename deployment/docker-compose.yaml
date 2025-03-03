@@ -44,8 +44,7 @@ services:
     deploy:
       replicas: 3
       endpoint_mode: vip
-
-    command: ["api", "--config", "config.docker.json"]
+    command: ["api"]
     build:
       context: ../go
       dockerfile: ./Dockerfile
@@ -54,11 +53,14 @@ services:
       - redis
       - clickhouse
     environment:
-      GOSSIP_PORT: 9090
-      RPC_PORT: 9091
-      DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey?parseTime=true"
-      CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
-      REDIS_URL: "redis://redis:6379"
+      UNKEY_HTTP_PORT: 7070
+      UNKEY_CLUSTER: true
+      UNKEY_CLUSTER_GOSSIP_PORT: 9090
+      UNKEY_CLUSTER_RPC_PORT: 9091
+      # UNKEY_CLUSTER_ADVERTISE_ADDR_STATIC: "${HOSTNAME}"
+      UNKEY_CLUSTER_DISCOVERY_REDIS_URL: "redis://redis:6379"
+      UNKEY_DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey?parseTime=true"
+      UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
 
   redis:
     image: redis:latest
