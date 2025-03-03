@@ -9,7 +9,7 @@ import (
 type Member struct {
 	// NodeID is a globally unique identifier for the node
 	NodeID string `json:"nodeId"`
-	// Addr is the network address of the node
+	// IP Address or DNS name where this node can be reached
 	Addr string `json:"addr"`
 }
 

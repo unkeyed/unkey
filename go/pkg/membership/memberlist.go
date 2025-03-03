@@ -20,8 +20,8 @@ import (
 type Config struct {
 	// NodeID is the unique identifier for this node
 	NodeID string
-	// Addr is the network address this node will listen on
-	Addr string
+	// AdvertiseAddr is the ip or dns name where this node can be
+	AdvertiseAddr string
 	// GossipPort is the port used for cluster membership gossip protocol
 	GossipPort int
 	// Logger is the logging interface used for membership-related logs
@@ -29,7 +29,8 @@ type Config struct {
 }
 
 type membership struct {
-	mu sync.Mutex
+	mu     sync.Mutex
+	config Config
 
 	self Member
 
@@ -55,6 +56,7 @@ func New(config Config) (*membership, error) {
 
 	memberlistConfig := memberlist.DefaultLANConfig()
 	memberlistConfig.Name = config.NodeID
+	memberlistConfig.AdvertiseAddr = config.AdvertiseAddr
 	memberlistConfig.AdvertisePort = config.GossipPort
 	memberlistConfig.BindPort = config.GossipPort
 	memberlistConfig.Events = b
@@ -67,12 +69,13 @@ func New(config Config) (*membership, error) {
 
 	m := &membership{
 		mu:         sync.Mutex{},
+		config:     config,
 		logger:     config.Logger,
 		started:    false,
 		memberlist: list,
 		self: Member{
 			NodeID: config.NodeID,
-			Addr:   config.Addr,
+			Addr:   fmt.Sprintf("%s:%d", config.AdvertiseAddr, config.GossipPort),
 		},
 		bus: b,
 	}
@@ -153,6 +156,7 @@ func (m *membership) Members() ([]Member, error) {
 	return members, nil
 }
 
-func (m *membership) Addr() string {
-	return m.self.Addr
+func (m *membership) Self() Member {
+
+	return m.self
 }

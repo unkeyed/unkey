@@ -260,10 +260,10 @@ func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, []shu
 	}
 
 	m, err := membership.New(membership.Config{
-		NodeID:     cfg.Cluster.NodeID,
-		Addr:       advertiseAddr,
-		GossipPort: int(gossipPort),
-		Logger:     logger,
+		NodeID:        cfg.Cluster.NodeID,
+		AdvertiseAddr: advertiseAddr,
+		GossipPort:    int(gossipPort),
+		Logger:        logger,
 	})
 	if err != nil {
 		return nil, shutdowns, fmt.Errorf("unable to create membership: %w", err)

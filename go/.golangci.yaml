@@ -351,3 +351,4 @@ issues:
         - noctx
         - wrapcheck
         - errcheck
+        - exhaustruct
