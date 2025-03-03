@@ -6,50 +6,143 @@ import * as React from "react";
 import { cn } from "../lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex group relative transition duration-150 whitespace-nowrap tracking-normal rounded-lg  font-medium transition-colors disabled:pointer-events-none focus:outline-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed",
   {
     variants: {
       variant: {
-        default:
-          "bg-gray-3 hover:bg-gray-4 focus-visible:bg-gray-5 text-accent-12 border border-gray-6 hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
-        primary:
-          "bg-gray-12 hover:bg-gray-1  text-accent-1 hover:text-accent-12 border border-black dark:border-white hover:border-gray-4 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-3 drop-shadow-button duration-250",
-        destructive:
-          "text-gray-1 bg-error-9 border border-error-7 hover:bg-error-10 hover:border-error-8 active:bg-error-11 disabled:bg-error-5 disabled:border-error-4 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-3 focus-visible:border-error-8 transition-colors duration-150",
-        ghost:
-          "text-accent-12 hover:bg-gray-3 ring-2 ring-transparent focus-visible:ring-accent-12",
+        primary: [
+          "p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md font-medium border border-grayA-4",
+          "focus:ring-4 focus:ring-gray-7 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
+          "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 dark:text-black/85",
+          "active:bg-accent-12/80",
+        ],
+        outline: [
+          "p-2 text-gray-12 bg-transparent border border-grayA-6 hover:bg-grayA-2 rounded-md",
+          "focus:border-grayA-12 focus:ring-4 focus:ring-gray-7 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
+          "disabled:border disabled:border-solid disabled:border-grayA-5 disabled:text-grayA-7",
+          "active:bg-grayA-3",
+        ],
+        ghost: [
+          "p-2 text-gray-12 bg-transparent hover:bg-grayA-4 rounded-md focus:hover:bg-transparent",
+          "focus:border-grayA-12 focus:ring-4 focus:ring-gray-7 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
+          "disabled:border disabled:text-grayA-7",
+          "active:bg-grayA-5",
+        ],
+      },
+      color: {
+        default: "",
+        success: "",
+        warning: "",
+        danger: "",
       },
       size: {
-        default: "h-8 px-3 py-1 text-sm",
-        icon: "size-6 p-1",
-      },
-      shape: {
-        square: "size-8 p-1",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
-);
-
-const keyboardIconVariants = cva(
-  "items-center transition duration-150 text-center items-center justify-center shadow-none size-5 flex justify-center  font-mono text-xs font-medium border   rounded-[5px]",
-  {
-    variants: {
-      variant: {
-        default: "bg-gray-3 border-gray-6 text-accent-12",
-        primary:
-          "duration-250 bg-black/10 border-gray-11 text-accent-1 group-hover:text-accent-12 group-hover:bg-gray-3 group-hover:border-gray-6",
-        destructive: "bg-gray-1 border-gray-6 text-accent-12 group-hover:border-error-8",
-        ghost: "border-gray-6 text-accent-12 ",
+        sm: "h-7",
+        md: "h-8",
+        lg: "h-9",
+        xlg: "h-12",
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: "primary",
+      color: "default",
+      size: "sm",
     },
-  },
+    compoundVariants: [
+      // Danger
+      {
+        variant: "primary",
+        color: "danger",
+        className: [
+          "text-white bg-error-9 hover:bg-error-10 rounded-md font-medium focus:hover:bg-error-10 ",
+          "focus:border-error-11 focus:ring-4 focus:ring-error-7 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:bg-error-6 disabled:text-white/80",
+          "active:bg-error-11",
+        ],
+      },
+      {
+        variant: "outline",
+        color: "danger",
+        className: [
+          "text-error-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
+          "focus:border-error-11 focus:ring-4 focus:ring-error-7 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:text-errorA-7 disabled:border-grayA-5",
+          "active:bg-error-3",
+        ],
+      },
+      {
+        variant: "ghost",
+        color: "danger",
+        className: [
+          "text-error-11 bg-transparent hover:bg-error-3 rounded-md",
+          "focus:border-error-11 focus:ring-4 focus:ring-error-7 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:text-error-7",
+          "active:bg-error-4",
+        ],
+      },
+      // Warning
+      {
+        variant: "primary",
+        color: "warning",
+        className: [
+          "text-white bg-warning-8 hover:bg-warning-8/90 rounded-md font-medium focus:hover:bg-warning-8/90",
+          "focus:border-warning-11 focus:ring-4 focus:ring-warning-7 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:bg-warning-7 disabled:text-white/80",
+          "active:bg-warning-9",
+        ],
+      },
+      {
+        variant: "outline",
+        color: "warning",
+        className: [
+          "text-warningA-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
+          "focus:border-warning-11 focus:ring-4 focus:ring-warning-7 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:text-warningA-7 disabled:border-grayA-5",
+          "active:bg-warning-3",
+        ],
+      },
+      {
+        variant: "ghost",
+        color: "warning",
+        className: [
+          "text-warning-11 bg-transparent hover:bg-warning-3 rounded-md",
+          "focus:border-warning-11 focus:ring-4 focus:ring-warning-7 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:text-warning-7",
+          "active:bg-warning-4",
+        ],
+      },
+      // Success
+      {
+        variant: "primary",
+        color: "success",
+        className: [
+          "text-white bg-success-9 hover:bg-success-10 rounded-md font-medium focus:hover:bg-success-10",
+          "focus:border-success-11 focus:ring-4 focus:ring-success-7 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:bg-success-7 disabled:text-white",
+          "active:bg-success-11",
+        ],
+      },
+      {
+        variant: "outline",
+        color: "success",
+        className: [
+          "text-success-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
+          "focus:border-success-11 focus:ring-4 focus:ring-success-7 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:text-successA-7 disabled:border-grayA-5",
+          "active:bg-success-3",
+        ],
+      },
+      {
+        variant: "ghost",
+        color: "success",
+        className: [
+          "text-success-11 bg-transparent hover:bg-success-3 rounded-md",
+          "focus:border-success-11 focus:ring-4 focus:ring-success-7 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:text-success-7",
+          "active:bg-success-4",
+        ],
+      },
+    ],
+  }
 );
 
 export type ButtonProps = VariantProps<typeof buttonVariants> &
@@ -59,7 +152,6 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
      */
     loading?: boolean;
     disabled?: boolean;
-
     /**
      * Keyboard shortcut to trigger the `onClick` handler
      */
@@ -79,70 +171,152 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
        */
       callback: (e: KeyboardEvent) => void | Promise<void>;
     };
-
     asChild?: boolean;
+    /**
+     * Optional label for screen readers when in loading state
+     */
+    loadingLabel?: string;
   };
+
+const keyboardIconVariants = cva(
+  "items-center transition duration-150 text-center justify-center shadow-none text-sm flex justify-center font-mono text-xs font-medium border rounded-[5px] h-5 px-1.5 min-w-[24px]",
+  {
+    variants: {
+      variant: {
+        default: "bg-gray-4 border-gray-7 text-gray-12",
+        primary:
+          "bg-gray-12/10 border-gray-8 text-white dark:text-black group-hover:bg-gray-12/20",
+        outline:
+          "bg-gray-3 border-gray-6 text-gray-11 group-hover:bg-gray-4 group-hover:border-gray-7",
+        ghost:
+          "bg-gray-3 border-gray-6 text-gray-11 group-hover:bg-gray-4 group-hover:border-gray-7",
+        danger:
+          "bg-error-3 border-error-6 text-error-11 group-hover:border-error-7 group-hover:bg-error-4",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
 
 const Button: React.FC<ButtonProps> = ({
   className,
   variant,
+  color = "default",
   size,
-  shape,
   asChild = false,
   loading,
+  disabled,
+  loadingLabel = "Loading, please wait",
   ...props
 }) => {
+  // Only disable the click behavior, not the visual appearance
+  const isClickDisabled = disabled || loading;
+  // Keep separate flag for actual visual disabled state
+  const isVisuallyDisabled = disabled;
+
+  // Width reference for consistent sizing during loading state
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(
+    undefined
+  );
+
+  // Capture initial width when entering loading state
   React.useEffect(() => {
-    if (!props.keyboard) {
+    if (loading && buttonRef.current && !buttonWidth) {
+      setButtonWidth(buttonRef.current.offsetWidth);
+    } else if (!loading) {
+      setButtonWidth(undefined);
+    }
+  }, [loading, buttonWidth]);
+
+  // Keyboard handler
+  React.useEffect(() => {
+    if (!props.keyboard || isClickDisabled) {
       return;
     }
+
     const down = (e: KeyboardEvent) => {
       if (!props.keyboard!.trigger(e)) {
         return;
       }
       e.preventDefault();
-
       props.keyboard!.callback(e);
     };
+
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, [props.keyboard]);
+  }, [props.keyboard, isClickDisabled]);
 
   const Comp = asChild ? Slot : "button";
 
   return (
     <Comp
-      className={cn(buttonVariants({ variant, size, shape, className }))}
-      onClick={props.onClick}
+      className={cn(buttonVariants({ variant, color, size, className }))}
+      onClick={loading ? undefined : props.onClick}
+      disabled={isVisuallyDisabled} // Only apply disabled attribute when explicitly disabled
+      aria-disabled={isClickDisabled} // For accessibility, still indicate it can't be clicked
+      aria-busy={loading}
+      ref={buttonRef}
       {...props}
     >
-      {loading ? (
+      {loading && (
         <div
-          className={cn("inset-0 absolute flex justify-center items-center w-full h-full", {
-            "opacity-0": !loading,
-            "opacity-100": loading,
-          })}
+          className="absolute inset-0 flex items-center justify-center w-full h-full transition-opacity duration-200"
+          aria-hidden="true"
         >
-          <Loader className="animate-spin " />
+          <Loader
+            className="animate-spin"
+            data-prefers-reduced-motion="respect-motion-preference"
+          />
+          <span className="sr-only">{loadingLabel}</span>
         </div>
-      ) : null}
+      )}
       <div
         className={cn(
-          "duration-200 w-full h-full transition-opacity flex items-center justify-center gap-2",
+          "w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200",
           {
-            "opacity-100": !loading,
             "opacity-0": loading,
-          },
+            "opacity-100": !loading,
+          }
         )}
       >
         {props.children}
         {props.keyboard ? (
-          <kbd className={cn(keyboardIconVariants({ variant }))}>{props.keyboard.display}</kbd>
-        ) : null}
+          <kbd
+            className={cn(
+              keyboardIconVariants({
+                variant:
+                  variant === "primary"
+                    ? "primary"
+                    : variant === "outline"
+                    ? "default"
+                    : "ghost",
+              })
+            )}
+          >
+            {props.keyboard.display}
+          </kbd>
+        ) : null}{" "}
       </div>
     </Comp>
   );
 };
+
+// Add CSS for respecting reduced motion preference
+if (typeof document !== "undefined") {
+  const style = document.createElement("style");
+  style.textContent = `
+    @media (prefers-reduced-motion: reduce) {
+      [data-prefers-reduced-motion="respect-motion-preference"] {
+        animation: none !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 Button.displayName = "Button";
 
 export { Button, buttonVariants };
