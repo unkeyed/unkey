@@ -146,18 +146,3 @@ export const useBookmarkedFilters = () => {
     toggleBookmark,
   };
 };
-
-// savedFilters: (
-//   JSON.parse(localStorage.getItem("savedFilters") || "[]") as SavedFiltersGroup[]
-// ).map((filter) => ({
-//   ...filter,
-//   filters: {
-//     ...filter.filters,
-//     startTime: Number.isNaN(Number(filter.filters.startTime))
-//       ? null
-//       : Number(filter.filters.startTime),
-//     endTime: Number.isNaN(Number(filter.filters.endTime))
-//       ? null
-//       : Number(filter.filters.endTime),
-//   },
-// })),

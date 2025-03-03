@@ -9,22 +9,24 @@ type EmptyQueriesProps = {
 export const EmptyQueries = ({ selectedTab, list }: EmptyQueriesProps) => {
   return list.length === 0 ||
     (list.filter((filter) => filter.bookmarked).length === 0 && selectedTab === 1) ? (
-    <div className="flex justify-between w-full h-full p-2">
+    <div className="flex items-center justify-between w-full h-full p-2 mt-[-15px]">
       <Empty>
         <Empty.Icon>
           {selectedTab === 0 ? (
-            <ClockRotateClockwise size="2xl-thin" className="p-0 m-0 text-accent-12" />
+            <ClockRotateClockwise size="2xl-thin" className="p-0 text-accent-12" />
           ) : (
             <Bookmark size="2xl-thin" className="w-full h-full p-0 m-0 text-accent-12" />
           )}
         </Empty.Icon>
-        <Empty.Title>{selectedTab === 0 ? "No recent queries" : "No saved queries"}</Empty.Title>
-        <Empty.Description>
+        <Empty.Title className="mt-5">
+          {selectedTab === 0 ? "No recent queries" : "No saved queries"}
+        </Empty.Title>
+        <Empty.Description className="mt-[10px]">
           {selectedTab === 1
             ? "Query using the filters, and they will show up here"
             : "Save your recent queries and they will remain here"}
         </Empty.Description>
-        <Empty.Actions>
+        <Empty.Actions className="mt-[20px]">
           <a
             href="https://www.unkey.com/docs/introduction"
             target="_blank"

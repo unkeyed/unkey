@@ -1,12 +1,14 @@
 import type { LogsFilterValue, QuerySearchParams } from "@/app/(app)/logs/filters.schema";
-import { useBookmarkedFilters } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
-import type { SavedFiltersGroup } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
+import {
+  type SavedFiltersGroup,
+  useBookmarkedFilters,
+} from "@/app/(app)/logs/hooks/use-bookmarked-filters";
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useUser } from "@clerk/nextjs";
-import { type PropsWithChildren, useCallback, useState } from "react";
+import { type PropsWithChildren, useState } from "react";
 import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
 import { QueriesTabs } from "./queries-tabs";
@@ -23,10 +25,6 @@ export const QueriesPopover = ({ open, setOpen, children }: QueriesPopoverProps)
   const { user } = useUser();
   const [filterGroups, setfilterGroups] = useState<SavedFiltersGroup[]>(savedFilters);
   const [isDisabled, setIsDisabled] = useState(savedFilters.length === 0);
-
-  useCallback(() => {
-    updateGroups(savedFilters);
-  }, [savedFilters]);
 
   const updateGroups = (newGroups: SavedFiltersGroup[]) => {
     setfilterGroups(newGroups);
@@ -45,7 +43,6 @@ export const QueriesPopover = ({ open, setOpen, children }: QueriesPopoverProps)
 
   const handleTabChange = (index: number) => {
     updateGroups(savedFilters);
-    // changeTabGroupLists();
     setFocusedTabIndex(index);
   };
 
@@ -65,6 +62,27 @@ export const QueriesPopover = ({ open, setOpen, children }: QueriesPopoverProps)
         }),
       );
     });
+    fieldList.startTime &&
+      newFilters.push({
+        id: crypto.randomUUID(),
+        field: "startTime",
+        operator: "is",
+        value: fieldList.startTime,
+      });
+    fieldList.endTime &&
+      newFilters.push({
+        id: crypto.randomUUID(),
+        field: "endTime",
+        operator: "is",
+        value: fieldList.endTime,
+      });
+    fieldList.since &&
+      newFilters.push({
+        id: crypto.randomUUID(),
+        field: "since",
+        operator: "is",
+        value: fieldList.since,
+      });
 
     if (newFilters) {
       updateFilters(newFilters);
@@ -84,7 +102,7 @@ export const QueriesPopover = ({ open, setOpen, children }: QueriesPopoverProps)
       </PopoverTrigger>
       <PopoverContent
         onFocus={() => updateGroups(savedFilters)}
-        className="flex flex-col w-[440px] h-[600px] max-h-[924px] bg-white dark:bg-black rounded-lg p-2 pb-0  shadow-shadow-black-a5 shadow-shadow-black-a3 shadow-shadow-inverted-2 dark:shadow-[0_12px_32px_-16px_rgba(255,255,255,0.1),0_12px_60px_0px_rgba(255,255,255,0.15),0_0px_0px_1px_rgba(255,255,255,0.1)] border-none shring-0"
+        className="flex flex-col min-w-[430px] w-full h-[924px] bg-white dark:bg-black rounded-lg p-2 pb-0 shadow-shadow-black-a5 shadow-shadow-black-a3 shadow-shadow-inverted-2 dark:shadow-[0_12px_32px_-16px_rgba(255,255,255,0.1),0_12px_60px_0px_rgba(255,255,255,0.15),0_0px_0px_1px_rgba(255,255,255,0.1)] border-none"
         align="start"
         // onKeyDown={handleKeyNavigation}
       >

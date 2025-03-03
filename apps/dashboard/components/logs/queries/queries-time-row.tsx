@@ -14,7 +14,7 @@ export const TimeRow = ({ startTime, endTime, since }: TimeRowProps) => {
 
   const operator = since ? "since" : startTime && endTime ? "between" : "starts from";
   return startTime || endTime || since ? (
-    <div className="flex items-center justify-start gap-2 truncate Fflex-row">
+    <div className="flex items-center justify-start w-full gap-2">
       <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[43px]">
         Time
       </div>

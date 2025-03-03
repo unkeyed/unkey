@@ -11,7 +11,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
     onChange(index);
   };
   return (
-    <div className="flex mt-2 h-[45px] flex-row justify-center items-center w-full border-b-[1px] border-gray-6 p-0 m-0 gap-2 shrink-0">
+    <div className="flex mt-2 h-[40px] flex-row justify-center items-center w-full border-b-[1px] border-gray-6 p-0 m-0 gap-2 shrink-0">
       <Button
         variant="ghost"
         className={cn(
