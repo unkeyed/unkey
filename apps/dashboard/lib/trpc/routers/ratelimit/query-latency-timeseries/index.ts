@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { transformRatelimitFilters } from "./utils";
 
 //TODO: Refactor this endpoint once we move to AWS
-export const queryRatelimitLatencyTimeseries = rateLimitedProcedure(ratelimit.update)
+export const queryRatelimitLatencyTimeseries = rateLimitedProcedure(ratelimit.read)
   .input(ratelimitOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
     const ratelimitNamespaces = await db.query.ratelimitNamespaces

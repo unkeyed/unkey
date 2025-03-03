@@ -45,6 +45,7 @@ export const LogsSearch = () => {
   return (
     <LogsLLMSearch
       isLoading={queryLLMForStructuredOutput.isLoading}
+      searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({
           query,
