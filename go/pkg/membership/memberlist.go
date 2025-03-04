@@ -83,7 +83,7 @@ func New(config Config) (*membership, error) {
 		memberlist: list,
 		self: Member{
 			NodeID: config.NodeID,
-			Addr:   fmt.Sprintf("%s:%d", config.AdvertiseAddr, config.GossipPort),
+			Addr:   fmt.Sprintf("%s:%d", advertiseAddrs[0], config.GossipPort),
 		},
 		bus: b,
 	}

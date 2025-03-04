@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
 	"github.com/unkeyed/unkey/go/pkg/port"
+	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
 var CLUSTER_SIZES = []int{3, 9, 36}
@@ -190,13 +191,20 @@ func runMany(t *testing.T, n int) []membership.Membership {
 	freePort := port.New()
 
 	members := make([]membership.Membership, n)
-	var err error
 	for i := 0; i < n; i++ {
-		members[i], err = membership.New(membership.Config{
-			NodeID:        fmt.Sprintf("node_%d", i),
-			AdvertiseAddr: "127.0.0.1",
-			GossipPort:    freePort.Get(),
-			Logger:        logging.NewNoop(),
+
+		// sometimes we had port collissions, that's why we're retrying this
+		err := retry.New(retry.Attempts(10), retry.Backoff(func(n int) time.Duration {
+			return 0
+		})).Do(func() error {
+			var mErr error
+			members[i], mErr = membership.New(membership.Config{
+				NodeID:        fmt.Sprintf("node_%d", i),
+				AdvertiseAddr: "127.0.0.1",
+				GossipPort:    freePort.Get(),
+				Logger:        logging.NewNoop(),
+			})
+			return mErr
 		})
 		require.NoError(t, err)
 
@@ -204,7 +212,7 @@ func runMany(t *testing.T, n int) []membership.Membership {
 
 	peerAddrs := make([]string, 0)
 	for _, m := range members {
-		err = m.Start(discovery.Static{Addrs: peerAddrs})
+		err := m.Start(discovery.Static{Addrs: peerAddrs})
 		require.NoError(t, err)
 		peerAddrs = append(peerAddrs, m.Self().Addr)
 	}
