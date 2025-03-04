@@ -48,10 +48,11 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
     <Button
       onClick={handleRefresh}
       variant="ghost"
+      size="md"
       title="Refresh data (Shortcut: R)"
       disabled={!isEnabled || isLoading}
       loading={isLoading}
-      className="flex items-center justify-center"
+      className="flex items-center justify-center rounded-lg"
     >
       <Refresh3 className="size-4" />
       <span className="font-medium text-[13px] relative z-10">Refresh</span>
