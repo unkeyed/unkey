@@ -12,39 +12,79 @@ export default {
         white: "white",
         transparent: "transparent",
         current: "currentColor",
-        gray: palette("gray"),
-        info: palette("info"),
-        success: palette("success"),
-        orange: palette("orange"),
-        warning: palette("warning"),
-        error: palette("error"),
-        feature: palette("feature"),
-        accent: palette("accent"),
+        ...generateRadixColors(),
       },
       dropShadow: {
         // from vitor's figma
-        button: "0px 4px 4px 0px rgba(0, 0, 0, 0.25)",
+        button: "0px 0px 0px 3px hsl(var(--grayA-6))",
+      },
+      opacity: {
+        5: "0.05",
+        10: "0.1",
+        15: "0.15",
+        20: "0.2",
+        25: "0.25",
+        30: "0.3",
+        35: "0.35",
+        40: "0.4",
+        45: "0.45",
+        50: "0.5",
+        55: "0.55",
+        60: "0.6",
+        65: "0.65",
+        70: "0.7",
+        75: "0.75",
+        80: "0.8",
+        85: "0.85",
+        90: "0.9",
+        95: "0.95",
+        98: "0.98",
       },
     },
   },
   plugins: [],
 };
 
-/**
- * returns a 12 step color scale from css variables
- *
- * @example:
- * {
- *   1: "hsl(var(--gray-1))",
- *   2: "hsl(var(--gray-2))",
- *   ...,
- *   12: "hsl(var(--gray-12))",
- * }
- */
-function palette(name) {
-  const colors = {};
-  for (let i = 1; i <= 12; i++) {
-    colors[i] = `hsl(var(--${name}-${i}))`;
+const getColor = (colorVar, { opacityVariable, opacityValue }) => {
+  // For alpha colors, we need to extract the alpha from the variable itself
+  // to avoid the syntax error in the generated CSS
+  const alphaColors = ["grayA", "errorA", "successA", "warningA"];
+  if (alphaColors.some((color) => colorVar.includes(color))) {
+    return `hsla(var(--${colorVar.replace("--", "")}))`;
   }
+
+  if (opacityValue !== undefined) {
+    return `hsla(var(${colorVar}), ${opacityValue})`;
+  }
+  if (opacityVariable !== undefined) {
+    return `hsla(var(${colorVar}), var(${opacityVariable}, 1))`;
+  }
+  return `hsl(var(${colorVar}))`;
+};
+
+function generateRadixColors() {
+  const colorNames = [
+    "gray",
+    "grayA", // Also labeled as "brand" in Figma colors
+    "info",
+    "success",
+    "successA", // Added tealA
+    "orange",
+    "warning",
+    "warningA", // Added amberA
+    "error",
+    "errorA", // Added tomatoA
+    "feature",
+    "accent",
+  ];
+
+  const colors = {};
+  colorNames.forEach((name) => {
+    colors[name] = {};
+    for (let i = 1; i <= 12; i++) {
+      colors[name][i] = (params) => getColor(`--${name}-${i}`, params);
+    }
+  });
+
   return colors;
 }

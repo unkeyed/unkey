@@ -85,6 +85,7 @@ export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonE
             }}
             className="flex-row items-center gap-1 font-semibold "
             {...rest}
+            color="default"
           >
             <Plus size={18} className="w-4 h-4 " />
             Invite Member
