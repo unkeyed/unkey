@@ -1,6 +1,11 @@
 -- +goose up
-CREATE MATERIALIZED VIEW IF NOT EXISTS verifications.key_verifications_per_month_mv_v3
-TO verifications.key_verifications_per_month_v3
+
+DROP VIEW verifications.key_verifications_per_month_mv_v2;
+
+
+-- +goose down
+CREATE MATERIALIZED VIEW verifications.key_verifications_per_month_mv_v2
+TO verifications.key_verifications_per_month_v2
 AS
 SELECT
   workspace_id,
@@ -21,8 +26,3 @@ GROUP BY
   time,
   tags
 ;
-
-
-
--- +goose down
-DROP VIEW verifications.key_verifications_per_month_mv_v3;
