@@ -259,7 +259,7 @@ export const LogsTable = () => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button>
+                <Button size="md">
                   <BookBookmark />
                   Documentation
                 </Button>

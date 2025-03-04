@@ -33,7 +33,7 @@ export const ApiListClient = ({
           </Empty.Description>
           <Empty.Actions className="mt-4 ">
             <a href="/settings/billing" target="_blank" rel="noopener noreferrer">
-              <Button>
+              <Button size="md">
                 <BookBookmark />
                 Subscribe
               </Button>
@@ -70,7 +70,7 @@ export const ApiListClient = ({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button>
+                <Button size="md">
                   <BookBookmark />
                   Documentation
                 </Button>

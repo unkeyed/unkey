@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -54,9 +55,16 @@ func New(config Config) (*membership, error) {
 		onUpdate: events.NewTopic[Member](),
 	}
 
+	advertiseAddrs, err := net.LookupHost(config.AdvertiseAddr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to lookup addr %s: %w", config.AdvertiseAddr, err)
+	}
+	if len(advertiseAddrs) == 0 {
+		return nil, fmt.Errorf("no advertise addrs found")
+	}
 	memberlistConfig := memberlist.DefaultLANConfig()
 	memberlistConfig.Name = config.NodeID
-	memberlistConfig.AdvertiseAddr = config.AdvertiseAddr
+	memberlistConfig.AdvertiseAddr = advertiseAddrs[0]
 	memberlistConfig.AdvertisePort = config.GossipPort
 	memberlistConfig.BindPort = config.GossipPort
 	memberlistConfig.Events = b

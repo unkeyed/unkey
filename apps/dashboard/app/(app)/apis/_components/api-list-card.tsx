@@ -2,6 +2,7 @@
 import { StatsCard } from "@/components/stats-card";
 import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
+import { formatNumber } from "@/lib/fmt";
 import type { ApiOverview } from "@/lib/trpc/routers/api/query-overview/schemas";
 import { Key, ProgressBar } from "@unkey/icons";
 import { useFetchVerificationTimeseries } from "./hooks/use-query-timeseries";
@@ -50,7 +51,7 @@ export const ApiListCard = ({ api }: Props) => {
           <div className="flex items-center gap-2 min-w-0 max-w-[40%]">
             <Key className="text-accent-11 flex-shrink-0" />
             <div className="text-xs text-accent-9 truncate">
-              {keyCount > 0 ? `${keyCount} ${keyCount === 1 ? "Key" : "Keys"}` : "No data"}
+              {`${formatNumber(keyCount)} ${keyCount === 1 ? "Key" : "Keys"}`}
             </div>
           </div>
         </>

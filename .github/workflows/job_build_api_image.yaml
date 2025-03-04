@@ -1,0 +1,45 @@
+name: Build and push API
+on:
+  push:
+    tags:
+      - "api/v*"
+jobs:
+  build:
+    permissions:
+      contents: read
+      packages: write
+    name: Build and push API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        run: |
+          # Remove the 'api/' prefix from the tag to get the version
+          VERSION=${GITHUB_REF#refs/tags/api/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Get tags
+        run: echo "TAGS=ghcr.io/${{ github.repository }}:${VERSION}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to image repository
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: "{{defaultContext}}:go"
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.TAGS }}
+          build-args: |
+            VERSION=${{ env.VERSION }}

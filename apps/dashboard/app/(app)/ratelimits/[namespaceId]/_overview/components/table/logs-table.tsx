@@ -205,7 +205,7 @@ export const RatelimitOverviewLogsTable = ({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button>
+                <Button size="md">
                   <BookBookmark />
                   Documentation
                 </Button>
