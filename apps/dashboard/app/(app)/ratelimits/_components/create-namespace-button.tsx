@@ -1,22 +1,13 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
-import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+
+import { DialogContainer } from "@/components/dialog-container";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -33,75 +24,81 @@ const formSchema = z.object({
     ),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 export const CreateNamespaceButton = ({
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const [isOpen, setIsOpen] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid, isSubmitting },
+  } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    mode: "onChange",
   });
+
+  const router = useRouter();
 
   const create = trpc.ratelimit.namespace.create.useMutation({
     onSuccess(res) {
       toast.success("Your Namespace has been created");
       router.refresh();
       router.push(`/ratelimits/${res.id}`);
+      setIsOpen(false);
     },
     onError(err) {
       toast.error(err.message);
     },
   });
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+
+  const onSubmit = (values: FormValues) => {
     create.mutate(values);
-  }
-  const router = useRouter();
+  };
 
   return (
     <>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button className="flex-row items-center gap-1 font-semibold " {...rest}>
-            <Plus size={18} className="w-4 h-4 " />
-            Create new namespace
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="border-border w-11/12 max-sm: ">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        data-1p-ignore
-                        placeholder="email.outbound"
-                        {...field}
-                        className=" dark:focus:border-gray-700"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Alphanumeric, underscores, hyphens or periods are allowed.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      <Button {...rest} color="default" onClick={() => setIsOpen(true)}>
+        <Plus size={18} className="w-4 h-4" />
+        Create new namespace
+      </Button>
 
-              <DialogFooter className="flex-row justify-end gap-2 pt-4 ">
-                <Button
-                  disabled={create.isLoading || !form.formState.isValid}
-                  className="mt-4 "
-                  type="submit"
-                >
-                  {create.isLoading ? <Loading /> : "Create"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <DialogContainer
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+        title="Create Namespace"
+        footer={
+          <div className="w-full flex flex-col gap-2 items-center justify-center">
+            <Button
+              type="submit"
+              form="create-namespace-form"
+              variant="primary"
+              size="xlg"
+              disabled={create.isLoading || !isValid || isSubmitting}
+              loading={create.isLoading || isSubmitting}
+              className="w-full rounded-lg"
+            >
+              Create Namespace
+            </Button>
+            <div className="text-gray-9 text-xs">
+              Namespaces can be used to separate different rate limiting concerns
+            </div>
+          </div>
+        }
+      >
+        <form id="create-namespace-form" onSubmit={handleSubmit(onSubmit)}>
+          <FormInput
+            label="Name"
+            description="Alphanumeric, underscores, hyphens or periods are allowed."
+            error={errors.name?.message}
+            {...register("name")}
+            placeholder="email.outbound"
+            data-1p-ignore
+          />
+        </form>
+      </DialogContainer>
     </>
   );
 };
