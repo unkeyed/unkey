@@ -149,7 +149,7 @@ const buttonVariants = cva(
         ],
       },
     ],
-  }
+  },
 );
 
 export type ButtonProps = VariantProps<typeof buttonVariants> &
@@ -191,8 +191,7 @@ const keyboardIconVariants = cva(
     variants: {
       variant: {
         default: "bg-gray-4 border-gray-7 text-gray-12",
-        primary:
-          "bg-gray-12/10 border-gray-8 text-white dark:text-black group-hover:bg-gray-12/20",
+        primary: "bg-gray-12/10 border-gray-8 text-white dark:text-black group-hover:bg-gray-12/20",
         outline:
           "bg-gray-3 border-gray-6 text-gray-11 group-hover:bg-gray-4 group-hover:border-gray-7",
         ghost:
@@ -204,7 +203,7 @@ const keyboardIconVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 type ButtonVariant = NonNullable<
@@ -333,9 +332,7 @@ const Button: React.FC<ButtonProps> = ({
 
   // Width reference for consistent sizing during loading state
   const buttonRef = React.useRef<HTMLButtonElement>(null);
-  const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(
-    undefined
-  );
+  const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(undefined);
 
   // Capture initial width when entering loading state
   React.useEffect(() => {
@@ -398,7 +395,7 @@ const Button: React.FC<ButtonProps> = ({
           {
             "opacity-0": loading,
             "opacity-100": !loading,
-          }
+          },
         )}
       >
         {props.children}
@@ -407,12 +404,8 @@ const Button: React.FC<ButtonProps> = ({
             className={cn(
               keyboardIconVariants({
                 variant:
-                  variant === "primary"
-                    ? "primary"
-                    : variant === "outline"
-                    ? "default"
-                    : "ghost",
-              })
+                  variant === "primary" ? "primary" : variant === "outline" ? "default" : "ghost",
+              }),
             )}
           >
             {props.keyboard.display}
