@@ -89,18 +89,6 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
         <ChevronExpandY className="hidden w-5 h-5 shrink-0 md:block [stroke-width:1px]" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="absolute left-0 w-96 max-sm:left-0">
-        <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
-        <DropdownMenuItem
-          className="flex items-center justify-between"
-          onClick={() => changeWorkspace(null)}
-        >
-          <span className={currentOrgMembership === null ? "font-medium" : undefined}>
-            {user?.fullName ?? "Personal Workspace"}
-          </span>
-          {currentOrgMembership === null ? <Check className="w-4 h-4" /> : null}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
         <DropdownMenuGroup>
           <ScrollArea className="h-96">
