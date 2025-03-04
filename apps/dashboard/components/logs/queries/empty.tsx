@@ -1,5 +1,5 @@
 import type { SavedFiltersGroup } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
-import { BookBookmark, Bookmark, ClockRotateClockwise } from "@unkey/icons";
+import { Book2, Bookmark, ClockRotateClockwise } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 
 type EmptyQueriesProps = {
@@ -32,8 +32,8 @@ export const EmptyQueries = ({ selectedTab, list }: EmptyQueriesProps) => {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Button>
-              <BookBookmark />
+            <Button variant="outline" size="md" className="flex items-center justify-center px-2">
+              <Book2 size="sm-regular" className="py-[2px]" />
               Documentation
             </Button>
           </a>

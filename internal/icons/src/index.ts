@@ -1,6 +1,7 @@
 export * from "./icons/bars-filter";
 export * from "./icons/bolt";
 export * from "./icons/book-bookmark";
+export * from "./icons/book-2";
 export * from "./icons/bookmark";
 export * from "./icons/calendar";
 export * from "./icons/caret-right";
