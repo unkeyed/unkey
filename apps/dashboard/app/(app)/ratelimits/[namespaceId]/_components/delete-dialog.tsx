@@ -113,10 +113,12 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
             <div className="w-full flex flex-col gap-2 items-center justify-center">
               <Button
                 type="submit"
-                variant="destructive"
+                variant="primary"
+                color="danger"
+                size="xlg"
                 disabled={!isValid || deleteOverride.isLoading || isSubmitting}
                 loading={deleteOverride.isLoading || isSubmitting}
-                className="h-10 w-full rounded-lg"
+                className="w-full rounded-lg"
               >
                 Delete Override
               </Button>

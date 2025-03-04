@@ -46,7 +46,8 @@ const buttonVariants = cva(
         sm: "h-7",
         md: "h-8",
         lg: "h-9",
-        xlg: "h-12",
+        xlg: "h-10",
+        "2xlg": "h-12",
       },
     },
     defaultVariants: {
@@ -376,7 +377,7 @@ const Button: React.FC<ButtonProps> = ({
     >
       {loading && (
         <div
-          className="absolute inset-0 flex items-center justify-center w-full h-full transition-opacity duration-200"
+          className="absolute inset-0 flex  items-center justify-center w-full h-full transition-opacity duration-200"
           aria-hidden="true"
         >
           <AnimatedLoadingSpinner />

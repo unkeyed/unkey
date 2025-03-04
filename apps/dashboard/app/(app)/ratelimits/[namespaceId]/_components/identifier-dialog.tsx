@@ -219,9 +219,10 @@ export const IdentifierDialog = ({
               <Button
                 type="submit"
                 variant="primary"
+                size="xlg"
                 disabled={isLoading || isSubmitting}
                 loading={isLoading || isSubmitting}
-                className="h-10 w-full rounded-lg"
+                className="w-full rounded-lg"
               >
                 Override Identifier
               </Button>

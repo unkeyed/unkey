@@ -108,10 +108,12 @@ export const DeleteNamespaceDialog = ({ isModalOpen, onOpenChange, namespace }: 
             <div className="w-full flex flex-col gap-2 items-center justify-center">
               <Button
                 type="submit"
-                variant="destructive"
+                variant="primary"
+                color="danger"
+                size="xlg"
                 disabled={!isValid || deleteNamespace.isLoading || isSubmitting}
                 loading={deleteNamespace.isLoading || isSubmitting}
-                className="h-10 w-full rounded-lg"
+                className="w-full rounded-lg"
               >
                 Delete Namespace
               </Button>
