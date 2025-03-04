@@ -1,47 +1,128 @@
 package api
 
+import (
+	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/urfave/cli/v3"
+)
+
 type nodeConfig struct {
-	Platform  string `json:"platform,omitempty" description:"Cloud platform identifier (e.g., aws, gcp, hetzner)"`
-	Image     string `json:"image,omitempty" description:"Container image identifier including repository and tag"`
-	HttpPort  int    `json:"httpPort" default:"7070" description:"HTTP port for the API server to listen on"`
-	Schema    string `json:"$schema,omitempty" description:"JSON Schema URI for configuration validation"`
-	Region    string `json:"region,omitempty" description:"Geographic region identifier where this node is deployed"`
-	Heartbeat *struct {
-		URL      string `json:"url" minLength:"1" description:"Complete URL endpoint where heartbeat signals will be sent"`
-		Interval int    `json:"interval" min:"1" description:"Time between heartbeat signals in seconds"`
-	} `json:"heartbeat,omitempty" description:"Configuration for health check heartbeat mechanism"`
+	// Platform identifies the cloud platform where the node is running (e.g., aws, gcp, hetzner)
+	Platform string
 
-	Cluster *struct {
-		NodeID        string `json:"nodeId,omitempty" description:"Unique identifier for this node within the cluster"`
-		AdvertiseAddr struct {
-			Static         *string `json:"static,omitempty" description:"Static IP address or hostname for node discovery"`
-			AwsEcsMetadata *bool   `json:"awsEcsMetadata,omitempty" description:"Enable automatic address discovery using AWS ECS container metadata"`
-		} `json:"advertiseAddr" description:"Node address advertisement configuration for cluster communication"`
-		RpcPort    string `json:"rpcPort" default:"7071" description:"Port used for internal RPC communication between nodes"`
-		GossipPort string `json:"gossipPort" default:"7072" description:"Port used for cluster membership and failure detection"`
-		Discovery  *struct {
-			Static *struct {
-				Addrs []string `json:"addrs" minLength:"1" description:"List of seed node addresses for static cluster configuration"`
-			} `json:"static,omitempty" description:"Static cluster membership configuration"`
-			Redis *struct {
-				URL string `json:"url" minLength:"1" description:"Redis connection string for dynamic cluster discovery"`
-			} `json:"redis,omitempty" description:"Redis-based cluster discovery configuration"`
-		} `json:"discovery,omitempty" description:"Cluster node discovery mechanism configuration"`
-	} `json:"cluster,omitempty" description:"Distributed cluster configuration settings"`
+	// Image specifies the container image identifier including repository and tag
+	Image string
 
-	Logs *struct {
-		Color bool `json:"color" description:"Enable ANSI color codes in log output"`
-	} `json:"logs,omitempty"`
-	Clickhouse *struct {
-		Url string `json:"url" minLength:"1" description:"ClickHouse database connection string"`
-	} `json:"clickhouse,omitempty"`
+	// HttpPort defines the HTTP port for the API server to listen on (default: 7070)
+	HttpPort int
 
-	Database struct {
-		Primary         string `json:"primary" description:"Primary database connection string for read and write operations"`
-		ReadonlyReplica string `json:"readonlyReplica,omitempty" description:"Optional read-replica database connection string for read operations"`
-	} `json:"database"`
+	// Region identifies the geographic region where this node is deployed
+	Region string
 
-	Otel *struct {
-		OtlpEndpoint string `json:"otlpEndpoint" description:"OpenTelemetry collector endpoint for metrics, traces, and logs"`
-	} `json:"otel,omitempty" description:"OpenTelemetry observability configuration"`
+	// --- Cluster configuration ---
+
+	ClusterEnabled bool
+
+	// ClusterNodeID is the unique identifier for this node within the cluster
+	ClusterNodeID string
+
+	// --- Advertise Address configuration ---
+
+	// ClusterAdvertiseAddrStatic is a static IP address or hostname for node discovery
+	ClusterAdvertiseAddrStatic string
+
+	// ClusterAdvertiseAddrAwsEcsMetadata enables automatic address discovery using AWS ECS container metadata
+	ClusterAdvertiseAddrAwsEcsMetadata bool
+
+	// ClusterRpcPort is the port used for internal RPC communication between nodes (default: 7071)
+	ClusterRpcPort int
+
+	// ClusterGossipPort is the port used for cluster membership and failure detection (default: 7072)
+	ClusterGossipPort int
+
+	// --- Discovery configuration ---
+
+	// ClusterDiscoveryStaticAddrs lists seed node addresses for static cluster configuration
+	ClusterDiscoveryStaticAddrs []string
+
+	// ClusterDiscoveryRedisURL provides a Redis connection string for dynamic cluster discovery
+	ClusterDiscoveryRedisURL string
+
+	// --- Logs configuration ---
+
+	// LogsColor enables ANSI color codes in log output
+	LogsColor bool
+
+	// --- ClickHouse configuration ---
+
+	// ClickhouseURL is the ClickHouse database connection string
+	ClickhouseURL string
+
+	// --- Database configuration ---
+
+	// DatabasePrimary is the primary database connection string for read and write operations
+	DatabasePrimary string
+
+	// DatabaseReadonlyReplica is an optional read-replica database connection string for read operations
+	DatabaseReadonlyReplica string
+
+	// --- OpenTelemetry configuration ---
+
+	// OtelOtlpEndpoint specifies the OpenTelemetry collector endpoint for metrics, traces, and logs
+	OtelOtlpEndpoint string
+}
+
+func (c nodeConfig) Validate() error {
+
+	if c.ClusterEnabled {
+		err := assert.Multi(
+			assert.NotEmpty(c.ClusterNodeID),
+			assert.Greater(c.ClusterRpcPort, 0),
+			assert.Greater(c.ClusterGossipPort, 0),
+			assert.True(c.ClusterAdvertiseAddrStatic != "" || c.ClusterAdvertiseAddrAwsEcsMetadata),
+			assert.True(len(c.ClusterDiscoveryStaticAddrs) > 0 || c.ClusterDiscoveryRedisURL != ""),
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ConfigFromFlags creates a nodeConfig from CLI flags
+func configFromFlags(cmd *cli.Command) nodeConfig {
+
+	config := nodeConfig{
+		// Basic configuration
+		Platform: cmd.String("platform"),
+		Image:    cmd.String("image"),
+		HttpPort: int(cmd.Int("http-port")),
+		Region:   cmd.String("region"),
+
+		// Database configuration
+		DatabasePrimary:         cmd.String("database-primary"),
+		DatabaseReadonlyReplica: cmd.String("database-readonly-replica"),
+
+		// Logs
+		LogsColor: cmd.Bool("color"),
+
+		// ClickHouse
+		ClickhouseURL: cmd.String("clickhouse-url"),
+
+		// OpenTelemetry configuration
+		OtelOtlpEndpoint: cmd.String("otel-otlp-endpoint"),
+
+		// Cluster
+		ClusterEnabled:                     cmd.Bool("cluster"),
+		ClusterNodeID:                      cmd.String("cluster-node-id"),
+		ClusterRpcPort:                     int(cmd.Int("cluster-rpc-port")),
+		ClusterGossipPort:                  int(cmd.Int("cluster-gossip-port")),
+		ClusterAdvertiseAddrStatic:         cmd.String("cluster-advertise-addr-static"),
+		ClusterAdvertiseAddrAwsEcsMetadata: cmd.Bool("cluster-advertise-addr-aws-ecs-metadata"),
+		ClusterDiscoveryStaticAddrs:        cmd.StringSlice("cluster-discovery-static-addrs"),
+		ClusterDiscoveryRedisURL:           cmd.String("cluster-discovery-redis-url"),
+	}
+
+	return config
+
 }

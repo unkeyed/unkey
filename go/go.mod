@@ -24,6 +24,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/unkeyed/unkey/apps/agent v0.0.0-20250211105155-776bdbccce47
 	github.com/urfave/cli/v2 v2.27.5
+	github.com/urfave/cli/v3 v3.0.0-beta1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.59.0
 	go.opentelemetry.io/otel v1.34.0

@@ -43,9 +43,18 @@ import { insertApiRequest } from "./requests";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
+  getDailyVerificationTimeseries,
+  getFourHourlyVerificationTimeseries,
+  getHourlyVerificationTimeseries,
+  getMonthlyVerificationTimeseries,
+  getSixHourlyVerificationTimeseries,
+  getThreeDayVerificationTimeseries,
+  getTwelveHourlyVerificationTimeseries,
+  getTwoHourlyVerificationTimeseries,
   getVerificationsPerDay,
   getVerificationsPerHour,
   getVerificationsPerMonth,
+  getWeeklyVerificationTimeseries,
   insertVerification,
 } from "./verifications";
 
@@ -91,6 +100,17 @@ export class ClickHouse {
       perDay: getVerificationsPerDay(this.querier),
       perMonth: getVerificationsPerMonth(this.querier),
       latest: getLatestVerifications(this.querier),
+      timeseries: {
+        perHour: getHourlyVerificationTimeseries(this.querier),
+        per2Hours: getTwoHourlyVerificationTimeseries(this.querier),
+        per4Hours: getFourHourlyVerificationTimeseries(this.querier),
+        per6Hours: getSixHourlyVerificationTimeseries(this.querier),
+        per12Hours: getTwelveHourlyVerificationTimeseries(this.querier),
+        perDay: getDailyVerificationTimeseries(this.querier),
+        per3Days: getThreeDayVerificationTimeseries(this.querier),
+        perWeek: getWeeklyVerificationTimeseries(this.querier),
+        perMonth: getMonthlyVerificationTimeseries(this.querier),
+      },
     };
   }
   public get activeKeys() {

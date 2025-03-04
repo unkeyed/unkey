@@ -2,7 +2,7 @@
 
 import { Navbar } from "@/components/navigation/navbar";
 import { Nodes } from "@unkey/icons";
-import { CreateApiButton } from "./create-api-button";
+import { CreateApiButton } from "./_components/create-api-button";
 
 type NavigationProps = {
   isNewApi: boolean;
