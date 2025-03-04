@@ -206,16 +206,11 @@ const keyboardIconVariants = cva(
   },
 );
 
-type ButtonVariant = NonNullable<
-  VariantProps<typeof buttonVariants>["variant"]
->;
+type ButtonVariant = NonNullable<VariantProps<typeof buttonVariants>["variant"]>;
 
 type ButtonColor = NonNullable<VariantProps<typeof buttonVariants>["color"]>;
 
-const VARIANT_MAP: Record<
-  string,
-  { variant: ButtonVariant; color?: ButtonColor }
-> = {
+const VARIANT_MAP: Record<string, { variant: ButtonVariant; color?: ButtonColor }> = {
   default: { variant: "primary" },
   destructive: { variant: "primary", color: "danger" },
 };
@@ -257,8 +252,7 @@ const AnimatedLoadingSpinner = () => {
       <g>
         {segments.map((id, index) => {
           // Calculate opacity based on position relative to current index
-          const distance =
-            (segments.length + index - segmentIndex) % segments.length;
+          const distance = (segments.length + index - segmentIndex) % segments.length;
           const opacity = distance <= 4 ? 1 - distance * 0.2 : 0.1;
 
           return (
@@ -371,7 +365,7 @@ const Button: React.FC<ButtonProps> = ({
           color: mappedColor,
           size,
           className,
-        })
+        }),
       )}
       onClick={loading ? undefined : props.onClick}
       disabled={isVisuallyDisabled} // Only apply disabled attribute when explicitly disabled

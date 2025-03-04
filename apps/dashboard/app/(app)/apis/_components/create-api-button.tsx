@@ -64,7 +64,7 @@ export const CreateApiButton = ({
     <>
       <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
         <DialogTrigger asChild>
-          <Button variant="primary" {...rest}>
+          <Button variant="primary" {...rest} color="default">
             <Plus />
             Create New API
           </Button>

@@ -41,9 +41,7 @@ const formSchema = z.object({
   role: z.enum(["admin", "basic_member"]),
 });
 
-export const InviteButton = ({
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { organization } = useOrganization();
@@ -65,7 +63,7 @@ export const InviteButton = ({
       });
 
       toast.success(
-        `We have sent an email to ${values.email} with instructions on how to join your workspace`
+        `We have sent an email to ${values.email} with instructions on how to join your workspace`,
       );
       router.refresh();
     } catch (err) {
@@ -95,19 +93,13 @@ export const InviteButton = ({
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Invite someone to join {organization?.name}
-            </DialogTitle>
+            <DialogTitle>Invite someone to join {organization?.name}</DialogTitle>
             <DialogDescription>
-              They will receive an email with instructions on how to join your
-              workspace.
+              They will receive an email with instructions on how to join your workspace.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="flex flex-col gap-4"
-            >
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
               <FormField
                 control={form.control}
                 name="email"
@@ -131,10 +123,7 @@ export const InviteButton = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Role</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a verified email to display" />
@@ -146,8 +135,7 @@ export const InviteButton = ({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Admins may invite new members or remove them and change
-                      workspace settings.
+                      Admins may invite new members or remove them and change workspace settings.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
