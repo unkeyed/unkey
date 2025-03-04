@@ -128,8 +128,10 @@ export const SettingsClient = ({ namespace }: Props) => {
           >
             <div className="w-full flex justify-end">
               <Button
-                className="w-fit"
-                variant="destructive"
+                className="w-fit rounded-lg"
+                variant="outline"
+                color="danger"
+                size="lg"
                 onClick={() => setIsNamespaceNameDeleteModalOpen(true)}
               >
                 Delete Namespace...

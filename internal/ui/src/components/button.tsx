@@ -13,19 +13,19 @@ const buttonVariants = cva(
         destructive: "", // This is only required for mapping from destructive-> danger. We rely on this for type generation because CVA types are hard to mutate.
         primary: [
           "p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md font-medium border border-grayA-4",
-          "focus:ring-4 focus:ring-gray-7 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
+          "focus:ring-4 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
           "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 dark:text-black/85",
           "active:bg-accent-12/80",
         ],
         outline: [
           "p-2 text-gray-12 bg-transparent border border-grayA-6 hover:bg-grayA-2 rounded-md",
-          "focus:border-grayA-12 focus:ring-4 focus:ring-gray-7 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
+          "focus:border-grayA-12 focus:ring-4 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
           "disabled:border disabled:border-solid disabled:border-grayA-5 disabled:text-grayA-7",
           "active:bg-grayA-3",
         ],
         ghost: [
           "p-2 text-gray-12 bg-transparent hover:bg-grayA-4 rounded-md focus:hover:bg-transparent",
-          "focus:border-grayA-12 focus:ring-4 focus:ring-gray-7 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
+          "focus:border-grayA-12 focus:ring-4 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
           "disabled:border disabled:text-grayA-7",
           "active:bg-grayA-5",
         ],
@@ -62,7 +62,7 @@ const buttonVariants = cva(
         color: "danger",
         className: [
           "text-white bg-error-9 hover:bg-error-10 rounded-md font-medium focus:hover:bg-error-10 ",
-          "focus:border-error-11 focus:ring-4 focus:ring-error-7 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-error-11 focus:ring-4 focus:ring-error-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:bg-error-6 disabled:text-white/80",
           "active:bg-error-11",
         ],
@@ -72,7 +72,7 @@ const buttonVariants = cva(
         color: "danger",
         className: [
           "text-error-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
-          "focus:border-error-11 focus:ring-4 focus:ring-error-7 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-error-11 focus:ring-4 focus:ring-error-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:text-errorA-7 disabled:border-grayA-5",
           "active:bg-error-3",
         ],
@@ -82,7 +82,7 @@ const buttonVariants = cva(
         color: "danger",
         className: [
           "text-error-11 bg-transparent hover:bg-error-3 rounded-md",
-          "focus:border-error-11 focus:ring-4 focus:ring-error-7 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-error-11 focus:ring-4 focus:ring-error-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:text-error-7",
           "active:bg-error-4",
         ],
@@ -93,7 +93,7 @@ const buttonVariants = cva(
         color: "warning",
         className: [
           "text-white bg-warning-8 hover:bg-warning-8/90 rounded-md font-medium focus:hover:bg-warning-8/90",
-          "focus:border-warning-11 focus:ring-4 focus:ring-warning-7 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-warning-11 focus:ring-4 focus:ring-warning-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:bg-warning-7 disabled:text-white/80",
           "active:bg-warning-9",
         ],
@@ -103,7 +103,7 @@ const buttonVariants = cva(
         color: "warning",
         className: [
           "text-warningA-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
-          "focus:border-warning-11 focus:ring-4 focus:ring-warning-7 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-warning-11 focus:ring-4 focus:ring-warning-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:text-warningA-7 disabled:border-grayA-5",
           "active:bg-warning-3",
         ],
@@ -113,7 +113,7 @@ const buttonVariants = cva(
         color: "warning",
         className: [
           "text-warning-11 bg-transparent hover:bg-warning-3 rounded-md",
-          "focus:border-warning-11 focus:ring-4 focus:ring-warning-7 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-warning-11 focus:ring-4 focus:ring-warning-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:text-warning-7",
           "active:bg-warning-4",
         ],
@@ -124,7 +124,7 @@ const buttonVariants = cva(
         color: "success",
         className: [
           "text-white bg-success-9 hover:bg-success-10 rounded-md font-medium focus:hover:bg-success-10",
-          "focus:border-success-11 focus:ring-4 focus:ring-success-7 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-success-11 focus:ring-4 focus:ring-success-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:bg-success-7 disabled:text-white",
           "active:bg-success-11",
         ],
@@ -134,7 +134,7 @@ const buttonVariants = cva(
         color: "success",
         className: [
           "text-success-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
-          "focus:border-success-11 focus:ring-4 focus:ring-success-7 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-success-11 focus:ring-4 focus:ring-success-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:text-successA-7 disabled:border-grayA-5",
           "active:bg-success-3",
         ],
@@ -144,7 +144,7 @@ const buttonVariants = cva(
         color: "success",
         className: [
           "text-success-11 bg-transparent hover:bg-success-3 rounded-md",
-          "focus:border-success-11 focus:ring-4 focus:ring-success-7 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-success-11 focus:ring-4 focus:ring-success-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:text-success-7",
           "active:bg-success-4",
         ],
