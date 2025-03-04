@@ -51,9 +51,7 @@ export const ApiListCard = ({ api }: Props) => {
           <div className="flex items-center gap-2 min-w-0 max-w-[40%]">
             <Key className="text-accent-11 flex-shrink-0" />
             <div className="text-xs text-accent-9 truncate">
-              {keyCount > 0
-                ? `${formatNumber(keyCount)} ${keyCount === 1 ? "Key" : "Keys"}`
-                : "No data"}
+              {`${formatNumber(keyCount)} ${keyCount === 1 ? "Key" : "Keys"}`}
             </div>
           </div>
         </>
