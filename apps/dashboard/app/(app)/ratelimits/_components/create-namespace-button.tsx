@@ -1,6 +1,11 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -29,7 +34,7 @@ const formSchema = z.object({
     .max(50, "Name must not exceed 50 characters")
     .regex(
       /^[a-zA-Z0-9_\-\.]+$/,
-      "Only alphanumeric characters, underscores, hyphens, and periods are allowed",
+      "Only alphanumeric characters, underscores, hyphens, and periods are allowed"
     ),
 });
 
@@ -59,7 +64,11 @@ export const CreateNamespaceButton = ({
     <>
       <Dialog>
         <DialogTrigger asChild>
-          <Button className="flex-row items-center gap-1 font-semibold " {...rest}>
+          <Button
+            className="flex-row items-center gap-1 font-semibold "
+            {...rest}
+            color="default"
+          >
             <Plus size={18} className="w-4 h-4 " />
             Create new namespace
           </Button>

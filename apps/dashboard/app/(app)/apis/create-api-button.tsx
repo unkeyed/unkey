@@ -1,7 +1,12 @@
 "use client";
 import { revalidate } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
-import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -24,7 +29,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  name: z.string().trim().min(3, "Name must be at least 3 characters long").max(50),
+  name: z
+    .string()
+    .trim()
+    .min(3, "Name must be at least 3 characters long")
+    .max(50),
 });
 
 type Props = {
@@ -61,7 +70,7 @@ export const CreateApiButton = ({
     <>
       <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
         <DialogTrigger asChild>
-          <Button variant="primary" {...rest}>
+          <Button variant="primary" {...rest} color="default">
             <Plus />
             Create New API
           </Button>
@@ -83,7 +92,8 @@ export const CreateApiButton = ({
                       />
                     </FormControl>
                     <FormDescription>
-                      This is just a human readable name for you and not visible to anyone else
+                      This is just a human readable name for you and not visible
+                      to anyone else
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
