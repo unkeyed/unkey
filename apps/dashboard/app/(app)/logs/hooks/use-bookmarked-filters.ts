@@ -80,29 +80,32 @@ export const useBookmarkedFilters = () => {
 
       Object.entries(savedGroup.filters).forEach(([field, value]) => {
         if (["startTime", "endTime", "since"].includes(field)) {
-          reconstructedFilters.push({
-            id: crypto.randomUUID(),
-            field: field as LogsFilterField,
-            operator: "is",
-            value: value as number | string,
-          });
-        } else {
-          (value as FilterUrlValue[]).forEach((filter) => {
+          value &&
             reconstructedFilters.push({
               id: crypto.randomUUID(),
               field: field as LogsFilterField,
-              operator: filter.operator,
-              value: filter.value,
-              metadata:
-                field === "status"
-                  ? {
-                      colorClass: logsFilterFieldConfig.status.getColorClass?.(
-                        filter.value as number,
-                      ),
-                    }
-                  : undefined,
+              operator: "is",
+              value: value as number | string,
             });
-          });
+        } else {
+          value !== null &&
+            value !== undefined &&
+            (value as FilterUrlValue[]).forEach((filter) => {
+              reconstructedFilters.push({
+                id: crypto.randomUUID(),
+                field: field as LogsFilterField,
+                operator: filter.operator,
+                value: filter.value,
+                metadata:
+                  field === "status"
+                    ? {
+                        colorClass: logsFilterFieldConfig.status.getColorClass?.(
+                          filter.value as number,
+                        ),
+                      }
+                    : undefined,
+              });
+            });
         }
       });
 
