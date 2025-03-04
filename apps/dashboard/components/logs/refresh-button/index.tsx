@@ -2,7 +2,6 @@ import { KeyboardButton } from "@/components/keyboard-button";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { Refresh3 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 
 type RefreshButtonProps = {
@@ -50,18 +49,13 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
       onClick={handleRefresh}
       variant="ghost"
       title="Refresh data (Shortcut: R)"
-      className={cn(
-        "px-2 text-accent-12 [&_svg]:text-accent-9",
-        "relative overflow-hidden",
-        "transition-transform",
-        isLoading && "bg-gray-3",
-      )}
       disabled={!isEnabled || isLoading}
+      loading={isLoading}
+      className="flex items-center justify-center"
     >
-      {isLoading && <div className="absolute inset-0 bg-accent-6 animate-fill-left" />}
-      <Refresh3 className="size-4 relative z-10" />
+      <Refresh3 className="size-4" />
       <span className="font-medium text-[13px] relative z-10">Refresh</span>
-      <KeyboardButton shortcut="r" modifierKey="CTRL" />
+      <KeyboardButton shortcut="r" modifierKey="CTRL" className="pointer-events-none" />
     </Button>
   );
 };

@@ -1,13 +1,7 @@
 "use client";
 
+import { DialogContainer } from "@/components/dialog-container";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -140,99 +134,91 @@ export const IdentifierDialog = ({
   };
 
   return (
-    <Dialog open={isModalOpen} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-4 rounded-lg p-0 gap-0"
-        onOpenAutoFocus={(e) => {
-          // Prevent auto-focus behavior
-          e.preventDefault();
-        }}
-      >
-        <DialogHeader className="border-b border-gray-4">
-          <DialogTitle className="px-6 py-4 text-gray-12 font-medium text-base">
+    <DialogContainer
+      isOpen={isModalOpen}
+      onOpenChange={onOpenChange}
+      title="Override Identifier"
+      footer={
+        <div className="w-full flex flex-col gap-2 items-center justify-center">
+          <Button
+            type="submit"
+            form="identifier-form" // Connect to form ID
+            variant="primary"
+            size="xlg"
+            disabled={isLoading || isSubmitting}
+            loading={isLoading || isSubmitting}
+            className="w-full rounded-lg"
+          >
             Override Identifier
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmitForm)}>
-          <div className="flex flex-col gap-4 p-5 pt-4 bg-accent-2">
-            <FormInput
-              label="Identifier"
-              description="The identifier you use when ratelimiting."
-              error={errors.identifier?.message}
-              {...register("identifier")}
-              readOnly
-              disabled
-            />
-
-            <FormInput
-              label="Limit"
-              description="How many requests can be made within a given window."
-              error={errors.limit?.message}
-              {...register("limit")}
-              type="number"
-              placeholder="Enter amount (3, 7, 10, 12…)"
-            />
-
-            <FormInput
-              label="Duration"
-              description="Duration of each window in milliseconds."
-              error={errors.duration?.message}
-              {...register("duration")}
-              type="number"
-              placeholder="Enter milliseconds (60000, 100000, 1200000…)"
-              rightIcon={
-                <Badge className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-accent-4 text-accent-11 hover:bg-accent-6 ">
-                  MS
-                </Badge>
-              }
-            />
-
-            <Controller
-              control={control}
-              name="async"
-              render={({ field }) => (
-                <div className="space-y-1">
-                  <div className="text-gray-11 text-[13px] flex items-center">Override Type</div>
-
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="flex h-8 w-full items-center justify-between rounded-md bg-transparent px-3 py-2 text-[13px] border border-gray-4 focus:border focus:border-gray-4 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="border-none">
-                      <SelectItem value="unset">Don't override</SelectItem>
-                      <SelectItem value="async">Async</SelectItem>
-                      <SelectItem value="sync">Sync</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <output className="text-gray-9 flex gap-2 items-center">
-                    <CircleInfo size="md-regular" aria-hidden="true" />
-                    <span>Override the mode, async is faster but slightly less accurate.</span>
-                  </output>
-                </div>
-              )}
-            />
+          </Button>
+          <div className="text-gray-9 text-xs">
+            Changes are propagated globally within 60 seconds
           </div>
+        </div>
+      }
+    >
+      <form
+        id="identifier-form"
+        onSubmit={handleSubmit(onSubmitForm)}
+        className="flex flex-col gap-4"
+      >
+        <FormInput
+          label="Identifier"
+          description="The identifier you use when ratelimiting."
+          error={errors.identifier?.message}
+          {...register("identifier")}
+          readOnly
+          disabled
+        />
 
-          <DialogFooter className="p-6 border-t border-gray-4">
-            <div className="w-full flex flex-col gap-2 items-center justify-center">
-              <Button
-                type="submit"
-                variant="primary"
-                size="xlg"
-                disabled={isLoading || isSubmitting}
-                loading={isLoading || isSubmitting}
-                className="w-full rounded-lg"
-              >
-                Override Identifier
-              </Button>
-              <div className="text-gray-9 text-xs">
-                Changes are propagated globally within 60 seconds
-              </div>
+        <FormInput
+          label="Limit"
+          description="How many requests can be made within a given window."
+          error={errors.limit?.message}
+          {...register("limit")}
+          type="number"
+          placeholder="Enter amount (3, 7, 10, 12…)"
+        />
+
+        <FormInput
+          label="Duration"
+          description="Duration of each window in milliseconds."
+          error={errors.duration?.message}
+          {...register("duration")}
+          type="number"
+          placeholder="Enter milliseconds (60000, 100000, 1200000…)"
+          rightIcon={
+            <Badge className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-accent-4 text-accent-11 hover:bg-accent-6 ">
+              MS
+            </Badge>
+          }
+        />
+
+        <Controller
+          control={control}
+          name="async"
+          render={({ field }) => (
+            <div className="space-y-1.5">
+              <div className="text-gray-11 text-[13px] flex items-center">Override Type</div>
+
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger className="flex h-8 w-full items-center justify-between rounded-md bg-transparent px-3 py-2 text-[13px] border border-gray-4 focus:border focus:border-gray-4 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-none">
+                  <SelectItem value="unset">Don't override</SelectItem>
+                  <SelectItem value="async">Async</SelectItem>
+                  <SelectItem value="sync">Sync</SelectItem>
+                </SelectContent>
+              </Select>
+              <output className="text-gray-9 flex gap-2 items-center text-[13px]">
+                <CircleInfo size="md-regular" aria-hidden="true" />
+                <span>Override the mode, async is faster but slightly less accurate.</span>
+              </output>
             </div>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          )}
+        />
+      </form>
+    </DialogContainer>
   );
 };

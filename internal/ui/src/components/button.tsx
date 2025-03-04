@@ -14,7 +14,7 @@ const buttonVariants = cva(
         primary: [
           "p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md font-medium border border-grayA-4",
           "focus:ring-4 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
-          "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 dark:text-black/85",
+          "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 disabled:dark:text-white/85",
           "active:bg-accent-12/80",
         ],
         outline: [
@@ -26,7 +26,7 @@ const buttonVariants = cva(
         ghost: [
           "p-2 text-gray-12 bg-transparent hover:bg-grayA-4 rounded-md focus:hover:bg-transparent",
           "focus:border-grayA-12 focus:ring-4 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
-          "disabled:border disabled:text-grayA-7",
+          "disabled:border disabled:border-grayA-4 disabled:text-grayA-7",
           "active:bg-grayA-5",
         ],
       },
@@ -61,9 +61,9 @@ const buttonVariants = cva(
         variant: "primary",
         color: "danger",
         className: [
-          "text-white bg-error-9 hover:bg-error-10 rounded-md font-medium focus:hover:bg-error-10 ",
+          "dark:text-white/95 bg-error-9 hover:bg-error-10 rounded-md font-medium focus:hover:bg-error-10 ",
           "focus:border-error-11 focus:ring-4 focus:ring-error-6 focus-visible:outline-none focus:ring-offset-0",
-          "disabled:bg-error-6 disabled:text-white/80",
+          "disabled:bg-error-6 disabled:text-white/80  disabled:dark:text-white/80",
           "active:bg-error-11",
         ],
       },
@@ -92,9 +92,9 @@ const buttonVariants = cva(
         variant: "primary",
         color: "warning",
         className: [
-          "text-white bg-warning-8 hover:bg-warning-8/90 rounded-md font-medium focus:hover:bg-warning-8/90",
+          "dark:text-white/95 bg-warning-8 hover:bg-warning-8/90 rounded-md font-medium focus:hover:bg-warning-8/90",
           "focus:border-warning-11 focus:ring-4 focus:ring-warning-6 focus-visible:outline-none focus:ring-offset-0",
-          "disabled:bg-warning-7 disabled:text-white/80",
+          "disabled:bg-warning-7 disabled:text-white/80  disabled:dark:text-white/80",
           "active:bg-warning-9",
         ],
       },
@@ -123,9 +123,9 @@ const buttonVariants = cva(
         variant: "primary",
         color: "success",
         className: [
-          "text-white bg-success-9 hover:bg-success-10 rounded-md font-medium focus:hover:bg-success-10",
+          "dark:text-white/95 bg-success-9 hover:bg-success-10 rounded-md font-medium focus:hover:bg-success-10",
           "focus:border-success-11 focus:ring-4 focus:ring-success-6 focus-visible:outline-none focus:ring-offset-0",
-          "disabled:bg-success-7 disabled:text-white",
+          "disabled:bg-success-7 disabled:text-white/80  disabled:dark:text-white/80",
           "active:bg-success-11",
         ],
       },
