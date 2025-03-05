@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/navbar";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Gauge } from "@unkey/icons";
 import { redirect } from "next/navigation";
@@ -9,10 +9,9 @@ import { RatelimitClient } from "./_components/ratelimit-client";
 export const dynamic = "force-dynamic";
 
 export default async function RatelimitOverviewPage() {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       ratelimitNamespaces: {
         where: (table, { isNull }) => isNull(table.deletedAtM),

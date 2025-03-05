@@ -76,17 +76,13 @@
   * {
     @apply border-border;
   }
+
   html {
     @apply scroll-smooth;
   }
+
   body {
     @apply bg-background text-content;
-  }
-}
-
-@-moz-document url-prefix() {
-  #root-key-alert-title {
-    padding-left: 1.25rem;
   }
 }
 
@@ -110,6 +106,7 @@ code .line::before {
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }

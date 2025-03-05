@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
@@ -26,7 +26,7 @@ export default async function ApiPage(props: {
     interval?: Interval;
   };
 }) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const api = await db.query.apis.findFirst({
     where: (table, { eq, and, isNull }) =>
@@ -35,7 +35,7 @@ export default async function ApiPage(props: {
       workspace: true,
     },
   });
-  if (!api || api.workspace.tenantId !== tenantId) {
+  if (!api || api.workspace.orgId !== orgId) {
     return redirect("/new");
   }
 

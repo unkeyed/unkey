@@ -5,7 +5,7 @@ import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { Nodes } from "@unkey/icons";
 import { ArrowLeft } from "lucide-react";
@@ -29,16 +29,16 @@ type Props = {
 };
 
 export default async function SettingsPage(props: Props) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const key = await db.query.keys.findFirst({
     where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAtM)),
     with: {
-      workspace: true,
+      workspace: { columns: { orgId: true } },
       keyAuth: { with: { api: true } },
     },
   });
-  if (!key || key.workspace.tenantId !== tenantId) {
+  if (!key || key.workspace.orgId !== orgId) {
     return notFound();
   }
 

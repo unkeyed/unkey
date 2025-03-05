@@ -1,18 +1,17 @@
 "use server";
 
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 
 export const getWorkspaceDetails = async (namespaceId: string, fallbackUrl = "/ratelimits") => {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     columns: {
       name: true,
-      tenantId: true,
+      orgId: true,
     },
     with: {
       ratelimitNamespaces: {
@@ -26,7 +25,7 @@ export const getWorkspaceDetails = async (namespaceId: string, fallbackUrl = "/r
     },
   });
 
-  if (!workspace || workspace.tenantId !== tenantId) {
+  if (!workspace || workspace.orgId !== orgId) {
     // Will take users to onboarding
     return redirect("/new");
   }
@@ -44,14 +43,13 @@ export const getWorkspaceDetailsWithOverrides = async (
   namespaceId: string,
   fallbackUrl = "/ratelimits",
 ) => {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     columns: {
       name: true,
-      tenantId: true,
+      orgId: true,
       features: true,
     },
     with: {
@@ -78,7 +76,7 @@ export const getWorkspaceDetailsWithOverrides = async (
     },
   });
 
-  if (!workspace || workspace.tenantId !== tenantId) {
+  if (!workspace || workspace.orgId !== orgId) {
     // Will take users to onboarding
     return redirect("/new");
   }

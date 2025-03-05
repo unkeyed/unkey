@@ -183,5 +183,5 @@ async function createAndTestKeys(
       return checks;
     }),
   );
-  return results.flatMap((_) => _);
+  return results.flat();
 }

@@ -15,14 +15,11 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 
 const formSchema = z.object({
-  workspaceId: z.string(),
   name: z.string().trim().min(3),
 });
 
 type Props = {
   workspace: {
-    id: string;
-    tenantId: string;
     name: string;
   };
 };
@@ -36,7 +33,6 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     shouldFocusError: true,
     delayError: 100,
     defaultValues: {
-      workspaceId: workspace.id,
       name: workspace.name,
     },
   });

@@ -27,7 +27,7 @@ export const updateKeyEnabled = t.procedure
             "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
         });
       });
-    if (!key || key.workspace.tenantId !== ctx.tenant.id) {
+    if (!key || key.workspace.orgId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:

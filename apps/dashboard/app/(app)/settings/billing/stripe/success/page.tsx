@@ -1,6 +1,6 @@
 import { Code } from "@/components/ui/code";
 import { insertAuditLogs } from "@/lib/audit";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -23,14 +23,13 @@ type Props = {
 export default async function StripeSuccess(props: Props) {
   const { session_id, new_plan } = props.searchParams;
   const user = await auth.getCurrentUser();
-  const tenantId = await getTenantId();
-  if (!tenantId || !user) {
+  const orgId = await getOrgId();
+  if (!orgId || !user) {
     return redirect("/auth/sign-in");
   }
 
   const ws = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       auditLogBuckets: {
         where: (table, { eq }) => eq(table.name, "unkey_mutations"),
@@ -127,7 +126,7 @@ export default async function StripeSuccess(props: Props) {
 
   if (isUpgradingPlan) {
     PostHogClient.capture({
-      distinctId: tenantId,
+      distinctId: orgId,
       event: "plan_changed",
       properties: { plan: new_plan, workspace: ws.id },
     });

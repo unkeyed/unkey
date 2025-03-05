@@ -48,7 +48,7 @@ export function unkey(config: UnkeyConfig): MiddlewareHandler {
   return async (c, next) => {
     const key = config.getKey
       ? config.getKey(c)
-      : c.req.header("Authorization")?.replace("Bearer ", "") ?? null;
+      : (c.req.header("Authorization")?.replace("Bearer ", "") ?? null);
     if (!key) {
       return c.json({ error: "unauthorized" }, { status: 401 });
     }

@@ -253,7 +253,8 @@ export abstract class Harness {
     const unkeyWorkspace: Workspace = {
       id: newId("test"),
       name: "unkey",
-      tenantId: newId("test"),
+      clerkTenantId: newId("test"),
+      orgId: newId("test"),
       plan: "enterprise",
       features: {},
       betaFeatures: {},
@@ -273,7 +274,8 @@ export abstract class Harness {
     const userWorkspace: Workspace = {
       id: newId("test"),
       name: "user",
-      tenantId: newId("test"),
+      clerkTenantId: newId("test"),
+      orgId: newId("test"),
       plan: "pro",
       features: {},
       betaFeatures: {},

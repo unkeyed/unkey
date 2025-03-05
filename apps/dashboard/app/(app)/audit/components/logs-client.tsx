@@ -16,12 +16,10 @@ export type WorkspaceProps = {
     id: string;
     name: string;
   }[];
-  members:
-    | {
-        label: string;
-        value: string;
-      }[]
-    | null;
+  members: {
+    name: string;
+    id: string;
+  }[];
 };
 
 export const LogsClient = (props: WorkspaceProps) => {

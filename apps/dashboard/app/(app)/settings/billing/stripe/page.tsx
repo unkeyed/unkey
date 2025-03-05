@@ -1,4 +1,4 @@
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -18,11 +18,10 @@ type Props = {
 export default async function StripeRedirect(props: Props) {
   const { new_plan } = props.searchParams;
   const user = await auth.getCurrentUser();
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const ws = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
   if (!ws) {
     return redirect("/new");

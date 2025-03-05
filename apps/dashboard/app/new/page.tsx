@@ -11,8 +11,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CreateApi } from "./create-api";
 import { CreateRatelimit } from "./create-ratelimit";
-import { CreateWorkspace } from "./create-workspace";
 import { RefreshHandler } from "./create-tenant/refresh-handler";
+import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
 
 export const dynamic = "force-dynamic";
@@ -217,8 +217,7 @@ export default async function (props: Props) {
     // do they already have a workspace?
     // they might if they have been invited to one
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, orgId), isNull(table.deletedAtM)),
+      where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     });
 
     // if no initial workspace exists, we create one
@@ -227,7 +226,8 @@ export default async function (props: Props) {
       await db.transaction(async (tx) => {
         await tx.insert(schema.workspaces).values({
           id: workspaceId,
-          tenantId: orgId,
+          clerkTenantId: orgId,
+          orgId: orgId,
           name: "Personal",
           plan: "free",
           stripeCustomerId: null,
@@ -238,36 +238,36 @@ export default async function (props: Props) {
           createdAtM: Date.now(),
         });
 
-          const bucketId = newId("auditLogBucket");
-          await tx.insert(schema.auditLogBucket).values({
-            id: bucketId,
-            workspaceId,
-            name: "unkey_mutations",
-            retentionDays: 30,
-            deleteProtection: true,
-          });
-  
-          await insertAuditLogs(tx, bucketId, {
-            workspaceId: workspaceId,
-            event: "workspace.create",
-            actor: {
-              type: "user",
-              id: userId,
-            },
-            description: `Created ${workspaceId}`,
-            resources: [
-              {
-                type: "workspace",
-                id: workspaceId,
-              },
-            ],
-
-            context: {
-              userAgent: headers().get("user-agent") ?? undefined,
-              location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
-            },
-          });
+        const bucketId = newId("auditLogBucket");
+        await tx.insert(schema.auditLogBucket).values({
+          id: bucketId,
+          workspaceId,
+          name: "unkey_mutations",
+          retentionDays: 30,
+          deleteProtection: true,
         });
+
+        await insertAuditLogs(tx, bucketId, {
+          workspaceId: workspaceId,
+          event: "workspace.create",
+          actor: {
+            type: "user",
+            id: userId,
+          },
+          description: `Created ${workspaceId}`,
+          resources: [
+            {
+              type: "workspace",
+              id: workspaceId,
+            },
+          ],
+
+          context: {
+            userAgent: headers().get("user-agent") ?? undefined,
+            location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+          },
+        });
+      });
 
       return redirect(`/new?workspaceId=${workspaceId}`);
     }

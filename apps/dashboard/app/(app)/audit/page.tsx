@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/navbar";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { InputSearch } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { getWorkspace } from "./actions";
@@ -8,8 +8,8 @@ import { LogsClient } from "./components/logs-client";
 export const dynamic = "force-dynamic";
 
 export default async function AuditPage() {
-  const tenantId = await getTenantId();
-  const { workspace, members } = await getWorkspace(tenantId);
+  const orgId = await getOrgId();
+  const { workspace, members, rootKeys } = await getWorkspace(orgId);
 
   return (
     <div>
@@ -19,11 +19,7 @@ export default async function AuditPage() {
         </Navbar.Breadcrumbs>
       </Navbar>
       {workspace.auditLogBuckets.length > 0 ? (
-        <LogsClient
-          rootKeys={workspace.keys}
-          buckets={workspace.auditLogBuckets}
-          members={members}
-        />
+        <LogsClient rootKeys={rootKeys} buckets={workspace.auditLogBuckets} members={members} />
       ) : (
         <Empty>
           <Empty.Icon />

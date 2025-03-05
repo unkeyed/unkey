@@ -26,7 +26,17 @@ export const workspaces = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     // Coming from our auth provider clerk
     // This can be either a user_xxx or org_xxx id
-    tenantId: varchar("tenant_id", { length: 256 }).notNull(),
+    //
+    // After we're done migrating from clerk, we can remove this column
+    //
+    // I prefixed it with `clerk` to make it easier to understand
+    clerkTenantId: varchar("tenant_id", { length: 256 }).notNull(),
+
+    // The organisation id from WorkOS.
+    //
+    // TODO: make this not nullable once we have migrated everyone over.
+    orgId: varchar("org_id", { length: 256 }),
+
     name: varchar("name", { length: 256 }).notNull(),
 
     // different plans, this should only be used for visualisations in the ui
@@ -106,7 +116,7 @@ export const workspaces = mysqlTable(
     ...lifecycleDatesMigration,
   },
   (table) => ({
-    tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
+    clerkTenantIdIdx: uniqueIndex("tenant_id_idx").on(table.clerkTenantId),
   }),
 );
 

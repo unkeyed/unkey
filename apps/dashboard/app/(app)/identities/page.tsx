@@ -2,7 +2,7 @@ import { Navbar } from "@/components/navbar";
 import { OptIn } from "@/components/opt-in";
 import { PageContent } from "@/components/page-content";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Fingerprint } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
@@ -27,9 +27,9 @@ export default async function Page(props: Props) {
   const search = parseAsString.withDefault("").parse(props.searchParams.search ?? "");
   const limit = parseAsInteger.withDefault(10).parse(props.searchParams.limit ?? "10");
 
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.tenantId, tenantId),
+    where: (table, { eq }) => eq(table.orgId, orgId),
   });
 
   if (!workspace) {
@@ -70,13 +70,13 @@ export default async function Page(props: Props) {
 }
 
 const Results: React.FC<{ search: string; limit: number }> = async (props) => {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const getData = cache(
     async () =>
       db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
         with: {
           identities: {
             where: (table, { or, like }) =>
@@ -100,7 +100,7 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
           },
         },
       }),
-    [`${tenantId}-${props.search}-${props.limit}`],
+    [`${orgId}-${props.search}-${props.limit}`],
   );
 
   const workspace = await getData();

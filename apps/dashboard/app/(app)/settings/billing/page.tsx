@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -28,11 +28,10 @@ import { UserPaymentMethod } from "./user-payment-method";
 export const revalidate = 0;
 
 export default async function BillingPage() {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
 
   if (!workspace) {
@@ -354,7 +353,7 @@ const MeteredLineItem: React.FC<{
   forecast?: boolean;
 }> = (props) => {
   const firstTier = props.tiers.at(0);
-  const included = firstTier?.centsPerUnit === null ? firstTier.lastUnit ?? 0 : 0;
+  const included = firstTier?.centsPerUnit === null ? (firstTier.lastUnit ?? 0) : 0;
 
   const { val: price, err } = calculateTieredPrices(props.tiers, props.used);
   if (err) {
