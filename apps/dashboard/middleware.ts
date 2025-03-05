@@ -14,7 +14,6 @@ export default async function (req: NextRequest, _evt: NextFetchEvent) {
   const isEnabled = () => AUTH_PROVIDER === "workos";
 
   try {
-    console.debug("Processing middleware for URL:", req.url);
 
     res = await auth.createMiddleware({
       enabled: isEnabled(),
