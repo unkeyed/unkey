@@ -16,6 +16,20 @@ import { type IconProps, sizeMap } from "../props";
 export const CCheck: React.FC<IconProps> = ({ size, filled, ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
+    <svg width={pixelSize} height={pixelSize} {...props}>
+      <path
+        d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"
+        fill={filled ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeLinecap="square"
+        strokeMiterlimit="10"
+        strokeWidth={strokeWidth}
+      />
+      {/* other svg elements */}
+    </svg>
+  );
+};
+  return (
     <svg
       {...props}
       height={pixelSize}
