@@ -54,34 +54,32 @@ func New() (*Validator, error) {
 func (v *Validator) Validate(r *http.Request) (api.BadRequestError, bool) {
 
 	valid, errors := v.validator.ValidateHttpRequest(r)
-	if !valid {
-		valErr := api.BadRequestError{
-			Title:     "Bad Request",
-			Detail:    "One or more fields failed validation",
-			Instance:  nil,
-			Status:    http.StatusBadRequest,
-			RequestId: ctxutil.GetRequestId(r.Context()),
-			Type:      "https://unkey.com/docs/errors/bad_request",
-			Errors:    []api.ValidationError{},
-		}
-		if len(errors) >= 1 {
-
-			err := errors[0]
-
-			for _, e := range err.SchemaValidationErrors {
-
-				valErr.Errors = append(valErr.Errors, api.ValidationError{
-					Message:  e.Reason,
-					Location: e.AbsoluteLocation,
-					Fix:      &err.HowToFix,
-				})
-			}
-
-		}
-		return valErr, false
+	if valid {
+		// nolint:exhaustruct
+		return api.BadRequestError{}, true
+	}
+	valErr := api.BadRequestError{
+		Title:     "Bad Request",
+		Detail:    "One or more fields failed validation",
+		Instance:  nil,
+		Status:    http.StatusBadRequest,
+		RequestId: ctxutil.GetRequestId(r.Context()),
+		Type:      "https://unkey.com/docs/errors/bad_request",
+		Errors:    []api.ValidationError{},
 	}
 
-	// nolint:exhaustruct
-	return api.BadRequestError{}, true
+	for _, err := range errors {
+
+		for _, e := range err.SchemaValidationErrors {
+
+			valErr.Errors = append(valErr.Errors, api.ValidationError{
+				Message:  e.Reason,
+				Location: e.AbsoluteLocation,
+				Fix:      &err.HowToFix,
+			})
+		}
+
+	}
+	return valErr, false
 
 }

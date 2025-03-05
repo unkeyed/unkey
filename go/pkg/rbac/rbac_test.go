@@ -12,45 +12,45 @@ func TestRBAC_EvaluatePermissions(t *testing.T) {
 		wantValid   bool
 	}{
 		{
-			name:        "Simple role check (Pass)",
-			query:       P("admin"),
-			permissions: []string{"admin", "user", "guest"},
+			name:        "Simple permission check (Pass)",
+			query:       T(Tuple{ResourceType: Api, ResourceID: "api1", Action: ReadAPI}),
+			permissions: []string{"api.api1.read_api", "api.api1.update_api", "rbac.role1.read_role"},
 			wantValid:   true,
 		},
 		{
-			name:        "Simple role check (Fail)",
-			query:       P("developer"),
-			permissions: []string{"admin", "user", "guest"},
+			name:        "Simple permission check (Fail)",
+			query:       T(Tuple{ResourceType: Api, ResourceID: "api2", Action: ReadAPI}),
+			permissions: []string{"api.api1.read_api", "api.api1.update_api", "rbac.role1.read_role"},
 			wantValid:   false,
 		},
 		{
 			name: "AND of two permissions (Pass)",
 			query: And(
-				P("admin"),
-				P("user"),
+				T(Tuple{ResourceType: Api, ResourceID: "api1", Action: ReadAPI}),
+				T(Tuple{ResourceType: Api, ResourceID: "api1", Action: UpdateAPI}),
 			),
-			permissions: []string{"admin", "user", "guest"},
+			permissions: []string{"api.api1.read_api", "api.api1.update_api", "rbac.role1.read_role"},
 			wantValid:   true,
 		},
 		{
 			name: "OR of two permissions (Pass)",
 			query: Or(
-				P("admin"),
-				P("developer"),
+				T(Tuple{ResourceType: Api, ResourceID: "api1", Action: ReadAPI}),
+				T(Tuple{ResourceType: Api, ResourceID: "api2", Action: ReadAPI}),
 			),
-			permissions: []string{"admin", "user", "guest"},
+			permissions: []string{"api.api1.read_api", "api.api1.update_api", "rbac.role1.read_role"},
 			wantValid:   true,
 		},
 		{
 			name: "Complex combination (Pass)",
 			query: And(
-				P("admin"),
+				T(Tuple{ResourceType: Api, ResourceID: "api1", Action: ReadAPI}),
 				Or(
-					P("user"),
-					P("guest"),
+					T(Tuple{ResourceType: Api, ResourceID: "api1", Action: UpdateAPI}),
+					T(Tuple{ResourceType: Rbac, ResourceID: "role1", Action: ReadRole}),
 				),
 			),
-			permissions: []string{"admin", "user", "guest"},
+			permissions: []string{"api.api1.read_api", "api.api1.update_api", "rbac.role1.read_role"},
 			wantValid:   true,
 		},
 	}

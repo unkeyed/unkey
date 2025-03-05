@@ -3,7 +3,6 @@ package zen
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -12,6 +11,12 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/logging"
 )
 
+// Server manages HTTP server configuration, route registration, and lifecycle.
+// It provides connection pooling for session objects to reduce memory churn
+// during request handling.
+//
+// Server instances should be created with the New function and can be safely
+// used by multiple goroutines.
 type Server struct {
 	mu sync.Mutex
 
@@ -23,11 +28,31 @@ type Server struct {
 	sessions sync.Pool
 }
 
+// Config configures the behavior of a Server instance.
 type Config struct {
+	// NodeID uniquely identifies this server instance, useful for logging and tracing.
 	NodeID string
+
+	// Logger provides structured logging for the server. If nil, logging is disabled.
 	Logger logging.Logger
 }
 
+// New creates a new server with the provided configuration.
+// It initializes the HTTP server and session pool with default timeouts.
+//
+// The HTTP server is configured with reasonable defaults for production use:
+// - ReadTimeout: 10 seconds
+// - WriteTimeout: 20 seconds
+//
+// Example:
+//
+//	server, err := zen.New(zen.Config{
+//	    NodeID: "api-server-1",
+//	    Logger: logger,
+//	})
+//	if err != nil {
+//	    log.Fatalf("failed to initialize server: %v", err)
+//	}
 func New(config Config) (*Server, error) {
 	mux := http.NewServeMux()
 	srv := &http.Server{
@@ -92,17 +117,27 @@ func (s *Server) returnSession(session any) {
 }
 
 // Mux returns the underlying http.ServeMux.
-//
-// Usually you don't need to use this, but it's here for tests.
+// This is primarily intended for testing and advanced usage scenarios.
 func (s *Server) Mux() *http.ServeMux {
 	return s.mux
 }
 
-// Calling this function multiple times will have no effect.
+// Listen starts the HTTP server on the specified address.
+// This method blocks until the server shuts down or encounters an error.
+// Once listening, the server will not start again if Listen is called multiple times.
+//
+// Example:
+//
+//	// Start server in a goroutine to allow for graceful shutdown
+//	go func() {
+//	    if err := server.Listen(ctx, ":8080"); err != nil {
+//	        log.Printf("server stopped: %v", err)
+//	    }
+//	}()
 func (s *Server) Listen(ctx context.Context, addr string) error {
 	s.mu.Lock()
 	if s.isListening {
-		s.logger.Warn(ctx, "already listening")
+		s.logger.Warn("already listening")
 		s.mu.Unlock()
 		return nil
 	}
@@ -111,7 +146,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 
 	s.srv.Addr = addr
 
-	s.logger.Info(ctx, "listening", slog.String("addr", addr))
+	s.logger.Info("listening", "addr", addr)
 
 	err := s.srv.ListenAndServe()
 	if err != nil {
@@ -120,8 +155,23 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 	return nil
 }
 
+// RegisterRoute adds an HTTP route to the server with the specified middleware chain.
+// Routes are matched by both method and path.
+//
+// Middleware is applied in the order provided, with each middleware wrapping the next.
+// The innermost handler (last to execute) is the route's handler.
+//
+// Example:
+//
+//	server.RegisterRoute(
+//	    []zen.Middleware{zen.WithLogging(logger), zen.WithErrorHandling()},
+//	    zen.NewRoute("GET", "/health", healthCheckHandler),
+//	)
 func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
-	s.logger.Info(context.Background(), fmt.Sprintf("registering %s %s", route.Method(), route.Path()))
+	s.logger.Info("registering",
+		"method", route.Method(),
+		"path", route.Path(),
+	)
 	s.mux.HandleFunc(
 		fmt.Sprintf("%s %s", route.Method(), route.Path()),
 		func(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +186,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 
 			err := sess.init(w, r)
 			if err != nil {
-				s.logger.Error(context.Background(), "failed to init session")
+				s.logger.Error("failed to init session")
 				return
 			}
 
@@ -157,6 +207,17 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 		})
 }
 
+// Shutdown gracefully stops the HTTP server, allowing in-flight requests
+// to complete before returning.
+//
+// Example:
+//
+//	// Handle shutdown signal
+//	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+//	defer cancel()
+//	if err := server.Shutdown(ctx); err != nil {
+//	    log.Printf("server shutdown error: %v", err)
+//	}
 func (s *Server) Shutdown() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
