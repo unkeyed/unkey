@@ -90,6 +90,13 @@ export const router = t.router({
       queryVerificationTimeseries,
     }),
     overview: t.router({
+      logs: t.router({
+        query: queryRatelimitOverviewLogs,
+        // TODO: Will be used as a barchart
+        // queryUsageTimeseries: null,
+        // TODO: Will be used as line chart
+        // queryActiveKeysTimeseries: () => null,
+      }),
       queryApisOverview,
       search: overviewApiSearch,
     }),
