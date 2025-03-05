@@ -68,14 +68,20 @@ export const ListGroup = ({
     if (isSaved) {
       setTooltipMessage(tooltopMessageOptions.removed);
       toast.success(
-        <QueriesToast message={tooltopMessageOptions.removed}>
+        <QueriesToast
+          message={tooltopMessageOptions.removed}
+          undoBookmarked={() => changeBookmark(filterList.id)}
+        >
           <Check className="size-[18px] text-success-9" />
         </QueriesToast>,
       );
     } else {
       setTooltipMessage(tooltopMessageOptions.saved);
       toast.success(
-        <QueriesToast message={tooltopMessageOptions.saved}>
+        <QueriesToast
+          message={tooltopMessageOptions.saved}
+          undoBookmarked={() => changeBookmark(filterList.id)}
+        >
           <Check className="size-[18px] text-success-9" />
         </QueriesToast>,
       );
@@ -108,7 +114,7 @@ export const ListGroup = ({
           className={cn("flex flex-col w-11/12", `tabIndex-${index}`)}
           role="button"
           onClick={() => handleSelection(index)}
-          onKeyUp={(e) => e.key === "Enter" && console.log("clicked", index)}
+          onKeyUp={(e) => e.key === "Enter"}
           tabIndex={index}
         >
           <div className=" pt-[7px] px-[8px]">
@@ -158,7 +164,8 @@ export const ListGroup = ({
                 )}
                 role="button"
                 onClick={handleBookmarkChanged}
-                onKeyUp={(e) => e.key === "Enter" && console.log("Saved", index)}
+                onKeyUp={(e) => e.key === "Enter"}
+                aria-label={isSaved ? "Remove from bookmarks" : "Add to bookmarks"}
               >
                 <Bookmark size="md-regular" filled={isSaved || false} />
               </div>

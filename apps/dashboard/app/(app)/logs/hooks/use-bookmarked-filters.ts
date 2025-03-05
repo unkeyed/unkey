@@ -26,8 +26,8 @@ export const useBookmarkedFilters = () => {
     // Group current filters
     const currentGroup = filters.reduce(
       (acc, filter) => {
-        const { field, value, operator } = filter;
-        // value = value.toString();
+        let { field, value, operator } = filter;
+        value = value.toString();
 
         if (["startTime", "endTime", "since"].includes(field)) {
           //@ts-expect-error fix later

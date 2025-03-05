@@ -14,7 +14,7 @@ export const PathRow = ({ paths }: PathRowProps) => {
       </div>
       <Link4 className="size-3 ml-[1px]" />
       <span className="font-mono text-xs font-normal text-gray-9">{paths[0]?.operator}</span>
-      <QueriesPill value={paths[0].value} />
+      <QueriesPill value={paths[0]?.value} />
       <QueriesOverflow list={paths.slice(1)} />
     </div>
   ) : null;

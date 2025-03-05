@@ -50,10 +50,10 @@ export const QueriesPopover = ({ open, setOpen, children }: QueriesPopoverProps)
     const fieldList: QuerySearchParams = savedFilters[index].filters;
     const newFilters: LogsFilterValue[] = [];
     Object.entries(fieldList).forEach(([key, values]) => {
-      if (typeof values !== "object") {
+      if (!Array.isArray(values)) {
         return;
       }
-      values?.forEach((value) =>
+      values.forEach((value) =>
         newFilters.push({
           id: crypto.randomUUID(),
           field: key as keyof QuerySearchParams,

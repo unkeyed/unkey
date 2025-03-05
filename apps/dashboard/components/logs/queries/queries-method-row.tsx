@@ -16,7 +16,7 @@ export const MethodRow = ({ methods }: MethodRowProps) => {
         <Conversion className="size-3.5 mb-[2px] ml-[-1px]" />
         <span className="font-mono text-xs font-normal text-gray-9">{methods[0]?.operator}</span>
         {methods?.map((item) => (
-          <QueriesPill value={item.value} />
+          <QueriesPill key={item.value} value={item.value} />
         ))}
       </div>
     )

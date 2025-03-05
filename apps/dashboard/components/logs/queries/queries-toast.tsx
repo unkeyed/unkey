@@ -2,12 +2,12 @@ import { Button } from "@unkey/ui";
 import type { PropsWithChildren } from "react";
 
 type QueriesToastProps = PropsWithChildren<{
-  children: React.ReactNode;
   message: string;
+  undoBookmarked: () => void;
 }>;
-export const QueriesToast = ({ children, message }: QueriesToastProps) => {
+export const QueriesToast = ({ children, message, undoBookmarked }: QueriesToastProps) => {
   return (
-    <div className="flex flex-row items-center p-2 font-sans space-x-auto">
+    <div className="flex flex-row items-center p-2 space-x-4 font-sans">
       {children}
       <span className="flex items-center justify-center w-56 text-sm font-medium leading-6 text-center text-accent-12">
         {message}
@@ -15,6 +15,7 @@ export const QueriesToast = ({ children, message }: QueriesToastProps) => {
       <Button
         variant="ghost"
         className="flex end-0 p-2 m-0  rounded-[10px] border-[1px] border-gray-5 "
+        onClick={undoBookmarked}
       >
         Undo
       </Button>

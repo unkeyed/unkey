@@ -17,7 +17,7 @@ export const StatusRow = ({ status }: StatusRowProps) => {
       <ChartActivity2 className="size-3.5 mb-[2px]" />
       <span className="font-mono text-xs font-normal text-gray-9">{shownStatus[0]?.operator}</span>
       {shownStatus.map((item) => {
-        return <QueriesPill value={item.value} />;
+        return <QueriesPill key={item.value} value={item.value} />;
       })}
       {overflowStatus && overflowStatus.length > 0 ? (
         <QueriesOverflow list={overflowStatus} />
