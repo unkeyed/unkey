@@ -14,12 +14,17 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-// Session is a thin wrapper on top of go's standard library net/http
-// It offers convenience methods to parse requests and send responses.
+// Session encapsulates the state and utilities for handling a single HTTP request.
+// It wraps the standard http.ResponseWriter and http.Request with additional
+// functionality for parsing requests and generating responses.
 //
-// Session structs are reused to ease the load on the GC.
-// All references to sessions, request bodies or anything within must not be
-// used outside of the handler. Make a copy of them if you need to.
+// Sessions are pooled and reused between requests to reduce memory allocations.
+// References to sessions, requests, or responses should not be stored beyond
+// the handler's execution.
+//
+// A new Session is created for each request and passed to the route handler.
+// The Session is automatically reset and returned to the pool after the request
+// is handled.
 type Session struct {
 	ctx       context.Context
 	requestID string
@@ -39,7 +44,7 @@ type Session struct {
 
 func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 	s.ctx = r.Context()
-	s.requestID = uid.Request()
+	s.requestID = uid.New(uid.RequestPrefix)
 	s.w = w
 	s.r = r
 
@@ -47,31 +52,58 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// Context returns the request context, which may be enhanced by middleware.
+// The context can be used to pass values and control cancellation
+// throughout the request lifecycle.
 func (s *Session) Context() context.Context {
 	return s.ctx
 
 }
 
-// AuthorizedWorkspaceID returns the workspaceID of the root key used as authentication mechanism.
+// AuthorizedWorkspaceID returns the workspace ID associated with the authenticated
+// request. This is populated by authentication middleware.
 //
-// If the `WithRootKeyAuth` middleware is used, it is guaranteed to be populated.
-// The request would've aborted and returned early if authentication failed.
-// Otherwise an empty string is returned.
+// Returns an empty string if no authenticated workspace ID is available.
 func (s *Session) AuthorizedWorkspaceID() string {
 	return s.workspaceID
 }
 
 // Request returns the underlying http.Request.
+// This allows direct access to the standard library request features.
 //
-// Do not store references or modify it outside of the handler function.
+// Note: The returned request should not be stored across requests or modified
+// after the handler returns.
 func (s *Session) Request() *http.Request {
 	return s.r
 }
 
+// RequestID returns the request id for this session.
+func (s *Session) RequestID() string {
+	return s.requestID
+}
+
+// ResponseWriter returns the underlying http.ResponseWriter.
+// This allows direct access to the standard library response features.
+//
+// Direct manipulation of the ResponseWriter should be avoided when possible
+// in favor of using the Session's response methods like JSON or Send.
 func (s *Session) ResponseWriter() http.ResponseWriter {
 	return s.w
 }
 
+// BindBody parses the request body as JSON into the provided destination struct.
+// The destination must be a pointer to a struct.
+//
+// If parsing fails, an appropriate error is returned. The original request body is
+// stored in the session for potential reuse or logging.
+//
+// Example:
+//
+//	var user User
+//	if err := sess.BindBody(&user); err != nil {
+//	    return err
+//	}
+//	// Use the parsed user data
 func (s *Session) BindBody(dst any) error {
 	var err error
 	s.requestBody, err = io.ReadAll(s.r.Body)
@@ -89,9 +121,21 @@ func (s *Session) BindBody(dst any) error {
 	return nil
 }
 
-// BindQuery binds query parameters to a struct.
-// The struct should have json tags which will be used to match query parameter names.
-// For example, a field with tag `json:"limit"` will match the query parameter "limit".
+// BindQuery parses URL query parameters into the provided destination struct.
+// The destination must be a pointer to a struct with json tags that match
+// the query parameter names.
+//
+// Example:
+//
+//	var params struct {
+//	    Limit  int    `json:"limit"`
+//	    Cursor string `json:"cursor"`
+//	    Filter string `json:"filter"`
+//	}
+//	if err := sess.BindQuery(&params); err != nil {
+//	    return err
+//	}
+//	// Use params.Limit, params.Cursor, and params.Filter
 func (s *Session) BindQuery(dst interface{}) error {
 	val := reflect.ValueOf(dst)
 	if val.Kind() != reflect.Ptr || val.IsNil() {
@@ -246,6 +290,9 @@ func (s *Session) BindQuery(dst interface{}) error {
 	return nil
 }
 
+// AddHeader adds a key-value pair to the response headers.
+// This method can be called multiple times with the same key to add
+// multiple values for the same header.
 func (s *Session) AddHeader(key, val string) {
 	s.w.Header().Add(key, val)
 }
@@ -265,8 +312,18 @@ func (s *Session) send(status int, body []byte) error {
 	return nil
 }
 
-// Send sets the response status and header
-// It then marshals the body as JSON and sends it to the client.
+// JSON sets the response status code and sends a JSON-encoded response.
+// It automatically sets the Content-Type header to application/json.
+//
+// The body is marshaled using the standard encoding/json package.
+// If marshaling fails, an error is returned.
+//
+// Example:
+//
+//	return sess.JSON(http.StatusOK, map[string]interface{}{
+//	    "user": user,
+//	    "token": token,
+//	})
 func (s *Session) JSON(status int, body any) error {
 	b, err := json.Marshal(body)
 	if err != nil {
@@ -277,6 +334,11 @@ func (s *Session) JSON(status int, body any) error {
 	s.ResponseWriter().Header().Add("Content-Type", "application/json")
 	return s.send(status, b)
 }
+
+// Send sets the response status code and sends raw bytes as the response body.
+// This method is useful for non-JSON responses like binary data or plain text.
+//
+// Unlike [JSON], this method does not set any Content-Type header automatically.
 func (s *Session) Send(status int, body []byte) error {
 
 	return s.send(status, body)

@@ -1,9 +1,7 @@
 package membership
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 	"net"
 	"strings"
 	"sync"
@@ -109,23 +107,24 @@ func (m *membership) Leave() error {
 
 func (m *membership) Start(discover discovery.Discoverer) error {
 
-	ctx := context.Background()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.started {
 		return fault.New("Membership already started")
 	}
 	m.started = true
-	m.logger.Info(ctx, "Initilizing memberlist")
+	m.logger.Info("Initilizing memberlist")
 
-	m.logger.Info(ctx, "discovering peers")
+	m.logger.Info("discovering peers")
 	addrs, err := discover.Discover()
 	if err != nil {
 		return fault.Wrap(err)
 	}
 
 	if len(addrs) > 0 {
-		m.logger.Info(ctx, "Joining cluster", slog.String("addrs", strings.Join(addrs, ",")))
+		m.logger.Info("Joining cluster",
+			"addrs", strings.Join(addrs, ","),
+		)
 		err := retry.New(
 			retry.Attempts(10),
 			retry.Backoff(func(n int) time.Duration { return time.Duration(n) * time.Second }),
@@ -133,11 +132,10 @@ func (m *membership) Start(discover discovery.Discoverer) error {
 			func() error {
 				successfullyContacted, joinErr := m.memberlist.Join(addrs)
 				if joinErr != nil {
-					m.logger.Warn(ctx,
-						"failed to join",
-						slog.String("error", joinErr.Error()),
-						slog.Int("successfullyContacted", successfullyContacted),
-						slog.String("addrs", strings.Join(addrs, ",")),
+					m.logger.Warn("failed to join",
+						"error", joinErr.Error(),
+						"successfullyContacted", successfullyContacted,
+						"addrs", strings.Join(addrs, ","),
 					)
 				}
 				return joinErr
