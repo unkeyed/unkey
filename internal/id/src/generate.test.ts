@@ -23,7 +23,7 @@ describe("ids are k-sorted by time", () => {
   for (const tc of testCases) {
     test(`k: ${tc.k}, n: ${tc.n}`, () => {
       const ids = new Array(tc.n).fill(null).map((_, i) => {
-        vi.setSystemTime(new Date(i * 10));
+        vi.setSystemTime(new Date(i * 10000));
 
         return newId("test");
       });
