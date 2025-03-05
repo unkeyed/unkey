@@ -34,14 +34,7 @@ export const keysOverviewLogsParams = z.object({
     .nullable(),
   cursorTime: z.number().int().nullable(),
   cursorRequestId: z.string().nullable(),
-  sorts: z
-    .array(
-      z.object({
-        column: z.enum(["time", "valid_count", "error_count"]),
-        direction: z.enum(["asc", "desc"]),
-      })
-    )
-    .nullable(),
+  // Removed sorts field
 });
 
 export const keyDetailsResponseSchema = z.object({
@@ -94,7 +87,6 @@ export function getKeysOverviewLogs(ch: Querier) {
 
     const hasKeyIdFilters = args.keyIds && args.keyIds.length > 0;
     const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
-    const hasSortingRules = args.sorts && args.sorts.length > 0;
 
     const outcomeCondition = !hasOutcomeFilters
       ? "TRUE"
@@ -130,43 +122,6 @@ export function getKeysOverviewLogs(ch: Querier) {
           .filter(Boolean)
           .join(" OR ") || "TRUE";
 
-    const allowedColumns = new Map([
-      ["time", "last_request_time"],
-      ["valid_count", "valid_count"],
-      ["error_count", "error_count"],
-    ]);
-
-    const orderBy =
-      hasSortingRules && args.sorts
-        ? args.sorts.reduce((acc: string[], sort) => {
-            const column = allowedColumns.get(sort.column);
-            if (column) {
-              const direction =
-                sort.direction.toUpperCase() === "ASC" ||
-                sort.direction.toUpperCase() === "DESC"
-                  ? sort.direction.toUpperCase()
-                  : "DESC";
-              acc.push(`${column} ${direction}`);
-            }
-            return acc;
-          }, [])
-        : [];
-
-    const timeSort = args.sorts?.find((s) => s.column === "time");
-    const timeDirection =
-      timeSort?.direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
-
-    const orderByWithoutTime = orderBy.filter(
-      (clause) => !clause.startsWith("last_request_time")
-    );
-
-    const orderByClause =
-      [
-        ...orderByWithoutTime,
-        `last_request_time ${timeDirection}`,
-        `request_id ${timeDirection}`,
-      ].join(", ") || "last_request_time DESC, request_id DESC";
-
     // Update the cursor condition to use request_id
     const cursorCondition = `
       AND (
@@ -179,69 +134,113 @@ export function getKeysOverviewLogs(ch: Querier) {
     const extendedParamsSchema =
       keysOverviewLogsParams.extend(paramSchemaExtension);
     const query = ch.query({
-      query: `WITH filtered_keys AS (
-    SELECT
-        request_id,
-        time,
-        key_id,
-        outcome
-    FROM verifications.raw_key_verifications_v1
-    WHERE workspace_id = {workspaceId: String}
-        AND key_space_id = {keyspaceId: String}
-        AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-        AND (${keyIdConditions})
-        AND (${outcomeCondition})
-        ${cursorCondition}
-),
-aggregated_data AS (
+      query: `
+WITH 
+    -- First CTE: Filter raw verification records based on conditions from client
+    filtered_keys AS (
+      SELECT
+          request_id,
+          time,
+          key_id,
+          outcome
+      FROM verifications.raw_key_verifications_v1
+      WHERE workspace_id = {workspaceId: String}
+          AND key_space_id = {keyspaceId: String}
+          AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+          -- Apply dynamic key ID filtering (equals or contains)
+          AND (${keyIdConditions})
+          -- Apply dynamic outcome filtering
+          AND (${outcomeCondition})
+          -- Handle pagination using time and request_id as cursor
+          ${cursorCondition}
+    ),
+
+    -- Second CTE: Calculate per-key aggregated metrics
+    -- This groups all verifications by key_id to get summary counts and most recent activity
+    aggregated_data AS (
+      SELECT 
+          key_id,
+          -- Find the timestamp of the latest verification for this key
+          max(time) as last_request_time,
+          -- Get the request_id of the latest verification (based on time)
+          argMax(request_id, time) as last_request_id,
+          -- Count valid verifications
+          countIf(outcome = 'VALID') as valid_count,
+          -- Count all non-valid verifications
+          countIf(outcome != 'VALID') as error_count
+      FROM filtered_keys
+      GROUP BY key_id
+    ),
+
+    -- Third CTE: Build detailed outcome distribution
+    -- This provides a breakdown of the exact counts for each outcome type
+    outcome_counts AS (
+      SELECT
+          key_id,
+          outcome,
+          -- Convert to UInt32 for consistency
+          toUInt32(count(*)) as count
+      FROM filtered_keys
+      GROUP BY key_id, outcome
+    )
+
+    -- Main query: Join the aggregated data with detailed outcome counts
     SELECT 
-        key_id,
-        max(time) as last_request_time,
-        argMax(request_id, time) as last_request_id,
-        countIf(outcome = 'VALID') as valid_count,
-        countIf(outcome != 'VALID') as error_count,
-        groupArray((outcome, count(*))) as outcome_tuples
-    FROM filtered_keys
-    GROUP BY key_id
-)
-SELECT 
-    key_id,
-    last_request_time as time,
-    last_request_id as request_id,
-    valid_count,
-    error_count,
-    arrayMap(x -> (x.1, toUInt32(x.2)), outcome_tuples) as outcome_counts
-FROM aggregated_data
-ORDER BY ${orderByClause}
-LIMIT {limit: Int}`,
+      a.key_id,
+      a.last_request_time as time,
+      a.last_request_id as request_id,
+      a.valid_count,
+      a.error_count,
+      -- Create an array of tuples containing all outcomes and their counts
+      -- This will be transformed into an object in the application code
+      groupArray((o.outcome, o.count)) as outcome_counts_array
+    FROM aggregated_data a
+    LEFT JOIN outcome_counts o ON a.key_id = o.key_id
+    -- Group by all non-aggregated fields to allow the groupArray operation
+    GROUP BY 
+      a.key_id,
+      a.last_request_time,
+      a.last_request_id,
+      a.valid_count,
+      a.error_count
+    -- Sort results with most recent verification first
+    ORDER BY time DESC, request_id DESC
+    -- Limit results for pagination
+    LIMIT {limit: Int}
+`,
       params: extendedParamsSchema,
-      schema: rawKeysOverviewLogs, // Using the raw schema without key_details
+      schema: rawKeysOverviewLogs
+        .extend({
+          outcome_counts_array: z.array(z.tuple([z.string(), z.number()])),
+        })
+        .omit({ outcome_counts: true }),
     });
 
     // Execute the ClickHouse query
     const clickhouseResults = await query(parameters);
 
-    if (clickhouseResults.val && clickhouseResults.val.length > 0) {
-      // Transform outcome_counts array into an object
-      return {
-        ...clickhouseResults,
-        val: clickhouseResults.val.map((result) => {
-          // Convert outcome_counts from array of tuples to object if needed
-          const outcomeCountsObj: Record<string, number> = {};
-          if (Array.isArray(result.outcome_counts)) {
-            result.outcome_counts.forEach(([outcome, count]) => {
-              outcomeCountsObj[outcome] = count;
-            });
-            return {
-              ...result,
-              outcome_counts: outcomeCountsObj,
-            };
-          }
-          return result;
-        }),
-      };
-    }
+    // Always transform the results to ensure consistent structure
+    return {
+      ...clickhouseResults,
+      val: (clickhouseResults.val || []).map((result) => {
+        // Convert outcome_counts_array from array of tuples to object
+        const outcomeCountsObj: Record<string, number> = {};
+        if (Array.isArray(result.outcome_counts_array)) {
+          result.outcome_counts_array.forEach(([outcome, count]) => {
+            outcomeCountsObj[outcome] = count;
+          });
+        }
 
-    return clickhouseResults;
+        // Create a new object with the correct structure
+        return {
+          key_id: result.key_id,
+          time: result.time,
+          request_id: result.request_id,
+          valid_count: result.valid_count,
+          error_count: result.error_count,
+          outcome_counts: outcomeCountsObj,
+        };
+      }),
+    };
   };
 }

@@ -1,65 +1,11 @@
+import { keysQueryOverviewLogsPayload } from "@/app/(app)/apis/[apiId]/_overview/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
+import { keysOverviewLogs as keysLogs } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 import { transformKeysFilters } from "./utils";
-import { keysOverviewLogs as keysLogs } from "@unkey/clickhouse/src/keys/keys";
-
-export const keysQueryOverviewLogsPayload = z.object({
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
-  apiId: z.string(),
-  since: z.string(),
-  cursor: z
-    .object({
-      requestId: z.string().nullable(),
-      time: z.number().nullable(),
-    })
-    .optional()
-    .nullable(),
-  outcomes: z
-    .array(
-      z.object({
-        value: z.enum([
-          "VALID",
-          "INSUFFICIENT_PERMISSIONS",
-          "RATE_LIMITED",
-          "FORBIDDEN",
-          "DISABLED",
-          "EXPIRED",
-          "USAGE_EXCEEDED",
-          "",
-        ]),
-        operator: z.literal("is"),
-      })
-    )
-    .optional()
-    .nullable(),
-  keyIds: z
-    .array(
-      z.object({
-        operator: z.enum(["is", "contains"]),
-        value: z.string(),
-      })
-    )
-    .optional()
-    .nullable(),
-  sorts: z
-    .array(
-      z.object({
-        column: z.enum(["time", "valid_count", "error_count"]),
-        direction: z.enum(["asc", "desc"]),
-      })
-    )
-    .optional()
-    .nullable(),
-});
-
-export type KeysQueryOverviewLogsPayload = z.infer<
-  typeof keysQueryOverviewLogsPayload
->;
 
 const KeysOverviewLogsResponse = z.object({
   keysOverviewLogs: z.array(keysLogs),
@@ -106,10 +52,6 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
       });
     }
 
-    // Prepare query conditions for keys
-    // const keyIdValues = input.keyIds?.map((k) => k.value) || [];
-
-    // Pre-fetch all keys for this API that match our filters
     const keysResult = await db.query.keys
       .findMany({
         where: (key, { and, eq, isNull }) => {
@@ -117,24 +59,6 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
             eq(key.keyAuthId, apiResult.keyAuth?.id ?? ""),
             isNull(key.deletedAtM),
           ];
-          //
-          // // Add key ID filter if provided
-          // if (keyIdValues.length > 0) {
-          //   conditions.push(
-          //     or(
-          //       ...(keyIdValues ?? []).map((keyId) => {
-          //         const matchingFilter = input.keyIds?.find(
-          //           (k) => k.value === keyId
-          //         );
-          //         if (matchingFilter?.operator === "contains") {
-          //           return (expr) => expr`${key.id} LIKE ${`%${keyId}%`}`;
-          //         }
-          //         return eq(key.id, keyId);
-          //       })
-          //     )
-          //   );
-          // }
-
           return and(...conditions);
         },
         columns: {
@@ -192,7 +116,6 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
     }
 
     const transformedInputs = transformKeysFilters(input);
-
     const result = await clickhouse.api.keys.logs({
       ...transformedInputs,
       cursorRequestId: input.cursor?.requestId ?? null,

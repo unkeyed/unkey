@@ -1,6 +1,6 @@
+import type { KeysQueryOverviewLogsPayload } from "@/app/(app)/apis/[apiId]/_overview/components/table/query-logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { KeysOverviewLogsParams } from "@unkey/clickhouse/src/keys/keys";
-import type { KeysQueryOverviewLogsPayload } from ".";
 
 export function transformKeysFilters(
   params: KeysQueryOverviewLogsPayload
@@ -25,12 +25,6 @@ export function transformKeysFilters(
       value: o.value,
     })) ?? null;
 
-  const sorts =
-    params.sorts?.map((sort) => ({
-      column: sort.column,
-      direction: sort.direction,
-    })) ?? null;
-
   return {
     limit: params.limit,
     startTime,
@@ -39,6 +33,5 @@ export function transformKeysFilters(
     outcomes,
     cursorTime: params.cursor?.time ?? null,
     cursorRequestId: params.cursor?.requestId ?? null,
-    sorts,
   };
 }

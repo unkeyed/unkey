@@ -3,6 +3,7 @@ import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
 import { overviewApiSearch } from "./api/overview-api-search";
 import { queryApisOverview } from "./api/query-overview";
+import { queryKeysOverviewLogs } from "./api/query-overview-logs";
 import { queryVerificationTimeseries } from "./api/query-timeseries";
 import { setDefaultApiBytes } from "./api/setDefaultBytes";
 import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
@@ -91,11 +92,7 @@ export const router = t.router({
     }),
     overview: t.router({
       logs: t.router({
-        query: queryRatelimitOverviewLogs,
-        // TODO: Will be used as a barchart
-        // queryUsageTimeseries: null,
-        // TODO: Will be used as line chart
-        // queryActiveKeysTimeseries: () => null,
+        query: queryKeysOverviewLogs,
       }),
       queryApisOverview,
       search: overviewApiSearch,
