@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	"connectrpc.com/connect"
@@ -37,7 +36,10 @@ func (s *service) replayToOrigin(req *ratelimitv1.ReplayRequest) {
 	p, err := s.getPeer(key)
 	if err != nil {
 		tracing.RecordError(span, err)
-		s.logger.Warn(ctx, "unable to create peer client", slog.String("error", err.Error()), slog.String("key", key))
+		s.logger.Warn("unable to create peer client",
+			"error", err.Error(),
+			"key", key,
+		)
 		return
 	}
 	if p.node.ID == s.cluster.Self().ID {
@@ -52,7 +54,10 @@ func (s *service) replayToOrigin(req *ratelimitv1.ReplayRequest) {
 	})
 	if err != nil {
 		tracing.RecordError(span, err)
-		s.logger.Warn(ctx, "unable to replay request", slog.String("error", err.Error()), slog.String("key", key))
+		s.logger.Warn("unable to replay request",
+			"error", err.Error(),
+			"key", key,
+		)
 		return
 	}
 
@@ -78,7 +83,10 @@ func (s *service) replayToOrigin(req *ratelimitv1.ReplayRequest) {
 	if err != nil {
 		tracing.RecordError(span, err)
 
-		s.logger.Error(ctx, "unable to set windows", slog.String("error", err.Error()), slog.String("key", key))
+		s.logger.Error("unable to set windows",
+			"error", err.Error(),
+			"key", key,
+		)
 		return
 	}
 	// if we got this far, we pushpulled successfully with a peer and don't need to try the rest

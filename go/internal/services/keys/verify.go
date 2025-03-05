@@ -2,10 +2,11 @@ package keys
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/unkeyed/unkey/go/pkg/assert"
-	"github.com/unkeyed/unkey/go/pkg/database"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 )
@@ -18,9 +19,9 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	}
 	h := hash.Sha256(rawKey)
 
-	key, err := s.db.FindKeyByHash(ctx, h)
+	key, err := db.Query.FindKeyByHash(ctx, s.db.RO(), h)
 	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return VerifyResponse{}, fault.Wrap(
 				err,
 				fault.WithTag(fault.NOT_FOUND),
@@ -38,7 +39,7 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	// - Is it expired?
 	// - Is it ratelimited?
 
-	if !key.DeletedAt.IsZero() {
+	if key.DeletedAtM.Valid {
 		return VerifyResponse{}, fault.New(
 			"key is deleted",
 			fault.WithDesc("deleted_at is non-zero", "The key has been deleted."),
@@ -57,8 +58,8 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	}
 	// Root keys store the user's workspace id in `ForWorkspaceID` and we're
 	// interested in the user, not our rootkey workspace.
-	if key.ForWorkspaceID != "" {
-		res.AuthorizedWorkspaceID = key.ForWorkspaceID
+	if key.ForWorkspaceID.Valid {
+		res.AuthorizedWorkspaceID = key.ForWorkspaceID.String
 	}
 
 	return res, nil

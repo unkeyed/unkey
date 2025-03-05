@@ -6,7 +6,19 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
-// Extract the bearer token from the authorization header
+// Bearer extracts and validates a Bearer token from the Authorization header.
+// It returns the token string if present and properly formatted.
+//
+// If the header is missing, malformed, or contains an empty token,
+// an appropriate error is returned with the UNAUTHORIZED tag.
+//
+// Example:
+//
+//	token, err := zen.Bearer(sess)
+//	if err != nil {
+//	    return err
+//	}
+//	// Validate the token
 func Bearer(s *Session) (string, error) {
 
 	header := s.r.Header.Get("Authorization")

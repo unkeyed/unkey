@@ -1,3 +1,4 @@
+// unkey/go/pkg/otel/metrics/metrics.go
 // Package metrics provides OpenTelemetry instrumentation for monitoring application behavior.
 // It exposes global metric instances, initialized with no-op
 // implementations by default that can be replaced with real implementations via Init().
@@ -43,8 +44,8 @@ var (
 
 	// Cache contains metrics related to cache operations
 	Cache struct {
-		// Hits tracks the number of cache read operations.
-		// Use this to monitor cache hit rates and usage patterns.
+		// Hits tracks the number of cache read operations that found the requested item.
+		// Use this to monitor cache hit rates and effectiveness.
 		//
 		// Attributes:
 		//   - resource (string): The type of resource being cached (e.g., "user_profile")
@@ -55,8 +56,8 @@ var (
 		//   ))
 		Hits metric.Int64Gauge
 
-		// Misses tracks the number of cache read operations.
-		// Use this to monitor cache hit rates and usage patterns.
+		// Misses tracks the number of cache read operations that did not find the requested item.
+		// Use this to monitor cache efficiency and identify opportunities for improvement.
 		//
 		// Attributes:
 		//   - resource (string): The type of resource being cached (e.g., "user_profile")
@@ -68,7 +69,7 @@ var (
 		Misses metric.Int64Gauge
 
 		// Writes tracks the number of cache write operations.
-		// Use this to monitor cache write rates and usage patterns.
+		// Use this to monitor write pressure on the cache.
 		//
 		// Attributes:
 		//   - resource (string): The type of resource being cached (e.g., "user_profile")
@@ -79,15 +80,17 @@ var (
 		//   ))
 		Writes metric.Int64Counter
 
-		// Evicted tracks the number of cache delete operations.
-		// Use this to monitor cache delete rates and usage patterns.
+		// Evicted tracks the number of items removed from the cache due to space constraints
+		// or explicit deletion. Use this to monitor cache churn and capacity issues.
 		//
 		// Attributes:
 		//   - resource (string): The type of resource being cached (e.g., "user_profile")
+		//   - reason (string): The reason for eviction (e.g., "capacity", "ttl", "manual")
 		//
 		// Example:
 		//   metrics.Cache.Evicted.Record(ctx, 1, metric.WithAttributes(
 		//     attribute.String("resource", "user_profile"),
+		//     attribute.String("reason", "ttl"),
 		//   ))
 		Evicted metric.Int64Gauge
 
@@ -95,15 +98,26 @@ var (
 		// This histogram helps track cache performance and identify slowdowns.
 		//
 		// Attributes:
-		//   - latency (int64): The duration of the operation in milliseconds
 		//   - resource (string): The type of resource being read (e.g., "user_profile")
+		//   - result (string): The outcome of the read ("hit" or "miss")
 		//
 		// Example:
 		//   metrics.Cache.ReadLatency.Record(ctx, 42, metric.WithAttributes(
 		//     attribute.String("resource", "user_profile"),
+		//     attribute.String("result", "hit"),
 		//   ))
 		ReadLatency metric.Int64Histogram
 
+		// Size tracks the current number of items in the cache.
+		// Use this to monitor cache utilization and growth patterns.
+		//
+		// Attributes:
+		//   - resource (string): The type of resource being cached (e.g., "user_profile")
+		//
+		// Example:
+		//   metrics.Cache.Size.Record(ctx, 1042, metric.WithAttributes(
+		//     attribute.String("resource", "user_profile"),
+		//   ))
 		Size metric.Int64Gauge
 	}
 )
@@ -128,6 +142,8 @@ var (
 //	}
 func Init(m metric.Meter) error {
 	var err error
+
+	// Initialize HTTP metrics
 	Http.Requests, err = m.Int64Counter("http_request",
 		metric.WithDescription("How many api requests we handle."),
 	)
@@ -135,12 +151,14 @@ func Init(m metric.Meter) error {
 		return err
 	}
 
+	// Initialize Cache metrics
 	Cache.Hits, err = m.Int64Gauge("cache_hit",
 		metric.WithDescription("Cache hits"),
 	)
 	if err != nil {
 		return err
 	}
+
 	Cache.Misses, err = m.Int64Gauge("cache_miss",
 		metric.WithDescription("Cache misses"),
 	)

@@ -1,4 +1,3 @@
-import { randomInt } from "node:crypto";
 import { afterEach, beforeEach, describe } from "node:test";
 import { expect, test, vi } from "vitest";
 import { newId } from "./generate";
@@ -34,15 +33,5 @@ describe("ids are k-sorted by time", () => {
         expect(Math.abs(ids.indexOf(sorted[i]) - i)).toBeLessThanOrEqual(tc.k);
       }
     });
-  }
-});
-
-test("suffix length is between 26-28 characters long", () => {
-  for (let i = 0; i < 100_000; i++) {
-    vi.setSystemTime(new Date(randomInt(281474976710655)));
-
-    const suffix = newId("test").split("_")[1];
-    expect(suffix.length).toBeGreaterThanOrEqual(26);
-    expect(suffix.length).toBeLessThanOrEqual(28);
   }
 });

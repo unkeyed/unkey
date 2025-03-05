@@ -17,6 +17,18 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// service implements the ratelimit.Service interface using a sliding window algorithm.
+//
+// The implementation distributes rate limit state across the cluster using consistent
+// hashing to determine an "origin node" for each client identifier. This approach
+// balances the need for accuracy with performance by:
+//
+// 1. Making local decisions at each node to minimize latency
+// 2. Asynchronously propagating state to the origin node to maintain consistency
+// 3. Broadcasting limit exceeded events to all nodes to prevent over-admission
+//
+// The service handles node joins/leaves automatically by rebalancing the consistent
+// hash ring, ensuring smooth operation during cluster changes.
 type service struct {
 	clock clock.Clock
 
