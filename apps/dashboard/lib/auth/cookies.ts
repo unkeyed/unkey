@@ -76,7 +76,7 @@ export async function updateCookie(
   }
 
   if (reason) {
-    console.debug("Session refresh failed:", reason);
+    console.error("Session refresh failed:", reason);
     await deleteCookie(cookieName);
   }
 }

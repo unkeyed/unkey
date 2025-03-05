@@ -186,6 +186,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         roleSlug: "admin",
       });
 
+      console.table(membership);
+    
       return membership.organizationId;
     } catch (error) {
       throw this.handleError(error);
@@ -249,12 +251,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         cookiePassword: this.cookiePassword,
       });
   
-      // Authenticate first to get the current user info
-      const authResult = await session.authenticate();
-      if (!authResult.authenticated) {
-        throw new Error("Session authentication failed");
-      }
-  
       // Create a new session with the new organization ID
       const refreshResult = await session.refresh({
         cookiePassword: this.cookiePassword,
@@ -262,7 +258,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       });
   
       if (!refreshResult.authenticated || !refreshResult.session) {
-        throw new Error("Organization switch failed");
+        const errMsg = !refreshResult.authenticated ? refreshResult.reason : "";
+        throw new Error("Organization switch failed " + errMsg);
       }
   
       // Set expiration to 7 days from now

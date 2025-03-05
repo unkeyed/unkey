@@ -119,7 +119,6 @@ export abstract class BaseAuthProvider {
 
   protected isPublicPath(pathname: string, publicPaths: string[]): boolean {
     const isPublic = publicPaths.some((path) => pathname.startsWith(path));
-    console.debug("Checking public path:", { pathname, publicPaths, isPublic });
     return isPublic;
   }
 
@@ -144,16 +143,11 @@ export abstract class BaseAuthProvider {
       }
 
       const { pathname } = request.nextUrl;
-      console.debug("Middleware processing:", {
-        url: request.url,
-        pathname,
-        publicPaths: middlewareConfig.publicPaths,
-      });
 
-      // Add refresh endpoint to public paths
       const allPublicPaths = [
         ...middlewareConfig.publicPaths,
-        "/api/auth/refresh"
+        "/api/auth/refresh",
+        "/api/auth/create-tenant"
       ];
 
       if (this.isPublicPath(pathname, allPublicPaths)) {
