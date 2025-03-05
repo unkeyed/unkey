@@ -28,7 +28,7 @@ export const CCheck: React.FC<IconProps> = ({ size, filled, ...props }) => {
       <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
         <path
           d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"
-          fill="none"
+          fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
           strokeLinecap="square"
           strokeMiterlimit="10"
@@ -36,7 +36,7 @@ export const CCheck: React.FC<IconProps> = ({ size, filled, ...props }) => {
         />
         <path
           d="M5.25 9.75l2.25 2.25 5.25-6"
-          fill="none"
+          fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
           strokeLinecap="square"
           strokeMiterlimit="10"
