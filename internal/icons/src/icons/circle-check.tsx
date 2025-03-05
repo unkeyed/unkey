@@ -25,18 +25,6 @@ export const CCheck: React.FC<IconProps> = ({ size, filled, ...props }) => {
         strokeMiterlimit="10"
         strokeWidth={strokeWidth}
       />
-      {/* other svg elements */}
-    </svg>
-  );
-};
-  return (
-    <svg
-      {...props}
-      height={pixelSize}
-      width={pixelSize}
-      viewBox="0 0 18 18"
-      xmlns="http://www.w3.org/2000/svg"
-    >
       <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
         <path
           d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"
