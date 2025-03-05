@@ -42,8 +42,6 @@ func GetPrivateDnsName() (string, error) {
 		return "", fault.Wrap(err, fault.WithDesc("failed to read task metadata body", ""))
 	}
 
-	fmt.Println(string(b))
-
 	body := ecsTaskMetadataV2Response{} // nolint:exhaustruct
 	fmt.Println("body", body)
 
