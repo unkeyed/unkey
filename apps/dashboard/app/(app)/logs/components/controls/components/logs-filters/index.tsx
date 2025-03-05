@@ -35,8 +35,9 @@ export const LogsFilters = () => {
       <div className="group">
         <Button
           variant="ghost"
+          size="md"
           className={cn(
-            "group-data-[state=open]:bg-gray-4 px-2",
+            "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             filters.length > 0 ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs"

@@ -71,7 +71,10 @@ const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.Reac
       <nav ref={ref} aria-label="breadcrumb" className={cn("flex", className)} {...props}>
         <ol className="flex items-center gap-3">
           <li className="mr-1">
-            <Button variant="default" className="size-6 p-0 [&>svg]:size-[18px]">
+            <Button
+              variant="outline"
+              className="size-6 p-0 [&>svg]:size-[18px] bg-gray-4 hover:bg-gray-5"
+            >
               {icon}
             </Button>
           </li>

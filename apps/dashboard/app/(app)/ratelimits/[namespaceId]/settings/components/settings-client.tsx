@@ -70,7 +70,7 @@ export const SettingsClient = ({ namespace }: Props) => {
               }
               border="top"
             >
-              <div className="flex gap-2 items-center h-8 justify-center w-full">
+              <div className="flex gap-2 items-center justify-center w-full">
                 <Input
                   placeholder="Namespace name"
                   className="h-9"
@@ -78,7 +78,8 @@ export const SettingsClient = ({ namespace }: Props) => {
                   onChange={(e) => setNamespaceName(e.target.value)}
                 />
                 <Button
-                  className="h-9"
+                  size="lg"
+                  className="rounded-lg"
                   onClick={handleUpdateName}
                   loading={isUpdating}
                   disabled={isUpdating || namespaceName === namespace.name || !namespaceName}
@@ -127,8 +128,10 @@ export const SettingsClient = ({ namespace }: Props) => {
           >
             <div className="w-full flex justify-end">
               <Button
-                className="w-fit"
-                variant="destructive"
+                className="w-fit rounded-lg"
+                variant="outline"
+                color="danger"
+                size="lg"
                 onClick={() => setIsNamespaceNameDeleteModalOpen(true)}
               >
                 Delete Namespace...
