@@ -1,6 +1,5 @@
 // import { type PropsWithChildren, useEffect, useState } from "react";
 import type { SavedFiltersGroup } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
-
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import type { UserResource } from "@clerk/types";
@@ -32,6 +31,17 @@ type ListGroupProps = {
   querySelected: (index: number) => void;
   changeBookmark: (index: string) => void;
 };
+type ToolTipMessageType =
+  | "Saved!"
+  | "Save Query"
+  | "Remove query from Saved"
+  | "Query removed from Saved!";
+const tooltopMessageOptions: { [key: string]: ToolTipMessageType } = {
+  saved: "Saved!",
+  save: "Save Query",
+  remove: "Remove query from Saved",
+  removed: "Query removed from Saved!",
+};
 
 export const ListGroup = ({
   filterList,
@@ -45,64 +55,42 @@ export const ListGroup = ({
   const { status, methods, paths, startTime, endTime, since } = filterList.filters;
 
   const [isSaved, setIsSaved] = useState(filterList.bookmarked);
-  const [tooltipMessage, setTooltipMessage] = useState<"Saved!" | "Save Query">(
-    isSaved ? "Saved!" : "Save Query",
+  const [tooltipMessage, setTooltipMessage] = useState<ToolTipMessageType>(
+    isSaved ? tooltopMessageOptions.saved : tooltopMessageOptions.save,
   );
-
-  const getTimeAgo = (date: number) => {
-    const now = new Date();
-    const seconds = differenceInSeconds(now, date);
-    if (seconds < 60) {
-      return "just now";
-    }
-    const minutes = differenceInMinutes(now, date);
-    if (minutes < 60) {
-      return `${minutes}m ago`;
-    }
-    const hours = differenceInHours(now, date);
-    if (hours < 24) {
-      return `${hours}h ago`;
-    }
-    const days = differenceInDays(now, date);
-    if (days < 7) {
-      return `${days}d ago`;
-    }
-
-    const weeks = differenceInWeeks(now, date);
-    if (weeks < 4) {
-      return `${weeks}w ago`;
-    }
-
-    const months = differenceInMonths(now, date);
-    if (months < 12) {
-      return `${months} month(s) ago`;
-    }
-
-    const years = differenceInYears(now, date);
-    return `${years} year(s) ago`;
-  };
 
   const [toolTipOpen, setToolTipOpen] = useState(false);
   const handleBookmarkChanged = () => {
     const newValue = !isSaved;
     setIsSaved(newValue);
-    setTooltipMessage(newValue ? "Saved!" : "Save Query");
+    setTooltipMessage(newValue ? tooltopMessageOptions.saved : tooltopMessageOptions.removed);
     changeBookmark(filterList.id);
     if (isSaved) {
-      setTooltipMessage("Save Query");
+      setTooltipMessage(tooltopMessageOptions.removed);
       toast.success(
-        <QueriesToast message="Query removed from Saved!">
+        <QueriesToast message={tooltopMessageOptions.removed}>
           <Check className="size-[18px] text-success-9" />
         </QueriesToast>,
       );
     } else {
-      setTooltipMessage("Saved!");
+      setTooltipMessage(tooltopMessageOptions.saved);
       toast.success(
-        <QueriesToast message="Query Saved!">
+        <QueriesToast message={tooltopMessageOptions.saved}>
           <Check className="size-[18px] text-success-9" />
         </QueriesToast>,
       );
     }
+  };
+
+  const handleMouseEnter = () => {
+    setToolTipOpen(true);
+    isSaved
+      ? setTooltipMessage(tooltopMessageOptions.remove)
+      : setTooltipMessage(tooltopMessageOptions.save);
+  };
+  const handleMouseLeave = () => {
+    setToolTipOpen(false);
+    // isSaved ? setTooltipMessage("Saved!") : setTooltipMessage("Save Query");
   };
   const handleSelection = (index: number) => {
     querySelected(index);
@@ -123,7 +111,6 @@ export const ListGroup = ({
           onKeyUp={(e) => e.key === "Enter" && console.log("clicked", index)}
           tabIndex={index}
         >
-          {/* Change bg-gray-3 back to 2  */}
           <div className=" pt-[7px] px-[8px]">
             {/* Top Row for each */}
             <div className="flex flex-row items-center justify-start h-6">
@@ -152,14 +139,14 @@ export const ListGroup = ({
             <QueriesMadeBy
               userName={user?.username ?? ""}
               userImageSrc={user?.imageUrl ?? ""}
-              createdString={getTimeAgo(filterList.createdAt)}
+              createdString={getSinceTime(filterList.createdAt)}
             />
           </div>
         </div>
         <div
           className="flex flex-col h-[24px] pr-2 mt-1.5 w-[24px]"
-          onMouseEnter={() => setToolTipOpen(true)}
-          onMouseLeave={() => setToolTipOpen(false)}
+          onMouseEnter={() => handleMouseEnter()}
+          onMouseLeave={() => handleMouseLeave()}
         >
           <Tooltip open={toolTipOpen}>
             <TooltipTrigger>
@@ -193,4 +180,37 @@ export const ListGroup = ({
       />
     </div>
   );
+};
+
+const getSinceTime = (date: number) => {
+  const now = new Date();
+  const seconds = differenceInSeconds(now, date);
+  if (seconds < 60) {
+    return "just now";
+  }
+  const minutes = differenceInMinutes(now, date);
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+  const hours = differenceInHours(now, date);
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+  const days = differenceInDays(now, date);
+  if (days < 7) {
+    return `${days}d ago`;
+  }
+
+  const weeks = differenceInWeeks(now, date);
+  if (weeks < 4) {
+    return `${weeks}w ago`;
+  }
+
+  const months = differenceInMonths(now, date);
+  if (months < 12) {
+    return `${months} month(s) ago`;
+  }
+
+  const years = differenceInYears(now, date);
+  return `${years} year(s) ago`;
 };
