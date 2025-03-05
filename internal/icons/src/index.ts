@@ -6,6 +6,7 @@ export * from "./icons/bookmark";
 export * from "./icons/calendar";
 export * from "./icons/caret-right";
 export * from "./icons/caret-right-outline";
+export * from "./icons/circle-check";
 export * from "./icons/circle-half-dotted-clock";
 export * from "./icons/chart-activity-2";
 export * from "./icons/chart-bar-axis-y";

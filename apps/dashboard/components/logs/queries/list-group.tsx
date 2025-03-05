@@ -1,9 +1,8 @@
-// import { type PropsWithChildren, useEffect, useState } from "react";
 import type { SavedFiltersGroup } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import type { UserResource } from "@clerk/types";
-import { Bookmark, Check, Layers2 } from "@unkey/icons";
+import { Bookmark, CCheck, Layers2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import {
   differenceInDays,
@@ -14,7 +13,7 @@ import {
   differenceInWeeks,
   differenceInYears,
 } from "date-fns";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QueriesMadeBy } from "./queries-made-by";
 import { MethodRow } from "./queries-method-row";
 import { PathRow } from "./queries-path-row";
@@ -36,7 +35,7 @@ type ToolTipMessageType =
   | "Save Query"
   | "Remove query from Saved"
   | "Query removed from Saved!";
-const tooltopMessageOptions: { [key: string]: ToolTipMessageType } = {
+const tooltipMessageOptions: { [key: string]: ToolTipMessageType } = {
   saved: "Saved!",
   save: "Save Query",
   remove: "Remove query from Saved",
@@ -53,51 +52,43 @@ export const ListGroup = ({
   changeBookmark,
 }: ListGroupProps) => {
   const { status, methods, paths, startTime, endTime, since } = filterList.filters;
-
   const [isSaved, setIsSaved] = useState(filterList.bookmarked);
-  const [tooltipMessage, setTooltipMessage] = useState<ToolTipMessageType>(
-    isSaved ? tooltopMessageOptions.saved : tooltopMessageOptions.save,
-  );
-
   const [toolTipOpen, setToolTipOpen] = useState(false);
-  const handleBookmarkChanged = () => {
-    const newValue = !isSaved;
-    setIsSaved(newValue);
-    setTooltipMessage(newValue ? tooltopMessageOptions.saved : tooltopMessageOptions.removed);
-    changeBookmark(filterList.id);
-    if (isSaved) {
-      setTooltipMessage(tooltopMessageOptions.removed);
-      toast.success(
-        <QueriesToast
-          message={tooltopMessageOptions.removed}
-          undoBookmarked={() => changeBookmark(filterList.id)}
-        >
-          <Check className="size-[18px] text-success-9" />
-        </QueriesToast>,
-      );
-    } else {
-      setTooltipMessage(tooltopMessageOptions.saved);
-      toast.success(
-        <QueriesToast
-          message={tooltopMessageOptions.saved}
-          undoBookmarked={() => changeBookmark(filterList.id)}
-        >
-          <Check className="size-[18px] text-success-9" />
-        </QueriesToast>,
-      );
+  const [toastMessage, setToastMessage] = useState<ToolTipMessageType>();
+  const [tooltipMessage, setTooltipMessage] = useState<ToolTipMessageType>(
+    isSaved ? tooltipMessageOptions.saved : tooltipMessageOptions.save,
+  );
+  useEffect(() => {
+    if (toastMessage) {
+      handleToast(toastMessage);
     }
+  }, [toastMessage]);
+  const handleToast = (message: ToolTipMessageType) => {
+    toast.success(
+      <QueriesToast message={message} undoBookmarked={handleBookmarkChanged}>
+        <CCheck size="xl-regular" className="text-success-9" />
+      </QueriesToast>,
+    );
+  };
+
+  const handleBookmarkChanged = () => {
+    changeBookmark(filterList.id);
+    const newIsSaved = !isSaved;
+    setIsSaved(newIsSaved);
+    const message = newIsSaved ? tooltipMessageOptions.saved : tooltipMessageOptions.removed;
+    setToastMessage(message);
+    setTooltipMessage(message);
   };
 
   const handleMouseEnter = () => {
     setToolTipOpen(true);
-    isSaved
-      ? setTooltipMessage(tooltopMessageOptions.remove)
-      : setTooltipMessage(tooltopMessageOptions.save);
+    setTooltipMessage(isSaved ? tooltipMessageOptions.remove : tooltipMessageOptions.save);
   };
+
   const handleMouseLeave = () => {
     setToolTipOpen(false);
-    // isSaved ? setTooltipMessage("Saved!") : setTooltipMessage("Save Query");
   };
+
   const handleSelection = (index: number) => {
     querySelected(index);
   };
@@ -151,8 +142,8 @@ export const ListGroup = ({
         </div>
         <div
           className="flex flex-col h-[24px] pr-2 mt-1.5 w-[24px]"
-          onMouseEnter={() => handleMouseEnter()}
-          onMouseLeave={() => handleMouseLeave()}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           <Tooltip open={toolTipOpen}>
             <TooltipTrigger>
