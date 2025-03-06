@@ -30,6 +30,7 @@ export const createWorkspace = t.procedure
     const workspace: Workspace = {
       id: newId("workspace"),
       tenantId: org.id,
+      orgId: null,
       name: input.name,
       plan: "pro",
       tier: "Free",
