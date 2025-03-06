@@ -111,7 +111,7 @@ export const DatetimePopover = ({
         <div className="flex flex-row items-center">{children}</div>
       </PopoverTrigger>
       <PopoverContent
-        className="flex w-full bg-gray-1 dark:bg-black drop-shadow-3 p-0 m-0 border-gray-6 rounded-lg"
+        className="flex w-full bg-gray-1 dark:bg-black shadow-2xl p-0 m-0 border-gray-6 rounded-lg"
         align="start"
       >
         <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">

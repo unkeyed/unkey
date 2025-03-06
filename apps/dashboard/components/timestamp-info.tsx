@@ -96,7 +96,7 @@ export const TimestampInfo = ({
       <TooltipContent
         align={align}
         side="right"
-        className="font-mono p-0 bg-gray-1 shadow-lg text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-gray-6"
+        className="font-mono p-0 bg-gray-1 shadow-2xl text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-gray-6"
       >
         <div className="py-3">
           <TooltipRow label="UTC" value={utc} />
