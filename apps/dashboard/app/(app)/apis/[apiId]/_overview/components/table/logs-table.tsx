@@ -8,13 +8,10 @@ import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { Ban, BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { useKeysOverviewLogsQuery } from "./hooks/use-logs-query";
-import {
-  getRowClassName,
-  getStatusStyle,
-  STATUS_STYLES,
-} from "./utils/get-row-class";
+import { OutcomesPopover } from "./components/outcome-popover";
 import { KeyIdentifierColumn } from "./components/override-indicator";
+import { useKeysOverviewLogsQuery } from "./hooks/use-logs-query";
+import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
 const compactFormatter = new Intl.NumberFormat("en-US", {
   notation: "compact",
@@ -22,10 +19,9 @@ const compactFormatter = new Intl.NumberFormat("en-US", {
 });
 
 export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
-  const { historicalLogs, isLoading, isLoadingMore, loadMore } =
-    useKeysOverviewLogsQuery({
-      apiId,
-    });
+  const { historicalLogs, isLoading, isLoadingMore, loadMore } = useKeysOverviewLogsQuery({
+    apiId,
+  });
 
   const columns = (): Column<KeysOverviewLog>[] => {
     return [
@@ -58,7 +54,7 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
               <Badge
                 className={cn(
                   "px-[6px] rounded-md font-mono whitespace-nowrap",
-                  STATUS_STYLES.success.badge.default
+                  STATUS_STYLES.success.badge.default,
                 )}
                 title={`${log.valid_count.toLocaleString()} Valid requests`}
               >
@@ -79,7 +75,7 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
               <Badge
                 className={cn(
                   "px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
-                  style.badge.default
+                  style.badge.default,
                 )}
                 title={`${log.error_count.toLocaleString()} Invalid requests`}
               >
@@ -94,31 +90,7 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
         key: "outcomes",
         header: "Other Outcomes",
         width: "25%",
-        render: (log) => {
-          // Filter out outcomes to show (showing only non-zero counts)
-          const relevantOutcomes = Object.entries(log.outcome_counts).filter(
-            ([outcome, count]) => count > 0 && outcome !== "VALID"
-          );
-
-          return (
-            <div className="flex flex-wrap gap-1">
-              {relevantOutcomes.map(([outcome, count]) => (
-                <Badge
-                  key={outcome}
-                  className={cn(
-                    "px-[6px] rounded-md font-mono whitespace-nowrap",
-                    getOutcomeBadgeClass(outcome)
-                  )}
-                  title={`${count.toLocaleString()} ${formatOutcomeName(
-                    outcome
-                  )} requests`}
-                >
-                  {formatOutcomeName(outcome)}: {compactFormatter.format(count)}
-                </Badge>
-              ))}
-            </div>
-          );
-        },
+        render: (log) => <OutcomesPopover outcomeCounts={log.outcome_counts} displayLimit={1} />,
       },
       {
         key: "lastUsed",
@@ -128,45 +100,12 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
           <div className="flex items-center gap-14 truncate text-accent-9">
             <TimestampInfo
               value={log.time}
-              className={cn(
-                "font-mono group-hover:underline decoration-dotted"
-              )}
+              className={cn("font-mono group-hover:underline decoration-dotted")}
             />
           </div>
         ),
       },
     ];
-  };
-
-  // Helper function to format outcome names
-  const formatOutcomeName = (outcome: string): string => {
-    if (!outcome) {
-      return "Unknown";
-    }
-
-    return outcome
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(" ");
-  };
-
-  // Helper function to get the appropriate badge class for an outcome
-  const getOutcomeBadgeClass = (outcome: string): string => {
-    switch (outcome) {
-      case "VALID":
-        return "bg-accent-4 text-accent-11";
-      case "RATE_LIMITED":
-        return "bg-warning-4 text-warning-11";
-      case "INSUFFICIENT_PERMISSIONS":
-      case "FORBIDDEN":
-        return "bg-error-4 text-error-11";
-      case "DISABLED":
-      case "EXPIRED":
-      case "USAGE_EXCEEDED":
-        return "bg-gray-4 text-gray-11";
-      default:
-        return "bg-blue-4 text-blue-11";
-    }
   };
 
   return (
@@ -184,9 +123,8 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>Key Verification Logs</Empty.Title>
             <Empty.Description className="text-left">
-              No key verification data to show. Once requests are made with API
-              keys, you'll see a summary of successful and failed verification
-              attempts.
+              No key verification data to show. Once requests are made with API keys, you'll see a
+              summary of successful and failed verification attempts.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a

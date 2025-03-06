@@ -69,16 +69,12 @@ export const keysOverviewFilterFieldEnum = z.enum([
 export const filterOutputSchema = createFilterOutputSchema(
   keysOverviewFilterFieldEnum,
   keysOverviewFilterOperatorEnum,
-  keysOverviewFilterFieldConfig
+  keysOverviewFilterFieldConfig,
 );
 
 // Types
-export type KeysOverviewFilterOperator = z.infer<
-  typeof keysOverviewFilterOperatorEnum
->;
-export type KeysOverviewFilterField = z.infer<
-  typeof keysOverviewFilterFieldEnum
->;
+export type KeysOverviewFilterOperator = z.infer<typeof keysOverviewFilterOperatorEnum>;
+export type KeysOverviewFilterField = z.infer<typeof keysOverviewFilterFieldEnum>;
 
 export type FilterFieldConfigs = {
   startTime: NumberConfig<KeysOverviewFilterOperator>;

@@ -37,9 +37,7 @@ export const STATUS_STYLES = {
 };
 
 export const getStatusStyle = (log: KeysOverviewLog): StatusStyle => {
-  return calculateErrorPercentage(log)
-    ? STATUS_STYLES.error
-    : STATUS_STYLES.success;
+  return calculateErrorPercentage(log) ? STATUS_STYLES.error : STATUS_STYLES.success;
 };
 
 export const getRowClassName = (log: KeysOverviewLog) => {
@@ -52,6 +50,6 @@ export const getRowClassName = (log: KeysOverviewLog) => {
     hasHighErrorRate ? "bg-orange-2" : "",
     "group rounded-md",
     "focus:outline-none focus:ring-1 focus:ring-opacity-40",
-    style.focusRing
+    style.focusRing,
   );
 };

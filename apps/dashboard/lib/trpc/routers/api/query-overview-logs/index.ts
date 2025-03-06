@@ -31,7 +31,7 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
           and(
             eq(api.id, input.apiId),
             eq(api.workspaceId, ctx.workspace.id),
-            isNull(api.deletedAtM)
+            isNull(api.deletedAtM),
           ),
         with: {
           keyAuth: true,

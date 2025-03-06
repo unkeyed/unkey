@@ -1,8 +1,8 @@
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { Navigation } from "./navigation";
 import { LogsClient } from "./_overview/logs-client";
+import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";

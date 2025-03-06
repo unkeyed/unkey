@@ -21,7 +21,7 @@ export const keysOverviewLogsParams = z.object({
           "",
         ]),
         operator: z.literal("is"),
-      })
+      }),
     )
     .nullable(),
   keyIds: z
@@ -29,7 +29,7 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
@@ -131,8 +131,7 @@ export function getKeysOverviewLogs(ch: Querier) {
       )
     `;
 
-    const extendedParamsSchema =
-      keysOverviewLogsParams.extend(paramSchemaExtension);
+    const extendedParamsSchema = keysOverviewLogsParams.extend(paramSchemaExtension);
     const query = ch.query({
       query: `
 WITH 

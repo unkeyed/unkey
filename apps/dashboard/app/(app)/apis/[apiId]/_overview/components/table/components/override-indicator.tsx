@@ -3,12 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@unkey/ui";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import { calculateErrorPercentage } from "../utils/calculate-blocked-percentage";
 
 export const KeyTooltip = ({
@@ -40,17 +35,14 @@ type KeyIdentifierColumnProps = {
 export const KeyIdentifierColumn = ({ log }: KeyIdentifierColumnProps) => {
   const hasHighErrorRate = calculateErrorPercentage(log);
   const totalRequests = log.valid_count + log.error_count;
-  const errorRate =
-    totalRequests > 0 ? (log.error_count / totalRequests) * 100 : 0;
+  const errorRate = totalRequests > 0 ? (log.error_count / totalRequests) * 100 : 0;
 
   return (
     <div className="flex gap-6 items-center pl-2">
       <KeyTooltip
         content={
           <p className="text-sm">
-            More than {Math.round(errorRate)}% of requests have been
-            <br />
-            invalid in this timeframe
+            More than {Math.round(errorRate)}% of requests have been invalid
           </p>
         }
       >

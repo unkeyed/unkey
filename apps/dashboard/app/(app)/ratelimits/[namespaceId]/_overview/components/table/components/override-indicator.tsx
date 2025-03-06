@@ -49,17 +49,21 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
             />
           )}
         </div>
-        <div className="font-mono text-accent-12 font-medium">{log.identifier}</div>
+        <div
+          className={cn("font-mono font-medium", hasMoreBlocked ? style.base : "text-accent-12")}
+        >
+          {log.identifier}
+        </div>
         {log.override && <OverrideIndicator log={log} style={style} />}
       </div>
     </div>
   );
 };
 
-interface OverrideIndicatorProps {
+type OverrideIndicatorProps = {
   log: RatelimitOverviewLog;
   style: ReturnType<typeof getStatusStyle>;
-}
+};
 
 const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
   <TooltipProvider>

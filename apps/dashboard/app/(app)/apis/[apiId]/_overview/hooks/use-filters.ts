@@ -13,8 +13,10 @@ import {
   keysOverviewFilterFieldConfig,
 } from "../filters.schema";
 
-const parseAsFilterValArray =
-  parseAsFilterValueArray<KeysOverviewFilterOperator>(["is", "contains"]);
+const parseAsFilterValArray = parseAsFilterValueArray<KeysOverviewFilterOperator>([
+  "is",
+  "contains",
+]);
 
 export const queryParamsPayload = {
   keyIds: parseAsFilterValArray,
@@ -47,7 +49,7 @@ export const useFilters = () => {
         value: outcomeFilter.value,
         metadata: {
           colorClass: keysOverviewFilterFieldConfig.outcomes.getColorClass?.(
-            outcomeFilter.value as string
+            outcomeFilter.value as string,
           ),
         },
       });
@@ -111,7 +113,7 @@ export const useFilters = () => {
 
       setSearchParams(newParams);
     },
-    [setSearchParams]
+    [setSearchParams],
   );
 
   const removeFilter = useCallback(
@@ -119,7 +121,7 @@ export const useFilters = () => {
       const newFilters = filters.filter((f) => f.id !== id);
       updateFilters(newFilters);
     },
-    [filters, updateFilters]
+    [filters, updateFilters],
   );
 
   return {

@@ -3,7 +3,7 @@ import { getTimestampFromRelative } from "@/lib/utils";
 import type { KeysOverviewLogsParams } from "@unkey/clickhouse/src/keys/keys";
 
 export function transformKeysFilters(
-  params: KeysQueryOverviewLogsPayload
+  params: KeysQueryOverviewLogsPayload,
 ): Omit<KeysOverviewLogsParams, "workspaceId" | "keyspaceId"> {
   let startTime = params.startTime;
   let endTime = params.endTime;

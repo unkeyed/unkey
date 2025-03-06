@@ -10,19 +10,13 @@ type UseLogsQueryParams = {
   apiId: string;
 };
 
-export function useKeysOverviewLogsQuery({
-  apiId,
-  limit = 50,
-}: UseLogsQueryParams) {
+export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryParams) {
   const [historicalLogsMap, setHistoricalLogsMap] = useState(
-    () => new Map<string, KeysOverviewLog>()
+    () => new Map<string, KeysOverviewLog>(),
   );
 
   const { filters } = useFilters();
-  const historicalLogs = useMemo(
-    () => Array.from(historicalLogsMap.values()),
-    [historicalLogsMap]
-  );
+  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   //Required for preventing double trpc call during initial render
   const dateNow = useMemo(() => Date.now(), []);
@@ -81,9 +75,7 @@ export function useKeysOverviewLogsQuery({
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(
-              `${filter.field} filter value type has to be 'number'`
-            );
+            console.error(`${filter.field} filter value type has to be 'number'`);
             return;
           }
           params[filter.field] = filter.value;

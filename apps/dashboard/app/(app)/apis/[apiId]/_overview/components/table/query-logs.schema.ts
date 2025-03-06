@@ -27,7 +27,7 @@ export const keysQueryOverviewLogsPayload = z.object({
           "",
         ]),
         operator: z.literal("is"),
-      })
+      }),
     )
     .optional()
     .nullable(),
@@ -36,12 +36,10 @@ export const keysQueryOverviewLogsPayload = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .optional()
     .nullable(),
 });
 
-export type KeysQueryOverviewLogsPayload = z.infer<
-  typeof keysQueryOverviewLogsPayload
->;
+export type KeysQueryOverviewLogsPayload = z.infer<typeof keysQueryOverviewLogsPayload>;
