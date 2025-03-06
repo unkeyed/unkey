@@ -1,0 +1,278 @@
+---
+title: Subscriptions
+description: How Unkey uses Stripe subscriptions
+---
+
+
+
+Our Stripe billing integration is designed with several important objectives:
+
+1. **Calendar Month Alignment**
+   - All billing cycles align with calendar months (1st to end of month)
+   - Provides predictable billing dates for customers
+   - Simplifies usage calculations and reporting
+
+2. **Free Tier Efficiency**
+   - Free tier users don't require Stripe customers or subscriptions
+   - Only create Stripe resources when users actively choose to upgrade
+   - Keeps Stripe dashboard clean and focused on paying customers
+
+3. **Frictionless Upgrades**
+   - Seamless transition from free to paid
+   - Transparent trial process with payment method collection upfront
+   - Clear visibility into usage and quotas
+
+## System Overview
+
+Unkey's Stripe billing integration manages user subscriptions through a tiered pricing model, with support for legacy usage-based pricing. The system handles payment methods, trials, subscription management, and customer portals.
+
+The high-level user flow is as follows:
+
+```
+┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
+│            │     │            │     │            │     │            │
+│   Signup   │────►│  WorkOS    │────►│  Create    │────►│ Free Tier  │
+│            │     │ Auth & Org │     │ Workspace  │     │            │
+└────────────┘     └────────────┘     └────────────┘     └────────────┘
+                                                                │
+                                                                │
+                                                                ▼
+┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
+│            │     │            │     │            │     │            │
+│ Active Plan│◄────│ Start Trial│◄────│ Add Payment│◄────│  User      │
+│            │     │            │     │ Method     │     │  Action    │
+└────────────┘     └────────────┘     └────────────┘     └────────────┘
+```
+
+## Key Components
+
+
+1. **Workspace Billing Configuration**
+   - `stripeCustomerId`: Links workspace to Stripe customer
+   - `stripeSubscriptionId`: Links workspace to Stripe subscription
+   - `tier`: Current plan tier (free, pro, etc.)
+   - `quota`: Usage limits (primarily `requestsPerMonth`)
+
+3. **Stripe Redirects**
+   - Portal access
+   - Payment setup
+   - Subscription management
+   - Trial initialization
+
+4. **Webhook Integration**
+   - Automatic plan updates based on subscription status changes
+   - Quota adjustments when plans change
+   - Graceful handling of subscription cancellations
+
+## Technical Implementation
+
+### Stripe Environment Configuration
+
+The application requires proper Stripe environment configuration:
+- `STRIPE_SECRET_KEY`
+- `STRIPE_TRIAL_PRICE_ID`
+- `STRIPE_WEBHOOK_SECRET`
+
+### Workspace Database Schema
+
+The workspace schema includes:
+```typescript
+workspaces {
+  id: string
+  tenantId: string
+  stripeCustomerId: string | null
+  stripeSubscriptionId: string | null
+  tier: string
+  subscriptions: object | null  // Legacy
+  quota: {
+    requestsPerMonth: number
+  }
+}
+```
+
+### Trial Management
+
+- 14-day trial period
+- Automatic cancellation if payment method missing at end of trial
+- Billing cycle anchors to 1st of month
+
+## Flow Diagrams
+
+Below are detailed sequence diagrams for the main billing operations.
+
+### Starting a Trial
+
+```
+┌──────┐            ┌───────────┐         ┌────────┐          ┌─────────┐
+│ User │            │ Unkey App │         │ Stripe │          │ Database│
+└──┬───┘            └────┬──────┘         └───┬────┘          └────┬────┘
+   │                     │                    │                    │
+   │ Click "Start Trial" │                    │                    │
+   │────────────────────>│                    │                    │
+   │                     │                    │                    │
+   │                     │ Create checkout session                 │
+   │                     │───────────────────>│                    │
+   │                     │                    │                    │
+   │                     │ Return session URL │                    │
+   │                     │<───────────────────│                    │
+   │                     │                    │                    │
+   │ Redirect to Stripe checkout              │                    │
+   │<────────────────────│                    │                    │
+   │                     │                    │                    │
+   │ Enter payment details                    │                    │
+   │─────────────────────────────────────────>│                    │
+   │                     │                    │                    │
+   │ Redirect to success URL                  │                    │
+   │<─────────────────────────────────────────│                    │
+   │                     │                    │                    │
+   │ Load success page.  │                    │                    │
+   │────────────────────>│                    │                    │
+   │                     │                    │                    │
+   │                     │ Retrieve session   │                    │
+   │                     │───────────────────>│                    │
+   │                     │                    │                    │
+   │                     │ Return session data│                    │
+   │                     │<───────────────────│                    │
+   │                     │                    │                    │
+   │                     │ Retrieve customer  │                    │
+   │                     │───────────────────>│                    │
+   │                     │                    │                    │
+   │                     │ Return customer data                    │
+   │                     │<───────────────────│                    │
+   │                     │                    │                    │
+   │                     │ Update workspace with customer ID       │
+   │                     │────────────────────────────────────────>│
+   │                     │                    │                    │
+   │                     │ Create subscription with 14-day trial   │
+   │                     │───────────────────>│                    │
+   │                     │                    │                    │
+   │                     │      Webhook: subscription.created      │
+   │                     │<───────────────────│                    │
+   │                     │                    │                    │
+   │                     │ Update workspace tier and quotas        │
+   │                     │────────────────────────────────────────>│
+   │                     │                    │                    │
+   │                     │ Return subscription│                    │
+   │                     │<───────────────────│                    │
+   │                     │                    │                    │
+   │                     │ Update workspace with subscription ID   │
+   │                     │────────────────────────────────────────>│
+   │                     │                    │                    │
+   │ Redirect to billing page                 │                    │
+   │<────────────────────│                    │                    │
+   │                     │                    │                    │
+```
+
+### Changing Plan
+
+```
+┌──────┐           ┌───────────┐          ┌────────┐          ┌─────────┐
+│ User │           │ Unkey App │          │ Stripe │          │ Database│
+└──┬───┘           └─────┬─────┘          └───┬────┘          └────┬────┘
+   │                     │                    │                    │
+   │ Click "Change Plan" │                    │                    │
+   │────────────────────>│                    │                    │
+   │                     │                    │                    │
+   │                     │ Get workspace data │                    │
+   │                     │────────────────────────────────────────>│
+   │                     │                    │                    │
+   │                     │ Return workspace data                   │
+   │                     │<────────────────────────────────────────│
+   │                     │                    │                    │
+   │                     │ Create portal session with subscription_update flow
+   │                     │───────────────────>│                    │
+   │                     │                    │                    │
+   │                     │ Return portal URL  │                    │
+   │                     │<───────────────────│                    │
+   │                     │                    │                    │
+   │ Redirect to Stripe portal                │                    │
+   │<────────────────────│                    │                    │
+   │                     │                    │                    │
+   │ Select new plan     │                    │                    │
+   │─────────────────────────────────────────>│                    │
+   │                     │                    │                    │
+   │ Confirm change      │                    │                    │
+   │─────────────────────────────────────────>│                    │
+   │                     │                    │                    │
+   │                     │      Webhook: subscription.updated      │
+   │                     │<───────────────────│                    │
+   │                     │                    │                    │
+   │                     │ Update workspace tier and quotas        │
+   │                     │────────────────────────────────────────>│
+   │                     │                    │                    │
+   │ Redirect to return URL                   │                    │
+   │<─────────────────────────────────────────│                    │
+   │                     │                    │                    │
+   │ Load billing page   │                    │                    │
+   │────────────────────>│                    │                    │
+   │                     │                    │                    │
+   │                     │ Get updated workspace data              │
+   │                     │────────────────────────────────────────>│
+   │                     │                    │                    │
+   │                     │ Return updated workspace data           │
+   │                     │<────────────────────────────────────────│
+   │                     │                    │                    │
+   │                     │ Show updated plan details               │
+   │<────────────────────│                    │                    │
+   │                     │                    │                    │
+```
+
+### Cancelling Subscription
+
+```
+┌──────┐           ┌───────────┐          ┌────────┐          ┌─────────┐
+│ User │           │ Unkey App │          │ Stripe │          │ Database│
+└──┬───┘           └─────┬─────┘          └───┬────┘          └────┬────┘
+   │                     │                    │                    │
+   │ Click "Cancel Subscription"              │                    │
+   │────────────────────>│                    │                    │
+   │                     │                    │                    │
+   │                     │ Get workspace data │                    │
+   │                     │────────────────────────────────────────>│
+   │                     │                    │                    │
+   │                     │ Return workspace data                   │
+   │                     │<────────────────────────────────────────│
+   │                     │                    │                    │
+   │                     │ Create portal session with subscription_cancel flow
+   │                     │───────────────────>│                    │
+   │                     │                    │                    │
+   │                     │ Return portal URL  │                    │
+   │                     │<───────────────────│                    │
+   │                     │                    │                    │
+   │ Redirect to Stripe portal                │                    │
+   │<────────────────────│                    │                    │
+   │                     │                    │                    │
+   │ Confirm cancellation                     │                    │
+   │─────────────────────────────────────────>│                    │
+   │                     │                    │                    │
+   │                     │      Webhook: subscription.cancelled    │
+   │                     │<───────────────────│                    │
+   │                     │                    │                    │
+   │                     │ Update workspace tier and quotas        │
+   │                     │────────────────────────────────────────>│
+   │                     │                    │                    │
+   │ Redirect to return URL                   │                    │
+   │<─────────────────────────────────────────│                    │
+   │                     │                    │                    │
+   │ Load billing page   │                    │                    │
+   │────────────────────>│                    │                    │
+   │                     │                    │                    │
+   │                     │ Get updated workspace data              │
+   │                     │────────────────────────────────────────>│
+   │                     │                    │                    │
+   │                     │ Return updated workspace data           │
+   │                     │<────────────────────────────────────────│
+   │                     │                    │                    │
+   │                     │ Show updated subscription status        │
+   │<────────────────────│                    │                    │
+   │                     │                    │                    │
+```
+
+## Implementation Notes
+
+### Trial Setup
+
+The trial is configured with the following parameters:
+- 14-day trial period
+- Automatic cancellation if payment method is missing at trial end
+- Billing cycle anchored to the 1st of the month for predictable billing
