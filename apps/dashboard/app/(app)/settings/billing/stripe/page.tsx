@@ -54,7 +54,11 @@ export default async function StripeRedirect(props: Props) {
     typescript: true,
   });
 
-  const baseUrl = process.env.VERCEL_URL ? "https://app.unkey.com" : "http://localhost:3000";
+  const baseUrl = process.env.VERCEL_URL
+    ? process.env.VERCEL_TARGET_ENV === "production"
+      ? "https://app.unkey.com"
+      : `https://${process.env.URL}`
+    : "http://localhost:3000";
   const returnUrl = headers().get("referer") ?? "https://app.unkey.com";
 
   switch (props.searchParams.action) {
