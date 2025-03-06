@@ -2,16 +2,8 @@
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@unkey/ui";
-import {
-  getErrorPercentage,
-  getErrorSeverity,
-} from "../utils/calculate-blocked-percentage";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked-percentage";
 
 export const KeyTooltip = ({
   children,
@@ -75,18 +67,9 @@ export const KeyIdentifierColumn = ({ log }: KeyIdentifierColumnProps) => {
   return (
     <div className="flex gap-6 items-center pl-2">
       <KeyTooltip
-        content={
-          <p className="text-sm">
-            {getWarningMessage(severity, errorPercentage)}
-          </p>
-        }
+        content={<p className="text-sm">{getWarningMessage(severity, errorPercentage)}</p>}
       >
-        <div
-          className={cn(
-            "transition-opacity",
-            hasErrors ? "opacity-100" : "opacity-0"
-          )}
-        >
+        <div className={cn("transition-opacity", hasErrors ? "opacity-100" : "opacity-0")}>
           {getWarningIcon(severity)}
         </div>
       </KeyTooltip>

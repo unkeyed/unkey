@@ -56,9 +56,7 @@ export const STATUS_STYLES = {
   },
 };
 
-export const categorizeSeverity = (
-  outcome: string
-): keyof typeof STATUS_STYLES => {
+export const categorizeSeverity = (outcome: string): keyof typeof STATUS_STYLES => {
   switch (outcome) {
     // Critical errors
     case "INSUFFICIENT_PERMISSIONS":
@@ -113,10 +111,7 @@ export const getOutcomeBadgeClass = (outcome: string): string => {
   }
 };
 
-export const getRowClassName = (
-  log: KeysOverviewLog,
-  selectedLog: KeysOverviewLog
-) => {
+export const getRowClassName = (log: KeysOverviewLog, selectedLog: KeysOverviewLog) => {
   const style = getStatusStyle(log);
   const isSelected = log.key_id === selectedLog?.key_id;
 
@@ -130,6 +125,6 @@ export const getRowClassName = (
     selectedLog && {
       "opacity-50 z-0": !isSelected,
       "opacity-100 z-10": isSelected,
-    }
+    },
   );
 };

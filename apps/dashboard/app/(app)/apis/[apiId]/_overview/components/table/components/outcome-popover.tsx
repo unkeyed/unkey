@@ -1,14 +1,10 @@
 "use client";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { STATUS_STYLES } from "../utils/get-row-class";
-import { Badge } from "@/components/ui/badge";
 
 const formatOutcomeName = (outcome: string): string => {
   if (!outcome) {
@@ -45,18 +41,18 @@ const getOutcomeColor = (outcome: string): string => {
 const getOutcomeBadgeStyle = (outcome: string): string => {
   switch (outcome) {
     case "RATE_LIMITED":
-      return "bg-warning-4 text-warning-11 hover:bg-warning-5";
+      return "bg-warning-4 text-warning-11 group-hover:bg-warning-5";
     case "INSUFFICIENT_PERMISSIONS":
     case "FORBIDDEN":
-      return "bg-error-4 text-error-11 hover:bg-error-5";
+      return "bg-error-4 text-error-11 group-hover:bg-error-5";
     case "DISABLED":
-      return "bg-gray-4 text-gray-11 hover:bg-gray-5";
+      return "bg-gray-4 text-gray-11 group-hover:bg-gray-5";
     case "EXPIRED":
-      return "bg-orange-4 text-orange-11 hover:bg-orange-5";
+      return "bg-orange-4 text-orange-11 group-hover:bg-orange-5";
     case "USAGE_EXCEEDED":
-      return "bg-violet-4 text-violet-11 hover:bg-violet-5";
+      return "bg-violet-4 text-violet-11 group-hover:bg-violet-5";
     default:
-      return "bg-grayA-4 text-accent-11 hover:bg-grayA-5";
+      return "bg-gray-4 text-accent-11 hover:bg-gray-5 group-hover:text-accent-12";
   }
 };
 
@@ -70,26 +66,16 @@ type OutcomesPopoverProps = {
   isSelected: boolean;
 };
 
-export const OutcomesPopover = ({
-  outcomeCounts,
-  isSelected,
-}: OutcomesPopoverProps) => {
-  const allOutcomeEntries = Object.entries(outcomeCounts).filter(
-    ([_, count]) => count > 0
-  );
+export const OutcomesPopover = ({ outcomeCounts, isSelected }: OutcomesPopoverProps) => {
+  const allOutcomeEntries = Object.entries(outcomeCounts).filter(([_, count]) => count > 0);
 
-  const nonValidOutcomes = allOutcomeEntries.filter(
-    ([outcome]) => outcome !== "VALID"
-  );
+  const nonValidOutcomes = allOutcomeEntries.filter(([outcome]) => outcome !== "VALID");
 
   if (nonValidOutcomes.length === 0) {
     return null;
   }
 
-  const totalNonValidCount = nonValidOutcomes.reduce(
-    (sum, [_, count]) => sum + count,
-    0
-  );
+  const totalNonValidCount = nonValidOutcomes.reduce((sum, [_, count]) => sum + count, 0);
 
   // If there's only one type of non-valid outcome, show a badge instead of a popover
   if (nonValidOutcomes.length === 1) {
@@ -97,13 +83,10 @@ export const OutcomesPopover = ({
     return (
       <Badge
         className={cn(
-          "h-[22px] rounded-md px-2 text-xs font-medium",
+          "h-[22px] rounded-md px-2 text-xs font-medium w-[100px] items-center justify-center truncate",
           getOutcomeBadgeStyle(outcome),
-          isSelected ? "border border-accent-7" : "border border-transparent"
         )}
-        title={`${count.toLocaleString()} ${formatOutcomeName(
-          outcome
-        )} requests`}
+        title={`${count.toLocaleString()} ${formatOutcomeName(outcome)} requests`}
       >
         {formatOutcomeName(outcome)}: {compactFormatter.format(count)}
       </Badge>
@@ -119,14 +102,14 @@ export const OutcomesPopover = ({
             variant="ghost"
             size="sm"
             className={cn(
-              "h-[22px] rounded-md px-2 text-xs font-medium text-accent-11 bg-gray-4 hover:bg-gray-5 [&_svg]:size-3",
+              "h-[22px] rounded-md px-2 text-xs font-medium text-accent-11 bg-gray-4 hover:bg-gray-5 [&_svg]:size-3 w-[150px] flex items-center justify-center truncate",
               isSelected
                 ? STATUS_STYLES.success.badge.selected
-                : STATUS_STYLES.success.badge.default
+                : STATUS_STYLES.success.badge.default,
             )}
             title="View all outcomes"
           >
-            <span className="flex items-center">
+            <span className="flex items-center truncate ">
               Other outcomes ({compactFormatter.format(totalNonValidCount)})
               <ChevronRight size="sm-regular" className="ml-1" />
             </span>
@@ -141,8 +124,7 @@ export const OutcomesPopover = ({
             <div className="flex items-center justify-between">
               <div className="text-xs font-medium text-gray-9">Outcomes</div>
               <div className="text-xs text-gray-9">
-                {nonValidOutcomes.length}{" "}
-                {nonValidOutcomes.length === 1 ? "type" : "types"}
+                {nonValidOutcomes.length} {nonValidOutcomes.length === 1 ? "type" : "types"}
               </div>
             </div>
           </div>
@@ -152,16 +134,11 @@ export const OutcomesPopover = ({
               {nonValidOutcomes.map(([outcome, count], index) => (
                 <div
                   key={outcome}
-                  className={cn(
-                    "flex items-center justify-between py-1.5",
-                    index === 0 && "pt-1"
-                  )}
+                  className={cn("flex items-center justify-between py-1.5", index === 0 && "pt-1")}
                 >
                   <div className="flex items-center gap-2.5 pl-1.5 font-mono">
                     <div
-                      className={`size-[10px] ${getOutcomeColor(
-                        outcome
-                      )} rounded-[2px] shadow-sm`}
+                      className={`size-[10px] ${getOutcomeColor(outcome)} rounded-[2px] shadow-sm`}
                     />
                     <span className="text-accent-12 text-xs font-medium">
                       {formatOutcomeName(outcome)}
