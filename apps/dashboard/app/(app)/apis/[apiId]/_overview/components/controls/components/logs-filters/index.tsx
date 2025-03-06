@@ -4,19 +4,20 @@ import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { ratelimitOverviewFilterFieldConfig } from "../../../../filters.schema";
+// import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsFilters = () => {
-  const { filters, updateFilters } = useFilters();
+  const { filters } = useFilters();
 
-  const identifierOperators = ratelimitOverviewFilterFieldConfig.identifiers.operators;
-  const options = identifierOperators.map((op) => ({
-    id: op,
-    label: op,
-  }));
+  // const identifierOperators =
+  //   keysOverviewFilterFieldConfig..operators;
+  // const options = identifierOperators.map((op) => ({
+  //   id: op,
+  //   label: op,
+  // }));
 
-  const activeIdentifierFilter = filters.find((f) => f.field === "identifiers");
+  // const activeIdentifierFilter = filters.find((f) => f.field === "identifiers");
   return (
     <FiltersPopover
       items={[
@@ -27,22 +28,11 @@ export const LogsFilters = () => {
           component: (
             <FilterOperatorInput
               label="Identifier"
-              options={options}
-              defaultOption={activeIdentifierFilter?.operator}
-              defaultText={activeIdentifierFilter?.value as string}
-              onApply={(id, text) => {
-                const activeFiltersWithoutIdentifiers = filters.filter(
-                  (f) => f.field !== "identifiers",
-                );
-                updateFilters([
-                  ...activeFiltersWithoutIdentifiers,
-                  {
-                    field: "identifiers",
-                    id: crypto.randomUUID(),
-                    operator: id,
-                    value: text,
-                  },
-                ]);
+              options={[]}
+              // defaultOption={activeIdentifierFilter?.operator}
+              // defaultText={activeIdentifierFilter?.value as string}
+              onApply={() => {
+                return;
               }}
             />
           ),
@@ -55,7 +45,7 @@ export const LogsFilters = () => {
           variant="ghost"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2",
-            filters.length > 0 ? "bg-gray-4" : "",
+            filters.length > 0 ? "bg-gray-4" : ""
           )}
           aria-label="Filter logs"
           aria-haspopup="true"

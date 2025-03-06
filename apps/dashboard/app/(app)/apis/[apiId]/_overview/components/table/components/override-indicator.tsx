@@ -1,10 +1,17 @@
 "use client";
-
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import { calculateErrorPercentage } from "../utils/calculate-blocked-percentage";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@unkey/ui";
+import {
+  getErrorPercentage,
+  getErrorSeverity,
+} from "../utils/calculate-blocked-percentage";
 
 export const KeyTooltip = ({
   children,
@@ -32,29 +39,60 @@ type KeyIdentifierColumnProps = {
   log: KeysOverviewLog;
 };
 
+// Get warning icon based on error severity
+const getWarningIcon = (severity: string) => {
+  switch (severity) {
+    case "high":
+      return <TriangleWarning2 className="text-error-11" />;
+    case "moderate":
+      return <TriangleWarning2 className="text-orange-11" />;
+    case "low":
+      return <TriangleWarning2 className="text-warning-11" />;
+    default:
+      return <TriangleWarning2 className="invisible" />;
+  }
+};
+
+// Get tooltip message based on error severity
+const getWarningMessage = (severity: string, errorRate: number) => {
+  switch (severity) {
+    case "high":
+      return `Critical: ${Math.round(errorRate)}% of requests have failed`;
+    case "moderate":
+      return `Warning: ${Math.round(errorRate)}% of requests have failed`;
+    case "low":
+      return `${Math.round(errorRate)}% of requests have been invalid`;
+    default:
+      return "All requests are valid";
+  }
+};
+
 export const KeyIdentifierColumn = ({ log }: KeyIdentifierColumnProps) => {
-  const hasHighErrorRate = calculateErrorPercentage(log);
-  const totalRequests = log.valid_count + log.error_count;
-  const errorRate = totalRequests > 0 ? (log.error_count / totalRequests) * 100 : 0;
+  const errorPercentage = getErrorPercentage(log);
+  const severity = getErrorSeverity(log);
+  const hasErrors = severity !== "none";
 
   return (
     <div className="flex gap-6 items-center pl-2">
       <KeyTooltip
         content={
           <p className="text-sm">
-            More than {Math.round(errorRate)}% of requests have been invalid
+            {getWarningMessage(severity, errorPercentage)}
           </p>
         }
       >
-        <div className={cn(hasHighErrorRate ? "block" : "invisible")}>
-          <TriangleWarning2 />
+        <div
+          className={cn(
+            "transition-opacity",
+            hasErrors ? "opacity-100" : "opacity-0"
+          )}
+        >
+          {getWarningIcon(severity)}
         </div>
       </KeyTooltip>
-      <div className="flex gap-3 items-center">
-        <div className="font-mono text-accent-12 font-medium truncate">
-          {log.key_id.substring(0, 8)}...
-          {log.key_id.substring(log.key_id.length - 4)}
-        </div>
+      <div className="font-mono font-medium truncate">
+        {log.key_id.substring(0, 8)}...
+        {log.key_id.substring(log.key_id.length - 4)}
       </div>
     </div>
   );

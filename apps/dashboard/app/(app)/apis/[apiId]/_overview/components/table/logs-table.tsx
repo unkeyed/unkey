@@ -1,17 +1,26 @@
 "use client";
-
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { Ban, BookBookmark } from "@unkey/icons";
+import { Ban, BookBookmark, TriangleWarning } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { useState } from "react";
+
 import { OutcomesPopover } from "./components/outcome-popover";
 import { KeyIdentifierColumn } from "./components/override-indicator";
 import { useKeysOverviewLogsQuery } from "./hooks/use-logs-query";
-import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
+import {
+  getErrorSeverity,
+  getErrorPercentage,
+} from "./utils/calculate-blocked-percentage";
+import {
+  STATUS_STYLES,
+  getStatusStyle,
+  getRowClassName,
+} from "./utils/get-row-class";
 
 const compactFormatter = new Intl.NumberFormat("en-US", {
   notation: "compact",
@@ -19,9 +28,27 @@ const compactFormatter = new Intl.NumberFormat("en-US", {
 });
 
 export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
-  const { historicalLogs, isLoading, isLoadingMore, loadMore } = useKeysOverviewLogsQuery({
-    apiId,
-  });
+  const [selectedLog, setSelectedLog] = useState<KeysOverviewLog>();
+  const { historicalLogs, isLoading, isLoadingMore, loadMore } =
+    useKeysOverviewLogsQuery({
+      apiId,
+    });
+
+  // Helper to determine icon based on severity
+  const getStatusIcon = (log: KeysOverviewLog) => {
+    const severity = getErrorSeverity(log);
+
+    switch (severity) {
+      case "high":
+        return <Ban size="sm-regular" className="text-error-11" />;
+      case "moderate":
+        return <Ban size="sm-regular" className="text-orange-11" />;
+      case "low":
+        return <Ban size="sm-regular" className="text-warning-11" />;
+      default:
+        return <Ban size="sm-regular" className="text-accent-11" />;
+    }
+  };
 
   const columns = (): Column<KeysOverviewLog>[] => {
     return [
@@ -38,7 +65,7 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
         width: "15%",
         render: (log) => {
           return (
-            <div className="flex gap-3 items-center group/name truncate font-mono text-accent-12">
+            <div className="flex gap-3 items-center group/name truncate font-mono">
               {log.key_details?.name || "<EMPTY>"}
             </div>
           );
@@ -50,11 +77,13 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
         width: "15%",
         render: (log) => {
           return (
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-3 items-center tabular-nums">
               <Badge
                 className={cn(
                   "px-[6px] rounded-md font-mono whitespace-nowrap",
-                  STATUS_STYLES.success.badge.default,
+                  selectedLog?.key_id === log.key_id
+                    ? STATUS_STYLES.success.badge.selected
+                    : STATUS_STYLES.success.badge.default
                 )}
                 title={`${log.valid_count.toLocaleString()} Valid requests`}
               >
@@ -70,39 +99,52 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
         width: "15%",
         render: (log) => {
           const style = getStatusStyle(log);
+          const errorPercentage = getErrorPercentage(log);
+
           return (
-            <div className="flex gap-3 items-center">
-              <Badge
-                className={cn(
-                  "px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
-                  style.badge.default,
-                )}
-                title={`${log.error_count.toLocaleString()} Invalid requests`}
-              >
-                {log.error_count > 0 && <Ban size="sm-regular" />}
-                {compactFormatter.format(log.error_count)}
-              </Badge>
+            <div className="flex items-center w-full">
+              <div className="flex-shrink-0 w-[50px]">
+                <Badge
+                  className={cn(
+                    "px-[6px] rounded-md font-mono whitespace-nowrap flex items-center",
+                    selectedLog?.key_id === log.key_id
+                      ? style.badge.selected
+                      : style.badge.default
+                  )}
+                  title={`${log.error_count.toLocaleString()} Invalid requests (${errorPercentage.toFixed(
+                    1
+                  )}%)`}
+                >
+                  <span className="mr-[6px] flex-shrink-0">
+                    {getStatusIcon(log)}
+                  </span>
+                  <span>{compactFormatter.format(log.error_count)}</span>
+                </Badge>
+              </div>
+              <div className="ml-2 flex-shrink-0">
+                <OutcomesPopover
+                  outcomeCounts={log.outcome_counts}
+                  isSelected={selectedLog?.key_id === log.key_id}
+                />
+              </div>
             </div>
           );
         },
-      },
-      {
-        key: "outcomes",
-        header: "Other Outcomes",
-        width: "25%",
-        render: (log) => <OutcomesPopover outcomeCounts={log.outcome_counts} displayLimit={1} />,
       },
       {
         key: "lastUsed",
         header: "Last Used",
         width: "15%",
         render: (log) => (
-          <div className="flex items-center gap-14 truncate text-accent-9">
-            <TimestampInfo
-              value={log.time}
-              className={cn("font-mono group-hover:underline decoration-dotted")}
-            />
-          </div>
+          <TimestampInfo
+            value={log.time}
+            className={cn(
+              "font-mono group-hover:underline decoration-dotted",
+              selectedLog &&
+                selectedLog.request_id !== log.request_id &&
+                "pointer-events-none"
+            )}
+          />
         ),
       },
     ];
@@ -115,16 +157,21 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
       isFetchingNextPage={isLoadingMore}
       onLoadMore={loadMore}
       columns={columns()}
+      onRowClick={setSelectedLog}
+      selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
-      rowClassName={getRowClassName}
+      rowClassName={(log) =>
+        getRowClassName(log, selectedLog as KeysOverviewLog)
+      }
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
             <Empty.Title>Key Verification Logs</Empty.Title>
             <Empty.Description className="text-left">
-              No key verification data to show. Once requests are made with API keys, you'll see a
-              summary of successful and failed verification attempts.
+              No key verification data to show. Once requests are made with API
+              keys, you'll see a summary of successful and failed verification
+              attempts.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
