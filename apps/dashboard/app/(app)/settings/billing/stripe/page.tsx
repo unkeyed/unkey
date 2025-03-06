@@ -10,11 +10,11 @@ import Stripe from "stripe";
 type Props = {
   searchParams: {
     action:
-      | "portal"
-      | "start_trial"
-      | "payment_intent"
-      | "subscription_update"
-      | "subscription_cancel";
+    | "portal"
+    | "start_trial"
+    | "payment_intent"
+    | "subscription_update"
+    | "subscription_cancel";
     session_id?: string;
   };
 };
@@ -57,7 +57,7 @@ export default async function StripeRedirect(props: Props) {
   const baseUrl = process.env.VERCEL_URL
     ? process.env.VERCEL_TARGET_ENV === "production"
       ? "https://app.unkey.com"
-      : `https://${process.env.URL}`
+      : `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000";
   const returnUrl = headers().get("referer") ?? "https://app.unkey.com";
 
