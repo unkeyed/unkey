@@ -132,7 +132,7 @@ export default async function BillingPage() {
           description={
             <>
               <p>
-                You are on the <strong className="capitalize">{workspace.plan}</strong> plan.
+                You are on the <strong className="capitalize">{workspace.tier}</strong> plan.
               </p>
               <p>{trialNotice}</p>
             </>
