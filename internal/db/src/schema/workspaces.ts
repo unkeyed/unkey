@@ -28,6 +28,7 @@ export const workspaces = mysqlTable(
     // Coming from our auth provider clerk
     // This can be either a user_xxx or org_xxx id
     tenantId: varchar("tenant_id", { length: 256 }).notNull(),
+    orgId: varchar("org_id", { length: 256 }),
     name: varchar("name", { length: 256 }).notNull(),
 
     // different plans, this should only be used for visualisations in the ui
