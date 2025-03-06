@@ -10,11 +10,11 @@ import Stripe from "stripe";
 type Props = {
   searchParams: {
     action:
-    | "portal"
-    | "start_trial"
-    | "payment_intent"
-    | "subscription_update"
-    | "subscription_cancel";
+      | "portal"
+      | "start_trial"
+      | "payment_intent"
+      | "subscription_update"
+      | "subscription_cancel";
     session_id?: string;
   };
 };
