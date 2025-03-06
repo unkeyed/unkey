@@ -2,7 +2,6 @@ import { insertAuditLogs } from "@/lib/audit";
 import { type Workspace, db, schema } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
-import { defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -23,8 +22,6 @@ export const createWorkspace = t.procedure
       });
     }
 
-    const subscriptions = defaultProSubscriptions();
-
     const org = await clerkClient.organizations.createOrganization({
       name: input.name,
       createdBy: userId,
@@ -35,6 +32,7 @@ export const createWorkspace = t.procedure
       tenantId: org.id,
       name: input.name,
       plan: "pro",
+      tier: "Free",
       stripeCustomerId: null,
       stripeSubscriptionId: null,
       trialEnds: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14), // 2 weeks
@@ -42,7 +40,7 @@ export const createWorkspace = t.procedure
       betaFeatures: {},
       planLockedUntil: null,
       planChanged: null,
-      subscriptions,
+      subscriptions: {},
       planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
@@ -50,9 +48,17 @@ export const createWorkspace = t.procedure
       updatedAtM: null,
       deletedAtM: null,
     };
+
     await db
       .transaction(async (tx) => {
         await tx.insert(schema.workspaces).values(workspace);
+        await tx.insert(schema.quotas).values({
+          workspaceId: workspace.id,
+          requestsPerMonth: 2_5000_000,
+          auditLogsRetentionDays: 30,
+          logsRetentionDays: 7,
+          team: false,
+        });
 
         const auditLogBucketId = newId("auditLogBucket");
         await tx.insert(schema.auditLogBucket).values({

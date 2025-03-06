@@ -1,7 +1,7 @@
+import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { currentUser } from "@clerk/nextjs";
 import { Empty } from "@unkey/ui";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -9,21 +9,30 @@ import Stripe from "stripe";
 
 type Props = {
   searchParams: {
-    new_plan: "free" | "pro" | undefined;
+    action:
+      | "portal"
+      | "start_trial"
+      | "payment_intent"
+      | "subscription_update"
+      | "subscription_cancel";
+    session_id?: string;
   };
 };
 
 export default async function StripeRedirect(props: Props) {
-  const { new_plan } = props.searchParams;
   const tenantId = getTenantId();
   if (!tenantId) {
     return redirect("/auth/sign-in");
   }
-  const user = await currentUser();
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    with: {
+      auditLogBuckets: {
+        where: (table, { eq }) => eq(table.name, "unkey_mutations"),
+      },
+    },
   });
   if (!ws) {
     return redirect("/new");
@@ -45,43 +54,165 @@ export default async function StripeRedirect(props: Props) {
     typescript: true,
   });
 
-  // If they have a subscription already, we display the portal
-  if (ws.stripeCustomerId) {
-    const session = await stripe.billingPortal.sessions.create({
-      customer: ws.stripeCustomerId,
-      return_url: headers().get("referer") ?? "https://app.unkey.com",
-    });
-
-    return redirect(session.url);
-  }
-
-  // If they don't have a subscription, we send them to the checkout
-  // and the checkout will redirect them to the success page, which will add the subscription to the user table
   const baseUrl = process.env.VERCEL_URL ? "https://app.unkey.com" : "http://localhost:3000";
+  const returnUrl = headers().get("referer") ?? "https://app.unkey.com";
 
-  // do not use `new URL(...).searchParams` here, because it will escape the curly braces and stripe will not replace them with the session id
-  let successUrl = `${baseUrl}/settings/billing/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
+  switch (props.searchParams.action) {
+    case "portal": {
+      if (!ws.stripeCustomerId) {
+        return (
+          <Empty>
+            <Empty.Title>No customer found</Empty.Title>
+            <Empty.Description>Your workspace</Empty.Description>
+            <Code>{ws.id}</Code>
+            <Empty.Description>
+              is not in Stripe yet. Please contact support@unkey.dev.
+            </Empty.Description>
+          </Empty>
+        );
+      }
 
-  // if they're coming from the change plan flow, pass along the new plan param
-  if (new_plan && new_plan !== ws.plan) {
-    successUrl += `&new_plan=${new_plan}`;
+      const { url } = await stripe.billingPortal.sessions.create({
+        customer: ws.stripeCustomerId,
+        return_url: returnUrl,
+      });
+      return redirect(url);
+    }
+    case "start_trial": {
+      const session = await stripe.checkout.sessions.retrieve(props.searchParams.session_id!);
+      if (!session) {
+        return (
+          <Empty>
+            <Empty.Title>Stripe session not found</Empty.Title>
+            <Empty.Description>The Stripe session</Empty.Description>
+            <Code>{props.searchParams.session_id}</Code>
+            <Empty.Description>
+              you are trying to access does not exist. Please contact support@unkey.dev.
+            </Empty.Description>
+          </Empty>
+        );
+      }
+      const customer = await stripe.customers.retrieve(session.customer as string);
+      if (!customer) {
+        return (
+          <Empty>
+            <Empty.Title>Stripe customer not found</Empty.Title>
+            <Empty.Description>The Stripe customer</Empty.Description>
+            <Code>{session.customer as string}</Code>
+            <Empty.Description>
+              you are trying to access does not exist. Please contact support@unkey.dev.
+            </Empty.Description>
+          </Empty>
+        );
+      }
+
+      await db
+        .update(schema.workspaces)
+        .set({
+          stripeCustomerId: customer.id,
+        })
+        .where(eq(schema.workspaces.id, ws.id));
+      const sub = await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [
+          {
+            price: e.STRIPE_TRIAL_PRICE_ID,
+          },
+        ],
+        billing_cycle_anchor_config: {
+          day_of_month: 1,
+        },
+
+        proration_behavior: "create_prorations",
+        trial_period_days: 14,
+        trial_settings: {
+          end_behavior: {
+            missing_payment_method: "cancel",
+          },
+        },
+      });
+      await db
+        .update(schema.workspaces)
+        .set({
+          stripeSubscriptionId: sub.id,
+        })
+        .where(eq(schema.workspaces.id, ws.id));
+
+      return redirect(`${baseUrl}/settings/billing`);
+    }
+    case "payment_intent": {
+      const session = await stripe.checkout.sessions.create({
+        client_reference_id: ws.id,
+        billing_address_collection: "auto",
+        mode: "setup",
+        success_url: `${baseUrl}/settings/billing/stripe?action=start_trial&session_id={CHECKOUT_SESSION_ID}`,
+        currency: "USD",
+        customer_creation: "always",
+      });
+
+      if (!session.url) {
+        return (
+          <Empty>
+            <Empty.Title>Stripe was unable to generate a session</Empty.Title>
+            <Empty.Description>The Stripe session</Empty.Description>
+            <Code>{session.id}</Code>
+            <Empty.Description>
+              you are trying to access does not exist. Please contact support@unkey.dev.
+            </Empty.Description>
+          </Empty>
+        );
+      }
+
+      return redirect(session.url);
+    }
+    case "subscription_update": {
+      const { url } = await stripe.billingPortal.sessions.create({
+        customer: ws.stripeCustomerId!,
+        return_url: returnUrl,
+        flow_data: {
+          type: props.searchParams.action,
+          subscription_update: {
+            subscription: ws.stripeSubscriptionId!,
+          },
+          after_completion: {
+            type: "redirect",
+            redirect: {
+              return_url: returnUrl,
+            },
+          },
+        },
+      });
+      return redirect(url);
+    }
+
+    case "subscription_cancel": {
+      const { url } = await stripe.billingPortal.sessions.create({
+        customer: ws.stripeCustomerId!,
+        return_url: returnUrl,
+        flow_data: {
+          type: props.searchParams.action,
+          subscription_cancel: {
+            subscription: ws.stripeSubscriptionId!,
+          },
+
+          after_completion: {
+            type: "redirect",
+            redirect: {
+              return_url: returnUrl,
+            },
+          },
+        },
+      });
+      return redirect(url);
+    }
   }
 
-  const cancelUrl = headers().get("referer") ?? baseUrl;
-  const session = await stripe.checkout.sessions.create({
-    client_reference_id: ws.id,
-    customer_email: user?.emailAddresses.at(0)?.emailAddress,
-    billing_address_collection: "auto",
-    mode: "setup",
-    success_url: successUrl,
-    cancel_url: cancelUrl,
-    currency: "USD",
-    customer_creation: "always",
-  });
-
-  if (!session.url) {
-    return <div>Could not create checkout session</div>;
-  }
-
-  return redirect(session.url);
+  return (
+    <Empty>
+      <Empty.Title>Stripe Error</Empty.Title>
+      <Empty.Description>
+        You should have been redirected, please report this to support@unkey.dev
+      </Empty.Description>
+    </Empty>
+  );
 }

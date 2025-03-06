@@ -1,8 +1,6 @@
 import type { Readable } from "node:stream";
-import { db } from "@/lib/db";
-import { env, stripeEnv } from "@/lib/env";
-import { clerkClient } from "@clerk/nextjs";
-import { Resend } from "@unkey/resend";
+import { db, eq, schema } from "@/lib/db";
+import { stripeEnv } from "@/lib/env";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -31,7 +29,6 @@ const requestValidation = z.object({
 
 export default async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const resend = env().RESEND_API_KEY ? new Resend({ apiKey: env().RESEND_API_KEY! }) : null;
     const {
       headers: { "stripe-signature": signature },
     } = requestValidation.parse(req);
@@ -52,27 +49,114 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
     );
 
     switch (event.type) {
-      case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        if (!resend) {
-          break;
+      case "customer.subscription.created":
+      case "customer.subscription.updated": {
+        const sub = event.data.object as Stripe.Subscription;
+
+        // https://docs.stripe.com/billing/subscriptions/webhooks#state-changes
+        switch (sub.status) {
+          case "trialing":
+          case "active": {
+            const product = await stripe.products.retrieve(
+              sub.items.data[0].price.product.toString(),
+            );
+
+            const workspace = await db.query.workspaces.findFirst({
+              where: (table, { eq }) => eq(table.stripeCustomerId, sub.customer.toString()),
+            });
+            if (!workspace) {
+              throw new Error(`No workspace exists for ${sub.customer}`);
+            }
+
+            await db.transaction(async (tx) => {
+              await tx
+                .update(schema.workspaces)
+                .set({
+                  tier: product.name,
+                  stripeSubscriptionId: sub.id,
+                })
+                .where(eq(schema.workspaces.id, workspace.id));
+              await tx
+                .update(schema.quotas)
+                .set({
+                  requestsPerMonth: Number.parseInt(product.metadata.quota_requests_per_month),
+                  logsRetentionDays: Number.parseInt(product.metadata.quota_logs_retention_days),
+                  auditLogsRetentionDays: Number.parseInt(
+                    product.metadata.quota_audit_logs_retention_days,
+                  ),
+                  team: true,
+                })
+                .where(eq(schema.quotas.workspaceId, workspace.id));
+            });
+            break;
+          }
+          case "canceled":
+          case "paused": {
+            const workspace = await db.query.workspaces.findFirst({
+              where: (table, { eq }) => eq(table.stripeCustomerId, sub.customer.toString()),
+            });
+            if (!workspace) {
+              throw new Error(`No workspace exists for ${sub.customer}`);
+            }
+
+            await db.transaction(async (tx) => {
+              await tx
+                .update(schema.workspaces)
+                .set({
+                  tier: "Free",
+                  stripeSubscriptionId: sub.id,
+                })
+                .where(eq(schema.workspaces.id, workspace.id));
+              await tx
+                .update(schema.quotas)
+                .set({
+                  requestsPerMonth: 250000,
+                  logsRetentionDays: 7,
+                  auditLogsRetentionDays: 30,
+                  team: false,
+                })
+                .where(eq(schema.quotas.workspaceId, workspace.id));
+            });
+            break;
+          }
+
+          //  case "incomplete":
+          //  case "incomplete_expired":
+          //  case "past_due":
+          //  case "unpaid":
         }
-        const ws = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeCustomerId, invoice.customer!.toString()), isNull(table.deletedAtM)),
+        break;
+      }
+      case "customer.subscription.trial_will_end":
+        break;
+      case "customer.subscription.deleted": {
+        const sub = event.data.object as Stripe.Subscription;
+
+        const workspace = await db.query.workspaces.findFirst({
+          where: (table, { eq }) => eq(table.stripeCustomerId, sub.customer.toString()),
         });
-        if (!ws) {
-          throw new Error("workspace does not exist");
+        if (!workspace) {
+          throw new Error(`No workspace exists for ${sub.customer}`);
         }
-        const users = await getUsers(ws.tenantId);
-        const date = invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date();
-        for await (const user of users) {
-          await resend.sendPaymentIssue({
-            email: user.email,
-            name: user.name,
-            date: date,
-          });
-        }
+
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.workspaces)
+            .set({
+              tier: "Free",
+              stripeSubscriptionId: null,
+            })
+            .where(eq(schema.workspaces.id, workspace.id));
+          await tx
+            .update(schema.quotas)
+            .set({
+              requestsPerMonth: 250000,
+              logsRetentionDays: 7,
+              auditLogsRetentionDays: 30,
+              team: false,
+            })
+            .where(eq(schema.quotas.workspaceId, workspace.id));
+        });
         break;
       }
 
@@ -89,33 +173,4 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
   } finally {
     res.end();
   }
-}
-
-async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
-  const userIds: string[] = [];
-  if (tenantId.startsWith("org_")) {
-    const members = await clerkClient.organizations.getOrganizationMembershipList({
-      organizationId: tenantId,
-    });
-    for (const m of members) {
-      userIds.push(m.publicUserData!.userId);
-    }
-  } else {
-    userIds.push(tenantId);
-  }
-
-  return await Promise.all(
-    userIds.map(async (userId) => {
-      const user = await clerkClient.users.getUser(userId);
-      const email = user.emailAddresses.at(0)?.emailAddress;
-      if (!email) {
-        throw new Error(`user ${user.id} does not have an email`);
-      }
-      return {
-        id: user.id,
-        name: user.firstName ?? user.username ?? "there",
-        email,
-      };
-    }),
-  );
 }
