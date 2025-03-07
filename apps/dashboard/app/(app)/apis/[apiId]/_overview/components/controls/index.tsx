@@ -3,7 +3,7 @@ import { LogsFilters } from "./components/logs-filters";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
-export function RatelimitOverviewLogsControls() {
+export function KeysOverviewLogsControls() {
   return (
     <div className="flex flex-col border-b border-gray-4 ">
       <div className="px-3 py-1 w-full justify-between flex items-center">

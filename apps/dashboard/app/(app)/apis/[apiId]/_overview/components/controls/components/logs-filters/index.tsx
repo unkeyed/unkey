@@ -4,35 +4,72 @@ import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-// import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
+import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsFilters = () => {
-  const { filters } = useFilters();
+  const { filters, updateFilters } = useFilters();
 
-  // const identifierOperators =
-  //   keysOverviewFilterFieldConfig..operators;
-  // const options = identifierOperators.map((op) => ({
-  //   id: op,
-  //   label: op,
-  // }));
+  const options = keysOverviewFilterFieldConfig.names.operators.map((op) => ({
+    id: op,
+    label: op,
+  }));
+  const activeNameFilter = filters.find((f) => f.field === "names");
 
-  // const activeIdentifierFilter = filters.find((f) => f.field === "identifiers");
+  const activeKeyIdsFilter = filters.find((f) => f.field === "keyIds");
+  const keyIdOptions = keysOverviewFilterFieldConfig.names.operators.map((op) => ({
+    id: op,
+    label: op,
+  }));
   return (
     <FiltersPopover
       items={[
         {
-          id: "identifiers",
-          label: "Identifier",
-          shortcut: "p",
+          id: "names",
+          label: "Name",
+          shortcut: "n",
           component: (
             <FilterOperatorInput
-              label="Identifier"
-              options={[]}
-              // defaultOption={activeIdentifierFilter?.operator}
-              // defaultText={activeIdentifierFilter?.value as string}
-              onApply={() => {
-                return;
+              label="Name"
+              options={options}
+              defaultOption={activeNameFilter?.operator}
+              defaultText={activeNameFilter?.value as string}
+              onApply={(id, text) => {
+                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "names");
+                updateFilters([
+                  ...activeFiltersWithoutNames,
+                  {
+                    field: "names",
+                    id: crypto.randomUUID(),
+                    operator: id,
+                    value: text,
+                  },
+                ]);
+              }}
+            />
+          ),
+        },
+        {
+          id: "keyids",
+          label: "Key ID",
+          shortcut: "k",
+          component: (
+            <FilterOperatorInput
+              label="Key ID"
+              options={keyIdOptions}
+              defaultOption={activeKeyIdsFilter?.operator}
+              defaultText={activeKeyIdsFilter?.value as string}
+              onApply={(id, text) => {
+                const activeFiltersWithoutKeyIds = filters.filter((f) => f.field !== "keyIds");
+                updateFilters([
+                  ...activeFiltersWithoutKeyIds,
+                  {
+                    field: "keyIds",
+                    id: crypto.randomUUID(),
+                    operator: id,
+                    value: text,
+                  },
+                ]);
               }}
             />
           ),

@@ -8,12 +8,12 @@ const formatFieldName = (field: string): string => {
       return "Start time";
     case "endTime":
       return "End time";
-    case "status":
-      return "Status";
-    case "requestId":
-      return "Request ID";
-    case "identifiers":
-      return "Identifier";
+    case "outcomes":
+      return "Outcome";
+    case "names":
+      return "Name";
+    case "keyIds":
+      return "Key ID";
     case "since":
       return "";
     default:
@@ -21,7 +21,7 @@ const formatFieldName = (field: string): string => {
   }
 };
 
-export const RatelimitOverviewLogsControlCloud = () => {
+export const KeysOverviewLogsControlCloud = () => {
   const { filters, updateFilters, removeFilter } = useFilters();
   return (
     <ControlCloud

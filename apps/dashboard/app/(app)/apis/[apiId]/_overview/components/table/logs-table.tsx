@@ -12,7 +12,7 @@ import { useState } from "react";
 import { OutcomesPopover } from "./components/outcome-popover";
 import { KeyIdentifierColumn } from "./components/override-indicator";
 import { useKeysOverviewLogsQuery } from "./hooks/use-logs-query";
-import { getErrorPercentage } from "./utils/calculate-blocked-percentage";
+import { getErrorPercentage, getSuccessPercentage } from "./utils/calculate-blocked-percentage";
 import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
 const compactFormatter = new Intl.NumberFormat("en-US", {
@@ -52,6 +52,7 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
         header: "Valid",
         width: "15%",
         render: (log) => {
+          const successPercentage = getSuccessPercentage(log);
           return (
             <div className="flex gap-3 items-center tabular-nums">
               <Badge
@@ -61,7 +62,9 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
                     ? STATUS_STYLES.success.badge.selected
                     : STATUS_STYLES.success.badge.default,
                 )}
-                title={`${log.valid_count.toLocaleString()} Valid requests`}
+                title={`${log.error_count.toLocaleString()} Valid requests (${successPercentage.toFixed(
+                  1,
+                )}%)`}
               >
                 {compactFormatter.format(log.valid_count)}
               </Badge>
