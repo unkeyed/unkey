@@ -40,7 +40,7 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
           keyAuth: {
             with: {
               keys: {
-                where: (key, { and, isNull, inArray, ilike }) => {
+                where: (key, { and, isNull, inArray, sql }) => {
                   const conditions = [isNull(key.deletedAtM)];
 
                   // Add name filters
@@ -58,7 +58,7 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
                       .map((filter) => filter.value);
                     if (nameContainsValues.length > 0) {
                       nameContainsValues.forEach((value) => {
-                        conditions.push(ilike(key.name, `%${value}%`));
+                        conditions.push(sql`${key.name} LIKE ${`%${value}%`}`);
                       });
                     }
                   }
@@ -77,9 +77,9 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
                       .filter((filter) => filter.operator === "contains")
                       .map((filter) => filter.value);
                     if (keyIdContainsValues.length > 0) {
-                      keyIdContainsValues.forEach((value) => {
-                        conditions.push(ilike(key.id, `%${value}%`));
-                      });
+                      keyIdContainsValues.forEach((value) =>
+                        conditions.push(sql`${key.id} LIKE ${`%${value}%`}`),
+                      );
                     }
                   }
 

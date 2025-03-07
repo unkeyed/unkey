@@ -1,6 +1,16 @@
 import { z } from "zod";
 import type { Querier } from "../client";
 
+export const KEY_VERIFICATION_OUTCOMES = [
+  "VALID",
+  "INSUFFICIENT_PERMISSIONS",
+  "RATE_LIMITED",
+  "FORBIDDEN",
+  "DISABLED",
+  "EXPIRED",
+  "USAGE_EXCEEDED",
+  "",
+] as const;
 export const keysOverviewLogsParams = z.object({
   workspaceId: z.string(),
   keyspaceId: z.string(),
@@ -10,16 +20,7 @@ export const keysOverviewLogsParams = z.object({
   outcomes: z
     .array(
       z.object({
-        value: z.enum([
-          "VALID",
-          "INSUFFICIENT_PERMISSIONS",
-          "RATE_LIMITED",
-          "FORBIDDEN",
-          "DISABLED",
-          "EXPIRED",
-          "USAGE_EXCEEDED",
-          "",
-        ]),
+        value: z.enum(KEY_VERIFICATION_OUTCOMES),
         operator: z.literal("is"),
       }),
     )

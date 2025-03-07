@@ -4,7 +4,9 @@ import type {
   StringConfig,
 } from "@/components/logs/validation/filter.types";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
+import { getOutcomeColor } from "./utils";
 
 export const keysOverviewFilterFieldConfig: FilterFieldConfigs = {
   startTime: {
@@ -30,35 +32,8 @@ export const keysOverviewFilterFieldConfig: FilterFieldConfigs = {
   outcomes: {
     type: "string",
     operators: ["is"],
-    validValues: [
-      "VALID",
-      "INSUFFICIENT_PERMISSIONS",
-      "RATE_LIMITED",
-      "FORBIDDEN",
-      "DISABLED",
-      "EXPIRED",
-      "USAGE_EXCEEDED",
-      "",
-    ],
-    getColorClass: (value) => {
-      switch (value) {
-        case "VALID":
-          return "bg-success-9";
-        case "RATE_LIMITED":
-          return "bg-warning-9";
-        case "INSUFFICIENT_PERMISSIONS":
-        case "FORBIDDEN":
-          return "bg-error-9";
-        case "DISABLED":
-          return "bg-gray-9";
-        case "EXPIRED":
-          return "bg-orange-9";
-        case "USAGE_EXCEEDED":
-          return "bg-feature-9";
-        default:
-          return "bg-gray-5";
-      }
-    },
+    validValues: KEY_VERIFICATION_OUTCOMES,
+    getColorClass: getOutcomeColor,
   } as const,
 };
 

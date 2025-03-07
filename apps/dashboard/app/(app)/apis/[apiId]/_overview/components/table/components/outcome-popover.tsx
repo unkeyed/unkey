@@ -4,55 +4,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { formatOutcomeName, getOutcomeBadgeStyle, getOutcomeColor } from "../../../utils";
 import { STATUS_STYLES } from "../utils/get-row-class";
-
-const formatOutcomeName = (outcome: string): string => {
-  if (!outcome) {
-    return "Unknown";
-  }
-  return outcome
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
-};
-
-const getOutcomeColor = (outcome: string): string => {
-  switch (outcome) {
-    case "VALID":
-      return "bg-accent-9";
-    case "RATE_LIMITED":
-      return "bg-warning-9";
-    case "INSUFFICIENT_PERMISSIONS":
-    case "FORBIDDEN":
-      return "bg-error-9";
-    case "DISABLED":
-      return "bg-gray-9";
-    case "EXPIRED":
-      return "bg-orange-9";
-    case "USAGE_EXCEEDED":
-      return "bg-violet-9";
-    default:
-      return "bg-accent-9";
-  }
-};
-
-const getOutcomeBadgeStyle = (outcome: string): string => {
-  switch (outcome) {
-    case "RATE_LIMITED":
-      return "bg-warning-4 text-warning-11 group-hover:bg-warning-5";
-    case "INSUFFICIENT_PERMISSIONS":
-    case "FORBIDDEN":
-      return "bg-error-4 text-error-11 group-hover:bg-error-5";
-    case "DISABLED":
-      return "bg-gray-4 text-gray-11 group-hover:bg-gray-5";
-    case "EXPIRED":
-      return "bg-orange-4 text-orange-11 group-hover:bg-orange-5";
-    case "USAGE_EXCEEDED":
-      return "bg-violet-4 text-violet-11 group-hover:bg-violet-5";
-    default:
-      return "bg-gray-4 text-accent-11 hover:bg-gray-5 group-hover:text-accent-12";
-  }
-};
 
 const compactFormatter = new Intl.NumberFormat("en-US", {
   notation: "compact",

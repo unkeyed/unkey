@@ -1,3 +1,4 @@
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 
 export const keysQueryOverviewLogsPayload = z.object({
@@ -16,16 +17,7 @@ export const keysQueryOverviewLogsPayload = z.object({
   outcomes: z
     .array(
       z.object({
-        value: z.enum([
-          "VALID",
-          "INSUFFICIENT_PERMISSIONS",
-          "RATE_LIMITED",
-          "FORBIDDEN",
-          "DISABLED",
-          "EXPIRED",
-          "USAGE_EXCEEDED",
-          "",
-        ]),
+        value: z.enum(KEY_VERIFICATION_OUTCOMES),
         operator: z.literal("is"),
       }),
     )
