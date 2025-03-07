@@ -483,7 +483,23 @@ export const singleSignOnSearchTask = task({
           IMPORTANT: You must return evaluations for ALL ${resultsForEvaluation.length} results.
           CRITICAL: Return a flat array of objects, not an array of arrays.
         `,
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: "evaluate-search-results",
+        }
       });
+
+      console.log(`💸 The usage for this call was: ${geminiResponse.usage.totalTokens} tokens
+        
+        INPUT: ${geminiResponse.usage.promptTokens} prompt tokens
+        OUTPUT: ${geminiResponse.usage.completionTokens} output tokens
+
+        GEMINI: 
+        INPUT: $${(geminiResponse.usage.promptTokens / 1000000) * 0.10} ($0.10 for 1M text tokens)
+        OUTPUT: $${(geminiResponse.usage.completionTokens / 1000000) * 0.40} ($0.40 for 1M text tokens)
+
+        TOTAL: $${((geminiResponse.usage.promptTokens / 1000000) * 0.10) + ((geminiResponse.usage.completionTokens / 1000000) * 0.40)} (sum)
+        `);
 
       // Get the evaluations from the response
       const evaluations = geminiResponse.object;
