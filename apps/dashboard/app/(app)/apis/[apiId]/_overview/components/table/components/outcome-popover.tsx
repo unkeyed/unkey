@@ -16,7 +16,6 @@ const formatOutcomeName = (outcome: string): string => {
     .join(" ");
 };
 
-// Get color for outcome square with enhanced colors
 const getOutcomeColor = (outcome: string): string => {
   switch (outcome) {
     case "VALID":
@@ -37,7 +36,6 @@ const getOutcomeColor = (outcome: string): string => {
   }
 };
 
-// Get badge color for single outcome display
 const getOutcomeBadgeStyle = (outcome: string): string => {
   switch (outcome) {
     case "RATE_LIMITED":
@@ -75,25 +73,25 @@ export const OutcomesPopover = ({ outcomeCounts, isSelected }: OutcomesPopoverPr
     return null;
   }
 
-  const totalNonValidCount = nonValidOutcomes.reduce((sum, [_, count]) => sum + count, 0);
+  const containerStyle = "h-[22px] rounded-md px-2 text-xs font-medium w-[110px] flex items-center";
 
-  // If there's only one type of non-valid outcome, show a badge instead of a popover
   if (nonValidOutcomes.length === 1) {
     const [outcome, count] = nonValidOutcomes[0];
     return (
       <Badge
-        className={cn(
-          "h-[22px] rounded-md px-2 text-xs font-medium w-[100px] items-center justify-center truncate",
-          getOutcomeBadgeStyle(outcome),
-        )}
+        className={cn(containerStyle, getOutcomeBadgeStyle(outcome))}
         title={`${count.toLocaleString()} ${formatOutcomeName(outcome)} requests`}
       >
-        {formatOutcomeName(outcome)}: {compactFormatter.format(count)}
+        <div className="flex justify-between w-full items-center">
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+            {formatOutcomeName(outcome)}:
+          </span>
+          <span className="tabular-nums flex-shrink-0 ml-1">{compactFormatter.format(count)}</span>
+        </div>
       </Badge>
     );
   }
 
-  // For multiple outcomes, keep the popover with chevron
   return (
     <div className="flex flex-wrap gap-1 items-center">
       <Popover>
@@ -102,17 +100,20 @@ export const OutcomesPopover = ({ outcomeCounts, isSelected }: OutcomesPopoverPr
             variant="ghost"
             size="sm"
             className={cn(
-              "h-[22px] rounded-md px-2 text-xs font-medium text-accent-11 bg-gray-4 hover:bg-gray-5 [&_svg]:size-3 w-[150px] flex items-center justify-center truncate",
+              containerStyle,
+              "text-accent-11 bg-gray-4 hover:bg-gray-5 [&_svg]:size-3",
               isSelected
                 ? STATUS_STYLES.success.badge.selected
                 : STATUS_STYLES.success.badge.default,
             )}
             title="View all outcomes"
           >
-            <span className="flex items-center truncate ">
-              Other outcomes ({compactFormatter.format(totalNonValidCount)})
-              <ChevronRight size="sm-regular" className="ml-1" />
-            </span>
+            <div className="flex justify-between w-full items-center">
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-1 max-w-[90px]">
+                +{nonValidOutcomes.length} Outcomes
+              </span>
+              <ChevronRight size="sm-regular" className="flex-shrink-0" />
+            </div>
           </Button>
         </PopoverTrigger>
         <PopoverContent

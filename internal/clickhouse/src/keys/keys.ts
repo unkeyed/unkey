@@ -24,6 +24,14 @@ export const keysOverviewLogsParams = z.object({
       }),
     )
     .nullable(),
+  names: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
   keyIds: z
     .array(
       z.object({
@@ -34,7 +42,6 @@ export const keysOverviewLogsParams = z.object({
     .nullable(),
   cursorTime: z.number().int().nullable(),
   cursorRequestId: z.string().nullable(),
-  // Removed sorts field
 });
 
 export const keyDetailsResponseSchema = z.object({

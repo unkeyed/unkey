@@ -12,7 +12,7 @@ import { useState } from "react";
 import { OutcomesPopover } from "./components/outcome-popover";
 import { KeyIdentifierColumn } from "./components/override-indicator";
 import { useKeysOverviewLogsQuery } from "./hooks/use-logs-query";
-import { getErrorPercentage, getErrorSeverity } from "./utils/calculate-blocked-percentage";
+import { getErrorPercentage } from "./utils/calculate-blocked-percentage";
 import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
 const compactFormatter = new Intl.NumberFormat("en-US", {
@@ -25,22 +25,6 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
   const { historicalLogs, isLoading, isLoadingMore, loadMore } = useKeysOverviewLogsQuery({
     apiId,
   });
-
-  // Helper to determine icon based on severity
-  const getStatusIcon = (log: KeysOverviewLog) => {
-    const severity = getErrorSeverity(log);
-
-    switch (severity) {
-      case "high":
-        return <Ban size="sm-regular" className="text-error-11" />;
-      case "moderate":
-        return <Ban size="sm-regular" className="text-orange-11" />;
-      case "low":
-        return <Ban size="sm-regular" className="text-warning-11" />;
-      default:
-        return <Ban size="sm-regular" className="text-accent-11" />;
-    }
-  };
 
   const columns = (): Column<KeysOverviewLog>[] => {
     return [
@@ -105,8 +89,12 @@ export const KeysOverviewLogsTable = ({ apiId }: { apiId: string }) => {
                     1,
                   )}%)`}
                 >
-                  <span className="mr-[6px] flex-shrink-0">{getStatusIcon(log)}</span>
-                  <span>{compactFormatter.format(log.error_count)}</span>
+                  <span className="mr-[6px] flex-shrink-0">
+                    <Ban size="sm-regular" />
+                  </span>
+                  <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[45px]">
+                    {compactFormatter.format(log.error_count)}
+                  </span>
                 </Badge>
               </div>
               <div className="ml-2 flex-shrink-0">

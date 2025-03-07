@@ -23,6 +23,10 @@ export const keysOverviewFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is", "contains"],
   },
+  names: {
+    type: "string",
+    operators: ["is", "contains"],
+  },
   outcomes: {
     type: "string",
     operators: ["is"],
@@ -63,6 +67,7 @@ export const keysOverviewFilterFieldEnum = z.enum([
   "endTime",
   "since",
   "keyIds",
+  "names",
   "outcomes",
 ]);
 
@@ -81,6 +86,7 @@ export type FilterFieldConfigs = {
   endTime: NumberConfig<KeysOverviewFilterOperator>;
   since: StringConfig<KeysOverviewFilterOperator>;
   keyIds: StringConfig<KeysOverviewFilterOperator>;
+  names: StringConfig<KeysOverviewFilterOperator>;
   outcomes: StringConfig<KeysOverviewFilterOperator>;
 };
 
@@ -99,5 +105,6 @@ export type KeysQuerySearchParams = {
   endTime?: number | null;
   since?: string | null;
   keyIds: KeysOverviewFilterUrlValue[] | null;
+  names: KeysOverviewFilterUrlValue[] | null;
   outcomes: KeysOverviewFilterUrlValue[] | null;
 };
