@@ -79,10 +79,7 @@ export default async function StripeRedirect(props: Props) {
     return (
       <Empty>
         <Empty.Title>Stripe session not found</Empty.Title>
-        <Empty.Description>The Stripe session</Empty.Description>
-        <Code>{props.searchParams.session_id}</Code>
-        <Empty.Description>
-          you are trying to access does not exist. Please contact support@unkey.dev.
+        <Empty.Description>The Stripe session you are trying to access does not exist. Please contact support@unkey.dev.
         </Empty.Description>
       </Empty>
     );
