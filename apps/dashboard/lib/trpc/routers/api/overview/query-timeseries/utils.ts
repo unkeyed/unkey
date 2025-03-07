@@ -5,7 +5,7 @@ import {
   type TimeseriesConfig,
   type VerificationTimeseriesGranularity,
   getTimeseriesGranularity,
-} from "../../utils/granularity";
+} from "../../../utils/granularity";
 
 export function transformVerificationFilters(params: VerificationQueryTimeseriesPayload): {
   params: Omit<VerificationTimeseriesParams, "workspaceId" | "keyspaceId" | "keyId">;
@@ -25,6 +25,9 @@ export function transformVerificationFilters(params: VerificationQueryTimeseries
   return {
     params: {
       startTime: timeConfig.startTime,
+      keyIds: [],
+      names: [],
+      outcomes: [],
       endTime: timeConfig.endTime,
     },
     granularity: timeConfig.granularity,

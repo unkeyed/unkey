@@ -1,23 +1,42 @@
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
-import { ratelimitOverviewFilterOperatorEnum } from "../../../filters.schema";
+import { keysOverviewFilterOperatorEnum } from "../../../filters.schema";
 
-export const ratelimitOverviewQueryTimeseriesPayload = z.object({
+export const keysOverviewQueryTimeseriesPayload = z.object({
   startTime: z.number().int(),
   endTime: z.number().int(),
   since: z.string(),
-  namespaceId: z.string(),
-  identifiers: z
+  apiId: z.string(),
+  keyIds: z
     .object({
       filters: z.array(
         z.object({
-          operator: ratelimitOverviewFilterOperatorEnum,
+          operator: keysOverviewFilterOperatorEnum,
           value: z.string(),
+        }),
+      ),
+    })
+    .nullable(),
+  names: z
+    .object({
+      filters: z.array(
+        z.object({
+          operator: keysOverviewFilterOperatorEnum,
+          value: z.string(),
+        }),
+      ),
+    })
+    .nullable(),
+  outcomes: z
+    .object({
+      filters: z.array(
+        z.object({
+          value: z.enum(KEY_VERIFICATION_OUTCOMES),
+          operator: z.literal("is"),
         }),
       ),
     })
     .nullable(),
 });
 
-export type RatelimitOverviewQueryTimeseriesPayload = z.infer<
-  typeof ratelimitOverviewQueryTimeseriesPayload
->;
+export type KeysOverviewQueryTimeseriesPayload = z.infer<typeof keysOverviewQueryTimeseriesPayload>;

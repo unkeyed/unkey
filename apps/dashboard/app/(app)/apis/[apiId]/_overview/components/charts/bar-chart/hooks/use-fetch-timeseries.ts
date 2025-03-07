@@ -1,20 +1,22 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
-import type { VerificationQueryTimeseriesPayload } from "@/app/(app)/apis/_components/hooks/query-timeseries.schema";
+import type { KeysOverviewQueryTimeseriesPayload } from "../query-timeseries.schema";
 
-export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
-  const [enabled, setEnabled] = useState(false);
+export const useFetchVerificationTimeseries = (apiId: string | null) => {
   const { filters } = useFilters();
   const dateNow = useMemo(() => Date.now(), []);
 
   const queryParams = useMemo(() => {
-    const params: VerificationQueryTimeseriesPayload = {
-      keyspaceId: keyspaceId ?? "",
+    const params: KeysOverviewQueryTimeseriesPayload = {
       startTime: dateNow - TIMESERIES_DATA_WINDOW * 24,
       endTime: dateNow,
+      keyIds: { filters: [] },
+      outcomes: { filters: [] },
+      names: { filters: [] },
+      apiId: apiId ?? "",
       since: "",
     };
 
@@ -23,9 +25,7 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(
-              `${filter.field} filter value type has to be 'number'`
-            );
+            console.error(`${filter.field} filter value type has to be 'number'`);
             return;
           }
           params[filter.field] = filter.value;
@@ -39,22 +39,65 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
           params.since = filter.value;
           break;
         }
+
+        case "keyIds": {
+          if (typeof filter.value !== "string") {
+            console.error("Keys filter value type has to be 'string'");
+            return;
+          }
+          params.keyIds?.filters?.push({
+            operator: filter.operator,
+            value: filter.value,
+          });
+          break;
+        }
+        case "names": {
+          if (typeof filter.value !== "string") {
+            console.error("Names filter value type has to be 'string'");
+            return;
+          }
+          params.names?.filters?.push({
+            operator: filter.operator,
+            value: filter.value,
+          });
+          break;
+        }
+        case "outcomes": {
+          //TODO: later use enum from zod type in clickhouse
+          const validOutcomes = [
+            "",
+            "VALID",
+            "INSUFFICIENT_PERMISSIONS",
+            "RATE_LIMITED",
+            "FORBIDDEN",
+            "DISABLED",
+            "EXPIRED",
+            "USAGE_EXCEEDED",
+          ] as const;
+          type ValidOutcome = (typeof validOutcomes)[number];
+
+          if (
+            typeof filter.value === "string" &&
+            validOutcomes.includes(filter.value as ValidOutcome)
+          ) {
+            params.outcomes?.filters?.push({
+              operator: "is",
+              value: filter.value as ValidOutcome,
+            });
+          } else {
+            console.error("Invalid outcome value:", filter.value);
+          }
+          break;
+        }
       }
     });
 
     return params;
-  }, [filters, dateNow, keyspaceId]);
+  }, [filters, dateNow, apiId]);
 
-  useEffect(() => {
-    // Throttle to prevent excessive ClickHouse load
-    setTimeout(() => setEnabled(true), 2000);
-  }, []);
-
-  const { data, isLoading, isError } =
-    trpc.api.logs.queryVerificationTimeseries.useQuery(queryParams, {
-      refetchInterval: queryParams.endTime ? false : 10_000,
-      enabled,
-    });
+  const { data, isLoading, isError } = trpc.api.keys.timeseries.useQuery(queryParams, {
+    refetchInterval: queryParams.endTime ? false : 10_000,
+  });
 
   // Process timeseries data to work with our chart component
   const timeseries = data?.timeseries.map((ts) => {
@@ -75,8 +118,7 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
     }
 
     if (ts.y.insufficient_permissions_count !== undefined) {
-      outcomeFields.insufficient_permissions =
-        ts.y.insufficient_permissions_count;
+      outcomeFields.insufficient_permissions = ts.y.insufficient_permissions_count;
     }
 
     if (ts.y.forbidden_count !== undefined) {

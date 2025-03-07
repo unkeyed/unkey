@@ -1,7 +1,7 @@
 import { LogsLLMSearch } from "@/components/logs/llm-search";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import type { ApiOverview } from "@/lib/trpc/routers/api/query-overview/schemas";
+import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { useRef } from "react";
 type Props = {
   apiList: ApiOverview[];

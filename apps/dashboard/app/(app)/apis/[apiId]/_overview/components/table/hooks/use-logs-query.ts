@@ -114,7 +114,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.api.overview.logs.query.useInfiniteQuery(queryParams, {
+  } = trpc.api.keys.query.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialCursor: { requestId: null, time: null },
     staleTime: Number.POSITIVE_INFINITY,

@@ -1,4 +1,4 @@
-import type { ApiOverview } from "@/lib/trpc/routers/api/query-overview/schemas";
+import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";

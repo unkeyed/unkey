@@ -3,14 +3,9 @@ import { LogsTimeseriesBarChart } from "./bar-chart";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 import { createOutcomeChartConfig } from "./bar-chart/utils";
 
-export const KeysOverviewLogsCharts = ({
-  keyspaceId,
-}: {
-  keyspaceId: string;
-}) => {
+export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
   const { filters, updateFilters } = useFilters();
-  const { timeseries, isLoading, isError } =
-    useFetchVerificationTimeseries(keyspaceId);
+  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(apiId);
 
   const handleSelectionChange = ({
     start,
@@ -20,7 +15,7 @@ export const KeysOverviewLogsCharts = ({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field)
+      (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
     updateFilters([
       ...activeFilters,

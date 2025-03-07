@@ -29,9 +29,7 @@ export function createOutcomeChartConfig(includedOutcomes?: string[]) {
   // Default to all non-valid outcomes if none specified
   const outcomesToInclude =
     includedOutcomes ||
-    KEY_VERIFICATION_OUTCOMES.filter(
-      (outcome) => outcome !== "VALID" && outcome !== ""
-    );
+    KEY_VERIFICATION_OUTCOMES.filter((outcome) => outcome !== "VALID" && outcome !== "");
 
   // Add each outcome as a chart series option
   outcomesToInclude.forEach((outcome) => {

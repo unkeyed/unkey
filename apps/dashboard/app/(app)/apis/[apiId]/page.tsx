@@ -24,7 +24,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   return (
     <div>
       <Navigation api={api} />
-      <LogsClient apiId={api.id} keyspaceId={api.keyAuthId} />
+      <LogsClient apiId={api.id} />
     </div>
   );
 }

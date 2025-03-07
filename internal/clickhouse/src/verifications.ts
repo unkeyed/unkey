@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Inserter, Querier } from "./client";
-import { dateTimeToUnix } from "./util";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
+import { dateTimeToUnix } from "./util";
 
 const outcome = z.enum(KEY_VERIFICATION_OUTCOMES);
 
@@ -135,6 +135,30 @@ export const verificationTimeseriesParams = z.object({
   keyId: z.string().optional(),
   startTime: z.number().int(),
   endTime: z.number().int(),
+  names: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  keyIds: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  outcomes: z
+    .array(
+      z.object({
+        value: z.enum(KEY_VERIFICATION_OUTCOMES),
+        operator: z.literal("is"),
+      }),
+    )
+    .nullable(),
 });
 
 export const verificationTimeseriesDataPoint = z.object({
@@ -152,12 +176,8 @@ export const verificationTimeseriesDataPoint = z.object({
   }),
 });
 
-export type VerificationTimeseriesDataPoint = z.infer<
-  typeof verificationTimeseriesDataPoint
->;
-export type VerificationTimeseriesParams = z.infer<
-  typeof verificationTimeseriesParams
->;
+export type VerificationTimeseriesDataPoint = z.infer<typeof verificationTimeseriesDataPoint>;
+export type VerificationTimeseriesParams = z.infer<typeof verificationTimeseriesParams>;
 
 type TimeInterval = {
   table: string;
@@ -224,10 +244,7 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
 } as const;
 
-function createVerificationTimeseriesQuery(
-  interval: TimeInterval,
-  whereClause: string
-) {
+function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: string) {
   const intervalUnit = {
     HOUR: "hour",
     HOURS: "hour",
@@ -272,45 +289,127 @@ function createVerificationTimeseriesQuery(
       STEP ${stepMs}`;
 }
 
-function getVerificationTimeseriesWhereClause(): string {
+function getVerificationTimeseriesWhereClause(
+  params: VerificationTimeseriesParams,
+  additionalConditions: string[] = [],
+): { whereClause: string; paramSchema: z.ZodType<any> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
     "key_space_id = {keyspaceId: String}",
-    "time >= fromUnixTimestamp64Milli({startTime: Int64})",
-    "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+    ...additionalConditions,
   ];
 
-  return conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-}
+  // Create parameter schema extension
+  const paramSchemaExtension: Record<string, z.ZodType> = {};
 
-function createVerificationTimeseriesQuerier(interval: TimeInterval) {
-  return (ch: Querier) => async (args: VerificationTimeseriesParams) => {
-    const whereClause = getVerificationTimeseriesWhereClause();
-    const query = createVerificationTimeseriesQuery(interval, whereClause);
+  // Add keyId direct filter if specified
+  if (params.keyId) {
+    conditions.push("key_id = {keyId: String}");
+  }
 
-    return ch.query({
-      query,
-      params: verificationTimeseriesParams,
-      schema: verificationTimeseriesDataPoint,
-    })(args);
+  // Add keyIds filter conditions
+  if (params.keyIds?.length) {
+    const keyIdConditions = params.keyIds
+      .map((filter, index) => {
+        const paramName = `keyIdValue_${index}`;
+        paramSchemaExtension[paramName] = z.string();
+
+        switch (filter.operator) {
+          case "is":
+            return `key_id = {${paramName}: String}`;
+          case "contains":
+            return `like(key_id, CONCAT('%', {${paramName}: String}, '%'))`;
+        }
+      })
+      .filter(Boolean)
+      .join(" OR ");
+
+    if (keyIdConditions.length > 0) {
+      conditions.push(`(${keyIdConditions})`);
+    }
+  }
+
+  // Add outcomes filter conditions
+  if (params.outcomes?.length) {
+    const outcomeConditions = params.outcomes
+      .map((filter, index) => {
+        const paramName = `outcomeValue_${index}`;
+        paramSchemaExtension[paramName] = z.string();
+
+        if (filter.operator === "is") {
+          return `outcome = {${paramName}: String}`;
+        }
+        return null;
+      })
+      .filter(Boolean)
+      .join(" OR ");
+
+    if (outcomeConditions.length > 0) {
+      conditions.push(`(${outcomeConditions})`);
+    }
+  }
+
+  return {
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    paramSchema: verificationTimeseriesParams.extend(paramSchemaExtension),
   };
 }
 
-export const getHourlyVerificationTimeseries =
-  createVerificationTimeseriesQuerier(INTERVALS.hour);
-export const getTwoHourlyVerificationTimeseries =
-  createVerificationTimeseriesQuerier(INTERVALS.twoHours);
-export const getFourHourlyVerificationTimeseries =
-  createVerificationTimeseriesQuerier(INTERVALS.fourHours);
-export const getSixHourlyVerificationTimeseries =
-  createVerificationTimeseriesQuerier(INTERVALS.sixHours);
-export const getTwelveHourlyVerificationTimeseries =
-  createVerificationTimeseriesQuerier(INTERVALS.twelveHours);
-export const getDailyVerificationTimeseries =
-  createVerificationTimeseriesQuerier(INTERVALS.day);
-export const getThreeDayVerificationTimeseries =
-  createVerificationTimeseriesQuerier(INTERVALS.threeDays);
-export const getWeeklyVerificationTimeseries =
-  createVerificationTimeseriesQuerier(INTERVALS.week);
-export const getMonthlyVerificationTimeseries =
-  createVerificationTimeseriesQuerier(INTERVALS.month);
+// Updated timeseries querier function
+function createVerificationTimeseriesQuerier(interval: TimeInterval) {
+  return (ch: Querier) => async (args: VerificationTimeseriesParams) => {
+    const { whereClause, paramSchema } = getVerificationTimeseriesWhereClause(args, [
+      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+    ]);
+
+    // Create parameters object with filter values
+    const parameters = {
+      ...args,
+      ...(args.keyIds?.reduce(
+        (acc, filter, index) => ({
+          // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
+          ...acc,
+          [`keyIdValue_${index}`]: filter.value,
+        }),
+        {},
+      ) ?? {}),
+      ...(args.outcomes?.reduce(
+        (acc, filter, index) => ({
+          // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
+          ...acc,
+          [`outcomeValue_${index}`]: filter.value,
+        }),
+        {},
+      ) ?? {}),
+    };
+
+    return ch.query({
+      query: createVerificationTimeseriesQuery(interval, whereClause),
+      params: paramSchema,
+      schema: verificationTimeseriesDataPoint,
+    })(parameters);
+  };
+}
+
+export const getHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(INTERVALS.hour);
+export const getTwoHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
+  INTERVALS.twoHours,
+);
+export const getFourHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
+  INTERVALS.fourHours,
+);
+export const getSixHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
+  INTERVALS.sixHours,
+);
+export const getTwelveHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
+  INTERVALS.twelveHours,
+);
+export const getDailyVerificationTimeseries = createVerificationTimeseriesQuerier(INTERVALS.day);
+export const getThreeDayVerificationTimeseries = createVerificationTimeseriesQuerier(
+  INTERVALS.threeDays,
+);
+export const getWeeklyVerificationTimeseries = createVerificationTimeseriesQuerier(INTERVALS.week);
+export const getMonthlyVerificationTimeseries = createVerificationTimeseriesQuerier(
+  INTERVALS.month,
+);
