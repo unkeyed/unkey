@@ -3,7 +3,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 type SettingCardProps = {
   title: string;
   description: string | React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   border?: "top" | "bottom" | "both" | "none" | "default";
   contentWidth?: string;
