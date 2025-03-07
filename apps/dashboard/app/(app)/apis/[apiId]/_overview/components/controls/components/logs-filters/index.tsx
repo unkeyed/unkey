@@ -6,6 +6,7 @@ import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
+import { OutcomesFilter } from "./outcome-filter";
 
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
@@ -74,6 +75,12 @@ export const LogsFilters = () => {
             />
           ),
         },
+        {
+          id: "outcomes",
+          label: "Outcomes",
+          shortcut: "o",
+          component: <OutcomesFilter />,
+        },
       ]}
       activeFilters={filters}
     >
@@ -81,11 +88,12 @@ export const LogsFilters = () => {
         <Button
           variant="ghost"
           className={cn(
-            "group-data-[state=open]:bg-gray-4 px-2",
+            "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             filters.length > 0 ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs"
           aria-haspopup="true"
+          size="md"
           title="Press 'F' to toggle filters"
         >
           <BarsFilter className="text-accent-9 size-4" />

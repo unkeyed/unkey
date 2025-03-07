@@ -50,9 +50,11 @@ export const keysOverviewFilterFieldConfig: FilterFieldConfigs = {
         case "FORBIDDEN":
           return "bg-error-9";
         case "DISABLED":
-        case "EXPIRED":
-        case "USAGE_EXCEEDED":
           return "bg-gray-9";
+        case "EXPIRED":
+          return "bg-orange-9";
+        case "USAGE_EXCEEDED":
+          return "bg-feature-9";
         default:
           return "bg-gray-5";
       }
