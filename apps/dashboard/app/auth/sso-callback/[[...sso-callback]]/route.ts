@@ -1,15 +1,15 @@
 import { auth } from "@/lib/auth/server";
-import { AuthErrorCode, PENDING_SESSION_COOKIE, SIGN_IN_URL } from "@/lib/auth/types";
-import { cookies } from "next/headers";
-import { type NextRequest, NextResponse } from "next/server";
-
+import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
+import { NextRequest, NextResponse } from "next/server";
+import { setCookiesOnResponse } from "@/lib/auth/cookies";
 export async function GET(request: NextRequest) {
   const authResult = await auth.completeOAuthSignIn(request);
 
   if (!authResult.success) {
     if (
-      authResult.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED &&
-      authResult.cookies?.[0]
+      (authResult.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED ||
+      authResult.code === AuthErrorCode.EMAIL_VERIFICATION_REQUIRED) &&
+      (authResult.cookies && authResult.cookies?.length > 0) // make typescript happy
     ) {
       const url = new URL(SIGN_IN_URL, request.url);
 
@@ -18,16 +18,14 @@ export async function GET(request: NextRequest) {
         url.searchParams.set("orgs", JSON.stringify(authResult.organizations));
       }
 
+      // Add verify=email to searchParams to render the email verification component
+      if (authResult.code === AuthErrorCode.EMAIL_VERIFICATION_REQUIRED) {
+        url.searchParams.set("verify", "email");
+      }
+
       const response = NextResponse.redirect(url);
-
-      cookies().set(PENDING_SESSION_COOKIE, authResult.cookies[0].value, {
-        secure: true,
-        httpOnly: true,
-        maxAge: 60,
-        sameSite: "lax",
-      });
-
-      return response;
+      
+      return await setCookiesOnResponse(response, authResult.cookies);
     }
 
     // Handle other errors
@@ -38,10 +36,6 @@ export async function GET(request: NextRequest) {
   const baseUrl = new URL(request.url).origin;
   const response = NextResponse.redirect(new URL(authResult.redirectTo, baseUrl));
 
-  // Set actual session cookies
-  for (const cookie of authResult.cookies) {
-    cookies().set(cookie.name, cookie.value, cookie.options);
-  }
 
-  return response;
+  return await setCookiesOnResponse(response, authResult.cookies);
 }

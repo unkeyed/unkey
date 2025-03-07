@@ -66,13 +66,20 @@ export interface PendingOrgSelectionResponse extends AuthErrorResponse {
   cookies: Cookie[];
 }
 
+// Special case for email verification
+export interface PendingEmailVerificationResponse extends AuthErrorResponse {
+  code: AuthErrorCode.EMAIL_VERIFICATION_REQUIRED;
+  user: User;
+  cookies: Cookie[];
+}
+
 // Union types for different auth operations
 export type EmailAuthResult = StateChangeResponse | AuthErrorResponse;
 export type VerificationResult =
   | NavigationResponse
   | PendingOrgSelectionResponse
   | AuthErrorResponse;
-export type OAuthResult = NavigationResponse | PendingOrgSelectionResponse | AuthErrorResponse;
+export type OAuthResult = NavigationResponse | PendingOrgSelectionResponse | PendingEmailVerificationResponse| AuthErrorResponse;
 
 // List Response Types
 export interface ListResponse<T> {
@@ -160,6 +167,7 @@ export enum AuthErrorCode {
   UNKNOWN_ERROR = "UNKNOWN_ERROR",
   ACCOUNT_NOT_FOUND = "ACCOUNT_NOT_FOUND",
   ORGANIZATION_SELECTION_REQUIRED = "ORGANIZATION_SELECTION_REQUIRED",
+  EMAIL_VERIFICATION_REQUIRED = "EMAIL_VERIFICATION_REQUIRED",
 }
 
 export const errorMessages: Record<AuthErrorCode, string> = {
@@ -174,6 +182,7 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.ACCOUNT_NOT_FOUND]: "Account not found. Would you like to sign up?",
   [AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED]:
     "Please choose a workspace to continue authentication.",
+  [AuthErrorCode.EMAIL_VERIFICATION_REQUIRED]: "Email address not verified. Please check your email for a verification code."
 };
 
 export interface MiddlewareConfig {
