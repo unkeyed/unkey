@@ -9,7 +9,6 @@ import Stripe from "stripe";
 type Props = {
   searchParams: {
     session_id?: string;
-    product_id?: string;
   };
 };
 
@@ -50,14 +49,29 @@ export default async function StripeRedirect(props: Props) {
     : "http://localhost:3000";
 
   if (!props.searchParams.session_id) {
-    return (
-      <Empty>
-        <Empty.Title>Missing session_id</Empty.Title>
-        <Empty.Description>You need to provide a </Empty.Description>
-        <Code>session_id</Code>
-        <Empty.Description>as query parameter. Please contact support@unkey.dev.</Empty.Description>
-      </Empty>
-    );
+    const session = await stripe.checkout.sessions.create({
+      client_reference_id: ws.id,
+      billing_address_collection: "auto",
+      mode: "setup",
+      success_url: `${baseUrl}/settings/billing/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
+      currency: "USD",
+      customer_creation: "always",
+    });
+
+    if (!session.url) {
+      return (
+        <Empty>
+          <Empty.Title>Empty Session</Empty.Title>
+          <Empty.Description>The Stripe session</Empty.Description>
+          <Code>{session.id}</Code>
+          <Empty.Description>
+            you are trying to access does not exist. Please contact support@unkey.dev.
+          </Empty.Description>
+        </Empty>
+      );
+    }
+
+    return redirect(session.url);
   }
 
   const session = await stripe.checkout.sessions.retrieve(props.searchParams.session_id);
@@ -114,67 +128,12 @@ export default async function StripeRedirect(props: Props) {
     },
   });
 
-  const productId = props.searchParams.product_id ?? e.STRIPE_PRODUCT_IDS_PRO[0];
-  const product = await stripe.products.retrieve(productId);
-
-  if (!product) {
-    return (
-      <Empty>
-        <Empty.Title>Stripe product</Empty.Title>
-        <Empty.Description>Stripe did not find the product</Empty.Description>
-        <Code>{productId}</Code>
-        <Empty.Description>. Please contact support@unkey.dev.</Empty.Description>
-      </Empty>
-    );
-  }
   await db
     .update(schema.workspaces)
     .set({
       stripeCustomerId: customer.id,
     })
     .where(eq(schema.workspaces.id, ws.id));
-  const sub = await stripe.subscriptions.create({
-    customer: customer.id,
-    items: [
-      {
-        price: product.default_price!.toString(),
-      },
-    ],
-    billing_cycle_anchor_config: {
-      day_of_month: 1,
-    },
 
-    proration_behavior: "always_invoice",
-    trial_period_days: 14,
-    trial_settings: {
-      end_behavior: {
-        missing_payment_method: "cancel",
-      },
-    },
-  });
-  await db
-    .update(schema.workspaces)
-    .set({
-      stripeSubscriptionId: sub.id,
-    })
-    .where(eq(schema.workspaces.id, ws.id));
-  await db
-    .insert(schema.quotas)
-    .values({
-      workspaceId: ws.id,
-      requestsPerMonth: Number.parseInt(product.metadata.quota_requests_per_month),
-      logsRetentionDays: Number.parseInt(product.metadata.quota_logs_retention_days),
-      auditLogsRetentionDays: Number.parseInt(product.metadata.quota_audit_logs_retention_days),
-      team: true,
-    })
-    .onDuplicateKeyUpdate({
-      set: {
-        requestsPerMonth: Number.parseInt(product.metadata.quota_requests_per_month),
-        logsRetentionDays: Number.parseInt(product.metadata.quota_logs_retention_days),
-        auditLogsRetentionDays: Number.parseInt(product.metadata.quota_audit_logs_retention_days),
-        team: true,
-      },
-    });
-
-  return redirect(`${baseUrl}/settings/billing`);
+  return redirect(`${baseUrl}/settings/billing?checkout=done`);
 }

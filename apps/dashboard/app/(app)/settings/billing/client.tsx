@@ -15,6 +15,7 @@ import { Shell } from "./components/shell";
 import { Usage } from "./components/usage";
 
 type Props = {
+  hasPreviousSubscriptions: boolean;
   usage: {
     current: number;
     max: number;
@@ -68,10 +69,6 @@ export const Client: React.FC<Props> = (props) => {
     },
   });
 
-  // isNew means a workspace has not had a trial or paid plan yet and we should create one
-
-  const isNew = !props.workspace.stripeCustomerId;
-
   const allowUpdate =
     props.subscription && ["active", "trialing"].includes(props.subscription.status);
   const allowCancel =
@@ -94,85 +91,101 @@ export const Client: React.FC<Props> = (props) => {
       {isFreeTier ? <FreeTierAlert /> : null}
       <Usage current={props.usage.current} max={props.usage.max} />
 
-      <div className="w-full flex-col flex  ">
-        {props.products.map((p, i) => {
-          const isSelected = selectedProductIndex === i;
-          const isNextSelected = selectedProductIndex === i + 1;
-          return (
-            <div
-              key={p.id}
-              className={cn(
-                "text-sm border border-gray-4 px-6 py-3 w-full flex gap-6 justify-between items-center",
-                {
-                  "rounded-t-xl": i === 0,
-                  "border-t-0": i > 0 && !isSelected,
-                  "border-b-0": isNextSelected,
-                  "rounded-b-xl": i === props.products.length - 1,
-                  "border-info-7 bg-info-3": isSelected,
-                },
-              )}
-            >
-              <div className=" text-accent-12 font-medium w-4/12">{p.name}</div>
-              <div className="w-4/12 flex justify-end items-center gap-1">
-                <span className="text-accent-12 ">{formatNumber(p.quota.requestsPerMonth)}</span>
-                <span className="text-gray-11 ">requests</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 w-4/12">
-                <div className="flex items-center justify-end gap-1 w-full">
-                  <span className="font-medium  text-accent-12 ">${p.dollar}</span>
-                  <span className="text-gray-11 ">/mo</span>
-                </div>
-
-                {props.subscription ? (
-                  <Confirm
-                    title={`${i > selectedProductIndex ? "Upgrade" : "Downgrade"} to ${p.name}`}
-                    description={`Changing to ${
-                      p.name
-                    } updates your request quota to ${formatNumber(
-                      p.quota.requestsPerMonth,
-                    )} per month immediately.`}
-                    onConfirm={async () =>
-                      updateSubscription.mutateAsync({
-                        oldProductId: props.currentProductId!,
-                        newProductId: p.id,
-                      })
-                    }
-                    trigger={(onClick) => (
-                      <Button variant="outline" disabled={isSelected} onClick={onClick}>
-                        Change
-                      </Button>
-                    )}
-                  />
-                ) : (
-                  <Confirm
-                    title={`Upgrade to ${p.name}`}
-                    description={`Changing to ${
-                      p.name
-                    } updates your request quota to ${formatNumber(
-                      p.quota.requestsPerMonth,
-                    )} per month immediately.`}
-                    onConfirm={async () => {
-                      const res = await createSubscription.mutateAsync({ productId: p.id });
-
-                      if (res?.url) {
-                        router.push(res.url);
-                      }
-                    }}
-                    fineprint={
-                      isNew ? "After 14 days, the trial converts to a paid subscription." : ""
-                    }
-                    trigger={(onClick) => (
-                      <Button variant="outline" disabled={isSelected} onClick={onClick}>
-                        {isNew ? "Start 14 day trial" : "Upgrade"}
-                      </Button>
-                    )}
-                  />
+      {props.workspace.stripeCustomerId ? (
+        <div className="w-full flex-col flex  ">
+          {props.products.map((p, i) => {
+            const isSelected = selectedProductIndex === i;
+            const isNextSelected = selectedProductIndex === i + 1;
+            return (
+              <div
+                key={p.id}
+                className={cn(
+                  "text-sm border border-gray-4 px-6 py-3 w-full flex gap-6 justify-between items-center",
+                  {
+                    "rounded-t-xl": i === 0,
+                    "border-t-0": i > 0 && !isSelected,
+                    "border-b-0": isNextSelected,
+                    "rounded-b-xl": i === props.products.length - 1,
+                    "border-info-7 bg-info-3": isSelected,
+                  },
                 )}
+              >
+                <div className=" text-accent-12 font-medium w-4/12">{p.name}</div>
+                <div className="w-4/12 flex justify-end items-center gap-1">
+                  <span className="text-accent-12 ">{formatNumber(p.quota.requestsPerMonth)}</span>
+                  <span className="text-gray-11 ">requests</span>
+                </div>
+                <div className="flex items-center justify-between gap-4 w-4/12">
+                  <div className="flex items-center justify-end gap-1 w-full">
+                    <span className="font-medium  text-accent-12 ">${p.dollar}</span>
+                    <span className="text-gray-11 ">/mo</span>
+                  </div>
+
+                  {props.subscription ? (
+                    <Confirm
+                      title={`${i > selectedProductIndex ? "Upgrade" : "Downgrade"} to ${p.name}`}
+                      description={`Changing to ${
+                        p.name
+                      } updates your request quota to ${formatNumber(
+                        p.quota.requestsPerMonth,
+                      )} per month immediately.`}
+                      onConfirm={async () =>
+                        updateSubscription.mutateAsync({
+                          oldProductId: props.currentProductId!,
+                          newProductId: p.id,
+                        })
+                      }
+                      trigger={(onClick) => (
+                        <Button variant="outline" disabled={isSelected} onClick={onClick}>
+                          Change
+                        </Button>
+                      )}
+                    />
+                  ) : (
+                    <Confirm
+                      title={`Upgrade to ${p.name}`}
+                      description={`Changing to ${
+                        p.name
+                      } updates your request quota to ${formatNumber(
+                        p.quota.requestsPerMonth,
+                      )} per month immediately.`}
+                      onConfirm={async () => {
+                        const res = await createSubscription.mutateAsync({ productId: p.id });
+
+                        if (res?.url) {
+                          router.push(res.url);
+                        }
+                      }}
+                      fineprint={
+                        props.hasPreviousSubscriptions
+                          ? "Do you need another trial? Contact support.unkey.dev"
+                          : "After 14 days, the trial converts to a paid subscription."
+                      }
+                      trigger={(onClick) => (
+                        <Button variant="outline" disabled={isSelected} onClick={onClick}>
+                          {props.hasPreviousSubscriptions ? "Upgrade" : "Start 14 day trial"}
+                        </Button>
+                      )}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        <SettingCard
+          title="Add payment method"
+          border={props.subscription && allowCancel ? "top" : "both"}
+          description="Before starting a trial, you need to add a payment method."
+        >
+          <div className="w-full flex justify-end">
+            <Button variant="primary">
+              <Link href="/settings/billing/stripe/checkout">Add payment method</Link>
+            </Button>
+          </div>
+        </SettingCard>
+      )}
       <div className="w-full">
         {props.workspace.stripeCustomerId ? (
           <SettingCard
@@ -201,7 +214,7 @@ export const Client: React.FC<Props> = (props) => {
                 description="Canceling your plan will immediately downgrade your workspace to the free tier. Prorated credits are applied to your account and you can resume the subscription any time."
                 onConfirm={() => cancelSubscription.mutateAsync()}
                 trigger={(onClick) => (
-                  <Button variant="outline" color="danger" onClick={onClick}>
+                  <Button variant="outline" color="danger" size="lg" onClick={onClick}>
                     Cancel Plan
                   </Button>
                 )}

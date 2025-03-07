@@ -121,36 +121,47 @@ export default async function BillingPage() {
     );
   }
 
-  const products = await stripe.products
-    .list({
-      active: true,
-      ids: e.STRIPE_PRODUCT_IDS_PRO,
-      limit: 100,
-      expand: ["data.default_price"],
-    })
-    .then((res) =>
-      res.data
-        .map((p) => {
-          const price = p.default_price as Stripe.Price;
-          return {
-            id: p.id,
-            name: p.name,
-            priceId: price.id,
-            dollar: price.unit_amount! / 100,
-            quota: {
-              requestsPerMonth: Number.parseInt(p.metadata.quota_requests_per_month),
-            },
-          };
-        })
-        .sort((a, b) => a.dollar - b.dollar),
-    );
+  const [products, subscription, hasPreviousSubscriptions] = await Promise.all([
+    stripe.products
+      .list({
+        active: true,
+        ids: e.STRIPE_PRODUCT_IDS_PRO,
+        limit: 100,
+        expand: ["data.default_price"],
+      })
+      .then((res) =>
+        res.data
+          .map((p) => {
+            const price = p.default_price as Stripe.Price;
+            return {
+              id: p.id,
+              name: p.name,
+              priceId: price.id,
+              dollar: price.unit_amount! / 100,
+              quota: {
+                requestsPerMonth: Number.parseInt(p.metadata.quota_requests_per_month),
+              },
+            };
+          })
+          .sort((a, b) => a.dollar - b.dollar),
+      ),
+    workspace.stripeSubscriptionId
+      ? await stripe.subscriptions.retrieve(workspace.stripeSubscriptionId)
+      : undefined,
 
-  const subscription = workspace.stripeSubscriptionId
-    ? await stripe.subscriptions.retrieve(workspace.stripeSubscriptionId)
-    : undefined;
+    workspace.stripeCustomerId
+      ? await stripe.subscriptions
+          .list({
+            customer: workspace.stripeCustomerId,
+            status: "canceled",
+          })
+          .then((res) => res.data.length > 0)
+      : false,
+  ]);
 
   return (
     <Client
+      hasPreviousSubscriptions={hasPreviousSubscriptions}
       workspace={workspace}
       products={products}
       usage={{

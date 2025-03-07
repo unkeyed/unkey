@@ -38,8 +38,8 @@ export const Confirm: React.FC<Props> = (props) => {
                 setLoading(true);
                 await props.onConfirm();
 
-                setLoading(false);
                 setOpen(false);
+                setLoading(false);
               }}
             >
               Confirm
