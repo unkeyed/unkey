@@ -1,3 +1,4 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
@@ -54,4 +55,19 @@ export const cancelSubscription = t.procedure.use(auth).mutation(async ({ ctx })
         team: false,
       },
     });
+
+  await insertAuditLogs(db, ctx.workspace.auditLogBucket.id, {
+    workspaceId: ctx.workspace.id,
+    actor: {
+      type: "user",
+      id: ctx.user.id,
+    },
+    event: "workspace.update",
+    description: "Cancelled subscription.",
+    resources: [],
+    context: {
+      location: ctx.audit.location,
+      userAgent: ctx.audit.userAgent,
+    },
+  });
 });

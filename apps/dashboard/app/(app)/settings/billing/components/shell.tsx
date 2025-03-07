@@ -1,14 +1,33 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navigation } from "@/components/navigation/navigation";
+import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
 import { Gear } from "@unkey/icons";
+import { Button } from "@unkey/ui";
+import Link from "next/link";
 import type { PropsWithChildren } from "react";
 import { navigation } from "../../constants";
 
 export const Shell: React.FC<PropsWithChildren> = ({ children }) => {
   return (
     <div>
-      <Navigation href="/settings/billing" name="Settings" icon={<Gear />} />
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gear />}>
+          <Navbar.Breadcrumbs.Link href="/settings">Settings</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
+            Billing
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
+          <Button variant="outline">
+            <Link href="https://cal.com/james-r-perkins/sales" target="_blank">
+              Schedule a call
+            </Link>
+          </Button>
+          <Button variant="primary">
+            <Link href="mailto:support@unkey.dev">Contact us</Link>
+          </Button>
+        </Navbar.Actions>
+      </Navbar>
       <PageContent>
         <SubMenu navigation={navigation} segment="billing" />
         <div className="py-3 w-full flex items-center justify-center ">

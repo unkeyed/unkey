@@ -1,3 +1,4 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
@@ -105,4 +106,19 @@ export const updateSubscription = t.procedure
           team: true,
         },
       });
+
+    await insertAuditLogs(db, ctx.workspace.auditLogBucket.id, {
+      workspaceId: ctx.workspace.id,
+      actor: {
+        type: "user",
+        id: ctx.user.id,
+      },
+      event: "workspace.update",
+      description: `Switched to ${newProduct.name} plan.`,
+      resources: [],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
   });
