@@ -1,6 +1,6 @@
 "use client";
 
-import { resendAuthCode, signUpViaEmail, verifyAuthCode } from "../actions";
+import { resendAuthCode, signUpViaEmail, verifyAuthCode, verifyEmail } from "../actions";
 import { useSignUpContext } from "../context/signup-context";
 import type { UserData } from "../types";
 
@@ -18,16 +18,24 @@ export function useSignUp() {
     }
   };
 
-  const handleVerification = async (code: string): Promise<void> => {
+  const handleCodeVerification = async (code: string): Promise<void> => {
     try {
       await verifyAuthCode({
         email: userData.email,
         code,
       });
     } catch (error) {
-      console.error("Verification error:", error);
+      console.error("OTP Verification error:", error);
     }
   };
+
+  const handleEmailVerification = async (code: string): Promise<void> => {
+    try {
+      await verifyEmail(code);
+    } catch (error) {
+      console.error("Email verification error:", error);
+    }
+  }
 
   const handleResendCode = async (): Promise<void> => {
     try {
@@ -45,7 +53,8 @@ export function useSignUp() {
     userData,
     updateUserData,
     clearUserData,
-    handleVerification,
+    handleCodeVerification,
+    handleEmailVerification,
     handleResendCode,
     handleSignUpViaEmail,
   };

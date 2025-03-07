@@ -589,6 +589,65 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
+  async verifyEmail(params: {code: string, token: string}): Promise<VerificationResult> {
+    const { code, token } = params;
+    
+    try {
+      const { sealedSession } = await this.provider.userManagement.authenticateWithEmailVerification({
+        clientId: this.clientId,
+        code,
+        pendingAuthenticationToken: token,
+        session: {
+          sealSession: true,
+          cookiePassword: this.cookiePassword,
+        },
+      });
+
+      if (!sealedSession) {
+        throw new Error("No sealed session returned");
+      }
+
+      return {
+        success: true,
+        redirectTo: "/apis",
+        cookies: [
+          {
+            name: UNKEY_SESSION_COOKIE,
+            value: sealedSession,
+            options: {
+              secure: true,
+              httpOnly: true,
+              sameSite: "lax",
+            },
+          },
+        ],
+      };
+    } catch (error: any) {
+      // Handle organization selection required case
+      if (error.code === "organization_selection_required") {
+        return {
+          success: false,
+          code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
+          message: error.message,
+          user: this.transformUserData(error.user),
+          organizations: error.organizations.map(this.transformOrganizationData),
+          cookies: [
+            {
+              name: PENDING_SESSION_COOKIE,
+              value: error.pending_authentication_token,
+              options: {
+                secure: true,
+                httpOnly: true,
+                sameSite: "lax",
+              },
+            },
+          ],
+        };
+      }
+      return this.handleError(error);
+    }
+  }
+
   async completeOrgSelection(params: {
     orgId: string;
     pendingAuthToken: string;
@@ -725,6 +784,26 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
               },
             },
           ],
+        };
+      }
+
+      if (error.rawData.code === "email_verification_required") {
+        return {
+          success: false,
+          code: AuthErrorCode.EMAIL_VERIFICATION_REQUIRED,
+          message: error.message,
+          user: this.transformUserData(error.rawData.user),
+          cookies: [
+            {
+              name: PENDING_SESSION_COOKIE,
+              value: error.rawData.pending_authentication_token,
+              options: {
+                secure: true,
+                httpOnly: true,
+                sameSite: "lax",
+                maxAge: 60*10, // user has 10 mins seconds to verify their email before the cookie expires
+              },
+          }],
         };
       }
       return this.handleError(error);

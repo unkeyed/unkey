@@ -34,6 +34,7 @@ export abstract class BaseAuthProvider {
   // Authentication
   abstract signInViaEmail(email: string): Promise<EmailAuthResult>;
   abstract verifyAuthCode(params: { email: string; code: string }): Promise<VerificationResult>;
+  abstract verifyEmail(params: {code: string, token: string}): Promise<VerificationResult>;
   abstract resendAuthCode(email: string): Promise<EmailAuthResult>;
   abstract signUpViaEmail(params: UserData): Promise<EmailAuthResult>;
   abstract getSignOutUrl(): Promise<string | null>;
