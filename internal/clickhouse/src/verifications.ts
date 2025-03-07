@@ -1,17 +1,9 @@
 import { z } from "zod";
 import type { Inserter, Querier } from "./client";
 import { dateTimeToUnix } from "./util";
+import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
 
-const outcome = z.enum([
-  "VALID",
-  "INSUFFICIENT_PERMISSIONS",
-  "RATE_LIMITED",
-  "FORBIDDEN",
-  "DISABLED",
-  "EXPIRED",
-  "USAGE_EXCEEDED",
-  "",
-]);
+const outcome = z.enum(KEY_VERIFICATION_OUTCOMES);
 
 const params = z.object({
   workspaceId: z.string(),
@@ -150,11 +142,22 @@ export const verificationTimeseriesDataPoint = z.object({
   y: z.object({
     total: z.number().int().default(0),
     valid: z.number().int().default(0),
+    valid_count: z.number().int().default(0),
+    rate_limited_count: z.number().int().default(0),
+    insufficient_permissions_count: z.number().int().default(0),
+    forbidden_count: z.number().int().default(0),
+    disabled_count: z.number().int().default(0),
+    expired_count: z.number().int().default(0),
+    usage_exceeded_count: z.number().int().default(0),
   }),
 });
 
-export type VerificationTimeseriesDataPoint = z.infer<typeof verificationTimeseriesDataPoint>;
-export type VerificationTimeseriesParams = z.infer<typeof verificationTimeseriesParams>;
+export type VerificationTimeseriesDataPoint = z.infer<
+  typeof verificationTimeseriesDataPoint
+>;
+export type VerificationTimeseriesParams = z.infer<
+  typeof verificationTimeseriesParams
+>;
 
 type TimeInterval = {
   table: string;
@@ -221,7 +224,10 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
 } as const;
 
-function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: string) {
+function createVerificationTimeseriesQuery(
+  interval: TimeInterval,
+  whereClause: string
+) {
   const intervalUnit = {
     HOUR: "hour",
     HOURS: "hour",
@@ -241,15 +247,20 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
     MONTHS: 2592000_000,
   }[interval.step];
 
-  // Calculate step in milliseconds
   const stepMs = msPerUnit! * interval.stepSize;
 
   return `
     SELECT
       toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3))) as x,
-      map(
-          'total', SUM(count),
-          'valid', SUM(IF(outcome = 'VALID', count, 0))
+    map(
+      'total', SUM(count),
+      'valid', SUM(IF(outcome = 'VALID', count, 0)),
+      'rate_limited_count', SUM(IF(outcome = 'RATE_LIMITED', count, 0)),
+      'insufficient_permissions_count', SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0)),
+      'forbidden_count', SUM(IF(outcome = 'FORBIDDEN', count, 0)),
+      'disabled_count', SUM(IF(outcome = 'DISABLED', count, 0)) ,
+      'expired_count',SUM(IF(outcome = 'EXPIRED', count, 0)) ,
+      'usage_exceeded_count', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0)) 
       ) as y
     FROM ${interval.table}
     ${whereClause}
@@ -285,24 +296,21 @@ function createVerificationTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
-export const getHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(INTERVALS.hour);
-export const getTwoHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.twoHours,
-);
-export const getFourHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.fourHours,
-);
-export const getSixHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.sixHours,
-);
-export const getTwelveHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.twelveHours,
-);
-export const getDailyVerificationTimeseries = createVerificationTimeseriesQuerier(INTERVALS.day);
-export const getThreeDayVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.threeDays,
-);
-export const getWeeklyVerificationTimeseries = createVerificationTimeseriesQuerier(INTERVALS.week);
-export const getMonthlyVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.month,
-);
+export const getHourlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.hour);
+export const getTwoHourlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.twoHours);
+export const getFourHourlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.fourHours);
+export const getSixHourlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.sixHours);
+export const getTwelveHourlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.twelveHours);
+export const getDailyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.day);
+export const getThreeDayVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.threeDays);
+export const getWeeklyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.week);
+export const getMonthlyVerificationTimeseries =
+  createVerificationTimeseriesQuerier(INTERVALS.month);

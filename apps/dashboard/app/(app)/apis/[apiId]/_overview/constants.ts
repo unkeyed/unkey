@@ -29,6 +29,6 @@ export const OUTCOME_BADGE_STYLES: Record<string, string> = {
   FORBIDDEN: "bg-error-4 text-error-11 group-hover:bg-error-5",
   DISABLED: "bg-gray-4 text-gray-11 group-hover:bg-gray-5",
   EXPIRED: "bg-orange-4 text-orange-11 group-hover:bg-orange-5",
-  USAGE_EXCEEDED: "bg-violet-4 text-violet-11 group-hover:bg-violet-5",
+  USAGE_EXCEEDED: "bg-feature-4 text-feature-11 group-hover:bg-feature-5",
   "": "bg-gray-4 text-accent-11 hover:bg-gray-5 group-hover:text-accent-12", // Empty string case
 };

@@ -17,14 +17,14 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
       workspace: true,
     },
   });
-  if (!api || api.workspace.tenantId !== tenantId) {
+  if (!api || api.workspace.tenantId !== tenantId || !api?.keyAuthId) {
     return redirect("/new");
   }
 
   return (
     <div>
       <Navigation api={api} />
-      <LogsClient apiId={api.id} />
+      <LogsClient apiId={api.id} keyspaceId={api.keyAuthId} />
     </div>
   );
 }
