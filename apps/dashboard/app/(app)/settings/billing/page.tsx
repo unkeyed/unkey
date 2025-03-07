@@ -32,9 +32,6 @@ export default async function BillingPage() {
     return redirect("/new");
   }
 
-  const isLegacy = workspace.subscriptions && Object.keys(workspace.subscriptions).length > 0;
-  const isNew = !workspace.stripeCustomerId;
-
   const e = stripeEnv();
   if (!e) {
     return (
@@ -55,6 +52,12 @@ export default async function BillingPage() {
   const sub = workspace.stripeSubscriptionId
     ? await stripe.subscriptions.retrieve(workspace.stripeSubscriptionId)
     : null;
+
+  const isLegacy = workspace.subscriptions && Object.keys(workspace.subscriptions).length > 0;
+  // isNew means a workspace has not had a trial or paid plan yet and we should create one
+  const isNew = !workspace.stripeCustomerId;
+
+  const isCancelled = !!sub?.cancel_at;
 
   let trialNotice: string | null = null;
   if (sub?.trial_end) {
@@ -99,6 +102,22 @@ export default async function BillingPage() {
   if (isNew) {
     return (
       <Shell>
+        <Empty className="border border-gray-4 rounded-xl">
+          <Empty.Title>You are on the Free tier.</Empty.Title>
+          <Empty.Description>
+            <p>The Free tier includes a fixed amount of free usage.</p>
+            <p>
+              To unlock additional usage and add team members, upgrade to Pro.{" "}
+              <Link
+                href="https://unkey.com/pricing"
+                target="_blank"
+                className="text-info-11 underline"
+              >
+                See Pricing
+              </Link>
+            </p>
+          </Empty.Description>
+        </Empty>
         <Usage
           workspaceId={workspace.id}
           maxRequestsQuota={workspace.quota?.requestsPerMonth ?? 250000}
@@ -107,7 +126,7 @@ export default async function BillingPage() {
           className="border-success-7 bg-success-2"
           title="Start trial"
           border="both"
-          description="Add a payment method to start a 14 day trial. You can cancel at any time. "
+          description="Add a payment method to start a 14 day trial for the Pro tier. You can cancel at any time. "
         >
           <div className="w-full flex justify-end">
             <Button variant="primary" size="lg">
@@ -121,11 +140,28 @@ export default async function BillingPage() {
 
   return (
     <Shell>
+      {sub?.cancel_at && sub.cancel_at > Date.now() / 1000 ? (
+        <SettingCard
+          title="Cancelled"
+          description={`Your plan is scheduled to be cancelled on ${new Date(
+            sub.cancel_at * 1000,
+          ).toDateString()}`}
+          border="both"
+          className="border-warning-7 bg-warning-2"
+        >
+          <div className="w-full flex justify-end">
+            <Button size="lg" variant="primary" color="warning">
+              <Link href="/settings/billing/stripe?action=portal">Resubscribe</Link>
+            </Button>
+          </div>
+        </SettingCard>
+      ) : null}
+
       <Usage
         workspaceId={workspace.id}
         maxRequestsQuota={workspace.quota?.requestsPerMonth ?? 250000}
       />
-      <div className="w-full">
+      <div className="w-full divide-y divide-gray-4">
         <SettingCard
           title="Plan"
           border="top"
@@ -139,7 +175,7 @@ export default async function BillingPage() {
           }
         >
           <div className="w-full flex justify-end">
-            <Button size="lg">
+            <Button size="lg" variant="outline">
               <Link href="/settings/billing/stripe?action=subscription_update">Change Plan</Link>
             </Button>
           </div>
@@ -157,7 +193,7 @@ export default async function BillingPage() {
         </SettingCard>
       </div>
 
-      {sub ? (
+      {sub && !isCancelled ? (
         <SettingCard
           title="Cancel Subscription"
           description="Cancel your subscription at the end of the current month."
@@ -184,6 +220,9 @@ const Shell: React.FC<PropsWithChildren> = ({ children }) => {
         <SubMenu navigation={navigation} segment="billing" />
         <div className="py-3 w-full flex items-center justify-center ">
           <div className="w-[760px] mt-4 flex flex-col justify-center items-center gap-5">
+            <h1 className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
+              Billing Settings
+            </h1>
             {children}
           </div>
         </div>

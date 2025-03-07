@@ -110,6 +110,33 @@ export default async function StripeRedirect(props: Props) {
         );
       }
 
+      if (!session.setup_intent) {
+        return (
+          <Empty>
+            <Empty.Title>Stripe setup intent not found</Empty.Title>
+            <Empty.Description>Stripe did not return a</Empty.Description>
+            <Code>setup_intent</Code>
+            <Empty.Description>id. Please contact support@unkey.dev.</Empty.Description>
+          </Empty>
+        );
+      }
+      const setupIntent = await stripe.setupIntents.retrieve(session.setup_intent.toString());
+      if (!setupIntent.payment_method) {
+        return (
+          <Empty>
+            <Empty.Title>Payment method not found</Empty.Title>
+            <Empty.Description>
+              Stripe did not return a valid payment method. Please contact support@unkey.dev.
+            </Empty.Description>
+          </Empty>
+        );
+      }
+      await stripe.customers.update(customer.id, {
+        invoice_settings: {
+          default_payment_method: setupIntent.payment_method.toString(),
+        },
+      });
+
       await db
         .update(schema.workspaces)
         .set({
