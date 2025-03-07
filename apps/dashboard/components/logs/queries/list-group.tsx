@@ -1,8 +1,17 @@
-import type { SavedFiltersGroup } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
+import type { LogsFilterUrlValue } from "@/app/(app)/logs/filters.schema";
+import type { SavedFiltersGroup } from "@/components/logs/hooks/use-bookmarked-filters";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import type { UserResource } from "@clerk/types";
-import { Bookmark, CCheck, Layers2 } from "@unkey/icons";
+import {
+  Bookmark,
+  ChartActivity2,
+  CircleCheck,
+  Clock,
+  Conversion,
+  Layers2,
+  Link4,
+} from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import {
   differenceInDays,
@@ -14,11 +23,8 @@ import {
   differenceInYears,
 } from "date-fns";
 import { useEffect, useState } from "react";
+import { QueriesItemRow } from "./queries-item-row";
 import { QueriesMadeBy } from "./queries-made-by";
-import { MethodRow } from "./queries-method-row";
-import { PathRow } from "./queries-path-row";
-import { StatusRow } from "./queries-status-row";
-import { TimeRow } from "./queries-time-row";
 import { QueriesToast } from "./queries-toast";
 
 type ListGroupProps = {
@@ -27,6 +33,7 @@ type ListGroupProps = {
   index: number;
   total: number;
   selectedIndex: number;
+  isSaved: boolean | undefined;
   querySelected: (index: number) => void;
   changeBookmark: (index: string) => void;
 };
@@ -48,11 +55,11 @@ export const ListGroup = ({
   index,
   total,
   selectedIndex,
+  isSaved,
   querySelected,
   changeBookmark,
 }: ListGroupProps) => {
   const { status, methods, paths, startTime, endTime, since } = filterList.filters;
-  const [isSaved, setIsSaved] = useState(filterList.bookmarked);
   const [toolTipOpen, setToolTipOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<ToolTipMessageType>();
   const [tooltipMessage, setTooltipMessage] = useState<ToolTipMessageType>(
@@ -66,15 +73,29 @@ export const ListGroup = ({
   const handleToast = (message: ToolTipMessageType) => {
     toast.success(
       <QueriesToast message={message} undoBookmarked={handleBookmarkChanged}>
-        <CCheck size="xl-regular" className="text-success-9" />
+        <CircleCheck size="xl-thin" className="text-success-9" />
       </QueriesToast>,
     );
+  };
+  const getTime = (): LogsFilterUrlValue[] => {
+    if (startTime && endTime) {
+      return [
+        { operator: "startsWith", value: startTime },
+        { operator: "endsWith", value: endTime },
+      ];
+    }
+    if (startTime) {
+      return [{ operator: "startsWith", value: startTime }];
+    }
+    if (since) {
+      return [{ operator: "is", value: since }];
+    }
+    return [];
   };
 
   const handleBookmarkChanged = () => {
     changeBookmark(filterList.id);
     const newIsSaved = !isSaved;
-    setIsSaved(newIsSaved);
     const message = newIsSaved ? tooltipMessageOptions.saved : tooltipMessageOptions.removed;
     setToastMessage(message);
     setTooltipMessage(message);
@@ -102,7 +123,7 @@ export const ListGroup = ({
         )}
       >
         <div
-          className={cn("flex flex-col w-11/12", `tabIndex-${index}`)}
+          className={cn("flex flex-col w-11/12 ", `tabIndex-${index}`)}
           role="button"
           onClick={() => handleSelection(index)}
           onKeyUp={(e) => e.key === "Enter"}
@@ -123,14 +144,26 @@ export const ListGroup = ({
               {/* Vertical Line on Left */}
               <div className="flex flex-col ml-[9px] border-l-[1px] border-l-gray-5 w-[1px]" />
               <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
-                {/* Status filter row*/}
-                <StatusRow status={status} />
-                {/* Method filter row*/}
-                <MethodRow methods={methods} />
-                {/* Path filter row*/}
-                <PathRow paths={paths} />
-                {/* Time filter row*/}
-                <TimeRow startTime={startTime} endTime={endTime} since={since} />
+                <QueriesItemRow
+                  list={status}
+                  field="status"
+                  icon={<ChartActivity2 size="md-regular" className="justify-center" />}
+                />
+                <QueriesItemRow
+                  list={methods}
+                  field="methods"
+                  icon={<Conversion size="md-regular" className="justify-center" />}
+                />
+                <QueriesItemRow
+                  list={paths}
+                  field="paths"
+                  icon={<Link4 size="md-thin" className="justify-center" />}
+                />
+                <QueriesItemRow
+                  list={getTime()}
+                  field="time"
+                  icon={<Clock size="md-regular" className="justify-center" />}
+                />
               </div>
             </div>
             <QueriesMadeBy
@@ -140,6 +173,7 @@ export const ListGroup = ({
             />
           </div>
         </div>
+
         <div
           className="flex flex-col h-[24px] pr-2 mt-1.5 w-[24px]"
           onMouseEnter={handleMouseEnter}
@@ -162,7 +196,7 @@ export const ListGroup = ({
               </div>
             </TooltipTrigger>
             <TooltipContent
-              className="flex h-8 py-1 px-2 rounded-lg font-500 text-[12px] justify-center items-center leading-6 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.3),0_12px_60px_1px_rgba(0,0,0,0.15)],0_0px_0px_1px_rgba(0,0,0,0.1)]"
+              className="flex h-8 py-1 px-2 rounded-lg font-500 text-[12px] justify-center items-center leading-6 shadow-lg"
               side="bottom"
             >
               {tooltipMessage}

@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 import { ChartBarAxisY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 
-export const LogsQueries = () => {
+export const LogsQueries = ({ storageName }: { storageName: string }) => {
   return (
-    <QueriesPopover localStorageName="logsSavedFilters">
+    <QueriesPopover localStorageName={storageName}>
       <div className="group">
         <Button
           variant="ghost"

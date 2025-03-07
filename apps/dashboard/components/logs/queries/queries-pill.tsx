@@ -21,15 +21,21 @@ export const QueriesPill = ({ value, className }: QueriesPillType) => {
 };
 
 const parseValue = (value: string) => {
-  const firstChar = value.toString().charAt(0);
+  // Check if value can be parsed as a number
 
-  const parsedValues =
-    firstChar === "2"
-      ? { color: "bg-success-9", phrase: value !== "200" ? value : "2xx" }
-      : firstChar === "4"
-        ? { color: "bg-warning-9", phrase: value !== "400" ? value : "4xx" }
-        : firstChar === "5"
-          ? { color: "bg-error-9", phrase: value !== "500" ? value : "5xx" }
-          : { color: null, phrase: value };
-  return parsedValues;
+  const isNumeric = !Number.isNaN(Number.parseFloat(value)) && Number.isFinite(Number(value));
+  if (!isNumeric) {
+    return { color: null, phrase: value };
+  }
+  const numValue = Number(value);
+  if (numValue >= 200 && numValue < 300) {
+    return { color: "bg-success-9", phrase: value === "200" ? "2xx" : value };
+  }
+  if (numValue >= 400 && numValue < 500) {
+    return { color: "bg-warning-9", phrase: value === "400" ? "4xx" : value };
+  }
+  if (numValue >= 500 && numValue < 600) {
+    return { color: "bg-error-9", phrase: value === "500" ? "5xx" : value };
+  }
+  return { color: null, phrase: value };
 };

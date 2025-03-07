@@ -1,9 +1,6 @@
-import {
-  type SavedFiltersGroup,
-  useBookmarkedFilters,
-} from "@/components/logs/hooks/use-bookmarked-filters";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { type SavedFiltersGroup, useBookmarkedFilters } from "./use-bookmarked-filters";
 
 // Mock modules
 vi.mock("nuqs", () => {
@@ -84,9 +81,7 @@ describe("useBookmarkedFilters", () => {
 
     localStorageMock.setItem("savedFilters", JSON.stringify(savedFilters));
 
-    const { result } = renderHook(() =>
-      useBookmarkedFilters({ localStorageName: "ratelimitSavedFilters" }),
-    );
+    const { result } = renderHook(() => useBookmarkedFilters());
 
     expect(result.current.savedFilters).toEqual(savedFilters);
     expect(localStorageMock.getItem).toHaveBeenCalledWith("savedFilters");
@@ -109,9 +104,7 @@ describe("useBookmarkedFilters", () => {
 
     localStorageMock.setItem("savedFilters", JSON.stringify(savedFilters));
 
-    const { result, rerender } = renderHook(() =>
-      useBookmarkedFilters({ localStorageName: "ratelimitSavedFilters" }),
-    );
+    const { result, rerender } = renderHook(() => useBookmarkedFilters());
 
     act(() => {
       result.current.toggleBookmark(savedFilters[0].id);
@@ -149,9 +142,7 @@ describe("useBookmarkedFilters", () => {
       },
     };
 
-    const { result, rerender } = renderHook(() =>
-      useBookmarkedFilters({ localStorageName: "ratelimitSavedFilters" }),
-    );
+    const { result, rerender } = renderHook(() => useBookmarkedFilters());
     const { applyFilterGroup } = result.current;
     expect(mockFilters.length).toBe(0);
     act(() => {

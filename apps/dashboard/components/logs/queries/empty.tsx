@@ -1,4 +1,4 @@
-import type { SavedFiltersGroup } from "@/app/(app)/logs/hooks/use-bookmarked-filters";
+import type { SavedFiltersGroup } from "@/components/logs/hooks/use-bookmarked-filters";
 import { Book2, Bookmark, ClockRotateClockwise } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 

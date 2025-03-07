@@ -34,6 +34,8 @@
 
     --border: 24, 6%, 83%;
     --ring: 24, 6%, 83%;
+    
+    --shadow-lg: shadow-[0_12px_32px_-16px_rgba(var(--black-a5)),0_12px_60px_0px_rgba(var(--black-a3)),0_0px_0px_1px_rgba(var(--inverted-2))]
   }
 
   .dark {
@@ -69,6 +71,9 @@
 
     --border: 12, 6%, 15%;
     --ring: 12, 6%, 15%;
+
+    --shadow-lg: shadow-[0_12px_32px_-16px_rgba(var(--black-a5)),0_12px_60px_0px_rgba(var(--black-a3)),0_0px_0px_1px_rgba(var(--inverted-2))]
+  
   }
 }
 

@@ -13,10 +13,10 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const CCheck: React.FC<IconProps> = ({ size, filled, ...props }) => {
+export const CircleCheck: React.FC<IconProps> = ({ size, filled, ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
-    <svg width={pixelSize} height={pixelSize} {...props}>
+    <svg width={pixelSize} height={pixelSize} {...props} viewBox="0 0 18 18">
       <path
         d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"
         fill={filled ? "currentColor" : "none"}

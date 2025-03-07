@@ -1,12 +1,13 @@
-import type { FilterUrlValue } from "@/components/logs/validation/filter.types";
-import { useCallback, useEffect } from "react";
 import {
   type LogsFilterField,
   type LogsFilterValue,
   type QuerySearchParams,
   logsFilterFieldConfig,
-} from "../filters.schema";
-import { useFilters } from "./use-filters";
+} from "@/app/(app)/logs/filters.schema";
+import type { FilterUrlValue } from "@/components/logs/validation/filter.types";
+import { useCallback, useEffect } from "react";
+
+import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 
 export type SavedFiltersGroup = {
   id: string;
@@ -15,7 +16,7 @@ export type SavedFiltersGroup = {
   bookmarked?: boolean;
 };
 
-export const useBookmarkedFilters = () => {
+export const useBookmarkedFilters = ({ localStorageName }: { localStorageName: string }) => {
   const { filters, updateFilters } = useFilters();
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export const useBookmarkedFilters = () => {
 
     // Get existing saved filters
     const savedFilters = JSON.parse(
-      localStorage.getItem("savedFilters") || "[]",
+      localStorage.getItem(localStorageName) || "[]",
     ) as SavedFiltersGroup[];
 
     // Check if this combination already exists
@@ -70,9 +71,9 @@ export const useBookmarkedFilters = () => {
         },
       ].sort((a, b) => b.createdAt - a.createdAt);
 
-      localStorage.setItem("savedFilters", JSON.stringify(newSavedFilters));
+      localStorage.setItem(localStorageName, JSON.stringify(newSavedFilters));
     }
-  }, [filters]);
+  }, [filters, localStorageName]);
 
   const applyFilterGroup = useCallback(
     (savedGroup: SavedFiltersGroup) => {
@@ -115,7 +116,7 @@ export const useBookmarkedFilters = () => {
   );
   const toggleBookmark = (groupId: string) => {
     const savedFilters = JSON.parse(
-      localStorage.getItem("savedFilters") || "[]",
+      localStorage.getItem(localStorageName) || "[]",
     ) as SavedFiltersGroup[];
     const updatedFilters = savedFilters.map((filter) => {
       if (filter.id === groupId) {
@@ -126,13 +127,13 @@ export const useBookmarkedFilters = () => {
       }
       return filter;
     });
-    localStorage.setItem("savedFilters", JSON.stringify(updatedFilters) || "[]");
+    localStorage.setItem(localStorageName, JSON.stringify(updatedFilters) || "[]");
     return updatedFilters;
   };
 
   return {
     savedFilters: (
-      JSON.parse(localStorage.getItem("savedFilters") || "[]") as SavedFiltersGroup[]
+      JSON.parse(localStorage.getItem(localStorageName) || "[]") as SavedFiltersGroup[]
     ).map((filter) => ({
       ...filter,
       filters: {

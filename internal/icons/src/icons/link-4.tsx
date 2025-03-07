@@ -9,28 +9,35 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-
 import type React from "react";
 
-import type { IconProps } from "../props";
-export const Link4: React.FC<IconProps> = (props) => {
+import { type IconProps, sizeMap } from "../props";
+
+export const Link4: React.FC<IconProps> = ({ size, filled, ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor">
         <path
           d="M9 18c-3.31 0-6-2.69-6-6v-0.75a1.13 1.13 0 0 1 2.25 0v0.75c0 2.07 1.68 3.75 3.75 3.75s3.75-1.68 3.75-3.75v-0.75a1.13 1.13 0 0 1 2.25 0v0.75c0 3.31-2.69 6-6 6z"
           fill="currentColor"
-          strokeWidth="0"
+          strokeWidth={strokeWidth}
         />
         <path
           d="M13.88 7.88a1.13 1.13 0 0 1-1.13-1.13v-0.75c0-2.07-1.68-3.75-3.75-3.75s-3.75 1.68-3.75 3.75v0.75a1.13 1.13 0 0 1-2.25 0v-0.75c0-3.31 2.69-6 6-6s6 2.69 6 6v0.75a1.13 1.13 0 0 1-1.13 1.13z"
           fill="currentColor"
-          strokeWidth="0"
+          strokeWidth={strokeWidth}
         />
         <path
           d="M9 13.5a1.13 1.13 0 0 1-1.13-1.13v-6.75a1.13 1.13 0 0 1 2.25 0v6.75a1.13 1.13 0 0 1-1.12 1.13z"
           fill="currentColor"
-          strokeWidth="0"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>
