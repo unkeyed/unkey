@@ -127,12 +127,22 @@ export default async function StripeRedirect(props: Props) {
     },
   });
 
-  await db
-    .update(schema.workspaces)
-    .set({
-      stripeCustomerId: customer.id,
-    })
-    .where(eq(schema.workspaces.id, ws.id));
-
+  try {
+    await db
+      .update(schema.workspaces)
+      .set({
+        stripeCustomerId: customer.id,
+      })
+      .where(eq(schema.workspaces.id, ws.id));
+  } catch (error) {
+    return (
+      <Empty>
+        <Empty.Title>Failed to update workspace</Empty.Title>
+        <Empty.Description>
+          There was an error updating your workspace with payment information. Please contact support@unkey.dev.
+        </Empty.Description>
+      </Empty>
+    );
+  }
   return redirect(`${baseUrl}/settings/billing?checkout=done`);
 }
