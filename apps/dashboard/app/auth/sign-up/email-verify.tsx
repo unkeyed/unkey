@@ -9,36 +9,23 @@ import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { cn } from "@/lib/utils";
 import { OTPInput, type SlotProps } from "input-otp";
 
-export const EmailCode: React.FC = () => {
-  const { handleCodeVerification, handleResendCode } = useSignUp();
+export const EmailVerify: React.FC = () => {
+  const { handleEmailVerification } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
   const [_timeLeft, _setTimeLeft] = React.useState(0);
 
-  const verifyCode = async (otp: string) => {
+  const verifyEmail = async (otp: string) => {
     if (typeof otp !== "string") {
       return null;
     }
     setIsLoading(true);
-    await handleCodeVerification(otp).catch((err) => {
+    await handleEmailVerification(otp).catch((err) => {
       setIsLoading(false);
       const errorCode = err.message as AuthErrorCode;
       toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
     });
   };
 
-  const resendCode = async () => {
-    try {
-      const p = handleResendCode();
-      toast.promise(p, {
-        loading: "Sending new code ...",
-        success: "A new code has been sent to your email",
-      });
-      await p;
-    } catch (error) {
-      setIsLoading(false);
-      console.error(error);
-    }
-  };
 
   const [otp, setOtp] = React.useState("");
 
@@ -51,18 +38,12 @@ export const EmailCode: React.FC = () => {
         To continue, please enter the 6 digit verification code sent to the provided email.
       </p>
 
-      <p className="mt-2 text-sm text-white/40">
-        Didn't receive the code?{" "}
-        <button type="button" className="text-white" onClick={resendCode}>
-          Resend
-        </button>
-      </p>
-      <form className="flex flex-col gap-12 mt-10" onSubmit={() => verifyCode(otp)}>
+      <form className="flex flex-col gap-12 mt-10" onSubmit={() => verifyEmail(otp)}>
         <OTPInput
           data-1p-ignore
           value={otp}
           onChange={setOtp}
-          onComplete={() => verifyCode(otp)}
+          onComplete={() => verifyEmail(otp)}
           maxLength={6}
           render={({ slots }) => (
             <div className="flex items-center justify-between">
@@ -78,7 +59,7 @@ export const EmailCode: React.FC = () => {
           type="submit"
           className="flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
           disabled={isLoading}
-          onClick={() => verifyCode(otp)}
+          onClick={() => verifyEmail(otp)}
         >
           {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
           Continue

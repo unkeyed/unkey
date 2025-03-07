@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "../db";
-import { deleteCookie, setCookie, setCookies } from "./cookies";
+import { deleteCookie, getCookie, setCookie, setCookies } from "./cookies";
 import { auth } from "./server";
 import {
   AuthErrorCode,
@@ -82,6 +82,38 @@ export async function verifyAuthCode(params: {
       success: false,
       code: AuthErrorCode.UNKNOWN_ERROR,
       message: errorMessages[AuthErrorCode.UNKNOWN_ERROR],
+    };
+  }
+}
+
+export async function verifyEmail(code: string): Promise<VerificationResult> {
+  try {
+    // get the pending auth token
+    // it's only good for 10 minutes
+    const token = await getCookie(PENDING_SESSION_COOKIE);
+
+    if (!token) {
+      console.error("Pending auth token missing or expired");
+      return {
+        success: false,
+        code: AuthErrorCode.UNKNOWN_ERROR,
+        message: errorMessages[AuthErrorCode.UNKNOWN_ERROR]
+      };
+    }
+
+    const result = await auth.verifyEmail({code, token});
+
+    if (result.cookies) {
+      await setCookies(result.cookies);
+    }
+
+    return result;
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: errorMessages[AuthErrorCode.UNKNOWN_ERROR]
     };
   }
 }
