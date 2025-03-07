@@ -92,8 +92,11 @@ export function useUser() {
       const result = await switchOrg(orgId);
       
       if (result.success) {
-        // Refresh the page to update the app with the new organization context
-        window.location.reload();
+        // Don't refresh the location if it's on the creation page because you will lose context due to needed to switch first and then push the parameters after
+        if(window.location.pathname !== '/new'){
+          window.location.reload();
+        }
+       
       } else {
         throw new Error(result.error || "Failed to switch organization");
       }
