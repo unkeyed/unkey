@@ -42,10 +42,10 @@ export default async function StripeRedirect(props: Props) {
     typescript: true,
   });
 
-  const baseUrl = process.env.VERCEL_URL
+  const baseUrl = process.env.VERCEL
     ? process.env.VERCEL_TARGET_ENV === "production"
       ? "https://app.unkey.com"
-      : `https://${process.env.VERCEL_URL}`
+      : `https://${process.env.VERCEL_BRANCH_URL}`
     : "http://localhost:3000";
 
   if (!props.searchParams.session_id) {
@@ -79,7 +79,9 @@ export default async function StripeRedirect(props: Props) {
     return (
       <Empty>
         <Empty.Title>Stripe session not found</Empty.Title>
-        <Empty.Description>The Stripe session you are trying to access does not exist. Please contact support@unkey.dev.
+        <Empty.Description>
+          The Stripe session you are trying to access does not exist. Please contact
+          support@unkey.dev.
         </Empty.Description>
       </Empty>
     );
