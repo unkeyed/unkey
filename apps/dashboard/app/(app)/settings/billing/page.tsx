@@ -166,7 +166,7 @@ export default async function BillingPage() {
       products={products}
       usage={{
         current: usedVerifications + usedRatelimits,
-        max: workspace.quota?.requestsPerMonth ?? 250_000,
+        max: workspace.quota?.requestsPerMonth ?? 150_000,
       }}
       subscription={
         subscription

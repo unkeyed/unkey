@@ -1,5 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { type Quotas, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -38,22 +38,21 @@ export const cancelSubscription = t.procedure.use(auth).mutation(async ({ ctx })
       stripeSubscriptionId: null,
     })
     .where(eq(schema.workspaces.id, ctx.workspace.id));
+
+  const freeTierQuotas: Omit<Quotas, "workspaceId"> = {
+    requestsPerMonth: 150_000,
+    logsRetentionDays: 7,
+    auditLogsRetentionDays: 30,
+    team: false,
+  };
   await db
     .insert(schema.quotas)
     .values({
       workspaceId: ctx.workspace.id,
-      requestsPerMonth: 250_000,
-      logsRetentionDays: 7,
-      auditLogsRetentionDays: 30,
-      team: false,
+      ...freeTierQuotas,
     })
     .onDuplicateKeyUpdate({
-      set: {
-        requestsPerMonth: 250_000,
-        logsRetentionDays: 7,
-        auditLogsRetentionDays: 30,
-        team: false,
-      },
+      set: freeTierQuotas,
     });
 
   await insertAuditLogs(db, ctx.workspace.auditLogBucket.id, {

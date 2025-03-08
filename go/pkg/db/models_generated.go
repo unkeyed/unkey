@@ -408,6 +408,14 @@ type Permission struct {
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
 }
 
+type Quotum struct {
+	WorkspaceID            string `db:"workspace_id"`
+	RequestsPerMonth       int64  `db:"requests_per_month"`
+	LogsRetentionDays      int32  `db:"logs_retention_days"`
+	AuditLogsRetentionDays int32  `db:"audit_logs_retention_days"`
+	Team                   bool   `db:"team"`
+}
+
 type Ratelimit struct {
 	ID          string         `db:"id"`
 	Name        string         `db:"name"`
@@ -488,8 +496,10 @@ type VercelIntegration struct {
 type Workspace struct {
 	ID                   string                             `db:"id"`
 	TenantID             string                             `db:"tenant_id"`
+	OrgID                sql.NullString                     `db:"org_id"`
 	Name                 string                             `db:"name"`
 	Plan                 NullWorkspacesPlan                 `db:"plan"`
+	Tier                 sql.NullString                     `db:"tier"`
 	StripeCustomerID     sql.NullString                     `db:"stripe_customer_id"`
 	StripeSubscriptionID sql.NullString                     `db:"stripe_subscription_id"`
 	TrialEnds            sql.NullTime                       `db:"trial_ends"`
@@ -498,7 +508,6 @@ type Workspace struct {
 	PlanLockedUntil      sql.NullTime                       `db:"plan_locked_until"`
 	PlanDowngradeRequest NullWorkspacesPlanDowngradeRequest `db:"plan_downgrade_request"`
 	PlanChanged          sql.NullTime                       `db:"plan_changed"`
-	Subscriptions        json.RawMessage                    `db:"subscriptions"`
 	Enabled              bool                               `db:"enabled"`
 	DeleteProtection     sql.NullBool                       `db:"delete_protection"`
 	CreatedAtM           int64                              `db:"created_at_m"`

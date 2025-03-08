@@ -177,8 +177,10 @@ CREATE TABLE `ratelimit_overrides` (
 CREATE TABLE `workspaces` (
 	`id` varchar(256) NOT NULL,
 	`tenant_id` varchar(256) NOT NULL,
+	`org_id` varchar(256),
 	`name` varchar(256) NOT NULL,
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
+	`tier` varchar(256) DEFAULT 'Free',
 	`stripe_customer_id` varchar(256),
 	`stripe_subscription_id` varchar(256),
 	`trial_ends` datetime(3),
@@ -230,6 +232,15 @@ CREATE TABLE `ratelimits` (
 	`duration` bigint NOT NULL,
 	CONSTRAINT `ratelimits_id` PRIMARY KEY(`id`),
 	CONSTRAINT `unique_name_idx` UNIQUE(`name`,`key_id`,`identity_id`)
+);
+--> statement-breakpoint
+CREATE TABLE `quota` (
+	`workspace_id` varchar(256) NOT NULL,
+	`requests_per_month` bigint NOT NULL DEFAULT 0,
+	`logs_retention_days` int NOT NULL DEFAULT 0,
+	`audit_logs_retention_days` int NOT NULL DEFAULT 0,
+	`team` boolean NOT NULL DEFAULT false,
+	CONSTRAINT `quota_workspace_id` PRIMARY KEY(`workspace_id`)
 );
 --> statement-breakpoint
 CREATE TABLE `audit_log` (

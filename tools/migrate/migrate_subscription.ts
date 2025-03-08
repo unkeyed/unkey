@@ -58,6 +58,7 @@ async function main() {
     .update(schema.workspaces)
     .set({
       stripeSubscriptionId: sub.id,
+      tier: product.name,
       subscriptions: {},
     })
     .where(eq(schema.workspaces.id, workspace.id));

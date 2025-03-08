@@ -1,6 +1,8 @@
 package clickhouse
 
 import (
+	"context"
+
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 )
 
@@ -9,7 +11,8 @@ import (
 // such as in development environments or when running integration tests.
 type noop struct{}
 
-var _ Bufferer = &noop{}
+var _ Bufferer = (*noop)(nil)
+var _ Bufferer = (*noop)(nil)
 
 // BufferApiRequest implements the Bufferer interface but discards the event.
 func (n *noop) BufferApiRequest(schema.ApiRequestV1) {
@@ -19,6 +22,16 @@ func (n *noop) BufferApiRequest(schema.ApiRequestV1) {
 // BufferKeyVerification implements the Bufferer interface but discards the event.
 func (n *noop) BufferKeyVerification(schema.KeyVerificationRequestV1) {
 	// Intentionally empty - discards the event
+}
+
+// GetBillableVerifications implements the Bufferer interface but always returns 0.
+func (n *noop) GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error) {
+	return 0, nil
+}
+
+// GetBillableRatelimits implements the Bufferer interface but always returns 0.
+func (n *noop) GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error) {
+	return 0, nil
 }
 
 // NewNoop creates a new no-op implementation of the Bufferer interface.

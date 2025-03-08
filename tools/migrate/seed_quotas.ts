@@ -38,7 +38,7 @@ async function main() {
         await db.insert(schema.quotas).values({
           workspaceId: workspace.id,
           team: false,
-          requestsPerMonth: 250_000,
+          requestsPerMonth: 150_000,
           logsRetentionDays: 7,
           auditLogsRetentionDays: 30,
         });
