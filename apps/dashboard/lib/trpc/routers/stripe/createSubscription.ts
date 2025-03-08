@@ -33,31 +33,10 @@ export const createSubscription = t.procedure
     }
 
     if (!ctx.workspace.stripeCustomerId) {
-      const baseUrl = process.env.VERCEL_URL
-        ? process.env.VERCEL_TARGET_ENV === "production"
-          ? "https://app.unkey.com"
-          : `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000";
-
-      const session = await stripe.checkout.sessions.create({
-        client_reference_id: ctx.workspace.id,
-        billing_address_collection: "auto",
-        mode: "setup",
-        success_url: `${baseUrl}/settings/billing/stripe/checkout-success?session_id={CHECKOUT_SESSION_ID}&product_id=${input.productId}`,
-        currency: "USD",
-        customer_creation: "always",
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Workspaces does not have a stripe account.",
       });
-
-      if (!session.url) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "We're unable to generate a checkout session.",
-        });
-      }
-
-      return {
-        url: session.url,
-      };
     }
     if (ctx.workspace.stripeSubscriptionId) {
       throw new TRPCError({
@@ -74,6 +53,14 @@ export const createSubscription = t.procedure
       });
     }
 
+    const hasPreviousSubscriptions = await stripe.subscriptions
+      .list({
+        customer: customer.id,
+        status: "all",
+        limit: 1,
+      })
+      .then((res) => res.data.length > 0);
+
     const sub = await stripe.subscriptions.create({
       customer: customer.id,
       items: [
@@ -84,6 +71,7 @@ export const createSubscription = t.procedure
       billing_cycle_anchor_config: {
         day_of_month: 1,
       },
+      trial_period_days: hasPreviousSubscriptions ? undefined : 14,
 
       proration_behavior: "always_invoice",
     });

@@ -134,15 +134,16 @@ export default async function StripeRedirect(props: Props) {
         stripeCustomerId: customer.id,
       })
       .where(eq(schema.workspaces.id, ws.id));
-  } catch (error) {
+  } catch {
     return (
       <Empty>
         <Empty.Title>Failed to update workspace</Empty.Title>
         <Empty.Description>
-          There was an error updating your workspace with payment information. Please contact support@unkey.dev.
+          There was an error updating your workspace with payment information. Please contact
+          support@unkey.dev.
         </Empty.Description>
       </Empty>
     );
   }
-  return redirect(`${baseUrl}/settings/billing?checkout=done`);
+  return redirect(`${baseUrl}/settings/billing`);
 }
