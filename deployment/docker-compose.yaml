@@ -169,6 +169,14 @@ services:
       - clickhouse
       - chproxy
 
+  bytebase:
+    image: bytebase/bytebase:latest
+    ports:
+      - 9090:8080
+    volumes:
+      - ~/.bytebase/data:/var/opt/bytebase
+
+
   # prometheus:
   #     image: prom/prometheus
   #     container_name: prometheus
