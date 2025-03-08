@@ -22,7 +22,6 @@ async function main() {
     cursor = workspaces.at(-1)?.id ?? "";
 
     for (const workspace of workspaces) {
-      console.log(workspace.id, workspace.name);
       if (workspace.quota) {
         continue;
       }

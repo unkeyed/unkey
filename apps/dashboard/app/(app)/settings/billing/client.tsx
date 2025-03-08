@@ -149,13 +149,7 @@ export const Client: React.FC<Props> = (props) => {
                       } updates your request quota to ${formatNumber(
                         p.quota.requestsPerMonth,
                       )} per month immediately.`}
-                      onConfirm={async () => {
-                        const res = await createSubscription.mutateAsync({ productId: p.id });
-
-                        if (res?.url) {
-                          router.push(res.url);
-                        }
-                      }}
+                      onConfirm={() => createSubscription.mutateAsync({ productId: p.id })}
                       fineprint={
                         props.hasPreviousSubscriptions
                           ? "Do you need another trial? Contact support.unkey.dev"
