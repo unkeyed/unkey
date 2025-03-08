@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -24,6 +25,9 @@ type Clickhouse struct {
 	requests         *batch.BatchProcessor[schema.ApiRequestV1]
 	keyVerifications *batch.BatchProcessor[schema.KeyVerificationRequestV1]
 }
+
+var _ Bufferer = (*Clickhouse)(nil)
+var _ Querier = (*Clickhouse)(nil)
 
 // Config contains the configuration options for the ClickHouse client.
 type Config struct {
@@ -62,6 +66,11 @@ func New(config Config) (*Clickhouse, error) {
 	opts.Debugf = func(format string, v ...any) {
 		config.Logger.Debug(fmt.Sprintf(format, v...))
 	}
+	if opts.TLS == nil {
+
+		opts.TLS = &tls.Config{} // nolint:gosec
+	}
+
 	config.Logger.Info("connecting to clickhouse")
 	conn, err := ch.Open(opts)
 	if err != nil {

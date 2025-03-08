@@ -1,0 +1,35 @@
+name: Quota Check
+
+on:
+  schedule:
+    # Run every 6 hours - at minute 0 of hours 0, 6, 12, and 18
+    - cron: "0 0,6,12,18 * * *"
+  # Allow manual triggering for testing
+  workflow_dispatch:
+
+jobs:
+  quota-check:
+    environment: operations
+    name: Check quota usage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Delete huge unnecessary tools folder
+        run: rm -rf /opt/hostedtoolcache
+
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          go: true
+
+      - name: Run quota check
+        working-directory: ./go
+        env:
+          CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
+          DATABASE_DSN: ${{ secrets.DATABASE_DSN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          go run . yquotacheck --parallel=16

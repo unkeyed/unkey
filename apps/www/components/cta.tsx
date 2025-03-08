@@ -32,8 +32,7 @@ export const CTA: React.FC = () => {
         </SectionTitle>
         <div className="mt-8 sm:mt-10 text-balance">
           <p className="w-full mx-auto text-sm leading-6 text-center text-white/60 max-w-[500px]">
-            2500 verifications and 100K successful rate&#8209;limited requests per month. No CC
-            required.
+            150,000 requests per month. No CC required.
           </p>
         </div>
       </div>

@@ -154,7 +154,7 @@ type Querier interface {
 	FindRatelimitOverridesByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverridesByIdentifierParams) (RatelimitOverride, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT id, tenant_id, name, plan, stripe_customer_id, stripe_subscription_id, trial_ends, beta_features, features, plan_locked_until, plan_downgrade_request, plan_changed, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT id, tenant_id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, trial_ends, beta_features, features, plan_locked_until, plan_downgrade_request, plan_changed, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//HardDeleteWorkspace
@@ -386,6 +386,17 @@ type Querier interface {
 	//      '{}'
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	//ListWorkspaces
+	//
+	//  SELECT
+	//     w.id, w.tenant_id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.trial_ends, w.beta_features, w.features, w.plan_locked_until, w.plan_downgrade_request, w.plan_changed, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
+	//  FROM `workspaces` w
+	//  LEFT JOIN quota q ON w.id = q.workspace_id
+	//  WHERE w.id > ?
+	//  ORDER BY w.id ASC
+	//  LIMIT 100
+	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
 	//SoftDeleteRatelimitOverride
 	//
 	//  UPDATE `ratelimit_overrides`

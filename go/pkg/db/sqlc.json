@@ -20,7 +20,10 @@
           "output_querier_file_name": "querier_generated",
           "output_batch_file_name": "batch_generated",
           "output_copyfrom_file_name": "copyfrom_generated",
-          "output_db_file_name": "delete_me"
+          "output_db_file_name": "delete_me",
+          "rename": {
+            "Quotum": "Quotas"
+          }
         }
       }
     }
