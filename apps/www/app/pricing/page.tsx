@@ -1,14 +1,13 @@
+"use client";
+import { CTA } from "@/components/cta";
 import { Particles } from "@/components/particles";
 import { ShinyCardGroup } from "@/components/shiny-card";
-import { Check, Stars } from "lucide-react";
-import Link from "next/link";
-import { Discover } from "./discover";
-
-import { CTA } from "@/components/cta";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/hero";
+import { Check, Stars } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
 import {
-  Asterisk,
   BelowEnterpriseSvg,
   Bullet,
   Bullets,
@@ -24,8 +23,43 @@ import {
   ProCardHighlight,
   Separator,
 } from "./components";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
+
+const buckets: Array<{ price: string; requests: number }> = [
+  {
+    price: "$25",
+    requests: 250_000,
+  },
+  {
+    price: "$50",
+    requests: 500_000,
+  },
+  {
+    price: "$75",
+    requests: 1_000_000,
+  },
+  {
+    price: "$100",
+    requests: 2_000_000,
+  },
+  {
+    price: "$250",
+    requests: 10_000_000,
+  },
+  {
+    price: "$500",
+    requests: 50_000_000,
+  },
+  {
+    price: "$1000",
+    requests: 100_000_000,
+  },
+];
 
 export default function PricingPage() {
+  const { format } = Intl.NumberFormat(undefined, { notation: "compact" });
+
+  const [selectedBucketIndex, setSelectedBucketIndex] = useState(0);
   return (
     <div className="px-4 mx-auto lg:px-0 pt-[64px]">
       <TopRightShiningLight />
@@ -80,14 +114,13 @@ export default function PricingPage() {
               <li>
                 <Bullet Icon={Check} label="1k API keys" color={Color.White} />
               </li>
+
               <li>
-                <Bullet Icon={Check} label="2.5k valid verifications / month" color={Color.White} />
+                <Bullet Icon={Check} label="150k valid requests / month" color={Color.White} />
               </li>
               <li>
-                <Bullet Icon={Check} label="100k valid ratelimits / month" color={Color.White} />
-              </li>
-              <li>
-                <Bullet Icon={Check} label="7-day analytics retention" color={Color.White} />
+                {" "}
+                <Bullet Icon={Check} label="7-day logs retention" color={Color.White} />
               </li>
               <li>
                 <Bullet Icon={Check} label="30-day audit log retention" color={Color.White} />
@@ -95,18 +128,23 @@ export default function PricingPage() {
               <li>
                 <Bullet Icon={Check} label="Unlimited APIs" color={Color.White} />
               </li>
+              <li>
+                <div className="h-6" />
+              </li>
             </Bullets>
           </PricingCardContent>
           <PricingCardFooter>
             <div className="flex flex-col gap-2">
               <p className="text-sm font-bold text-white">What counts as valid? </p>
               <p className="text-xs text-white/60">
-                A valid request means everything is fine and you should grant access to the user.
-                Requests may be invalid due to exceeding limits, keys being expired or disabled, or
-                other factors.
+                A valid request is a key verification or a ratelimit operation that result in
+                proividng access to your service. Requests may be invalid due to exceeding limits,
+                keys being expired or disabled, or other factors. To protect your business from
+                abuse, we do not charge for invalid requests.
               </p>
               <p className="text-xs text-white/60">
-                To protect your business from abuse, we do not charge for invalid requests.
+                Only key verification and ratelimiting requests are billable. All regular API
+                requests are always free.
               </p>
             </div>
           </PricingCardFooter>
@@ -116,14 +154,32 @@ export default function PricingPage() {
 
           <PricingCardHeader
             title="Pro Tier"
-            description="For growing teams with powerful demands"
+            description="Predicatable pricing without surprises."
             className="bg-gradient-to-tr from-black/50 to-[#FFD600]/10 "
             color={Color.Yellow}
           />
           <Separator />
 
           <PricingCardContent>
-            <Cost dollar="$25" />
+            <div className="flex items-center justify-between">
+              <Cost dollar={buckets[selectedBucketIndex].price} className="w-full" />
+
+              <Select
+                value={selectedBucketIndex.toString()}
+                onValueChange={(v) => setSelectedBucketIndex(Number.parseInt(v))}
+              >
+                <SelectTrigger className="max-w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="w-full">
+                  {buckets.map((b, i) => (
+                    <SelectItem key={b.price} value={i.toString()}>
+                      {format(b.requests)} Requests
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button label="Get Started with Pro" />
             <Bullets>
               <li>
@@ -132,15 +188,12 @@ export default function PricingPage() {
               <li>
                 <Bullet
                   Icon={Check}
-                  label="150k valid verifications / month"
+                  label={`${format(buckets[selectedBucketIndex].requests)} valid requests / month`}
                   color={Color.Yellow}
                 />
               </li>
               <li>
-                <Bullet Icon={Check} label="2.5M valid ratelimits / month" color={Color.Yellow} />
-              </li>
-              <li>
-                <Bullet Icon={Check} label="90-day analytics retention" color={Color.Yellow} />
+                <Bullet Icon={Check} label="30-day logs retention" color={Color.Yellow} />
               </li>
               <li>
                 <Bullet Icon={Check} label="90-day audit log retention" color={Color.Yellow} />
@@ -151,20 +204,17 @@ export default function PricingPage() {
               <li>
                 <Bullet Icon={Check} label="Workspaces with team members" color={Color.Yellow} />
               </li>
-              <li>
-                <Bullet
-                  Icon={Stars}
-                  label="More coming soon"
-                  color={Color.Yellow}
-                  textColor="text-white/50"
-                />
-              </li>
             </Bullets>
           </PricingCardContent>
           <PricingCardFooter>
             <div className="flex flex-col gap-2">
-              <Asterisk tag="$1" label="/ additional 10k valid verifications" />
-              <Asterisk tag="$1" label="/ additional 100k valid ratelimits" />
+              <p className="text-sm font-bold text-white">What happens when I go over my plan? </p>
+              <p className="text-xs text-white/60">
+                We want you to succeed, and not be afraid of surprise charges. If you unexpectedly
+                go over the limits of your plan, we won't shut you down automatically, nor will we
+                charge you extra. If your usage is consistently exceeding the limits, you should
+                upgrade to the next higher plan.
+              </p>
             </div>
           </PricingCardFooter>
         </PricingCard>
@@ -227,8 +277,6 @@ export default function PricingPage() {
         </PricingCard>
       </ShinyCardGroup>
       <BelowEnterpriseSvg className="container inset-x-0 top-0 mx-auto -mt-64 -mb-32" />
-
-      <Discover />
 
       <div className="-mx-4 lg:mx-0">
         <CTA />
