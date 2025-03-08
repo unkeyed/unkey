@@ -32,4 +32,4 @@ jobs:
           DATABASE_DSN: ${{ secrets.DATABASE_DSN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          go run . yquotacheck --parallel=16
+          go run . quotacheck --parallel=16
