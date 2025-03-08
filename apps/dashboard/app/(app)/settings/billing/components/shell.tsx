@@ -1,3 +1,4 @@
+"use client";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navigation/navbar";
 import { PageContent } from "@/components/page-content";
