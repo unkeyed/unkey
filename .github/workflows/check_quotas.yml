@@ -2,8 +2,7 @@ name: Quota Check
 
 on:
   schedule:
-    # Run every 6 hours - at minute 0 of hours 0, 6, 12, and 18
-    - cron: "0 0,6,12,18 * * *"
+    - cron: "0 15 * * *"
   # Allow manual triggering for testing
   workflow_dispatch:
 
