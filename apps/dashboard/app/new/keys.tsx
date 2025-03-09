@@ -74,7 +74,8 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
   }/v1/keys.verifyKey' \\
   -H 'Content-Type: application/json' \\
   -d '{
-    "key": "${key.data?.key ?? "<YOUR_KEY>"}"
+    "key": "${key.data?.key ?? "<YOUR_KEY>"}",
+    "apiId": "${apiId}"
   }'
   `;
 
