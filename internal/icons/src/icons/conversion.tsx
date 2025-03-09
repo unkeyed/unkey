@@ -13,7 +13,7 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const Plus: React.FC<IconProps> = ({ size, filled, ...props }) => {
+export const Conversion: React.FC<IconProps> = ({ size, filled, ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
     <svg
@@ -24,27 +24,21 @@ export const Plus: React.FC<IconProps> = ({ size, filled, ...props }) => {
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="currentColor">
-        <line
+        <polyline
           fill={filled ? "currentColor" : "none"}
+          points="17 12 3 12 7 16"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
-          x1="9"
-          x2="9"
-          y1="3.25"
-          y2="14.75"
         />
-        <line
+        <polyline
           fill={filled ? "currentColor" : "none"}
+          points="3 8 17 8 13 4"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
-          x1="3.25"
-          x2="14.75"
-          y1="9"
-          y2="9"
         />
       </g>
     </svg>
