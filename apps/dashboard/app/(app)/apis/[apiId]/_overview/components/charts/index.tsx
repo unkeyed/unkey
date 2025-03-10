@@ -1,21 +1,19 @@
+import { OverviewAreaChart } from "@/components/logs/overview-charts/overview-area-chart";
+import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 import { createOutcomeChartConfig } from "./bar-chart/utils";
 import { useFetchActiveKeysTimeseries } from "./line-chart/hooks/use-fetch-timeseries";
-import { LogsTimeseriesAreaChart } from "./line-chart";
-import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 
 export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
   const { filters, updateFilters } = useFilters();
 
-  // Fetch verification data
   const {
     timeseries: verificationTimeseries,
     isLoading: verificationIsLoading,
     isError: verificationIsError,
   } = useFetchVerificationTimeseries(apiId);
 
-  // Fetch active keys data
   const {
     timeseries: activeKeysTimeseries,
     isLoading: activeKeysIsLoading,
@@ -30,7 +28,7 @@ export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field)
+      (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
     updateFilters([
       ...activeFilters,
@@ -48,6 +46,26 @@ export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
       },
     ]);
   };
+
+  const keysChartConfig = {
+    keys: {
+      label: "Active Keys",
+      color: "hsl(var(--success-11))",
+    },
+  };
+
+  const keysChartLabels = {
+    title: "Keys Chart",
+    rangeLabel: "RANGE",
+    metrics: [
+      {
+        key: "keys",
+        label: "AVG",
+        color: "hsl(var(--success-11))",
+      },
+    ],
+  };
+
   return (
     <div className="flex w-full h-[320px]">
       <div className="w-1/2">
@@ -68,18 +86,15 @@ export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
           tooltipItems={[{ label: "Invalid", dataKey: "error" }]}
         />
       </div>
-      <div className="w-1/2 ">
-        <LogsTimeseriesAreaChart
+      <div className="w-1/2">
+        <OverviewAreaChart
           data={activeKeysTimeseries}
           isLoading={activeKeysIsLoading}
           isError={activeKeysIsError}
           enableSelection
           onSelectionChange={handleSelectionChange}
-          config={{
-            keys: {
-              label: "Active Keys",
-            },
-          }}
+          config={keysChartConfig}
+          labels={keysChartLabels}
         />
       </div>
     </div>

@@ -13,35 +13,23 @@ export const OverviewChartError = ({ labels }: GenericChartErrorProps) => {
       {/* Header section matching the main chart */}
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10">
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">
-            {labels.title}
-          </div>
-          <div className="text-accent-12 text-[18px] font-semibold leading-7">
-            --
-          </div>
+          <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
+          <div className="text-accent-12 text-[18px] font-semibold leading-7">--</div>
         </div>
         <div className="flex gap-10 items-center">
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-accent-8 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">
-                {labels.primaryLabel}
-              </div>
+              <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
             </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              --
-            </div>
+            <div className="text-accent-12 text-[18px] font-semibold leading-7">--</div>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-orange-9 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">
-                {labels.secondaryLabel}
-              </div>
+              <div className="text-accent-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
             </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              --
-            </div>
+            <div className="text-accent-12 text-[18px] font-semibold leading-7">--</div>
           </div>
         </div>
       </div>
