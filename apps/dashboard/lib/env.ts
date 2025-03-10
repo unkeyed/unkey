@@ -63,6 +63,7 @@ const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),
   // The product ids, comma separated, from lowest to highest pro plan
   STRIPE_PRODUCT_IDS_PRO: z.string().transform((s) => s.split(",")),
+  STRIPE_WEBHOOK_SECRET: z.string(),
 });
 
 const stripeParsed = stripeSchema.safeParse(process.env);

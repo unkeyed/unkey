@@ -57,7 +57,7 @@ export type UnkeyAuditLog = {
   event: z.infer<typeof unkeyAuditLogEvents>;
   description: string;
   actor: {
-    type: "user" | "key";
+    type: "user" | "key" | "system";
     name?: string;
     id: string;
     meta?: Record<string, string | number | boolean | null>;

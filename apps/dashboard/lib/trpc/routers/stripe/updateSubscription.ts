@@ -78,6 +78,12 @@ export const updateSubscription = t.procedure
       proration_behavior: "always_invoice",
     });
 
+    if (sub.cancel_at) {
+      await stripe.subscriptions.update(sub.id, {
+        cancel_at_period_end: false,
+      });
+    }
+
     await db
       .update(schema.workspaces)
       .set({
