@@ -327,6 +327,8 @@ Examples:
 		&cli.StringFlag{
 			Name: "otel-otlp-endpoint",
 			Usage: `OpenTelemetry collector endpoint for metrics, traces, and logs.
+Specified as host:port (without scheme or path)
+
 When provided, the Unkey API will send telemetry data (metrics, traces, and logs)
 to this endpoint using the OTLP protocol. This enables comprehensive observability
 for production deployments.
