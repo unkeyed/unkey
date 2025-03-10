@@ -56,17 +56,13 @@ export const LogsTimeseriesAreaChart = ({
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
-    const darkModeMediaQuery = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    );
+    const darkModeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     setIsDarkMode(darkModeMediaQuery.matches);
 
-    const handleThemeChange = (e: MediaQueryListEvent) =>
-      setIsDarkMode(e.matches);
+    const handleThemeChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
     darkModeMediaQuery.addEventListener("change", handleThemeChange);
 
-    return () =>
-      darkModeMediaQuery.removeEventListener("change", handleThemeChange);
+    return () => darkModeMediaQuery.removeEventListener("change", handleThemeChange);
   }, []);
 
   const getThemeColor = (lightColor: string, darkColor: string) => {
@@ -113,10 +109,7 @@ export const LogsTimeseriesAreaChart = ({
       if (!selection.startTimestamp || !selection.endTimestamp) {
         return;
       }
-      const [start, end] = [
-        selection.startTimestamp,
-        selection.endTimestamp,
-      ].sort((a, b) => a - b);
+      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
       onSelectionChange({ start, end });
     }
     setSelection({
@@ -138,9 +131,7 @@ export const LogsTimeseriesAreaChart = ({
   const minKeys = data.length > 0 ? Math.min(...data.map((d) => d.keys)) : 0;
   const maxKeys = data.length > 0 ? Math.max(...data.map((d) => d.keys)) : 0;
   const avgKeys =
-    data.length > 0
-      ? Math.round(data.reduce((acc, curr) => acc + curr.keys, 0) / data.length)
-      : 0;
+    data.length > 0 ? Math.round(data.reduce((acc, curr) => acc + curr.keys, 0) / data.length) : 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -158,9 +149,7 @@ export const LogsTimeseriesAreaChart = ({
               <div className="bg-success-8 rounded h-[10px] w-1" />
               <div className="text-accent-10 text-[11px] leading-4">AVG</div>
             </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {avgKeys} keys
-            </div>
+            <div className="text-accent-12 text-[18px] font-semibold leading-7">{avgKeys} keys</div>
           </div>
         </div>
       </div>
@@ -178,23 +167,12 @@ export const LogsTimeseriesAreaChart = ({
             >
               <defs>
                 <linearGradient id="keysGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor={chartConfig.keys.color}
-                    stopOpacity={0.2}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor={chartConfig.keys.color}
-                    stopOpacity={0}
-                  />
+                  <stop offset="5%" stopColor={chartConfig.keys.color} stopOpacity={0.2} />
+                  <stop offset="95%" stopColor={chartConfig.keys.color} stopOpacity={0} />
                 </linearGradient>
               </defs>
 
-              <YAxis
-                domain={["auto", (dataMax: number) => dataMax * 1.1]}
-                hide
-              />
+              <YAxis domain={["auto", (dataMax: number) => dataMax * 1.1]} hide />
               <CartesianGrid
                 horizontal
                 vertical={false}
@@ -224,8 +202,7 @@ export const LogsTimeseriesAreaChart = ({
                       active={active}
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) => {
-                        const originalTimestamp =
-                          tooltipPayload[0]?.payload?.originalTimestamp;
+                        const originalTimestamp = tooltipPayload[0]?.payload?.originalTimestamp;
                         return originalTimestamp ? (
                           <div>
                             <span className="font-mono text-accent-9 text-xs px-4">
@@ -265,7 +242,7 @@ export const LogsTimeseriesAreaChart = ({
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now()
+              data.at(-1)?.originalTimestamp ?? Date.now(),
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               <div key={i} className="z-10">

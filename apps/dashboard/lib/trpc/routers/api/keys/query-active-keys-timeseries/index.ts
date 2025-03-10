@@ -8,8 +8,7 @@ import { transformVerificationFilters } from "./utils";
 export const activeKeysTimeseries = rateLimitedProcedure(ratelimit.read)
   .input(keysOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
-    const { params: transformedInputs, granularity } =
-      transformVerificationFilters(input);
+    const { params: transformedInputs, granularity } = transformVerificationFilters(input);
     const keyIdsFromInput = transformedInputs.keyIds;
     const namesFromInput = transformedInputs.names;
 
@@ -19,7 +18,7 @@ export const activeKeysTimeseries = rateLimitedProcedure(ratelimit.read)
           and(
             eq(api.id, input.apiId),
             eq(api.workspaceId, ctx.workspace.id),
-            isNull(api.deletedAtM)
+            isNull(api.deletedAtM),
           ),
         with: {
           keyAuth: {
@@ -63,7 +62,7 @@ export const activeKeysTimeseries = rateLimitedProcedure(ratelimit.read)
                       .map((filter) => filter.value);
                     if (keyIdContainsValues.length > 0) {
                       keyIdContainsValues.forEach((value) =>
-                        conditions.push(sql`${key.id} LIKE ${`%${value}%`}`)
+                        conditions.push(sql`${key.id} LIKE ${`%${value}%`}`),
                       );
                     }
                   }
@@ -127,9 +126,7 @@ export const activeKeysTimeseries = rateLimitedProcedure(ratelimit.read)
     }
 
     // Call the activeKeys.timeseries instead of verifications.timeseries
-    const result = await clickhouse.verifications.activeKeysTimeseries[
-      granularity
-    ]({
+    const result = await clickhouse.verifications.activeKeysTimeseries[granularity]({
       ...transformedInputs,
       workspaceId: ctx.workspace.id,
       keyspaceId: combinedResults.keyAuth.id,

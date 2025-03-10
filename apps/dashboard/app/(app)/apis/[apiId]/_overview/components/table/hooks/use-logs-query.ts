@@ -1,6 +1,6 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
-import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
+import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { KeysQueryOverviewLogsPayload } from "../query-logs.schema";
@@ -58,22 +58,10 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
           break;
         }
         case "outcomes": {
-          //TODO: later use enum from zod type in clickhouse
-          const validOutcomes = [
-            "",
-            "VALID",
-            "INSUFFICIENT_PERMISSIONS",
-            "RATE_LIMITED",
-            "FORBIDDEN",
-            "DISABLED",
-            "EXPIRED",
-            "USAGE_EXCEEDED",
-          ] as const;
-          type ValidOutcome = (typeof validOutcomes)[number];
-
+          type ValidOutcome = (typeof KEY_VERIFICATION_OUTCOMES)[number];
           if (
             typeof filter.value === "string" &&
-            validOutcomes.includes(filter.value as ValidOutcome)
+            KEY_VERIFICATION_OUTCOMES.includes(filter.value as ValidOutcome)
           ) {
             params.outcomes?.push({
               operator: "is",

@@ -28,11 +28,7 @@ export type Props = {
   onChange?: (i: string) => void;
 };
 
-export const IntervalSelect: React.FC<Props> = ({
-  defaultSelected,
-  className,
-  onChange,
-}) => {
+export const IntervalSelect: React.FC<Props> = ({ defaultSelected, className, onChange }) => {
   const [selected, setSelected] = useState<Interval>(defaultSelected);
   const searchParams = useModifySearchParams();
 
@@ -73,7 +69,7 @@ export function useModifySearchParams() {
       params.set(name, value);
       return `${pathname}?${params.toString()}`;
     },
-    [pathname, searchParams]
+    [pathname, searchParams],
   );
 
   return {

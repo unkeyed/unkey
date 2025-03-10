@@ -1,6 +1,7 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { useMemo } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { KeysOverviewQueryTimeseriesPayload } from "../../bar-chart/query-timeseries.schema";
@@ -25,9 +26,7 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(
-              `${filter.field} filter value type has to be 'number'`
-            );
+            console.error(`${filter.field} filter value type has to be 'number'`);
             return;
           }
           params[filter.field] = filter.value;
@@ -65,20 +64,11 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
         }
         case "outcomes": {
           //TODO: later use enum from zod type in clickhouse
-          const validOutcomes = [
-            "",
-            "VALID",
-            "INSUFFICIENT_PERMISSIONS",
-            "RATE_LIMITED",
-            "FORBIDDEN",
-            "DISABLED",
-            "EXPIRED",
-            "USAGE_EXCEEDED",
-          ] as const;
-          type ValidOutcome = (typeof validOutcomes)[number];
+
+          type ValidOutcome = (typeof KEY_VERIFICATION_OUTCOMES)[number];
           if (
             typeof filter.value === "string" &&
-            validOutcomes.includes(filter.value as ValidOutcome)
+            KEY_VERIFICATION_OUTCOMES.includes(filter.value as ValidOutcome)
           ) {
             params.outcomes?.filters?.push({
               operator: "is",
@@ -95,10 +85,9 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
     return params;
   }, [filters, dateNow, apiId]);
 
-  const { data, isLoading, isError } =
-    trpc.api.keys.activeKeysTimeseries.useQuery(queryParams, {
-      refetchInterval: queryParams.endTime ? false : 10_000,
-    });
+  const { data, isLoading, isError } = trpc.api.keys.activeKeysTimeseries.useQuery(queryParams, {
+    refetchInterval: queryParams.endTime ? false : 10_000,
+  });
 
   // Process timeseries data to work with our chart component
   const timeseries = data?.timeseries.map((ts) => {

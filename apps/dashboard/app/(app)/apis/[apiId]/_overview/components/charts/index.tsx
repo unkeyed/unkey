@@ -30,7 +30,7 @@ export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field)
+      (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
     updateFilters([
       ...activeFilters,
