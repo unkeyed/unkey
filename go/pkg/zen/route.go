@@ -1,5 +1,7 @@
 package zen
 
+import "context"
+
 // Route represents an HTTP endpoint with its method, path, and handler function.
 // It encapsulates the behavior of a specific HTTP endpoint in the system.
 type Route interface {
@@ -12,7 +14,7 @@ type Route interface {
 	// Handle processes the HTTP request encapsulated by the Session.
 	// It should return an error if processing fails, which will then be
 	// handled by error middleware.
-	Handle(sess *Session) error
+	Handle(context.Context, *Session) error
 
 	// WithMiddleware returns a new Route with the provided middleware applied.
 	// Middleware is applied in the order provided, with each wrapping the next.
@@ -41,7 +43,7 @@ type route struct {
 //	    }
 //	    return s.JSON(http.StatusCreated, result)
 //	})
-func NewRoute(method string, path string, handleFn func(*Session) error) *route {
+func NewRoute(method string, path string, handleFn func(context.Context, *Session) error) *route {
 	return &route{
 		method:   method,
 		path:     path,
@@ -56,8 +58,8 @@ func (r *route) WithMiddleware(mws ...Middleware) Route {
 	return r
 }
 
-func (r *route) Handle(sess *Session) error {
-	return r.handleFn(sess)
+func (r *route) Handle(ctx context.Context, sess *Session) error {
+	return r.handleFn(ctx, sess)
 }
 
 func (r *route) Method() string {

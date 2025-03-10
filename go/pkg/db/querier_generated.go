@@ -370,8 +370,7 @@ type Querier interface {
 	//      beta_features,
 	//      features,
 	//      enabled,
-	//      delete_protection,
-	//      subscriptions
+	//      delete_protection
 	//  )
 	//  VALUES (
 	//      ?,
@@ -382,8 +381,7 @@ type Querier interface {
 	//      '{}',
 	//      '{}',
 	//      true,
-	//      true,
-	//      '{}'
+	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
 	//ListWorkspaces
@@ -397,6 +395,13 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
+	//SoftDeleteRatelimitNamespace
+	//
+	//  UPDATE `ratelimit_namespaces`
+	//  SET
+	//      deleted_at_m =  ?
+	//  WHERE id = ?
+	SoftDeleteRatelimitNamespace(ctx context.Context, db DBTX, arg SoftDeleteRatelimitNamespaceParams) error
 	//SoftDeleteRatelimitOverride
 	//
 	//  UPDATE `ratelimit_overrides`

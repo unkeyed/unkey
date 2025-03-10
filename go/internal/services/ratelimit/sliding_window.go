@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -85,6 +86,17 @@ func New(config Config) (*service, error) {
 func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
 	_, span := tracing.Start(ctx, "slidingWindow.Ratelimit")
 	defer span.End()
+
+	r.logger.Info("Ratelimit", "req", req)
+	err := assert.Multi(
+		assert.NotEmpty(req.Identifier, "ratelimit identifier must not be empty"),
+		assert.Greater(req.Limit, 0, "ratelimit limit must be greater than zero"),
+		assert.GreaterOrEqual(req.Cost, 0, "ratelimit cost must not be negative"),
+		assert.GreaterOrEqual(req.Duration.Milliseconds(), 1000, "ratelimit duration must be at least 1s"),
+	)
+	if err != nil {
+		return RatelimitResponse{}, err
+	}
 
 	now := r.clock.Now()
 
