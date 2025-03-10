@@ -3,7 +3,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 type SettingCardProps = {
   title: string;
   description: string | React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   border?: "top" | "bottom" | "both" | "none" | "default";
   contentWidth?: string;
@@ -27,6 +27,7 @@ export function SettingCard({
   const borderClass = {
     "border border-gray-4": border !== "none",
     "border-t-0": border === "bottom",
+    "border-b-0": border === "top",
   };
 
   return (

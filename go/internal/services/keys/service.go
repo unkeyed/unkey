@@ -1,18 +1,18 @@
 package keys
 
 import (
-	"github.com/unkeyed/unkey/go/pkg/database"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 )
 
 type Config struct {
 	Logger logging.Logger
-	DB     database.Database
+	DB     db.Database
 }
 
 type service struct {
 	logger logging.Logger
-	db     database.Database
+	db     db.Database
 }
 
 func New(config Config) (*service, error) {

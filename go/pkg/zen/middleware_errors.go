@@ -7,6 +7,22 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
+// WithErrorHandling returns middleware that translates errors into appropriate
+// HTTP responses. It uses status codes based on error tags:
+//
+//   - NOT_FOUND: 404 Not Found
+//   - BAD_REQUEST: 400 Bad Request
+//   - UNAUTHORIZED: 401 Unauthorized
+//   - FORBIDDEN: 403 Forbidden
+//   - PROTECTED_RESOURCE: 412 Precondition Failed
+//   - Other errors: 500 Internal Server Error
+//
+// Example:
+//
+//	server.RegisterRoute(
+//	    []zen.Middleware{zen.WithErrorHandling()},
+//	    route,
+//	)
 func WithErrorHandling() Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(s *Session) error {
@@ -23,7 +39,7 @@ func WithErrorHandling() Middleware {
 					Type:      "https://unkey.com/docs/errors/not_found",
 					Detail:    fault.UserFacingMessage(err),
 					RequestId: s.requestID,
-					Status:    s.responseStatus,
+					Status:    http.StatusNotFound,
 					Instance:  nil,
 				})
 
@@ -44,7 +60,7 @@ func WithErrorHandling() Middleware {
 					Type:      "https://unkey.com/docs/errors/unauthorized",
 					Detail:    fault.UserFacingMessage(err),
 					RequestId: s.requestID,
-					Status:    s.responseStatus,
+					Status:    http.StatusUnauthorized,
 					Instance:  nil,
 				})
 			case fault.FORBIDDEN:
@@ -53,7 +69,16 @@ func WithErrorHandling() Middleware {
 					Type:      "https://unkey.com/docs/errors/forbidden",
 					Detail:    fault.UserFacingMessage(err),
 					RequestId: s.requestID,
-					Status:    s.responseStatus,
+					Status:    http.StatusForbidden,
+					Instance:  nil,
+				})
+			case fault.INSUFFICIENT_PERMISSIONS:
+				return s.JSON(http.StatusForbidden, api.ForbiddenError{
+					Title:     "Insufficient Permissions",
+					Type:      "https://unkey.com/docs/errors/insufficient_permissions",
+					Detail:    fault.UserFacingMessage(err),
+					RequestId: s.requestID,
+					Status:    http.StatusForbidden,
 					Instance:  nil,
 				})
 			case fault.PROTECTED_RESOURCE:
@@ -62,7 +87,7 @@ func WithErrorHandling() Middleware {
 					Type:      "https://unkey.com/docs/errors/deletion_prevented",
 					Detail:    fault.UserFacingMessage(err),
 					RequestId: s.requestID,
-					Status:    s.responseStatus,
+					Status:    http.StatusPreconditionFailed,
 					Instance:  nil,
 				})
 
@@ -83,7 +108,7 @@ func WithErrorHandling() Middleware {
 				Type:      "https://unkey.com/docs/errors/internal_server_error",
 				Detail:    fault.UserFacingMessage(err),
 				RequestId: s.requestID,
-				Status:    s.responseStatus,
+				Status:    http.StatusInternalServerError,
 				Instance:  nil,
 			})
 		}

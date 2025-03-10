@@ -1,7 +1,6 @@
 "use client";
 
 import { Loading } from "@/components/dashboard/loading";
-import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -80,12 +79,7 @@ export const CreateWorkspace: React.FC = () => {
                 </FormItem>
               )}
             />
-            <div className="flex cursor-default items-start justify-between space-x-3 space-y-0 rounded-md border p-4">
-              <p className="text-content-subtle text-sm">
-                250 Monthly active keys and 10,000 verifications included.
-              </p>
-              <Badge>14 Day Trial</Badge>
-            </div>
+
             <div className="mt-8">
               <Button
                 variant="primary"

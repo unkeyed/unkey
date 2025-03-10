@@ -1,6 +1,7 @@
 package v2RatelimitLimit
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"time"
@@ -8,7 +9,7 @@ import (
 	openapi "github.com/unkeyed/unkey/go/api"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
-	"github.com/unkeyed/unkey/go/pkg/database"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
@@ -20,7 +21,7 @@ type Response = openapi.V2RatelimitLimitResponseBody
 type Services struct {
 	Logger logging.Logger
 	Keys   keys.KeyService
-	DB     database.Database
+	DB     db.Database
 
 	Ratelimit ratelimit.Service
 }
@@ -45,9 +46,13 @@ func New(svc Services) zen.Route {
 			limitRequest.Cost = *req.Cost
 		}
 
-		namespace, err := svc.DB.FindRatelimitNamespaceByName(s.Context(), s.AuthorizedWorkspaceID(), req.Namespace)
+		namespace, err := db.Query.FindRatelimitNamespaceByName(s.Context(), svc.DB.RO(), db.FindRatelimitNamespaceByNameParams{
+			WorkspaceID: s.AuthorizedWorkspaceID(),
+			Name:        req.Namespace,
+		})
+
 		if err != nil {
-			if errors.Is(err, database.ErrNotFound) {
+			if errors.Is(err, sql.ErrNoRows) {
 
 				return fault.Wrap(
 					err,
@@ -62,9 +67,13 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		overrides, err := svc.DB.FindRatelimitOverridesByIdentifier(s.Context(), s.AuthorizedWorkspaceID(), namespace.ID, req.Identifier)
+		overrides, err := db.Query.FindRatelimitOverrideMatches(s.Context(), svc.DB.RO(), db.FindRatelimitOverrideMatchesParams{
+			WorkspaceID: s.AuthorizedWorkspaceID(),
+			NamespaceID: namespace.ID,
+			Identifier:  req.Identifier,
+		})
 
-		if err != nil && !errors.Is(err, database.ErrNotFound) {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fault.Wrap(
 				err,
 				fault.WithDesc("unable to load overrides", ""),
@@ -75,7 +84,7 @@ func New(svc Services) zen.Route {
 		for _, override := range overrides {
 			usedOverrideID = override.ID
 			limitRequest.Limit = int64(override.Limit)
-			limitRequest.Duration = override.Duration
+			limitRequest.Duration = time.Duration(override.Duration) * time.Millisecond
 
 			if override.Identifier == req.Identifier {
 				// we found an exact match, which takes presedence over wildcard matches

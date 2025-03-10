@@ -2,8 +2,8 @@ package clickhouse
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
-	"log/slog"
 	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
@@ -14,19 +14,47 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
+// Clickhouse represents a client for interacting with a ClickHouse database.
+// It provides batch processing for different event types to efficiently store
+// high volumes of data while minimizing connection overhead.
 type Clickhouse struct {
 	conn   ch.Conn
 	logger logging.Logger
 
+	// Batched processors for different event types
 	requests         *batch.BatchProcessor[schema.ApiRequestV1]
 	keyVerifications *batch.BatchProcessor[schema.KeyVerificationRequestV1]
 }
 
+var _ Bufferer = (*Clickhouse)(nil)
+var _ Querier = (*Clickhouse)(nil)
+
+// Config contains the configuration options for the ClickHouse client.
 type Config struct {
-	URL    string
+	// URL is the ClickHouse connection string
+	// Format: clickhouse://username:password@host:port/database?param1=value1&...
+	URL string
+
+	// Logger for ClickHouse operations
 	Logger logging.Logger
 }
 
+// New creates a new ClickHouse client with the provided configuration.
+// It establishes a connection to the ClickHouse server and initializes
+// batch processors for different event types.
+//
+// The client uses batch processing to efficiently handle high volumes
+// of events, automatically flushing based on batch size and time interval.
+//
+// Example:
+//
+//	ch, err := clickhouse.New(clickhouse.Config{
+//	    URL:    "clickhouse://user:pass@clickhouse.example.com:9000/db",
+//	    Logger: logger,
+//	})
+//	if err != nil {
+//	    return fmt.Errorf("failed to initialize clickhouse: %w", err)
+//	}
 func New(config Config) (*Clickhouse, error) {
 	opts, err := ch.ParseDSN(config.URL)
 	if err != nil {
@@ -36,9 +64,14 @@ func New(config Config) (*Clickhouse, error) {
 	// opts.TLS = &tls.Config{}
 	opts.Debug = true
 	opts.Debugf = func(format string, v ...any) {
-		config.Logger.Debug(context.Background(), fmt.Sprintf(format, v...))
+		config.Logger.Debug(fmt.Sprintf(format, v...))
 	}
-	config.Logger.Info(context.Background(), "connecting to clickhouse", slog.Any("opts", opts.Addr))
+	if opts.TLS == nil {
+
+		opts.TLS = &tls.Config{} // nolint:gosec
+	}
+
+	config.Logger.Info("connecting to clickhouse")
 	conn, err := ch.Open(opts)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.WithDesc("opening clickhouse failed", ""))
@@ -71,9 +104,9 @@ func New(config Config) (*Clickhouse, error) {
 				table := "raw_api_requests_v1"
 				err := flush(ctx, conn, table, rows)
 				if err != nil {
-					config.Logger.Error(ctx, "failed to flush batch",
-						slog.String("table", table),
-						slog.Any("err", err),
+					config.Logger.Error("failed to flush batch",
+						"table", table,
+						"err", err.Error(),
 					)
 				}
 			},
@@ -90,8 +123,9 @@ func New(config Config) (*Clickhouse, error) {
 					table := "raw_key_verifications_v1"
 					err := flush(ctx, conn, table, rows)
 					if err != nil {
-						config.Logger.Error(ctx, "failed to flush batch",
-							slog.String("table", table), slog.Any("err", err),
+						config.Logger.Error("failed to flush batch",
+							"table", table,
+							"error", err.Error(),
 						)
 					}
 				},
@@ -105,6 +139,19 @@ func New(config Config) (*Clickhouse, error) {
 	return c, nil
 }
 
+// Shutdown gracefully closes the ClickHouse client, ensuring that any
+// pending batches are flushed before shutting down.
+//
+// This method should be called during application shutdown to prevent
+// data loss. It will wait for all batch processors to complete their
+// current work and close their channels.
+//
+// Example:
+//
+//	err := clickhouse.Shutdown(ctx)
+//	if err != nil {
+//	    logger.Error("failed to shutdown clickhouse client", err)
+//	}
 func (c *Clickhouse) Shutdown(ctx context.Context) error {
 	c.requests.Close()
 	err := c.conn.Close()
@@ -114,10 +161,46 @@ func (c *Clickhouse) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+// BufferApiRequest adds an API request event to the buffer for batch processing.
+// The event will be flushed to ClickHouse automatically based on the configured
+// batch size and flush interval.
+//
+// This method is non-blocking if the buffer has available capacity. If the buffer
+// is full and the Drop option is enabled (which is the default), the event will
+// be silently dropped.
+//
+// Example:
+//
+//	ch.BufferApiRequest(schema.ApiRequestV1{
+//	    RequestID:      requestID,
+//	    Time:           time.Now().UnixMilli(),
+//	    WorkspaceID:    workspaceID,
+//	    Host:           r.Host,
+//	    Method:         r.Method,
+//	    Path:           r.URL.Path,
+//	    ResponseStatus: status,
+//	})
 func (c *Clickhouse) BufferApiRequest(req schema.ApiRequestV1) {
 	c.requests.Buffer(req)
 }
 
+// BufferKeyVerification adds a key verification event to the buffer for batch processing.
+// The event will be flushed to ClickHouse automatically based on the configured
+// batch size and flush interval.
+//
+// This method is non-blocking if the buffer has available capacity. If the buffer
+// is full and the Drop option is enabled (which is the default), the event will
+// be silently dropped.
+//
+// Example:
+//
+//	ch.BufferKeyVerification(schema.KeyVerificationRequestV1{
+//	    RequestID:  requestID,
+//	    Time:       time.Now().UnixMilli(),
+//	    WorkspaceID: workspaceID,
+//	    KeyID:      keyID,
+//	    Outcome:    "success",
+//	})
 func (c *Clickhouse) BufferKeyVerification(req schema.KeyVerificationRequestV1) {
 	c.keyVerifications.Buffer(req)
 }

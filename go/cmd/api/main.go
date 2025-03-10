@@ -12,13 +12,13 @@ import (
 
 	"github.com/unkeyed/unkey/go/cmd/api/routes"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/aws/ecs"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
-	"github.com/unkeyed/unkey/go/pkg/database"
-	dbCache "github.com/unkeyed/unkey/go/pkg/database/middleware/cache"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/discovery"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
@@ -327,6 +327,8 @@ Examples:
 		&cli.StringFlag{
 			Name: "otel-otlp-endpoint",
 			Usage: `OpenTelemetry collector endpoint for metrics, traces, and logs.
+Specified as host:port (without scheme or path)
+
 When provided, the Unkey API will send telemetry data (metrics, traces, and logs)
 to this endpoint using the OTLP protocol. This enables comprehensive observability
 for production deployments.
@@ -378,9 +380,9 @@ func run(ctx context.Context, cfg nodeConfig) error {
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Error(ctx, "panic",
-				slog.Any("panic", r),
-				slog.String("stack", string(debug.Stack())),
+			logger.Error("panic",
+				"panic", r,
+				"stack", string(debug.Stack()),
 			)
 		}
 	}()
@@ -397,12 +399,11 @@ func run(ctx context.Context, cfg nodeConfig) error {
 		shutdowns = append(shutdowns, shutdownOtel...)
 	}
 
-	db, err := database.New(database.Config{
+	db, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
 		Logger:      logger,
-		Clock:       clock.New(),
-	}, dbCache.WithCaching(logger))
+	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
@@ -463,6 +464,10 @@ func run(ctx context.Context, cfg nodeConfig) error {
 		Keys:        keySvc,
 		Validator:   validator,
 		Ratelimit:   rlSvc,
+		Permissions: permissions.New(permissions.Config{
+			DB:     db,
+			Logger: logger,
+		}),
 	})
 
 	go func() {
@@ -482,7 +487,7 @@ func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns []sh
 	<-cShutdown
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	logger.Info(ctx, "shutting down")
+	logger.Info("shutting down")
 
 	errors := []error{}
 	for i := len(shutdowns) - 1; i >= 0; i-- {
