@@ -10,9 +10,14 @@ import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { OAuthSignIn } from "../oauth-signin";
 import { OrgSelector } from "../org-selector";
+import { useSearchParams } from "next/navigation";
+import { EmailVerify } from "../email-verify";
 
 function SignInContent() {
   const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs } = useSignIn();
+  const searchParams = useSearchParams(); 
+  const verifyParam = searchParams?.get("verify");
+  
 
   return (
     <div className="flex flex-col gap-10">
@@ -36,6 +41,10 @@ function SignInContent() {
         <FadeIn>
           <EmailCode />
         </FadeIn>
+      ) : verifyParam === "email" ? (
+          <FadeIn>
+            <EmailVerify />
+          </FadeIn>
       ) : (
         <>
           <div className="flex flex-col">
