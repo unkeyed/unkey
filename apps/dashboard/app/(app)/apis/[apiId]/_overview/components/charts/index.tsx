@@ -5,7 +5,13 @@ import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-time
 import { createOutcomeChartConfig } from "./bar-chart/utils";
 import { useFetchActiveKeysTimeseries } from "./line-chart/hooks/use-fetch-timeseries";
 
-export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
+export const KeysOverviewLogsCharts = ({
+  apiId,
+  onMount,
+}: {
+  apiId: string;
+  onMount: (distanceToTop: number) => void;
+}) => {
   const { filters, updateFilters } = useFilters();
 
   const {
@@ -28,7 +34,7 @@ export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field),
+      (f) => !["startTime", "endTime", "since"].includes(f.field)
     );
     updateFilters([
       ...activeFilters,
@@ -74,6 +80,7 @@ export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
           isLoading={verificationIsLoading}
           isError={verificationIsError}
           enableSelection
+          onMount={onMount}
           onSelectionChange={handleSelectionChange}
           config={createOutcomeChartConfig()}
           labels={{
