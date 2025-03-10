@@ -4,15 +4,11 @@ import * as React from "react";
 import { EmailCode } from "../email-code";
 import { EmailSignUp } from "../email-signup";
 import { OAuthSignUp } from "../oauth-signup";
-import { EmailVerify } from "../email-verify"; 
 import { SignUpProvider } from "@/lib/auth/context/signup-context";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
 export default function AuthenticationPage() {
   const [verify, setVerify] = React.useState(false);
-  const searchParams = useSearchParams(); 
-  const verifyParam = searchParams?.get("verify");
 
   return (
     <SignUpProvider>
@@ -20,10 +16,6 @@ export default function AuthenticationPage() {
         {verify ? (
           <FadeIn>
             <EmailCode />
-          </FadeIn>
-        ) : verifyParam === "email" ? (
-          <FadeIn>
-            <EmailVerify />
           </FadeIn>
         ) : (
           <>
