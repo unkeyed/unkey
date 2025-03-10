@@ -16,7 +16,7 @@ export const technicalResearchTask = task({
       query: inputTerm,
     });
 
-    // we perform a search for each domain category in parallel:
+    // we perform a search for each search category in parallel:
     const { runs } = await batch.triggerByTaskAndWait(
       domainCategories.map((domainCategory) => ({
         task: exaDomainSearchTask,
@@ -29,7 +29,7 @@ export const technicalResearchTask = task({
     );
     const failedResults = runs.filter((result) => !result.ok).map((result) => result.error);
     if (failedResults.length > 0) {
-      console.warn("⚠️ Failed to run some domain category searches:", failedResults);
+      console.warn("⚠️ Failed to run some search categories:", failedResults);
     }
     // Filter out failed searches and combine results
     const searchResults = runs.filter((result) => result.ok).flatMap((result) => result.output);

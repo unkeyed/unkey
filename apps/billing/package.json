@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "pnpm dlx trigger.dev@latest dev --skip-update-check",
-    "trigger:deploy": "pnpm dlx trigger.dev@latest deploy",
+    "trigger:deploy": "pnpm dlx trigger.dev@latest deploy --skip-update-check",
     "db:push": "dotenv -e .env drizzle-kit push",
     "db:studio": "dotenv -e .env drizzle-kit studio --verbose",
     "db:generate": "dotenv -e .env drizzle-kit generate",
