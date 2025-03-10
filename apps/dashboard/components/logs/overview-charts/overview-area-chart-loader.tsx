@@ -1,6 +1,6 @@
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 import type { TimeseriesChartLabels } from "./overview-area-chart";
 
@@ -9,45 +9,71 @@ type TimeseriesChartLoadingProps = {
 };
 
 /**
- * Generic loading component for timeseries area chart displays with animated areas
+ * Enhanced loading component for timeseries area chart displays with fluid, animated waves
  */
 export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps) => {
-  const [mockData, setMockData] = useState(() => generateInitialData(labels.metrics));
+  const [mockData, setMockData] = useState(() => generateInitialData());
+  const [phase, setPhase] = useState(0);
+  const animationRef = useRef(0);
 
-  function generateInitialData(metrics: TimeseriesChartLabels["metrics"]) {
+  function generateInitialData() {
     return Array.from({ length: 100 }).map((_, index) => {
-      const base = Math.sin(index * 0.1) * 0.5 + 1;
       const dataPoint: Record<string, any> = {
+        index,
         originalTimestamp: Date.now() - (100 - index) * 60000,
       };
-
-      // Add each metric with slightly different values
-      metrics.forEach((metric, i) => {
-        dataPoint[metric.key] = base * 100 * (1 + i * 0.5);
-      });
 
       return dataPoint;
     });
   }
 
+  // Animation frame function with smooth, continuous wave patterns
+  // biome-ignore lint/correctness/useExhaustiveDependencies: go touch grass biome
+  const animate = useCallback(() => {
+    setPhase((prev) => prev + 0.01);
+    animationRef.current = requestAnimationFrame(animate);
+  }, []);
+
+  // Start/stop animation with requestAnimationFrame for smoother performance
   useEffect(() => {
-    const interval = setInterval(() => {
-      setMockData((prevData) =>
-        prevData.map((item) => {
-          const updatedItem = { ...item };
+    animationRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [animate]);
 
-          // Update each metric value
-          labels.metrics.forEach((metric) => {
-            updatedItem[metric.key] = item[metric.key] * (0.95 + Math.random() * 0.1);
-          });
+  // Update data based on the phase
+  useEffect(() => {
+    setMockData((prevData) =>
+      prevData.map((item, index) => {
+        const updatedItem = { ...item };
 
-          return updatedItem;
-        }),
-      );
-    }, 1000);
+        // Create flowing wave patterns with varying amplitudes and frequencies per metric
+        labels.metrics.forEach((metric, metricIndex) => {
+          // Primary wave with slowly moving amplitude
+          const primaryAmplitude = 0.6 + Math.sin(phase * 0.2) * 0.3;
 
-    return () => clearInterval(interval);
-  }, [labels.metrics]);
+          // Create unique wave pattern for each metric
+          const baseWave = Math.sin(-phase + index * 0.1) * primaryAmplitude;
+          const secondWave = Math.cos(-phase * 0.7 + index * 0.08) * 0.3;
+          const thirdWave = Math.sin(-phase * 0.5 + index * 0.15) * 0.2;
+
+          // Combine waves with different weights per metric
+          const combinedWave =
+            baseWave * (1 - metricIndex * 0.2) +
+            secondWave * (0.5 + metricIndex * 0.2) +
+            thirdWave * (0.3 + metricIndex * 0.1);
+
+          // Scale the wave to appropriate values with increasing baseline per metric
+          updatedItem[metric.key] = (combinedWave + 2) * 100 * (1 + metricIndex * 0.5);
+        });
+
+        return updatedItem;
+      }),
+    );
+  }, [phase, labels.metrics]);
 
   const currentTime = Date.now();
   const timePoints = calculateTimePoints(currentTime - 100 * 60000, currentTime);
@@ -90,8 +116,8 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
                   x2="0"
                   y2="1"
                 >
-                  <stop offset="0%" stopColor={metric.color} stopOpacity={0.2} />
-                  <stop offset="45%" stopColor={metric.color} stopOpacity={0.1} />
+                  <stop offset="0%" stopColor={metric.color} stopOpacity={0.3} />
+                  <stop offset="60%" stopColor={metric.color} stopOpacity={0.1} />
                   <stop offset="100%" stopColor={metric.color} stopOpacity={0.02} />
                 </linearGradient>
               ))}
@@ -104,11 +130,10 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
                 type="monotone"
                 dataKey={metric.key}
                 stroke={metric.color}
-                strokeWidth={2}
+                strokeWidth={1.5}
                 fill={`url(#${metric.key}Gradient)`}
                 fillOpacity={1}
-                isAnimationActive={true}
-                animationDuration={800}
+                isAnimationActive={false} // Disable recharts animation to use our custom animation
               />
             ))}
           </AreaChart>

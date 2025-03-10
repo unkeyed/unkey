@@ -8,32 +8,47 @@ type GenericChartLoadingProps = {
   labels: ChartLabels;
 };
 
+const barCount = 100;
 /**
- * Generic loading component for chart displays with animated bars
+ * Generic loading component for chart displays with wave-like animated bars
  */
 export const OverviewChartLoader = ({ labels }: GenericChartLoadingProps) => {
   const [mockData, setMockData] = useState(generateInitialData());
+  const [phase, setPhase] = useState(0);
 
   function generateInitialData() {
-    return Array.from({ length: 100 }).map(() => ({
-      [labels.primaryKey]: Math.random() * 0.5 + 0.5,
-      [labels.secondaryKey]: Math.random() * 0.3,
+    return Array.from({ length: barCount }).map((_, index) => ({
+      [labels.primaryKey]: 0.5,
+      [labels.secondaryKey]: 0.2,
+      index,
       originalTimestamp: Date.now(),
     }));
   }
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setMockData((prevData) =>
-        prevData.map((item) => ({
-          ...item,
-          [labels.primaryKey]: Math.random() * 0.5 + 0.5,
-          [labels.secondaryKey]: Math.random() * 0.3,
-        })),
-      );
-    }, 600); // Update every 600ms for smooth animation
+      setPhase((prevPhase) => prevPhase + 0.05);
+    }, 40); // Update very frequently for extra smoothness, but with smaller increments
+
     return () => clearInterval(interval);
-  }, [labels.primaryKey, labels.secondaryKey]);
+  }, []);
+
+  useEffect(() => {
+    setMockData((prevData) =>
+      prevData.map((item, index) => {
+        const wavePosition = -phase + index * (Math.PI / 20);
+
+        const primaryWave = Math.sin(wavePosition) * 0.2 + 0.5;
+        const secondaryWave = Math.sin(wavePosition * 1.2) * 0.12 + 0.25;
+
+        return {
+          ...item,
+          [labels.primaryKey]: primaryWave,
+          [labels.secondaryKey]: secondaryWave,
+        };
+      }),
+    );
+  }, [phase, labels.primaryKey, labels.secondaryKey]);
 
   return (
     <div className="flex flex-col h-full animate-pulse">
@@ -70,20 +85,20 @@ export const OverviewChartLoader = ({ labels }: GenericChartLoadingProps) => {
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-            <YAxis domain={[0, (dataMax: number) => dataMax * 2]} hide />
+            <YAxis domain={[0, 1]} hide />
             <Bar
               dataKey={labels.primaryKey}
               fill="hsl(var(--accent-3))"
               stackId="a"
-              animationDuration={600}
-              isAnimationActive
+              animationDuration={100}
+              isAnimationActive={false} // Disable default animation for smoother wave effect
             />
             <Bar
               dataKey={labels.secondaryKey}
               fill="hsl(var(--accent-3))"
               stackId="a"
-              animationDuration={600}
-              isAnimationActive
+              animationDuration={100}
+              isAnimationActive={false} // Disable default animation for smoother wave effect
             />
           </BarChart>
         </ResponsiveContainer>
