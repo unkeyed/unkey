@@ -293,8 +293,10 @@ export async function getOrganizationMemberList(orgId: string): Promise<Membersh
   if (!orgId) {
     throw new Error("OrgId is required.");
   }
+
   const user = await requireAuth();
   await requireOrgAdmin(orgId, user.id);
+  console.log("here");
   return await auth.getOrganizationMemberList(orgId);
 }
 

@@ -25,15 +25,49 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
 import { useOrganization, useUser } from "@/lib/auth/hooks";
+import type { Invitation, Membership, Organization, UpdateMembershipParams } from "@/lib/auth/types";
 import { Gear } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { navigation } from "../constants";
 import { InviteButton } from "./invite";
+import { User } from "@/lib/auth/types";
 
+type MembersProps = {
+  memberships: Membership[];
+  loading: boolean;
+  removeMember: (membershipId: string) => Promise<void>;
+  updateMember: (params: UpdateMembershipParams) => Promise<void>;
+  organization: Organization | null;
+  user: User;
+  userMembership: Membership
+};
+
+type InvitationsProps = {
+  invitations: Invitation[];
+  loading: boolean;
+  revokeInvitation: (invitationId: string) => Promise<void>;
+};
+
+type RoleSwitcherProps = {
+  member: { id: string; role: string };
+  updateMember: (params: UpdateMembershipParams) => Promise<void>;
+  organization: Organization | null;
+  user: User;
+  userMembership: Membership;
+};
+
+type StatusBadgeProps = {
+  status: "pending" | "accepted" | "revoked" | "expired";
+};
+
+// Create a context to avoid prop drilling
 export function TeamPageClient() {
-  const { membership } = useUser();
+  const userData = useUser();
+  const orgData = useOrganization();
+
+  const { membership } = userData;
   const isAdmin = membership?.role === "admin";
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
@@ -71,19 +105,35 @@ export function TeamPageClient() {
         <SubMenu navigation={navigation} segment="team" />
         <div className="mb-20 flex flex-col gap-8 mt-8">
           <PageHeader title="Members" description="Manage your team members" actions={actions} />
-          {tab === "members" ? <Members /> : <Invitations />}
+          {tab === "members" ? (
+            <Members 
+              memberships={orgData.memberships} 
+              loading={orgData.loading.memberships} 
+              removeMember={orgData.removeMember}
+              updateMember={orgData.updateMember}
+              organization={orgData.organization}
+              user={userData.user!}
+              userMembership={userData.membership!}
+            />
+          ) : (
+            <Invitations 
+              invitations={orgData.invitations} 
+              loading={orgData.loading.invitations} 
+              revokeInvitation={orgData.revokeInvitation}
+            />
+          )}
         </div>
       </PageContent>
     </div>
   );
 }
 
-const Members: React.FC = () => {
-  const { memberships, loading, removeMember } = useOrganization();
-  const { user, membership } = useUser();
-  const isAdmin = membership?.role === "admin";
+// Memoize components to prevent unnecessary re-renders
+const Members = memo<MembersProps>(({ memberships, loading, removeMember, updateMember, organization, user, userMembership }) => {
+  const isAdmin = userMembership?.role === "admin";
 
-  if (loading.memberships) {
+
+  if (loading) {
     return (
       <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
         <Loading />
@@ -122,7 +172,13 @@ const Members: React.FC = () => {
               </div>
             </TableCell>
             <TableCell>
-              <RoleSwitcher member={{ id, role }} />
+              <RoleSwitcher 
+                member={{ id, role }} 
+                updateMember={updateMember}
+                organization={organization}
+                user={user}
+                userMembership={userMembership}
+              />
             </TableCell>
             <TableCell>
               {isAdmin && member.id !== user?.id ? (
@@ -144,12 +200,12 @@ const Members: React.FC = () => {
       </TableBody>
     </Table>
   );
-};
+});
 
-const Invitations: React.FC = () => {
-  const { loading, invitations, revokeInvitation } = useOrganization();
+Members.displayName = 'Members';
 
-  if (loading.invitations) {
+const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvitation }) => {
+  if (loading) {
     return (
       <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
         <Loading />
@@ -201,18 +257,22 @@ const Invitations: React.FC = () => {
       </TableBody>
     </Table>
   );
-};
+});
 
-const RoleSwitcher: React.FC<{
-  member: { id: string; role: string };
-}> = ({ member }) => {
+Invitations.displayName = 'Invitations';
+
+const RoleSwitcher = memo<RoleSwitcherProps>(({ 
+  member, 
+  updateMember,
+  organization,
+  user,
+  userMembership 
+}) => {
   const [role, setRole] = useState(member.role);
   const [isLoading, setLoading] = useState(false);
-  const { updateMember, memberships, organization } = useOrganization();
-  const { user, membership } = useUser();
-  const isAdmin = membership?.role === "admin";
+  const isAdmin = userMembership?.role === "admin";
 
-  async function updateRole(newRole: string) {
+  const handleRoleUpdate = useCallback(async (newRole: string) => {
     try {
       setLoading(true);
       if (!organization) {
@@ -220,31 +280,25 @@ const RoleSwitcher: React.FC<{
       }
       await updateMember({
         membershipId: member.id,
-        role: member.role,
+        role: newRole, // Fixed: was using member.role which doesn't change
       });
 
       setRole(newRole);
       toast.success("Role updated");
     } catch (err) {
       console.error(err);
-      toast.error((err as Error).message);
+      toast.error((err instanceof Error) ? err.message : "Failed to update role");
     } finally {
       setLoading(false);
     }
-  }
-
-  if (!memberships) {
-    return null;
-  }
+  }, [member.id, organization, updateMember]);
 
   if (isAdmin) {
     return (
       <Select
         value={role}
         disabled={member.id === user?.id}
-        onValueChange={async (value) => {
-          updateRole(value);
-        }}
+        onValueChange={handleRoleUpdate}
       >
         <SelectTrigger className="w-[180px] max-sm:w-36">
           {isLoading ? <Loading /> : <SelectValue />}
@@ -260,11 +314,11 @@ const RoleSwitcher: React.FC<{
   }
 
   return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
-};
+});
 
-const StatusBadge: React.FC<{ status: "pending" | "accepted" | "revoked" | "expired" }> = ({
-  status,
-}) => {
+RoleSwitcher.displayName = 'RoleSwitcher';
+
+const StatusBadge = memo<StatusBadgeProps>(({ status }) => {
   switch (status) {
     case "pending":
       return <Badge variant="primary">Pending</Badge>;
@@ -277,4 +331,6 @@ const StatusBadge: React.FC<{ status: "pending" | "accepted" | "revoked" | "expi
     default:
       return null;
   }
-};
+});
+
+StatusBadge.displayName = 'StatusBadge';
