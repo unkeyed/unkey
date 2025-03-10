@@ -5,7 +5,7 @@ import { formatTimestampLabel } from "../utils/format-timestamp";
 
 export const LogsChartLoading = () => {
   const { mockData, currentTime } = useWaveAnimation({
-    dataPoints: 200,
+    dataPoints: 300,
     labels: {
       primaryKey: "success",
       title: "Logs Activity",

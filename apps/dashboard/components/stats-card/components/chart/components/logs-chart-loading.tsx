@@ -4,6 +4,7 @@ import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 export const LogsChartLoading = () => {
   // Use our custom hook with both primary and secondary keys
   const { mockData } = useWaveAnimation({
+    animate: false,
     dataPoints: 100,
     labels: {
       primaryKey: "success",
