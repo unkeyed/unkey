@@ -128,10 +128,11 @@ export const Client: React.FC<Props> = (props) => {
                   {props.subscription ? (
                     <Confirm
                       title={`${i > selectedProductIndex ? "Upgrade" : "Downgrade"} to ${p.name}`}
-                      description={`Changing to ${p.name
-                        } updates your request quota to ${formatNumber(
-                          p.quota.requestsPerMonth,
-                        )} per month immediately.`}
+                      description={`Changing to ${
+                        p.name
+                      } updates your request quota to ${formatNumber(
+                        p.quota.requestsPerMonth,
+                      )} per month immediately.`}
                       onConfirm={async () =>
                         updateSubscription.mutateAsync({
                           oldProductId: props.currentProductId!,
@@ -147,10 +148,11 @@ export const Client: React.FC<Props> = (props) => {
                   ) : (
                     <Confirm
                       title={`Upgrade to ${p.name}`}
-                      description={`Changing to ${p.name
-                        } updates your request quota to ${formatNumber(
-                          p.quota.requestsPerMonth,
-                        )} per month immediately.`}
+                      description={`Changing to ${
+                        p.name
+                      } updates your request quota to ${formatNumber(
+                        p.quota.requestsPerMonth,
+                      )} per month immediately.`}
                       onConfirm={() => createSubscription.mutateAsync({ productId: p.id })}
                       fineprint={
                         props.hasPreviousSubscriptions
@@ -239,7 +241,7 @@ const FreeTierAlert: React.FC = () => {
   );
 };
 
-const CancelAlert: React.FC<{ cancelAt?: number; }> = (props) => {
+const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
   const router = useRouter();
   const uncancelSubscription = trpc.stripe.uncancelSubscription.useMutation({
     onSuccess: () => {
