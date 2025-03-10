@@ -51,8 +51,6 @@ export const entries = mysqlTable(
   }),
 );
 
-
-
 export const entriesRelations = relations(entries, ({ many, one }) => ({
   dynamicSections: many(sections),
   searchQuery: one(searchQueries, {

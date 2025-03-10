@@ -1,8 +1,8 @@
-import { z } from "zod";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { type TaskOutput, task } from "@trigger.dev/sdk/v3";
 import { generateObject } from "ai";
-import type { SearchResponse, ContentsOptions, RegularSearchOptions } from "exa-js";
-import { task, type TaskOutput } from "@trigger.dev/sdk/v3";
+import type { ContentsOptions, RegularSearchOptions, SearchResponse } from "exa-js";
+import { z } from "zod";
 import type { exaDomainSearchTask } from "./exa-domain-search";
 
 // Evaluation schema for content quality and relevance
@@ -38,23 +38,22 @@ type EvaluateSearchOptions = {
 export const evaluateSearchResults = task({
   id: "evaluate-search-results",
   run: async ({ searchResults, inputTerm }: EvaluateSearchOptions) => {
+    // Set up the evaluation schema
+    const batchEvaluationSchema = z.object({
+      url: z.string(),
+      evaluation: evaluationSchema,
+    });
 
-      // Set up the evaluation schema
-      const batchEvaluationSchema = z.object({
-        url: z.string(),
-        evaluation: evaluationSchema,
-      });
+    // Call Gemini for evaluation
+    const google = createGoogleGenerativeAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
 
-      // Call Gemini for evaluation
-      const google = createGoogleGenerativeAI({
-        apiKey: process.env.GEMINI_API_KEY,
-      });
-
-      const geminiResponse = await generateObject({
-        model: google("gemini-2.0-flash-lite-preview-02-05") as any,
-        schema: batchEvaluationSchema,
-        output: "array",
-        prompt: `
+    const geminiResponse = await generateObject({
+      model: google("gemini-2.0-flash-lite-preview-02-05") as any,
+      schema: batchEvaluationSchema,
+      output: "array",
+      prompt: `
         Evaluate these search results for relevance to: "${inputTerm}"
         
         For each result below, return an evaluation with:
@@ -72,61 +71,75 @@ export const evaluateSearchResults = task({
         
         Here are the results:
         
-        ${searchResults.map(
+        ${searchResults
+          .map(
             (r) => `[Result ID: ${r.id}]
         Title: ${r.title}
         URL: ${r.url}
         Published: ${r.publishedDate || "Unknown date"}
         Summary: ${r.summary}
-        `
-          ).join("\n\n")}
+        `,
+          )
+          .join("\n\n")}
         
         IMPORTANT: You must return evaluations for ALL ${searchResults.length} results.
         CRITICAL: Return a flat array of objects, not an array of arrays.
       `,
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: "evaluate-search-results",
-        },
-      });
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: "evaluate-search-results",
+      },
+    });
 
-      const costs = {
-        input: geminiResponse.usage.promptTokens* (0.075/1000000),
-        output: geminiResponse.usage.completionTokens * (0.3/1000000),
-        total: geminiResponse.usage.promptTokens * (0.075/1000000) + geminiResponse.usage.completionTokens * (0.3/1000000),
-      }
+    const costs = {
+      input: geminiResponse.usage.promptTokens * (0.075 / 1000000),
+      output: geminiResponse.usage.completionTokens * (0.3 / 1000000),
+      total:
+        geminiResponse.usage.promptTokens * (0.075 / 1000000) +
+        geminiResponse.usage.completionTokens * (0.3 / 1000000),
+    };
 
-      // Log token usage
-      console.info(`💸 Token usage: ${geminiResponse.usage.totalTokens} tokens
+    // Log token usage
+    console.info(`💸 Token usage: ${geminiResponse.usage.totalTokens} tokens
       INPUT: $${costs.input}
       OUTPUT: $${costs.output}
       TOTAL: $${costs.total}
       `);
 
-      const evaluations = geminiResponse.object;
-      if (!Array.isArray(evaluations)) {
-        throw new Error("Invalid evaluation response from Gemini: Not an array");
-      }
-      if (evaluations.length === 0) {
-        throw new Error("No evaluations returned from Gemini");
-      }
+    const evaluations = geminiResponse.object;
+    if (!Array.isArray(evaluations)) {
+      throw new Error("Invalid evaluation response from Gemini: Not an array");
+    }
+    if (evaluations.length === 0) {
+      throw new Error("No evaluations returned from Gemini");
+    }
 
-      // Return the original search results with evaluations attached
-      return {
-        costs: {
-          total: geminiResponse.usage.promptTokens * (0.075/1000000) + geminiResponse.usage.completionTokens * (0.3/1000000),
-          input: geminiResponse.usage.promptTokens* (0.075/1000000),
-          output: geminiResponse.usage.completionTokens * (0.3/1000000),
-        },
-        inputTerm,
-        evaluationSummary: {
-          totalEvaluated: evaluations.length,
-          totalIncluded: evaluations.filter(evaluation => evaluation.evaluation?.rating && evaluation.evaluation?.rating >= 7).length,
-          totalExcluded: evaluations.filter(evaluation => evaluation.evaluation?.rating && evaluation.evaluation?.rating < 7).length,
-        },
-        evaluations,
-        included: evaluations.filter(evaluation => evaluation.evaluation?.rating && evaluation.evaluation?.rating >= 7),
-        excluded: evaluations.filter(evaluation => evaluation.evaluation?.rating && evaluation.evaluation?.rating < 7),
-      };
+    // Return the original search results with evaluations attached
+    return {
+      costs: {
+        total:
+          geminiResponse.usage.promptTokens * (0.075 / 1000000) +
+          geminiResponse.usage.completionTokens * (0.3 / 1000000),
+        input: geminiResponse.usage.promptTokens * (0.075 / 1000000),
+        output: geminiResponse.usage.completionTokens * (0.3 / 1000000),
+      },
+      inputTerm,
+      evaluationSummary: {
+        totalEvaluated: evaluations.length,
+        totalIncluded: evaluations.filter(
+          (evaluation) => evaluation.evaluation?.rating && evaluation.evaluation?.rating >= 7,
+        ).length,
+        totalExcluded: evaluations.filter(
+          (evaluation) => evaluation.evaluation?.rating && evaluation.evaluation?.rating < 7,
+        ).length,
+      },
+      evaluations,
+      included: evaluations.filter(
+        (evaluation) => evaluation.evaluation?.rating && evaluation.evaluation?.rating >= 7,
+      ),
+      excluded: evaluations.filter(
+        (evaluation) => evaluation.evaluation?.rating && evaluation.evaluation?.rating < 7,
+      ),
+    };
   },
 });

@@ -22,7 +22,9 @@ export const keywords = mysqlTable(
     inputTermIdx: index("input_term_idx").on(table.inputTerm),
     keywordIdx: index("keyword_idx").on(table.keyword),
     sourceUrlIdx: index("source_url_idx").on(table.sourceUrl),
-    uniqueKeyword: unique("keywords_input_term_keyword_hash_unique").on(table.inputTermAndKeywordHash),
+    uniqueKeyword: unique("keywords_input_term_keyword_hash_unique").on(
+      table.inputTermAndKeywordHash,
+    ),
   }),
 );
 

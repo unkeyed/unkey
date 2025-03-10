@@ -4,10 +4,10 @@ import {
   index,
   int,
   mysqlTable,
+  text,
   timestamp,
   unique,
   varchar,
-  text,
 } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import type { z } from "zod";

@@ -126,12 +126,7 @@
       {
         "category": "Community",
         "description": "Community-driven platforms and forums",
-        "domains": [
-          "stackoverflow.com",
-          "github.com",
-          "wikipedia.org",
-          "news.ycombinator.com"
-        ],
+        "domains": ["stackoverflow.com", "github.com", "wikipedia.org", "news.ycombinator.com"],
         "results": [
           {
             "id": "https://en.wikipedia.org/wiki/Single_sign-on",
@@ -264,10 +259,7 @@
       {
         "category": "Neutral",
         "description": "Educational and vendor-neutral resources",
-        "domains": [
-          "owasp.org",
-          "developer.mozilla.org"
-        ],
+        "domains": ["owasp.org", "developer.mozilla.org"],
         "results": [
           {
             "id": "https://secureflag.owasp.org/integrations/",

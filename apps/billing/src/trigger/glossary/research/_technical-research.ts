@@ -1,9 +1,8 @@
-import { task, batch } from "@trigger.dev/sdk/v3";
-import { domainCategories, exaDomainSearchTask } from "./exa-domain-search";
-import { evaluateSearchResults } from "./evaluate-search-results";
+import { batch, task } from "@trigger.dev/sdk/v3";
 import Exa from "exa-js";
+import { evaluateSearchResults } from "./evaluate-search-results";
+import { domainCategories, exaDomainSearchTask } from "./exa-domain-search";
 import type { ExaCosts } from "./types";
-
 
 export const technicalResearchTask = task({
   id: "technical_research",
@@ -35,7 +34,10 @@ export const technicalResearchTask = task({
     const searchResults = runs.filter((result) => result.ok).flatMap((result) => result.output);
 
     // log the costs for the exa responses:
-    const searchCosts = searchResults.flatMap((result) => ({...result.costDollars, category: result.category}));
+    const searchCosts = searchResults.flatMap((result) => ({
+      ...result.costDollars,
+      category: result.category,
+    }));
     console.log(`💰 Exa API costs for initial search:
       Total: $${searchCosts.reduce((acc, cost) => acc + cost.total, 0)}
       Search: $${searchCosts.reduce(
@@ -62,8 +64,8 @@ export const technicalResearchTask = task({
       })),
     );
     // dedupe the results based on `url`:
-    const dedupedResults = results.filter((result, index, self) =>
-      index === self.findIndex((t) => t.url === result.url),
+    const dedupedResults = results.filter(
+      (result, index, self) => index === self.findIndex((t) => t.url === result.url),
     );
 
     // Step 2: Evaluate the search results
@@ -72,11 +74,10 @@ export const technicalResearchTask = task({
       inputTerm,
     });
 
-    
     if (!evaluationRun.ok) {
       throw new Error("Failed to evaluate search results");
     }
-    
+
     const evaluationResults = evaluationRun.output;
     console.log(`💰 Evaluation costs:
       Total: $${evaluationResults.costs.total}
@@ -86,7 +87,9 @@ export const technicalResearchTask = task({
 
     // Step 3: Scrape the content of the results
     const exa = new Exa(process.env.EXA_API_KEY || "");
-    const contentResults = await exa.getContents(evaluationResults.included.flatMap((result) => result.url));
+    const contentResults = await exa.getContents(
+      evaluationResults.included.flatMap((result) => result.url),
+    );
 
     // log the costs for the exa responses:
     const scrapingCosts = (contentResults as unknown as typeof contentResults & ExaCosts)
@@ -96,19 +99,29 @@ export const technicalResearchTask = task({
       Summaries: $${scrapingCosts.contents?.text} texts @ $0.001/text
     `);
 
-    return { summary: evaluationResults.evaluationSummary, included: contentResults, costs: {
-      total: scrapingCosts.total + evaluationResults.costs.total + searchCosts.reduce((acc, cost) => acc + cost.total, 0),
-      search: {
-        search: searchCosts.reduce((acc, cost) => acc + (cost.search?.neural || cost.search?.keyword || 0), 0),
-        summary: searchCosts.reduce((acc, cost) => acc + (cost.contents?.summary || 0), 0),
+    return {
+      summary: evaluationResults.evaluationSummary,
+      included: contentResults,
+      costs: {
+        total:
+          scrapingCosts.total +
+          evaluationResults.costs.total +
+          searchCosts.reduce((acc, cost) => acc + cost.total, 0),
+        search: {
+          search: searchCosts.reduce(
+            (acc, cost) => acc + (cost.search?.neural || cost.search?.keyword || 0),
+            0,
+          ),
+          summary: searchCosts.reduce((acc, cost) => acc + (cost.contents?.summary || 0), 0),
+        },
+        evaluation: {
+          input: evaluationResults.costs.input,
+          output: evaluationResults.costs.output,
+        },
+        contents: {
+          text: scrapingCosts.contents?.text,
+        },
       },
-      evaluation: {
-        input: evaluationResults.costs.input,
-        output: evaluationResults.costs.output,
-      },
-      contents: {
-        text: scrapingCosts.contents?.text,
-      },
-    } };
+    };
   },
 });

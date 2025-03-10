@@ -1,7 +1,7 @@
+import type { SelectEntry } from "@/lib/db-marketing/schemas";
 import { task } from "@trigger.dev/sdk/v3";
 import Exa, { type ContentsOptions, type RegularSearchOptions } from "exa-js";
 import type { ExaCosts } from "./types";
-import type { SelectEntry } from "@/lib/db-marketing/schemas";
 
 export const domainCategories = [
   {
