@@ -1,5 +1,5 @@
+import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 import { useFilters } from "../../hooks/use-filters";
-import { LogsTimeseriesBarChart } from "./bar-chart";
 import { useFetchRatelimitOverviewTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 
 export const RatelimitOverviewLogsCharts = ({
@@ -8,7 +8,8 @@ export const RatelimitOverviewLogsCharts = ({
   namespaceId: string;
 }) => {
   const { filters, updateFilters } = useFilters();
-  const { isError, isLoading, timeseries } = useFetchRatelimitOverviewTimeseries(namespaceId);
+  const { isError, isLoading, timeseries } =
+    useFetchRatelimitOverviewTimeseries(namespaceId);
   // const { latencyIsError, latencyIsLoading, latencyTimeseries } =
   //   useFetchRatelimitOverviewLatencyTimeseries(namespaceId);
 
@@ -20,9 +21,8 @@ export const RatelimitOverviewLogsCharts = ({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field),
+      (f) => !["startTime", "endTime", "since"].includes(f.field)
     );
-
     updateFilters([
       ...activeFilters,
       {
@@ -43,7 +43,7 @@ export const RatelimitOverviewLogsCharts = ({
   return (
     <div className="flex w-full h-[320px]">
       <div className="w-full">
-        <LogsTimeseriesBarChart
+        <OverviewBarChart
           data={timeseries}
           isLoading={isLoading}
           isError={isError}
@@ -58,6 +58,13 @@ export const RatelimitOverviewLogsCharts = ({
               label: "Blocked",
               color: "hsl(var(--orange-9))",
             },
+          }}
+          labels={{
+            title: "REQUESTS",
+            primaryLabel: "PASSED",
+            primaryKey: "success",
+            secondaryLabel: "BLOCKED",
+            secondaryKey: "error",
           }}
         />
       </div>

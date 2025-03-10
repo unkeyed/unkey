@@ -1,9 +1,9 @@
 import { useFilters } from "../../hooks/use-filters";
-import { LogsTimeseriesBarChart } from "./bar-chart";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 import { createOutcomeChartConfig } from "./bar-chart/utils";
-import { LogsTimeseriesAreaChart } from "./line-chart";
 import { useFetchActiveKeysTimeseries } from "./line-chart/hooks/use-fetch-timeseries";
+import { LogsTimeseriesAreaChart } from "./line-chart";
+import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 
 export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
   const { filters, updateFilters } = useFilters();
@@ -30,7 +30,7 @@ export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field),
+      (f) => !["startTime", "endTime", "since"].includes(f.field)
     );
     updateFilters([
       ...activeFilters,
@@ -48,17 +48,24 @@ export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
       },
     ]);
   };
-
   return (
     <div className="flex w-full h-[320px]">
       <div className="w-1/2">
-        <LogsTimeseriesBarChart
+        <OverviewBarChart
           data={verificationTimeseries}
           isLoading={verificationIsLoading}
           isError={verificationIsError}
           enableSelection
           onSelectionChange={handleSelectionChange}
           config={createOutcomeChartConfig()}
+          labels={{
+            title: "REQUESTS",
+            primaryLabel: "VALID",
+            primaryKey: "success",
+            secondaryLabel: "INVALID",
+            secondaryKey: "error",
+          }}
+          tooltipItems={[{ label: "Invalid", dataKey: "error" }]}
         />
       </div>
       <div className="w-1/2 ">

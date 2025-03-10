@@ -1,7 +1,5 @@
-// GenericTimeseriesChart.tsx
 "use client";
 
-import { compactFormatter } from "@/app/(app)/ratelimits/[namespaceId]/_overview/utils";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import {
   formatTimestampLabel,
@@ -15,9 +13,22 @@ import {
 } from "@/components/ui/chart";
 import { Grid } from "@unkey/icons";
 import { useState } from "react";
-import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
-import { LogsChartError } from "./components/logs-chart-error";
-import { LogsChartLoading } from "./components/logs-chart-loading";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ReferenceArea,
+  ResponsiveContainer,
+  YAxis,
+} from "recharts";
+import { OverviewChartError } from "./overview-bar-chart-error";
+import { OverviewChartLoader } from "./overview-bar-chart-loader";
+
+// Common formatter that can be imported from a utility file
+const compactFormatter = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  compactDisplay: "short",
+});
 
 type Selection = {
   start: string | number;
@@ -32,23 +43,40 @@ type TimeseriesData = {
   [key: string]: any;
 };
 
-type LogsTimeseriesBarChartProps = {
+type ChartTooltipItem = {
+  label: string;
+  dataKey: string;
+};
+
+type ChartLabels = {
+  title: string;
+  primaryLabel: string;
+  primaryKey: string;
+  secondaryLabel: string;
+  secondaryKey: string;
+};
+
+type OverviewBarChartProps = {
   data?: TimeseriesData[];
   config: ChartConfig;
   onSelectionChange?: (selection: { start: number; end: number }) => void;
   isLoading?: boolean;
   isError?: boolean;
   enableSelection?: boolean;
+  labels: ChartLabels;
+  tooltipItems?: ChartTooltipItem[];
 };
 
-export function LogsTimeseriesBarChart({
+export function OverviewBarChart({
   data,
   config,
   onSelectionChange,
   isLoading,
   isError,
   enableSelection = false,
-}: LogsTimeseriesBarChartProps) {
+  labels,
+  tooltipItems = [],
+}: OverviewBarChartProps) {
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
 
   const handleMouseDown = (e: any) => {
@@ -86,7 +114,10 @@ export function LogsTimeseriesBarChart({
       if (!selection.startTimestamp || !selection.endTimestamp) {
         return;
       }
-      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
+      const [start, end] = [
+        selection.startTimestamp,
+        selection.endTimestamp,
+      ].sort((a, b) => a - b);
 
       onSelectionChange({ start, end });
     }
@@ -99,21 +130,35 @@ export function LogsTimeseriesBarChart({
   };
 
   if (isError) {
-    return <LogsChartError />;
+    return <OverviewChartError labels={labels} />;
   }
   if (isLoading) {
-    return <LogsChartLoading />;
+    return <OverviewChartLoader labels={labels} />;
   }
+
+  // Calculate totals based on the provided keys
+  const totalCount = (data ?? []).reduce(
+    (acc, crr) => acc + crr[labels.primaryKey] + crr[labels.secondaryKey],
+    0
+  );
+  const primaryCount = (data ?? []).reduce(
+    (acc, crr) => acc + crr[labels.primaryKey],
+    0
+  );
+  const secondaryCount = (data ?? []).reduce(
+    (acc, crr) => acc + crr[labels.secondaryKey],
+    0
+  );
 
   return (
     <div className="flex flex-col h-full">
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">REQUESTS</div>
+          <div className="text-accent-10 text-[11px] leading-4">
+            {labels.title}
+          </div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
-            {compactFormatter.format(
-              (data ?? []).reduce((acc, crr) => acc + crr.success + crr.error, 0),
-            )}
+            {compactFormatter.format(totalCount)}
           </div>
         </div>
 
@@ -121,19 +166,23 @@ export function LogsTimeseriesBarChart({
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-accent-8 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">VALID</div>
+              <div className="text-accent-10 text-[11px] leading-4">
+                {labels.primaryLabel}
+              </div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {compactFormatter.format((data ?? []).reduce((acc, crr) => acc + crr.success, 0))}
+              {compactFormatter.format(primaryCount)}
             </div>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-orange-9 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">INVALID</div>
+              <div className="text-accent-10 text-[11px] leading-4">
+                {labels.secondaryLabel}
+              </div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {compactFormatter.format((data ?? []).reduce((acc, crr) => acc + crr.error, 0))}
+              {compactFormatter.format(secondaryCount)}
             </div>
           </div>
         </div>
@@ -169,7 +218,11 @@ export function LogsTimeseriesBarChart({
                   strokeOpacity: 0.7,
                 }}
                 content={({ active, payload, label }) => {
-                  if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
+                  if (
+                    !active ||
+                    !payload?.length ||
+                    payload?.[0]?.payload.total === 0
+                  ) {
                     return null;
                   }
                   return (
@@ -186,7 +239,9 @@ export function LogsTimeseriesBarChart({
                                 <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
                                   All
                                 </span>
-                                <span className="capitalize text-accent-12 text-xs">Total</span>
+                                <span className="capitalize text-accent-12 text-xs">
+                                  Total
+                                </span>
                               </div>
                               <div className="ml-auto">
                                 <span className="font-mono tabular-nums text-accent-12">
@@ -195,27 +250,37 @@ export function LogsTimeseriesBarChart({
                               </div>
                             </div>
                           </div>
-                          <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
-                            <Grid className="text-gray-6" />
-                            <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
-                              <div className="flex gap-4 items-center min-w-[80px]">
-                                <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
-                                  All
-                                </span>
-                                <span className="capitalize text-accent-12 text-xs">Blocked</span>
-                              </div>
-                              <div className="ml-auto">
-                                <span className="font-mono tabular-nums text-accent-12">
-                                  {payload[0]?.payload?.error}
-                                </span>
+
+                          {/* Dynamic tooltip items */}
+                          {tooltipItems.map((item, index) => (
+                            <div
+                              key={`${item.label}-${index}`}
+                              className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center"
+                            >
+                              <Grid className="text-gray-6" />
+                              <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
+                                <div className="flex gap-4 items-center min-w-[80px]">
+                                  <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
+                                    All
+                                  </span>
+                                  <span className="capitalize text-accent-12 text-xs">
+                                    {item.label}
+                                  </span>
+                                </div>
+                                <div className="ml-auto">
+                                  <span className="font-mono tabular-nums text-accent-12">
+                                    {payload[0]?.payload?.[item.dataKey]}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          ))}
                         </div>
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) => {
-                        const originalTimestamp = tooltipPayload[0]?.payload?.originalTimestamp;
+                        const originalTimestamp =
+                          tooltipPayload[0]?.payload?.originalTimestamp;
                         return originalTimestamp ? (
                           <div>
                             <span className="font-mono text-accent-9 text-xs px-4">
@@ -231,7 +296,12 @@ export function LogsTimeseriesBarChart({
                 }}
               />
               {Object.keys(config).map((key) => (
-                <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  stackId="a"
+                  fill={config[key].color}
+                />
               ))}
               {enableSelection && selection.start && selection.end && (
                 <ReferenceArea
@@ -259,7 +329,7 @@ export function LogsTimeseriesBarChart({
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now(),
+              data.at(-1)?.originalTimestamp ?? Date.now()
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               <div key={i} className="z-10">
