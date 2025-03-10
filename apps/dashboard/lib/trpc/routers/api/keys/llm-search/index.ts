@@ -18,7 +18,7 @@ export const keysLlmSearch = rateLimitedProcedure(ratelimit.update)
       query: z.string(),
       timestamp: z.number(),
       apiId: z.string(),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     // Verify API access and workspace permissions
@@ -28,7 +28,7 @@ export const keysLlmSearch = rateLimitedProcedure(ratelimit.update)
           and(
             eq(api.id, input.apiId),
             eq(api.workspaceId, ctx.workspace.id),
-            isNull(api.deletedAtM)
+            isNull(api.deletedAtM),
           ),
       })
       .catch((_err) => {
@@ -47,9 +47,5 @@ export const keysLlmSearch = rateLimitedProcedure(ratelimit.update)
     }
 
     // Process the natural language query using LLM
-    return await getKeysStructuredSearchFromLLM(
-      openai,
-      input.query,
-      input.timestamp
-    );
+    return await getKeysStructuredSearchFromLLM(openai, input.query, input.timestamp);
   });

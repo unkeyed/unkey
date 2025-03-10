@@ -8,8 +8,7 @@ import { transformVerificationFilters } from "../timeseries.utils";
 export const activeKeysTimeseries = rateLimitedProcedure(ratelimit.read)
   .input(keysOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
-    const { params: transformedInputs, granularity } =
-      transformVerificationFilters(input);
+    const { params: transformedInputs, granularity } = transformVerificationFilters(input);
 
     const { keyspaceId, keyIds } = await queryApiKeys({
       apiId: input.apiId,
@@ -18,9 +17,7 @@ export const activeKeysTimeseries = rateLimitedProcedure(ratelimit.read)
       names: transformedInputs.names,
     });
 
-    const result = await clickhouse.verifications.activeKeysTimeseries[
-      granularity
-    ]({
+    const result = await clickhouse.verifications.activeKeysTimeseries[granularity]({
       ...transformedInputs,
       workspaceId: ctx.workspace.id,
       keyspaceId: keyspaceId,

@@ -185,27 +185,6 @@ function getActiveKeysTimeseriesWhereClause(
     }
   }
 
-  // Add names filter conditions if applicable
-  if (params.names?.length) {
-    const nameConditions = params.names
-      .map((filter, index) => {
-        const paramName = `nameValue_${index}`;
-        paramSchemaExtension[paramName] = z.string();
-        switch (filter.operator) {
-          case "is":
-            return `name = {${paramName}: String}`;
-          case "contains":
-            return `like(name, CONCAT('%', {${paramName}: String}, '%'))`;
-        }
-      })
-      .filter(Boolean)
-      .join(" OR ");
-
-    if (nameConditions.length > 0) {
-      conditions.push(`(${nameConditions})`);
-    }
-  }
-
   // Add outcomes filter conditions
   if (params.outcomes?.length) {
     const outcomeConditions = params.outcomes

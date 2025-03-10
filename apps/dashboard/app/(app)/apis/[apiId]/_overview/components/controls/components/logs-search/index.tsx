@@ -4,9 +4,9 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useFilters } from "../../../../hooks/use-filters";
 
-export const LogsSearch = () => {
+export const LogsSearch = ({ apiId }: { apiId: string }) => {
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.ratelimit.logs.ratelimitLlmSearch.useMutation({
+  const queryLLMForStructuredOutput = trpc.api.keys.llmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -48,6 +48,7 @@ export const LogsSearch = () => {
       searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({
+          apiId,
           query,
           timestamp: Date.now(),
         })

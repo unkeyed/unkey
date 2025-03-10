@@ -1,5 +1,7 @@
-import { keysOverviewFilterFieldConfig } from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
-import { filterOutputSchema } from "@/app/(app)/logs/filters.schema";
+import {
+  filterOutputSchema,
+  keysOverviewFilterFieldConfig,
+} from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type OpenAI from "openai";
@@ -18,7 +20,7 @@ import { zodResponseFormat } from "openai/helpers/zod.mjs";
 export async function getKeysStructuredSearchFromLLM(
   openai: OpenAI | null,
   userSearchMsg: string,
-  usersReferenceMS: number
+  usersReferenceMS: number,
 ) {
   try {
     if (!openai) {
@@ -63,8 +65,8 @@ export async function getKeysStructuredSearchFromLLM(
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
-        userSearchMsg
-      )}\n Output ${(error as Error).message}}`
+        userSearchMsg,
+      )}\n Output ${(error as Error).message}}`,
     );
     if (error instanceof TRPCError) {
       throw error;
@@ -73,8 +75,7 @@ export async function getKeysStructuredSearchFromLLM(
     if ((error as any).response?.status === 429) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message:
-          "Search rate limit exceeded. Please try again in a few minutes.",
+        message: "Search rate limit exceeded. Please try again in a few minutes.",
       });
     }
 
@@ -99,7 +100,7 @@ export const getKeysSystemPrompt = (usersReferenceMS: number) => {
       let constraints = "";
       if (field === "outcomes") {
         constraints = ` and must be one of: ${KEY_VERIFICATION_OUTCOMES.map(
-          (outcome) => `"${outcome}"`
+          (outcome) => `"${outcome}"`,
         ).join(", ")}`;
       }
       return `- ${field} accepts ${operators} operator${

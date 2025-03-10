@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { describe, it, expect, vi } from "vitest";
-import { getKeysSystemPrompt, getKeysStructuredSearchFromLLM } from "./utils";
+import { describe, expect, it, vi } from "vitest";
+import { getKeysStructuredSearchFromLLM, getKeysSystemPrompt } from "./utils";
 
 describe("getKeysSystemPrompt", () => {
   const referenceTime = 1706024400000; // 2024-01-23T12:00:00.000Z
@@ -50,11 +50,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
   };
 
   it("should return null if openai is not configured", async () => {
-    const result = await getKeysStructuredSearchFromLLM(
-      null as any,
-      "test query",
-      1706024400000
-    );
+    const result = await getKeysStructuredSearchFromLLM(null as any, "test query", 1706024400000);
     expect(result).toBeNull();
   });
 
@@ -76,7 +72,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
     const result = await getKeysStructuredSearchFromLLM(
       mockOpenAI as any,
       "find invalid keys",
-      1706024400000
+      1706024400000,
     );
 
     expect(result).toEqual({
@@ -106,7 +102,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
     const result = await getKeysStructuredSearchFromLLM(
       mockOpenAI as any,
       "find keys containing test with name production-key",
-      1706024400000
+      1706024400000,
     );
 
     expect(result).toEqual({
@@ -131,11 +127,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
     mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     await expect(
-      getKeysStructuredSearchFromLLM(
-        mockOpenAI as any,
-        "invalid query",
-        1706024400000
-      )
+      getKeysStructuredSearchFromLLM(mockOpenAI as any, "invalid query", 1706024400000),
     ).rejects.toThrow(TRPCError);
   });
 
@@ -145,37 +137,26 @@ describe("getKeysStructuredSearchFromLLM", () => {
     });
 
     await expect(
-      getKeysStructuredSearchFromLLM(
-        mockOpenAI as any,
-        "test query",
-        1706024400000
-      )
+      getKeysStructuredSearchFromLLM(mockOpenAI as any, "test query", 1706024400000),
     ).rejects.toThrowError(
       new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message:
-          "Search rate limit exceeded. Please try again in a few minutes.",
-      })
+        message: "Search rate limit exceeded. Please try again in a few minutes.",
+      }),
     );
   });
 
   it("should handle general errors", async () => {
-    mockOpenAI.beta.chat.completions.parse.mockRejectedValueOnce(
-      new Error("Unknown error")
-    );
+    mockOpenAI.beta.chat.completions.parse.mockRejectedValueOnce(new Error("Unknown error"));
 
     await expect(
-      getKeysStructuredSearchFromLLM(
-        mockOpenAI as any,
-        "test query",
-        1706024400000
-      )
+      getKeysStructuredSearchFromLLM(mockOpenAI as any, "test query", 1706024400000),
     ).rejects.toThrowError(
       new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
           "Failed to process your search query. Please try again or contact support@unkey.dev if the issue persists.",
-      })
+      }),
     );
   });
 });

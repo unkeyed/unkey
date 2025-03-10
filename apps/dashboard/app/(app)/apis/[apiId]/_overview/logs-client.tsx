@@ -9,7 +9,7 @@ export const LogsClient = ({ apiId }: { apiId: string }) => {
   return (
     <div className="flex flex-col">
       <KeysOverviewLogsCharts apiId={apiId} />
-      <KeysOverviewLogsControls />
+      <KeysOverviewLogsControls apiId={apiId} />
       <KeysOverviewLogsControlCloud />
       <KeysOverviewLogsTable apiId={apiId} />
     </div>

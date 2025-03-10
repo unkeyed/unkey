@@ -8,8 +8,7 @@ import { transformVerificationFilters } from "../timeseries.utils";
 export const keyVerificationsTimeseries = rateLimitedProcedure(ratelimit.read)
   .input(keysOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
-    const { params: transformedInputs, granularity } =
-      transformVerificationFilters(input);
+    const { params: transformedInputs, granularity } = transformVerificationFilters(input);
 
     const { keyspaceId, keyIds } = await queryApiKeys({
       apiId: input.apiId,

@@ -4,8 +4,8 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { keysOverviewLogs as keysLogs } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
+import { createKeyDetailsMap, queryApiKeys } from "../api-query";
 import { transformKeysFilters } from "./utils";
-import { queryApiKeys, createKeyDetailsMap } from "../api-query";
 
 const KeysOverviewLogsResponse = z.object({
   keysOverviewLogs: z.array(keysLogs),

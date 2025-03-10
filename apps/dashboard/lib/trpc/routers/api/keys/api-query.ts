@@ -33,11 +33,7 @@ export async function queryApiKeys({
   const combinedResults = await db.query.apis
     .findFirst({
       where: (api, { and, eq, isNull }) =>
-        and(
-          eq(api.id, apiId),
-          eq(api.workspaceId, workspaceId),
-          isNull(api.deletedAtM)
-        ),
+        and(eq(api.id, apiId), eq(api.workspaceId, workspaceId), isNull(api.deletedAtM)),
       with: {
         keyAuth: {
           with: {
@@ -80,7 +76,7 @@ export async function queryApiKeys({
                     .map((filter) => filter.value);
                   if (keyIdContainsValues.length > 0) {
                     keyIdContainsValues.forEach((value) =>
-                      conditions.push(sql`${key.id} LIKE ${`%${value}%`}`)
+                      conditions.push(sql`${key.id} LIKE ${`%${value}%`}`),
                     );
                   }
                 }
