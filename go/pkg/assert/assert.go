@@ -178,15 +178,66 @@ func Contains(s, substr string, message ...string) error {
 //	        "Insufficient account balance",
 //	    ))
 //	}
-func Greater[T ~int | ~float64](a, b T, message ...string) error {
-	if a <= b {
-		errorMsg := "value is not greater"
-		if len(message) > 0 {
-			errorMsg = message[0]
-		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+func Greater[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message ...string) error {
+	if a > b {
+		return nil
+
 	}
-	return nil
+	errorMsg := "value is not greater"
+	if len(message) > 0 {
+		errorMsg = message[0]
+	}
+	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+}
+
+// GreaterOrEqual asserts that value 'a' is greater or equal compared to value 'b'.
+// If 'a' is not greater or equal than 'b', it returns an error tagged with ASSERTION_FAILED.
+//
+// Example:
+//
+//	// Validate minimum balance
+//	if err := assert.GreaterOrEqual(account.Balance, minimumRequired, "Account balance must exceed minimum"); err != nil {
+//	    return fault.Wrap(err, fault.WithDesc(
+//	        fmt.Sprintf("insufficient balance: %.2f < %.2f", account.Balance, minimumRequired),
+//	        "Insufficient account balance",
+//	    ))
+//	}
+func GreaterOrEqual[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message ...string) error {
+	if a >= b {
+		return nil
+	}
+
+	errorMsg := "value is not greater or equal"
+	if len(message) > 0 {
+		errorMsg = message[0]
+	}
+	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+
+}
+
+// LessOrEqual asserts that value 'a' is less or equal compared to value 'b'.
+// If 'a' is not less or equal than 'b', it returns an error tagged with ASSERTION_FAILED.
+//
+// Example:
+//
+//	// Validate maximum balance
+//	if err := assert.LessOrEqual(account.Balance, minimumRequired, "Account balance must not exceed maximum"); err != nil {
+//	    return fault.Wrap(err, fault.WithDesc(
+//	        fmt.Sprintf("insufficient balance: %.2f < %.2f", account.Balance, maximumRequired),
+//	        "Insufficient account balance",
+//	    ))
+//	}
+func LessOrEqual[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message ...string) error {
+	if a <= b {
+		return nil
+	}
+
+	errorMsg := "value is not less or equal"
+	if len(message) > 0 {
+		errorMsg = message[0]
+	}
+	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+
 }
 
 // Less asserts that value 'a' is less than value 'b'.
@@ -202,14 +253,14 @@ func Greater[T ~int | ~float64](a, b T, message ...string) error {
 //	    ))
 //	}
 func Less[T ~int | ~float64](a, b T, message ...string) error {
-	if a >= b {
-		errorMsg := "value is not less"
-		if len(message) > 0 {
-			errorMsg = message[0]
-		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+	if a < b {
+		return nil
 	}
-	return nil
+	errorMsg := "value is not less"
+	if len(message) > 0 {
+		errorMsg = message[0]
+	}
+	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 }
 
 // InRange asserts that a value is within a specified range (inclusive).

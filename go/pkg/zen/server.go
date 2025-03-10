@@ -83,7 +83,6 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
-					ctx:            context.Background(),
 					workspaceID:    "",
 					requestID:      "",
 					w:              nil,
@@ -199,7 +198,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				handle = middlewares[i](handle)
 			}
 
-			err = handle(sess)
+			err = handle(r.Context(), sess)
 
 			if err != nil {
 				panic(err)

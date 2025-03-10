@@ -50,7 +50,13 @@
           }
         },
         "type": "object",
-        "required": ["requestId", "detail", "status", "title", "type"]
+        "required": [
+          "requestId",
+          "detail",
+          "status",
+          "title",
+          "type"
+        ]
       },
       "NotFoundError": {
         "$ref": "#/components/schemas/BaseError"
@@ -80,7 +86,9 @@
                 "type": "array"
               }
             },
-            "required": ["errors"]
+            "required": [
+              "errors"
+            ]
           }
         ]
       },
@@ -104,7 +112,10 @@
           }
         },
         "type": "object",
-        "required": ["message", "location"]
+        "required": [
+          "message",
+          "location"
+        ]
       },
       "V2LivenessResponseBody": {
         "additionalProperties": false,
@@ -115,7 +126,9 @@
             "type": "string"
           }
         },
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "type": "object"
       },
       "V2RatelimitSetOverrideRequestBody": {
@@ -151,7 +164,11 @@
             "minimum": 0
           }
         },
-        "required": ["identifier", "limit", "duration"],
+        "required": [
+          "identifier",
+          "limit",
+          "duration"
+        ],
         "type": "object"
       },
       "V2RatelimitSetOverrideResponseBody": {
@@ -162,7 +179,9 @@
             "type": "string"
           }
         },
-        "required": ["overrideId"],
+        "required": [
+          "overrideId"
+        ],
         "type": "object"
       },
       "V2RatelimitGetOverrideRequestBody": {
@@ -188,7 +207,9 @@
             "maxLength": 255
           }
         },
-        "required": ["identifier"],
+        "required": [
+          "identifier"
+        ],
         "type": "object"
       },
       "V2RatelimitGetOverrideResponseBody": {
@@ -225,7 +246,13 @@
             "minimum": 0
           }
         },
-        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"],
+        "required": [
+          "namespaceId",
+          "overrideId",
+          "duration",
+          "identifier",
+          "limit"
+        ],
         "type": "object"
       },
       "V2RatelimitLimitRequestBody": {
@@ -234,18 +261,23 @@
           "namespace": {
             "description": "The namespace name for the rate limit.",
             "type": "string",
-            "example": "sms.sign_up"
+            "example": "sms.sign_up",
+            "minLength": 1,
+            "maxLength": 255
           },
           "cost": {
             "description": "The cost of the request. Defaults to 1 if not provided.",
             "format": "int64",
             "type": "integer",
-            "default": 1
+            "default": 1,
+            "minimum": 0
           },
           "duration": {
             "description": "The duration in milliseconds for the rate limit window.",
             "format": "int64",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 86400000
           },
           "identifier": {
             "description": "The identifier for the rate limit.",
@@ -254,10 +286,16 @@
           "limit": {
             "description": "The maximum number of requests allowed.",
             "format": "int64",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1
           }
         },
-        "required": ["namespace", "identifier", "limit", "duration"],
+        "required": [
+          "namespace",
+          "identifier",
+          "limit",
+          "duration"
+        ],
         "type": "object"
       },
       "V2RatelimitLimitResponseBody": {
@@ -281,9 +319,18 @@
           "success": {
             "description": "Whether the request passed the ratelimit. If false, the request must be blocked.",
             "type": "boolean"
+          },
+          "overrideId": {
+            "description": "The override that was used. May be empty",
+            "type": "string"
           }
         },
-        "required": ["limit", "remaining", "reset", "success"],
+        "required": [
+          "limit",
+          "remaining",
+          "reset",
+          "success"
+        ],
         "type": "object"
       },
       "V2RatelimitDeleteOverrideRequestBody": {
@@ -309,7 +356,9 @@
             "maxLength": 255
           }
         },
-        "required": ["identifier"],
+        "required": [
+          "identifier"
+        ],
         "type": "object"
       },
       "V2RatelimitDeleteOverrideResponseBody": {
@@ -394,7 +443,9 @@
             "description": "Error"
           }
         },
-        "tags": ["ratelimit"]
+        "tags": [
+          "ratelimit"
+        ]
       }
     },
     "/v2/ratelimit.setOverride": {
@@ -472,12 +523,16 @@
             "description": "Error"
           }
         },
-        "tags": ["ratelimit"]
+        "tags": [
+          "ratelimit"
+        ]
       }
     },
     "/v2/ratelimit.getOverride": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "v2.ratelimit.getOverride",
         "requestBody": {
           "content": {
@@ -555,7 +610,9 @@
     },
     "/v2/ratelimit.deleteOverride": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "v2.ratelimit.deleteOverride",
         "requestBody": {
           "content": {
@@ -668,7 +725,9 @@
           }
         },
         "summary": "Liveness check",
-        "tags": ["liveness"]
+        "tags": [
+          "liveness"
+        ]
       }
     }
   }

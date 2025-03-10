@@ -68,7 +68,7 @@ func New(config Config) (*Clickhouse, error) {
 	}
 	if opts.TLS == nil {
 
-		opts.TLS = &tls.Config{} // nolint:gosec
+		opts.TLS = new(tls.Config)
 	}
 
 	config.Logger.Info("connecting to clickhouse")

@@ -1,7 +1,6 @@
 package zen
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,7 +25,6 @@ import (
 // The Session is automatically reset and returned to the pool after the request
 // is handled.
 type Session struct {
-	ctx       context.Context
 	requestID string
 
 	w http.ResponseWriter
@@ -43,21 +41,12 @@ type Session struct {
 }
 
 func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
-	s.ctx = r.Context()
 	s.requestID = uid.New(uid.RequestPrefix)
 	s.w = w
 	s.r = r
 
 	s.workspaceID = ""
 	return nil
-}
-
-// Context returns the request context, which may be enhanced by middleware.
-// The context can be used to pass values and control cancellation
-// throughout the request lifecycle.
-func (s *Session) Context() context.Context {
-	return s.ctx
-
 }
 
 // AuthorizedWorkspaceID returns the workspace ID associated with the authenticated

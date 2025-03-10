@@ -16,7 +16,7 @@ func Register(srv *zen.Server, svc *Services) {
 	withMetrics := zen.WithMetrics(svc.EventBuffer)
 
 	withLogging := zen.WithLogging(svc.Logger)
-	withErrorHandling := zen.WithErrorHandling()
+	withErrorHandling := zen.WithErrorHandling(svc.Logger)
 	withValidation := zen.WithValidation(svc.Validator)
 
 	defaultMiddlewares := []zen.Middleware{
@@ -44,10 +44,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2RatelimitLimit.New(v2RatelimitLimit.Services{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Ratelimit: svc.Ratelimit,
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Ratelimit:   svc.Ratelimit,
+			Permissions: svc.Permissions,
 		}),
 	)
 	// v2/ratelimit.setOverride

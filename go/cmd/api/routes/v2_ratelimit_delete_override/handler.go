@@ -31,8 +31,8 @@ type Services struct {
 }
 
 func New(svc Services) zen.Route {
-	return zen.NewRoute("POST", "/v2/ratelimit.deleteOverride", func(s *zen.Session) error {
-		auth, err := svc.Keys.VerifyRootKey(s.Context(), s)
+	return zen.NewRoute("POST", "/v2/ratelimit.deleteOverride", func(ctx context.Context, s *zen.Session) error {
+		auth, err := svc.Keys.VerifyRootKey(ctx, s)
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		namespace, err := getNamespace(s.Context(), svc, auth.AuthorizedWorkspaceID, req)
+		namespace, err := getNamespace(ctx, svc, auth.AuthorizedWorkspaceID, req)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return fault.Wrap(err,
@@ -66,7 +66,7 @@ func New(svc Services) zen.Route {
 		}
 
 		permissions, err := svc.Permissions.Check(
-			s.Context(),
+			ctx,
 			auth.KeyID,
 			rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -96,7 +96,7 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		tx, err := svc.DB.RW().Begin(s.Context())
+		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.WithTag(fault.DATABASE_ERROR),
@@ -111,7 +111,7 @@ func New(svc Services) zen.Route {
 		}()
 
 		// Check if the override exists before deleting
-		override, err := db.Query.FindRatelimitOverridesByIdentifier(s.Context(), tx, db.FindRatelimitOverridesByIdentifierParams{
+		override, err := db.Query.FindRatelimitOverridesByIdentifier(ctx, tx, db.FindRatelimitOverridesByIdentifierParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
 			Identifier:  req.Identifier,
@@ -128,7 +128,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// Perform soft delete by updating the DeletedAt field
-		err = db.Query.SoftDeleteRatelimitOverride(s.Context(), tx, db.SoftDeleteRatelimitOverrideParams{
+		err = db.Query.SoftDeleteRatelimitOverride(ctx, tx, db.SoftDeleteRatelimitOverrideParams{
 			ID:  override.ID,
 			Now: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
@@ -141,7 +141,7 @@ func New(svc Services) zen.Route {
 		}
 
 		auditLogID := uid.New(uid.AuditLogPrefix)
-		err = db.Query.InsertAuditLog(s.Context(), tx, db.InsertAuditLogParams{
+		err = db.Query.InsertAuditLog(ctx, tx, db.InsertAuditLogParams{
 			ID:          auditLogID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			BucketID:    "",
@@ -163,7 +163,7 @@ func New(svc Services) zen.Route {
 				fault.WithDesc("database failed to insert audit log", "Failed to insert audit log."),
 			)
 		}
-		err = db.Query.InsertAuditLogTarget(s.Context(), tx, db.InsertAuditLogTargetParams{
+		err = db.Query.InsertAuditLogTarget(ctx, tx, db.InsertAuditLogTargetParams{
 			ID:          override.ID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			BucketID:    "",
@@ -180,7 +180,7 @@ func New(svc Services) zen.Route {
 				fault.WithDesc("database failed to insert audit log target namespace", "Failed to insert audit log target."),
 			)
 		}
-		err = db.Query.InsertAuditLogTarget(s.Context(), tx, db.InsertAuditLogTargetParams{
+		err = db.Query.InsertAuditLogTarget(ctx, tx, db.InsertAuditLogTargetParams{
 			ID:          namespace.ID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			BucketID:    "",

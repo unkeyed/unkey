@@ -1,6 +1,7 @@
 package zen
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -39,9 +40,9 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 	}
 
 	return func(next HandleFunc) HandleFunc {
-		return func(s *Session) error {
+		return func(ctx context.Context, s *Session) error {
 			start := time.Now()
-			nextErr := next(s)
+			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
 			requestHeaders := []string{}
 			for k, vv := range s.r.Header {
