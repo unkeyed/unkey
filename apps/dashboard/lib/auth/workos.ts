@@ -792,7 +792,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           success: false,
           code: AuthErrorCode.EMAIL_VERIFICATION_REQUIRED,
           message: error.message,
-          user: this.transformUserData(error.rawData.user),
+          user: this.transformUserData({
+            id: "UNKNOWN", // WorkOS doesn't return a user id in this scenario, and its the ONLY scenario where there isn't one available. Easier to just pass a string than to make the unkey User id nullable
+            email: error.rawData.email,
+           }),
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
