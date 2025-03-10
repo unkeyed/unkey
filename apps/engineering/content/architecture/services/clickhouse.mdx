@@ -21,29 +21,169 @@ For migrations, we're using [goose](https://pressly.github.io/goose). This is on
 While ClickHouse can ingest millions of rows per second, it can only achieve this with relatively large insert batches of tens of thousands of rows per request. This presents a challenge in our serverless setup, as most of our API invocations would only insert a single row per table.
 That's why we're using a [ClickHouse Proxy](/architecture/services/clickhouse-proxy) for our inserts.
 
-## Databases
 
-You can insert or query every database, but for logical separation, we're using the following:
 
-### `verifications`
+## Core Concepts
 
-Raw verifications are ingested here and we run hourly, daily and monthly aggregations for user facing analytics.
+### 1. Database Organization
 
-### `ratelimits`
+We organize data into logical databases:
 
-Raw ratelimits are ingested here and we run hourly, daily and monthly aggregations for user facing analytics.
+- **verifications**: All data related to key verifications
+- **ratelimits**: Everything about rate limit events
+- **metrics**: API request logs and performance metrics
+- **billing**: Aggregated data used for customer billing
+- **business**: Analytics for internal business metrics
+- **telemetry**: SDK and client usage information
 
-### `billing`
+### 2. Table Types
 
-Aggregates data from other databases for creating invoices.
+There are three main types of tables you'll encounter:
 
-### `business`
+- **Raw tables**: Capture raw events as they happen (e.g., `raw_key_verifications_v1`)
+- **Aggregated tables**: Store pre-computed summaries (e.g., `key_verifications_per_hour_v3`)
+- **Materialized views**: Connect raw and aggregated tables, processing data automatically (e.g., `key_verifications_per_hour_mv_v3`)
 
-Aggregates data from other databases for creating internal dashboards.
+### 3. Naming Convention
 
-### `metrics`
+We follow a consistent naming pattern:
+- `raw_<domain>_<description>_v<version>` for raw tables
+- `<domain>_<description>_per_<time_unit>_v<version>` for aggregated tables
+- `<description>_<aggregation>_mv_v<version>` for materialized views
 
-Various system metrics, like API requests, latencies etc. Powering our Grafana dashboards and alerts.
+## Key Tables You Should Know About
+
+### For Verification Analytics
+
+- **`verifications.raw_key_verifications_v1`**: Every individual key verification event
+- **`verifications.key_verifications_per_hour_v3`**: Hourly summary of verifications
+- **`verifications.key_verifications_per_day_v3`**: Daily summary of verifications
+- **`verifications.key_verifications_per_month_v3`**: Monthly summary of verifications
+
+### For Rate Limit Analytics
+
+- **`ratelimits.raw_ratelimits_v1`**: Individual rate limit checks
+- **`ratelimits.ratelimits_per_hour_v1`**: Hourly summary of rate limits
+- **`ratelimits.ratelimits_last_used_v1`**: Tracks when identifiers were last rate limited
+
+### For Billing
+
+- **`billing.billable_verifications_per_month_v2`**: Monthly count of billable verifications
+- **`billing.billable_ratelimits_per_month_v1`**: Monthly count of billable rate limits
+
+## How Data Flows
+
+1. **Collection**: When a key is verified or a rate limit is checked, we log an event
+2. **Processing**: Materialized views automatically process these events into summaries
+3. **Aggregation**: Data is aggregated at different time intervals (hour/day/month)
+4. **Querying**: Our API and dashboard query these aggregated tables
+
+## Working with the ClickHouse Client
+
+Our TypeScript client in `@unkey/clickhouse` makes it easy to interact with ClickHouse:
+
+```typescript
+// Initialize the client
+const ch = new ClickHouse({ url: process.env.CLICKHOUSE_URL });
+
+// Insert verification events
+await ch.verifications.insert({
+  request_id: "req_123",
+  time: Date.now(),
+  workspace_id: "ws_123",
+  key_space_id: "ks_123",
+  key_id: "key_123",
+  outcome: "VALID",
+  region: "us-east-1",
+  tags: ["prod", "api"]
+});
+
+// Query verification statistics
+const stats = await ch.verifications.perDay({
+  workspaceId: "ws_123",
+  keySpaceId: "ks_123",
+  start: yesterdayTimestamp,
+  end: nowTimestamp
+});
+
+// Get billable usage for a month
+const usage = await ch.billing.billableVerifications({
+  workspaceId: "ws_123",
+  year: 2023,
+  month: 7
+});
+```
+
+## Common Tasks
+
+### How to track key usage over time
+
+```typescript
+const dailyUsage = await ch.verifications.timeseries.perDay({
+  workspaceId: "ws_123",
+  keyspaceId: "ks_123",
+  startTime: startOfMonth.getTime(),
+  endTime: endOfMonth.getTime()
+});
+
+// dailyUsage will contain points with total verifications and valid verifications
+// [{x: timestamp, y: {total: 100, valid: 95}}, ...]
+```
+
+### How to see recent key verifications
+
+```typescript
+const recentVerifications = await ch.verifications.logs({
+  workspaceId: "ws_123",
+  keySpaceId: "ks_123",
+  keyId: "key_123"
+});
+
+// Returns the 50 most recent verifications for this key
+```
+
+### How to query rate limit data
+
+```typescript
+const ratelimitStats = await ch.ratelimits.timeseries.perHour({
+  workspaceId: "ws_123",
+  namespaceId: "ns_123",
+  startTime: yesterday.getTime(),
+  endTime: now.getTime(),
+  identifiers: [{operator: "is", value: "user_123"}]
+});
+
+// Returns hourly rate limit stats for a specific identifier
+```
+
+## Development Tips
+
+1. **Local Setup**: Docker Compose includes a ClickHouse instance that automatically runs migrations
+2. **Migrations**: We use `goose` for schema migrations in `/schema` directory
+3. **Testing**: Use `vitest` to test your ClickHouse queries with `ClickHouseContainer`
+4. **Schema Changes**: When changing schema, create a new file in `/schema` with proper versioning
+
+## Debugging Queries
+
+If you need to understand or optimize a query:
+
+1. Use the client's query method directly for custom queries:
+   ```typescript
+   const result = await ch.querier.query({
+     query: `SELECT count() FROM verifications.raw_key_verifications_v1 WHERE workspace_id = {workspaceId: String}`,
+     params: z.object({ workspaceId: z.string() }),
+     schema: z.object({ count: z.number() })
+   })({ workspaceId: "ws_123" });
+   ```
+
+2. Check performance with `EXPLAIN`:
+   ```typescript
+   const explain = await ch.querier.query({
+     query: `EXPLAIN SELECT * FROM verifications.raw_key_verifications_v1 WHERE workspace_id = {workspaceId: String}`,
+     params: z.object({ workspaceId: z.string() }),
+     schema: z.object({ explain: z.string() })
+   })({ workspaceId: "ws_123" });
+   ```
 
 
 ## IaC
