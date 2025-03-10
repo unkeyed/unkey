@@ -3,7 +3,6 @@ import Confirm from "@/components/dashboard/confirm";
 import { Loading } from "@/components/dashboard/loading";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +32,7 @@ import { useState, useCallback, memo } from "react";
 import { navigation } from "../constants";
 import { InviteButton } from "./invite";
 import { User } from "@/lib/auth/types";
+import { Navigation } from "@/components/navigation/navigation";
 
 type MembersProps = {
   memberships: Membership[];
@@ -94,13 +94,7 @@ export function TeamPageClient() {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/team" active>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/settings/team" name="Settings" icon={<Gear />} />
       <PageContent>
         <SubMenu navigation={navigation} segment="team" />
         <div className="mb-20 flex flex-col gap-8 mt-8">
