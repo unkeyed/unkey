@@ -8,7 +8,6 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
 */
 @layer base {
   :root {
-
     /* Gray */
     --gray-1: 0, 0%, 99%;
     --gray-2: 0, 0%, 98%;
@@ -23,6 +22,33 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --gray-11: 0, 0%, 39%;
     --gray-12: 0, 0%, 13%;
 
+    /* GrayA (Slate A) */
+    --grayA-1: 240, 100%, 17%, 0.01;
+    --grayA-2: 240, 100%, 17%, 0.02;
+    --grayA-3: 240, 100%, 10%, 0.06;
+    --grayA-4: 240, 100%, 9%, 0.09;
+    --grayA-5: 229, 100%, 10%, 0.12;
+    --grayA-6: 240, 100%, 9%, 0.15;
+    --grayA-7: 232, 100%, 9%, 0.2;
+    --grayA-8: 230, 100%, 9%, 0.27;
+    --grayA-9: 230, 100%, 6%, 0.45;
+    --grayA-10: 224, 100%, 5%, 0.5;
+    --grayA-11: 219, 100%, 4%, 0.62;
+    --grayA-12: 207, 100%, 2%, 0.89;
+
+    /* Base (Base A) */
+    --base-1: 0, 0%, 100%, 0.1;
+    --base-2: 0, 0%, 100%, 0.15;
+    --base-3: 0, 0%, 100%, 0.2;
+    --base-4: 0, 0%, 100%, 0.25;
+    --base-5: 0, 0%, 100%, 0.35;
+    --base-6: 0, 0%, 100%, 0.45;
+    --base-7: 0, 0%, 100%, 0.55;
+    --base-8: 0, 0%, 100%, 0.65;
+    --base-9: 0, 0%, 100%, 0.75;
+    --base-10: 0, 0%, 100%, 0.85;
+    --base-11: 0, 0%, 100%, 0.95;
+    --base-12: 0, 0%, 100%, 1;
 
     /* Teal */
     --success-1: 165, 67%, 99%;
@@ -38,6 +64,34 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --success-11: 172, 100%, 26%;
     --success-12: 174, 65%, 15%;
 
+    /* TealA */
+    --successA-1: 165, 100%, 40%, 0.02;
+    --successA-2: 165, 100%, 33%, 0.05;
+    --successA-3: 168, 100%, 39%, 0.13;
+    --successA-4: 168, 100%, 38%, 0.2;
+    --successA-5: 168, 100%, 36%, 0.28;
+    --successA-6: 169, 100%, 33%, 0.37;
+    --successA-7: 169, 100%, 30%, 0.49;
+    --successA-8: 170, 100%, 30%, 0.67;
+    --successA-9: 173, 100%, 31%, 0.93;
+    --successA-10: 174, 100%, 30%, 1;
+    --successA-11: 173, 100%, 25%, 1;
+    --successA-12: 170, 100%, 10%, 0.94;
+
+    /* Orange */
+    --orange-1: 20, 60%, 99%;
+    --orange-2: 33, 100%, 96%;
+    --orange-3: 37, 100%, 92%;
+    --orange-4: 34, 100%, 85%;
+    --orange-5: 33, 100%, 80%;
+    --orange-6: 30, 100%, 75%;
+    --orange-7: 27, 87%, 71%;
+    --orange-8: 25, 80%, 63%;
+    --orange-9: 23, 93%, 53%;
+    --orange-10: 24, 100%, 47%;
+    --orange-11: 23, 100%, 40%;
+    --orange-12: 16, 50%, 23%;
+
     /* Amber */
     --warning-1: 40, 60%, 99%;
     --warning-2: 51, 91%, 95%;
@@ -52,8 +106,21 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --warning-11: 35, 100%, 34%;
     --warning-12: 24, 40%, 22%;
 
-    /* Tomato */
+    /* AmberA */
+    --warningA-1: 40, 100%, 38%, 0.02;
+    --warningA-2: 46, 100%, 50%, 0.08;
+    --warningA-3: 47, 100%, 50%, 0.24;
+    --warningA-4: 46, 100%, 50%, 0.37;
+    --warningA-5: 45, 100%, 50%, 0.5;
+    --warningA-6: 41, 100%, 49%, 0.52;
+    --warningA-7: 40, 100%, 43%, 0.57;
+    --warningA-8: 41, 100%, 39%, 0.73;
+    --warningA-9: 45, 100%, 50%, 0.82;
+    --warningA-10: 42, 100%, 49%, 0.78;
+    --warningA-11: 43, 100%, 30%, 1;
+    --warningA-12: 41, 100%, 9%, 0.87;
 
+    /* Tomato */
     --error-1: 0, 100%, 99%;
     --error-2: 7, 100%, 98%;
     --error-3: 10, 92%, 95%;
@@ -66,6 +133,20 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --error-10: 10, 73%, 51%;
     --error-11: 10, 82%, 45%;
     --error-12: 8, 50%, 24%;
+
+    /* TomatoA */
+    --errorA-1: 0, 100%, 50%, 0.01;
+    --errorA-2: 8, 100%, 50%, 0.03;
+    --errorA-3: 11, 100%, 48%, 0.09;
+    --errorA-4: 12, 100%, 50%, 0.17;
+    --errorA-5: 12, 100%, 50%, 0.24;
+    --errorA-6: 12, 100%, 49%, 0.32;
+    --errorA-7: 12, 100%, 45%, 0.41;
+    --errorA-8: 11, 100%, 43%, 0.52;
+    --errorA-9: 10, 100%, 44%, 0.82;
+    --errorA-10: 10, 100%, 41%, 0.89;
+    --errorA-11: 11, 100%, 40%, 0.91;
+    --errorA-12: 12, 100%, 14%, 0.89;
 
     /* Violet */
     --feature-1: 270, 50%, 99%;
@@ -95,8 +176,8 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --info-11: 208, 88%, 43%;
     --info-12: 216, 71%, 23%;
 
-
     /* Slate */
+    /* Brand */
     --accent-1: 240, 20%, 99%;
     --accent-2: 240, 20%, 98%;
     --accent-3: 240, 11%, 95%;
@@ -109,13 +190,9 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --accent-10: 226, 5%, 53%;
     --accent-11: 220, 6%, 40%;
     --accent-12: 210, 13%, 13%;
-
   }
 
-
-
   .dark {
-
     /* Gray Dark */
     --gray-1: 0, 0%, 7%;
     --gray-2: 0, 0%, 10%;
@@ -130,6 +207,19 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --gray-11: 0, 0%, 71%;
     --gray-12: 0, 0%, 93%;
 
+    /* SlateA */
+    --grayA-1: 0, 0%, 0%, 1;
+    --grayA-2: 184, 62%, 91%, 0.04;
+    --grayA-3: 211, 66%, 92%, 0.08;
+    --grayA-4: 198, 73%, 90%, 0.11;
+    --grayA-5: 208, 95%, 92%, 0.15;
+    --grayA-6: 208, 91%, 92%, 0.19;
+    --grayA-7: 208, 100%, 93%, 0.27;
+    --grayA-8: 208, 100%, 93%, 0.36;
+    --grayA-9: 216, 88%, 93%, 0.43;
+    --grayA-10: 220, 86%, 95%, 0.48;
+    --grayA-11: 212, 87%, 97%, 0.71;
+    --grayA-12: 220, 100%, 99%, 0.95;
 
     /* Teal */
     --success-1: 173, 24%, 7%;
@@ -145,6 +235,34 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --success-11: 170, 90%, 45%;
     --success-12: 163, 69%, 81%;
 
+    /* TealA */
+    --successA-1: 125, 100%, 37%, 0.01;
+    --successA-2: 169, 97%, 53%, 0.05;
+    --successA-3: 170, 100%, 50%, 0.12;
+    --successA-4: 171, 100%, 50%, 0.18;
+    --successA-5: 172, 100%, 50%, 0.23;
+    --successA-6: 172, 100%, 57%, 0.29;
+    --successA-7: 172, 98%, 60%, 0.37;
+    --successA-8: 172, 100%, 60%, 0.46;
+    --successA-9: 173, 100%, 54%, 0.62;
+    --successA-10: 173, 100%, 50%, 0.57;
+    --successA-11: 171, 100%, 70%, 0.81;
+    --successA-12: 169, 100%, 85%, 0.94;
+
+    /* Orange */
+    --orange-1: 27, 24%, 7%;
+    --orange-2: 28, 33%, 9%;
+    --orange-3: 28, 65%, 12%;
+    --orange-4: 28, 100%, 14%;
+    --orange-5: 28, 100%, 17%;
+    --orange-6: 27, 79%, 22%;
+    --orange-7: 25, 63%, 30%;
+    --orange-8: 23, 60%, 40%;
+    --orange-9: 23, 93%, 53%;
+    --orange-10: 26, 100%, 56%;
+    --orange-11: 26, 100%, 67%;
+    --orange-12: 29, 100%, 88%;
+
     /* Amber */
     --warning-1: 36, 29%, 7%;
     --warning-2: 39, 32%, 9%;
@@ -159,6 +277,20 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --warning-11: 46, 100%, 54%;
     --warning-12: 41, 100%, 85%;
 
+    /* AmberA */
+    --warningA-1: 5, 100%, 37%, 0.01;
+    --warningA-2: 40, 100%, 49%, 0.05;
+    --warningA-3: 39, 100%, 50%, 0.11;
+    --warningA-4: 36, 100%, 50%, 0.18;
+    --warningA-5: 39, 100%, 50%, 0.23;
+    --warningA-6: 42, 100%, 54%, 0.29;
+    --warningA-7: 41, 98%, 62%, 0.37;
+    --warningA-8: 41, 98%, 65%, 0.49;
+    --warningA-9: 42, 100%, 62%, 1;
+    --warningA-10: 43, 99%, 59%, 0.96;
+    --warningA-11: 43, 100%, 65%, 1;
+    --warningA-12: 40, 100%, 87%, 1;
+
     /* Tomato */
     --error-1: 0, 17%, 8%;
     --error-2: 10, 24%, 10%;
@@ -172,6 +304,20 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --error-10: 11, 82%, 59%;
     --error-11: 12, 100%, 75%;
     --error-12: 10, 86%, 89%;
+
+    /* TomatoA */
+    --errorA-1: 0, 100%, 45%, 0.02;
+    --errorA-2: 15, 99%, 57%, 0.05;
+    --errorA-3: 11, 99%, 52%, 0.16;
+    --errorA-4: 9, 100%, 50%, 0.26;
+    --errorA-5: 10, 99%, 53%, 0.33;
+    --errorA-6: 10, 99%, 59%, 0.39;
+    --errorA-7: 11, 98%, 63%, 0.49;
+    --errorA-8: 11, 99%, 65%, 0.65;
+    --errorA-9: 10, 99%, 59%, 0.89;
+    --errorA-10: 10, 99%, 56%, 0.83;
+    --errorA-11: 12, 100%, 73%, 1;
+    --errorA-12: 11, 100%, 90%, 0.98;
 
     /* Violet */
     --feature-1: 249, 27%, 10%;
@@ -200,8 +346,6 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --info-10: 210, 100%, 62%;
     --info-11: 210, 100%, 72%;
     --info-12: 205, 100%, 88%;
-
-
 
     /* Slate Dark */
     --accent-1: 240, 6%, 7%;

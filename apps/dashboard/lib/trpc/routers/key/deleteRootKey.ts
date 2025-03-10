@@ -18,7 +18,7 @@ export const deleteRootKeys = t.procedure
           eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
           eq(table.forWorkspaceId, ctx.workspace.id),
           inArray(table.id, input.keyIds),
-          isNull(table.deletedAt),
+          isNull(table.deletedAtM),
         ),
       columns: {
         id: true,
@@ -28,7 +28,7 @@ export const deleteRootKeys = t.procedure
       .transaction(async (tx) => {
         await tx
           .update(schema.keys)
-          .set({ deletedAt: new Date() })
+          .set({ deletedAtM: Date.now() })
           .where(
             inArray(
               schema.keys.id,

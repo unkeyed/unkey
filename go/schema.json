@@ -21,30 +21,36 @@
       "description": "Cluster configuration",
       "properties": {
         "advertiseAddr": {
-          "type": "string",
-          "description": "The address to advertise to other nodes"
+          "type": "object",
+          "description": "A mechanism of retrieving the address of the current node.",
+          "properties": {
+            "awsEcsMetadata": {
+              "type": "boolean",
+              "description": "Use AWS ECS metadata to retrieve the address of the current node"
+            },
+            "static": {
+              "type": "string",
+              "description": "The address to advertise to other nodes"
+            }
+          },
+          "additionalProperties": false
         },
         "discovery": {
           "type": "object",
           "description": "Cluster discovery configuration, only one supported: static, cloudmap",
           "properties": {
-            "awsCloudmap": {
+            "redis": {
               "type": "object",
-              "description": "Cloudmap cluster discovery configuration",
+              "description": "Redis cluster discovery configuration",
               "properties": {
-                "region": {
+                "url": {
                   "type": "string",
-                  "description": "Cloudmap region",
-                  "minLength": 1
-                },
-                "serviceName": {
-                  "type": "string",
-                  "description": "Cloudmap service name",
+                  "description": "Redis URL",
                   "minLength": 1
                 }
               },
               "additionalProperties": false,
-              "required": ["serviceName", "region"]
+              "required": ["url"]
             },
             "static": {
               "type": "object",
@@ -81,7 +87,7 @@
         }
       },
       "additionalProperties": false,
-      "required": ["rpcPort", "gossipPort"]
+      "required": ["advertiseAddr", "rpcPort", "gossipPort"]
     },
     "database": {
       "type": "object",

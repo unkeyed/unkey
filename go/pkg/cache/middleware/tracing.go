@@ -2,24 +2,25 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/unkeyed/unkey/go/pkg/cache"
-	"github.com/unkeyed/unkey/go/pkg/tracing"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
 
-type tracingMiddleware[T any] struct {
-	next cache.Cache[T]
+type tracingMiddleware[K comparable, V any] struct {
+	next cache.Cache[K, V]
 }
 
-func WithTracing[T any](c cache.Cache[T]) cache.Cache[T] {
-	return &tracingMiddleware[T]{next: c}
+func WithTracing[K comparable, V any](c cache.Cache[K, V]) cache.Cache[K, V] {
+	return &tracingMiddleware[K, V]{next: c}
 }
 
-func (mw *tracingMiddleware[T]) Get(ctx context.Context, key string) (T, cache.CacheHit) {
+func (mw *tracingMiddleware[K, V]) Get(ctx context.Context, key K) (V, cache.CacheHit) {
 	ctx, span := tracing.Start(ctx, "cache.Get")
 	defer span.End()
-	span.SetAttributes(attribute.String("key", key))
+	span.SetAttributes(attribute.String("key", fmt.Sprintf("%+v", key)))
 
 	value, hit := mw.next.Get(ctx, key)
 	span.SetAttributes(
@@ -27,32 +28,32 @@ func (mw *tracingMiddleware[T]) Get(ctx context.Context, key string) (T, cache.C
 	)
 	return value, hit
 }
-func (mw *tracingMiddleware[T]) Set(ctx context.Context, key string, value T) {
+func (mw *tracingMiddleware[K, V]) Set(ctx context.Context, key K, value V) {
 	ctx, span := tracing.Start(ctx, "cache.Set")
 	defer span.End()
-	span.SetAttributes(attribute.String("key", key))
+	span.SetAttributes(attribute.String("key", fmt.Sprintf("%+v", key)))
 
 	mw.next.Set(ctx, key, value)
 
 }
-func (mw *tracingMiddleware[T]) SetNull(ctx context.Context, key string) {
+func (mw *tracingMiddleware[K, V]) SetNull(ctx context.Context, key K) {
 	ctx, span := tracing.Start(ctx, "cache.SetNull")
 	defer span.End()
 
-	span.SetAttributes(attribute.String("key", key))
+	span.SetAttributes(attribute.String("key", fmt.Sprintf("%+v", key)))
 	mw.next.SetNull(ctx, key)
 
 }
-func (mw *tracingMiddleware[T]) Remove(ctx context.Context, key string) {
+func (mw *tracingMiddleware[K, V]) Remove(ctx context.Context, key K) {
 	ctx, span := tracing.Start(ctx, "cache.Remove")
 	defer span.End()
-	span.SetAttributes(attribute.String("key", key))
+	span.SetAttributes(attribute.String("key", fmt.Sprintf("%+v", key)))
 
 	mw.next.Remove(ctx, key)
 
 }
 
-func (mw *tracingMiddleware[T]) Dump(ctx context.Context) ([]byte, error) {
+func (mw *tracingMiddleware[K, V]) Dump(ctx context.Context) ([]byte, error) {
 	ctx, span := tracing.Start(ctx, "cache.Dump")
 	defer span.End()
 
@@ -64,7 +65,7 @@ func (mw *tracingMiddleware[T]) Dump(ctx context.Context) ([]byte, error) {
 	return b, err
 }
 
-func (mw *tracingMiddleware[T]) Restore(ctx context.Context, data []byte) error {
+func (mw *tracingMiddleware[K, V]) Restore(ctx context.Context, data []byte) error {
 	ctx, span := tracing.Start(ctx, "cache.Restore")
 	defer span.End()
 
@@ -76,20 +77,22 @@ func (mw *tracingMiddleware[T]) Restore(ctx context.Context, data []byte) error 
 	return err
 }
 
-func (mw *tracingMiddleware[T]) Clear(ctx context.Context) {
+func (mw *tracingMiddleware[K, V]) Clear(ctx context.Context) {
 	ctx, span := tracing.Start(ctx, "cache.Clear")
 	defer span.End()
 
 	mw.next.Clear(ctx)
 }
 
-func (mw *tracingMiddleware[T]) SWR(ctx context.Context, key string) (T, bool) {
+func (mw *tracingMiddleware[K, V]) SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), translateError func(err error) cache.CacheHit) (V, error) {
 	ctx, span := tracing.Start(ctx, "cache.SWR")
 	defer span.End()
-	span.SetAttributes(attribute.String("key", key))
+	span.SetAttributes(attribute.String("key", fmt.Sprintf("%+v", key)))
 
-	value, found := mw.next.SWR(ctx, key)
-	span.SetAttributes(attribute.Bool("found", found))
-	return value, found
+	value, err := mw.next.SWR(ctx, key, refreshFromOrigin, translateError)
+	if err != nil {
+		tracing.RecordError(span, err)
+	}
+	return value, err
 
 }

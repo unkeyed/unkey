@@ -1,48 +1,64 @@
-import { eq, mysqlDrizzle, schema } from "@unkey/db";
-import { newId } from "@unkey/id";
+import { and, asc, eq, gt, isNull, mysqlDrizzle, schema, sql } from "@unkey/db";
 import mysql from "mysql2/promise";
 
 async function main() {
-  const conn = await mysql.createConnection(
-    `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`,
-  );
+  const conn = await mysql.createConnection(process.env.DRIZZLE_DATABASE_URL!);
 
   await conn.ping();
   const db = mysqlDrizzle(conn, { schema, mode: "default" });
 
-  let cursor = "";
-  do {
-    const keys = await db.query.keys.findMany({
-      where: (table, { isNotNull, gt, and, isNull }) =>
-        and(gt(table.id, cursor), isNotNull(table.ownerId), isNull(table.identityId)),
-      limit: 1000,
-      orderBy: (table, { asc }) => asc(table.id),
-    });
+  for (const table of [
+    schema.apis,
+    schema.keyAuth,
+    schema.keys,
+    schema.permissions,
+    schema.ratelimitNamespaces,
+    schema.ratelimitOverrides,
+    schema.roles,
+    schema.vercelBindings,
+    schema.vercelIntegrations,
+    schema.workspaces,
+  ]) {
+    const count = await db
+      .select({ count: sql<string>`count(*)` })
+      .from(table)
+      .where(isNull(table.createdAtM))
+      .then((res) => res.at(0)?.count ?? 0);
 
-    cursor = keys.at(-1)?.id ?? "";
-    console.info({ cursor, keys: keys.length });
+    let processed = 0;
+    let cursor = "";
+    do {
+      const rows = await db
+        .select()
+        .from(table)
+        .where(
+          and(
+            isNull(table.createdAtM),
 
-    for (const key of keys) {
-      let identity: { id: string } | undefined = await db.query.identities.findFirst({
-        where: (table, { eq }) => eq(table.externalId, key.ownerId!),
-      });
-      if (!identity) {
-        const id = newId("identity");
-        await db.insert(schema.identities).values({
-          id,
-          workspaceId: key.workspaceId,
-          externalId: key.ownerId!,
-        });
-        identity = {
-          id,
-        };
-      }
-      await db
-        .update(schema.keys)
-        .set({ identityId: identity.id })
-        .where(eq(schema.keys.id, key.id));
-    }
-  } while (cursor);
+            gt(table.id, cursor),
+          ),
+        )
+        .orderBy(asc(table.id))
+        .limit(100);
+
+      cursor = rows.at(-1)?.id ?? "";
+      console.info({ cursor, rows: rows.length, processed, count });
+
+      await Promise.all(
+        rows.map(async (row) => {
+          await db
+            .update(table)
+            .set({
+              createdAtM: new Date(row.createdAt ?? 0).getTime() ?? 0,
+              updatedAtM: "updatedAt" in row ? row.updatedAt?.getTime() ?? null : null,
+              deletedAtM: row.deletedAt?.getTime() ?? null,
+            })
+            .where(eq(table.id, row.id));
+        }),
+      );
+      processed += rows.length;
+    } while (cursor);
+  }
 }
 
-main();
+main().then(() => process.exit(0));

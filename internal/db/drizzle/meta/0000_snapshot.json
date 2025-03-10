@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "59b178ab-65f1-4153-a144-15f3eed2d5b3",
+  "id": "ee1b848f-4a6b-4f2d-ae13-08fb6292a7a2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "apis": {
@@ -49,16 +49,24 @@
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
+        "deleted_at_m": {
+          "name": "deleted_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -79,17 +87,7 @@
           "isUnique": false
         }
       },
-      "foreignKeys": {
-        "apis_workspace_id_workspaces_id_fk": {
-          "name": "apis_workspace_id_workspaces_id_fk",
-          "tableFrom": "apis",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "apis_id": {
           "name": "apis_id",
@@ -134,42 +132,24 @@
           "notNull": true,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": 0
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "keys_permissions_permission_id_permissions_id_fk": {
-          "name": "keys_permissions_permission_id_permissions_id_fk",
-          "tableFrom": "keys_permissions",
-          "tableTo": "permissions",
-          "columnsFrom": ["permission_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "keys_permissions_workspace_id_workspaces_id_fk": {
-          "name": "keys_permissions_workspace_id_workspaces_id_fk",
-          "tableFrom": "keys_permissions",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "keys_permissions_key_id_permission_id_workspace_id": {
           "name": "keys_permissions_key_id_permission_id_workspace_id",
@@ -211,16 +191,17 @@
           "notNull": true,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": 0
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -233,35 +214,7 @@
           "isUnique": true
         }
       },
-      "foreignKeys": {
-        "keys_roles_key_id_keys_id_fk": {
-          "name": "keys_roles_key_id_keys_id_fk",
-          "tableFrom": "keys_roles",
-          "tableTo": "keys",
-          "columnsFrom": ["key_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "keys_roles_role_id_roles_id_fk": {
-          "name": "keys_roles_role_id_roles_id_fk",
-          "tableFrom": "keys_roles",
-          "tableTo": "roles",
-          "columnsFrom": ["role_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "keys_roles_workspace_id_workspaces_id_fk": {
-          "name": "keys_roles_workspace_id_workspaces_id_fk",
-          "tableFrom": "keys_roles",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "keys_roles_role_id_key_id_workspace_id": {
           "name": "keys_roles_role_id_key_id_workspace_id",
@@ -301,16 +254,17 @@
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": 0
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -323,17 +277,7 @@
           "isUnique": false
         }
       },
-      "foreignKeys": {
-        "permissions_workspace_id_workspaces_id_fk": {
-          "name": "permissions_workspace_id_workspaces_id_fk",
-          "tableFrom": "permissions",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "permissions_id": {
           "name": "permissions_id",
@@ -378,16 +322,17 @@
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": 0
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -400,17 +345,7 @@
           "isUnique": false
         }
       },
-      "foreignKeys": {
-        "roles_workspace_id_workspaces_id_fk": {
-          "name": "roles_workspace_id_workspaces_id_fk",
-          "tableFrom": "roles",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "roles_id": {
           "name": "roles_id",
@@ -448,51 +383,24 @@
           "notNull": true,
           "autoincrement": false
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "roles_permissions_role_id_roles_id_fk": {
-          "name": "roles_permissions_role_id_roles_id_fk",
-          "tableFrom": "roles_permissions",
-          "tableTo": "roles",
-          "columnsFrom": ["role_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "roles_permissions_permission_id_permissions_id_fk": {
-          "name": "roles_permissions_permission_id_permissions_id_fk",
-          "tableFrom": "roles_permissions",
-          "tableTo": "permissions",
-          "columnsFrom": ["permission_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "roles_permissions_workspace_id_workspaces_id_fk": {
-          "name": "roles_permissions_workspace_id_workspaces_id_fk",
-          "tableFrom": "roles_permissions",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "roles_permissions_role_id_permission_id_workspace_id": {
           "name": "roles_permissions_role_id_permission_id_workspace_id",
@@ -521,20 +429,6 @@
           "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "created_at_m": {
@@ -600,17 +494,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "key_auth_workspace_id_workspaces_id_fk": {
-          "name": "key_auth_workspace_id_workspaces_id_fk",
-          "tableFrom": "key_auth",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "key_auth_id": {
           "name": "key_auth_id",
@@ -636,6 +520,21 @@
           "notNull": true,
           "autoincrement": false
         },
+        "created_at": {
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "encrypted": {
           "name": "encrypted",
           "type": "varchar(1024)",
@@ -658,26 +557,7 @@
           "isUnique": true
         }
       },
-      "foreignKeys": {
-        "encrypted_keys_workspace_id_workspaces_id_fk": {
-          "name": "encrypted_keys_workspace_id_workspaces_id_fk",
-          "tableFrom": "encrypted_keys",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "encrypted_keys_key_id_keys_id_fk": {
-          "name": "encrypted_keys_key_id_keys_id_fk",
-          "tableFrom": "encrypted_keys",
-          "tableTo": "keys",
-          "columnsFrom": ["key_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
@@ -754,13 +634,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "expires": {
           "name": "expires",
           "type": "datetime(3)",
@@ -786,13 +659,6 @@
         "deleted_at_m": {
           "name": "deleted_at_m",
           "type": "bigint",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -870,7 +736,7 @@
         },
         "key_auth_id_deleted_at_idx": {
           "name": "key_auth_id_deleted_at_idx",
-          "columns": ["key_auth_id", "deleted_at"],
+          "columns": ["key_auth_id", "deleted_at_m"],
           "isUnique": false
         },
         "idx_keys_on_for_workspace_id": {
@@ -890,30 +756,11 @@
         },
         "deleted_at_idx": {
           "name": "deleted_at_idx",
-          "columns": ["deleted_at", "deleted_at_m"],
+          "columns": ["deleted_at_m"],
           "isUnique": false
         }
       },
-      "foreignKeys": {
-        "keys_key_auth_id_key_auth_id_fk": {
-          "name": "keys_key_auth_id_key_auth_id_fk",
-          "tableFrom": "keys",
-          "tableTo": "key_auth",
-          "columnsFrom": ["key_auth_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "keys_workspace_id_workspaces_id_fk": {
-          "name": "keys_workspace_id_workspaces_id_fk",
-          "tableFrom": "keys",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "keys_id": {
           "name": "keys_id",
@@ -981,32 +828,33 @@
           "notNull": true,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "last_edited_by": {
           "name": "last_edited_by",
           "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deleted_at_m": {
+          "name": "deleted_at_m",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         }
       },
@@ -1017,26 +865,7 @@
           "isUnique": true
         }
       },
-      "foreignKeys": {
-        "vercel_bindings_integration_id_vercel_integrations_id_fk": {
-          "name": "vercel_bindings_integration_id_vercel_integrations_id_fk",
-          "tableFrom": "vercel_bindings",
-          "tableTo": "vercel_integrations",
-          "columnsFrom": ["integration_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "vercel_bindings_workspace_id_workspaces_id_fk": {
-          "name": "vercel_bindings_workspace_id_workspaces_id_fk",
-          "tableFrom": "vercel_bindings",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "vercel_bindings_id": {
           "name": "vercel_bindings_id",
@@ -1076,33 +905,31 @@
           "notNull": true,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
+        "deleted_at_m": {
+          "name": "deleted_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "vercel_integrations_workspace_id_workspaces_id_fk": {
-          "name": "vercel_integrations_workspace_id_workspaces_id_fk",
-          "tableFrom": "vercel_integrations",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "vercel_integrations_id": {
           "name": "vercel_integrations_id",
@@ -1135,40 +962,31 @@
           "notNull": true,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": 0
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime",
+        "deleted_at_m": {
+          "name": "deleted_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "ratelimit_namespaces_workspace_id_workspaces_id_fk": {
-          "name": "ratelimit_namespaces_workspace_id_workspaces_id_fk",
-          "tableFrom": "ratelimit_namespaces",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "ratelimit_namespaces_id": {
           "name": "ratelimit_namespaces_id",
@@ -1241,49 +1059,31 @@
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": 0
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
+        "deleted_at_m": {
+          "name": "deleted_at_m",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "ratelimit_overrides_workspace_id_workspaces_id_fk": {
-          "name": "ratelimit_overrides_workspace_id_workspaces_id_fk",
-          "tableFrom": "ratelimit_overrides",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "ratelimit_overrides_namespace_id_ratelimit_namespaces_id_fk": {
-          "name": "ratelimit_overrides_namespace_id_ratelimit_namespaces_id_fk",
-          "tableFrom": "ratelimit_overrides",
-          "tableTo": "ratelimit_namespaces",
-          "columnsFrom": ["namespace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "ratelimit_overrides_id": {
           "name": "ratelimit_overrides_id",
@@ -1314,25 +1114,18 @@
           "notNull": true,
           "autoincrement": false
         },
+        "org_id": {
+          "name": "org_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "name": {
           "name": "name",
           "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "plan": {
@@ -1342,6 +1135,14 @@
           "notNull": false,
           "autoincrement": false,
           "default": "'free'"
+        },
+        "tier": {
+          "name": "tier",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'Free'"
         },
         "stripe_customer_id": {
           "name": "stripe_customer_id",
@@ -1421,6 +1222,28 @@
           "notNull": false,
           "autoincrement": false,
           "default": false
+        },
+        "created_at_m": {
+          "name": "created_at_m",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "updated_at_m": {
+          "name": "updated_at_m",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deleted_at_m": {
+          "name": "deleted_at_m",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
@@ -1438,749 +1261,6 @@
         }
       },
       "uniqueConstraints": {}
-    },
-    "secrets": {
-      "name": "secrets",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "encrypted": {
-          "name": "encrypted",
-          "type": "varchar(1024)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "encryption_key_id": {
-          "name": "encryption_key_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "comment": {
-          "name": "comment",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "unique_workspace_id_name_idx": {
-          "name": "unique_workspace_id_name_idx",
-          "columns": ["workspace_id", "name"],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "secrets_workspace_id_workspaces_id_fk": {
-          "name": "secrets_workspace_id_workspaces_id_fk",
-          "tableFrom": "secrets",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "secrets_id": {
-          "name": "secrets_id",
-          "columns": ["id"]
-        }
-      },
-      "uniqueConstraints": {}
-    },
-    "gateway_header_rewrites": {
-      "name": "gateway_header_rewrites",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "secret_id": {
-          "name": "secret_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "gateways_id": {
-          "name": "gateways_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "workspace_id_idx": {
-          "name": "workspace_id_idx",
-          "columns": ["workspace_id"],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "gateway_header_rewrites_workspace_id_workspaces_id_fk": {
-          "name": "gateway_header_rewrites_workspace_id_workspaces_id_fk",
-          "tableFrom": "gateway_header_rewrites",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "gateway_header_rewrites_gateways_id_gateways_id_fk": {
-          "name": "gateway_header_rewrites_gateways_id_gateways_id_fk",
-          "tableFrom": "gateway_header_rewrites",
-          "tableTo": "gateways",
-          "columnsFrom": ["gateways_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "gateway_header_rewrites_id": {
-          "name": "gateway_header_rewrites_id",
-          "columns": ["id"]
-        }
-      },
-      "uniqueConstraints": {}
-    },
-    "gateways": {
-      "name": "gateways",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "origin": {
-          "name": "origin",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "workspace_id_idx": {
-          "name": "workspace_id_idx",
-          "columns": ["workspace_id"],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "gateways_workspace_id_workspaces_id_fk": {
-          "name": "gateways_workspace_id_workspaces_id_fk",
-          "tableFrom": "gateways",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "gateways_id": {
-          "name": "gateways_id",
-          "columns": ["id"]
-        }
-      },
-      "uniqueConstraints": {
-        "gateways_name_unique": {
-          "name": "gateways_name_unique",
-          "columns": ["name"]
-        }
-      }
-    },
-    "webhook_delivery_attempts": {
-      "name": "webhook_delivery_attempts",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "webhook_id": {
-          "name": "webhook_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "event_id": {
-          "name": "event_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "time": {
-          "name": "time",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "attempt": {
-          "name": "attempt",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "next_attempt_at": {
-          "name": "next_attempt_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "success": {
-          "name": "success",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "internal_error": {
-          "name": "internal_error",
-          "type": "varchar(512)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "response_status": {
-          "name": "response_status",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "response_body": {
-          "name": "response_body",
-          "type": "varchar(1000)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "webhook_delivery_attempts_workspace_id_workspaces_id_fk": {
-          "name": "webhook_delivery_attempts_workspace_id_workspaces_id_fk",
-          "tableFrom": "webhook_delivery_attempts",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "webhook_delivery_attempts_webhook_id_webhooks_id_fk": {
-          "name": "webhook_delivery_attempts_webhook_id_webhooks_id_fk",
-          "tableFrom": "webhook_delivery_attempts",
-          "tableTo": "webhooks",
-          "columnsFrom": ["webhook_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "webhook_delivery_attempts_event_id_events_id_fk": {
-          "name": "webhook_delivery_attempts_event_id_events_id_fk",
-          "tableFrom": "webhook_delivery_attempts",
-          "tableTo": "events",
-          "columnsFrom": ["event_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "webhook_delivery_attempts_id": {
-          "name": "webhook_delivery_attempts_id",
-          "columns": ["id"]
-        }
-      },
-      "uniqueConstraints": {}
-    },
-    "events": {
-      "name": "events",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "webhook_id": {
-          "name": "webhook_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "event": {
-          "name": "event",
-          "type": "enum('verifications.usage.record','xx')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "time": {
-          "name": "time",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "payload": {
-          "name": "payload",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "state": {
-          "name": "state",
-          "type": "enum('created','retrying','delivered','failed')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'created'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "events_workspace_id_workspaces_id_fk": {
-          "name": "events_workspace_id_workspaces_id_fk",
-          "tableFrom": "events",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "events_webhook_id_webhooks_id_fk": {
-          "name": "events_webhook_id_webhooks_id_fk",
-          "tableFrom": "events",
-          "tableTo": "webhooks",
-          "columnsFrom": ["webhook_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "events_id": {
-          "name": "events_id",
-          "columns": ["id"]
-        }
-      },
-      "uniqueConstraints": {}
-    },
-    "webhooks": {
-      "name": "webhooks",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "destination": {
-          "name": "destination",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "encrypted": {
-          "name": "encrypted",
-          "type": "varchar(1024)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "encryption_key_id": {
-          "name": "encryption_key_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "workspace_id_idx": {
-          "name": "workspace_id_idx",
-          "columns": ["workspace_id"],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "webhooks_workspace_id_workspaces_id_fk": {
-          "name": "webhooks_workspace_id_workspaces_id_fk",
-          "tableFrom": "webhooks",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "webhooks_id": {
-          "name": "webhooks_id",
-          "columns": ["id"]
-        }
-      },
-      "uniqueConstraints": {}
-    },
-    "usage_reporters": {
-      "name": "usage_reporters",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "webhook_id": {
-          "name": "webhook_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "key_space_id": {
-          "name": "key_space_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "interval": {
-          "name": "interval",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "high_water_mark": {
-          "name": "high_water_mark",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "next_execution": {
-          "name": "next_execution",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "workspace_id_idx": {
-          "name": "workspace_id_idx",
-          "columns": ["workspace_id"],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "usage_reporters_webhook_id_webhooks_id_fk": {
-          "name": "usage_reporters_webhook_id_webhooks_id_fk",
-          "tableFrom": "usage_reporters",
-          "tableTo": "webhooks",
-          "columnsFrom": ["webhook_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "usage_reporters_key_space_id_key_auth_id_fk": {
-          "name": "usage_reporters_key_space_id_key_auth_id_fk",
-          "tableFrom": "usage_reporters",
-          "tableTo": "key_auth",
-          "columnsFrom": ["key_space_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "usage_reporters_workspace_id_workspaces_id_fk": {
-          "name": "usage_reporters_workspace_id_workspaces_id_fk",
-          "tableFrom": "usage_reporters",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "usage_reporters_id": {
-          "name": "usage_reporters_id",
-          "columns": ["id"]
-        }
-      },
-      "uniqueConstraints": {}
-    },
-    "llm_gateways": {
-      "name": "llm_gateways",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "subdomain": {
-          "name": "subdomain",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "workspace_id_idx": {
-          "name": "workspace_id_idx",
-          "columns": ["workspace_id"],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "llm_gateways_workspace_id_workspaces_id_fk": {
-          "name": "llm_gateways_workspace_id_workspaces_id_fk",
-          "tableFrom": "llm_gateways",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "llm_gateways_id": {
-          "name": "llm_gateways_id",
-          "columns": ["id"]
-        }
-      },
-      "uniqueConstraints": {
-        "llm_gateways_subdomain_unique": {
-          "name": "llm_gateways_subdomain_unique",
-          "columns": ["subdomain"]
-        }
-      }
     },
     "key_migration_errors": {
       "name": "key_migration_errors",
@@ -2222,17 +1302,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "key_migration_errors_workspace_id_workspaces_id_fk": {
-          "name": "key_migration_errors_workspace_id_workspaces_id_fk",
-          "tableFrom": "key_migration_errors",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "key_migration_errors_id": {
           "name": "key_migration_errors_id",
@@ -2307,17 +1377,7 @@
           "isUnique": true
         }
       },
-      "foreignKeys": {
-        "identities_workspace_id_workspaces_id_fk": {
-          "name": "identities_workspace_id_workspaces_id_fk",
-          "tableFrom": "identities",
-          "tableTo": "workspaces",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "identities_id": {
           "name": "identities_id",
@@ -2420,6 +1480,59 @@
         "ratelimits_id": {
           "name": "ratelimits_id",
           "columns": ["id"]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "quota": {
+      "name": "quota",
+      "columns": {
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "requests_per_month": {
+          "name": "requests_per_month",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "logs_retention_days": {
+          "name": "logs_retention_days",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "audit_logs_retention_days": {
+          "name": "audit_logs_retention_days",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "team": {
+          "name": "team",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "quota_workspace_id": {
+          "name": "quota_workspace_id",
+          "columns": ["workspace_id"]
         }
       },
       "uniqueConstraints": {}

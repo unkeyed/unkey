@@ -1,10 +1,8 @@
-import { Navbar } from "@/components/navbar";
 import { OptIn } from "@/components/opt-in";
 import { PageContent } from "@/components/page-content";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Fingerprint } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Loader2 } from "lucide-react";
 import { unstable_cache as cache } from "next/cache";
@@ -12,6 +10,7 @@ import { redirect } from "next/navigation";
 import { parseAsInteger, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import { SearchField } from "./filter";
+import { Navigation } from "./navigation";
 import { Row } from "./row";
 type Props = {
   searchParams: {
@@ -39,13 +38,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Fingerprint />}>
-          <Navbar.Breadcrumbs.Link href="/identities" active>
-            Identities
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation />
       <PageContent>
         <SearchField />
         <div className="flex flex-col gap-8 mb-20 mt-8">
@@ -73,7 +66,7 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
     async () =>
       db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+          and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
         with: {
           identities: {
             where: (table, { or, like }) =>

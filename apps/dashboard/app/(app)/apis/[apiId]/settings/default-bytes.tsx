@@ -21,8 +21,8 @@ const formSchema = z.object({
   keyAuthId: z.string(),
   defaultBytes: z
     .number()
-    .min(16, "Byte size needs to be at least 16")
-    .max(255, "Byte size cannot exceed 255")
+    .min(8, "Key must be between 8 and 255 bytes long")
+    .max(255, "Key must be between 8 and 255 bytes long")
     .optional(),
 });
 

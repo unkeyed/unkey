@@ -15,9 +15,10 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
     <Button
       onClick={onToggle}
       variant="ghost"
+      size="md"
       title="Toggle live updates (Shortcut: ⌘ + L)"
       className={cn(
-        "px-2 relative",
+        "px-2 relative rounded-lg",
         isLive
           ? "bg-info-3 text-info-11 hover:bg-info-3 hover:text-info-11 border border-solid border-info-7"
           : "text-accent-12 [&_svg]:text-accent-9",

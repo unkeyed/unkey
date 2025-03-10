@@ -6,9 +6,6 @@ import { CreateNewPermission } from "@/app/(app)/authorization/permissions/creat
 import type { NestedPermissions } from "@/app/(app)/authorization/roles/[roleId]/tree";
 import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -18,12 +15,12 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { Nodes } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
+import { Navigation } from "./navigation";
 import PermissionTree from "./permission-list";
 import { VerificationTable } from "./verification-table";
 export default async function APIKeyDetailPage(props: {
@@ -39,7 +36,7 @@ export default async function APIKeyDetailPage(props: {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
-    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAtM)),
     with: {
       keyAuth: true,
       roles: {
@@ -79,7 +76,7 @@ export default async function APIKeyDetailPage(props: {
 
   const api = await db.query.apis.findFirst({
     where: (table, { eq, and, isNull }) =>
-      and(eq(table.keyAuthId, key.keyAuthId), isNull(table.deletedAt)),
+      and(eq(table.keyAuthId, key.keyAuthId), isNull(table.deletedAtM)),
   });
   if (!api) {
     return notFound();
@@ -264,33 +261,7 @@ export default async function APIKeyDetailPage(props: {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
-            {api.name}
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Ellipsis />
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}/${key.id}`}
-            isIdentifier
-            active
-          >
-            {key.id}
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {key.id}
-            <CopyButton value={key.id} />
-          </Badge>
-
-          <CreateKeyButton apiId={api.id} keyAuthId={key.keyAuthId} />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation api={api} apiKey={key} />
 
       <PageContent>
         <div className="flex flex-col">

@@ -1,20 +1,17 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
-import { Nodes } from "@unkey/icons";
 import { notFound, redirect } from "next/navigation";
 import { navigation } from "../constants";
 import { DefaultBytes } from "./default-bytes";
 import { DefaultPrefix } from "./default-prefix";
 import { DeleteApi } from "./delete-api";
 import { DeleteProtection } from "./delete-protection";
+import { Navigation } from "./navigation";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
 
@@ -31,7 +28,7 @@ export default async function SettingsPage(props: Props) {
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     with: {
       apis: {
         where: eq(schema.apis.id, props.params.apiId),
@@ -57,28 +54,7 @@ export default async function SettingsPage(props: Props) {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
-            {api.name}
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link active href={`/apis/${props.params.apiId}/settings`}>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge
-            key="apiId"
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {api.id}
-            <CopyButton value={api.id} />
-          </Badge>
-          <CreateKeyButton apiId={api.id} keyAuthId={api.keyAuthId!} />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation api={api} />
 
       <PageContent>
         <SubMenu navigation={navigation(api.id, api.keyAuthId!)} segment="settings" />

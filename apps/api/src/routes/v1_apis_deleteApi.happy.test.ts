@@ -35,7 +35,7 @@ describe("without delete protection", () => {
       where: (table, { eq, and }) => and(eq(table.id, apiId)),
     });
     expect(found).toBeDefined();
-    expect(found!.deletedAt).not.toBeNull();
+    expect(found!.deletedAtM).not.toBeNull();
   });
 });
 describe("with delete protection", () => {
@@ -71,9 +71,9 @@ describe("with delete protection", () => {
     });
 
     const found = await h.db.primary.query.apis.findFirst({
-      where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+      where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAtM)),
     });
     expect(found).toBeDefined();
-    expect(found!.deletedAt).toBeNull();
+    expect(found!.deletedAtM).toBeNull();
   });
 });

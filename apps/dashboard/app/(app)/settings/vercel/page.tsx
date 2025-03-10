@@ -1,5 +1,5 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
+import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
@@ -23,16 +23,16 @@ export default async function Page(props: Props) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     with: {
       apis: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        where: (table, { isNull }) => isNull(table.deletedAtM),
       },
       vercelIntegrations: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        where: (table, { isNull }) => isNull(table.deletedAtM),
         with: {
           vercelBindings: {
-            where: (table, { isNull }) => isNull(table.deletedAt),
+            where: (table, { isNull }) => isNull(table.deletedAtM),
           },
         },
       },
@@ -51,13 +51,7 @@ export default async function Page(props: Props) {
   if (!integration) {
     return (
       <div>
-        <Navbar>
-          <Navbar.Breadcrumbs icon={<Gear />}>
-            <Navbar.Breadcrumbs.Link href="/settings/vercel" active>
-              Settings
-            </Navbar.Breadcrumbs.Link>
-          </Navbar.Breadcrumbs>
-        </Navbar>
+        <Navigation href="/settings/vercel" name="Settings" icon={<Gear />} />
         <PageContent>
           <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />
@@ -170,13 +164,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/settings/vercel" icon={<Gear />} name="Settings" />
       <PageContent>
         <SubMenu navigation={navigation} segment="vercel" />
         <div className="mt-8" />

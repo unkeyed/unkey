@@ -11,18 +11,15 @@ import {
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { auditLogBucket } from "./audit_logs";
-import { gateways } from "./gateway";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
-import { llmGateways } from "./llm-gateway";
-import { verificationMonitors } from "./monitor_verifications";
+import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
-import { secrets } from "./secrets";
 import { deleteProtection } from "./util/delete_protection";
+import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
-import { webhooks } from "./webhooks";
 
 export const workspaces = mysqlTable(
   "workspaces",
@@ -31,13 +28,14 @@ export const workspaces = mysqlTable(
     // Coming from our auth provider clerk
     // This can be either a user_xxx or org_xxx id
     tenantId: varchar("tenant_id", { length: 256 }).notNull(),
+    orgId: varchar("org_id", { length: 256 }),
     name: varchar("name", { length: 256 }).notNull(),
 
-    createdAt: datetime("created_at", { fsp: 3 }),
-    deletedAt: datetime("deleted_at", { fsp: 3 }),
-
     // different plans, this should only be used for visualisations in the ui
+    // @deprecated - use tier
     plan: mysqlEnum("plan", ["free", "pro", "enterprise"]).default("free"),
+    // replaces plan
+    tier: varchar("tier", { length: 256 }).default("Free"),
 
     // stripe
     stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
@@ -110,13 +108,14 @@ export const workspaces = mysqlTable(
      */
     enabled: boolean("enabled").notNull().default(true),
     ...deleteProtection,
+    ...lifecycleDatesMigration,
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
   }),
 );
 
-export const workspacesRelations = relations(workspaces, ({ many }) => ({
+export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   apis: many(apis),
   keys: many(keys, {
     relationName: "workspace_key_relation",
@@ -130,14 +129,10 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   roles: many(roles),
   permissions: many(permissions),
   ratelimitNamespaces: many(ratelimitNamespaces),
-  secrets: many(secrets),
-  gateways: many(gateways),
-  llmGateways: many(llmGateways),
-  webhooks: many(webhooks),
-  verificationMonitors: many(verificationMonitors),
   keySpaces: many(keyAuth),
   identities: many(identities),
   auditLogBuckets: many(auditLogBucket, {
     relationName: "workspace_audit_log_bucket_relation",
   }),
+  quota: one(quotas),
 }));

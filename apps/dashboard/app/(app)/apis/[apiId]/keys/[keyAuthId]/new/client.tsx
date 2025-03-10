@@ -88,7 +88,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      toast.error(err.message || "An unknown error occurred");
     },
   });
 
@@ -147,7 +147,8 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
   const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys.verifyKey' \\
   -H 'Content-Type: application/json' \\
   -d '{
-    "key": "${key.data?.key}"
+    "key": "${key.data?.key}",
+    "apiId": "${apiId}"
   }'`;
 
   const split = key.data?.key.split("_") ?? [];
@@ -674,9 +675,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                   </FormItem>
                                 )}
                               />
-                              <FormDescription>
-                                How many requests may be performed in a given interval
-                              </FormDescription>
                             </div>
                             {form.formState.errors.ratelimit && (
                               <p className="text-xs text-center text-content-alert">

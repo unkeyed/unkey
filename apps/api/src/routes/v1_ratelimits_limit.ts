@@ -6,7 +6,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { match } from "@/pkg/util/wildcard";
 import { DatabaseError } from "@planetscale/database";
-import { type RatelimitNamespace, schema } from "@unkey/db";
+import { type InsertRatelimitNamespace, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -156,10 +156,11 @@ export const registerV1RatelimitLimit = (app: App) =>
       [rootKey.authorizedWorkspaceId, req.namespace, req.identifier].join("::"),
       async () => {
         const dbRes = await db.readonly.query.ratelimitNamespaces.findFirst({
-          where: (table, { eq, and }) =>
+          where: (table, { eq, and, isNull }) =>
             and(
               eq(table.workspaceId, rootKey.authorizedWorkspaceId),
               eq(table.name, req.namespace),
+              isNull(table.deletedAtM),
             ),
           columns: {
             id: true,
@@ -185,12 +186,12 @@ export const registerV1RatelimitLimit = (app: App) =>
           if (canCreateNamespace.err || !canCreateNamespace.val.valid) {
             return null;
           }
-          let namespace: RatelimitNamespace = {
+          let namespace: InsertRatelimitNamespace = {
             id: newId("ratelimitNamespace"),
-            createdAt: new Date(),
+            createdAtM: Date.now(),
             name: req.namespace,
-            deletedAt: null,
-            updatedAt: null,
+            deletedAtM: null,
+            updatedAtM: null,
             workspaceId: rootKey.authorizedWorkspaceId,
           };
           try {

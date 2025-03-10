@@ -13,11 +13,16 @@ const (
 	// handling more predictable.
 	UNTAGGED Tag = "UNTAGGED"
 
+	// BAD_REQUEST indicates that the client's request was malformed or invalid.
+	// This is typically used when request validation fails or when the request
+	// cannot be processed due to client-side errors.
+	BAD_REQUEST Tag = "BAD_REQUEST"
 	// An object was not found in the system.
 	NOT_FOUND Tag = "NOT_FOUND"
 
-	UNAUTHORIZED Tag = "UNAUTHORIZED"
-	FORBIDDEN    Tag = "FORBIDDEN"
+	UNAUTHORIZED             Tag = "UNAUTHORIZED"
+	FORBIDDEN                Tag = "FORBIDDEN"
+	INSUFFICIENT_PERMISSIONS Tag = "INSUFFICIENT_PERMISSIONS"
 
 	DATABASE_ERROR Tag = "DATABASE_ERROR"
 

@@ -22,7 +22,7 @@ export const updateApiName = t.procedure
           and(
             eq(table.workspaceId, ctx.workspace.id),
             eq(table.id, input.apiId),
-            isNull(table.deletedAt),
+            isNull(table.deletedAtM),
           ),
       })
       .catch((_err) => {

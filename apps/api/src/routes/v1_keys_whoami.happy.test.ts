@@ -27,7 +27,7 @@ test("returns 200", async (t) => {
     environment: "test",
     hash: hash,
     meta: meta,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(keySchema);
 

@@ -15,18 +15,14 @@ import (
 
 func TestWriteRead(t *testing.T) {
 
-	c, err := cache.New[string](cache.Config[string]{
+	c := cache.New[string, string](cache.Config[string, string]{
 		MaxSize: 10_000,
 
-		Fresh: time.Minute,
-		Stale: time.Minute * 5,
-		RefreshFromOrigin: func(ctx context.Context, id string) (string, bool) {
-			return "hello", true
-		},
+		Fresh:    time.Minute,
+		Stale:    time.Minute * 5,
 		Logger:   logging.NewNoop(),
 		Resource: "test", Clock: clock.New(),
 	})
-	require.NoError(t, err)
 	c.Set(context.Background(), "key", "value")
 	value, hit := c.Get(context.Background(), "key")
 	require.Equal(t, cache.Hit, hit)
@@ -36,19 +32,15 @@ func TestWriteRead(t *testing.T) {
 func TestEviction(t *testing.T) {
 
 	clk := clock.NewTestClock()
-	c, err := cache.New[string](cache.Config[string]{
+	c := cache.New[string, string](cache.Config[string, string]{
 		MaxSize: 10_000,
 
-		Fresh: time.Second,
-		Stale: time.Second,
-		RefreshFromOrigin: func(ctx context.Context, id string) (string, bool) {
-			return "hello", true
-		},
+		Fresh:    time.Second,
+		Stale:    time.Second,
 		Logger:   logging.NewNoop(),
 		Resource: "test",
 		Clock:    clk,
 	})
-	require.NoError(t, err)
 
 	c.Set(context.Background(), "key", "value")
 	clk.Tick(2 * time.Second)
@@ -63,22 +55,15 @@ func TestRefresh(t *testing.T) {
 	// count how many times we refreshed from origin
 	refreshedFromOrigin := atomic.Int32{}
 
-	c, err := cache.New[string](cache.Config[string]{
+	c := cache.New[string, string](cache.Config[string, string]{
 		MaxSize: 10_000,
 
-		Fresh: time.Second * 2,
-		Stale: time.Minute * 5,
-		RefreshFromOrigin: func(ctx context.Context, id string) (string, bool) {
-			refreshedFromOrigin.Add(1)
-
-			t.Log("called", id, clk.Now())
-			return "hello", true
-		},
+		Fresh:    time.Second * 2,
+		Stale:    time.Minute * 5,
 		Logger:   logging.NewNoop(),
 		Resource: "test",
 		Clock:    clk,
 	})
-	require.NoError(t, err)
 
 	c.Set(context.Background(), "key", "value")
 	clk.Tick(time.Second)
@@ -93,18 +78,15 @@ func TestRefresh(t *testing.T) {
 }
 
 func TestNull(t *testing.T) {
-	t.Skip()
 
-	c, err := cache.New[string](cache.Config[string]{
-		MaxSize:           10_000,
-		Fresh:             time.Second * 1,
-		Stale:             time.Minute * 5,
-		Logger:            logging.NewNoop(),
-		RefreshFromOrigin: nil,
-		Resource:          "test",
-		Clock:             clock.New(),
+	c := cache.New[string, string](cache.Config[string, string]{
+		MaxSize:  10_000,
+		Fresh:    time.Second * 1,
+		Stale:    time.Minute * 5,
+		Logger:   logging.NewNoop(),
+		Resource: "test",
+		Clock:    clock.New(),
 	})
-	require.NoError(t, err)
 
 	c.SetNull(context.Background(), "key")
 

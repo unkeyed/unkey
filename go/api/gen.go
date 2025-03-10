@@ -69,6 +69,51 @@ type V2LivenessResponseBody struct {
 	Message string `json:"message"`
 }
 
+// V2RatelimitDeleteOverrideRequestBody Deletes an existing override.
+type V2RatelimitDeleteOverrideRequestBody struct {
+	// Identifier Identifier of the override to delete
+	Identifier string `json:"identifier"`
+
+	// NamespaceId The id of the namespace. Either namespaceId or namespaceName must be provided
+	NamespaceId *string `json:"namespaceId,omitempty"`
+
+	// NamespaceName The name of the namespace. Either namespaceId or namespaceName must be provided
+	NamespaceName *string `json:"namespaceName,omitempty"`
+}
+
+// V2RatelimitDeleteOverrideResponseBody defines model for V2RatelimitDeleteOverrideResponseBody.
+type V2RatelimitDeleteOverrideResponseBody = map[string]interface{}
+
+// V2RatelimitGetOverrideRequestBody Gets the configuration of an existing override.
+type V2RatelimitGetOverrideRequestBody struct {
+	// Identifier Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+	Identifier string `json:"identifier"`
+
+	// NamespaceId The id of the namespace. Either namespaceId or namespaceName must be provided
+	NamespaceId *string `json:"namespaceId,omitempty"`
+
+	// NamespaceName The name of the namespace. Either namespaceId or namespaceName must be provided
+	NamespaceName *string `json:"namespaceName,omitempty"`
+}
+
+// V2RatelimitGetOverrideResponseBody defines model for V2RatelimitGetOverrideResponseBody.
+type V2RatelimitGetOverrideResponseBody struct {
+	// Duration The duration in milliseconds for the rate limit window.
+	Duration int64 `json:"duration"`
+
+	// Identifier Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+	Identifier string `json:"identifier"`
+
+	// Limit The maximum number of requests allowed.
+	Limit int64 `json:"limit"`
+
+	// NamespaceId The id of the namespace.
+	NamespaceId string `json:"namespaceId"`
+
+	// OverrideId The id of the override.
+	OverrideId string `json:"overrideId"`
+}
+
 // V2RatelimitLimitRequestBody defines model for V2RatelimitLimitRequestBody.
 type V2RatelimitLimitRequestBody struct {
 	// Cost The cost of the request. Defaults to 1 if not provided.
@@ -82,12 +127,18 @@ type V2RatelimitLimitRequestBody struct {
 
 	// Limit The maximum number of requests allowed.
 	Limit int64 `json:"limit"`
+
+	// Namespace The namespace name for the rate limit.
+	Namespace string `json:"namespace"`
 }
 
 // V2RatelimitLimitResponseBody defines model for V2RatelimitLimitResponseBody.
 type V2RatelimitLimitResponseBody struct {
 	// Limit The maximum number of requests allowed.
 	Limit int64 `json:"limit"`
+
+	// OverrideId The override that was used. May be empty
+	OverrideId *string `json:"overrideId,omitempty"`
 
 	// Remaining The number of requests remaining in the current window.
 	Remaining int64 `json:"remaining"`
@@ -113,7 +164,7 @@ type V2RatelimitSetOverrideRequestBody struct {
 	// NamespaceId The id of the namespace. Either namespaceId or namespaceName must be provided
 	NamespaceId *string `json:"namespaceId,omitempty"`
 
-	// NamespaceName xThe name of the namespace. Either namespaceId or namespaceName must be provided
+	// NamespaceName The name of the namespace. Either namespaceId or namespaceName must be provided
 	NamespaceName *string `json:"namespaceName,omitempty"`
 }
 
@@ -135,14 +186,11 @@ type ValidationError struct {
 	Message string `json:"message"`
 }
 
-// V1RatelimitLimitParams defines parameters for V1RatelimitLimit.
-type V1RatelimitLimitParams struct {
-	// Xxx xxx
-	Xxx *int `form:"xxx,omitempty" json:"xxx,omitempty"`
+// V2RatelimitDeleteOverrideJSONRequestBody defines body for V2RatelimitDeleteOverride for application/json ContentType.
+type V2RatelimitDeleteOverrideJSONRequestBody = V2RatelimitDeleteOverrideRequestBody
 
-	// Yyy yyy
-	Yyy string `form:"yyy" json:"yyy"`
-}
+// V2RatelimitGetOverrideJSONRequestBody defines body for V2RatelimitGetOverride for application/json ContentType.
+type V2RatelimitGetOverrideJSONRequestBody = V2RatelimitGetOverrideRequestBody
 
 // V1RatelimitLimitJSONRequestBody defines body for V1RatelimitLimit for application/json ContentType.
 type V1RatelimitLimitJSONRequestBody = V2RatelimitLimitRequestBody

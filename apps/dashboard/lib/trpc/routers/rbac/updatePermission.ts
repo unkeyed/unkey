@@ -41,7 +41,7 @@ export const updatePermission = t.procedure
           .set({
             name: input.name,
             description: input.description,
-            updatedAt: new Date(),
+            updatedAtM: Date.now(),
           })
           .where(eq(schema.permissions.id, permission.id));
         await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {

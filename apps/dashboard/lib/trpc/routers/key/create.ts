@@ -17,7 +17,12 @@ export const createKey = t.procedure
           message: "Prefixes cannot contain spaces.",
         })
         .optional(),
-      bytes: z.number().int().gte(16).default(16),
+      bytes: z
+        .number()
+        .int()
+        .min(8, { message: "Key must be between 8 and 255 bytes long" })
+        .max(255, { message: "Key must be between 8 and 255 bytes long" })
+        .default(16),
       keyAuthId: z.string(),
       ownerId: z.string().nullish(),
       meta: z.record(z.unknown()).optional(),
@@ -83,7 +88,8 @@ export const createKey = t.procedure
           workspaceId: ctx.workspace.id,
           forWorkspaceId: null,
           expires: input.expires ? new Date(input.expires) : null,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
+          updatedAtM: null,
           ratelimitAsync: input.ratelimit?.async,
           ratelimitLimit: input.ratelimit?.limit,
           ratelimitDuration: input.ratelimit?.duration,
@@ -91,7 +97,6 @@ export const createKey = t.procedure
           refillDay: input.refill?.refillDay ?? null,
           refillAmount: input.refill?.amount ?? null,
           lastRefillAt: input.refill ? new Date() : null,
-          deletedAt: null,
           enabled: input.enabled,
           environment: input.environment,
         });

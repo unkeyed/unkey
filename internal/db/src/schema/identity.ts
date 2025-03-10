@@ -13,9 +13,7 @@ export const identities = mysqlTable(
      * They likely have an organization or user id at hand
      */
     externalId: varchar("external_id", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     environment: varchar("environment", { length: 256 }).notNull().default("default"),
     ...lifecycleDates,
     meta: json("meta").$type<Record<string, unknown>>(),

@@ -1,6 +1,6 @@
 {
   "name": "@unkey/api",
-  "version": "0.33.1",
+  "version": "0.34.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -27,7 +27,7 @@
     "openapi-typescript": "^6.7.5",
     "tsup": "^8.0.2",
     "typescript": "^5.5.3",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.1"
   },
   "dependencies": {
     "@unkey/rbac": "workspace:^"

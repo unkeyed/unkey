@@ -15,7 +15,7 @@ export const connectRoleToKey = t.procedure
     const workspace = await db.query.workspaces
       .findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
@@ -65,9 +65,9 @@ export const connectRoleToKey = t.procedure
       .transaction(async (tx) => {
         await tx
           .insert(schema.keysRoles)
-          .values({ ...tuple, createdAt: new Date() })
+          .values({ ...tuple, createdAtM: Date.now() })
           .onDuplicateKeyUpdate({
-            set: { ...tuple, updatedAt: new Date() },
+            set: { ...tuple, updatedAtM: Date.now() },
           })
           .catch((_err) => {
             throw new TRPCError({

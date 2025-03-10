@@ -15,11 +15,11 @@ export const deleteKeys = t.procedure
     const workspace = await db.query.workspaces
       .findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           keys: {
             where: (table, { and, inArray, isNull }) =>
-              and(isNull(table.deletedAt), inArray(table.id, input.keyIds)),
+              and(isNull(table.deletedAtM), inArray(table.id, input.keyIds)),
             columns: {
               id: true,
             },
@@ -45,7 +45,7 @@ export const deleteKeys = t.procedure
       .transaction(async (tx) => {
         await tx
           .update(schema.keys)
-          .set({ deletedAt: new Date() })
+          .set({ deletedAtM: Date.now() })
           .where(
             and(
               eq(schema.keys.workspaceId, workspace.id),

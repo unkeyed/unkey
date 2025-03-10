@@ -7,11 +7,11 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
 import { DatabaseError } from "@planetscale/database";
 import {
-  type EncryptedKey,
-  type Identity,
-  type Key,
-  type KeyPermission,
-  type KeyRole,
+  type InsertEncryptedKey,
+  type InsertIdentity,
+  type InsertKey,
+  type InsertKeyPermission,
+  type InsertKeyRole,
   schema,
 } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -316,11 +316,11 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
       }
     }
 
-    const createIdentities: Array<Identity> = [];
-    const keys: Array<Key> = [];
-    const encryptedKeys: Array<EncryptedKey> = [];
-    const roleConnections: Array<KeyRole> = [];
-    const permissionConnections: Array<KeyPermission> = [];
+    const createIdentities: Array<InsertIdentity> = [];
+    const keys: Array<InsertKey> = [];
+    const encryptedKeys: Array<InsertEncryptedKey> = [];
+    const roleConnections: Array<InsertKeyRole> = [];
+    const permissionConnections: Array<InsertKeyPermission> = [];
 
     const requestWithKeyIds = req.map((r) => ({
       ...r,
@@ -366,7 +366,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
                 and(
                   eq(table.workspaceId, authorizedWorkspaceId),
                   eq(table.id, key.apiId),
-                  isNull(table.deletedAt),
+                  isNull(table.deletedAtM),
                 ),
               with: {
                 keyAuth: true,
@@ -469,19 +469,17 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           workspaceId: authorizedWorkspaceId,
           forWorkspaceId: null,
           expires: key.expires ? new Date(key.expires) : null,
-          createdAt: new Date(),
           ratelimitAsync: key.ratelimit?.async ?? key.ratelimit?.type === "fast",
           ratelimitLimit: key.ratelimit?.limit ?? key.ratelimit?.refillRate ?? null,
           ratelimitDuration: key.ratelimit?.refillInterval ?? key.ratelimit?.refillInterval ?? null,
           remaining: key.remaining ?? null,
           refillDay: key.refill?.interval === "daily" ? null : key?.refill?.refillDay ?? 1,
           refillAmount: key.refill?.amount ?? null,
-          deletedAt: null,
+          deletedAtM: null,
           enabled: key.enabled ?? true,
           environment: key.environment ?? null,
           createdAtM: Date.now(),
           updatedAtM: null,
-          deletedAtM: null,
           lastRefillAt: null,
         });
 
@@ -489,9 +487,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           const roleId = roles[role];
           roleConnections.push({
             keyId: key.keyId,
-            createdAt: new Date(),
+            createdAtM: Date.now(),
             roleId,
-            updatedAt: null,
+            updatedAtM: null,
             workspaceId: authorizedWorkspaceId,
           });
         }
@@ -499,10 +497,10 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           const permissionId = permissions[permission];
           permissionConnections.push({
             keyId: key.keyId,
-            createdAt: new Date(),
+            createdAtM: Date.now(),
             permissionId,
             tempId: 0,
-            updatedAt: null,
+            updatedAtM: null,
             workspaceId: authorizedWorkspaceId,
           });
         }
@@ -526,6 +524,8 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             keyId: key.keyId,
             encrypted: encryptionResponse.encrypted,
             encryptionKeyId: encryptionResponse.keyId,
+            createdAt: Date.now(),
+            updatedAt: null,
           });
         }
       }),

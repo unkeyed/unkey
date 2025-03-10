@@ -8,7 +8,7 @@ export default async function DebugWorkspacePage() {
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
   });
   if (!workspace) {
     return <div>Workspace with tenantId: {tenantId} not found</div>;

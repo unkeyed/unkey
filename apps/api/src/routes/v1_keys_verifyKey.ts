@@ -296,6 +296,10 @@ These are validation codes, the HTTP status will be 200.
                 .openapi({
                   description: "The associated identity of this key.",
                 }),
+              requestId: z.string().openapi({
+                description:
+                  "A unique id for this request, please provide it to Unkey support to help us debug your issue.",
+              }),
             })
             .openapi("V1KeysVerifyKeyResponse"),
         },
@@ -354,6 +358,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       return c.json({
         valid: false,
         code: val.code,
+        requestId: c.get("requestId"),
       });
     }
 
@@ -377,6 +382,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
             meta: val.identity.meta ?? {},
           }
         : undefined,
+      requestId: c.get("requestId"),
     };
     c.executionCtx.waitUntil(
       analytics

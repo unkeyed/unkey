@@ -18,7 +18,7 @@ export default async function Page() {
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { eq, isNull, and }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
   });
 
   if (!ws) {

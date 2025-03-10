@@ -1,11 +1,11 @@
 "use client";
 import { RED_STATES, YELLOW_STATES } from "@/app/(app)/logs/constants";
 import { extractResponseField, getRequestHeader } from "@/app/(app)/logs/utils";
+import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { RequestResponseDetails } from "./request-response-details";
 
 type Props = {
   log: Log;
@@ -49,7 +49,7 @@ export const LogFooter = ({ log }: Props) => {
         },
         {
           label: "Request User Agent",
-          description: (content) => <span className="text-xs font-mono">{content}</span>,
+          description: (content) => <span className="text-xs font-mono text-right">{content}</span>,
           content: getRequestHeader(log, "user-agent") ?? "",
           tooltipContent: "Copy Request User Agent",
           tooltipSuccessMessage: "Request user agent copied to clipboard",

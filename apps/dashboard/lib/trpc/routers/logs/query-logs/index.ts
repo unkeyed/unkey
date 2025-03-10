@@ -20,7 +20,7 @@ const LogsResponse = z.object({
 
 type LogsResponse = z.infer<typeof LogsResponse>;
 
-export const queryLogs = rateLimitedProcedure(ratelimit.update)
+export const queryLogs = rateLimitedProcedure(ratelimit.read)
   .input(queryLogsPayload)
   .output(LogsResponse)
   .query(async ({ ctx, input }) => {
@@ -28,7 +28,7 @@ export const queryLogs = rateLimitedProcedure(ratelimit.update)
     const workspace = await db.query.workspaces
       .findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
       })
       .catch((_err) => {
         throw new TRPCError({

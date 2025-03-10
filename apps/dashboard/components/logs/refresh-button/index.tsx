@@ -1,14 +1,14 @@
+import { KeyboardButton } from "@/components/keyboard-button";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { Refresh3 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 
 type RefreshButtonProps = {
   onRefresh: () => void;
   isEnabled: boolean;
-  isLive: boolean;
-  toggleLive: (value: boolean) => void;
+  isLive?: boolean;
+  toggleLive?: (value: boolean) => void;
 };
 
 const REFRESH_TIMEOUT_MS = 1000;
@@ -17,7 +17,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  useKeyboardShortcut("r", () => {
+  useKeyboardShortcut({ ctrl: true, key: "r" }, () => {
     isEnabled && handleRefresh();
   });
 
@@ -28,7 +28,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
 
     const isLiveBefore = Boolean(isLive);
     setIsLoading(true);
-    toggleLive(false);
+    toggleLive?.(false);
     onRefresh();
 
     if (refreshTimeout) {
@@ -38,7 +38,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
     const timeout = setTimeout(() => {
       setIsLoading(false);
       if (isLiveBefore) {
-        toggleLive(true);
+        toggleLive?.(true);
       }
     }, REFRESH_TIMEOUT_MS);
     setRefreshTimeout(timeout);
@@ -48,18 +48,15 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
     <Button
       onClick={handleRefresh}
       variant="ghost"
+      size="md"
       title="Refresh data (Shortcut: R)"
-      className={cn(
-        "px-2 text-accent-12 [&_svg]:text-accent-9",
-        "relative overflow-hidden",
-        "transition-transform",
-        isLoading && "bg-gray-3",
-      )}
       disabled={!isEnabled || isLoading}
+      loading={isLoading}
+      className="flex items-center justify-center rounded-lg"
     >
-      {isLoading && <div className="absolute inset-0 bg-accent-6 animate-fill-left" />}
-      <Refresh3 className="size-4 relative z-10" />
+      <Refresh3 className="size-4" />
       <span className="font-medium text-[13px] relative z-10">Refresh</span>
+      <KeyboardButton shortcut="r" modifierKey="CTRL" className="pointer-events-none" />
     </Button>
   );
 };
