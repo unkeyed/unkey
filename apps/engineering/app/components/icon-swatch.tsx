@@ -5,8 +5,8 @@ type Props = {
 };
 export const Icon: React.FC<PropsWithChildren<Props>> = (props) => {
   return (
-    <div className="flex flex-col justify-center items-center text-gray-12 gap-4">
-      <div className="size-12 flex items-center  justify-center aspect-square border border-gray-5 rounded-lg bg-gray-3 ">
+    <div className="flex flex-col items-center justify-center gap-4 text-gray-12">
+      <div className="flex items-center justify-center border rounded-lg size-12 aspect-square border-gray-5 bg-gray-3 ">
         {props.children}
       </div>
       <span className="text-sm">

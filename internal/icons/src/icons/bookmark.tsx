@@ -13,38 +13,24 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const Plus: React.FC<IconProps> = ({ size, filled, ...props }) => {
+export const Bookmark: React.FC<IconProps> = ({ size, filled, ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
     <svg
       {...props}
       height={pixelSize}
       width={pixelSize}
-      viewBox="0 0 18 18"
+      viewBox="0 0 20 20"
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="currentColor">
-        <line
+        <path
+          d="m16,18l-6-4-6,4V6c0-1.657,1.343-3,3-3h6c1.657,0,3,1.343,3,3v11Z"
           fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
-          x1="9"
-          x2="9"
-          y1="3.25"
-          y2="14.75"
-        />
-        <line
-          fill={filled ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={strokeWidth}
-          x1="3.25"
-          x2="14.75"
-          y1="9"
-          y2="9"
         />
       </g>
     </svg>
