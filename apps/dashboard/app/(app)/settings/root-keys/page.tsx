@@ -13,7 +13,7 @@ export const revalidate = 0;
 export default async function SettingsKeysPage(_props: {
   params: { apiId: string };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

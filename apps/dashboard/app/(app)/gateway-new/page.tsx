@@ -13,8 +13,10 @@ import { db, schema } from "@/lib/db";
 import { newId } from "@unkey/id";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { eq, isNull, and }) =>

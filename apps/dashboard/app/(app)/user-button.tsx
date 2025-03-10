@@ -10,16 +10,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { SignOutButton, useUser } from "@clerk/nextjs";
 import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
+import { signOut } from "@/lib/auth/actions";
+import { useUser } from "@/lib/auth/hooks";
 import type React from "react";
 
 export const UserButton: React.FC = () => {
   const { user } = useUser();
-  const router = useRouter();
-
   if (!user) {
     return null;
   }
@@ -34,19 +33,17 @@ export const UserButton: React.FC = () => {
               asChild
             >
               <span className="overflow-hidden text-ellipsis text-sm font-medium">
-                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
+                {user.fullName ?? user.email}
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              <span className="text-sm font-medium">
-                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
-              </span>
+              <span className="text-sm font-medium">{user.fullName ?? user.email}</span>
             </TooltipContent>
           </Tooltip>
           <Avatar className="w-8 h-8 lg:w-5 lg:h-5">
-            {user.imageUrl ? <AvatarImage src={user.imageUrl} alt="Profile picture" /> : null}
+            {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="Profile picture" /> : null}
             <AvatarFallback className="w-8 h-8 lg:w-5 lg:h-5 bg-gray-100 border border-gray-500 rounded-md">
-              {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
+              {(user.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
@@ -56,13 +53,11 @@ export const UserButton: React.FC = () => {
               asChild
             >
               <span className="overflow-hidden text-ellipsis text-sm font-medium">
-                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
+                {user.fullName ?? user.email}
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              <span className="text-sm font-medium">
-                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
-              </span>
+              <span className="text-sm font-medium">{user.fullName ?? user.email}</span>
             </TooltipContent>
           </Tooltip>
         </div>
@@ -91,14 +86,18 @@ export const UserButton: React.FC = () => {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
-            <DropdownMenuItem asChild className="cursor-pointer">
-              <span>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign out
-              </span>
-            </DropdownMenuItem>
-          </SignOutButton>
+          <DropdownMenuItem
+            asChild
+            className="cursor-pointer"
+            onClick={async () => {
+              await signOut();
+            }}
+          >
+            <span>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign out
+            </span>
+          </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

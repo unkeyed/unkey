@@ -6,10 +6,9 @@ import { RatelimitClient } from "./_components/ratelimit-client";
 import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function RatelimitOverviewPage() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),

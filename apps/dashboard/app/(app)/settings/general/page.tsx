@@ -9,12 +9,17 @@ import { db } from "@/lib/db";
 import { Gear } from "@unkey/icons";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
-import { UpdateWorkspaceImage } from "./update-workspace-image";
 import { UpdateWorkspaceName } from "./update-workspace-name";
+// import { UpdateWorkspaceImage } from "./update-workspace-image";
+
+/**
+ * TODO: WorkOS doesn't have workspace images
+ */
+
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -31,7 +36,7 @@ export default async function SettingsPage() {
         <SubMenu navigation={navigation} segment="general" />
         <div className="mb-20 flex flex-col gap-8 mt-8">
           <UpdateWorkspaceName workspace={workspace} />
-          <UpdateWorkspaceImage />
+          {/* <UpdateWorkspaceImage /> */}
           <Card>
             <CardHeader>
               <CardTitle>Workspace ID</CardTitle>

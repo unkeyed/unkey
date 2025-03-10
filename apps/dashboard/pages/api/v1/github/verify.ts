@@ -1,9 +1,9 @@
 import { Buffer } from "node:buffer";
 import crypto from "node:crypto";
 import type { Readable } from "node:stream";
+import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { clerkClient } from "@clerk/nextjs";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -208,25 +208,19 @@ async function alertSlack({
 
 async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];
-  if (tenantId.startsWith("org_")) {
-    const members = await clerkClient.organizations.getOrganizationMembershipList({
-      organizationId: tenantId,
-    });
-    for (const m of members) {
-      userIds.push(m.publicUserData!.userId);
-    }
-  } else {
-    userIds.push(tenantId);
+  const members = await auth.getOrganizationMemberList(tenantId);
+  for (const m of members.data) {
+    userIds.push(m.user.id);
   }
 
   return await Promise.all(
     userIds.map(async (userId) => {
-      const user = await clerkClient.users.getUser(userId);
-      const email = user.emailAddresses.at(0)?.emailAddress;
+      const user = await auth.getUser(userId);
+      const email = user!.email;
 
       return {
-        id: user.id,
-        name: user.firstName ?? user.username ?? "",
+        id: user!.id,
+        name: user!.firstName ?? "",
         email: email ?? "",
       };
     }),

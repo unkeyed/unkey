@@ -15,7 +15,6 @@ import { Navigation } from "./navigation";
 import { type Interval, IntervalSelect } from "./select";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function ApiPage(props: {
   params: { apiId: string };
@@ -23,7 +22,7 @@ export default async function ApiPage(props: {
     interval?: Interval;
   };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const api = await db.query.apis.findFirst({
     where: (table, { eq, and, isNull }) =>

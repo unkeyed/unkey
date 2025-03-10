@@ -18,12 +18,11 @@ import { Workspace } from "./permissions/workspace";
 import { UpdateRootKeyName } from "./update-root-key-name";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function RootKeyPage(props: {
   params: { keyId: string };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),

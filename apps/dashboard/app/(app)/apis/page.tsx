@@ -7,15 +7,13 @@ import { fetchApiOverview } from "./actions";
 import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   searchParams: { new?: boolean };
 };
 
 export default async function ApisOverviewPage(props: Props) {
-  const tenantId = getTenantId();
-
+  const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
@@ -29,7 +27,8 @@ export default async function ApisOverviewPage(props: Props) {
     workspaceId: workspace.id,
     limit: DEFAULT_OVERVIEW_FETCH_LIMIT,
   });
-  const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
+
+  const unpaid = false; // temporarily remove this feature until TBD 
 
   return (
     <div>
