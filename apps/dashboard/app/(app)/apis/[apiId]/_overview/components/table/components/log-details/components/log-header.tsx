@@ -16,10 +16,8 @@ export const LogHeader = ({
       <div className="flex gap-2 items-center flex-1 min-w-0">
         <Badge
           className={cn("uppercase px-[6px] rounded-md font-mono", {
-            "bg-success-3 text-success-11 hover:bg-success-4":
-              log.key_details?.enabled,
-            "bg-error-3 text-error-11 hover:bg-error-4":
-              !log.key_details?.enabled,
+            "bg-success-3 text-success-11 hover:bg-success-4": log.key_details?.enabled,
+            "bg-error-3 text-error-11 hover:bg-error-4": !log.key_details?.enabled,
           })}
         >
           {log.key_details?.enabled ? "Active" : "Disabled"}
@@ -28,12 +26,7 @@ export const LogHeader = ({
           {log.key_details?.name || log.key_id}{" "}
         </p>
       </div>
-      <Button
-        size="icon"
-        variant="ghost"
-        onClick={onClose}
-        className="[&_svg]:size-3"
-      >
+      <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
         <XMark className="text-gray-12 stroke-2" />
       </Button>
     </div>

@@ -3,8 +3,10 @@ import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/logs/constants";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { useMemo } from "react";
-import { LogSection } from "./components/log-section";
 import { LogHeader } from "./components/log-header";
+import { OutcomeDistributionSection } from "./components/log-outcome-distribution-section";
+import { LogSection } from "./components/log-section";
+import { SummarySection } from "./components/summary-section";
 
 const createPanelStyle = (distanceToTop: number) => ({
   top: `${distanceToTop}px`,
@@ -19,15 +21,8 @@ type Props = {
   setSelectedLog: (data: KeysOverviewLog | null) => void;
 };
 
-export const KeysOverviewLogDetails = ({
-  distanceToTop,
-  log,
-  setSelectedLog,
-}: Props) => {
-  const panelStyle = useMemo(
-    () => createPanelStyle(distanceToTop),
-    [distanceToTop]
-  );
+export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog }: Props) => {
+  const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
 
   if (!log) {
     return null;
@@ -35,30 +30,6 @@ export const KeysOverviewLogDetails = ({
 
   const handleClose = () => {
     setSelectedLog(null);
-  };
-
-  // Helper functions for formatting data
-  const formatDate = (date: string | number | null) => {
-    if (!date) {
-      return "N/A";
-    }
-    try {
-      return new Date(date).toLocaleString();
-    } catch {
-      return "Invalid Date";
-    }
-  };
-
-  const formatMeta = (meta: string | null) => {
-    if (!meta) {
-      return null;
-    }
-    try {
-      const parsedMeta = JSON.parse(meta);
-      return parsedMeta;
-    } catch {
-      return null;
-    }
   };
 
   // Only process if key_details exists
@@ -70,9 +41,7 @@ export const KeysOverviewLogDetails = ({
         style={panelStyle}
       >
         <LogHeader log={log} onClose={handleClose} />
-        <div className="py-4 text-center text-accent-9">
-          No key details available
-        </div>
+        <div className="py-4 text-center text-accent-9">No key details available</div>
       </ResizablePanel>
     );
   }
@@ -83,38 +52,10 @@ export const KeysOverviewLogDetails = ({
     ? formatDate(metaData.createdAt.replace(/3NZ$/, "3Z"))
     : "N/A";
 
-  // Calculate the age of the key
-  const calculateAge = () => {
-    if (!metaData?.createdAt) {
-      return "N/A";
-    }
-    try {
-      const created = new Date(metaData.createdAt.replace(/3NZ$/, "3Z"));
-      const now = new Date();
-      const diffInDays = Math.floor(
-        (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (diffInDays === 0) {
-        const diffInHours = Math.floor(
-          (now.getTime() - created.getTime()) / (1000 * 60 * 60)
-        );
-        return diffInHours === 0
-          ? "Less than an hour"
-          : `${diffInHours} hour${diffInHours === 1 ? "" : "s"}`;
-      }
-
-      return `${diffInDays} day${diffInDays === 1 ? "" : "s"}`;
-    } catch {
-      return "N/A";
-    }
-  };
-
-  // Prepare data for LogSection components
   const summaryStats = [
     `Valid Requests: ${log.valid_count || 0}`,
     `Error Requests: ${log.error_count || 0}`,
-    `Age: ${calculateAge()}`,
+    `Age: ${calculateAge(metaData)}`,
   ];
 
   const identifiers = [
@@ -133,15 +74,11 @@ export const KeysOverviewLogDetails = ({
   const limits = [
     `Status: ${log.key_details.enabled ? "Enabled" : "Disabled"}`,
     `Remaining: ${
-      log.key_details.remaining_requests !== null
-        ? log.key_details.remaining_requests
-        : "Unlimited"
+      log.key_details.remaining_requests !== null ? log.key_details.remaining_requests : "Unlimited"
     }`,
     `Rate Limit: ${
       log.key_details.ratelimit_limit
-        ? `${log.key_details.ratelimit_limit} per ${
-            log.key_details.ratelimit_duration || "N/A"
-          }s`
+        ? `${log.key_details.ratelimit_limit} per ${log.key_details.ratelimit_duration || "N/A"}s`
         : "No limit"
     }`,
     `Async: ${log.key_details.ratelimit_async ? "Yes" : "No"}`,
@@ -149,25 +86,13 @@ export const KeysOverviewLogDetails = ({
 
   const refills = [
     `Refill Amount: ${
-      log.key_details.refill_amount !== null
-        ? log.key_details.refill_amount
-        : "N/A"
+      log.key_details.refill_amount !== null ? log.key_details.refill_amount : "N/A"
     }`,
-    `Refill Day: ${
-      log.key_details.refill_day !== null ? log.key_details.refill_day : "N/A"
-    }`,
+    `Refill Day: ${log.key_details.refill_day !== null ? log.key_details.refill_day : "N/A"}`,
     `Last Refill: ${formatDate(log.key_details.last_refill_at)}`,
     `Expires: ${formatDate(log.key_details.expires)}`,
   ];
 
-  // Create outcome distribution strings if available
-  const outcomeStrings = log.outcome_counts
-    ? Object.entries(log.outcome_counts).map(
-        ([outcome, count]) => `${outcome}: ${count}`
-      )
-    : [];
-
-  // Convert meta data to string for display
   const metaString = metaData ? JSON.stringify(metaData, null, 2) : "<EMPTY>";
 
   return (
@@ -178,16 +103,63 @@ export const KeysOverviewLogDetails = ({
     >
       <LogHeader log={log} onClose={handleClose} />
 
-      <LogSection title="Summary" details={summaryStats} />
+      <SummarySection summaryStats={summaryStats} />
       <LogSection title="Identifiers" details={identifiers} />
       <LogSection title="Usage" details={usage} />
       <LogSection title="Limits" details={limits} />
       <LogSection title="Refills & Expiration" details={refills} />
-      {outcomeStrings.length > 0 && (
-        <LogSection title="Outcome Distribution" details={outcomeStrings} />
-      )}
 
-      <LogSection title="Meta Data" details={metaString} />
+      {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
+
+      <LogSection title="Meta" details={metaString} />
     </ResizablePanel>
   );
+};
+
+const formatDate = (date: string | number | Date | null) => {
+  if (!date) {
+    return "N/A";
+  }
+  try {
+    if (date instanceof Date) {
+      return date.toLocaleString();
+    }
+    return new Date(date).toLocaleString();
+  } catch {
+    return "Invalid Date";
+  }
+};
+
+const formatMeta = (meta: string | null) => {
+  if (!meta) {
+    return null;
+  }
+  try {
+    const parsedMeta = JSON.parse(meta);
+    return parsedMeta;
+  } catch {
+    return null;
+  }
+};
+
+const calculateAge = (metaData: Record<string, any>) => {
+  if (!metaData?.createdAt) {
+    return "N/A";
+  }
+  try {
+    const created = new Date(metaData.createdAt.replace(/3NZ$/, "3Z"));
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffInDays === 0) {
+      const diffInHours = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60));
+      return diffInHours === 0
+        ? "Less than an hour"
+        : `${diffInHours} hour${diffInHours === 1 ? "" : "s"}`;
+    }
+
+    return `${diffInDays} day${diffInDays === 1 ? "" : "s"}`;
+  } catch {
+    return "N/A";
+  }
 };

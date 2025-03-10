@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { KeysOverviewLogsCharts } from "./components/charts";
-import { KeysOverviewLogsControls } from "./components/controls";
-import { KeysOverviewLogsTable } from "./components/table/logs-table";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
+import { useCallback, useState } from "react";
+import { KeysOverviewLogsCharts } from "./components/charts";
 import { KeysOverviewLogsControlCloud } from "./components/control-cloud";
+import { KeysOverviewLogsControls } from "./components/controls";
 import { KeysOverviewLogDetails } from "./components/table/components/log-details";
+import { KeysOverviewLogsTable } from "./components/table/logs-table";
 
 export const LogsClient = ({ apiId }: { apiId: string }) => {
   const [selectedLog, setSelectedLog] = useState<KeysOverviewLog | null>(null);
@@ -25,11 +25,7 @@ export const LogsClient = ({ apiId }: { apiId: string }) => {
       <KeysOverviewLogsCharts apiId={apiId} onMount={handleDistanceToTop} />
       <KeysOverviewLogsControls apiId={apiId} />
       <KeysOverviewLogsControlCloud />
-      <KeysOverviewLogsTable
-        apiId={apiId}
-        setSelectedLog={handleSelectedLog}
-        log={selectedLog}
-      />
+      <KeysOverviewLogsTable apiId={apiId} setSelectedLog={handleSelectedLog} log={selectedLog} />
       <KeysOverviewLogDetails
         distanceToTop={tableDistanceToTop}
         setSelectedLog={handleSelectedLog}

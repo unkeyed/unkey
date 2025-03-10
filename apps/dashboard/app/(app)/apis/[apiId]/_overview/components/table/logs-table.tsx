@@ -11,15 +11,8 @@ import { Button, Empty } from "@unkey/ui";
 import { OutcomesPopover } from "./components/outcome-popover";
 import { KeyIdentifierColumn } from "./components/override-indicator";
 import { useKeysOverviewLogsQuery } from "./hooks/use-logs-query";
-import {
-  getErrorPercentage,
-  getSuccessPercentage,
-} from "./utils/calculate-blocked-percentage";
-import {
-  STATUS_STYLES,
-  getRowClassName,
-  getStatusStyle,
-} from "./utils/get-row-class";
+import { getErrorPercentage, getSuccessPercentage } from "./utils/calculate-blocked-percentage";
+import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
 const compactFormatter = new Intl.NumberFormat("en-US", {
   notation: "compact",
@@ -32,15 +25,10 @@ type Props = {
   apiId: string;
 };
 
-export const KeysOverviewLogsTable = ({
-  apiId,
-  setSelectedLog,
-  log: selectedLog,
-}: Props) => {
-  const { historicalLogs, isLoading, isLoadingMore, loadMore } =
-    useKeysOverviewLogsQuery({
-      apiId,
-    });
+export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog }: Props) => {
+  const { historicalLogs, isLoading, isLoadingMore, loadMore } = useKeysOverviewLogsQuery({
+    apiId,
+  });
 
   const columns = (): Column<KeysOverviewLog>[] => {
     return [
@@ -76,10 +64,10 @@ export const KeysOverviewLogsTable = ({
                   "px-[6px] rounded-md font-mono whitespace-nowrap",
                   selectedLog?.key_id === log.key_id
                     ? STATUS_STYLES.success.badge.selected
-                    : STATUS_STYLES.success.badge.default
+                    : STATUS_STYLES.success.badge.default,
                 )}
                 title={`${log.error_count.toLocaleString()} Valid requests (${successPercentage.toFixed(
-                  1
+                  1,
                 )}%)`}
               >
                 {compactFormatter.format(log.valid_count)}
@@ -102,12 +90,10 @@ export const KeysOverviewLogsTable = ({
                 <Badge
                   className={cn(
                     "px-[6px] rounded-md font-mono whitespace-nowrap flex items-center",
-                    selectedLog?.key_id === log.key_id
-                      ? style.badge.selected
-                      : style.badge.default
+                    selectedLog?.key_id === log.key_id ? style.badge.selected : style.badge.default,
                   )}
                   title={`${log.error_count.toLocaleString()} Invalid requests (${errorPercentage.toFixed(
-                    1
+                    1,
                   )}%)`}
                 >
                   <span className="mr-[6px] flex-shrink-0">
@@ -137,9 +123,7 @@ export const KeysOverviewLogsTable = ({
             value={log.time}
             className={cn(
               "font-mono group-hover:underline decoration-dotted",
-              selectedLog &&
-                selectedLog.request_id !== log.request_id &&
-                "pointer-events-none"
+              selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
             )}
           />
         ),
@@ -157,18 +141,15 @@ export const KeysOverviewLogsTable = ({
       onRowClick={setSelectedLog}
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
-      rowClassName={(log) =>
-        getRowClassName(log, selectedLog as KeysOverviewLog)
-      }
+      rowClassName={(log) => getRowClassName(log, selectedLog as KeysOverviewLog)}
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
             <Empty.Title>Key Verification Logs</Empty.Title>
             <Empty.Description className="text-left">
-              No key verification data to show. Once requests are made with API
-              keys, you'll see a summary of successful and failed verification
-              attempts.
+              No key verification data to show. Once requests are made with API keys, you'll see a
+              summary of successful and failed verification attempts.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
