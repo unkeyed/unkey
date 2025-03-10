@@ -25,6 +25,7 @@ type Props = {
     id: string;
     status: Stripe.Subscription.Status;
     trialUntil?: number;
+    cancelAt?: number;
   };
   currentProductId?: string;
   products: Array<{
@@ -72,7 +73,9 @@ export const Client: React.FC<Props> = (props) => {
   const allowUpdate =
     props.subscription && ["active", "trialing"].includes(props.subscription.status);
   const allowCancel =
-    props.subscription && ["active", "trialing"].includes(props.subscription.status);
+    props.subscription &&
+    ["active", "trialing"].includes(props.subscription.status) &&
+    !props.subscription.cancelAt;
   const isFreeTier =
     !props.subscription || !["active", "trialing"].includes(props.subscription.status);
   const selectedProductIndex = allowUpdate
@@ -88,6 +91,7 @@ export const Client: React.FC<Props> = (props) => {
         />
       ) : null}
 
+      <CancelAlert cancelAt={props.subscription?.cancelAt} />
       {isFreeTier ? <FreeTierAlert /> : null}
       <Usage current={props.usage.current} max={props.usage.max} />
 
@@ -124,11 +128,10 @@ export const Client: React.FC<Props> = (props) => {
                   {props.subscription ? (
                     <Confirm
                       title={`${i > selectedProductIndex ? "Upgrade" : "Downgrade"} to ${p.name}`}
-                      description={`Changing to ${
-                        p.name
-                      } updates your request quota to ${formatNumber(
-                        p.quota.requestsPerMonth,
-                      )} per month immediately.`}
+                      description={`Changing to ${p.name
+                        } updates your request quota to ${formatNumber(
+                          p.quota.requestsPerMonth,
+                        )} per month immediately.`}
                       onConfirm={async () =>
                         updateSubscription.mutateAsync({
                           oldProductId: props.currentProductId!,
@@ -144,11 +147,10 @@ export const Client: React.FC<Props> = (props) => {
                   ) : (
                     <Confirm
                       title={`Upgrade to ${p.name}`}
-                      description={`Changing to ${
-                        p.name
-                      } updates your request quota to ${formatNumber(
-                        p.quota.requestsPerMonth,
-                      )} per month immediately.`}
+                      description={`Changing to ${p.name
+                        } updates your request quota to ${formatNumber(
+                          p.quota.requestsPerMonth,
+                        )} per month immediately.`}
                       onConfirm={() => createSubscription.mutateAsync({ productId: p.id })}
                       fineprint={
                         props.hasPreviousSubscriptions
@@ -205,7 +207,7 @@ export const Client: React.FC<Props> = (props) => {
             <div className="w-full flex justify-end">
               <Confirm
                 title="Cancel plan"
-                description="Canceling your plan will immediately downgrade your workspace to the free tier. Prorated credits are applied to your account and you can resume the subscription any time."
+                description="Canceling your plan will downgrade your workspace to the free tier at the end of the current period. You can resume your subscription until then."
                 onConfirm={() => cancelSubscription.mutateAsync()}
                 trigger={(onClick) => (
                   <Button variant="outline" color="danger" size="lg" onClick={onClick}>
@@ -237,6 +239,48 @@ const FreeTierAlert: React.FC = () => {
   );
 };
 
+const CancelAlert: React.FC<{ cancelAt?: number; }> = (props) => {
+  const router = useRouter();
+  const uncancelSubscription = trpc.stripe.uncancelSubscription.useMutation({
+    onSuccess: () => {
+      router.refresh();
+      toast.info("Subscription resumed");
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+
+  if (!props.cancelAt) {
+    return null;
+  }
+  return (
+    <SettingCard
+      title="Cancellation scheduled"
+      description={
+        <p>
+          Your subscription ends in
+          <span className="text-accent-12"> {ms(props.cancelAt - Date.now(), { long: true })}</span>{" "}
+          on <span className="text-accent-12">{new Date(props.cancelAt).toLocaleDateString()}</span>
+          .
+        </p>
+      }
+      border="both"
+      className="border-warning-7 bg-warning-2"
+    >
+      <div className="flex w-full justify-end">
+        <Button
+          variant="primary"
+          loading={uncancelSubscription.isLoading}
+          disabled={uncancelSubscription.isLoading}
+          onClick={() => uncancelSubscription.mutate()}
+        >
+          Resubscribe
+        </Button>
+      </div>
+    </SettingCard>
+  );
+};
 const SusbcriptionStatus: React.FC<{ status: Stripe.Subscription.Status; trialUntil?: number }> = (
   props,
 ) => {

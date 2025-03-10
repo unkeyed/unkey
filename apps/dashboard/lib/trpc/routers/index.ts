@@ -53,6 +53,7 @@ import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
+import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
@@ -105,6 +106,7 @@ export const router = t.router({
     createSubscription,
     updateSubscription,
     cancelSubscription,
+    uncancelSubscription,
   }),
   vercel: vercelRouter,
   plain: t.router({
