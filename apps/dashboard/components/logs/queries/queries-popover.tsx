@@ -17,19 +17,21 @@ type QueriesPopoverProps = PropsWithChildren<{
 }>;
 export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverProps) => {
   const { user } = useUser();
-
   const containerRef = useRef<HTMLDivElement>(null);
   const { updateFilters } = useFilters();
   const [open, setOpen] = useState(false);
   const [focusedTabIndex, setFocusedTabIndex] = useState(0);
   const [selectedQueryIndex, setSelectedQueryIndex] = useState(0);
   const { savedFilters, toggleBookmark } = useBookmarkedFilters({ localStorageName });
+
   const [filterGroups, setfilterGroups] = useState<SavedFiltersGroup[]>(
     savedFilters.filter((filter) => filter),
   );
+
   const [savedGroups, setSavedGroups] = useState<SavedFiltersGroup[]>(
     filterGroups.filter((filter) => filter.bookmarked),
   );
+
   const [isDisabled, setIsDisabled] = useState(savedFilters.length === 0);
 
   const updateGroups = (newGroups: SavedFiltersGroup[]) => {
@@ -52,13 +54,18 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
 
   const handleTabChange = (index: number) => {
     setSelectedQueryIndex(0);
-    updateGroups(savedFilters);
     setFocusedTabIndex(index);
+    updateGroups(savedFilters);
   };
 
   const handleSelectedQuery = (index: number) => {
+    if (!savedFilters[index]) {
+      return;
+    }
+
     const fieldList: QuerySearchParams = savedFilters[index].filters;
     const newFilters: LogsFilterValue[] = [];
+
     Object.entries(fieldList).forEach(([key, values]) => {
       if (!Array.isArray(values)) {
         return;
@@ -72,6 +79,7 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
         }),
       );
     });
+
     fieldList.startTime &&
       newFilters.push({
         id: crypto.randomUUID(),
@@ -79,6 +87,7 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
         operator: "is",
         value: fieldList.startTime,
       });
+
     fieldList.endTime &&
       newFilters.push({
         id: crypto.randomUUID(),
@@ -86,6 +95,7 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
         operator: "is",
         value: fieldList.endTime,
       });
+
     fieldList.since &&
       newFilters.push({
         id: crypto.randomUUID(),
@@ -97,6 +107,7 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
     if (newFilters) {
       updateFilters(newFilters);
     }
+
     setSelectedQueryIndex(index);
   };
 
@@ -125,6 +136,7 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
         setSelectedQueryIndex((prevIndex) => (prevIndex > 0 ? prevIndex - 1 : 0));
       } else if (e.key === "ArrowDown" || e.key === "j" || e.key === "J") {
         e.preventDefault();
+
         containerRef.current.scrollTop += scrollSpeed;
         const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
         const totalItems = currentList.length - 1;
@@ -160,6 +172,7 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
     // Handle toggling bookmark status with 'b' or 'B'
     if (e.key === "b" || e.key === "B") {
       e.preventDefault();
+
       const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
       if (currentList.length > 0 && selectedQueryIndex < currentList.length) {
         const selectedGroup = currentList[selectedQueryIndex];

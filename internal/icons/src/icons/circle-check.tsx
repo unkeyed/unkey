@@ -17,14 +17,6 @@ export const CircleCheck: React.FC<IconProps> = ({ size, filled, ...props }) => 
   const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
     <svg width={pixelSize} height={pixelSize} {...props} viewBox="0 0 18 18">
-      <path
-        d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"
-        fill={filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeLinecap="square"
-        strokeMiterlimit="10"
-        strokeWidth={strokeWidth}
-      />
       <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
         <path
           d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"
