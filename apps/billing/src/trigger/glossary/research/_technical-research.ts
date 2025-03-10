@@ -11,7 +11,7 @@ export const technicalResearchTask = task({
   }: {
     inputTerm: string;
   }) => {
-    console.log("Starting domain research:", {
+    console.info("Starting domain research:", {
       query: inputTerm,
     });
 
@@ -38,7 +38,7 @@ export const technicalResearchTask = task({
       ...result.costDollars,
       category: result.category,
     }));
-    console.log(`💰 Exa API costs for initial search:
+    console.info(`💰 Exa API costs for initial search:
       Total: $${searchCosts.reduce((acc, cost) => acc + cost.total, 0)}
       Search: $${searchCosts.reduce(
         (acc, cost) => acc + (cost.search?.neural || cost.search?.keyword || 0),
@@ -79,7 +79,7 @@ export const technicalResearchTask = task({
     }
 
     const evaluationResults = evaluationRun.output;
-    console.log(`💰 Evaluation costs:
+    console.info(`💰 Evaluation costs:
       Total: $${evaluationResults.costs.total}
       Input: $${evaluationResults.costs.input}
       Output: $${evaluationResults.costs.output}
@@ -94,7 +94,7 @@ export const technicalResearchTask = task({
     // log the costs for the exa responses:
     const scrapingCosts = (contentResults as unknown as typeof contentResults & ExaCosts)
       .costDollars;
-    console.log(`💰 Exa API costs for Content Scraping:
+    console.info(`💰 Exa API costs for Content Scraping:
       Total: $${scrapingCosts.total}
       Summaries: $${scrapingCosts.contents?.text} texts @ $0.001/text
     `);

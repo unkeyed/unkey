@@ -59,7 +59,7 @@ export const exaDomainSearchTask = task({
       includeDomains: [...(domainCategories.find((c) => c.name === domain)?.domains || [])],
     } satisfies RegularSearchOptions & ContentsOptions;
 
-    console.log("🔍 Starting Exa search with summaries only:", {
+    console.info("🔍 Starting Exa search with summaries only:", {
       query: inputTerm,
       category: domainCategory?.name,
     });

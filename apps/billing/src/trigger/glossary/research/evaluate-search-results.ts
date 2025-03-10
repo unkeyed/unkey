@@ -1,7 +1,6 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { type TaskOutput, task } from "@trigger.dev/sdk/v3";
 import { generateObject } from "ai";
-import type { ContentsOptions, RegularSearchOptions, SearchResponse } from "exa-js";
 import { z } from "zod";
 import type { exaDomainSearchTask } from "./exa-domain-search";
 
@@ -10,25 +9,6 @@ const evaluationSchema = z.object({
   rating: z.number().min(1).max(10),
   justification: z.string(),
 });
-
-// Define a type for category results
-type CategoryResult = {
-  category: string;
-  results: Array<any>;
-};
-
-type EvaluatedSearchResponse = SearchResponse<ContentsOptions & RegularSearchOptions> & {
-  inputTerm?: string;
-  timestamp?: string;
-  categoryResults?: Array<CategoryResult>;
-  totalResults?: number;
-  evaluationSummary?: {
-    totalEvaluated: number;
-    included: number;
-    excluded: number;
-  };
-  evaluationError?: string;
-};
 
 type EvaluateSearchOptions = {
   searchResults: TaskOutput<typeof exaDomainSearchTask>["results"];
