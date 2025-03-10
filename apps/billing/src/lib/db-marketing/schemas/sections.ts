@@ -1,13 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  int,
-  mysqlEnum,
-  mysqlTable,
-  primaryKey,
-  text,
-  timestamp,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, primaryKey, text, timestamp } from "drizzle-orm/mysql-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
 import { entries } from "./entries";
@@ -18,7 +10,7 @@ export const sections = mysqlTable("sections", {
   entryId: int("entry_id")
     .notNull()
     .references(() => entries.id),
-  heading: varchar("heading", { length: 255 }).notNull(),
+  heading: text("heading").notNull(),
   description: text("description").notNull(),
   order: int("order").notNull(),
   markdown: text("markdown"),
