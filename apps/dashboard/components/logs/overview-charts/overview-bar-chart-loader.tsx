@@ -1,54 +1,26 @@
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
-import { useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
+import { useWaveAnimation } from "./hooks";
 import type { ChartLabels } from "./types";
 
 type GenericChartLoadingProps = {
   labels: ChartLabels;
+  animationSpeed?: number;
+  dataPoints?: number;
 };
 
-const barCount = 100;
-/**
- * Generic loading component for chart displays with wave-like animated bars
- */
-export const OverviewChartLoader = ({ labels }: GenericChartLoadingProps) => {
-  const [mockData, setMockData] = useState(generateInitialData());
-  const [phase, setPhase] = useState(0);
-
-  function generateInitialData() {
-    return Array.from({ length: barCount }).map((_, index) => ({
-      [labels.primaryKey]: 0.5,
-      [labels.secondaryKey]: 0.2,
-      index,
-      originalTimestamp: Date.now(),
-    }));
-  }
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPhase((prevPhase) => prevPhase + 0.05);
-    }, 40); // Update very frequently for extra smoothness, but with smaller increments
-
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    setMockData((prevData) =>
-      prevData.map((item, index) => {
-        const wavePosition = -phase + index * (Math.PI / 20);
-
-        const primaryWave = Math.sin(wavePosition) * 0.2 + 0.5;
-        const secondaryWave = Math.sin(wavePosition * 1.2) * 0.12 + 0.25;
-
-        return {
-          ...item,
-          [labels.primaryKey]: primaryWave,
-          [labels.secondaryKey]: secondaryWave,
-        };
-      }),
-    );
-  }, [phase, labels.primaryKey, labels.secondaryKey]);
+export const OverviewChartLoader = ({
+  labels,
+  animationSpeed,
+  dataPoints,
+}: GenericChartLoadingProps) => {
+  // Use the wave animation hook with built-in defaults
+  const { mockData, currentTime } = useWaveAnimation({
+    labels,
+    dataPoints,
+    animationSpeed,
+  });
 
   return (
     <div className="flex flex-col h-full animate-pulse">
@@ -90,14 +62,12 @@ export const OverviewChartLoader = ({ labels }: GenericChartLoadingProps) => {
               dataKey={labels.primaryKey}
               fill="hsl(var(--accent-3))"
               stackId="a"
-              animationDuration={100}
               isAnimationActive={false} // Disable default animation for smoother wave effect
             />
             <Bar
               dataKey={labels.secondaryKey}
               fill="hsl(var(--accent-3))"
               stackId="a"
-              animationDuration={100}
               isAnimationActive={false} // Disable default animation for smoother wave effect
             />
           </BarChart>
@@ -105,7 +75,7 @@ export const OverviewChartLoader = ({ labels }: GenericChartLoadingProps) => {
       </div>
       {/* Time labels footer */}
       <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between border-t-gray-2">
-        {calculateTimePoints(Date.now(), Date.now()).map((time, i) => (
+        {calculateTimePoints(currentTime, currentTime).map((time, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
           <div key={i} className="z-10">
             {formatTimestampLabel(time)}

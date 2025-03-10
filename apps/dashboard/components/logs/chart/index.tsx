@@ -134,8 +134,6 @@ export function LogsTimeseriesBarChart({
         <ChartContainer config={config}>
           <BarChart
             data={data}
-            barGap={2}
-            barSize={8}
             margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
