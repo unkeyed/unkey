@@ -72,11 +72,17 @@ export const technicalResearchTask = task({
       inputTerm,
     });
 
+    
     if (!evaluationRun.ok) {
       throw new Error("Failed to evaluate search results");
     }
-
+    
     const evaluationResults = evaluationRun.output;
+    console.log(`💰 Evaluation costs:
+      Total: $${evaluationResults.costs.total}
+      Input: $${evaluationResults.costs.input}
+      Output: $${evaluationResults.costs.output}
+    `);
 
     // Step 3: Scrape the content of the results
     const exa = new Exa(process.env.EXA_API_KEY || "");
