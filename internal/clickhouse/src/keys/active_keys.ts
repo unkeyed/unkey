@@ -287,7 +287,6 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
-// Export functions for different time intervals
 export const getHourlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
   ACTIVE_KEYS_INTERVALS.hour
 );

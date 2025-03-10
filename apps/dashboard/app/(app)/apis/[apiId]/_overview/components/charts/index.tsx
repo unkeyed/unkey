@@ -2,10 +2,25 @@ import { useFilters } from "../../hooks/use-filters";
 import { LogsTimeseriesBarChart } from "./bar-chart";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 import { createOutcomeChartConfig } from "./bar-chart/utils";
+import { LogsTimeseriesAreaChart } from "./line-chart";
+import { useFetchActiveKeysTimeseries } from "./line-chart/hooks/use-fetch-timeseries";
 
 export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
   const { filters, updateFilters } = useFilters();
-  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(apiId);
+
+  // Fetch verification data
+  const {
+    timeseries: verificationTimeseries,
+    isLoading: verificationIsLoading,
+    isError: verificationIsError,
+  } = useFetchVerificationTimeseries(apiId);
+
+  // Fetch active keys data
+  const {
+    timeseries: activeKeysTimeseries,
+    isLoading: activeKeysIsLoading,
+    isError: activeKeysIsError,
+  } = useFetchActiveKeysTimeseries(apiId);
 
   const handleSelectionChange = ({
     start,
@@ -15,7 +30,7 @@ export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field),
+      (f) => !["startTime", "endTime", "since"].includes(f.field)
     );
     updateFilters([
       ...activeFilters,
@@ -36,14 +51,28 @@ export const KeysOverviewLogsCharts = ({ apiId }: { apiId: string }) => {
 
   return (
     <div className="flex w-full h-[320px]">
-      <div className="w-full">
+      <div className="w-1/2">
         <LogsTimeseriesBarChart
-          data={timeseries}
-          isLoading={isLoading}
-          isError={isError}
+          data={verificationTimeseries}
+          isLoading={verificationIsLoading}
+          isError={verificationIsError}
           enableSelection
           onSelectionChange={handleSelectionChange}
           config={createOutcomeChartConfig()}
+        />
+      </div>
+      <div className="w-1/2 ">
+        <LogsTimeseriesAreaChart
+          data={activeKeysTimeseries}
+          isLoading={activeKeysIsLoading}
+          isError={activeKeysIsError}
+          enableSelection
+          onSelectionChange={handleSelectionChange}
+          config={{
+            keys: {
+              label: "Active Keys",
+            },
+          }}
         />
       </div>
     </div>
