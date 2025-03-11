@@ -1,39 +1,52 @@
 import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { and, db, eq, isNull } from "@/lib/db";
+import { apis } from "@unkey/db/src/schema";
 import { redirect } from "next/navigation";
 import { LogsClient } from "./_overview/logs-client";
 import { ApisNavbar } from "./api-id-navbar";
-
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
+  const apiId = props.params.apiId;
 
-  const apis = await db.query.apis.findMany({
-    where: (table, { and, isNull }) => and(isNull(table.deletedAtM)),
+  const currentApi = await db.query.apis.findFirst({
+    where: (table, { and, eq, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAtM)),
     with: {
-      workspace: true,
+      workspace: {
+        columns: {
+          id: true,
+          tenantId: true,
+        },
+      },
     },
   });
 
-  const api = apis.find((api) => props.params.apiId === api.id);
-
-  if (!api || api.workspace.tenantId !== tenantId || !api?.keyAuthId) {
+  if (!currentApi || currentApi.workspace.tenantId !== tenantId || !currentApi?.keyAuthId) {
     return redirect("/new");
   }
+
+  const workspaceApis = await db
+    .select({
+      id: apis.id,
+      name: apis.name,
+    })
+    .from(apis)
+    .where(and(eq(apis.workspaceId, currentApi.workspaceId), isNull(apis.deletedAtM)))
+    .orderBy(apis.name);
 
   return (
     <div>
       <ApisNavbar
-        api={api}
+        api={currentApi}
         activePage={{
-          href: `/apis/${api.id}`,
+          href: `/apis/${apiId}`,
           text: "Requests",
         }}
-        apis={apis.map((api) => ({ name: api.name, id: api.id }))}
+        apis={workspaceApis}
       />
-      <LogsClient apiId={api.id} />
+      <LogsClient apiId={apiId} />
     </div>
   );
 }

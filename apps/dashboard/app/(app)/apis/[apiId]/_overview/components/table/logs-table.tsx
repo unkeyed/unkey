@@ -44,9 +44,12 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         header: "Name",
         width: "15%",
         render: (log) => {
+          const name = log.key_details?.name || "<EMPTY>";
           return (
-            <div className="flex gap-3 items-center group/name truncate font-mono">
-              {log.key_details?.name || "<EMPTY>"}
+            <div className="flex items-center font-mono">
+              <div className="w-full max-w-[150px] truncate whitespace-nowrap" title={name}>
+                {name}
+              </div>
             </div>
           );
         },
@@ -56,9 +59,13 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         header: "External ID",
         width: "15%",
         render: (log) => {
+          const externalId =
+            (log.key_details?.identity?.external_id ?? log.key_details?.owner_id) || "<EMPTY>";
           return (
-            <div className="flex gap-3 items-center group/name truncate font-mono">
-              {(log.key_details?.identity?.external_id ?? log.key_details?.owner_id) || "<EMPTY>"}
+            <div className="flex items-center font-mono">
+              <div className="w-full max-w-[150px] truncate whitespace-nowrap" title={externalId}>
+                {externalId}
+              </div>
             </div>
           );
         },

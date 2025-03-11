@@ -226,6 +226,7 @@ const PopoverItem = ({
     }
   }, [isFocused]);
 
+  const labelText = typeof label === "string" ? label : "";
   return (
     <button
       type="button"
@@ -240,7 +241,12 @@ const PopoverItem = ({
       onClick={onSelect}
     >
       <div className={cn("flex gap-2 items-center", className)}>
-        <span className="text-[13px] text-accent-12 font-medium">{label}</span>
+        <span
+          className="text-[13px] text-accent-12 font-medium truncate max-w-[160px]"
+          title={labelText}
+        >
+          {label}
+        </span>
       </div>
       {!hideRightIcon && (
         <div className="flex items-center gap-1.5">
