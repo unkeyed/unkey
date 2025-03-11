@@ -25,11 +25,7 @@ const overrideValidationSchema = z.object({
     .trim()
     .min(2, "Name is required and should be at least 2 characters")
     .max(250),
-  limit: z.coerce
-    .number()
-    .int()
-    .nonnegative()
-    .max(10_000, "Limit cannot exceed 10,000"),
+  limit: z.coerce.number().int().nonnegative().max(10_000, "Limit cannot exceed 10,000"),
   duration: z.coerce
     .number()
     .int()
