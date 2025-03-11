@@ -39,7 +39,7 @@ export const createKey = t.procedure
         .object({
           async: z.boolean(),
           duration: z.number().int().positive(),
-          limit: z.number().nonnegative(),
+          limit: z.number().int().positive(),
         })
         .optional(),
       enabled: z.boolean().default(true),

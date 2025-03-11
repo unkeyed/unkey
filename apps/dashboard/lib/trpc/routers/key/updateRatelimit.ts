@@ -11,7 +11,7 @@ export const updateKeyRatelimit = t.procedure
       workspaceId: z.string(),
       enabled: z.boolean(),
       ratelimitAsync: z.boolean().optional(),
-      ratelimitLimit: z.number().nonnegative().optional(),
+      ratelimitLimit: z.number().int().positive().optional(),
       ratelimitDuration: z.number().int().positive().optional(),
     }),
   )

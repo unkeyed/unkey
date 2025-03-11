@@ -28,7 +28,7 @@ const overrideValidationSchema = z.object({
   limit: z.coerce
     .number()
     .int()
-    .min(1, "Limit must be at least 1")
+    .nonnegative()
     .max(10_000, "Limit cannot exceed 10,000"),
   duration: z.coerce
     .number()
@@ -139,7 +139,7 @@ export const IdentifierDialog = ({
       onOpenChange={onOpenChange}
       title="Override Identifier"
       footer={
-        <div className="w-full flex flex-col gap-2 items-center justify-center">
+        <div className="flex flex-col items-center justify-center w-full gap-2">
           <Button
             type="submit"
             form="identifier-form" // Connect to form ID
@@ -151,7 +151,7 @@ export const IdentifierDialog = ({
           >
             Override Identifier
           </Button>
-          <div className="text-gray-9 text-xs">
+          <div className="text-xs text-gray-9">
             Changes are propagated globally within 60 seconds
           </div>
         </div>

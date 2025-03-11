@@ -105,12 +105,10 @@ export const formSchema = z.object({
         .number({
           errorMap: (issue, { defaultError }) => ({
             message:
-              issue.code === "invalid_type"
-                ? "Refill limit must be greater than or equal to 0"
-                : defaultError,
+              issue.code === "invalid_type" ? "Refill limit must be greater than 0" : defaultError,
           }),
         })
-        .nonnegative({ message: "Limit must be greater than or equal to 0" }),
+        .positive({ message: "Limit must be greater than 0" }),
     })
     .optional(),
   environment: z.string().optional(),

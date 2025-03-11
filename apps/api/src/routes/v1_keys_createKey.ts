@@ -165,7 +165,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                     },
                     deprecated: true,
                   }),
-                limit: z.number().int().nonnegative().openapi({
+                limit: z.number().int().min(1).openapi({
                   description: "The total amount of requests in a given interval.",
                 }),
                 duration: z.number().int().min(1000).optional().openapi({

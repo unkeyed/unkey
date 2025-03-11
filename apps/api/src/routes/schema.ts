@@ -104,7 +104,7 @@ export const keySchema = z
               url: "https://unkey.dev/docs/features/ratelimiting",
             },
           }),
-        limit: z.number().int().nonnegative().openapi({
+        limit: z.number().int().min(1).openapi({
           description: "The total amount of burstable requests.",
         }),
         refillRate: z.number().int().min(1).optional().openapi({
