@@ -107,7 +107,7 @@ export function TeamPageClient() {
               updateMember={orgData.updateMember}
               organization={orgData.organization}
               user={userData.user!}
-              userMembership={userData.membership!}
+              userMembership={membership!}
             />
           ) : (
             <Invitations 
