@@ -55,12 +55,3 @@ export const getErrorSeverity = (log: KeysOverviewLog): ErrorSeverity => {
   }
   return "none";
 };
-
-/**
- * Legacy function maintained for backward compatibility
- * Returns true if more than 30% of requests are errors
- * @deprecated Use getErrorPercentage or getErrorSeverity instead
- */
-export const calculateErrorPercentage = (log: KeysOverviewLog): boolean => {
-  return getErrorPercentage(log) > 30;
-};

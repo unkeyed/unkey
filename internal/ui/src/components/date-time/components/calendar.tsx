@@ -3,12 +3,7 @@ import { format } from "date-fns";
 import { useState } from "react";
 // biome-ignore lint/correctness/noUnusedImports: otherwise biome complains
 import React from "react";
-import {
-  type CaptionProps,
-  type DateRange,
-  DayPicker,
-  useNavigation,
-} from "react-day-picker";
+import { type CaptionProps, type DateRange, DayPicker, useNavigation } from "react-day-picker";
 import { cn } from "../../../lib/utils";
 import { buttonVariants } from "../../button";
 import { useDateTimeContext } from "../date-time";
@@ -50,26 +45,24 @@ const styleClassNames = {
   nav: "flex items-center",
   nav_button: cn(
     buttonVariants({ variant: "default" }),
-    "h-7 w-7 opacity-50 hover:opacity-100 flex justify-center items-center"
+    "h-7 w-7 opacity-50 hover:opacity-100 flex justify-center items-center",
   ),
   nav_button_previous: "absolute left-1",
   nav_button_next: "absolute right-1",
   table: "w-full bg-transparent border-none m-0 p-0 ",
   head_row:
     "flex flex-start w-full border-none h-8 mx-0 px-0 pt-2 gap-3 justify-center items-center",
-  head_cell:
-    "w-8 h-8 font-normal text-xs text-gray-8 bg-transparent border-none ",
+  head_cell: "w-8 h-8 font-normal text-xs text-gray-8 bg-transparent border-none ",
   row: "flex w-full border-none justify-between ",
   cell: "border-none h-8 w-8 text-center text-gray-12 rounded rounded-3 text-sm p-0 relative focus:outline-none focus:ring-0 [&:has([aria-selected].day-outside)]:bg-gray-4 [&:has([aria-selected])]:bg-gray-4 focus-within:relative focus-within:z-20",
   day: cn(
     buttonVariants({ variant: "ghost" }),
-    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-[13px] flex items-center justify-center hover:bg-gray-3 text-gray-12 rounded rounded-3 focus:outline-none focus:ring-0"
+    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-[13px] flex items-center justify-center hover:bg-gray-3 text-gray-12 rounded rounded-3 focus:outline-none focus:ring-0",
   ),
   day_range_start: "hover:bg-gray-3 focus:bg-gray-5 text-gray-12",
   day_range_middle: "",
   day_range_end: "hover:bg-gray-2 focus:bg-gray-3 focus:text-gray-12",
-  day_selected:
-    "bg-gray-4 hover:bg-gray-3 hover:text-gray-10 focus:bg-gray-3 text-gray-12",
+  day_selected: "bg-gray-4 hover:bg-gray-3 hover:text-gray-10 focus:bg-gray-3 text-gray-12",
   day_today:
     "relative after:content-[''] after:absolute after:bottom-0.5 after:left-1/2 after:w-1 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-gray-10 text-gray-12 hover:bg-gray-3",
   day_outside:
@@ -91,8 +84,7 @@ export const Calendar = ({
   showOutsideDays = true,
   ...props
 }: CalendarProps) => {
-  const { date, onDateChange, minDateRange, maxDateRange } =
-    useDateTimeContext();
+  const { date, onDateChange, minDateRange, maxDateRange } = useDateTimeContext();
   const [singleDay, setSingleDay] = useState<Date | undefined>(date?.from);
 
   const handleChange = (newDate: DateRange | undefined) => {
@@ -161,9 +153,7 @@ export const Calendar = ({
         mode="range"
         selected={date}
         disabled={(date) => date > new Date()}
-        onSelect={(date: DateRange | undefined) =>
-          date ? handleChange(date) : undefined
-        }
+        onSelect={(date: DateRange | undefined) => (date ? handleChange(date) : undefined)}
       />
     );
   }
