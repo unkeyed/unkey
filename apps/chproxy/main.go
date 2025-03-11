@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,10 +25,25 @@ var (
 	CLICKHOUSE_URL string
 	BASIC_AUTH     string
 	PORT           string
+	logger         *slog.Logger
 )
 
-func init() {
+func setupLogger() {
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: false,
+	})
 
+	logger = slog.New(handler)
+
+	slog.SetDefault(logger)
+
+	logger.Info("chproxy starting",
+		slog.Int("max_buffer_size", MAX_BUFFER_SIZE),
+		slog.Int("max_batch_size", MAX_BATCH_SIZE),
+		slog.String("flush_interval", FLUSH_INTERVAL.String()))
+}
+
+func init() {
 	CLICKHOUSE_URL = os.Getenv("CLICKHOUSE_URL")
 	if CLICKHOUSE_URL == "" {
 		panic("CLICKHOUSE_URL must be defined")
@@ -80,18 +95,25 @@ func persist(batch *Batch) error {
 	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusOK {
-		log.Printf("GOLANG persisted %d rows for %s\n", len(batch.Rows), batch.Params.Get("query"))
+		logger.Info("rows persisted",
+			slog.Int("count", len(batch.Rows)),
+			slog.String("query", batch.Params.Get("query")))
 	} else {
 		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			return err
 		}
-		fmt.Println("unable to persist", string(body))
+		logger.Error("unable to persist rows",
+			slog.String("response", string(body)),
+			slog.Int("status_code", res.StatusCode),
+			slog.String("query", batch.Params.Get("query")))
 	}
 	return nil
 }
 
 func main() {
+	setupLogger()
+
 	requiredAuthorization := "Basic " + base64.StdEncoding.EncodeToString([]byte(BASIC_AUTH))
 
 	buffer := make(chan *Batch, MAX_BUFFER_SIZE)
@@ -99,7 +121,6 @@ func main() {
 	done := make(chan bool)
 
 	go func() {
-
 		buffered := 0
 
 		batchesByParams := make(map[string]*Batch)
@@ -110,7 +131,9 @@ func main() {
 			for _, batch := range batchesByParams {
 				err := persist(batch)
 				if err != nil {
-					log.Println("Error flushing:", err.Error())
+					logger.Error("error flushing batch",
+						slog.String("error", err.Error()),
+						slog.String("query", batch.Params.Get("query")))
 				}
 			}
 			buffered = 0
@@ -139,11 +162,11 @@ func main() {
 				buffered += len(b.Rows)
 
 				if buffered >= MAX_BATCH_SIZE {
-					log.Println("Flushing due to max size")
+					logger.Info("flushing due to max size")
 					flushAndReset()
 				}
 			case <-ticker.C:
-				log.Println("Flushing from ticker")
+				logger.Info("flushing from ticker")
 
 				flushAndReset()
 			}
@@ -156,7 +179,9 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != requiredAuthorization {
-			log.Println("invaldu authorization header, expected", requiredAuthorization, r.Header.Get("Authorization"))
+			logger.Warn("invalid authorization header",
+				slog.String("expected", requiredAuthorization),
+				slog.String("authorization", r.Header.Get("Authorization")))
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -172,6 +197,7 @@ func main() {
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
+			logger.Error("failed to read request body", slog.String("error", err.Error()))
 			http.Error(w, "cannot read body", http.StatusInternalServerError)
 		}
 		rows := strings.Split(string(body), "\n")
@@ -187,14 +213,18 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	fmt.Println("listening on", PORT)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", PORT), nil); err != nil {
-		log.Fatalln("error starting server:", err)
-	}
+	srv := &http.Server{Addr: fmt.Sprintf(":%s", PORT)}
+	go func() {
+		logger.Info("listening", slog.String("port", PORT))
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("failed to start server", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+	}()
 
 	<-ctx.Done()
-	log.Println("shutting down")
 	close(buffer)
 	<-done
 
+	logger.Info("shutdown complete")
 }
