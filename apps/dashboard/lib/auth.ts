@@ -12,7 +12,6 @@ export async function getTenantId(): Promise<string> {
     return redirect("/auth/sign-in");
   }
 
-  console.log("getTenantId: ", user.orgId)
   const { orgId } = user;
   if (!orgId) {
     return redirect("/new");

@@ -27,7 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { getCurrentUser, getOrg, inviteMember } from "@/lib/auth/actions";
+import { inviteMember } from "@/lib/auth/actions";
+import type { Organization, User } from "@/lib/auth/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
@@ -36,20 +37,22 @@ import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
 const formSchema = z.object({
   email: z.string().email(),
   role: z.enum(["admin", "basic_member"]),
 });
 
-export const InviteButton = async ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
-  const user = await getCurrentUser();
-  if (!user || !user.orgId) {
-    return null;
-  }
-  const { orgId } = user;
-  const { name: orgName } = await getOrg(orgId);
+interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  user: User | null;
+  organization: Organization | null;
+}
 
+export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isLoading, setLoading] = useState(false);
+  const router = useRouter();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,7 +60,10 @@ export const InviteButton = async ({ ...rest }: React.ButtonHTMLAttributes<HTMLB
     },
   });
 
-  const [isLoading, setLoading] = useState(false);
+  // If user or organization isn't available yet, return null or a loading state
+  if (!user?.orgId || !organization) {
+    return null;
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -65,13 +71,14 @@ export const InviteButton = async ({ ...rest }: React.ButtonHTMLAttributes<HTMLB
       await inviteMember({
         email: values.email,
         role: values.role,
-        orgId: orgId,
+        orgId: user!.orgId!,
       });
 
       toast.success(
-        `We have sent an email to ${values.email} with instructions on how to join your workspace`,
+        `We have sent an email to ${values.email} with instructions on how to join your workspace.`,
       );
       router.refresh();
+      setDialogOpen(false); // Close dialog after successful invitation
     } catch (err) {
       console.error(err);
       toast.error((err as Error).message);
@@ -79,7 +86,6 @@ export const InviteButton = async ({ ...rest }: React.ButtonHTMLAttributes<HTMLB
       setLoading(false);
     }
   }
-  const router = useRouter();
 
   return (
     <>
@@ -99,7 +105,7 @@ export const InviteButton = async ({ ...rest }: React.ButtonHTMLAttributes<HTMLB
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Invite someone to join {orgName}</DialogTitle>
+            <DialogTitle>Invite someone to join {organization.name}</DialogTitle>
             <DialogDescription>
               They will receive an email with instructions on how to join your workspace.
             </DialogDescription>

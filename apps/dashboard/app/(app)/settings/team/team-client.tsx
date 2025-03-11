@@ -28,7 +28,7 @@ import type { Invitation, Membership, Organization, UpdateMembershipParams } fro
 import { Gear } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useMemo } from "react";
 import { navigation } from "../constants";
 import { InviteButton } from "./invite";
 import { User } from "@/lib/auth/types";
@@ -40,37 +40,49 @@ type MembersProps = {
   removeMember: (membershipId: string) => Promise<void>;
   updateMember: (params: UpdateMembershipParams) => Promise<void>;
   organization: Organization | null;
-  user: User;
-  userMembership: Membership
+  user: User | null;
+  userMembership: Membership | null;
 };
 
 type InvitationsProps = {
   invitations: Invitation[];
   loading: boolean;
   revokeInvitation: (invitationId: string) => Promise<void>;
+  user: User | null;
+  organization: Organization | null;
 };
 
 type RoleSwitcherProps = {
   member: { id: string; role: string };
   updateMember: (params: UpdateMembershipParams) => Promise<void>;
   organization: Organization | null;
-  user: User;
-  userMembership: Membership;
+  user: User | null;
+  userMembership: Membership | null;
 };
 
 type StatusBadgeProps = {
   status: "pending" | "accepted" | "revoked" | "expired";
 };
 
-// Create a context to avoid prop drilling
 export function TeamPageClient() {
   const userData = useUser();
   const orgData = useOrganization();
 
-  const { membership } = userData;
-  const isAdmin = membership?.role === "admin";
+  // Use useMemo for derived values
+  const isAdmin = useMemo(() => {
+    return userData.membership?.role === "admin";
+  }, [userData.membership]);
+
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
+
+  if (userData.isLoading || orgData.isLoading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
 
   const actions: React.ReactNode[] = [];
 
@@ -89,7 +101,13 @@ export function TeamPageClient() {
       </Select>,
     );
 
-    actions.push(<InviteButton key="invite-button" />);
+    actions.push(
+      <InviteButton 
+        key="invite-button" 
+        user={userData.user} 
+        organization={orgData.organization} 
+      />
+    );
   }
 
   return (
@@ -101,19 +119,21 @@ export function TeamPageClient() {
           <PageHeader title="Members" description="Manage your team members" actions={actions} />
           {tab === "members" ? (
             <Members 
-              memberships={orgData.memberships} 
+              memberships={orgData.memberships || []} 
               loading={orgData.loading.memberships} 
               removeMember={orgData.removeMember}
               updateMember={orgData.updateMember}
               organization={orgData.organization}
-              user={userData.user!}
-              userMembership={membership!}
+              user={userData.user}
+              userMembership={userData.membership}
             />
           ) : (
             <Invitations 
-              invitations={orgData.invitations} 
+              invitations={orgData.invitations || []} 
               loading={orgData.loading.invitations} 
               revokeInvitation={orgData.revokeInvitation}
+              user={userData.user}
+              organization={orgData.organization}
             />
           )}
         </div>
@@ -126,12 +146,21 @@ export function TeamPageClient() {
 const Members = memo<MembersProps>(({ memberships, loading, removeMember, updateMember, organization, user, userMembership }) => {
   const isAdmin = userMembership?.role === "admin";
 
-
   if (loading) {
     return (
       <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
         <Loading />
       </div>
+    );
+  }
+
+  if (!memberships || memberships.length === 0) {
+    return (
+      <Empty>
+        <Empty.Title>No team members</Empty.Title>
+        <Empty.Description>Invite members to your team</Empty.Description>
+        {isAdmin && <InviteButton user={user} organization={organization} />}
+      </Empty>
     );
   }
 
@@ -145,7 +174,7 @@ const Members = memo<MembersProps>(({ memberships, loading, removeMember, update
         </TableRow>
       </TableHeader>
       <TableBody>
-        {memberships?.map(({ id, role, user: member }) => (
+        {memberships.map(({ id, role, user: member }) => (
           <TableRow key={id}>
             <TableCell>
               <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
@@ -175,7 +204,7 @@ const Members = memo<MembersProps>(({ memberships, loading, removeMember, update
               />
             </TableCell>
             <TableCell>
-              {isAdmin && member.id !== user?.id ? (
+              {isAdmin && user && member.id !== user.id ? (
                 <Confirm
                   variant="destructive"
                   title="Remove member"
@@ -198,7 +227,7 @@ const Members = memo<MembersProps>(({ memberships, loading, removeMember, update
 
 Members.displayName = 'Members';
 
-const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvitation }) => {
+const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvitation, user, organization }) => {
   if (loading) {
     return (
       <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
@@ -212,7 +241,7 @@ const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvita
       <Empty>
         <Empty.Title>No pending invitations</Empty.Title>
         <Empty.Description>Invite members to your team</Empty.Description>
-        <InviteButton />
+        <InviteButton user={user} organization={organization} />
       </Empty>
     );
   }
@@ -227,7 +256,7 @@ const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvita
         </TableRow>
       </TableHeader>
       <TableBody>
-        {invitations?.map((invitation) => (
+        {invitations.map((invitation) => (
           <TableRow key={invitation.id}>
             <TableCell>
               <span className="text-content font-medium">{invitation.email}</span>
@@ -274,7 +303,7 @@ const RoleSwitcher = memo<RoleSwitcherProps>(({
       }
       await updateMember({
         membershipId: member.id,
-        role: newRole, // Fixed: was using member.role which doesn't change
+        role: newRole,
       });
 
       setRole(newRole);
@@ -291,7 +320,7 @@ const RoleSwitcher = memo<RoleSwitcherProps>(({
     return (
       <Select
         value={role}
-        disabled={member.id === user?.id}
+        disabled={Boolean(user) && member.id === user?.id}
         onValueChange={handleRoleUpdate}
       >
         <SelectTrigger className="w-[180px] max-sm:w-36">
