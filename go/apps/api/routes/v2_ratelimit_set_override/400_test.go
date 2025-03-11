@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"github.com/unkeyed/unkey/go/api"
-	handler "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_set_override"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 

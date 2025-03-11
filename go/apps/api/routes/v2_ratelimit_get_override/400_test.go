@@ -1,3 +1,4 @@
+//nolint:exhaustruct
 package handler_test
 
 import (
@@ -8,19 +9,19 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"github.com/unkeyed/unkey/go/api"
-	handler "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_delete_override"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
 func TestBadRequests(t *testing.T) {
 	testCases := []struct {
 		name          string
-		req           api.V2RatelimitDeleteOverrideRequestBody
+		req           api.V2RatelimitGetOverrideRequestBody
 		expectedError api.BadRequestError
 	}{
 		{
 			name: "missing all required fields",
-			req:  api.V2RatelimitDeleteOverrideRequestBody{},
+			req:  api.V2RatelimitGetOverrideRequestBody{},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
 				Detail:    "One or more fields failed validation",
@@ -33,8 +34,8 @@ func TestBadRequests(t *testing.T) {
 		},
 		{
 			name: "missing identifier",
-			req: api.V2RatelimitDeleteOverrideRequestBody{
-				NamespaceId: util.Pointer("test_namespace_id"),
+			req: api.V2RatelimitGetOverrideRequestBody{
+				NamespaceId: util.Pointer("not_empty"),
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
@@ -48,9 +49,10 @@ func TestBadRequests(t *testing.T) {
 		},
 		{
 			name: "empty identifier",
-			req: api.V2RatelimitDeleteOverrideRequestBody{
-				NamespaceId: util.Pointer("test_namespace_id"),
-				Identifier:  "",
+			req: api.V2RatelimitGetOverrideRequestBody{
+				NamespaceId:   util.Pointer("not_empty"),
+				NamespaceName: nil,
+				Identifier:    "",
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
@@ -64,7 +66,7 @@ func TestBadRequests(t *testing.T) {
 		},
 		{
 			name: "neither namespace ID nor name provided",
-			req: api.V2RatelimitDeleteOverrideRequestBody{
+			req: api.V2RatelimitGetOverrideRequestBody{
 				NamespaceId:   nil,
 				NamespaceName: nil,
 				Identifier:    "user_123",

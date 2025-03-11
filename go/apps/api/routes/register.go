@@ -1,11 +1,11 @@
 package routes
 
 import (
-	v2Liveness "github.com/unkeyed/unkey/go/cmd/api/routes/v2_liveness"
-	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_delete_override"
-	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_get_override"
-	v2RatelimitLimit "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_limit"
-	v2RatelimitSetOverride "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_set_override"
+	v2Liveness "github.com/unkeyed/unkey/go/apps/api/routes/v2_liveness"
+	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
+	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
+	v2RatelimitLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
+	v2RatelimitSetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
 

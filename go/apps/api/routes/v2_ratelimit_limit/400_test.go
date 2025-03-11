@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/api"
-	handler "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_limit"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"

@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/api"
-	handler "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_get_override"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -19,7 +19,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
-	// Create a namespace
+	// Create a namespace in the default workspace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
 	namespaceName := "test_namespace"
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
@@ -30,12 +30,12 @@ func TestWorkspacePermissions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Create an override
+	// Create an override in the default workspace
 	identifier := "test_identifier"
 	overrideID := uid.New(uid.RatelimitOverridePrefix)
 	err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
 		ID:          overrideID,
-		WorkspaceID: h.Resources.UserWorkspace.ID, // In default workspace
+		WorkspaceID: h.Resources.UserWorkspace.ID,
 		NamespaceID: namespaceID,
 		Identifier:  identifier,
 		Limit:       10,
@@ -62,7 +62,8 @@ func TestWorkspacePermissions(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", differentWorkspaceKey)},
 	}
 
-	// Try to access the override with a key from a different workspace
+	// Try to delete an override using a namespace from the default workspace
+	// but with a key from a different workspace
 	req := handler.Request{
 		NamespaceId: &namespaceID,
 		Identifier:  identifier,
@@ -73,4 +74,12 @@ func TestWorkspacePermissions(t *testing.T) {
 	// This should return a 404 Not Found (for security reasons we don't reveal if the namespace exists)
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
 	require.NotNil(t, res.Body)
+
+	// Verify the override was NOT deleted
+	override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
+		WorkspaceID: h.Resources.UserWorkspace.ID,
+		OverrideID:  overrideID,
+	})
+	require.NoError(t, err)
+	require.False(t, override.DeletedAtM.Valid, "Override should not be deleted")
 }

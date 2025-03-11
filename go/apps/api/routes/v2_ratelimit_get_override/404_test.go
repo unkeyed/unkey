@@ -9,13 +9,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/api"
-	handler "github.com/unkeyed/unkey/go/cmd/api/routes/v2_ratelimit_delete_override"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestNotFound(t *testing.T) {
+func TestOverrideNotFound(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -38,8 +38,7 @@ func TestNotFound(t *testing.T) {
 	})
 
 	h.Register(route)
-
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.delete_override", namespaceID))
+	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, "ratelimit.*.read_override")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -54,7 +53,7 @@ func TestNotFound(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, api.NotFoundError](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
 		require.Equal(t, http.StatusNotFound, res.Body.Status)

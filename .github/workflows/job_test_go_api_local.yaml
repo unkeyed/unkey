@@ -20,3 +20,5 @@ jobs:
       - name: Test
         run: task test
         working-directory: go
+        env:
+          SIMULATON_TEST: true

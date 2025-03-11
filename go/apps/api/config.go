@@ -2,10 +2,9 @@ package api
 
 import (
 	"github.com/unkeyed/unkey/go/pkg/assert"
-	"github.com/urfave/cli/v3"
 )
 
-type nodeConfig struct {
+type Config struct {
 	// Platform identifies the cloud platform where the node is running (e.g., aws, gcp, hetzner)
 	Platform string
 
@@ -71,7 +70,7 @@ type nodeConfig struct {
 	OtelOtlpEndpoint string
 }
 
-func (c nodeConfig) Validate() error {
+func (c Config) Validate() error {
 
 	if c.ClusterEnabled {
 		err := assert.Multi(
@@ -87,42 +86,4 @@ func (c nodeConfig) Validate() error {
 	}
 
 	return nil
-}
-
-// ConfigFromFlags creates a nodeConfig from CLI flags
-func configFromFlags(cmd *cli.Command) nodeConfig {
-
-	config := nodeConfig{
-		// Basic configuration
-		Platform: cmd.String("platform"),
-		Image:    cmd.String("image"),
-		HttpPort: int(cmd.Int("http-port")),
-		Region:   cmd.String("region"),
-
-		// Database configuration
-		DatabasePrimary:         cmd.String("database-primary"),
-		DatabaseReadonlyReplica: cmd.String("database-readonly-replica"),
-
-		// Logs
-		LogsColor: cmd.Bool("color"),
-
-		// ClickHouse
-		ClickhouseURL: cmd.String("clickhouse-url"),
-
-		// OpenTelemetry configuration
-		OtelOtlpEndpoint: cmd.String("otel-otlp-endpoint"),
-
-		// Cluster
-		ClusterEnabled:                     cmd.Bool("cluster"),
-		ClusterNodeID:                      cmd.String("cluster-node-id"),
-		ClusterRpcPort:                     int(cmd.Int("cluster-rpc-port")),
-		ClusterGossipPort:                  int(cmd.Int("cluster-gossip-port")),
-		ClusterAdvertiseAddrStatic:         cmd.String("cluster-advertise-addr-static"),
-		ClusterAdvertiseAddrAwsEcsMetadata: cmd.Bool("cluster-advertise-addr-aws-ecs-metadata"),
-		ClusterDiscoveryStaticAddrs:        cmd.StringSlice("cluster-discovery-static-addrs"),
-		ClusterDiscoveryRedisURL:           cmd.String("cluster-discovery-redis-url"),
-	}
-
-	return config
-
 }
