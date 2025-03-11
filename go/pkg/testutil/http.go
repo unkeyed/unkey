@@ -3,6 +3,7 @@ package testutil
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,11 +11,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/api"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/permissions"
+	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/database"
-	"github.com/unkeyed/unkey/go/pkg/entities"
+	"github.com/unkeyed/unkey/go/pkg/cluster"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -23,9 +25,9 @@ import (
 )
 
 type Resources struct {
-	RootWorkspace entities.Workspace
-	RootKeyring   entities.Keyring
-	UserWorkspace entities.Workspace
+	RootWorkspace db.Workspace
+	RootKeyring   db.KeyAuth
+	UserWorkspace db.Workspace
 }
 
 type Harness struct {
@@ -39,10 +41,12 @@ type Harness struct {
 
 	middleware []zen.Middleware
 
-	DB        database.Database
-	Logger    logging.Logger
-	Keys      keys.KeyService
-	Resources Resources
+	DB          db.Database
+	Logger      logging.Logger
+	Keys        keys.KeyService
+	Permissions permissions.PermissionService
+	Ratelimit   ratelimit.Service
+	Resources   Resources
 }
 
 func NewHarness(t *testing.T) *Harness {
@@ -54,11 +58,10 @@ func NewHarness(t *testing.T) *Harness {
 
 	dsn := containers.RunMySQL()
 
-	db, err := database.New(database.Config{
+	db, err := db.New(db.Config{
 		Logger:      logger,
 		PrimaryDSN:  dsn,
 		ReadOnlyDSN: "",
-		Clock:       clk,
 	})
 	require.NoError(t, err)
 
@@ -77,14 +80,28 @@ func NewHarness(t *testing.T) *Harness {
 	validator, err := validation.New()
 	require.NoError(t, err)
 
+	permissionService := permissions.New(permissions.Config{
+		DB:     db,
+		Logger: logger,
+	})
+
+	ratelimitService, err := ratelimit.New(ratelimit.Config{
+		Logger:  logger,
+		Cluster: cluster.NewNoop("test", "localhost"),
+		Clock:   clk,
+	})
+	require.NoError(t, err)
+
 	h := Harness{
-		t:          t,
-		Logger:     logger,
-		srv:        srv,
-		containers: containers,
-		validator:  validator,
-		Keys:       keyService,
-		DB:         db,
+		t:           t,
+		Logger:      logger,
+		srv:         srv,
+		containers:  containers,
+		validator:   validator,
+		Keys:        keyService,
+		Permissions: permissionService,
+		Ratelimit:   ratelimitService,
+		DB:          db,
 		// resources are seeded later
 		// nolint:exhaustruct
 		Resources: Resources{},
@@ -94,7 +111,7 @@ func NewHarness(t *testing.T) *Harness {
 			zen.WithTracing(),
 			//	zen.WithMetrics(svc.EventBuffer)
 			zen.WithLogging(logger),
-			zen.WithErrorHandling(),
+			zen.WithErrorHandling(logger),
 			zen.WithValidation(validator),
 		},
 	}
@@ -120,58 +137,47 @@ func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
 
 func (h *Harness) seed() {
 
-	rootWorkspace := entities.Workspace{
-		ID:                   uid.New("test_ws"),
-		TenantID:             "unkey",
-		Name:                 "unkey",
-		CreatedAt:            time.Now(),
-		DeletedAt:            time.Time{},
-		Plan:                 entities.WorkspacePlanPro,
-		Enabled:              true,
-		DeleteProtection:     true,
-		BetaFeatures:         make(map[string]interface{}),
-		Features:             make(map[string]interface{}),
-		StripeCustomerID:     "",
-		StripeSubscriptionID: "",
-		TrialEnds:            time.Time{},
-		PlanLockedUntil:      time.Time{},
+	ctx := context.Background()
+
+	insertRootWorkspaceParams := db.InsertWorkspaceParams{
+		ID:        uid.New("test_ws"),
+		TenantID:  "unkey",
+		Name:      "unkey",
+		CreatedAt: time.Now().UnixMilli(),
 	}
 
-	err := h.DB.InsertWorkspace(context.Background(), rootWorkspace)
+	err := db.Query.InsertWorkspace(ctx, h.DB.RW(), insertRootWorkspaceParams)
 	require.NoError(h.t, err)
 
-	rootKeyring := entities.Keyring{
+	rootWorkspace, err := db.Query.FindWorkspaceByID(ctx, h.DB.RW(), insertRootWorkspaceParams.ID)
+	require.NoError(h.t, err)
+
+	insertRootKeyringParams := db.InsertKeyringParams{
 		ID:                 uid.New("test_kr"),
 		WorkspaceID:        rootWorkspace.ID,
 		StoreEncryptedKeys: false,
-		DefaultPrefix:      "test",
-		DefaultBytes:       16,
-		CreatedAt:          time.Now(),
-		UpdatedAt:          time.Time{},
-		DeletedAt:          time.Time{},
+		DefaultPrefix:      sql.NullString{String: "test", Valid: true},
+		DefaultBytes:       sql.NullInt32{Int32: 8, Valid: true},
+		CreatedAtM:         time.Now().UnixMilli(),
 	}
 
-	err = h.DB.InsertKeyring(context.Background(), rootKeyring)
+	err = db.Query.InsertKeyring(context.Background(), h.DB.RW(), insertRootKeyringParams)
 	require.NoError(h.t, err)
 
-	userWorkspace := entities.Workspace{
-		ID:                   uid.New("test_ws"),
-		TenantID:             "user",
-		Name:                 "user",
-		CreatedAt:            time.Now(),
-		DeletedAt:            time.Time{},
-		Plan:                 entities.WorkspacePlanPro,
-		Enabled:              true,
-		DeleteProtection:     true,
-		BetaFeatures:         make(map[string]interface{}),
-		Features:             make(map[string]interface{}),
-		StripeCustomerID:     "",
-		StripeSubscriptionID: "",
-		TrialEnds:            time.Time{},
-		PlanLockedUntil:      time.Time{},
+	rootKeyring, err := db.Query.FindKeyringByID(ctx, h.DB.RW(), insertRootKeyringParams.ID)
+	require.NoError(h.t, err)
+
+	insertUserWorkspaceParams := db.InsertWorkspaceParams{
+		ID:        uid.New("test_ws"),
+		TenantID:  "user",
+		Name:      "user",
+		CreatedAt: time.Now().UnixMilli(),
 	}
 
-	err = h.DB.InsertWorkspace(context.Background(), userWorkspace)
+	err = db.Query.InsertWorkspace(ctx, h.DB.RW(), insertUserWorkspaceParams)
+	require.NoError(h.t, err)
+
+	userWorkspace, err := db.Query.FindWorkspaceByID(ctx, h.DB.RW(), insertUserWorkspaceParams.ID)
 	require.NoError(h.t, err)
 
 	h.Resources = Resources{
@@ -182,30 +188,54 @@ func (h *Harness) seed() {
 
 }
 
-func (h *Harness) CreateRootKey() string {
+func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) string {
 
 	key := uid.New("test_root_key")
 
-	err := h.DB.InsertKey(context.Background(), entities.Key{
+	insertKeyParams := db.InsertKeyParams{
 		ID:                uid.New("test_root_key"),
 		Hash:              hash.Sha256(key),
 		WorkspaceID:       h.Resources.RootWorkspace.ID,
-		ForWorkspaceID:    h.Resources.UserWorkspace.ID,
+		ForWorkspaceID:    sql.NullString{String: workspaceID, Valid: true},
 		KeyringID:         h.Resources.RootKeyring.ID,
 		Start:             key[:4],
-		Name:              "test",
-		Identity:          nil,
-		Meta:              make(map[string]any),
-		CreatedAt:         time.Now(),
-		UpdatedAt:         time.Time{},
-		DeletedAt:         time.Time{},
+		CreatedAtM:        time.Now().UnixMilli(),
 		Enabled:           true,
-		Environment:       "",
-		Expires:           time.Time{},
-		Permissions:       []string{},
-		RemainingRequests: nil,
-	})
+		Name:              sql.NullString{String: "", Valid: false},
+		IdentityID:        sql.NullString{String: "", Valid: false},
+		Meta:              sql.NullString{String: "", Valid: false},
+		Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
+		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+		RatelimitAsync:    sql.NullBool{Bool: false, Valid: false},
+		RatelimitLimit:    sql.NullInt32{Int32: 0, Valid: false},
+		RatelimitDuration: sql.NullInt64{Int64: 0, Valid: false},
+		Environment:       sql.NullString{String: "", Valid: false},
+	}
+
+	err := db.Query.InsertKey(context.Background(), h.DB.RW(), insertKeyParams)
 	require.NoError(h.t, err)
+
+	if len(permissions) > 0 {
+		for _, permission := range permissions {
+			permissionID := uid.New(uid.TestPrefix)
+			err = db.Query.InsertPermission(context.Background(), h.DB.RW(), db.InsertPermissionParams{
+				ID:          permissionID,
+				WorkspaceID: h.Resources.RootWorkspace.ID,
+				Name:        permission,
+				Description: sql.NullString{String: "", Valid: false},
+				CreatedAt:   time.Now().UnixMilli(),
+			})
+			require.NoError(h.t, err)
+
+			err = db.Query.InsertKeyPermission(context.Background(), h.DB.RW(), db.InsertKeyPermissionParams{
+				PermissionID: permissionID,
+				KeyID:        insertKeyParams.ID,
+				WorkspaceID:  h.Resources.RootWorkspace.ID,
+				CreatedAt:    time.Now().UnixMilli(),
+			})
+			require.NoError(h.t, err)
+		}
+	}
 
 	return key
 
@@ -221,11 +251,10 @@ func UnmarshalBody[Body any](t *testing.T, r *httptest.ResponseRecorder, body *B
 }
 
 type TestResponse[TBody any] struct {
-	Status    int
-	Headers   http.Header
-	Body      *TBody
-	ErrorBody *api.BaseError
-	RawBody   string
+	Status  int
+	Headers http.Header
+	Body    *TBody
+	RawBody string
 }
 
 func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Header, req Req) TestResponse[Res] {
@@ -249,24 +278,17 @@ func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Heade
 	rawBody := rr.Body.Bytes()
 
 	res := TestResponse[Res]{
-		Status:    rr.Code,
-		Headers:   rr.Header(),
-		RawBody:   string(rawBody),
-		Body:      nil,
-		ErrorBody: nil,
+		Status:  rr.Code,
+		Headers: rr.Header(),
+		RawBody: string(rawBody),
+		Body:    nil,
 	}
 
-	if rr.Code < 400 {
-		var responseBody Res
-		err = json.Unmarshal(rawBody, &responseBody)
-		require.NoError(h.t, err)
-		res.Body = &responseBody
-	} else {
-		var errorBody api.BaseError
-		err = json.Unmarshal(rawBody, &errorBody)
-		require.NoError(h.t, err)
-		res.ErrorBody = &errorBody
-	}
+	var responseBody Res
+	err = json.Unmarshal(rawBody, &responseBody)
+	require.NoError(h.t, err)
+
+	res.Body = &responseBody
 
 	return res
 }

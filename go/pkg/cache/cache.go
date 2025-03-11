@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"sync"
 	"time"
 
@@ -287,7 +286,7 @@ func (c *cache[K, V]) SWR(
 				c.refresh(ctx, key, refreshFromOrigin, translateError)
 			})
 			if err != nil {
-				c.logger.Error(ctx, "failed to submit refresh task", slog.String("error", err.Error()))
+				c.logger.Error("failed to submit refresh task", "error", err.Error())
 			}
 
 			return e.Value, nil

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/unkeyed/unkey/go/pkg/database"
+	"github.com/unkeyed/unkey/go/pkg/db"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
@@ -57,7 +57,7 @@ func (c *Containers) RunMySQL() string {
 	cfg.ParseTime = true
 	cfg.Logger = &mysql.NopLogger{}
 
-	var db *sql.DB
+	var conn *sql.DB
 	require.NoError(c.t, c.pool.Retry(func() error {
 
 		connector, err2 := mysql.NewConnector(cfg)
@@ -65,8 +65,8 @@ func (c *Containers) RunMySQL() string {
 			return fmt.Errorf("unable to create mysql connector: %w", err2)
 		}
 
-		db = sql.OpenDB(connector)
-		err3 := db.Ping()
+		conn = sql.OpenDB(connector)
+		err3 := conn.Ping()
 		if err3 != nil {
 			return fmt.Errorf("unable to ping mysql: %w", err3)
 		}
@@ -75,10 +75,10 @@ func (c *Containers) RunMySQL() string {
 	}))
 
 	c.t.Cleanup(func() {
-		require.NoError(c.t, db.Close())
+		require.NoError(c.t, conn.Close())
 	})
 	// Creating the database tables
-	queries := strings.Split(string(database.Schema), ";")
+	queries := strings.Split(string(db.Schema), ";")
 	for _, query := range queries {
 		query = strings.TrimSpace(query)
 		if query == "" {
@@ -87,7 +87,7 @@ func (c *Containers) RunMySQL() string {
 		// Add the semicolon back
 		query += ";"
 
-		_, err = db.Exec(query)
+		_, err = conn.Exec(query)
 		require.NoError(c.t, err)
 
 	}

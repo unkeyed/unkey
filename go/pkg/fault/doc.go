@@ -15,18 +15,13 @@
 // It builds upon Go's standard error handling patterns while adding structured
 // context and safety mechanisms.
 //
-// This package is heavily inspired/copied from [fault]. We just wanted a
-// slightly different API.
-//
 // Basic usage:
 //
 //	err := fault.New("database connection failed")
 //	if err != nil {
 //	    return fault.Wrap(err,
 //	        fault.WithTag(DATABASE_ERROR),
-//	        fault.With("init failed: %v", "Service temporarily unavailable"),
+//	        fault.WithDesc("init failed", "Service temporarily unavailable"),
 //	    )
 //	}
-//
-// [fault] https://github.com/Southclaws/fault
 package fault

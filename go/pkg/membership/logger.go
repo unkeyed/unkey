@@ -2,8 +2,6 @@ package membership
 
 import (
 	"bytes"
-	"context"
-	"log/slog"
 
 	"github.com/unkeyed/unkey/go/pkg/logging"
 )
@@ -38,11 +36,11 @@ func (l logger) Write(p []byte) (n int, err error) {
 	case "DEBUG":
 		break
 	case "INFO":
-		l.logger.Info(context.Background(), string(p), slog.String("pkg", "memberlist"))
+		l.logger.Info(string(p), "pkg", "memberlist")
 	case "WARN":
-		l.logger.Warn(context.Background(), string(p), slog.String("pkg", "memberlist"))
+		l.logger.Warn(string(p), "pkg", "memberlist")
 	case "ERROR":
-		l.logger.Error(context.Background(), string(p), slog.String("pkg", "memberlist"))
+		l.logger.Error(string(p), "pkg", "memberlist")
 	}
 	return len(p), nil
 }

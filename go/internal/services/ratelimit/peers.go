@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -25,7 +24,7 @@ type peer struct {
 func (s *service) syncPeers() {
 	for leave := range s.cluster.SubscribeLeave() {
 
-		s.logger.Info(context.Background(), "peer left", slog.String("peer", leave.ID))
+		s.logger.Info("peer left", "peer", leave.ID)
 		s.peerMu.Lock()
 		delete(s.peers, leave.ID)
 		s.peerMu.Unlock()
@@ -65,7 +64,10 @@ func (s *service) newPeer(ctx context.Context, key string) (peer, error) {
 		return peer{}, fault.Wrap(err, fault.WithDesc("failed to find node", "The ratelimit origin could not be found."))
 	}
 
-	s.logger.Info(ctx, "peer added", slog.String("peer", node.ID), slog.String("address", node.RpcAddr))
+	s.logger.Info("peer added",
+		"peer", node.ID,
+		"address", node.RpcAddr,
+	)
 	rpcAddr := node.RpcAddr
 	if !strings.Contains(rpcAddr, "://") {
 		rpcAddr = "http://" + rpcAddr
@@ -73,7 +75,7 @@ func (s *service) newPeer(ctx context.Context, key string) (peer, error) {
 
 	interceptor, err := otelconnect.NewInterceptor(otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()))
 	if err != nil {
-		s.logger.Error(context.Background(), "failed to create interceptor", slog.String("error", err.Error()))
+		s.logger.Error("failed to create interceptor", "error", err.Error())
 		return peer{}, err
 	}
 

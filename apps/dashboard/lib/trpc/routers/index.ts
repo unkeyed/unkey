@@ -55,9 +55,12 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { cancelSubscription } from "./stripe/cancelSubscription";
+import { createSubscription } from "./stripe/createSubscription";
+import { uncancelSubscription } from "./stripe/uncancelSubscription";
+import { updateSubscription } from "./stripe/updateSubscription";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
-import { changeWorkspacePlan } from "./workspace/changePlan";
 import { createWorkspace } from "./workspace/create";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
@@ -105,8 +108,13 @@ export const router = t.router({
   workspace: t.router({
     create: createWorkspace,
     updateName: changeWorkspaceName,
-    updatePlan: changeWorkspacePlan,
     optIntoBeta: optWorkspaceIntoBeta,
+  }),
+  stripe: t.router({
+    createSubscription,
+    updateSubscription,
+    cancelSubscription,
+    uncancelSubscription,
   }),
   vercel: vercelRouter,
   plain: t.router({

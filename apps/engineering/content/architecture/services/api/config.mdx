@@ -146,13 +146,12 @@ These options configure analytics storage and observability for the Unkey API.
 <Property name="--otel-otlp-endpoint | UNKEY_OTEL_OTLP_ENDPOINT" type="string" required={false}>
   OpenTelemetry collector endpoint for metrics, traces, and logs. When provided, the Unkey API will send telemetry data (metrics, traces, and logs) to this endpoint using the OTLP protocol.
 
-  The endpoint should be an OpenTelemetry collector capable of receiving OTLP data. The implementation is currently configured for Grafana Cloud integration but is compatible with any OTLP-compliant collector.
-
+  This should be specified as a host and optional port without scheme or path. The implementation is configured for HTTP protocol by default.
 
   **Examples:**
-  - `--otel-otlp-endpoint=http://localhost:4317` - Local collector
-  - `--otel-otlp-endpoint=https://otlp.grafana-cloud.example.com` - Grafana Cloud
-  - `--otel-otlp-endpoint=https://api.honeycomb.io:443` - Honeycomb.io
+  - `--otel-otlp-endpoint=localhost:4317` - Local collector
+  - `--otel-otlp-endpoint=otlp-gateway-prod-us-east-0.grafana.net:443` - Grafana Cloud
+  - `--otel-otlp-endpoint=api.honeycomb.io:443` - Honeycomb.io
 </Property>
 
 <Property name="--color | UNKEY_COLOR" type="boolean" defaultValue={false} required={false}>

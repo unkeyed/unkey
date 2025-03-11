@@ -126,8 +126,7 @@
             "description": "The id of the namespace. Either namespaceId or namespaceName must be provided",
             "type": "string",
             "minLength": 1,
-            "maxLength": 255,
-            "pattern": "^rlns_.+$"
+            "maxLength": 255
           },
           "namespaceName": {
             "description": "The name of the namespace. Either namespaceId or namespaceName must be provided",
@@ -166,24 +165,92 @@
         "required": ["overrideId"],
         "type": "object"
       },
+      "V2RatelimitGetOverrideRequestBody": {
+        "description": "Gets the configuration of an existing override.",
+        "additionalProperties": false,
+        "properties": {
+          "namespaceId": {
+            "description": "The id of the namespace. Either namespaceId or namespaceName must be provided",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "namespaceName": {
+            "description": "The name of the namespace. Either namespaceId or namespaceName must be provided",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "identifier": {
+            "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "required": ["identifier"],
+        "type": "object"
+      },
+      "V2RatelimitGetOverrideResponseBody": {
+        "additionalProperties": false,
+        "properties": {
+          "namespaceId": {
+            "description": "The id of the namespace.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "overrideId": {
+            "description": "The id of the override.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "duration": {
+            "description": "The duration in milliseconds for the rate limit window.",
+            "format": "int64",
+            "type": "integer",
+            "minimum": 1000
+          },
+          "identifier": {
+            "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "limit": {
+            "description": "The maximum number of requests allowed.",
+            "format": "int64",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"],
+        "type": "object"
+      },
       "V2RatelimitLimitRequestBody": {
         "additionalProperties": false,
         "properties": {
           "namespace": {
             "description": "The namespace name for the rate limit.",
             "type": "string",
-            "example": "sms.sign_up"
+            "example": "sms.sign_up",
+            "minLength": 1,
+            "maxLength": 255
           },
           "cost": {
             "description": "The cost of the request. Defaults to 1 if not provided.",
             "format": "int64",
             "type": "integer",
-            "default": 1
+            "default": 1,
+            "minimum": 0
           },
           "duration": {
             "description": "The duration in milliseconds for the rate limit window.",
             "format": "int64",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 86400000
           },
           "identifier": {
             "description": "The identifier for the rate limit.",
@@ -192,7 +259,8 @@
           "limit": {
             "description": "The maximum number of requests allowed.",
             "format": "int64",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1
           }
         },
         "required": ["namespace", "identifier", "limit", "duration"],
@@ -219,9 +287,43 @@
           "success": {
             "description": "Whether the request passed the ratelimit. If false, the request must be blocked.",
             "type": "boolean"
+          },
+          "overrideId": {
+            "description": "The override that was used. May be empty",
+            "type": "string"
           }
         },
         "required": ["limit", "remaining", "reset", "success"],
+        "type": "object"
+      },
+      "V2RatelimitDeleteOverrideRequestBody": {
+        "description": "Deletes an existing override.",
+        "additionalProperties": false,
+        "properties": {
+          "namespaceId": {
+            "description": "The id of the namespace. Either namespaceId or namespaceName must be provided",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "namespaceName": {
+            "description": "The name of the namespace. Either namespaceId or namespaceName must be provided",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "identifier": {
+            "description": "Identifier of the override to delete",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "required": ["identifier"],
+        "type": "object"
+      },
+      "V2RatelimitDeleteOverrideResponseBody": {
+        "additionalProperties": false,
         "type": "object"
       }
     }
@@ -230,26 +332,6 @@
     "/v2/ratelimit.limit": {
       "post": {
         "operationId": "v1.ratelimit.limit",
-        "parameters": [
-          {
-            "name": "xxx",
-            "description": "xxx",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            },
-            "required": false
-          },
-          {
-            "name": "yyy",
-            "description": "yyy",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -401,6 +483,162 @@
           }
         },
         "tags": ["ratelimit"]
+      }
+    },
+    "/v2/ratelimit.getOverride": {
+      "post": {
+        "tags": ["ratelimit"],
+        "operationId": "v2.ratelimit.getOverride",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2RatelimitGetOverrideRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2RatelimitGetOverrideResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/v2/ratelimit.deleteOverride": {
+      "post": {
+        "tags": ["ratelimit"],
+        "operationId": "v2.ratelimit.deleteOverride",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2RatelimitDeleteOverrideRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2RatelimitDeleteOverrideResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
       }
     },
     "/v2/liveness": {

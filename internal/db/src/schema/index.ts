@@ -7,4 +7,5 @@ export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./key_migrations";
 export * from "./identity";
+export * from "./quota";
 export * from "./audit_logs";

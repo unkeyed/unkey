@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -17,6 +18,18 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// service implements the ratelimit.Service interface using a sliding window algorithm.
+//
+// The implementation distributes rate limit state across the cluster using consistent
+// hashing to determine an "origin node" for each client identifier. This approach
+// balances the need for accuracy with performance by:
+//
+// 1. Making local decisions at each node to minimize latency
+// 2. Asynchronously propagating state to the origin node to maintain consistency
+// 3. Broadcasting limit exceeded events to all nodes to prevent over-admission
+//
+// The service handles node joins/leaves automatically by rebalancing the consistent
+// hash ring, ensuring smooth operation during cluster changes.
 type service struct {
 	clock clock.Clock
 
@@ -73,6 +86,17 @@ func New(config Config) (*service, error) {
 func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
 	_, span := tracing.Start(ctx, "slidingWindow.Ratelimit")
 	defer span.End()
+
+	r.logger.Info("Ratelimit", "req", req)
+	err := assert.Multi(
+		assert.NotEmpty(req.Identifier, "ratelimit identifier must not be empty"),
+		assert.Greater(req.Limit, 0, "ratelimit limit must be greater than zero"),
+		assert.GreaterOrEqual(req.Cost, 0, "ratelimit cost must not be negative"),
+		assert.GreaterOrEqual(req.Duration.Milliseconds(), 1000, "ratelimit duration must be at least 1s"),
+	)
+	if err != nil {
+		return RatelimitResponse{}, err
+	}
 
 	now := r.clock.Now()
 

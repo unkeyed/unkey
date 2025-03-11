@@ -1,6 +1,7 @@
 package zen
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -13,6 +14,17 @@ type EventBuffer interface {
 	BufferApiRequest(schema.ApiRequestV1)
 }
 
+// WithMetrics returns middleware that collects metrics about each request,
+// including request counts, latencies, and status codes.
+//
+// The metrics are buffered and periodically sent to an event buffer.
+//
+// Example:
+//
+//	server.RegisterRoute(
+//	    []zen.Middleware{zen.WithMetrics(eventBuffer)},
+//	    route,
+//	)
 func WithMetrics(eventBuffer EventBuffer) Middleware {
 	redactions := map[*regexp.Regexp]string{
 		regexp.MustCompile(`"key":\s*"[a-zA-Z0-9_]+"`):       `"key": "[REDACTED]"`,
@@ -28,9 +40,9 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 	}
 
 	return func(next HandleFunc) HandleFunc {
-		return func(s *Session) error {
+		return func(ctx context.Context, s *Session) error {
 			start := time.Now()
-			nextErr := next(s)
+			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
 			requestHeaders := []string{}
 			for k, vv := range s.r.Header {

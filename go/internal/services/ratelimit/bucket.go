@@ -39,8 +39,19 @@ func (b bucketKey) toString() string {
 	return fmt.Sprintf("%s-%d-%d", b.identifier, b.limit, b.duration.Milliseconds())
 }
 
-// getOrCreateBucket returns a bucket for the given key and will create one if it does not exist.
-// It returns the bucket and a boolean indicating if the bucket existed before.
+// getOrCreateBucket retrieves a rate limiting bucket for the given key.
+// If no bucket exists, it creates a new one.
+//
+// The bucket is uniquely identified by the combination of:
+// - identifier: the client identifier being rate limited
+// - limit: the maximum number of allowed requests
+// - duration: the time window for applying the limit
+//
+// This function is thread-safe and can be called concurrently.
+//
+// Returns:
+//   - *bucket: the bucket for tracking rate limit state
+//   - bool: true if the bucket already existed, false if it was created
 func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 	s.bucketsMu.RLock()
 	b, ok := s.buckets[key.toString()]
