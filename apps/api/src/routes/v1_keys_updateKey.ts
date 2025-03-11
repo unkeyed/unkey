@@ -91,7 +91,7 @@ Deprecated, use 'async' instead`,
                         url: "https://unkey.dev/docs/features/ratelimiting",
                       },
                     }),
-                  limit: z.number().int().min(1).openapi({
+                  limit: z.number().int().nonnegative().openapi({
                     description: "The total amount of requests allowed in a single window.",
                   }),
 

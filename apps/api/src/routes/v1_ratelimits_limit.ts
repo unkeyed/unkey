@@ -32,7 +32,7 @@ const route = createRoute({
                 "Identifier of your user, this can be their userId, an email, an ip or anything else.",
               example: "user_123",
             }),
-            limit: z.number().int().positive().openapi({
+            limit: z.number().int().nonnegative().openapi({
               description: "How many requests may pass in a given window.",
               example: 10,
             }),

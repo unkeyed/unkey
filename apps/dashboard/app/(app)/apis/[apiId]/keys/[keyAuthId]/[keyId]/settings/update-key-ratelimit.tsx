@@ -37,11 +37,14 @@ const formSchema = z.object({
   ratelimitLimit: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({
-        message: issue.code === "invalid_type" ? "Amount must be greater than 0" : defaultError,
+        message:
+          issue.code === "invalid_type"
+            ? "Amount must be greater than or equal to 0"
+            : defaultError,
       }),
     })
-    .positive({ message: "This refill limit must be a positive number." })
     .int()
+    .nonnegative({ message: "This refill limit must be a positive number or 0." })
     .optional(),
   ratelimitDuration: z.coerce
     .number({
