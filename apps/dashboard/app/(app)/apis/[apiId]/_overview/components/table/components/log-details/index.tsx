@@ -6,29 +6,41 @@ import { useMemo } from "react";
 import { LogHeader } from "./components/log-header";
 import { OutcomeDistributionSection } from "./components/log-outcome-distribution-section";
 import { LogSection } from "./components/log-section";
+import { PermissionsSection, RolesSection } from "./components/roles-permissions";
 import { SummarySection } from "./components/summary-section";
 
-const createPanelStyle = (distanceToTop: number) => ({
+type StyleObject = {
+  top: string;
+  width: string;
+  height: string;
+  paddingBottom: string;
+};
+
+const createPanelStyle = (distanceToTop: number): StyleObject => ({
   top: `${distanceToTop}px`,
   width: `${DEFAULT_DRAGGABLE_WIDTH}px`,
   height: `calc(100vh - ${distanceToTop}px)`,
   paddingBottom: "1rem",
 });
 
-type Props = {
+type KeysOverviewLogDetailsProps = {
   distanceToTop: number;
   log: KeysOverviewLog | null;
   setSelectedLog: (data: KeysOverviewLog | null) => void;
 };
 
-export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog }: Props) => {
+export const KeysOverviewLogDetails = ({
+  distanceToTop,
+  log,
+  setSelectedLog,
+}: KeysOverviewLogDetailsProps) => {
   const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
 
   if (!log) {
     return null;
   }
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     setSelectedLog(null);
   };
 
@@ -55,15 +67,9 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog }: P
   const summaryStats = [
     `Valid Requests: ${log.valid_count || 0}`,
     `Error Requests: ${log.error_count || 0}`,
-    `Age: ${calculateAge(metaData)}`,
   ];
 
-  const identifiers = [
-    `ID: ${log.key_details.id}`,
-    `Auth ID: ${log.key_details.key_auth_id}`,
-    `Name: ${log.key_details.name || "N/A"}`,
-    `Workspace: ${log.key_details.workspace_id}`,
-  ];
+  const identifiers = [`ID: ${log.key_details.id}`, `Name: ${log.key_details.name || "N/A"}`];
 
   const usage = [
     `Created: ${createdAt}`,
@@ -84,14 +90,9 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog }: P
     `Async: ${log.key_details.ratelimit_async ? "Yes" : "No"}`,
   ];
 
-  const refills = [
-    `Refill Amount: ${
-      log.key_details.refill_amount !== null ? log.key_details.refill_amount : "N/A"
-    }`,
-    `Refill Day: ${log.key_details.refill_day !== null ? log.key_details.refill_day : "N/A"}`,
-    `Last Refill: ${formatDate(log.key_details.last_refill_at)}`,
-    `Expires: ${formatDate(log.key_details.expires)}`,
-  ];
+  const identity = log.key_details.identity
+    ? [`External ID: ${log.key_details.identity.external_id || "N/A"}`]
+    : ["No identity information available"];
 
   const metaString = metaData ? JSON.stringify(metaData, null, 2) : "<EMPTY>";
 
@@ -102,21 +103,21 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog }: P
       style={panelStyle}
     >
       <LogHeader log={log} onClose={handleClose} />
-
       <SummarySection summaryStats={summaryStats} />
       <LogSection title="Identifiers" details={identifiers} />
       <LogSection title="Usage" details={usage} />
       <LogSection title="Limits" details={limits} />
-      <LogSection title="Refills & Expiration" details={refills} />
+      <LogSection title="Identity" details={identity} />
+      <RolesSection roles={log.key_details.roles || []} />
+      <PermissionsSection permissions={log.key_details.permissions || []} />
 
       {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
-
       <LogSection title="Meta" details={metaString} />
     </ResizablePanel>
   );
 };
 
-const formatDate = (date: string | number | Date | null) => {
+const formatDate = (date: string | number | Date | null): string => {
   if (!date) {
     return "N/A";
   }
@@ -130,7 +131,7 @@ const formatDate = (date: string | number | Date | null) => {
   }
 };
 
-const formatMeta = (meta: string | null) => {
+const formatMeta = (meta: string | null): Record<string, any> | null => {
   if (!meta) {
     return null;
   }
@@ -139,27 +140,5 @@ const formatMeta = (meta: string | null) => {
     return parsedMeta;
   } catch {
     return null;
-  }
-};
-
-const calculateAge = (metaData: Record<string, any>) => {
-  if (!metaData?.createdAt) {
-    return "N/A";
-  }
-  try {
-    const created = new Date(metaData.createdAt.replace(/3NZ$/, "3Z"));
-    const now = new Date();
-    const diffInDays = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffInDays === 0) {
-      const diffInHours = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60));
-      return diffInHours === 0
-        ? "Less than an hour"
-        : `${diffInHours} hour${diffInHours === 1 ? "" : "s"}`;
-    }
-
-    return `${diffInDays} day${diffInDays === 1 ? "" : "s"}`;
-  } catch {
-    return "N/A";
   }
 };

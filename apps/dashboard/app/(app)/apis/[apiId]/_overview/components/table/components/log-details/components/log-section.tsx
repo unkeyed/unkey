@@ -64,7 +64,10 @@ export const LogSection = ({
 
                   return (
                     <div className="group flex items-center w-full p-[3px]" key={key}>
-                      <span className="text-left text-accent-9 whitespace-nowrap">{key}:</span>
+                      <span className="text-left text-accent-9 whitespace-nowrap">
+                        {key}
+                        {value ? ":" : ""}
+                      </span>
                       {shouldEnhance ? (
                         <span className="ml-2 text-xs text-accent-12 truncate">
                           <TimestampInfo value={value} />

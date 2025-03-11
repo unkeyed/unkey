@@ -19,6 +19,7 @@ export interface QueryApiKeysResult {
 
 /**
  * Abstracts the common database query pattern for API keys
+ * With proper identity relation joining
  *
  * @param input Query parameters including apiId, workspaceId, and optional filters
  * @returns The API's keyspace ID, matching keys, and processed keyIds filter
@@ -29,7 +30,6 @@ export async function queryApiKeys({
   keyIds: keyIdsFromInput,
   names: namesFromInput,
 }: QueryApiKeysInput): Promise<QueryApiKeysResult> {
-  // Query the API and related keys with filters
   const combinedResults = await db.query.apis
     .findFirst({
       where: (api, { and, eq, isNull }) =>
@@ -38,6 +38,33 @@ export async function queryApiKeys({
         keyAuth: {
           with: {
             keys: {
+              with: {
+                permissions: {
+                  with: {
+                    permission: {
+                      columns: {
+                        name: true,
+                        description: true,
+                      },
+                    },
+                  },
+                },
+                roles: {
+                  with: {
+                    role: {
+                      columns: {
+                        name: true,
+                        description: true,
+                      },
+                    },
+                  },
+                },
+                identity: {
+                  columns: {
+                    externalId: true,
+                  },
+                },
+              },
               where: (key, { and, isNull, inArray, sql }) => {
                 const conditions = [isNull(key.deletedAtM)];
 
@@ -83,6 +110,7 @@ export async function queryApiKeys({
 
                 return and(...conditions);
               },
+              // Include all key columns
               columns: {
                 id: true,
                 keyAuthId: true,
@@ -96,10 +124,6 @@ export async function queryApiKeys({
                 ratelimitLimit: true,
                 ratelimitDuration: true,
                 environment: true,
-                refillDay: true,
-                refillAmount: true,
-                lastRefillAt: true,
-                expires: true,
                 workspaceId: true,
               },
             },
@@ -144,16 +168,35 @@ export async function queryApiKeys({
   };
 }
 
-/**
- * Helper function to convert key DB results to a Map for easy lookup
- *
- * @param keys Array of key objects from the database
- * @returns Map of key IDs to formatted key details
- */
 export function createKeyDetailsMap(keys: any[]): Map<string, any> {
   const keyDetailsMap = new Map();
 
   for (const key of keys) {
+    // Format roles data
+    const rolesData = key.roles
+      ? key.roles.map((roleRelation: any) => ({
+          name: roleRelation.role.name,
+          description: roleRelation.role.description,
+          createdAt: roleRelation.role.createdAtM,
+          updatedAt: roleRelation.role.updatedAtM,
+        }))
+      : [];
+
+    const permissionsData = key.permissions
+      ? key.permissions.map((permRelation: any) => ({
+          name: permRelation.permission.name,
+          description: permRelation.permission.description,
+          createdAt: permRelation.permission.createdAtM,
+          updatedAt: permRelation.permission.updatedAtM,
+        }))
+      : [];
+
+    const identityData = key.identity
+      ? {
+          external_id: key.identity.externalId,
+        }
+      : null;
+
     const keyDetails = {
       id: key.id,
       key_auth_id: key.keyAuthId,
@@ -167,15 +210,35 @@ export function createKeyDetailsMap(keys: any[]): Map<string, any> {
       ratelimit_limit: key.ratelimitLimit,
       ratelimit_duration: key.ratelimitDuration,
       environment: key.environment,
-      refill_day: key.refillDay,
-      refill_amount: key.refillAmount,
-      last_refill_at: key.lastRefillAt,
-      expires: key.expires,
       workspace_id: key.workspaceId,
+      identity: identityData,
+      roles: rolesData,
+      permissions: permissionsData,
     };
 
     keyDetailsMap.set(key.id, keyDetails);
   }
 
   return keyDetailsMap;
+}
+
+export function extractRolesAndPermissions(key: any) {
+  const roles = key.roles
+    ? key.roles.map((roleRelation: any) => ({
+        name: roleRelation.role.name,
+        description: roleRelation.role.description,
+      }))
+    : [];
+
+  const permissions = key.permissions
+    ? key.permissions.map((permRelation: any) => ({
+        name: permRelation.permission.name,
+        description: permRelation.permission.description,
+      }))
+    : [];
+
+  return {
+    roles,
+    permissions,
+  };
 }

@@ -52,6 +52,18 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         },
       },
       {
+        key: "external_id",
+        header: "External ID",
+        width: "15%",
+        render: (log) => {
+          return (
+            <div className="flex gap-3 items-center group/name truncate font-mono">
+              {(log.key_details?.identity?.external_id ?? log.key_details?.owner_id) || "<EMPTY>"}
+            </div>
+          );
+        },
+      },
+      {
         key: "valid",
         header: "Valid",
         width: "15%",

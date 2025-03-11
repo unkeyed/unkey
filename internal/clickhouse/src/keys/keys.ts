@@ -45,6 +45,26 @@ export const keysOverviewLogsParams = z.object({
   cursorRequestId: z.string().nullable(),
 });
 
+export const roleSchema = z.object({
+  name: z.string(),
+  description: z.string().nullable(),
+});
+
+export type Role = z.infer<typeof roleSchema>;
+
+export const permissionSchema = z.object({
+  name: z.string(),
+  description: z.string().nullable(),
+});
+
+export type Permission = z.infer<typeof permissionSchema>;
+
+export const identitySchema = z.object({
+  external_id: z.string().nullable(),
+});
+
+export type Identity = z.infer<typeof identitySchema>;
+
 export const keyDetailsResponseSchema = z.object({
   id: z.string(),
   key_auth_id: z.string(),
@@ -58,13 +78,11 @@ export const keyDetailsResponseSchema = z.object({
   ratelimit_limit: z.number().nullable(),
   ratelimit_duration: z.number().nullable(),
   environment: z.string().nullable(),
-  refill_day: z.number().nullable(),
-  refill_amount: z.number().nullable(),
-  last_refill_at: z.date().nullable(),
-  expires: z.date().nullable(),
   workspace_id: z.string(),
+  identity: identitySchema.nullable(),
+  roles: z.array(roleSchema),
+  permissions: z.array(permissionSchema),
 });
-
 export type KeyDetailsResponse = z.infer<typeof keyDetailsResponseSchema>;
 
 export const rawKeysOverviewLogs = z.object({

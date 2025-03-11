@@ -32,6 +32,7 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
       keyIds: transformedInputs.keyIds,
       names: transformedInputs.names,
     });
+
     const keyDetailsMap = createKeyDetailsMap(keys);
 
     const result = await clickhouse.api.keys.logs({
@@ -54,7 +55,6 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
     }
 
     const logs = result.val || [];
-
     if (logs.length === 0) {
       return {
         keysOverviewLogs: [],
