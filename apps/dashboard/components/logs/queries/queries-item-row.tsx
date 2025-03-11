@@ -12,6 +12,7 @@ export const QueriesItemRow = ({ list, field, icon }: QueriesItemRowProps) => {
   if (!list) {
     return null;
   }
+
   const operator = () => {
     if (!list) {
       return null;

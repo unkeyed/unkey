@@ -111,7 +111,7 @@ export const DatetimePopover = ({
         <div className="flex flex-row items-center">{children}</div>
       </PopoverTrigger>
       <PopoverContent
-        className="flex w-full bg-gray-1 dark:bg-black drop-shadow-3 p-0 m-0 border-gray-6 rounded-lg"
+        className="flex w-full p-0 m-0 rounded-lg bg-gray-1 dark:bg-black drop-shadow-3 border-gray-6"
         align="start"
       >
         <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
@@ -124,7 +124,7 @@ export const DatetimePopover = ({
             from: startTime ? new Date(startTime) : undefined,
             to: endTime ? new Date(endTime) : undefined,
           }}
-          className="gap-3 h-full"
+          className="h-full gap-3"
         >
           <DateTime.Calendar
             mode="range"
@@ -134,7 +134,7 @@ export const DatetimePopover = ({
           <DateTime.Actions className="px-3.5 h-full pb-4">
             <Button
               variant="primary"
-              className="font-sans w-full h-9 rounded-md"
+              className="w-full font-sans rounded-md h-9"
               onClick={handleApplyFilter}
               disabled={!isTimeChanged}
             >
@@ -149,9 +149,9 @@ export const DatetimePopover = ({
 
 const PopoverHeader = () => {
   return (
-    <div className="flex w-full h-8 justify-between px-2">
+    <div className="flex justify-between w-full h-8 px-2">
       <span className="text-gray-9 text-[13px] w-full">Filter by time range</span>
-      <KeyboardButton shortcut="T" className="p-0 m-0 min-w-5 w-5 h-5" />
+      <KeyboardButton shortcut="T" className="w-5 h-5 p-0 m-0 min-w-5" />
     </div>
   );
 };

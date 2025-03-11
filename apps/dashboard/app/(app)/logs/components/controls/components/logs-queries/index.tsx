@@ -9,17 +9,14 @@ export const LogsQueries = () => {
       <div className="group">
         <Button
           variant="ghost"
-          className={cn("flex flex-row group-data-[state=open]:bg-gray-4 p-0 m-0 h-[24px]")}
+          size="md"
+          className={cn("group-data-[state=open]:bg-gray-4 px-2 rounded-lg")}
           aria-label="Log queries"
           aria-haspopup="true"
           title="Press 'Q' to toggle queries"
         >
-          <div className="flex flex-row pt-[5px] pl-2 m-0 mr-0 pr-0 text-gray-9">
-            <ChartBarAxisY />
-          </div>
-          <div className="p-0 pl-0 pr-2 m-0 mr-0">
-            <span className="text-gray-12 font-medium text-[13px] leading-4">Queries</span>
-          </div>
+          <ChartBarAxisY size="md-regular" className="mt-1 ml-[3px] text-gray-9" />
+          <span className="text-gray-12 font-medium text-[13px] leading-4">Queries</span>
         </Button>
       </div>
     </QueriesPopover>
