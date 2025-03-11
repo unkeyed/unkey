@@ -44,6 +44,8 @@ func setupLogger() {
 }
 
 func init() {
+	setupLogger()
+
 	CLICKHOUSE_URL = os.Getenv("CLICKHOUSE_URL")
 	if CLICKHOUSE_URL == "" {
 		panic("CLICKHOUSE_URL must be defined")
@@ -112,8 +114,6 @@ func persist(batch *Batch) error {
 }
 
 func main() {
-	setupLogger()
-
 	requiredAuthorization := "Basic " + base64.StdEncoding.EncodeToString([]byte(BASIC_AUTH))
 
 	buffer := make(chan *Batch, MAX_BUFFER_SIZE)
