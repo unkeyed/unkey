@@ -16,18 +16,26 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   const hasMoreBlocked = calculateBlockedPercentage(log);
   const totalRequests = log.blocked_count + log.passed_count;
   const blockRate = totalRequests > 0 ? (log.blocked_count / totalRequests) * 100 : 0;
+  const isFullyBlocked = blockRate === 100;
 
   return (
     <div className="flex gap-6 items-center pl-2">
       <RatelimitOverviewTooltip
         content={
           <p className="text-sm">
-            More than {Math.round(blockRate)}% of requests have been
-            <br />
-            blocked in this timeframe
+            {isFullyBlocked ? (
+              "All requests have been blocked in this timeframe"
+            ) : (
+              <>
+                More than {Math.round(blockRate)}% of requests have been
+                <br />
+                blocked in this timeframe
+              </>
+            )}
           </p>
         }
       >
+        {" "}
         <div className={cn(hasMoreBlocked ? "block" : "invisible")}>
           <TriangleWarning2 />
         </div>

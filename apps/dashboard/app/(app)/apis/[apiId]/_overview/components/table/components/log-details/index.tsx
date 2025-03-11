@@ -104,14 +104,14 @@ export const KeysOverviewLogDetails = ({
     >
       <LogHeader log={log} onClose={handleClose} />
       <SummarySection summaryStats={summaryStats} />
-      <LogSection title="Identifiers" details={identifiers} />
       <LogSection title="Usage" details={usage} />
+      {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
       <LogSection title="Limits" details={limits} />
+      <LogSection title="Identifiers" details={identifiers} />
       <LogSection title="Identity" details={identity} />
       <RolesSection roles={log.key_details.roles || []} />
       <PermissionsSection permissions={log.key_details.permissions || []} />
 
-      {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
       <LogSection title="Meta" details={metaString} />
     </ResizablePanel>
   );
