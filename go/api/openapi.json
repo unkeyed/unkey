@@ -234,18 +234,23 @@
           "namespace": {
             "description": "The namespace name for the rate limit.",
             "type": "string",
-            "example": "sms.sign_up"
+            "example": "sms.sign_up",
+            "minLength": 1,
+            "maxLength": 255
           },
           "cost": {
             "description": "The cost of the request. Defaults to 1 if not provided.",
             "format": "int64",
             "type": "integer",
-            "default": 1
+            "default": 1,
+            "minimum": 0
           },
           "duration": {
             "description": "The duration in milliseconds for the rate limit window.",
             "format": "int64",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 86400000
           },
           "identifier": {
             "description": "The identifier for the rate limit.",
@@ -254,7 +259,8 @@
           "limit": {
             "description": "The maximum number of requests allowed.",
             "format": "int64",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1
           }
         },
         "required": ["namespace", "identifier", "limit", "duration"],
@@ -281,6 +287,10 @@
           "success": {
             "description": "Whether the request passed the ratelimit. If false, the request must be blocked.",
             "type": "boolean"
+          },
+          "overrideId": {
+            "description": "The override that was used. May be empty",
+            "type": "string"
           }
         },
         "required": ["limit", "remaining", "reset", "success"],

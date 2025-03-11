@@ -1,6 +1,9 @@
 package zen
 
 import (
+	"context"
+	"log"
+
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
 
@@ -21,13 +24,14 @@ import (
 //	)
 func WithValidation(validator *validation.Validator) Middleware {
 	return func(next HandleFunc) HandleFunc {
-		return func(s *Session) error {
+		return func(ctx context.Context, s *Session) error {
 			err, valid := validator.Validate(s.r)
+			log.Println("Validtion running", err, valid)
 			if !valid {
 				err.RequestId = s.requestID
 				return s.JSON(err.Status, err)
 			}
-			return next(s)
+			return next(ctx, s)
 		}
 	}
 }

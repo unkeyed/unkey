@@ -19,8 +19,7 @@ INSERT INTO ` + "`" + `workspaces` + "`" + ` (
     beta_features,
     features,
     enabled,
-    delete_protection,
-    subscriptions
+    delete_protection
 )
 VALUES (
     ?,
@@ -31,8 +30,7 @@ VALUES (
     '{}',
     '{}',
     true,
-    true,
-    '{}'
+    true
 )
 `
 
@@ -54,8 +52,7 @@ type InsertWorkspaceParams struct {
 //	    beta_features,
 //	    features,
 //	    enabled,
-//	    delete_protection,
-//	    subscriptions
+//	    delete_protection
 //	)
 //	VALUES (
 //	    ?,
@@ -66,8 +63,7 @@ type InsertWorkspaceParams struct {
 //	    '{}',
 //	    '{}',
 //	    true,
-//	    true,
-//	    '{}'
+//	    true
 //	)
 func (q *Queries) InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error {
 	_, err := db.ExecContext(ctx, insertWorkspace,

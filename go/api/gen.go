@@ -137,6 +137,9 @@ type V2RatelimitLimitResponseBody struct {
 	// Limit The maximum number of requests allowed.
 	Limit int64 `json:"limit"`
 
+	// OverrideId The override that was used. May be empty
+	OverrideId *string `json:"overrideId,omitempty"`
+
 	// Remaining The number of requests remaining in the current window.
 	Remaining int64 `json:"remaining"`
 

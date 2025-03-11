@@ -13,7 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
+	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/logging"
@@ -43,6 +45,7 @@ type Harness struct {
 	Logger      logging.Logger
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
+	Ratelimit   ratelimit.Service
 	Resources   Resources
 }
 
@@ -82,6 +85,13 @@ func NewHarness(t *testing.T) *Harness {
 		Logger: logger,
 	})
 
+	ratelimitService, err := ratelimit.New(ratelimit.Config{
+		Logger:  logger,
+		Cluster: cluster.NewNoop("test", "localhost"),
+		Clock:   clk,
+	})
+	require.NoError(t, err)
+
 	h := Harness{
 		t:           t,
 		Logger:      logger,
@@ -90,6 +100,7 @@ func NewHarness(t *testing.T) *Harness {
 		validator:   validator,
 		Keys:        keyService,
 		Permissions: permissionService,
+		Ratelimit:   ratelimitService,
 		DB:          db,
 		// resources are seeded later
 		// nolint:exhaustruct
@@ -100,7 +111,7 @@ func NewHarness(t *testing.T) *Harness {
 			zen.WithTracing(),
 			//	zen.WithMetrics(svc.EventBuffer)
 			zen.WithLogging(logger),
-			zen.WithErrorHandling(),
+			zen.WithErrorHandling(logger),
 			zen.WithValidation(validator),
 		},
 	}
@@ -276,6 +287,7 @@ func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Heade
 	var responseBody Res
 	err = json.Unmarshal(rawBody, &responseBody)
 	require.NoError(h.t, err)
+
 	res.Body = &responseBody
 
 	return res

@@ -105,7 +105,10 @@ func run(ctx context.Context, cmd *cli.Command) error {
 						"id", e.Workspace.ID,
 					)
 					if slackWebhookURL != "" {
-						sendSlackNotification(slackWebhookURL, e, usage)
+						err = sendSlackNotification(slackWebhookURL, e, usage)
+						if err != nil {
+							panic(err)
+						}
 					}
 				}
 				wg.Done()

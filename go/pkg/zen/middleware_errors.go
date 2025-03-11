@@ -1,10 +1,12 @@
 package zen
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/api"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/logging"
 )
 
 // WithErrorHandling returns middleware that translates errors into appropriate
@@ -23,14 +25,46 @@ import (
 //	    []zen.Middleware{zen.WithErrorHandling()},
 //	    route,
 //	)
-func WithErrorHandling() Middleware {
+func WithErrorHandling(logger logging.Logger) Middleware {
 	return func(next HandleFunc) HandleFunc {
-		return func(s *Session) error {
-			err := next(s)
+		return func(ctx context.Context, s *Session) error {
+			err := next(ctx, s)
 
 			if err == nil {
 				return nil
 			}
+
+			//	errorSteps := fault.Flatten(err)
+			//	if len(errorSteps) > 0 {
+
+			//		var b strings.Builder
+			//		b.WriteString("Error trace:\n")
+
+			//		for i, step := range errorSteps {
+			//			// Skip empty messages
+			//			if step.Message == "" {
+			//				continue
+			//			}
+
+			//			b.WriteString(fmt.Sprintf("  Step %d:\n", i+1))
+
+			//			if step.Location != "" {
+			//				b.WriteString(fmt.Sprintf("    Location: %s\n", step.Location))
+			//			} else {
+			//				b.WriteString("    Location: unknown\n")
+			//			}
+
+			//			b.WriteString(fmt.Sprintf("    Message: %s\n", step.Message))
+
+			//			// Add a small separator between steps
+			//			if i < len(errorSteps)-1 {
+			//				b.WriteString("\n")
+			//			}
+			//		}
+
+			//		logger.Error("api encountered errors", "trace", b.String())
+
+			//	}
 
 			switch fault.GetTag(err) {
 			case fault.NOT_FOUND:

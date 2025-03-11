@@ -51,6 +51,7 @@ func New() (*Validator, error) {
 		validator: v,
 	}, nil
 }
+
 func (v *Validator) Validate(r *http.Request) (api.BadRequestError, bool) {
 
 	valid, errors := v.validator.ValidateHttpRequest(r)

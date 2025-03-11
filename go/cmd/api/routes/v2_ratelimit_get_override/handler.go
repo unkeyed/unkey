@@ -28,9 +28,9 @@ type Services struct {
 }
 
 func New(svc Services) zen.Route {
-	return zen.NewRoute("POST", "/v2/ratelimit.getOverride", func(s *zen.Session) error {
+	return zen.NewRoute("POST", "/v2/ratelimit.getOverride", func(ctx context.Context, s *zen.Session) error {
 
-		auth, err := svc.Keys.VerifyRootKey(s.Context(), s)
+		auth, err := svc.Keys.VerifyRootKey(ctx, s)
 		if err != nil {
 			return err
 		}
@@ -45,7 +45,7 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		namespace, err := getNamespace(s.Context(), svc, auth.AuthorizedWorkspaceID, req)
+		namespace, err := getNamespace(ctx, svc, auth.AuthorizedWorkspaceID, req)
 
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -64,7 +64,7 @@ func New(svc Services) zen.Route {
 		}
 
 		permissions, err := svc.Permissions.Check(
-			s.Context(),
+			ctx,
 			auth.KeyID,
 			rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -93,7 +93,7 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		override, err := db.Query.FindRatelimitOverridesByIdentifier(s.Context(), svc.DB.RO(), db.FindRatelimitOverridesByIdentifierParams{
+		override, err := db.Query.FindRatelimitOverridesByIdentifier(ctx, svc.DB.RO(), db.FindRatelimitOverridesByIdentifierParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
 			Identifier:  req.Identifier,
