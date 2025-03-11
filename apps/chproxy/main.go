@@ -199,6 +199,7 @@ func main() {
 		if err != nil {
 			logger.Error("failed to read request body", slog.String("error", err.Error()))
 			http.Error(w, "cannot read body", http.StatusInternalServerError)
+			return
 		}
 		rows := strings.Split(string(body), "\n")
 
