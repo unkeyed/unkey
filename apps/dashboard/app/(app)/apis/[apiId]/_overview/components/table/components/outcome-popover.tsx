@@ -1,4 +1,5 @@
 "use client";
+import { compactFormatter } from "@/components/logs/overview-charts/utils";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -6,11 +7,6 @@ import { ChevronRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { formatOutcomeName, getOutcomeBadgeStyle, getOutcomeColor } from "../../../utils";
 import { STATUS_STYLES } from "../utils/get-row-class";
-
-const compactFormatter = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
 
 type OutcomesPopoverProps = {
   outcomeCounts: Record<string, number>;

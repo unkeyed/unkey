@@ -11,12 +11,16 @@ type IdentifierColumnProps = {
   log: RatelimitOverviewLog;
 };
 
+const PERCENTAGE_MULTIPLIER = 100;
+const FULLY_BLOCKED_PERCENTAGE = 100;
+
 export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   const style = getStatusStyle(log);
   const hasMoreBlocked = calculateBlockedPercentage(log);
   const totalRequests = log.blocked_count + log.passed_count;
-  const blockRate = totalRequests > 0 ? (log.blocked_count / totalRequests) * 100 : 0;
-  const isFullyBlocked = blockRate === 100;
+  const blockRate =
+    totalRequests > 0 ? (log.blocked_count / totalRequests) * PERCENTAGE_MULTIPLIER : 0;
+  const isFullyBlocked = blockRate === FULLY_BLOCKED_PERCENTAGE;
 
   return (
     <div className="flex gap-6 items-center pl-2">

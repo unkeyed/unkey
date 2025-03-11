@@ -31,7 +31,7 @@ export const keyVerificationsTimeseries = rateLimitedProcedure(ratelimit.read)
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "Failed to retrieve ratelimit timeseries analytics due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
+          "Failed to retrieve key verification timeseries analytics due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
       });
     }
 
