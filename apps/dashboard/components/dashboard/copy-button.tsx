@@ -31,7 +31,8 @@ export function CopyButton({ value, className, src, ...props }: CopyButtonProps)
     <button
       type="button"
       className={cn("relative p-1 focus:outline-none h-6 w-6 ", className)}
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation(); // Prevent triggering parent button click
         copyToClipboardWithMeta(value, {
           component: src,
         });
