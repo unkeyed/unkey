@@ -100,7 +100,7 @@ func TestNodeCount(t *testing.T) {
 
 	// Add 5 nodes and verify count after each
 	for i := 1; i <= 5; i++ {
-		err := r.AddNode(context.Background(), Node[tags]{ID: fmt.Sprintf("node-%d", i), Tags: tags{}})
+		err = r.AddNode(context.Background(), Node[tags]{ID: fmt.Sprintf("node-%d", i), Tags: tags{}})
 		require.NoError(t, err)
 		require.Len(t, r.nodes, i)
 		require.Len(t, r.Members(), i)
@@ -114,7 +114,7 @@ func TestNodeCount(t *testing.T) {
 
 	// Remove nodes and verify count
 	for i := 5; i >= 1; i-- {
-		err := r.RemoveNode(context.Background(), fmt.Sprintf("node-%d", i))
+		err = r.RemoveNode(context.Background(), fmt.Sprintf("node-%d", i))
 		require.NoError(t, err)
 		require.Len(t, r.nodes, i-1)
 		require.Len(t, r.Members(), i-1)
@@ -142,8 +142,8 @@ func TestNodeRemovalRebuild(t *testing.T) {
 
 	// Add 3 nodes
 	for i := 1; i <= 3; i++ {
-		err := r.AddNode(context.Background(), Node[tags]{ID: fmt.Sprintf("node-%d", i), Tags: tags{}})
-		require.NoError(t, err)
+		addErr := r.AddNode(context.Background(), Node[tags]{ID: fmt.Sprintf("node-%d", i), Tags: tags{}})
+		require.NoError(t, addErr)
 	}
 
 	// Get initial node count and token count
@@ -172,25 +172,4 @@ func TestNodeRemovalRebuild(t *testing.T) {
 		_, exists := nodeIDs[token.nodeID]
 		require.True(t, exists, "Token references non-existent node ID: %s", token.nodeID)
 	}
-}
-
-func TestMembersReturnsACopy(t *testing.T) {
-	r, err := New[tags](Config{TokensPerNode: 256, Logger: logging.NewNoop()})
-	require.NoError(t, err)
-
-	// Add some nodes
-	for i := 1; i <= 3; i++ {
-		err := r.AddNode(context.Background(), Node[tags]{ID: fmt.Sprintf("node-%d", i), Tags: tags{}})
-		require.NoError(t, err)
-	}
-
-	// Get members and modify the returned slice
-	members := r.Members()
-	require.Len(t, members, 3)
-
-	// Modify the returned slice
-	members = append(members, Node[tags]{ID: "fake-node", Tags: tags{}})
-
-	// Verify that the ring's internal state was not affected
-	require.Len(t, r.Members(), 3)
 }

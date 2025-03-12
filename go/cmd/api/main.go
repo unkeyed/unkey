@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/go/apps/api"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/urfave/cli/v3"
 )
@@ -359,6 +360,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		ClusterAdvertiseAddrAwsEcsMetadata: cmd.Bool("cluster-advertise-addr-aws-ecs-metadata"),
 		ClusterDiscoveryStaticAddrs:        cmd.StringSlice("cluster-discovery-static-addrs"),
 		ClusterDiscoveryRedisURL:           cmd.String("cluster-discovery-redis-url"),
+		Clock:                              clock.New(),
 	}
 
 	err := config.Validate()

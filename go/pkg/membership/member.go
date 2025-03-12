@@ -42,6 +42,7 @@ func (m Member) ToMap() map[string]string {
 }
 
 func memberFromMap(m map[string]string) (Member, error) {
+	// nolint:exhaustruct
 	member := Member{}
 
 	if nodeID, ok := m["nodeId"]; ok {

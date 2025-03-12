@@ -123,6 +123,9 @@ func (m *serfMembership) handleEvents(ch <-chan serf.Event) {
 				case serf.EventMemberUpdate:
 					m.logger.Debug("Emitting update event", "nodeID", mem.NodeID)
 					m.onUpdate.Emit(context.Background(), mem)
+				case serf.EventMemberReap:
+				case serf.EventUser:
+				case serf.EventQuery:
 				}
 			}
 		}

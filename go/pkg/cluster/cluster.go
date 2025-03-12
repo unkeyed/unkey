@@ -51,10 +51,13 @@ func New(config Config) (*cluster, error) {
 
 	go c.keepInSync()
 
-	r.AddNode(context.Background(), ring.Node[Node]{
+	err = r.AddNode(context.Background(), ring.Node[Node]{
 		ID:   config.Self.ID,
 		Tags: config.Self,
 	})
+	if err != nil {
+		return nil, err
+	}
 	return c, nil
 }
 
@@ -68,8 +71,6 @@ type cluster struct {
 
 	joinEvents  events.Topic[Node]
 	leaveEvents events.Topic[Node]
-
-	rpcPort int
 }
 
 // Ensure cluster implements the Cluster interface
@@ -108,7 +109,7 @@ func (c *cluster) keepInSync() {
 				err := c.ring.AddNode(ctx, ring.Node[Node]{
 					ID: node.NodeID,
 					Tags: Node{
-						RpcAddr: fmt.Sprintf("%s:%d", node.Host, c.rpcPort),
+						RpcAddr: fmt.Sprintf("%s:%d", node.Host, node.RpcPort),
 						ID:      node.NodeID,
 					},
 				})

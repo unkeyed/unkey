@@ -226,8 +226,8 @@ func TestRPCPortPropagation(t *testing.T) {
 
 	// Wait for cluster to form
 	require.Eventually(t, func() bool {
-		members, err := m1.Members()
-		return err == nil && len(members) == 2
+		members, membersErr := m1.Members()
+		return membersErr == nil && len(members) == 2
 	}, 5*time.Second, 10*time.Millisecond)
 
 	// Check if m1 can see m2's RPC port
@@ -266,8 +266,8 @@ func TestRejoinAfterLeave(t *testing.T) {
 
 	// Wait for the node to be recognized as gone
 	require.Eventually(t, func() bool {
-		members, err := nodes[0].Members()
-		require.NoError(t, err)
+		members, membersErr := nodes[0].Members()
+		require.NoError(t, membersErr)
 		return len(members) == 2
 	}, 5*time.Second, 10*time.Millisecond)
 
@@ -325,7 +325,6 @@ func TestConcurrentJoins(t *testing.T) {
 
 	// Create and start nodes concurrently
 	for i := 0; i < numNodes; i++ {
-		i := i // Capture loop variable
 		go func() {
 			defer wg.Done()
 
@@ -506,7 +505,6 @@ func TestMultipleNodesLeaving(t *testing.T) {
 	leaveWg.Add(3)
 
 	for i := 1; i < 4; i++ {
-		i := i
 		go func() {
 			defer leaveWg.Done()
 			err := nodes[i].Leave()

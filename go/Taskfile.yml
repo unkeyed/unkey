@@ -7,9 +7,15 @@ tasks:
     cmds:
       - go fmt ./...
       - task: lint
-  test:
+
+  pull:
     cmds:
       - docker pull mysql:latest
+
+  test:
+    deps:
+      - pull
+    cmds:
       - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
 
   test-e2e:

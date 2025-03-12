@@ -74,8 +74,7 @@ func TestClusterAddsSelfToRing(t *testing.T) {
 
 	// Wait for the memberlist to exchange information and for the ring to be updated
 	require.Eventually(t, func() bool {
-		members := cluster.ring.Members()
-		return len(members) == 2
+		return len(cluster.ring.Members()) == 2
 	}, 5*time.Second, 100*time.Millisecond, "Ring should eventually contain both nodes")
 
 	// Verify we can find both nodes by their IDs

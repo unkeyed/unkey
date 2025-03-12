@@ -28,10 +28,10 @@ func TestRateLimitAccuracy(t *testing.T) {
 	durations := []int64{
 		1 * time.Second.Milliseconds(),
 		5 * time.Second.Milliseconds(),
-		//1*		time.Minute.Milliseconds(),
-		//		5 * time.Minute.Milliseconds(),
-		//	1*	time.Hour.Milliseconds(),
-		//		24 * time.Minute.Milliseconds(),
+		// 1 *time.Minute.Milliseconds(),
+		// 5 * time.Minute.Milliseconds(),
+		// 1 *time.Hour.Milliseconds(),
+		// 24 * time.Minute.Milliseconds(),
 	}
 
 	// Define load patterns as multipliers of the limit

@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/port"
 	"github.com/unkeyed/unkey/go/pkg/testflags"
-	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -21,7 +21,7 @@ func TestClusterFormation(t *testing.T) {
 	testflags.SkipUnlessIntegration(t)
 
 	// Create a containers instance for database
-	containers := testutil.NewContainers(t)
+	containers := containers.New(t)
 	dbDsn := containers.RunMySQL()
 
 	// Get free ports for the nodes
@@ -69,7 +69,7 @@ func TestClusterFormation(t *testing.T) {
 			}
 			require.NoError(t, res.Body.Close())
 
-			return res.StatusCode == 200
+			return res.StatusCode == http.StatusOK
 
 		}, time.Second*10, time.Millisecond*100)
 

@@ -2,8 +2,10 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -37,7 +39,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	shutdowns := []shutdown.ShutdownFn{}
+	shutdowns := shutdown.New()
 
 	clk := clock.New()
 
@@ -68,7 +70,7 @@ func Run(ctx context.Context, cfg Config) error {
 		if grafanaErr != nil {
 			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
 		}
-		shutdowns = append(shutdowns, shutdownOtel...)
+		shutdowns.RegisterCtx(shutdownOtel...)
 	}
 
 	db, err := db.New(db.Config{
@@ -82,11 +84,10 @@ func Run(ctx context.Context, cfg Config) error {
 
 	defer db.Close()
 
-	c, shutdownCluster, err := setupCluster(cfg, logger)
+	c, err := setupCluster(cfg, logger, shutdowns)
 	if err != nil {
 		return fmt.Errorf("unable to create cluster: %w", err)
 	}
-	shutdowns = append(shutdowns, shutdownCluster...)
 
 	var ch clickhouse.Bufferer = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
@@ -105,7 +106,9 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
+
 	}
+	shutdowns.Register(srv.Shutdown)
 
 	validator, err := validation.New()
 	if err != nil {
@@ -144,41 +147,42 @@ func Run(ctx context.Context, cfg Config) error {
 
 	go func() {
 		listenErr := srv.Listen(ctx, fmt.Sprintf(":%d", cfg.HttpPort))
-		if listenErr != nil {
+		if listenErr != nil && !errors.Is(listenErr, http.ErrServerClosed) {
 			panic(listenErr)
 		}
 	}()
 
 	return gracefulShutdown(ctx, logger, shutdowns)
 }
-
-func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns []shutdown.ShutdownFn) error {
+func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns *shutdown.Shutdowns) error {
 	cShutdown := make(chan os.Signal, 1)
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
 
-	<-cShutdown
-	ctx, cancel := context.WithTimeout(ctx, time.Minute)
-	defer cancel()
-	logger.Info("shutting down")
+	// Create a channel that closes when the context is done
+	done := ctx.Done()
 
-	errors := []error{}
-	for i := len(shutdowns) - 1; i >= 0; i-- {
-		err := shutdowns[i](ctx)
-		if err != nil {
-			errors = append(errors, err)
-		}
+	// Wait for either a signal or context cancellation
+	select {
+	case <-cShutdown:
+		logger.Info("shutting down due to signal")
+	case <-done:
+		logger.Info("shutting down due to context cancellation")
 	}
 
-	if len(errors) > 0 {
-		return fmt.Errorf("errors occurred during shutdown: %v", errors)
+	// Create a timeout context for the shutdown process
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	errs := shutdowns.Shutdown(shutdownCtx)
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors occurred during shutdown: %v", errs)
 	}
 	return nil
 }
-
-func setupCluster(cfg Config, logger logging.Logger) (cluster.Cluster, []shutdown.ShutdownFn, error) {
-	shutdowns := []shutdown.ShutdownFn{}
+func setupCluster(cfg Config, logger logging.Logger, shutdowns *shutdown.Shutdowns) (cluster.Cluster, error) {
 	if !cfg.ClusterEnabled {
-		return cluster.NewNoop("", "127.0.0.1"), shutdowns, nil
+		return cluster.NewNoop("", "127.0.0.1"), nil
 	}
 
 	var advertiseHost string
@@ -194,12 +198,12 @@ func setupCluster(cfg Config, logger logging.Logger) (cluster.Cluster, []shutdow
 				var getDnsErr error
 				advertiseHost, getDnsErr = ecs.GetPrivateDnsName()
 				if getDnsErr != nil {
-					return nil, shutdowns, fmt.Errorf("unable to get private dns name: %w", getDnsErr)
+					return nil, fmt.Errorf("unable to get private dns name: %w", getDnsErr)
 				}
 
 			}
 		default:
-			return nil, shutdowns, fmt.Errorf("invalid advertise address configuration")
+			return nil, fmt.Errorf("invalid advertise address configuration")
 		}
 	}
 
@@ -207,10 +211,12 @@ func setupCluster(cfg Config, logger logging.Logger) (cluster.Cluster, []shutdow
 		NodeID:        cfg.ClusterNodeID,
 		AdvertiseHost: advertiseHost,
 		GossipPort:    cfg.ClusterGossipPort,
+		RpcPort:       cfg.ClusterRpcPort,
+		HttpPort:      cfg.HttpPort,
 		Logger:        logger,
 	})
 	if err != nil {
-		return nil, shutdowns, fmt.Errorf("unable to create membership: %w", err)
+		return nil, fmt.Errorf("unable to create membership: %w", err)
 	}
 
 	c, err := cluster.New(cluster.Config{
@@ -222,9 +228,9 @@ func setupCluster(cfg Config, logger logging.Logger) (cluster.Cluster, []shutdow
 		Membership: m,
 	})
 	if err != nil {
-		return nil, shutdowns, fmt.Errorf("unable to create cluster: %w", err)
+		return nil, fmt.Errorf("unable to create cluster: %w", err)
 	}
-	shutdowns = append(shutdowns, c.Shutdown)
+	shutdowns.RegisterCtx(c.Shutdown)
 
 	var d discovery.Discoverer
 
@@ -246,22 +252,22 @@ func setupCluster(cfg Config, logger logging.Logger) (cluster.Cluster, []shutdow
 				Logger: logger,
 			})
 			if rErr != nil {
-				return nil, shutdowns, fmt.Errorf("unable to create redis discovery: %w", rErr)
+				return nil, fmt.Errorf("unable to create redis discovery: %w", rErr)
 			}
-			shutdowns = append(shutdowns, rd.Shutdown)
+			shutdowns.RegisterCtx(rd.Shutdown)
 			d = rd
 			break
 		}
 	default:
 		{
-			return nil, nil, fmt.Errorf("missing discovery method")
+			return nil, fmt.Errorf("missing discovery method")
 		}
 	}
 
 	err = m.Start(d)
 	if err != nil {
-		return nil, nil, fmt.Errorf("unable to start membership: %w", err)
+		return nil, fmt.Errorf("unable to start membership: %w", err)
 	}
 
-	return c, shutdowns, nil
+	return c, nil
 }
