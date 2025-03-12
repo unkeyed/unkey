@@ -1,10 +1,9 @@
-import type { LogsFilterField, LogsFilterUrlValue } from "@/app/(app)/logs/filters.schema";
 import type { ReactNode } from "react";
 import { QueriesPill } from "./queries-pill";
 
-type QueriesItemRowProps = {
-  list: LogsFilterUrlValue[] | null;
-  field: LogsFilterField | "time";
+type QueriesItemRowProps<TField = string, TValue = {value: string | number, operator: string}> = {
+  list: TValue[] | null;
+  field: TField;
   icon: ReactNode;
 };
 

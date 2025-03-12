@@ -1,45 +1,72 @@
-import type { LogsFilterValue, QuerySearchParams } from "@/app/(app)/logs/filters.schema";
-import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { KeyboardButton } from "@/components/keyboard-button";
-import {
-  type SavedFiltersGroup,
-  useBookmarkedFilters,
-} from "@/components/logs/hooks/use-bookmarked-filters";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useUser } from "@clerk/nextjs";
-import { type PropsWithChildren, useRef, useState } from "react";
+import { type PropsWithChildren, useEffect, useRef, useState } from "react";
 import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
 import { QueriesTabs } from "./queries-tabs";
-type QueriesPopoverProps = PropsWithChildren<{
-  localStorageName: string;
-}>;
-export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverProps) => {
-  const { user } = useUser();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { updateFilters } = useFilters();
+
+
+type SavedFiltersGroup<T> = {
+  id: string;
+  createdAt: number;
+  filters: T;
+  bookmarked?: boolean;
+};
+
+interface QueriesPopoverProps extends PropsWithChildren<{
+  savedFilters: SavedFiltersGroup<any>[];
+  toggleBookmark: (groupId: string) => void;
+  applyFilterGroup: (id: string) => void;
+  updateGroups: () => void;  
+  
+}> {}
+
+export const QueriesPopover = ({ children, savedFilters, toggleBookmark, applyFilterGroup, updateGroups }: QueriesPopoverProps) => {
+  // Get the user Data
+
+  const { user } = useUser(); 
+  const containerRef = useRef<HTMLDivElement>(null); 
   const [open, setOpen] = useState(false);
   const [focusedTabIndex, setFocusedTabIndex] = useState(0);
   const [selectedQueryIndex, setSelectedQueryIndex] = useState(0);
-  const { savedFilters, toggleBookmark } = useBookmarkedFilters({ localStorageName });
+  // Things I need to handle here:
+  // - Open/close the popover
+  // - Handle tab change
+  // - Handle selected query
+  // - Handle bookmark changed  
+  // - Track selected query index and focused tab index
+  // - Handle keyboard navigation
+  // - Handle toggling bookmark status with 'b' or 'B'
+  
 
-  const [filterGroups, setfilterGroups] = useState<SavedFiltersGroup[]>(
+  
+
+  const [filterGroups, setfilterGroups] = useState<SavedFiltersGroup<any>[]>(
     savedFilters.filter((filter) => filter),
   );
 
-  const [savedGroups, setSavedGroups] = useState<SavedFiltersGroup[]>(
+  const [savedGroups, setSavedGroups] = useState<SavedFiltersGroup<any>[]>(
     filterGroups.filter((filter) => filter.bookmarked),
   );
 
   const [isDisabled, setIsDisabled] = useState(savedFilters.length === 0);
 
-  const updateGroups = (newGroups: SavedFiltersGroup[]) => {
-    setfilterGroups(newGroups.filter((filter) => filter));
-    setSavedGroups(newGroups.filter((filter) => filter.bookmarked));
+  const handleUpdateGroups = () => {
+    updateGroups();
   };
 
+useEffect(() => {
+  setfilterGroups(savedFilters);
+  setSavedGroups(savedFilters.filter((filter) => filter.bookmarked));
+  setIsDisabled(savedFilters.length === 0);
+}, [savedFilters]);
+
   useKeyboardShortcut("q", () => {
+    console.log({ savedFilters });
+    
     setIsDisabled(savedFilters.length === 0);
     if (!open && !isDisabled) {
       setOpen(true);
@@ -55,65 +82,22 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
   const handleTabChange = (index: number) => {
     setSelectedQueryIndex(0);
     setFocusedTabIndex(index);
-    updateGroups(savedFilters);
+    handleUpdateGroups();
   };
 
-  const handleSelectedQuery = (index: number) => {
-    if (!savedFilters[index]) {
+  const handleSelectedQuery = (id: string) => {
+    const filterId = savedFilters.find((filter) => filter.id === id);
+    const filterIndex = savedFilters.findIndex((filter) => filter.id === id);
+    if (!filterId) {
       return;
     }
-
-    const fieldList: QuerySearchParams = savedFilters[index].filters;
-    const newFilters: LogsFilterValue[] = [];
-
-    Object.entries(fieldList).forEach(([key, values]) => {
-      if (!Array.isArray(values)) {
-        return;
-      }
-      values.forEach((value) =>
-        newFilters.push({
-          id: crypto.randomUUID(),
-          field: key as keyof QuerySearchParams,
-          operator: value.operator,
-          value: value.value,
-        }),
-      );
-    });
-
-    fieldList.startTime &&
-      newFilters.push({
-        id: crypto.randomUUID(),
-        field: "startTime",
-        operator: "is",
-        value: fieldList.startTime,
-      });
-
-    fieldList.endTime &&
-      newFilters.push({
-        id: crypto.randomUUID(),
-        field: "endTime",
-        operator: "is",
-        value: fieldList.endTime,
-      });
-
-    fieldList.since &&
-      newFilters.push({
-        id: crypto.randomUUID(),
-        field: "since",
-        operator: "is",
-        value: fieldList.since,
-      });
-
-    if (newFilters) {
-      updateFilters(newFilters);
-    }
-
-    setSelectedQueryIndex(index);
+    applyFilterGroup(filterId.id);
+    setSelectedQueryIndex(filterIndex);
   };
 
   const handleBookmarkChanged = (groupId: string) => {
-    const newGroups = toggleBookmark(groupId);
-    updateGroups(newGroups);
+    toggleBookmark(groupId);
+    handleUpdateGroups();
   };
 
   const handleKeyNavigation = (e: React.KeyboardEvent) => {
@@ -164,7 +148,7 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
       // Apply the selected filter
       const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
       if (currentList.length > 0 && selectedQueryIndex < currentList.length) {
-        handleSelectedQuery(selectedQueryIndex);
+        handleSelectedQuery(currentList[selectedQueryIndex].id);
         setOpen(false);
       }
     }
@@ -187,7 +171,7 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
         {children}
       </PopoverTrigger>
       <PopoverContent
-        onFocus={() => updateGroups(savedFilters)}
+        onFocus={() => handleUpdateGroups()}
         className="flex flex-col min-w-[430px] w-full h-[924px] bg-white dark:bg-black rounded-lg p-2 pb-0 shadow-lg border-none"
         align="start"
         onKeyDown={handleKeyNavigation}
@@ -205,7 +189,7 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
             list={focusedTabIndex === 0 ? filterGroups : savedGroups}
           />
           {focusedTabIndex === 0 &&
-            filterGroups?.map((filterItem: SavedFiltersGroup, index: number) => {
+            filterGroups?.map((filterItem: SavedFiltersGroup<any>, index: number) => {
               return (
                 <ListGroup
                   key={filterItem.id}
@@ -215,13 +199,13 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
                   total={filterGroups.length}
                   selectedIndex={selectedQueryIndex}
                   isSaved={filterItem.bookmarked}
-                  querySelected={handleSelectedQuery}
+                  querySelected={() => handleSelectedQuery(filterItem.id)}
                   changeBookmark={handleBookmarkChanged}
                 />
               );
             })}
           {focusedTabIndex === 1 &&
-            savedGroups.map((filterItem: SavedFiltersGroup, index: number) => {
+            savedGroups.map((filterItem: SavedFiltersGroup<any>, index: number) => {
               return (
                 <ListGroup
                   key={filterItem.id}
@@ -231,7 +215,7 @@ export const QueriesPopover = ({ children, localStorageName }: QueriesPopoverPro
                   total={savedGroups.filter((filter) => filter.bookmarked).length}
                   selectedIndex={selectedQueryIndex}
                   isSaved={filterItem.bookmarked}
-                  querySelected={handleSelectedQuery}
+                  querySelected={() => handleSelectedQuery(filterItem.id)}
                   changeBookmark={handleBookmarkChanged}
                 />
               );

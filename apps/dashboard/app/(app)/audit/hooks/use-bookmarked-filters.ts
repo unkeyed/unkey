@@ -1,13 +1,13 @@
-import {
-  type LogsFilterField,
-  type LogsFilterValue,
-  type QuerySearchParams,
-  logsFilterFieldConfig,
-} from "@/app/(app)/logs/filters.schema";
-import type { FilterUrlValue } from "@/components/logs/validation/filter.types";
+import type {
+  AuditLogsFilterField,
+  AuditLogsFilterUrlValue,
+  AuditLogsFilterValue,
+  QuerySearchParams,
+} from "@/app/(app)/audit/filters.schema";
 import { useCallback, useEffect } from "react";
 
-import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
+import { useFilters } from "./use-filters";
+
 
 export type SavedFiltersGroup<T> = {
   id: string;
@@ -77,34 +77,26 @@ export const useBookmarkedFilters = ({ localStorageName }: { localStorageName: s
 
   const applyFilterGroup = useCallback(
     (savedGroup: SavedFiltersGroup<QuerySearchParams>) => {
-      const reconstructedFilters: LogsFilterValue[] = [];
+      const reconstructedFilters: AuditLogsFilterValue[] = [];
 
       Object.entries(savedGroup.filters).forEach(([field, value]) => {
         if (["startTime", "endTime", "since"].includes(field)) {
           value &&
             reconstructedFilters.push({
               id: crypto.randomUUID(),
-              field: field as LogsFilterField,
+              field: field as AuditLogsFilterField,
               operator: "is",
               value: value as number | string,
             });
         } else {
           value !== null &&
             value !== undefined &&
-            (value as FilterUrlValue[]).forEach((filter) => {
+            (value as AuditLogsFilterValue[]).forEach((filter) => {
               reconstructedFilters.push({
                 id: crypto.randomUUID(),
-                field: field as LogsFilterField,
+                field: field as AuditLogsFilterField,
                 operator: filter.operator,
                 value: filter.value,
-                metadata:
-                  field === "status"
-                    ? {
-                        colorClass: logsFilterFieldConfig.status.getColorClass?.(
-                          filter.value as number,
-                        ),
-                      }
-                    : undefined,
               });
             });
         }

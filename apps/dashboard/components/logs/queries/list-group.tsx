@@ -1,27 +1,24 @@
 import type { LogsFilterUrlValue } from "@/app/(app)/logs/filters.schema";
-import type { SavedFiltersGroup } from "@/components/logs/hooks/use-bookmarked-filters";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import type { UserResource } from "@clerk/types";
-import {
-  Bookmark,
-  ChartActivity2,
-  CircleCheck,
-  Clock,
-  Conversion,
-  Layers2,
-  Link4,
-} from "@unkey/icons";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { QueriesItemRow } from "./queries-item-row";
 import { QueriesMadeBy } from "./queries-made-by";
 import { QueriesToast } from "./queries-toast";
-import { getSinceTime } from "./utils";
+import { getSinceTime, getIcon } from "./utils";
+import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
 
+type SavedFiltersGroup<T> = {
+  id: string;
+  createdAt: number;
+  filters: T;
+  bookmarked?: boolean;
+};
 type ListGroupProps = {
-  filterList: SavedFiltersGroup;
+  filterList: SavedFiltersGroup<any>;
   user: UserResource | null | undefined;
   index: number;
   total: number;
@@ -52,13 +49,46 @@ export const ListGroup = ({
   querySelected,
   changeBookmark,
 }: ListGroupProps) => {
-  const { status, methods, paths, startTime, endTime, since } = filterList.filters;
   const [toolTipOpen, setToolTipOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<ToolTipMessageType>();
   const [tooltipMessage, setTooltipMessage] = useState<ToolTipMessageType>(
     isSaved ? tooltipMessageOptions.saved : tooltipMessageOptions.save,
   );
+  const formatedFilters = () => {
+    // Create a formatted version of each filter entry
+    const formatted: Record<string, Array<{ operator: string; value: string }>> = {};
 
+    // Process each field in the filters
+    Object.entries(filterList.filters).forEach(([field, value]) => {
+      if (!value || (Array.isArray(value) && value.length === 0)) {
+        return;
+      }
+      if (field === 'startTime' || field === 'endTime' || field === 'since') {
+        formatted.time = [{ operator: "is", value: String(value) }];
+      }
+      // Handle different types of values
+      if (Array.isArray(value)) {
+        // If already in expected format with operator and value
+        if (value[0] && typeof value[0] === 'object' && 'operator' in value[0]) {
+          formatted[field] = value;
+        } else {
+          // Convert simple array values
+          formatted[field] = value.map(item => ({
+            operator: "is",
+            value: String(item)
+          }));
+        }
+      } else if (typeof value === 'object') {
+        // Handle object values
+        formatted[field] = [{ operator: "is", value: JSON.stringify(value) }];
+      } else {
+        // Handle primitive values
+        formatted[field] = [{ operator: "is", value: String(value) }];
+      }
+    });
+
+    return formatted;
+  }
   useEffect(() => {
     if (toastMessage) {
       handleToast(toastMessage);
@@ -73,21 +103,10 @@ export const ListGroup = ({
     );
   };
 
-  const getTime = (): LogsFilterUrlValue[] => {
-    if (startTime && endTime) {
-      return [
-        { operator: "startsWith", value: startTime },
-        { operator: "endsWith", value: endTime },
-      ];
-    }
-    if (startTime) {
-      return [{ operator: "startsWith", value: startTime }];
-    }
-    if (since) {
-      return [{ operator: "is", value: since }];
-    }
-    return [];
-  };
+
+
+
+
 
   const handleBookmarkChanged = () => {
     changeBookmark(filterList.id);
@@ -140,7 +159,19 @@ export const ListGroup = ({
               {/* Vertical Line on Left */}
               <div className="flex flex-col ml-[9px] border-l-[1px] border-l-gray-5 w-[1px]" />
               <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
-                <QueriesItemRow
+      {Object.entries(formatedFilters()).map(([field, list]) => {
+        // Choose icon based on field type
+        const IconComponent = getIcon({ field });
+        return (
+          <QueriesItemRow
+            key={field}
+            list={list}
+            field={field}
+            icon={IconComponent && <IconComponent size="md-regular" className="justify-center" />}
+          />
+        );
+      })}
+                {/* <QueriesItemRow
                   list={status}
                   field="status"
                   icon={<ChartActivity2 size="md-regular" className="justify-center" />}
@@ -159,7 +190,7 @@ export const ListGroup = ({
                   list={getTime()}
                   field="time"
                   icon={<Clock size="md-regular" className="justify-center" />}
-                />
+                /> */}
               </div>
             </div>
             <QueriesMadeBy

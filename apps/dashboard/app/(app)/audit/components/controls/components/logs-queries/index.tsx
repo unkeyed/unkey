@@ -2,14 +2,13 @@ import { QueriesPopover } from "@/components/logs/queries/queries-popover";
 import { cn } from "@/lib/utils";
 import { ChartBarAxisY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { type SavedFiltersGroup, useBookmarkedFilters } from "@/components/logs/hooks/use-bookmarked-filters";
+import { type SavedFiltersGroup, useBookmarkedFilters } from "@/app/(app)/audit/hooks/use-bookmarked-filters";
 import { useState } from "react";
 
 
 export const LogsQueries = () => {
 
- 
-const { savedFilters, toggleBookmark, applyFilterGroup } = useBookmarkedFilters({ localStorageName: "logsSavedFilters" });
+  const { savedFilters, toggleBookmark, applyFilterGroup } = useBookmarkedFilters({ localStorageName: "auditSavedFilters" });
 
   const [filterGroups, setfilterGroups] = useState<SavedFiltersGroup<any>[]>(
     savedFilters.filter((filter) => filter),
