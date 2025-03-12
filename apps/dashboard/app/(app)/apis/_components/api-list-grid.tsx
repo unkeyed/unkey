@@ -20,7 +20,10 @@ export const ApiListGrid = ({
   setApiList: Dispatch<SetStateAction<ApiOverview[]>>;
   isSearching?: boolean;
 }) => {
-  const { total, loadMore, isLoading, hasMore } = useFetchApiOverview(initialData, setApiList);
+  const { total, loadMore, isLoading, hasMore } = useFetchApiOverview(
+    initialData,
+    setApiList
+  );
 
   if (apiList.length === 0) {
     return (
@@ -48,7 +51,7 @@ export const ApiListGrid = ({
           Showing {apiList.length} of {total} APIs
         </div>
         {!isSearching && hasMore && (
-          <Button onClick={loadMore} disabled={isLoading}>
+          <Button onClick={loadMore} disabled={isLoading} size="md">
             {isLoading ? (
               <div className="flex items-center space-x-2">
                 <div className="animate-spin h-4 w-4 border-2 border-gray-7 border-t-transparent rounded-full" />

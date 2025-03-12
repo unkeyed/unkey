@@ -9,8 +9,9 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
-import { CreateNewRole } from "./create-new-role";
 import { Navigation } from "./navigation";
+import { RBACForm } from "../_components/rbac-form";
+import { EmptyRoles } from "./empty";
 
 export const revalidate = 0;
 
@@ -57,23 +58,12 @@ export default async function RolesPage() {
   return (
     <div>
       <Navigation workspace={workspace} />
-
       <PageContent>
         <SubMenu navigation={navigation} segment="roles" />
         <div className="mt-8 mb-20 overflow-x-auto">
           <div className="flex flex-col gap-8 mb-20 ">
             {workspace.roles.length === 0 ? (
-              <Empty>
-                <Empty.Icon />
-                <Empty.Title>No roles found</Empty.Title>
-                <Empty.Description>Create your first role</Empty.Description>
-                <Empty.Actions>
-                  <CreateNewRole
-                    trigger={<Button variant="primary">Create New Role</Button>}
-                    permissions={workspace.permissions}
-                  />
-                </Empty.Actions>
-              </Empty>
+              <EmptyRoles />
             ) : (
               <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border">
                 {workspace.roles.map((r) => (
@@ -83,7 +73,9 @@ export default async function RolesPage() {
                     className="grid items-center grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle "
                   >
                     <div className="flex flex-col items-start col-span-6 ">
-                      <pre className="text-sm text-content truncate w-full pr-1">{r.name}</pre>
+                      <pre className="text-sm text-content truncate w-full pr-1">
+                        {r.name}
+                      </pre>
                       <span className="text-xs text-content-subtle truncate w-full">
                         {r.description}
                       </span>

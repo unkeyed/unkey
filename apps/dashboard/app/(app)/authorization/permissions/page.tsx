@@ -4,13 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { asc, db } from "@/lib/db";
 import { permissions } from "@unkey/db/src/schema";
-import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
-import { CreateNewPermission } from "./create-new-permission";
+import { EmptyPermissions } from "./empty";
 import { Navigation } from "./navigation";
 
 export const revalidate = 0;
@@ -51,7 +50,9 @@ export default async function RolesPage() {
    * Filter out all the soft deleted keys cause I'm not smart enough to do it with drizzle
    */
   workspace.permissions = workspace.permissions.map((permission) => {
-    permission.keys = permission.keys.filter(({ key }) => key.deletedAtM === null);
+    permission.keys = permission.keys.filter(
+      ({ key }) => key.deletedAtM === null
+    );
     return permission;
   });
   return (
@@ -63,16 +64,7 @@ export default async function RolesPage() {
         <div className="mt-8 mb-20 overflow-x-auto">
           <div className="flex items-center justify-between flex-1 space-x-2 w-full">
             {workspace.permissions.length === 0 ? (
-              <Empty>
-                <Empty.Icon />
-                <Empty.Title>No permissions found</Empty.Title>
-                <Empty.Description>Create your first permission</Empty.Description>
-                <Empty.Actions>
-                  <CreateNewPermission
-                    trigger={<Button variant="primary">Create New Permission</Button>}
-                  />
-                </Empty.Actions>
-              </Empty>
+              <EmptyPermissions />
             ) : (
               <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border w-full">
                 {workspace.permissions.map((p) => (
@@ -82,8 +74,12 @@ export default async function RolesPage() {
                     className="grid items-center grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle "
                   >
                     <div className="flex flex-col items-start col-span-6 ">
-                      <pre className="text-sm text-content truncate w-full">{p.name}</pre>
-                      <span className="text-xs text-content-subtle">{p.description}</span>
+                      <pre className="text-sm text-content truncate w-full">
+                        {p.name}
+                      </pre>
+                      <span className="text-xs text-content-subtle">
+                        {p.description}
+                      </span>
                     </div>
 
                     <div className="flex items-center col-span-3 gap-2">

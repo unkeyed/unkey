@@ -1,6 +1,7 @@
 "use client";
 
 import { DialogContainer } from "@/components/dialog-container";
+import { NavbarActionButton } from "@/components/navigation/action-button";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +21,7 @@ const formSchema = z.object({
     .max(50, "Name must not exceed 50 characters")
     .regex(
       /^[a-zA-Z0-9_\-\.]+$/,
-      "Only alphanumeric characters, underscores, hyphens, and periods are allowed",
+      "Only alphanumeric characters, underscores, hyphens, and periods are allowed"
     ),
 });
 
@@ -60,10 +61,14 @@ export const CreateNamespaceButton = ({
 
   return (
     <>
-      <Button {...rest} color="default" onClick={() => setIsOpen(true)}>
+      <NavbarActionButton
+        {...rest}
+        color="default"
+        onClick={() => setIsOpen(true)}
+      >
         <Plus size={18} className="w-4 h-4" />
         Create new namespace
-      </Button>
+      </NavbarActionButton>
 
       <DialogContainer
         isOpen={isOpen}
@@ -83,7 +88,8 @@ export const CreateNamespaceButton = ({
               Create Namespace
             </Button>
             <div className="text-gray-9 text-xs">
-              Namespaces can be used to separate different rate limiting concerns
+              Namespaces can be used to separate different rate limiting
+              concerns
             </div>
           </div>
         }
