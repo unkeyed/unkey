@@ -171,6 +171,27 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
+  async findUser(email: string): Promise<User | null> {
+    if (!email) {
+      throw new Error("Email address is required.");
+    }
+
+    try {
+      const user = await this.provider.userManagement.listUsers({
+        email
+      });
+      if (!user) {
+        return null;
+      }
+
+      return this.transformUserData(user.data[0]);
+
+    } catch (error) {
+      console.error("Failed to get user:", error);
+      return null;
+    }
+  }
+
   // Organization Management
   async createTenant(params: { name: string; userId: string }): Promise<string> {
     const { name, userId } = params;
@@ -463,6 +484,24 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
+  async getInvitation(invitationToken: string): Promise <Invitation | null> {
+    if (!invitationToken) {
+      return null;
+    }
+
+    try {
+      const invitation = await this.provider.userManagement.findInvitationByToken(
+        invitationToken
+      );
+
+      return this.transformInvitationData(invitation);
+
+    } catch (error) {
+      console.error("Error retrieving invitation: ", error);
+      return null;
+    }
+  }
+
   async revokeOrgInvitation(invitationId: string): Promise<void> {
     if (!invitationId) {
       throw new Error("Invitation Id is required");
@@ -474,6 +513,21 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       throw this.handleError(error);
     }
   }
+
+  async acceptInvitation(invitationId: string): Promise<Invitation> {
+    if (!invitationId) {
+      throw new Error("Invitation Id is required");
+    }
+
+    try {
+      const invitation = await this.provider.userManagement.acceptInvitation(invitationId);
+      return this.transformInvitationData(invitation);
+
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
 
   // Authentication Management
 
@@ -530,14 +584,15 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async verifyAuthCode(params: { email: string; code: string }): Promise<VerificationResult> {
-    const { email, code } = params;
+  async verifyAuthCode(params: { email: string; code: string, invitationToken: string }): Promise<VerificationResult> {
+    const { email, code, invitationToken } = params;
 
     try {
       const { sealedSession } = await this.provider.userManagement.authenticateWithMagicAuth({
         clientId: this.clientId,
         code,
         email,
+        invitationToken,
         session: {
           sealSession: true,
           cookiePassword: this.cookiePassword,
@@ -840,7 +895,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   private transformInvitationData(
     providerInvitation: WorkOSInvitation,
-    context: { orgId: string; inviterId?: string },
+    context?: { orgId: string; inviterId?: string },
   ): Invitation {
     return {
       id: providerInvitation.id,
@@ -850,8 +905,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       revokedAt: providerInvitation.revokedAt,
       expiresAt: providerInvitation.expiresAt,
       token: providerInvitation.token,
-      organizationId: providerInvitation.organizationId ?? context.orgId,
-      inviterUserId: providerInvitation.inviterUserId ?? context.inviterId,
+      organizationId: providerInvitation.organizationId ?? context?.orgId,
+      inviterUserId: providerInvitation.inviterUserId ?? context?.inviterId,
       createdAt: providerInvitation.createdAt,
       updatedAt: providerInvitation.updatedAt,
     };

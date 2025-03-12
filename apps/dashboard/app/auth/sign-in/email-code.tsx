@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { OTPInput, type SlotProps } from "input-otp";
 import { useState } from "react";
 
-export const EmailCode = () => {
+export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   const { handleVerification, handleResendCode, setError } = useSignIn();
   const [isLoading, setIsLoading] = useState(false);
   const [otp, setOtp] = useState("");
@@ -18,7 +18,7 @@ export const EmailCode = () => {
     }
     setIsLoading(true);
     try {
-      await handleVerification(code);
+      await handleVerification(code, invitationToken);
       toast.success("Signed in", {
         description: "redirecting...",
       });

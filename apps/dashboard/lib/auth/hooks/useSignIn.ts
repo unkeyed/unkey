@@ -86,11 +86,12 @@ export function useSignIn() {
     }
   };
 
-  const handleVerification = async (code: string): Promise<void> => {
+  const handleVerification = async (code: string, invitationToken?: string): Promise<void> => {
     try {
       const result = await verifyAuthCode({
         email: context.email,
         code,
+        invitationToken
       });
 
       // Determine where to redirect based on the verification result

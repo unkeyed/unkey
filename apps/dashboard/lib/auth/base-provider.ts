@@ -33,7 +33,7 @@ export abstract class BaseAuthProvider {
 
   // Authentication
   abstract signInViaEmail(email: string): Promise<EmailAuthResult>;
-  abstract verifyAuthCode(params: { email: string; code: string }): Promise<VerificationResult>;
+  abstract verifyAuthCode(params: { email: string; code: string, invitationToken?: string }): Promise<VerificationResult>;
   abstract verifyEmail(params: {code: string, token: string}): Promise<VerificationResult>;
   abstract resendAuthCode(email: string): Promise<EmailAuthResult>;
   abstract signUpViaEmail(params: UserData): Promise<EmailAuthResult>;
@@ -50,6 +50,8 @@ export abstract class BaseAuthProvider {
   // User Management
   abstract getCurrentUser(): Promise<User | null>;
   abstract getUser(userId: string): Promise<User | null>;
+  abstract findUser(email: string): Promise<User | null>;
+
 
   // Organization Management
   abstract createTenant(params: { name: string; userId: string }): Promise<string>;
@@ -67,7 +69,9 @@ export abstract class BaseAuthProvider {
   // Invitation Management
   abstract inviteMember(params: OrgInviteParams): Promise<Invitation>;
   abstract getInvitationList(orgId: string): Promise<InvitationListResponse>;
+  abstract getInvitation(invitationToken: string): Promise <Invitation | null>;
   abstract revokeOrgInvitation(invitationId: string): Promise<void>;
+  abstract acceptInvitation(invitationId: string): Promise<Invitation>;
 
   // Error Handling
   protected handleError(error: unknown): AuthErrorResponse {

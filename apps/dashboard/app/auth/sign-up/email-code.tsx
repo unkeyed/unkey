@@ -9,7 +9,7 @@ import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { cn } from "@/lib/utils";
 import { OTPInput, type SlotProps } from "input-otp";
 
-export const EmailCode: React.FC = () => {
+export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   const { handleCodeVerification, handleResendCode } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
   const [_timeLeft, _setTimeLeft] = React.useState(0);
@@ -19,7 +19,7 @@ export const EmailCode: React.FC = () => {
       return null;
     }
     setIsLoading(true);
-    await handleCodeVerification(otp).catch((err) => {
+    await handleCodeVerification(otp, invitationToken).catch((err) => {
       setIsLoading(false);
       const errorCode = err.message as AuthErrorCode;
       toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);

@@ -66,10 +66,11 @@ export async function signInViaEmail(email: string): Promise<EmailAuthResult> {
 export async function verifyAuthCode(params: {
   email: string;
   code: string;
+  invitationToken?: string
 }): Promise<VerificationResult> {
-  const { email, code } = params;
+  const { email, code, invitationToken } = params;
   try {
-    const result = await auth.verifyAuthCode({ email, code });
+    const result = await auth.verifyAuthCode({ email, code, invitationToken });
 
     if (result.cookies) {
       await setCookies(result.cookies);

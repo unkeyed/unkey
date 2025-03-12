@@ -18,11 +18,12 @@ export function useSignUp() {
     }
   };
 
-  const handleCodeVerification = async (code: string): Promise<void> => {
+  const handleCodeVerification = async (code: string, invitationToken?: string): Promise<void> => {
     try {
       await verifyAuthCode({
         email: userData.email,
         code,
+        invitationToken
       });
     } catch (error) {
       console.error("OTP Verification error:", error);

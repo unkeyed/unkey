@@ -12,15 +12,48 @@ import { OAuthSignIn } from "../oauth-signin";
 import { OrgSelector } from "../org-selector";
 import { useSearchParams } from "next/navigation";
 import { EmailVerify } from "../email-verify";
+import { useEffect, useState } from "react";
+import { Loading } from "@/components/dashboard/loading";
 
 function SignInContent() {
-  const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs } = useSignIn();
+  const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs, handleSignInViaEmail } = useSignIn();
   const searchParams = useSearchParams(); 
   const verifyParam = searchParams?.get("verify");
+  const invitationToken = searchParams?.get("invitationToken");
+  const invitationEmail = searchParams?.get("email");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Handle auto sign-in with invitation token and email
+  useEffect(() => {
+    const attemptAutoSignIn = async () => {
+      if (invitationToken && invitationEmail && !isVerifying && !hasPendingAuth && !isLoading) {
+        // Set loading state to true
+        setIsLoading(true);
+        
+        try {
+          // Attempt sign-in with the provided email
+          await handleSignInViaEmail(invitationEmail);
+        } catch (err) {
+          console.error("Auto sign-in failed:", err);
+        } finally {
+          // Reset loading state
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    attemptAutoSignIn();
+  }, [invitationToken, invitationEmail, isVerifying, hasPendingAuth, handleSignInViaEmail, isLoading]);
   
+
+  if (isLoading) {
+    return <Loading />; 
+  }
+
 
   return (
     <div className="flex flex-col gap-10">
+      { isLoading && <Loading /> }
       {hasPendingAuth && <OrgSelector organizations={orgs} />}
 
       {accountNotFound && (
@@ -39,7 +72,7 @@ function SignInContent() {
 
       {isVerifying ? (
         <FadeIn>
-          <EmailCode />
+          <EmailCode invitationToken={invitationToken || undefined} />
         </FadeIn>
       ) : verifyParam === "email" ? (
           <FadeIn>

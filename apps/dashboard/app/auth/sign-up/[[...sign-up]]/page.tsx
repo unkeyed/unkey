@@ -1,21 +1,57 @@
 "use client";
 import { FadeIn } from "@/components/landing/fade-in";
-import * as React from "react";
 import { EmailCode } from "../email-code";
 import { EmailSignUp } from "../email-signup";
 import { OAuthSignUp } from "../oauth-signup";
 import { SignUpProvider } from "@/lib/auth/context/signup-context";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Loading } from "@/components/dashboard/loading";
+import { useSignUp } from "@/lib/auth/hooks";
 
 export default function AuthenticationPage() {
-  const [verify, setVerify] = React.useState(false);
+  const [verify, setVerify] = useState(false);
+  const { handleSignUpViaEmail } = useSignUp();
+  const searchParams = useSearchParams(); 
+  const invitationToken = searchParams?.get("invitationToken");
+  const invitationEmail = searchParams?.get("email");
+  const [isLoading, setIsLoading] = useState(false);
+
+
+  // Handle auto sign-up with invitation token and email
+    useEffect(() => {
+      const attemptAutoSignUp = async () => {
+        if (invitationToken && invitationEmail && !isLoading) {
+          // Set loading state to true
+          setIsLoading(true);
+          
+          try {
+            // Attempt sign-in with the provided email
+            await handleSignUpViaEmail({
+              firstName: "", // they can set their first and
+              lastName: "", // last name later
+              email: invitationEmail
+            });
+          } catch (err) {
+            console.error("Auto sign-in failed:", err);
+          } finally {
+            // Reset loading state
+            setIsLoading(false);
+          }
+        }
+      };
+      
+      attemptAutoSignUp();
+    }, [invitationToken, invitationEmail, handleSignUpViaEmail, isLoading]);
 
   return (
     <SignUpProvider>
       <div className="flex flex-col justify-center space-y-6">
+        { isLoading && <Loading /> }
         {verify ? (
           <FadeIn>
-            <EmailCode />
+            <EmailCode invitationToken={invitationToken || undefined}/>
           </FadeIn>
         ) : (
           <>
