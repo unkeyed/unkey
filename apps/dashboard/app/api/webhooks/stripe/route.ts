@@ -42,7 +42,7 @@ export const POST = async (req: Request): Promise<Response> => {
         },
       });
       if (!ws) {
-        throw new Error("workspace does not exist");
+        return new Response("workspace does not exist", { status: 500 });
       }
       await db
         .update(schema.workspaces)

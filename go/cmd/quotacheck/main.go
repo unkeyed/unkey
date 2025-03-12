@@ -87,6 +87,9 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	for range workers {
 		go func() {
 			for e := range queue {
+				if !e.Workspace.Enabled {
+					continue
+				}
 
 				usedVerifications, err := ch.GetBillableVerifications(ctx, e.Workspace.ID, year, int(month))
 				if err != nil {
