@@ -90,7 +90,7 @@ func New(svc Services) zen.Route {
 			if len(rawMeta) > MAX_META_LENGTH {
 				return fault.New("metadata is too large",
 					fault.WithTag(fault.BAD_REQUEST),
-					fault.WithDesc("metadata is too large", fmt.Sprintf("metadata is too large, it must be less than 64k characters when json encoded, got: %d", len(rawMeta))),
+					fault.WithDesc("metadata is too large", fmt.Sprintf("Metadata is too large, it must be less than 64k characters when json encoded, got: %d", len(rawMeta))),
 				)
 			}
 

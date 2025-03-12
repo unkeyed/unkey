@@ -64,6 +64,9 @@
       "PreconditionFailedError": {
         "$ref": "#/components/schemas/BaseError"
       },
+      "ConflictError": {
+        "$ref": "#/components/schemas/BaseError"
+      },
       "BadRequestError": {
         "allOf": [
           {
@@ -777,7 +780,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PreconditionFailedError"
+                  "$ref": "#/components/schemas/ConflictError"
                 }
               }
             }

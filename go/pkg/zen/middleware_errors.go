@@ -16,6 +16,7 @@ import (
 //   - BAD_REQUEST: 400 Bad Request
 //   - UNAUTHORIZED: 401 Unauthorized
 //   - FORBIDDEN: 403 Forbidden
+//   - CONFLICT: 409 Conflict
 //   - PROTECTED_RESOURCE: 412 Precondition Failed
 //   - Other errors: 500 Internal Server Error
 //
@@ -122,6 +123,15 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					Detail:    fault.UserFacingMessage(err),
 					RequestId: s.requestID,
 					Status:    http.StatusPreconditionFailed,
+					Instance:  nil,
+				})
+			case fault.CONFLICT:
+				return s.JSON(http.StatusConflict, api.ConflictError{
+					Title:     "Another resource already uses this identifier",
+					Type:      "https://unkey.com/docs/errors/conflict",
+					Detail:    fault.UserFacingMessage(err),
+					RequestId: s.requestID,
+					Status:    http.StatusConflict,
 					Instance:  nil,
 				})
 

@@ -2,10 +2,14 @@ package routes
 
 import (
 	v2Liveness "github.com/unkeyed/unkey/go/apps/api/routes/v2_liveness"
+
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
 	v2RatelimitSetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
+
+	v2IdentitiesCreateIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
+
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -55,7 +59,7 @@ func Register(srv *zen.Server, svc *Services) {
 		}),
 	)
 
-	// v2/ratelimit.setOverride
+	// v2/ratelimit.getOverride
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2RatelimitGetOverride.New(v2RatelimitGetOverride.Services{
@@ -66,7 +70,7 @@ func Register(srv *zen.Server, svc *Services) {
 		}),
 	)
 
-	// v2/ratelimit.setOverride
+	// v2/ratelimit.deleteOverride
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2RatelimitDeleteOverride.New(v2RatelimitDeleteOverride.Services{
@@ -81,6 +85,15 @@ func Register(srv *zen.Server, svc *Services) {
 	// v2/identities
 
 	// v2/identities.createIdentity
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2IdentitiesCreateIdentity.New(v2IdentitiesCreateIdentity.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+		}),
+	)
 
 	// ---------------------------------------------------------------------------
 	// misc

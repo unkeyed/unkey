@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
@@ -27,12 +27,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 			// No Authorization header
 		}
 
-		namespaceName := "test_namespace"
-		req := handler.Request{
-			NamespaceName: &namespaceName,
-			Identifier:    "test_identifier",
-		}
-
+		req := handler.Request{ExternalId: "test_id"}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
@@ -44,12 +39,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		namespaceName := "test_namespace"
-		req := handler.Request{
-			NamespaceName: &namespaceName,
-			Identifier:    "test_identifier",
-		}
-
+		req := handler.Request{ExternalId: "test_id"}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
@@ -61,12 +51,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 			"Authorization": {"malformed_header"},
 		}
 
-		namespaceName := "test_namespace"
-		req := handler.Request{
-			NamespaceName: &namespaceName,
-			Identifier:    "test_identifier",
-		}
-
+		req := handler.Request{ExternalId: "test_id"}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)

@@ -2,26 +2,37 @@
 package handler_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"github.com/unkeyed/unkey/go/api"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
 func TestBadRequests(t *testing.T) {
+	metaData := make(map[string]*interface{}, 0)
+
+	for i := range 100_00 {
+		var data interface{} = fmt.Sprintf("some_%d", i)
+		metaData[fmt.Sprintf("key_%d", i)] = &data
+	}
+
+	rawMeta, _ := json.Marshal(metaData)
+	log.Printf("RawMeta has size %d", len(rawMeta))
+
 	testCases := []struct {
 		name          string
-		req           api.V2RatelimitGetOverrideRequestBody
+		req           api.V2IdentitiesCreateIdentityRequestBody
 		expectedError api.BadRequestError
 	}{
 		{
-			name: "missing all required fields",
-			req:  api.V2RatelimitGetOverrideRequestBody{},
+			name: "missing external id",
+			req:  api.V2IdentitiesCreateIdentityRequestBody{},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
 				Detail:    "One or more fields failed validation",
@@ -33,26 +44,9 @@ func TestBadRequests(t *testing.T) {
 			},
 		},
 		{
-			name: "missing identifier",
-			req: api.V2RatelimitGetOverrideRequestBody{
-				NamespaceId: util.Pointer("not_empty"),
-			},
-			expectedError: api.BadRequestError{
-				Title:     "Bad Request",
-				Detail:    "One or more fields failed validation",
-				Status:    http.StatusBadRequest,
-				Type:      "https://unkey.com/docs/errors/bad_request",
-				Errors:    []api.ValidationError{},
-				RequestId: "test",
-				Instance:  nil,
-			},
-		},
-		{
-			name: "empty identifier",
-			req: api.V2RatelimitGetOverrideRequestBody{
-				NamespaceId:   util.Pointer("not_empty"),
-				NamespaceName: nil,
-				Identifier:    "",
+			name: "empty external id",
+			req: api.V2IdentitiesCreateIdentityRequestBody{
+				ExternalId: "",
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
@@ -65,15 +59,29 @@ func TestBadRequests(t *testing.T) {
 			},
 		},
 		{
-			name: "neither namespace ID nor name provided",
-			req: api.V2RatelimitGetOverrideRequestBody{
-				NamespaceId:   nil,
-				NamespaceName: nil,
-				Identifier:    "user_123",
+			name: "too short identifier",
+			req: api.V2IdentitiesCreateIdentityRequestBody{
+				ExternalId: "ab",
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
-				Detail:    "You must provide either a namespace ID or name.",
+				Detail:    "One or more fields failed validation",
+				Status:    http.StatusBadRequest,
+				Type:      "https://unkey.com/docs/errors/bad_request",
+				Errors:    []api.ValidationError{},
+				RequestId: "test",
+				Instance:  nil,
+			},
+		},
+		{
+			name: "too much metadata",
+			req: api.V2IdentitiesCreateIdentityRequestBody{
+				ExternalId: "abc",
+				Meta:       &metaData,
+			},
+			expectedError: api.BadRequestError{
+				Title:     "Bad Request",
+				Detail:    fmt.Sprintf("Metadata is too large, it must be less than 64k characters when json encoded, got: %d", len(rawMeta)),
 				Status:    http.StatusBadRequest,
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},
@@ -85,7 +93,7 @@ func TestBadRequests(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID)
+	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, "identity.*.create_identity")
 	route := handler.New(handler.Services{
 		DB:          h.DB,
 		Keys:        h.Keys,
@@ -97,7 +105,6 @@ func TestBadRequests(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

@@ -48,6 +48,9 @@ type BaseError struct {
 	Type string `json:"type"`
 }
 
+// ConflictError defines model for ConflictError.
+type ConflictError = BaseError
+
 // ForbiddenError defines model for ForbiddenError.
 type ForbiddenError = BaseError
 
