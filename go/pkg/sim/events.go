@@ -2,7 +2,7 @@ package sim
 
 import (
 	"errors"
-	"math/rand"
+	"math/rand/v2"
 )
 
 // Event defines the interface for simulation events that can be run against a state.
