@@ -35,7 +35,7 @@ const route = createRoute({
                 "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
               example: "user_123",
             }),
-            limit: z.number().int().positive().openapi({
+            limit: z.number().int().nonnegative().openapi({
               description: "How many requests may pass in a given window.",
               example: 10,
             }),
