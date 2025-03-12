@@ -1,18 +1,13 @@
 "use client";
-
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { ChevronExpandY, Gauge } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { IdentifierDialog } from "./_components/identifier-dialog";
 
-export const NamespaceNavbar = ({
-  namespace,
-  ratelimitNamespaces,
-  activePage,
-}: {
+type NamespaceNavbarProps = {
   namespace: {
     id: string;
     name: string;
@@ -26,8 +21,14 @@ export const NamespaceNavbar = ({
     href: string;
     text: string;
   };
-}) => {
-  const [open, setOpen] = useState(false);
+};
+
+export const NamespaceNavbar = ({
+  namespace,
+  ratelimitNamespaces,
+  activePage,
+}: NamespaceNavbarProps) => {
+  const [open, setOpen] = useState<boolean>(false);
   return (
     <>
       <Navbar>
@@ -87,16 +88,7 @@ export const NamespaceNavbar = ({
           >
             Override Identifier
           </Button>
-          <Button
-            variant="outline"
-            size="md"
-            className="text-xs font-mono font-medium ph-no-capture h-8 bg-grayA-2 hover:bg-grayA-3"
-          >
-            <div className="flex gap-2 items-center justify-center">
-              {namespace.id}
-              <CopyButton value={namespace.id} />
-            </div>
-          </Button>
+          <CopyableIDButton value={namespace.id} />
         </Navbar.Actions>
       </Navbar>
       <IdentifierDialog onOpenChange={setOpen} isModalOpen={open} namespaceId={namespace.id} />
