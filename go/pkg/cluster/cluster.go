@@ -21,9 +21,6 @@ type Config struct {
 
 	// Logger for cluster operations
 	Logger logging.Logger
-
-	// RpcPort is the port used for RPC communication between nodes
-	RpcPort int
 }
 
 // New creates a new cluster instance with the provided configuration.
@@ -50,12 +47,14 @@ func New(config Config) (*cluster, error) {
 		logger:      config.Logger,
 		joinEvents:  events.NewTopic[Node](),
 		leaveEvents: events.NewTopic[Node](),
-
-		rpcPort: config.RpcPort,
 	}
 
 	go c.keepInSync()
 
+	r.AddNode(context.Background(), ring.Node[Node]{
+		ID:   config.Self.ID,
+		Tags: config.Self,
+	})
 	return c, nil
 }
 
@@ -109,9 +108,8 @@ func (c *cluster) keepInSync() {
 				err := c.ring.AddNode(ctx, ring.Node[Node]{
 					ID: node.NodeID,
 					Tags: Node{
-						RpcAddr: fmt.Sprintf("%s:%d", node.Addr, c.rpcPort),
+						RpcAddr: fmt.Sprintf("%s:%d", node.Host, c.rpcPort),
 						ID:      node.NodeID,
-						Addr:    node.Addr,
 					},
 				})
 				if err != nil {

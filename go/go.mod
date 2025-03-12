@@ -6,10 +6,12 @@ require (
 	connectrpc.com/connect v1.18.1
 	connectrpc.com/otelconnect v0.7.2
 	github.com/ClickHouse/clickhouse-go/v2 v2.32.2
+	github.com/Southclaws/fault v0.8.1
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/go-sql-driver/mysql v1.9.0
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b
 	github.com/hashicorp/memberlist v0.5.3
+	github.com/hashicorp/serf v0.10.2
 	github.com/lmittmann/tint v1.0.7
 	github.com/maypok86/otter v1.2.4
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
@@ -32,6 +34,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.34.0
 	go.opentelemetry.io/otel/sdk/metric v1.34.0
 	go.opentelemetry.io/otel/trace v1.34.0
+	golang.org/x/net v0.35.0
+	golang.org/x/text v0.22.0
 	google.golang.org/protobuf v1.36.5
 )
 
@@ -147,10 +151,8 @@ require (
 	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/mod v0.23.0 // indirect
-	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/tools v0.30.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250207221924-e9438ea467c6 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250207221924-e9438ea467c6 // indirect

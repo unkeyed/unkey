@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 )
 
 type Config struct {
@@ -68,17 +69,18 @@ type Config struct {
 
 	// OtelOtlpEndpoint specifies the OpenTelemetry collector endpoint for metrics, traces, and logs
 	OtelOtlpEndpoint string
+
+	Clock clock.Clock
 }
 
 func (c Config) Validate() error {
 
 	if c.ClusterEnabled {
 		err := assert.Multi(
-			assert.NotEmpty(c.ClusterNodeID),
+			assert.NotEmpty(c.ClusterNodeID, "node id must not be empty"),
 			assert.Greater(c.ClusterRpcPort, 0),
 			assert.Greater(c.ClusterGossipPort, 0),
 			assert.True(c.ClusterAdvertiseAddrStatic != "" || c.ClusterAdvertiseAddrAwsEcsMetadata),
-			assert.True(len(c.ClusterDiscoveryStaticAddrs) > 0 || c.ClusterDiscoveryRedisURL != ""),
 		)
 		if err != nil {
 			return err

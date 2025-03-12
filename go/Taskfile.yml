@@ -8,11 +8,15 @@ tasks:
       - go fmt ./...
       - task: lint
   test:
+    cmds:
+      - docker pull mysql:latest
+      - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
+
+  test-e2e:
     env:
       SIMULATON_TEST: true
     cmds:
-      - docker pull mysql:latest
-      - go test -cover -json -failfast ./... | tparse -all -progress  -smallscreen
+      - task: test
 
   build:
     cmds:

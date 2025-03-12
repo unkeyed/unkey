@@ -54,7 +54,6 @@ func New(svc Services) zen.Route {
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Name:        req.Namespace,
 		})
-		svc.Logger.Error("namespaces", "ns", namespace, "err", err)
 		if err != nil {
 			return db.HandleErr(err, "namespace")
 		}
@@ -132,8 +131,6 @@ func New(svc Services) zen.Route {
 			Limit:      limit,
 			Cost:       cost,
 		}
-
-		svc.Logger.Warn("handler", "limitreq", limitReq)
 
 		result, err := svc.Ratelimit.Ratelimit(ctx, limitReq)
 		if err != nil {

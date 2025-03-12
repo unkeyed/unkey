@@ -181,18 +181,18 @@ func setupCluster(cfg Config, logger logging.Logger) (cluster.Cluster, []shutdow
 		return cluster.NewNoop("", "127.0.0.1"), shutdowns, nil
 	}
 
-	var advertiseAddr string
+	var advertiseHost string
 	{
 		switch {
 		case cfg.ClusterAdvertiseAddrStatic != "":
 			{
-				advertiseAddr = cfg.ClusterAdvertiseAddrStatic
+				advertiseHost = cfg.ClusterAdvertiseAddrStatic
 			}
 		case cfg.ClusterAdvertiseAddrAwsEcsMetadata:
 
 			{
 				var getDnsErr error
-				advertiseAddr, getDnsErr = ecs.GetPrivateDnsName()
+				advertiseHost, getDnsErr = ecs.GetPrivateDnsName()
 				if getDnsErr != nil {
 					return nil, shutdowns, fmt.Errorf("unable to get private dns name: %w", getDnsErr)
 				}
@@ -205,7 +205,7 @@ func setupCluster(cfg Config, logger logging.Logger) (cluster.Cluster, []shutdow
 
 	m, err := membership.New(membership.Config{
 		NodeID:        cfg.ClusterNodeID,
-		AdvertiseAddr: advertiseAddr,
+		AdvertiseHost: advertiseHost,
 		GossipPort:    cfg.ClusterGossipPort,
 		Logger:        logger,
 	})
@@ -215,14 +215,11 @@ func setupCluster(cfg Config, logger logging.Logger) (cluster.Cluster, []shutdow
 
 	c, err := cluster.New(cluster.Config{
 		Self: cluster.Node{
-
 			ID:      cfg.ClusterNodeID,
-			Addr:    advertiseAddr,
-			RpcAddr: "TO DO",
+			RpcAddr: fmt.Sprintf("%s:%d", advertiseHost, cfg.ClusterRpcPort),
 		},
 		Logger:     logger,
 		Membership: m,
-		RpcPort:    cfg.ClusterRpcPort,
 	})
 	if err != nil {
 		return nil, shutdowns, fmt.Errorf("unable to create cluster: %w", err)
@@ -245,7 +242,7 @@ func setupCluster(cfg Config, logger logging.Logger) (cluster.Cluster, []shutdow
 			rd, rErr := discovery.NewRedis(discovery.RedisConfig{
 				URL:    cfg.ClusterDiscoveryRedisURL,
 				NodeID: cfg.ClusterNodeID,
-				Addr:   advertiseAddr,
+				Addr:   fmt.Sprintf("%s:%d", advertiseHost, cfg.ClusterGossipPort),
 				Logger: logger,
 			})
 			if rErr != nil {

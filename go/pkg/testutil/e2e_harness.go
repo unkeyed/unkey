@@ -5,12 +5,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"io"
+	"math/rand/v2"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -19,28 +22,25 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/port"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
 
-type Resources struct {
-	RootWorkspace db.Workspace
-	RootKeyring   db.KeyAuth
-	UserWorkspace db.Workspace
-}
-
-type Harness struct {
+type IntegrationHarness struct {
 	t *testing.T
 
 	Clock *clock.TestClock
 
-	srv        *zen.Server
 	containers *Containers
 	validator  *validation.Validator
+	ports      *port.FreePort
 
+	nodes      []api.Config
 	middleware []zen.Middleware
 
+	dbDsn       string
 	DB          db.Database
 	Logger      logging.Logger
 	Keys        keys.KeyService
@@ -49,7 +49,7 @@ type Harness struct {
 	Resources   Resources
 }
 
-func NewHarness(t *testing.T) *Harness {
+func NewIntegrationHarness(t *testing.T, nodes int) *IntegrationHarness {
 	clk := clock.NewTestClock()
 
 	logger := logging.New(logging.Config{Development: true, NoColor: false})
@@ -62,12 +62,6 @@ func NewHarness(t *testing.T) *Harness {
 		Logger:      logger,
 		PrimaryDSN:  dsn,
 		ReadOnlyDSN: "",
-	})
-	require.NoError(t, err)
-
-	srv, err := zen.New(zen.Config{
-		NodeID: "test",
-		Logger: logger,
 	})
 	require.NoError(t, err)
 
@@ -92,10 +86,11 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	h := Harness{
+	h := IntegrationHarness{
 		t:           t,
+		dbDsn:       dsn,
 		Logger:      logger,
-		srv:         srv,
+		ports:       port.New(),
 		containers:  containers,
 		validator:   validator,
 		Keys:        keyService,
@@ -106,36 +101,52 @@ func NewHarness(t *testing.T) *Harness {
 		// nolint:exhaustruct
 		Resources: Resources{},
 		Clock:     clk,
-
-		middleware: []zen.Middleware{
-			zen.WithTracing(),
-			//	zen.WithMetrics(svc.EventBuffer)
-			//zen.WithLogging(logger),
-			zen.WithErrorHandling(logger),
-			zen.WithValidation(validator),
-		},
+		nodes:     []api.Config{},
+	}
+	h.seed()
+	for range nodes {
+		h.startApi()
 	}
 
-	h.seed()
 	return &h
 }
 
-// Register registers a route with the harness.
-// You can override the middleware by passing a list of middleware.
-func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
+func (h *IntegrationHarness) startApi() {
 
-	if len(middleware) == 0 {
-		middleware = h.middleware
+	addrs := []string{}
+	for _, peer := range h.nodes {
+		addrs = append(addrs, fmt.Sprintf("%s:%d", peer.ClusterAdvertiseAddrStatic, peer.ClusterGossipPort))
 	}
 
-	h.srv.RegisterRoute(
-		middleware,
-		route,
-	)
+	config := api.Config{
+		Platform:                    "test",
+		Image:                       "test",
+		HttpPort:                    h.ports.Get(),
+		Region:                      "test",
+		Clock:                       h.Clock,
+		ClusterEnabled:              true,
+		ClusterNodeID:               uid.New("test"),
+		ClusterAdvertiseAddrStatic:  "localhost",
+		ClusterRpcPort:              h.ports.Get(),
+		ClusterGossipPort:           h.ports.Get(),
+		ClusterDiscoveryStaticAddrs: addrs,
+		LogsColor:                   true,
+		ClickhouseURL:               "",
+		DatabasePrimary:             h.dbDsn,
+		DatabaseReadonlyReplica:     "",
+		OtelOtlpEndpoint:            "",
+	}
+	h.nodes = append(h.nodes, config)
+
+	go func() {
+
+		err := api.Run(context.Background(), config)
+		require.NoError(h.t, err)
+	}()
 
 }
 
-func (h *Harness) seed() {
+func (h *IntegrationHarness) seed() {
 
 	ctx := context.Background()
 
@@ -188,7 +199,7 @@ func (h *Harness) seed() {
 
 }
 
-func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) string {
+func (h *IntegrationHarness) CreateRootKey(workspaceID string, permissions ...string) string {
 
 	key := uid.New("test_root_key")
 
@@ -241,45 +252,35 @@ func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) strin
 
 }
 
-// Post is a helper function to make a POST request to the API.
-// It will hanndle serializing the request and response objects to and from JSON.
-func UnmarshalBody[Body any](t *testing.T, r *httptest.ResponseRecorder, body *Body) {
-
-	err := json.Unmarshal(r.Body.Bytes(), &body)
-	require.NoError(t, err)
-
-}
-
-type TestResponse[TBody any] struct {
-	Status  int
-	Headers http.Header
-	Body    *TBody
-	RawBody string
-}
-
-func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Header, req Req) TestResponse[Res] {
+func CallRouteE2e[Req any, Res any](h *IntegrationHarness, method string, path string, headers http.Header, req Req) TestResponse[Res] {
 	h.t.Helper()
 
-	rr := httptest.NewRecorder()
+	require.NotEmpty(h.t, h.nodes)
+
+	node := h.nodes[rand.IntN(len(h.nodes))]
 
 	body := new(bytes.Buffer)
 	err := json.NewEncoder(body).Encode(req)
 	require.NoError(h.t, err)
 
-	httpReq := httptest.NewRequest(route.Method(), route.Path(), body)
+	httpReq, err := http.NewRequest(method, fmt.Sprintf("http://localhost:%d%s", node.HttpPort, path), body)
+	require.NoError(h.t, err)
+
 	httpReq.Header = headers
 	if httpReq.Header == nil {
 		httpReq.Header = http.Header{}
 	}
 
-	h.srv.Mux().ServeHTTP(rr, httpReq)
+	httpRes, err := http.DefaultClient.Do(httpReq)
+	require.NoError(h.t, err)
+	defer httpRes.Body.Close()
+
+	rawBody, err := io.ReadAll(httpRes.Body)
 	require.NoError(h.t, err)
 
-	rawBody := rr.Body.Bytes()
-
 	res := TestResponse[Res]{
-		Status:  rr.Code,
-		Headers: rr.Header(),
+		Status:  httpRes.StatusCode,
+		Headers: httpRes.Header.Clone(),
 		RawBody: string(rawBody),
 		Body:    nil,
 	}
