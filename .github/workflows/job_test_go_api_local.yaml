@@ -23,4 +23,4 @@ jobs:
         working-directory: go
         env:
           SIMULATON_TEST: true
-          INTEGRATAION_TEST: true
+          INTEGRATION_TEST: true

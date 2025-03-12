@@ -8,7 +8,7 @@ import (
 
 const (
 	// EnvIntegration is the environment variable that enables integration tests
-	EnvIntegration = "INTEGRATAION_TEST"
+	EnvIntegration = "INTEGRATION_TEST"
 )
 
 // IsEnabled checks if a specific test flag is enabled via environment variable
@@ -28,10 +28,10 @@ func IsEnabled(envVar string) bool {
 }
 
 // SkipUnlessIntegration skips the current test unless integration tests are enabled
-// via INTEGRATAION_TEST=1
+// via INTEGRATION_TEST=1
 func SkipUnlessIntegration(t *testing.T) {
 	t.Helper()
 	if !IsEnabled(EnvIntegration) {
-		t.Skip("Skipping integration test. Set INTEGRATAION_TEST=1 to run")
+		t.Skip("Skipping integration test. Set INTEGRATION_TEST=1 to run")
 	}
 }
