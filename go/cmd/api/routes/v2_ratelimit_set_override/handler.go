@@ -95,7 +95,7 @@ func New(svc Services) zen.Route {
 		}
 
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
-		err = db.Query.InsertRatelimitOverride(ctx, svc.DB.RO(), db.InsertRatelimitOverrideParams{
+		err = db.Query.InsertRatelimitOverride(ctx, svc.DB.RW(), db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,

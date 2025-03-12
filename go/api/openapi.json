@@ -84,6 +84,9 @@
           }
         ]
       },
+      "TooManyRequestsError": {
+        "$ref": "#/components/schemas/BaseError"
+      },
       "InternalServerError": {
         "$ref": "#/components/schemas/BaseError"
       },
@@ -225,7 +228,13 @@
             "minimum": 0
           }
         },
-        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"],
+        "required": [
+          "namespaceId",
+          "overrideId",
+          "duration",
+          "identifier",
+          "limit"
+        ],
         "type": "object"
       },
       "V2RatelimitLimitRequestBody": {
@@ -325,6 +334,63 @@
       "V2RatelimitDeleteOverrideResponseBody": {
         "additionalProperties": false,
         "type": "object"
+      },
+      "V2IdentitiesCreateIdentityRequestBody": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The id of this identity in your system.\n\nThis usually comes from your authentication provider and could be a userId, organisationId or even an email.\nIt does not matter what you use, as long as it uniquely identifies something in your application.\n\n`externalId`s are unique across your workspace and therefore a `CONFLICT` error is returned when you try to create duplicates.\n",
+            "example": "user_123"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Attach metadata to this identity that you need to have access to when verifying a key.\n\nThis will be returned as part of the `verifyKey` response.\n"
+          },
+          "ratelimits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of this limit. You will need to use this again when verifying a key.",
+                  "example": "tokens"
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "How many requests may pass within a given window before requests are rejected.",
+                  "example": 10
+                },
+                "duration": {
+                  "type": "integer",
+                  "minimum": 1000,
+                  "description": "The duration for each ratelimit window in milliseconds.",
+                  "example": 1000
+                }
+              },
+              "required": ["name", "limit", "duration"]
+            },
+            "description": "Attach ratelimits to this identity.\n\nWhen verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits."
+          }
+        },
+        "required": ["externalId"]
+      },
+      "V2IdentitiesCreateIdentityResponseBody": {
+        "type": "object",
+        "properties": {
+          "identityId": {
+            "type": "string",
+            "description": "The id of the identity. Used internally, you do not need to store this.",
+            "example": "id_123"
+          }
+        },
+        "required": ["identityId"]
       }
     }
   },
@@ -624,6 +690,104 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/v2/identities.createIdentity": {
+      "post": {
+        "tags": ["identities"],
+        "operationId": "v2.identities.createIdentity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2IdentitiesCreateIdentityRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2IdentitiesCreateIdentityResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "This response is sent when a request conflicts with the current state of the server.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconditionFailedError"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The user has sent too many requests in a given amount of time (\"rate limiting\")",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsError"
                 }
               }
             }

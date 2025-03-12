@@ -60,8 +60,47 @@ type NotFoundError = BaseError
 // PreconditionFailedError defines model for PreconditionFailedError.
 type PreconditionFailedError = BaseError
 
+// TooManyRequestsError defines model for TooManyRequestsError.
+type TooManyRequestsError = BaseError
+
 // UnauthorizedError defines model for UnauthorizedError.
 type UnauthorizedError = BaseError
+
+// V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
+type V2IdentitiesCreateIdentityRequestBody struct {
+	// ExternalId The id of this identity in your system.
+	//
+	// This usually comes from your authentication provider and could be a userId, organisationId or even an email.
+	// It does not matter what you use, as long as it uniquely identifies something in your application.
+	//
+	// `externalId`s are unique across your workspace and therefore a `CONFLICT` error is returned when you try to create duplicates.
+	ExternalId string `json:"externalId"`
+
+	// Meta Attach metadata to this identity that you need to have access to when verifying a key.
+	//
+	// This will be returned as part of the `verifyKey` response.
+	Meta *map[string]*interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Attach ratelimits to this identity.
+	//
+	// When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits.
+	Ratelimits *[]struct {
+		// Duration The duration for each ratelimit window in milliseconds.
+		Duration int `json:"duration"`
+
+		// Limit How many requests may pass within a given window before requests are rejected.
+		Limit int `json:"limit"`
+
+		// Name The name of this limit. You will need to use this again when verifying a key.
+		Name string `json:"name"`
+	} `json:"ratelimits,omitempty"`
+}
+
+// V2IdentitiesCreateIdentityResponseBody defines model for V2IdentitiesCreateIdentityResponseBody.
+type V2IdentitiesCreateIdentityResponseBody struct {
+	// IdentityId The id of the identity. Used internally, you do not need to store this.
+	IdentityId string `json:"identityId"`
+}
 
 // V2LivenessResponseBody defines model for V2LivenessResponseBody.
 type V2LivenessResponseBody struct {
@@ -185,6 +224,9 @@ type ValidationError struct {
 	// Message Error message text
 	Message string `json:"message"`
 }
+
+// V2IdentitiesCreateIdentityJSONRequestBody defines body for V2IdentitiesCreateIdentity for application/json ContentType.
+type V2IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody
 
 // V2RatelimitDeleteOverrideJSONRequestBody defines body for V2RatelimitDeleteOverride for application/json ContentType.
 type V2RatelimitDeleteOverrideJSONRequestBody = V2RatelimitDeleteOverrideRequestBody
