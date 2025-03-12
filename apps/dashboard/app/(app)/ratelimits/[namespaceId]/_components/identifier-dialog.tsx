@@ -39,7 +39,7 @@ type FormValues = z.infer<typeof overrideValidationSchema>;
 type Props = PropsWithChildren<{
   isModalOpen: boolean;
   onOpenChange: (value: boolean) => void;
-  identifier: string;
+  identifier?: string;
   isLoading?: boolean;
   namespaceId: string;
   overrideDetails?: OverrideDetails | null;
@@ -163,8 +163,8 @@ export const IdentifierDialog = ({
           description="The identifier you use when ratelimiting."
           error={errors.identifier?.message}
           {...register("identifier")}
-          readOnly
-          disabled
+          readOnly={Boolean(identifier)}
+          disabled={Boolean(identifier)}
         />
 
         <FormInput
