@@ -35,7 +35,7 @@ export function Navigation({ workspace }: NavigationProps) {
           <Navbar.Breadcrumbs.Link href="/authorization/roles">
             Authorization
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="/authorization/roles" active>
+          <Navbar.Breadcrumbs.Link href="/authorization/permissions" active>
             Roles
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
@@ -47,7 +47,8 @@ export function Navigation({ workspace }: NavigationProps) {
             className="text-xs font-medium ph-no-capture h-8 bg-grayA-3 hover:bg-grayA-3 !text-grayA-8"
           >
             <div className="flex gap-1 items-center justify-center text-sm">
-              {Intl.NumberFormat().format(workspace.roles.length)} Roles (Unlimited)
+              {Intl.NumberFormat().format(workspace.roles.length)} Roles
+              (Unlimited)
             </div>
           </Button>
           <NavbarActionButton

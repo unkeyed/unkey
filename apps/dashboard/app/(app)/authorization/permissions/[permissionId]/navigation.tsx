@@ -7,6 +7,7 @@ import type { Permission } from "@unkey/db";
 import { ShieldKey } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { DeletePermission } from "./delete-permission";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 // Reusable for settings where we only change the link
 export function Navigation({
   permissionId,
@@ -20,7 +21,9 @@ export function Navigation({
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<ShieldKey />}>
-        <Navbar.Breadcrumbs.Link href="/authorization/roles">Authorization</Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href="/authorization/roles">
+          Authorization
+        </Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link href="/authorization/permissions">
           Permissions
         </Navbar.Breadcrumbs.Link>
@@ -33,39 +36,16 @@ export function Navigation({
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
       <Navbar.Actions>
-        <Badge
-          key="permission-name"
-          variant="secondary"
-          className="w-40 font-mono font-medium ph-no-capture h-8"
-        >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center justify-between gap-2 w-full truncate">
-                <span className="truncate">{permission.name}</span>
-                <div>
-                  <CopyButton value={permission.name} />
-                </div>
-              </div>
-            </TooltipTrigger>
-            {shouldShowTooltip && (
-              <TooltipContent>
-                <span className="text-xs font-medium">{permission.name}</span>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </Badge>
-        <Badge
-          key="permission-id"
-          variant="secondary"
-          className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture h-8"
-        >
-          {permission.id}
-          <CopyButton value={permission.id} />
-        </Badge>
+        <CopyableIDButton value={permission.name} />
+        <CopyableIDButton value={permission.id} />
         <DeletePermission
           key="delete-permission"
           trigger={
-            <NavbarActionButton variant="destructive" color="danger" className="">
+            <NavbarActionButton
+              variant="destructive"
+              color="danger"
+              className=""
+            >
               Delete Permission
             </NavbarActionButton>
           }

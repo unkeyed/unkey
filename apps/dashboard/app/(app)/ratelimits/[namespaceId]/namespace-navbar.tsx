@@ -6,6 +6,7 @@ import { ChevronExpandY, Gauge } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { IdentifierDialog } from "./_components/identifier-dialog";
+import { NavbarActionButton } from "@/components/navigation/action-button";
 
 type NamespaceNavbarProps = {
   namespace: {
@@ -33,7 +34,9 @@ export const NamespaceNavbar = ({
     <>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/ratelimits">
+            Ratelimits
+          </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={`/ratelimits/${namespace.id}`}
             isIdentifier
@@ -48,7 +51,9 @@ export const NamespaceNavbar = ({
               }))}
               shortcutKey="N"
             >
-              <div className="text-accent-10 group-hover:text-accent-12">{namespace.name}</div>
+              <div className="text-accent-10 group-hover:text-accent-12">
+                {namespace.name}
+              </div>
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
@@ -80,18 +85,17 @@ export const NamespaceNavbar = ({
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <Button
-            onClick={() => setOpen(true)}
-            variant="outline"
-            size="md"
-            className="bg-grayA-2 hover:bg-grayA-3"
-          >
+          <NavbarActionButton onClick={() => setOpen(true)}>
             Override Identifier
-          </Button>
+          </NavbarActionButton>
           <CopyableIDButton value={namespace.id} />
         </Navbar.Actions>
       </Navbar>
-      <IdentifierDialog onOpenChange={setOpen} isModalOpen={open} namespaceId={namespace.id} />
+      <IdentifierDialog
+        onOpenChange={setOpen}
+        isModalOpen={open}
+        namespaceId={namespace.id}
+      />
     </>
   );
 };

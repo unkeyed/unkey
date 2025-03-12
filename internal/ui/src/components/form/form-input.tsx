@@ -13,10 +13,7 @@ export type DocumentedFormInputProps = DocumentedInputProps & {
 export type FormInputProps = InputProps & DocumentedFormInputProps;
 
 export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
-  (
-    { label, description, error, required, id, className, variant, ...props },
-    ref
-  ) => {
+  ({ label, description, error, required, id, className, variant, ...props }, ref) => {
     const inputVariant = error ? "error" : variant;
 
     const inputId = id || React.useId();
@@ -24,9 +21,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
     const errorId = `${inputId}-error`;
 
     return (
-      <fieldset
-        className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}
-      >
+      <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
         {label && (
           <label
             id={`${inputId}-label`}
@@ -46,9 +41,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           ref={ref}
           id={inputId}
           variant={inputVariant}
-          aria-describedby={
-            error ? errorId : description ? descriptionId : undefined
-          }
+          aria-describedby={error ? errorId : description ? descriptionId : undefined}
           aria-invalid={!!error}
           aria-required={required}
           {...props}
@@ -57,15 +50,8 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
         {(description || error) && (
           <div className="text-[13px] leading-5">
             {error ? (
-              <div
-                id={errorId}
-                role="alert"
-                className="text-error-11 flex gap-2 items-center"
-              >
-                <TriangleWarning2
-                  className="flex-shrink-0"
-                  aria-hidden="true"
-                />
+              <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
+                <TriangleWarning2 className="flex-shrink-0" aria-hidden="true" />
                 <span className="flex-1">{error}</span>
               </div>
             ) : description ? (
@@ -76,8 +62,8 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
                   variant === "success"
                     ? "text-success-11"
                     : variant === "warning"
-                    ? "text-warning-11"
-                    : ""
+                      ? "text-warning-11"
+                      : "",
                 )}
               >
                 {variant === "warning" ? (
@@ -100,7 +86,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
         )}
       </fieldset>
     );
-  }
+  },
 );
 
 FormInput.displayName = "FormInput";
