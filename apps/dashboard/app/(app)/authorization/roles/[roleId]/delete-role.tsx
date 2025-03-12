@@ -22,9 +22,7 @@ export const DeleteRole = ({ trigger, role }: Props) => {
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
-    name: z
-      .string()
-      .refine((v) => v === role.name, "Please confirm the role's name"),
+    name: z.string().refine((v) => v === role.name, "Please confirm the role's name"),
   });
 
   type FormValues = z.infer<typeof formSchema>;
@@ -104,16 +102,14 @@ export const DeleteRole = ({ trigger, role }: Props) => {
       >
         <p className="text-gray-11 text-[13px]">
           <span className="font-medium">Warning: </span>
-          This role will be deleted, and keys with this role will be
-          disconnected from all permissions granted by this role. This action is
-          not reversible.
+          This role will be deleted, and keys with this role will be disconnected from all
+          permissions granted by this role. This action is not reversible.
         </p>
 
         <form id="delete-role-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-1">
             <p className="text-gray-11 text-[13px]">
-              Type <span className="text-gray-12 font-medium">{role.name}</span>{" "}
-              to confirm
+              Type <span className="text-gray-12 font-medium">{role.name}</span> to confirm
             </p>
             <Input
               {...register("name")}

@@ -20,10 +20,7 @@ export const ApiListGrid = ({
   setApiList: Dispatch<SetStateAction<ApiOverview[]>>;
   isSearching?: boolean;
 }) => {
-  const { total, loadMore, isLoading, hasMore } = useFetchApiOverview(
-    initialData,
-    setApiList
-  );
+  const { total, loadMore, isLoading, hasMore } = useFetchApiOverview(initialData, setApiList);
 
   if (apiList.length === 0) {
     return (

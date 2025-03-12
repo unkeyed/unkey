@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Button, type ButtonProps } from "@unkey/ui";
 import * as React from "react";
 
@@ -20,10 +19,7 @@ export interface NavbarActionButtonProps extends Omit<ButtonProps, "title"> {
   leftContent?: React.ReactNode;
 }
 
-export const NavbarActionButton = React.forwardRef<
-  HTMLButtonElement,
-  NavbarActionButtonProps
->(
+export const NavbarActionButton = React.forwardRef<HTMLButtonElement, NavbarActionButtonProps>(
   ({
     title = "Create New Root Key",
     variant = "outline",
@@ -53,7 +49,7 @@ export const NavbarActionButton = React.forwardRef<
         </Button>
       </div>
     );
-  }
+  },
 );
 
 NavbarActionButton.displayName = "NavbarActionButton";

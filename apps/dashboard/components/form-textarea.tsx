@@ -1,7 +1,7 @@
 import { CircleInfo, TriangleWarning2 } from "@unkey/icons";
-import * as React from "react";
-import { type VariantProps, cva } from "class-variance-authority";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { type VariantProps, cva } from "class-variance-authority";
+import * as React from "react";
 
 const textareaVariants = cva(
   "flex min-h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-gray-7 text-gray-12",
@@ -29,13 +29,11 @@ const textareaVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 // Hack to populate fumadocs' AutoTypeTable
-export type DocumentedFormTextareaProps = VariantProps<
-  typeof textareaVariants
-> & {
+export type DocumentedFormTextareaProps = VariantProps<typeof textareaVariants> & {
   label?: string;
   description?: string;
   required?: boolean;
@@ -47,10 +45,7 @@ export type DocumentedFormTextareaProps = VariantProps<
 export type FormTextareaProps = DocumentedFormTextareaProps &
   React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
-export const FormTextarea = React.forwardRef<
-  HTMLTextAreaElement,
-  FormTextareaProps
->(
+export const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
   (
     {
       label,
@@ -64,7 +59,7 @@ export const FormTextarea = React.forwardRef<
       wrapperClassName,
       ...props
     },
-    ref
+    ref,
   ) => {
     const textareaVariant = error ? "error" : variant;
     const textareaId = id || React.useId();
@@ -72,9 +67,7 @@ export const FormTextarea = React.forwardRef<
     const errorId = `${textareaId}-error`;
 
     return (
-      <fieldset
-        className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}
-      >
+      <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
         {label && (
           <label
             id={`${textareaId}-label`}
@@ -97,13 +90,8 @@ export const FormTextarea = React.forwardRef<
         <textarea
           ref={ref}
           id={textareaId}
-          className={cn(
-            textareaVariants({ variant: textareaVariant }),
-            "px-3 py-2"
-          )}
-          aria-describedby={
-            error ? errorId : description ? descriptionId : undefined
-          }
+          className={cn(textareaVariants({ variant: textareaVariant }), "px-3 py-2")}
+          aria-describedby={error ? errorId : description ? descriptionId : undefined}
           aria-invalid={!!error}
           aria-required={required}
           {...props}
@@ -111,15 +99,8 @@ export const FormTextarea = React.forwardRef<
         {(description || error) && (
           <div className="text-[13px] leading-5">
             {error ? (
-              <div
-                id={errorId}
-                role="alert"
-                className="text-error-11 flex gap-2 items-center"
-              >
-                <TriangleWarning2
-                  className="flex-shrink-0"
-                  aria-hidden="true"
-                />
+              <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
+                <TriangleWarning2 className="flex-shrink-0" aria-hidden="true" />
                 <span className="flex-1">{error}</span>
               </div>
             ) : description ? (
@@ -130,8 +111,8 @@ export const FormTextarea = React.forwardRef<
                   variant === "success"
                     ? "text-success-11"
                     : variant === "warning"
-                    ? "text-warning-11"
-                    : ""
+                      ? "text-warning-11"
+                      : "",
                 )}
               >
                 {variant === "warning" ? (
@@ -154,7 +135,7 @@ export const FormTextarea = React.forwardRef<
         )}
       </fieldset>
     );
-  }
+  },
 );
 
 FormTextarea.displayName = "FormTextarea";

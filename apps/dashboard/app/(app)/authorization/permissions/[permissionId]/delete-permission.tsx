@@ -23,12 +23,7 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
-    name: z
-      .string()
-      .refine(
-        (v) => v === permission.name,
-        "Please confirm the permission's name"
-      ),
+    name: z.string().refine((v) => v === permission.name, "Please confirm the permission's name"),
   });
 
   type FormValues = z.infer<typeof formSchema>;
@@ -110,18 +105,15 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
       >
         <p className="text-gray-11 text-[13px]">
           <span className="font-medium">Warning: </span>
-          This action is not reversible. The permission will be removed from all
-          roles and keys that currently use it.
+          This action is not reversible. The permission will be removed from all roles and keys that
+          currently use it.
         </p>
 
         <form id="delete-permission-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-1">
             <p className="text-gray-11 text-[13px]">
-              Type{" "}
-              <span className="text-gray-12 font-medium break-all">
-                {permission.name}
-              </span>{" "}
-              to confirm
+              Type <span className="text-gray-12 font-medium break-all">{permission.name}</span> to
+              confirm
             </p>
             <Input
               {...register("name")}

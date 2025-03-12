@@ -1,5 +1,4 @@
 "use client";
-
 import { Empty } from "@unkey/ui";
 import { useState } from "react";
 import { RBACForm } from "../_components/rbac-form";
@@ -10,7 +9,10 @@ export const EmptyRoles = () => {
     <Empty>
       <Empty.Icon />
       <Empty.Title>No roles found</Empty.Title>
-      <Empty.Description>Create your first role</Empty.Description>
+      <Empty.Description>
+        Roles bundle permissions together to create reusable access profiles. Assign roles to API
+        keys instead of individual permissions for easier management.
+      </Empty.Description>
       <Empty.Actions>
         <RBACForm
           isModalOpen={isRoleModalOpen}

@@ -156,13 +156,9 @@ export const RBACForm = (props: Props) => {
 
   // Determine loading state based on active mutation
   const isLoading =
-    (itemType === "permission" &&
-      type === "create" &&
-      createPermission.isLoading) ||
+    (itemType === "permission" && type === "create" && createPermission.isLoading) ||
     (itemType === "role" && type === "create" && createRole.isLoading) ||
-    (itemType === "permission" &&
-      type === "update" &&
-      updatePermission.isLoading) ||
+    (itemType === "permission" && type === "update" && updatePermission.isLoading) ||
     (itemType === "role" && type === "update" && updateRole.isLoading) ||
     isSubmitting;
 
@@ -179,8 +175,7 @@ export const RBACForm = (props: Props) => {
         await createRole.mutateAsync({
           name: values.name,
           description: values.description || undefined,
-          permissionIds:
-            (props as CreateProps).additionalParams?.permissionIds || [],
+          permissionIds: (props as CreateProps).additionalParams?.permissionIds || [],
         });
       } else if (type === "update" && itemType === "permission") {
         await updatePermission.mutateAsync({
@@ -205,16 +200,14 @@ export const RBACForm = (props: Props) => {
     itemType === "permission" ? (
       <div>
         A unique key to identify your permission. We suggest using{" "}
-        <code className="font-bold text-gray-11">.</code> (dot) separated names,
-        to structure your hierarchy. For example we use{" "}
-        <code className="font-bold text-gray-11">api.create_key</code> or{" "}
-        <code className="font-bold text-gray-11">api.update_api</code> in our
-        own permissions.
+        <code className="font-bold text-gray-11">.</code> (dot) separated names, to structure your
+        hierarchy. For example we use <code className="font-bold text-gray-11">api.create_key</code>{" "}
+        or <code className="font-bold text-gray-11">api.update_api</code> in our own permissions.
       </div>
     ) : (
       <div>
-        A unique name for your role. You will use this when managing roles
-        through the API. These are not customer facing.
+        A unique name for your role. You will use this when managing roles through the API. These
+        are not customer facing.
       </div>
     );
 
@@ -223,8 +216,7 @@ export const RBACForm = (props: Props) => {
       ? "Add a description to help others understand what this permission allows."
       : "Add a description to help others understand what this role represents.";
 
-  const defaultNamePlaceholder =
-    itemType === "permission" ? "domain.create" : "domain.manager";
+  const defaultNamePlaceholder = itemType === "permission" ? "domain.create" : "domain.manager";
   const defaultDescriptionPlaceholder =
     itemType === "permission"
       ? "Create a new domain in this account."
@@ -250,17 +242,11 @@ export const RBACForm = (props: Props) => {
             >
               {buttonText}
             </Button>
-            {footerText && (
-              <div className="text-gray-9 text-xs">{footerText}</div>
-            )}
+            {footerText && <div className="text-gray-9 text-xs">{footerText}</div>}
           </div>
         }
       >
-        <form
-          id={formId}
-          onSubmit={handleSubmit(onSubmitForm)}
-          className="flex flex-col gap-6"
-        >
+        <form id={formId} onSubmit={handleSubmit(onSubmitForm)} className="flex flex-col gap-6">
           <FormInput
             label="Name"
             description={nameDescription || defaultNameDescription}
@@ -276,9 +262,7 @@ export const RBACForm = (props: Props) => {
             error={errors.description?.message}
             {...register("description")}
             rows={3}
-            placeholder={
-              descriptionPlaceholder || defaultDescriptionPlaceholder
-            }
+            placeholder={descriptionPlaceholder || defaultDescriptionPlaceholder}
           />
         </form>
       </DialogContainer>

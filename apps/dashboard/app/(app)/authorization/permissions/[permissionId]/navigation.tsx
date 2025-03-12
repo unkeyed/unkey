@@ -1,12 +1,12 @@
 "use client";
 import { CopyButton } from "@/components/dashboard/copy-button";
+import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
 import type { Permission } from "@unkey/db";
 import { ShieldKey } from "@unkey/icons";
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { DeletePermission } from "./delete-permission";
-import { NavbarActionButton } from "@/components/navigation/action-button";
 // Reusable for settings where we only change the link
 export function Navigation({
   permissionId,
@@ -20,9 +20,7 @@ export function Navigation({
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<ShieldKey />}>
-        <Navbar.Breadcrumbs.Link href="/authorization/roles">
-          Authorization
-        </Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href="/authorization/roles">Authorization</Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link href="/authorization/permissions">
           Permissions
         </Navbar.Breadcrumbs.Link>
@@ -67,11 +65,7 @@ export function Navigation({
         <DeletePermission
           key="delete-permission"
           trigger={
-            <NavbarActionButton
-              variant="destructive"
-              color="danger"
-              className=""
-            >
+            <NavbarActionButton variant="destructive" color="danger" className="">
               Delete Permission
             </NavbarActionButton>
           }

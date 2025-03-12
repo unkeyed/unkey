@@ -3,7 +3,8 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { Navigation } from "./navigation";
-import { type NestedPermissions, Tree } from "./tree";
+import { RoleClient } from "./settings-client";
+import type { NestedPermissions } from "./tree";
 
 export const revalidate = 0;
 
@@ -27,7 +28,6 @@ function sortNestedPermissions(nested: NestedPermissions) {
 
   const sortedShallowKeys = Object.keys(shallowPermissions).sort();
   const sortedNestedKeys = Object.keys(nestedPermissions).sort();
-
   const sortedObject: NestedPermissions = {};
 
   for (const key of sortedShallowKeys) {
@@ -41,9 +41,8 @@ function sortNestedPermissions(nested: NestedPermissions) {
   return sortedObject;
 }
 
-export default async function RolesPage(props: Props) {
+export default async function RolePage(props: Props) {
   const tenantId = getTenantId();
-
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.tenantId, tenantId),
     with: {
@@ -51,6 +50,15 @@ export default async function RolesPage(props: Props) {
         where: (table, { eq }) => eq(table.id, props.params.roleId),
         with: {
           permissions: true,
+          keys: {
+            with: {
+              key: {
+                columns: {
+                  deletedAtM: true,
+                },
+              },
+            },
+          },
         },
       },
       permissions: {
@@ -61,23 +69,26 @@ export default async function RolesPage(props: Props) {
       },
     },
   });
+
   if (!workspace) {
     return redirect("/new");
   }
 
   const role = workspace.roles.at(0);
+
   if (!role) {
     return notFound();
   }
 
+  // Filter out soft deleted keys
+  const activeKeys = role.keys?.filter(({ key }) => key.deletedAtM === null) || [];
+
   const sortedPermissions = workspace.permissions.sort((a, b) => {
     const aParts = a.name.split(".");
     const bParts = b.name.split(".");
-
     if (aParts.length !== bParts.length) {
       return aParts.length - bParts.length;
     }
-
     return a.name.localeCompare(b.name);
   });
 
@@ -108,17 +119,11 @@ export default async function RolesPage(props: Props) {
     <div>
       <Navigation role={role} />
       <PageContent>
-        <div className="flex flex-col min-h-screen gap-8">
-          <div className="flex items-center justify-between">
-            <div className="grow min-w-2 ml-1">
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-semibold tracking-tight truncate">{role.name}</h2>
-              </div>
-              <p className="text-xs text-content-subtle truncate">{role.description}</p>
-            </div>
-          </div>
-          <Tree nestedPermissions={sortedNestedPermissions} role={{ id: role.id }} />
-        </div>
+        <RoleClient
+          role={role}
+          activeKeys={activeKeys}
+          sortedNestedPermissions={sortedNestedPermissions}
+        />
       </PageContent>
     </div>
   );

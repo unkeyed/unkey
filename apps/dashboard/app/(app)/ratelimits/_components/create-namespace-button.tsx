@@ -21,7 +21,7 @@ const formSchema = z.object({
     .max(50, "Name must not exceed 50 characters")
     .regex(
       /^[a-zA-Z0-9_\-\.]+$/,
-      "Only alphanumeric characters, underscores, hyphens, and periods are allowed"
+      "Only alphanumeric characters, underscores, hyphens, and periods are allowed",
     ),
 });
 
@@ -61,11 +61,7 @@ export const CreateNamespaceButton = ({
 
   return (
     <>
-      <NavbarActionButton
-        {...rest}
-        color="default"
-        onClick={() => setIsOpen(true)}
-      >
+      <NavbarActionButton {...rest} color="default" onClick={() => setIsOpen(true)}>
         <Plus size={18} className="w-4 h-4" />
         Create new namespace
       </NavbarActionButton>
@@ -88,8 +84,7 @@ export const CreateNamespaceButton = ({
               Create Namespace
             </Button>
             <div className="text-gray-9 text-xs">
-              Namespaces can be used to separate different rate limiting
-              concerns
+              Namespaces can be used to separate different rate limiting concerns
             </div>
           </div>
         }
