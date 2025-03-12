@@ -186,7 +186,7 @@ func New(svc Services) zen.Route {
 			BucketID:    "",
 			AuditLogID:  auditLogID,
 			DisplayName: namespace.Name,
-			Type:        "ratelimit_namespacee",
+			Type:        "ratelimit_namespace",
 			Name:        sql.NullString{String: override.Identifier, Valid: true},
 			Meta:        nil,
 			CreatedAt:   time.Now().UnixMilli(),

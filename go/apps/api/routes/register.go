@@ -27,15 +27,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withValidation,
 	}
 
-	srv.RegisterRoute(
-		[]zen.Middleware{
-			withTracing,
-			withMetrics,
-			withLogging,
-			withErrorHandling,
-			withValidation,
-		},
-		v2Liveness.New())
+	srv.RegisterRoute(defaultMiddlewares, v2Liveness.New())
 
 	// ---------------------------------------------------------------------------
 	// v2/ratelimit
@@ -51,6 +43,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Permissions: svc.Permissions,
 		}),
 	)
+
 	// v2/ratelimit.setOverride
 	srv.RegisterRoute(
 		defaultMiddlewares,
@@ -62,6 +55,7 @@ func Register(srv *zen.Server, svc *Services) {
 		}),
 	)
 
+	// v2/ratelimit.setOverride
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2RatelimitGetOverride.New(v2RatelimitGetOverride.Services{
@@ -72,6 +66,7 @@ func Register(srv *zen.Server, svc *Services) {
 		}),
 	)
 
+	// v2/ratelimit.setOverride
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2RatelimitDeleteOverride.New(v2RatelimitDeleteOverride.Services{
@@ -81,6 +76,11 @@ func Register(srv *zen.Server, svc *Services) {
 			Permissions: svc.Permissions,
 		}),
 	)
+
+	// ---------------------------------------------------------------------------
+	// v2/identities
+
+	// v2/identities.createIdentity
 
 	// ---------------------------------------------------------------------------
 	// misc

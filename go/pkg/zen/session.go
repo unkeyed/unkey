@@ -26,6 +26,8 @@ import (
 // is handled.
 type Session struct {
 	requestID string
+	location  string
+	userAgent string
 
 	w http.ResponseWriter
 	r *http.Request
@@ -45,6 +47,8 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 	s.w = w
 	s.r = r
 
+	s.location = r.Header.Get("True-Client-IP")
+	s.userAgent = r.UserAgent()
 	s.workspaceID = ""
 	return nil
 }
@@ -55,6 +59,14 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 // Returns an empty string if no authenticated workspace ID is available.
 func (s *Session) AuthorizedWorkspaceID() string {
 	return s.workspaceID
+}
+
+func (s *Session) UserAgent() string {
+	return s.userAgent
+}
+
+func (s *Session) Location() string {
+	return s.location
 }
 
 // Request returns the underlying http.Request.
@@ -338,6 +350,8 @@ func (s *Session) Send(status int, body []byte) error {
 // requests.
 func (s *Session) reset() {
 	s.requestID = ""
+	s.userAgent = ""
+	s.location = ""
 
 	s.w = nil
 	s.r = nil
