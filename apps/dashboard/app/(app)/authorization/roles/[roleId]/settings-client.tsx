@@ -35,11 +35,7 @@ type RoleClientProps = {
   sortedNestedPermissions: any; // Using 'any' here, but ideally you'd define the proper type
 };
 
-export const RoleClient = ({
-  role,
-  activeKeys,
-  sortedNestedPermissions,
-}: RoleClientProps) => {
+export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleClientProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const router = useRouter();
 
@@ -97,19 +93,12 @@ export const RoleClient = ({
             <SettingCard
               title="Role name"
               description={
-                <div>
-                  The name of this role used to identify it in API calls and the
-                  UI.
-                </div>
+                <div>The name of this role used to identify it in API calls and the UI.</div>
               }
               border="top"
             >
               <div className="flex gap-2 items-center justify-center w-full">
-                <Input
-                  placeholder="Role name"
-                  className="h-9"
-                  {...form.register("name")}
-                />
+                <Input placeholder="Role name" className="h-9" {...form.register("name")} />
                 <Button
                   type="submit"
                   size="lg"
@@ -174,15 +163,11 @@ export const RoleClient = ({
             </div>
             <div>
               <p className="text-sm text-accent-11">Permissions</p>
-              <p className="text-accent-12 font-medium text-sm">
-                {role.permissions.length}
-              </p>
+              <p className="text-accent-12 font-medium text-sm">{role.permissions.length}</p>
             </div>
             <div>
               <p className="text-sm text-accent-11">Connected Keys</p>
-              <p className="text-accent-12 font-medium text-sm">
-                {activeKeys.length}
-              </p>
+              <p className="text-accent-12 font-medium text-sm">{activeKeys.length}</p>
             </div>
           </div>
         </SettingCard>
@@ -194,18 +179,15 @@ export const RoleClient = ({
           className="flex-col items-start"
           contentWidth="w-full"
         >
-          <Tree
-            nestedPermissions={sortedNestedPermissions}
-            role={{ id: role.id }}
-          />
+          <Tree nestedPermissions={sortedNestedPermissions} role={{ id: role.id }} />
         </SettingCard>
 
         <SettingCard
           title="Delete role"
           description={
             <>
-              Deletes this role along with all its connections to permissions
-              and keys. This action cannot be undone.
+              Deletes this role along with all its connections to permissions and keys. This action
+              cannot be undone.
             </>
           }
           border="both"
@@ -217,9 +199,7 @@ export const RoleClient = ({
               color="danger"
               size="lg"
               onClick={() => {
-                toast.info(
-                  "Delete role functionality would be implemented here"
-                );
+                toast.info("Delete role functionality would be implemented here");
               }}
             >
               Delete Role...

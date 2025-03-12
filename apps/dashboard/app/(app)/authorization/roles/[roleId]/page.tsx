@@ -1,4 +1,3 @@
-import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
@@ -118,13 +117,11 @@ export default async function RolePage(props: Props) {
   return (
     <div>
       <Navigation role={role} />
-      <PageContent>
-        <RoleClient
-          role={role}
-          activeKeys={activeKeys}
-          sortedNestedPermissions={sortedNestedPermissions}
-        />
-      </PageContent>
+      <RoleClient
+        role={role}
+        activeKeys={activeKeys}
+        sortedNestedPermissions={sortedNestedPermissions}
+      />
     </div>
   );
 }

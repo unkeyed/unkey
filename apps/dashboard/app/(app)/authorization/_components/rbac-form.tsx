@@ -13,7 +13,6 @@ import type { PropsWithChildren, ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-// Common schema for all forms
 const formSchema = z.object({
   name: validation.name,
   description: validation.description.optional(),
@@ -21,7 +20,6 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-// Base props for all form variants
 type BaseProps = {
   isModalOpen: boolean;
   onOpenChange: (value: boolean) => void;
@@ -36,7 +34,6 @@ type BaseProps = {
   formId: string;
 };
 
-// Props specific to each form variant
 type CreateProps = BaseProps & {
   type: "create";
   itemType: "permission" | "role";
