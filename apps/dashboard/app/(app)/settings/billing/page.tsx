@@ -167,8 +167,6 @@ export default async function BillingPage() {
       : false,
   ])
 
-  console.log(subscription?.status)
-
   return (
     <Client
       hasPreviousSubscriptions={hasPreviousSubscriptions}
