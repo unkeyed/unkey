@@ -10,7 +10,7 @@ export const LogsRefresh = () => {
   const hasRelativeFilter = filters.find((f) => f.field === "since");
 
   const handleRefresh = () => {
-    api.logs.queryVerificationTimeseries.invalidate();
+    api.overview.timeseries.invalidate();
     refresh();
   };
 
