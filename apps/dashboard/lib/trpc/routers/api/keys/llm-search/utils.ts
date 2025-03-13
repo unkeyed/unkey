@@ -238,6 +238,7 @@ Ambiguity Resolution Priority:
 1. Explicit over implicit (e.g., exact name over partial match)
 2. Time ranges: Use most specific when multiple are valid
 3. Outcomes: When ambiguous, prefer explicit outcome values
+4. External ID: When you see "External ID", treat it as "identities"
 
 Output Validation:
 1. Required fields must be present: field, filters
