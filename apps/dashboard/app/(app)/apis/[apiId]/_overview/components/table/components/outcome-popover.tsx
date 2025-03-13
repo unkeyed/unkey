@@ -44,7 +44,7 @@ export const OutcomesPopover = ({ outcomeCounts, isSelected }: OutcomesPopoverPr
   return (
     <div className="flex flex-wrap gap-1 items-center">
       <Popover>
-        <PopoverTrigger>
+        <PopoverTrigger onClick={(e) => e.stopPropagation()}>
           <Button
             variant="ghost"
             size="sm"

@@ -50,14 +50,13 @@ export const QuickNavPopover = ({
   const useVirtual = items.length > virtualizationThreshold;
 
   // Calculate max height based on item count, but capped
-  // For few items, calculate exact height needed (32px per item)
-  const exactHeight = items.length * 32;
+  // For few items, calculate exact height needed (36px per item)
+  const exactHeight = items.length * 36;
   const maxHeight = Math.min(exactHeight, 200);
 
   // Only apply scrolling if items exceed threshold
-  const shouldScroll = items.length > 6; // Adjust this threshold as needed
+  const shouldScroll = items.length > 6;
 
-  // Initialize virtualizer only if needed
   const rowVirtualizer = useVirtual
     ? useVirtualizer({
         count: items.length,
@@ -154,7 +153,6 @@ export const QuickNavPopover = ({
             }}
           >
             {useVirtual ? (
-              // Virtualized list for many items
               <div
                 className="relative w-full"
                 style={{

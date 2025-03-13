@@ -7,7 +7,6 @@ import { LogHeader } from "./components/log-header";
 import { OutcomeDistributionSection } from "./components/log-outcome-distribution-section";
 import { LogSection } from "./components/log-section";
 import { PermissionsSection, RolesSection } from "./components/roles-permissions";
-import { SummarySection } from "./components/summary-section";
 
 type StyleObject = {
   top: string;
@@ -64,18 +63,9 @@ export const KeysOverviewLogDetails = ({
     ? formatDate(metaData.createdAt.replace(/3NZ$/, "3Z"))
     : "N/A";
 
-  const summaryStats = [
-    `Valid Requests: ${log.valid_count || 0}`,
-    `Error Requests: ${log.error_count || 0}`,
-  ];
-
   const identifiers = [`ID: ${log.key_details.id}`, `Name: ${log.key_details.name || "N/A"}`];
 
-  const usage = [
-    `Created: ${createdAt}`,
-    `Last Used: ${log.time ? formatDate(log.time) : "N/A"}`,
-    `Unique ID: ${metaData?.uniqueId || "N/A"}`,
-  ];
+  const usage = [`Created: ${createdAt}`, `Last Used: ${log.time ? formatDate(log.time) : "N/A"}`];
 
   const limits = [
     `Status: ${log.key_details.enabled ? "Enabled" : "Disabled"}`,
@@ -103,7 +93,6 @@ export const KeysOverviewLogDetails = ({
       style={panelStyle}
     >
       <LogHeader log={log} onClose={handleClose} />
-      <SummarySection summaryStats={summaryStats} />
       <LogSection title="Usage" details={usage} />
       {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
       <LogSection title="Limits" details={limits} />

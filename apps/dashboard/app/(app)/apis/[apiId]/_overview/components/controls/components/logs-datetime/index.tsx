@@ -1,3 +1,4 @@
+import { DEFAULT_OPTIONS } from "@/components/logs/datetime/constants";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
@@ -65,6 +66,9 @@ export const LogsDateTime = () => {
       }}
       initialTitle={title ?? ""}
       onSuggestionChange={setTitle}
+      customOptions={DEFAULT_OPTIONS.filter(
+        (option) => !option.value || !option.value.endsWith("m"),
+      )}
     >
       <div className="group">
         <Button
