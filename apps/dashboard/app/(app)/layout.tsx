@@ -1,18 +1,19 @@
-import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { Empty } from "@unkey/ui";
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { UsageBanner } from "./banner";
-import { DesktopSidebar } from "./desktop-sidebar";
-import { MobileSideBar } from "./mobile-sidebar";
+import { getTenantId } from "@/lib/auth"
+import { db } from "@/lib/db"
+import { Empty } from "@unkey/ui"
+import Link from "next/link"
+import { redirect } from "next/navigation"
+import { UsageBanner } from "./banner"
+import { DesktopSidebar } from "./desktop-sidebar"
+import { MobileSideBar } from "./mobile-sidebar"
+import { clickhouse } from "@/lib/clickhouse"
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export default async function Layout({ children }: LayoutProps) {
-  const tenantId = getTenantId();
+  const tenantId = getTenantId()
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
@@ -20,11 +21,32 @@ export default async function Layout({ children }: LayoutProps) {
       apis: {
         where: (table, { isNull }) => isNull(table.deletedAtM),
       },
+      quota: true,
     },
-  });
+  })
   if (!workspace) {
-    return redirect("/apis");
+    return redirect("/apis")
   }
+
+  const startOfMonth = new Date()
+  startOfMonth.setUTCDate(1)
+  startOfMonth.setUTCHours(0, 0, 0, 0)
+
+  const year = startOfMonth.getUTCFullYear()
+  const month = startOfMonth.getUTCMonth() + 1
+
+  const [usedVerifications, usedRatelimits] = await Promise.all([
+    clickhouse.billing.billableVerifications({
+      workspaceId: workspace.id,
+      year,
+      month,
+    }),
+    clickhouse.billing.billableRatelimits({
+      workspaceId: workspace.id,
+      year,
+      month,
+    }),
+  ])
 
   return (
     <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-background lg:flex-row">
@@ -33,6 +55,11 @@ export default async function Layout({ children }: LayoutProps) {
       <MobileSideBar className="lg:hidden" workspace={workspace} />
       <div className="flex flex-1 overflow-hidden bg-gray-100 dark:bg-gray-950">
         <DesktopSidebar
+          requests={{
+            usedRatelimits,
+            usedVerifications,
+            maxRequests: workspace.quota?.requestsPerMonth ?? 150_000,
+          }}
           workspace={workspace}
           className="isolate hidden lg:flex min-w-[250px] max-w-[250px] bg-[inherit]"
         />
@@ -65,5 +92,5 @@ export default async function Layout({ children }: LayoutProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }
