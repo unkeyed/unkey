@@ -1,0 +1,485 @@
+---
+date: 2025-03-13
+title: "Zen"
+image: "/images/blog-images/covers/zen.png"
+description: "A Minimalist HTTP Library for Go"
+author: andreas
+tags: ["engineering"]
+---
+
+When we started migrating our API services from TypeScript to Go, we were looking for an HTTP framework that would provide a clean developer experience, offer precise control over middleware execution, and integrate seamlessly with OpenAPI for our SDK generation. After evaluating the popular frameworks in the Go ecosystem, we found that none quite matched our specific requirements.
+
+So, we did what engineers do: we built our own. Enter Zen, a lightweight HTTP framework built directly on top of Go's standard library.
+
+## The Pain Points with Existing Frameworks
+
+Our journey began with our TypeScript API using Hono, which offered a fantastic developer experience with [Zod validations](https://github.com/samchungy/zod-openapi) and first-class OpenAPI support. When migrating to Go, we faced several challenges with existing frameworks:
+
+### Complex Middleware Execution Order
+
+Most frameworks enforce a rigid middleware execution pattern that didn't allow for our specific needs. The critical limitation we encountered was the inability to capture post-error-handling response details—a fundamental requirement not just for our internal monitoring but also for our customer-facing analytics dashboard.
+
+- We needed an error handling middleware that could parse returned errors and construct properly typed problem+json responses
+- OpenAPI validation needed to run before our handler code but after error handling, to return nice validation responses
+- Most importantly, we needed logging middleware that could run *after* error handling was complete, to capture the final HTTP status code and response body that was actually sent to the client
+
+This last point is crucial for both debugging and customer visibility. We store these responses and make them available to our customers in our dashboard, allowing them to inspect exactly what their API clients received. When an error occurs, customers need to see the precise HTTP status code and response payload their systems encountered, not just that an error happened somewhere in the pipeline.
+
+While we could have potentially achieved this with existing frameworks, doing so would have required embedding error handling and response logging logic directly into every handler function. This would mean handlers couldn't simply return Go errors—they would need to know how to translate those errors into HTTP responses and also handle logging those responses. This approach would:
+
+1. Duplicate error handling logic across every endpoint
+2. Make handlers responsible for concerns beyond their core business logic
+
+Our goal was to keep handlers simple, allowing them to focus on business logic and return domain errors without worrying about HTTP status codes, response formatting, or logging..
+
+By building Zen, we could ensure handlers remained clean and focused while still providing our customers with complete visibility into their API requests—including the exact error responses their systems encountered.
+
+### Poor OpenAPI Integration
+
+While frameworks like [huma.rocks](https://huma.rocks) offered OpenAPI generation from Go code, we preferred a schema-first approach. This approach gives us complete control over the spec quality and annotations. With our SDKs generated via [Speakeasy](https://www.speakeasy.com/) from this spec, we need to set the bar high to let them deliver the best SDK possible.
+
+### Dependency Bloat
+
+Many frameworks pull in dozens of dependencies, which adds maintenance, potential security risks and the possibility of supply chain attacks. We wanted something minimal that relied primarily on Go's standard library.
+
+### Inflexible Error Handling
+
+Go's error model is simple, but translating errors into HTTP responses (especially [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem+json ones) requires special handling. Existing frameworks made it surprisingly difficult to map our domain errors to appropriate HTTP responses.
+
+## The Zen Philosophy
+
+Rather than forcing an existing framework to fit our needs, we decided to build Zen with three core principles in mind:
+
+1. **Simplicity**: Focus on core HTTP handling with minimal abstractions
+2. **Clarity**: Maintain Go's idioms and stay close to net/http's mental model
+3. **Efficiency**: No unnecessary dependencies, with low overhead
+
+Put simply, Zen is a thin wrapper around Go's standard library that makes common HTTP tasks more ergonomic while providing precise control over request handling.
+
+## The Core Components of Zen
+
+Zen consists of four primary components, each serving a specific purpose in the request lifecycle:
+
+### Sessions
+
+The `Session` type encapsulates the HTTP request and response context, providing utility methods for common operations:
+
+```go
+route := zen.NewRoute("GET", "/v2/liveness",
+	func(ctx context.Context, s *zen.Session) error {
+		res := Response{
+			Message: "we're cooking",
+		}
+		return s.JSON(http.StatusOK, res)
+	},
+)
+```
+
+Sessions are pooled and reused between requests to reduce memory allocations and GC pressure, a common performance concern in high-throughput API servers.
+
+### Routes
+
+The `Route` interface represents an HTTP endpoint with its method, path, and handler function. Routes can be decorated with middleware chains:
+
+
+```go
+func main(){
+	// ...
+
+	// Create a route
+	route := zen.NewRoute("POST", "/v2/ratelimit.limit", handler)
+
+	// Register with middleware
+	server.RegisterRoute(
+	    []zen.Middleware{
+	      zen.WithTracing(),
+	      zen.WithMetrics(eventBuffer),
+	      zen.WithLogging(logger),
+	      zen.WithErrorHandling(logger),
+	      zen.WithValidation(validator),
+	    },
+	    route,
+	)
+}
+```
+### Middleware
+
+At the core of Zen, middleware is just a function:
+
+```go
+type Middleware func(handler HandleFunc) HandleFunc
+```
+But this simple definition makes it so powerful. Each middleware gets a handler and returns a wrapped handler - that's it. No complex interfaces or lifecycle hooks to learn.
+
+What's special about this approach is that it lets us control exactly when each piece of middleware runs. For example, our logging middleware captures the final status code and response body:
+
+```go
+func WithLogging(logger logging.Logger) Middleware {
+    return func(next HandleFunc) HandleFunc {
+        return func(ctx context.Context, s *Session) error {
+            start := time.Now()
+
+            // Call the next handler in the chain
+            err := next(ctx, s)
+
+            // Log after handling is complete
+            logger.InfoContext(ctx, "request",
+                slog.String("method", s.r.Method),
+                slog.String("path", s.r.URL.Path),
+                slog.Int("status", s.responseStatus), // Captured from response
+                slog.String("latency", time.Since(start).String()),
+            )
+
+            return err
+        }
+    }
+}
+```
+
+To understand our error handling middleware, it's important to first know how we tag errors in our application. We use a custom `fault` package that enables adding metadata to errors, including tags that categorize the error type and separate internal details from user-facing messages.
+
+In our handlers or services, we can return tagged errors like this:
+
+```go
+// When a database query returns no results
+if errors.Is(err, sql.ErrNoRows) {
+    return fault.Wrap(err,
+        fault.WithTag(fault.NOT_FOUND),
+        fault.WithDesc(
+            fmt.Sprintf("namespace '%s' not found in database", namespaceName),  // Internal details for logs
+            "This namespace does not exist"                                      // User-facing message
+        )
+    )
+}
+
+// When handling permission checks
+if !permissions.Valid {
+    return fault.New("insufficient permissions",
+        fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+        fault.WithDesc(
+            fmt.Sprintf("key '%s' lacks permission on resource '%s'", auth.KeyID, namespace.ID),
+            permissions.Message  // User-friendly message from the permission system
+        )
+    )
+}
+```
+
+The `WithDesc` function is crucial here - it maintains two separate messages:
+1. An internal message with technical details for logging and debugging
+2. A user-facing message that's safe to expose in API responses
+
+This separation lets us provide detailed context for troubleshooting while ensuring we never leak sensitive implementation details to users.
+
+Our error handling middleware then examines these tags to determine the appropriate HTTP response:
+
+```go
+func WithErrorHandling(logger logging.Logger) Middleware {
+    return func(next HandleFunc) HandleFunc {
+        return func(ctx context.Context, s *Session) error {
+            err := next(ctx, s)
+            if err == nil {
+                return nil
+            }
+
+            // Convert domain errors to HTTP responses
+            switch fault.GetTag(err) {
+            case fault.NOT_FOUND:
+                return s.JSON(http.StatusNotFound, api.NotFoundError{
+                    Title:     "Not Found",
+                    Type:      "https://unkey.com/docs/errors/not_found",
+                    Detail:    fault.UserFacingMessage(err),
+                    RequestId: s.requestID,
+                    Status:    http.StatusNotFound,
+                    Instance:  nil,
+                })
+            case fault.BAD_REQUEST:
+                return s.JSON(http.StatusBadRequest, api.BadRequestError{
+                    Title:     "Bad Request",
+                    Type:      "https://unkey.com/docs/errors/bad_request",
+                    Detail:    fault.UserFacingMessage(err),
+                    RequestId: s.requestID,
+                    Status:    http.StatusBadRequest,
+                    Instance:  nil,
+                    Errors:    []api.ValidationError{...},
+                })
+            // Additional cases...
+            }
+
+            // Default to 500 Internal Server Error
+            return s.JSON(http.StatusInternalServerError, api.InternalServerError{
+                Title:     "Internal Server Error",
+                Type:      "https://unkey.com/docs/errors/internal_server_error",
+                Detail:    fault.UserFacingMessage(err),
+                RequestId: s.requestID,
+                Status:    http.StatusInternalServerError,
+                Instance:  nil,
+            })
+        }
+    }
+}
+```
+
+### Server
+
+The `Server` type manages HTTP server configuration, lifecycle, and route registration:
+
+```go
+// Initialize a server
+server, err := zen.New(zen.Config{
+    Logger: logger,
+    // ...
+})
+if err != nil {
+    log.Fatalf("failed to create server: %v", err)
+}
+
+// Register routes
+server.RegisterRoute([]zen.Middleware{...}, route)
+
+// Start the server
+err = server.Listen(ctx, ":8080")
+```
+
+The server handles graceful shutdown, goroutine management, and session pooling automatically.
+
+## OpenAPI Integration the Right Way
+
+Unlike frameworks that generate OpenAPI specs from code, we take a schema-first approach. Our OpenAPI spec is hand-crafted for precision and then used to generate Go types and validation logic:
+
+```go
+// OpenAPI validation middleware
+func WithValidation(validator *validation.Validator) Middleware {
+    return func(next HandleFunc) HandleFunc {
+        return func(ctx context.Context, s *Session) error {
+            err, valid := validator.Validate(s.r)
+            if !valid {
+                err.RequestId = s.requestID
+                return s.JSON(err.Status, err)
+            }
+            return next(ctx, s)
+        }
+    }
+}
+```
+
+Our validation package uses [`pb33f/libopenapi-validator`](https://github.com/pb33f/libopenapi-validator) which provides structural and semantic validation based on our OpenAPI spec. In an ideal world we wouldn't use a dependency for this, but it's way too much and too error prone to implement ourselves at this stage.
+
+## The Benefits of Building Zen
+
+Creating Zen has provided us with several key advantages:
+
+### Complete Middleware Control
+
+We now have granular control over middleware execution, allowing us to capture metrics, logs, and errors exactly as needed. The middleware is simple to understand and compose, making it easy to add new functionality or modify existing behavior.
+
+### Schema-First API Design
+
+By taking a schema-first approach to OpenAPI, we maintain full control over our API contract while still getting Go type safety through generated types. This ensures consistency across our SDKs and reduces the likelihood of API-breaking changes.
+
+### Minimal Dependencies
+
+Zen relies almost entirely on the standard library, with only a few external dependencies for OpenAPI validation. This reduces our dependency footprint and makes the codebase easier to understand and maintain.
+
+### Idiomatic Go
+
+Zen follows Go conventions and idioms, making it feel natural to Go developers. Handler functions receive a context as the first parameter and return an error, following common Go patterns.
+
+### Type Safety with Ergonomics
+
+The Session methods for binding request bodies and query parameters into Go structs provide type safety without boilerplate. The error handling middleware gives structured, consistent error responses.
+
+## Real-World Example: Rate Limiting API
+
+Here's a complete handler from our rate-limiting API that shows how all these components work together:
+
+```go
+package handler
+
+import (...)
+
+// Reexporting to reuse in tests
+type Request = api.V2RatelimitSetOverrideRequestBody
+type Response = api.V2RatelimitSetOverrideResponseBody
+
+
+// Define the dependencies for this route. These are injected during route registration
+type Services struct {
+	Logger      logging.Logger
+	DB          db.Database
+	Keys        keys.KeyService
+	Permissions permissions.PermissionService
+}
+
+func New(svc Services) zen.Route {
+	return zen.NewRoute("POST", "/v2/ratelimit.setOverride", func(ctx context.Context, s *zen.Session) error {
+
+		auth, err := svc.Keys.VerifyRootKey(ctx, s)
+		if err != nil {
+			return err
+		}
+
+		req := Request{}
+		err = s.BindBody(&req)
+		if err != nil {
+			return err // already tagged
+		}
+
+		namespace, err := getNamespace(ctx, svc, auth.AuthorizedWorkspaceID, req)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return fault.Wrap(err,
+					fault.WithTag(fault.NOT_FOUND),
+					fault.WithDesc("namespace not found", "This namespace does not exist."),
+				)
+			}
+			return err
+		}
+
+		if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
+			return fault.New("namespace not found",
+				fault.WithTag(fault.NOT_FOUND),
+				fault.WithDesc("wrong workspace, masking as 404", "This namespace does not exist."),
+			)
+		}
+
+		permissions, err := svc.Permissions.Check(
+			ctx,
+			auth.KeyID,
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Ratelimit,
+					ResourceID:   namespace.ID,
+					Action:       rbac.SetOverride,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Ratelimit,
+					ResourceID:   "*",
+					Action:       rbac.SetOverride,
+				}),
+			),
+		)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
+				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
+			)
+		}
+
+		if !permissions.Valid {
+			return fault.New("insufficient permissions",
+				fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+				fault.WithDesc(permissions.Message, permissions.Message),
+			)
+		}
+
+		overrideID := uid.New(uid.RatelimitOverridePrefix)
+		err = db.Query.InsertRatelimitOverride(ctx, svc.DB.RW(), db.InsertRatelimitOverrideParams{
+			ID:          overrideID,
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			NamespaceID: namespace.ID,
+			Identifier:  req.Identifier,
+			Limit:       int32(req.Limit),    // nolint:gosec
+			Duration:    int32(req.Duration), //nolint:gosec
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithDesc("database failed", "The database is unavailable."),
+			)
+		}
+
+		return s.JSON(http.StatusOK, Response{
+			OverrideId: overrideID,
+		})
+	})
+}
+
+func getNamespace(ctx context.Context, svc Services, workspaceID string, req Request) (db.RatelimitNamespace, error) {
+
+	switch {
+	case req.NamespaceId != nil:
+		{
+			return db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
+		}
+	case req.NamespaceName != nil:
+		{
+			return db.Query.FindRatelimitNamespaceByName(ctx, svc.DB.RO(), db.FindRatelimitNamespaceByNameParams{
+				WorkspaceID: workspaceID,
+				Name:        *req.NamespaceName,
+			})
+		}
+	}
+
+	return db.RatelimitNamespace{}, fault.New("missing namespace id or name",
+		fault.WithTag(fault.BAD_REQUEST),
+		fault.WithDesc("missing namespace id or name", "You must provide either a namespace ID or name."),
+	)
+
+}
+
+```
+
+The handler is just a function that returns an error, making it easy to test and reason about. All the HTTP-specific logic (authentication, validation, error handling, response formatting) is handled by middleware or injected services.
+
+## Testing Made Easy
+
+Zen's simple design makes testing very easy, even our CEO loves it. Because routes are just functions that accept a context and session and return an error, they're easy to unit test:
+
+```go
+package handler_test
+
+import (...)
+
+func TestRatelimitEndpoint(t *testing.T) {
+    h := testutil.NewHarness(t)
+
+    route := handler.New(handler.Services{
+        DB:          h.DB,
+        Keys:        h.Keys,
+        Logger:      h.Logger,
+        Permissions: h.Permissions,
+    })
+
+    h.Register(route)
+
+    rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID)
+
+    headers := http.Header{
+        "Content-Type":  {"application/json"},
+        "Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+    }
+
+    req := handler.Request{
+        Namespace:  "test_namespace",
+        Identifier: "user_123",
+        Limit:      100,
+        Duration:   60000,
+    }
+
+    res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+    require.Equal(t, 200, res.Status)
+    require.NotNil(t, res.Body)
+    require.True(t, res.Body.Success)
+    require.Equal(t, int64(100), res.Body.Limit)
+    require.Equal(t, int64(99), res.Body.Remaining)
+}
+```
+
+We've built test utilities that make it easy to set up a test harness with database dependencies, register routes, and call them with typed requests and responses.
+
+## Zen is Open Source
+
+Zen lives in our open source mono repo, so you can explore or even use it in your own projects. The full source code is available in our GitHub repository at [github.com/unkeyed/unkey/tree/main/go/pkg/zen](https://github.com/unkeyed/unkey/tree/main/go/pkg/zen).
+
+While we built Zen specifically for our needs, we recognize that other teams might face similar challenges with Go HTTP frameworks. You're welcome to:
+- Read through the implementation to understand our approach
+- Fork the code and adapt it to your own requirements
+- Use it directly in your projects if it fits your needs
+
+## Conclusion
+
+While the Go ecosystem offers many excellent HTTP frameworks, sometimes the best solution is a custom one tailored to your specific needs. A thin layer on top of Go's standard library can provide significant ergonomic benefits without sacrificing control or performance.
+
+
+As our API continues to grow, the simplicity and extensibility of Zen will allow us to add new features and functionality without compromising on performance or developer experience. The best abstractions are those that solve real problems without introducing new ones, and by starting with Go's solid foundation and carefully adding only what we needed, we've created a framework that enables our team to build with confidence.
