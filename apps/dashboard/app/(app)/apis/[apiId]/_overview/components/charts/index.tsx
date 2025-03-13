@@ -70,6 +70,8 @@ export const KeysOverviewLogsCharts = ({
         color: "hsl(var(--success-11))",
       },
     ],
+    showRightSide: false,
+    reverse: true,
   };
 
   return (

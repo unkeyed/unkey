@@ -10,6 +10,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 import {
   Area,
@@ -35,6 +36,8 @@ export type TimeseriesChartLabels = {
   title: string;
   rangeLabel: string;
   metrics: ChartMetric[];
+  showRightSide?: boolean;
+  reverse?: boolean;
 };
 
 export interface TimeseriesAreaChartProps {
@@ -57,6 +60,12 @@ export const OverviewAreaChart = ({
   labels,
 }: TimeseriesAreaChartProps) => {
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+
+  const labelsWithDefaults = {
+    ...labels,
+    showRightSide: labels.showRightSide !== undefined ? labels.showRightSide : true,
+    reverse: labels.reverse !== undefined ? labels.reverse : false,
+  };
 
   const handleMouseDown = (e: any) => {
     if (!enableSelection) {
@@ -103,16 +112,16 @@ export const OverviewAreaChart = ({
   };
 
   if (isError) {
-    return <OverviewAreaChartError labels={labels} />;
+    return <OverviewAreaChartError labels={labelsWithDefaults} />;
   }
   if (isLoading) {
-    return <OverviewAreaChartLoader labels={labels} />;
+    return <OverviewAreaChartLoader labels={labelsWithDefaults} />;
   }
 
   // Calculate metrics
   const ranges: Record<string, { min: number; max: number; avg: number }> = {};
 
-  labels.metrics.forEach((metric) => {
+  labelsWithDefaults.metrics.forEach((metric) => {
     const values = data.map((d) => d[metric.key]);
     const min = data.length > 0 ? Math.min(...values) : 0;
     const max = data.length > 0 ? Math.max(...values) : 0;
@@ -122,13 +131,30 @@ export const OverviewAreaChart = ({
   });
 
   // Get primary metric for range display
-  const primaryMetric = labels.metrics[0];
+  const primaryMetric = labelsWithDefaults.metrics[0];
 
   return (
     <div className="flex flex-col h-full">
-      <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10">
+      <div
+        className={cn(
+          "pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10",
+          labelsWithDefaults.reverse && "flex-row-reverse",
+        )}
+      >
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">{labels.rangeLabel}</div>
+          <div className="flex items-center gap-2">
+            {labelsWithDefaults.reverse &&
+              labelsWithDefaults.metrics.map((metric) => (
+                <div
+                  key={metric.key}
+                  className="rounded h-[10px] w-1"
+                  style={{ backgroundColor: metric.color }}
+                />
+              ))}
+            <div className="text-accent-10 text-[11px] leading-4">
+              {labelsWithDefaults.rangeLabel}
+            </div>
+          </div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
             {primaryMetric.formatter
               ? `${primaryMetric.formatter(
@@ -140,21 +166,23 @@ export const OverviewAreaChart = ({
           </div>
         </div>
 
-        <div className="flex gap-10 items-center">
-          {labels.metrics.map((metric) => (
-            <div key={metric.key} className="flex flex-col gap-1">
-              <div className="flex gap-2 items-center">
-                <div className="rounded h-[10px] w-1" style={{ backgroundColor: metric.color }} />
-                <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+        {labelsWithDefaults.showRightSide && (
+          <div className="flex gap-10 items-center">
+            {labelsWithDefaults.metrics.map((metric) => (
+              <div key={metric.key} className="flex flex-col gap-1">
+                <div className="flex gap-2 items-center">
+                  <div className="rounded h-[10px] w-1" style={{ backgroundColor: metric.color }} />
+                  <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+                </div>
+                <div className="text-accent-12 text-[18px] font-semibold leading-7">
+                  {metric.formatter
+                    ? metric.formatter(ranges[metric.key].avg)
+                    : compactFormatter.format(ranges[metric.key].avg)}
+                </div>
               </div>
-              <div className="text-accent-12 text-[18px] font-semibold leading-7">
-                {metric.formatter
-                  ? metric.formatter(ranges[metric.key].avg)
-                  : compactFormatter.format(ranges[metric.key].avg)}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 min-h-0">
@@ -169,7 +197,7 @@ export const OverviewAreaChart = ({
               onMouseLeave={handleMouseUp}
             >
               <defs>
-                {labels.metrics.map((metric) => (
+                {labelsWithDefaults.metrics.map((metric) => (
                   <linearGradient
                     key={`${metric.key}Gradient`}
                     id={`${metric.key}Gradient`}
@@ -230,7 +258,7 @@ export const OverviewAreaChart = ({
                 }}
               />
 
-              {labels.metrics.map((metric) => (
+              {labelsWithDefaults.metrics.map((metric) => (
                 <Area
                   key={metric.key}
                   type="monotone"
@@ -255,7 +283,7 @@ export const OverviewAreaChart = ({
         </ResponsiveContainer>
       </div>
 
-      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between border-t-gray-2">
+      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
         {data.length > 0
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),

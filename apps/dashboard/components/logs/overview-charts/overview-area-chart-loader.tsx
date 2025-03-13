@@ -1,5 +1,6 @@
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 import type { TimeseriesChartLabels } from "./overview-area-chart";
@@ -12,6 +13,12 @@ type TimeseriesChartLoadingProps = {
  * Enhanced loading component for timeseries area chart displays with fluid, animated waves
  */
 export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps) => {
+  const labelsWithDefaults = {
+    ...labels,
+    showRightSide: labels.showRightSide !== undefined ? labels.showRightSide : true,
+    reverse: labels.reverse !== undefined ? labels.reverse : false,
+  };
+
   const [mockData, setMockData] = useState(() => generateInitialData());
   const [phase, setPhase] = useState(0);
   const animationRef = useRef(0);
@@ -51,7 +58,7 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
         const updatedItem = { ...item };
 
         // Create flowing wave patterns with varying amplitudes and frequencies per metric
-        labels.metrics.forEach((metric, metricIndex) => {
+        labelsWithDefaults.metrics.forEach((metric, metricIndex) => {
           // Primary wave with slowly moving amplitude
           const primaryAmplitude = 0.6 + Math.sin(phase * 0.2) * 0.3;
 
@@ -73,41 +80,63 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
         return updatedItem;
       }),
     );
-  }, [phase, labels.metrics]);
+  }, [phase, labelsWithDefaults.metrics]);
 
   const currentTime = Date.now();
   const timePoints = calculateTimePoints(currentTime - 100 * 60000, currentTime);
 
   return (
     <div className="flex flex-col h-full animate-pulse">
-      {/* Header section */}
-      <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10">
+      {/* Header section with support for reverse layout */}
+      <div
+        className={cn(
+          "pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10",
+          labelsWithDefaults.reverse && "flex-row-reverse",
+        )}
+      >
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">{labels.rangeLabel}</div>
+          <div className="flex items-center gap-2">
+            {labelsWithDefaults.reverse &&
+              labelsWithDefaults.metrics.map((metric) => (
+                <div
+                  key={metric.key}
+                  className="rounded h-[10px] w-1"
+                  style={{ backgroundColor: metric.color }}
+                />
+              ))}
+            <div className="text-accent-10 text-[11px] leading-4">
+              {labelsWithDefaults.rangeLabel}
+            </div>
+          </div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7 bg-accent-4 rounded w-full">
             &nbsp;
           </div>
         </div>
-        <div className="flex gap-10 items-center">
-          {labels.metrics.map((metric) => (
-            <div key={metric.key} className="flex flex-col gap-1">
-              <div className="flex gap-2 items-center">
-                <div className="rounded h-[10px] w-1" style={{ backgroundColor: metric.color }} />
-                <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+
+        {/* Right side section shown conditionally */}
+        {labelsWithDefaults.showRightSide && (
+          <div className="flex gap-10 items-center">
+            {labelsWithDefaults.metrics.map((metric) => (
+              <div key={metric.key} className="flex flex-col gap-1">
+                <div className="flex gap-2 items-center">
+                  <div className="rounded h-[10px] w-1" style={{ backgroundColor: metric.color }} />
+                  <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+                </div>
+                <div className="text-accent-12 text-[18px] font-semibold leading-7 bg-accent-4 rounded w-full">
+                  &nbsp;
+                </div>
               </div>
-              <div className="text-accent-12 text-[18px] font-semibold leading-7 bg-accent-4 rounded w-full">
-                &nbsp;
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
+
       {/* Chart area */}
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <defs>
-              {labels.metrics.map((metric) => (
+              {labelsWithDefaults.metrics.map((metric) => (
                 <linearGradient
                   key={`${metric.key}Gradient`}
                   id={`${metric.key}Gradient`}
@@ -124,7 +153,7 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
             </defs>
             <YAxis domain={[0, (dataMax: number) => dataMax * 1.1]} hide />
 
-            {labels.metrics.map((metric) => (
+            {labelsWithDefaults.metrics.map((metric) => (
               <Area
                 key={metric.key}
                 type="monotone"
@@ -139,6 +168,7 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
       {/* Time labels footer */}
       <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between">
         {timePoints.map((time, i) => (
