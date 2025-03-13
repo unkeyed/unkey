@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -32,7 +33,9 @@ type Services struct {
 }
 
 const (
-	MAX_META_LENGTH = 64_000
+	// Planetscale only allows for 67MB of json data
+	// 5MB should be enough for most use cases
+	MAX_META_LENGTH_MB = 5
 )
 
 func New(svc Services) zen.Route {
@@ -56,6 +59,7 @@ func New(svc Services) zen.Route {
 			ctx,
 			auth.KeyID,
 			rbac.Or(
+				rbac.S("*"),
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Identity,
 					ResourceID:   "*",
@@ -77,7 +81,7 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		var meta json.RawMessage
+		var meta []byte
 		if req.Meta != nil {
 			rawMeta, err := json.Marshal(req.Meta)
 			if err != nil {
@@ -87,10 +91,11 @@ func New(svc Services) zen.Route {
 				)
 			}
 
-			if len(rawMeta) > MAX_META_LENGTH {
+			sizeInMB := float64(len(rawMeta)) / 1024 / 1024
+			if sizeInMB > MAX_META_LENGTH_MB {
 				return fault.New("metadata is too large",
 					fault.WithTag(fault.BAD_REQUEST),
-					fault.WithDesc("metadata is too large", fmt.Sprintf("Metadata is too large, it must be less than 64k characters when json encoded, got: %d", len(rawMeta))),
+					fault.WithDesc("metadata is too large", fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", MAX_META_LENGTH_MB, sizeInMB)),
 				)
 			}
 
@@ -107,8 +112,8 @@ func New(svc Services) zen.Route {
 
 		defer func() {
 			rollbackErr := tx.Rollback()
-			if rollbackErr != nil {
-				svc.Logger.Error("rollback failed", "requestId", s.RequestID())
+			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), rollbackErr)
 			}
 		}()
 
@@ -137,7 +142,7 @@ func New(svc Services) zen.Route {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID: s.AuthorizedWorkspaceID(),
+				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.IdentityCreateEvent,
 				Display:     fmt.Sprintf("Created identity %s.", identityID),
 				Actor: auditlog.AuditLogActorData{
@@ -173,7 +178,7 @@ func New(svc Services) zen.Route {
 				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: s.AuthorizedWorkspaceID(),
+					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Event:       auditlog.RatelimitCreateEvent,
 					Actor: auditlog.AuditLogActorData{
 						Type: auditlog.RootKeyActor,

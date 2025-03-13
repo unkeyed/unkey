@@ -16,7 +16,7 @@ import (
 func TestBadRequests(t *testing.T) {
 	metaData := make(map[string]*interface{}, 0)
 
-	for i := range 100_00 {
+	for i := range 1_000_000 {
 		var data interface{} = fmt.Sprintf("some_%d", i)
 		metaData[fmt.Sprintf("key_%d", i)] = &data
 	}
@@ -79,7 +79,7 @@ func TestBadRequests(t *testing.T) {
 			},
 			expectedError: api.BadRequestError{
 				Title:     "Bad Request",
-				Detail:    fmt.Sprintf("Metadata is too large, it must be less than 64k characters when json encoded, got: %d", len(rawMeta)),
+				Detail:    fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", handler.MAX_META_LENGTH_MB, float64(len(rawMeta))/1024/1024),
 				Status:    http.StatusBadRequest,
 				Type:      "https://unkey.com/docs/errors/bad_request",
 				Errors:    []api.ValidationError{},

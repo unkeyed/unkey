@@ -48,6 +48,11 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 	s.r = r
 
 	s.location = r.Header.Get("True-Client-IP")
+	// Fall back to RemoteAddr
+	if s.location == "" {
+		s.location = strings.Split(r.RemoteAddr, ":")[0]
+	}
+
 	s.userAgent = r.UserAgent()
 	s.workspaceID = ""
 	return nil
