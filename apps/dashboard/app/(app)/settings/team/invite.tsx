@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { inviteMember } from "@/lib/auth/actions";
-import type { Organization, User } from "@/lib/auth/types";
+import type { InvitationListResponse, Organization, User } from "@/lib/auth/types";
+import { useOrganization } from "@/lib/auth/hooks/useOrganization";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
@@ -46,12 +47,12 @@ const formSchema = z.object({
 interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   user: User | null;
   organization: Organization | null;
+  refetchInvitations: () => Promise<InvitationListResponse | undefined>;
 }
 
-export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps) => {
+export const InviteButton = ({ user, organization, refetchInvitations, ...rest }: InviteButtonProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoading, setLoading] = useState(false);
-  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -68,17 +69,26 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setLoading(true);
-      await inviteMember({
+      inviteMember({
         email: values.email,
         role: values.role,
         orgId: user!.orgId!,
+      })
+      .then(async() => {
+        await refetchInvitations()
+      }).then(() =>{
+        toast.success(
+          `We have sent an email to ${values.email} with instructions on how to join your workspace.`,
+        );
+        setDialogOpen(false);
+        setLoading(false);
+      })
+      .catch((error) => {
+        toast.error(`Failed to send invitation: ${error.message}`);
+      })
+      .finally(() => {
+        
       });
-
-      toast.success(
-        `We have sent an email to ${values.email} with instructions on how to join your workspace.`,
-      );
-      router.refresh();
-      setDialogOpen(false); // Close dialog after successful invitation
     } catch (err) {
       console.error(err);
       toast.error((err as Error).message);

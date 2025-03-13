@@ -472,6 +472,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       return {
         data: invitationsList.data.map((invitation) =>
           this.transformInvitationData(invitation, { orgId }),
+        ).filter((invitation) => 
+          invitation.state === "pending" || invitation.state === "expired"
         ),
         metadata: invitationsList.listMetadata || {},
       };

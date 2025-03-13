@@ -85,9 +85,10 @@ export function useOrganization() {
       setLoadingState("invitations", true);
       clearError("invitations");
 
-      const { data, metadata } = await getInvitationList(orgId);
-      setInvitations(data);
-      setInvitationMetadata(metadata);
+      const response = await getInvitationList(orgId);
+      setInvitations(response.data);
+      setInvitationMetadata(response.metadata);
+      return response; // keep the promise chain
     } catch (err) {
       setError(
         "invitations",
@@ -238,8 +239,8 @@ export function useOrganization() {
       setInitialFetchComplete(false); // Reset the flag to allow a new fetch
       return fetchOrganization();
     },
-    refetchMemberships: () => organization?.id && fetchMemberships(organization.id),
-    refetchInvitations: () => organization?.id && fetchInvitations(organization.id),
+    refetchMemberships: async () => {organization?.id && await fetchMemberships(organization.id)},
+    refetchInvitations: async() => { const results = await fetchInvitations(organization?.id!); return results},
     removeMember,
     revokeInvitation,
     updateMember,

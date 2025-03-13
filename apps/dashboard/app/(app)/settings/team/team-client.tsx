@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
 import { useOrganization, useUser } from "@/lib/auth/hooks";
-import type { Invitation, Membership, Organization, UpdateMembershipParams } from "@/lib/auth/types";
+import type { Invitation, InvitationListResponse, Membership, Organization, UpdateMembershipParams } from "@/lib/auth/types";
 import { Gear } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
@@ -40,6 +40,7 @@ type MembersProps = {
   loading: boolean;
   removeMember: (membershipId: string) => Promise<void>;
   updateMember: (params: UpdateMembershipParams) => Promise<void>;
+  refetchInvitations: () => Promise<InvitationListResponse | undefined>
   organization: Organization | null;
   user: User | null;
   userMembership: Membership | null;
@@ -51,6 +52,7 @@ type InvitationsProps = {
   revokeInvitation: (invitationId: string) => Promise<void>;
   user: User | null;
   organization: Organization | null;
+  refetchInvitations: () => Promise<InvitationListResponse | undefined>;
 };
 
 type RoleSwitcherProps = {
@@ -102,7 +104,8 @@ export function TeamPageClient({ workspace }: { workspace: any }) {
       <InviteButton 
         key="invite-button" 
         user={userData.user} 
-        organization={orgData.organization} 
+        organization={orgData.organization}
+        refetchInvitations={orgData.refetchInvitations} 
       />
     );
   }
@@ -130,6 +133,7 @@ export function TeamPageClient({ workspace }: { workspace: any }) {
               organization={orgData.organization}
               user={userData.user}
               userMembership={userData.membership}
+              refetchInvitations={orgData.refetchInvitations}
             />
           ) : (
             <Invitations 
@@ -138,6 +142,7 @@ export function TeamPageClient({ workspace }: { workspace: any }) {
               revokeInvitation={orgData.revokeInvitation}
               user={userData.user}
               organization={orgData.organization}
+              refetchInvitations={orgData.refetchInvitations}
             />
           )}
         </>
@@ -145,7 +150,7 @@ export function TeamPageClient({ workspace }: { workspace: any }) {
 }
 
 // Memoize components to prevent unnecessary re-renders
-const Members = memo<MembersProps>(({ memberships, loading, removeMember, updateMember, organization, user, userMembership }) => {
+const Members = memo<MembersProps>(({ memberships, loading, removeMember, updateMember, organization, user, userMembership, refetchInvitations }) => {
   const isAdmin = userMembership?.role === "admin";
 
   if (loading) {
@@ -161,7 +166,7 @@ const Members = memo<MembersProps>(({ memberships, loading, removeMember, update
       <Empty>
         <Empty.Title>No team members</Empty.Title>
         <Empty.Description>Invite members to your team</Empty.Description>
-        {isAdmin && <InviteButton user={user} organization={organization} />}
+        {isAdmin && <InviteButton user={user} organization={organization} refetchInvitations={refetchInvitations} />}
       </Empty>
     );
   }
@@ -229,7 +234,7 @@ const Members = memo<MembersProps>(({ memberships, loading, removeMember, update
 
 Members.displayName = 'Members';
 
-const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvitation, user, organization }) => {
+const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvitation, refetchInvitations, user, organization }) => {
   if (loading) {
     return (
       <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
@@ -243,7 +248,7 @@ const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvita
       <Empty>
         <Empty.Title>No pending invitations</Empty.Title>
         <Empty.Description>Invite members to your team</Empty.Description>
-        <InviteButton user={user} organization={organization} />
+        <InviteButton user={user} organization={organization} refetchInvitations={refetchInvitations}/>
       </Empty>
     );
   }
@@ -267,6 +272,7 @@ const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvita
               <StatusBadge status={invitation.state} />
             </TableCell>
             <TableCell>
+              {invitation.state === "pending" && 
               <Button
                 variant="destructive"
                 onClick={async () => {
@@ -275,7 +281,7 @@ const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvita
                 }}
               >
                 Revoke
-              </Button>
+              </Button>}
             </TableCell>
           </TableRow>
         ))}
