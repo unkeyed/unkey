@@ -89,9 +89,9 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
     } else if (timeRange >= MONTH_IN_MS) {
       granularity = "per3Days";
     } else if (timeRange >= WEEK_IN_MS * 2) {
-      granularity = "perDay";
+      granularity = "per6Hours";
     } else if (timeRange >= WEEK_IN_MS) {
-      granularity = "per12Hours";
+      granularity = "per4Hours";
     } else {
       granularity = "perHour";
     }

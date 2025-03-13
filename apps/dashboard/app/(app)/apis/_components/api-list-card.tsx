@@ -3,7 +3,7 @@ import { StatsCard } from "@/components/stats-card";
 import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
 import { formatNumber } from "@/lib/fmt";
-import type { ApiOverview } from "@/lib/trpc/routers/api/query-overview/schemas";
+import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { Key, ProgressBar } from "@unkey/icons";
 import { useFetchVerificationTimeseries } from "./hooks/use-query-timeseries";
 

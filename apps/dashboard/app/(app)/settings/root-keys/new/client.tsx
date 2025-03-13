@@ -279,10 +279,10 @@ export const Client: React.FC<Props> = ({ apis }) => {
           }
         }}
       >
-        <DialogContent className="flex flex-col max-sm:w-full">
+        <DialogContent className="flex flex-col max-sm:w-full bg-grayA-1 border-gray-4">
           <DialogHeader>
             <DialogTitle>Your API Key</DialogTitle>
-            <DialogDescription className="w-fit">
+            <DialogDescription className="w-fit text-accent-10">
               This key is only shown once and can not be recovered. Please store it somewhere safe.
             </DialogDescription>
 
@@ -295,7 +295,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
             </Code>
           </DialogHeader>
 
-          <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
+          <p className="mt-2 text-sm font-medium text-center text-accent-10">
             Try creating a new api key for your users:
           </p>
           <Code className="flex flex-col items-start gap-2 w-full text-xs">

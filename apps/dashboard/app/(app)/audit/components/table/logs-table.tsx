@@ -66,7 +66,10 @@ export const columns = (selectedLog: AuditLog | null): Column<AuditLog>[] => [
       return (
         <TimestampInfo
           value={log.auditLog.time}
-          className="font-mono group-hover:underline decoration-dotted pl-2"
+          className={cn(
+            "font-mono group-hover:underline decoration-dotted pl-2",
+            selectedLog && selectedLog.auditLog.id !== log.auditLog.id && "pointer-events-none",
+          )}
         />
       );
     },
