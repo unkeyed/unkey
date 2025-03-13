@@ -15,6 +15,7 @@ export const activeKeysTimeseries = rateLimitedProcedure(ratelimit.read)
       workspaceId: ctx.workspace.id,
       keyIds: transformedInputs.keyIds,
       names: transformedInputs.names,
+      identities: transformedInputs.identities,
     });
 
     const result = await clickhouse.verifications.activeKeysTimeseries[granularity]({

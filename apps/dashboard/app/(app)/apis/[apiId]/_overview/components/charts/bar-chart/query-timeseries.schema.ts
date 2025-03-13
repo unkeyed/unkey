@@ -27,6 +27,16 @@ export const keysOverviewQueryTimeseriesPayload = z.object({
       ),
     })
     .nullable(),
+  identities: z
+    .object({
+      filters: z.array(
+        z.object({
+          operator: keysOverviewFilterOperatorEnum,
+          value: z.string(),
+        }),
+      ),
+    })
+    .nullable(),
   outcomes: z
     .object({
       filters: z.array(

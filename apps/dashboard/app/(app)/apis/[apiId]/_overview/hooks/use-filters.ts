@@ -25,6 +25,7 @@ export const queryParamsPayload = {
   endTime: parseAsInteger,
   since: parseAsRelativeTime,
   outcomes: parseAsFilterValArray,
+  identities: parseAsFilterValArray,
 } as const;
 
 export const useFilters = () => {
@@ -46,6 +47,15 @@ export const useFilters = () => {
       activeFilters.push({
         id: crypto.randomUUID(),
         field: "names",
+        operator: keyFilter.operator,
+        value: keyFilter.value,
+      });
+    });
+
+    searchParams.identities?.forEach((keyFilter) => {
+      activeFilters.push({
+        id: crypto.randomUUID(),
+        field: "identities",
         operator: keyFilter.operator,
         value: keyFilter.value,
       });
@@ -92,6 +102,7 @@ export const useFilters = () => {
 
       const keyIdFilters: KeysOverviewFilterUrlValue[] = [];
       const nameIdFilters: KeysOverviewFilterUrlValue[] = [];
+      const identitiesFilters: KeysOverviewFilterUrlValue[] = [];
       const outcomeFilters: KeysOverviewFilterUrlValue[] = [];
 
       newFilters.forEach((filter) => {
@@ -104,6 +115,12 @@ export const useFilters = () => {
             break;
           case "names":
             nameIdFilters.push({
+              value: filter.value,
+              operator: filter.operator,
+            });
+            break;
+          case "identities":
+            identitiesFilters.push({
               value: filter.value,
               operator: filter.operator,
             });
@@ -127,6 +144,7 @@ export const useFilters = () => {
       // Set arrays to null when empty, otherwise use the filtered values
       newParams.keyIds = keyIdFilters.length > 0 ? keyIdFilters : null;
       newParams.names = nameIdFilters.length > 0 ? nameIdFilters : null;
+      newParams.identities = identitiesFilters.length > 0 ? identitiesFilters : null;
       newParams.outcomes = outcomeFilters.length > 0 ? outcomeFilters : null;
 
       setSearchParams(newParams);

@@ -35,6 +35,11 @@ export function transformVerificationFilters(params: KeysOverviewQueryTimeseries
           operator: f.operator,
           value: f.value,
         })) || null,
+      identities:
+        params.identities?.filters.map((f) => ({
+          operator: f.operator,
+          value: f.value,
+        })) || null,
       outcomes:
         params.outcomes?.filters.map((f) => ({
           operator: f.operator,

@@ -12,6 +12,8 @@ const formatFieldName = (field: string): string => {
       return "Outcome";
     case "names":
       return "Name";
+    case "identities":
+      return "Identity";
     case "keyIds":
       return "Key ID";
     case "since":

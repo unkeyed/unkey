@@ -29,6 +29,10 @@ export const keysOverviewFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is", "contains"],
   },
+  identities: {
+    type: "string",
+    operators: ["is", "contains"],
+  },
   outcomes: {
     type: "string",
     operators: ["is"],
@@ -46,6 +50,7 @@ export const keysOverviewFilterFieldEnum = z.enum([
   "keyIds",
   "names",
   "outcomes",
+  "identities",
 ]);
 
 export const filterOutputSchema = createFilterOutputSchema(
@@ -65,6 +70,7 @@ export type FilterFieldConfigs = {
   keyIds: StringConfig<KeysOverviewFilterOperator>;
   names: StringConfig<KeysOverviewFilterOperator>;
   outcomes: StringConfig<KeysOverviewFilterOperator>;
+  identities: StringConfig<KeysOverviewFilterOperator>;
 };
 
 export type KeysOverviewFilterUrlValue = Pick<
@@ -84,4 +90,5 @@ export type KeysQuerySearchParams = {
   keyIds: KeysOverviewFilterUrlValue[] | null;
   names: KeysOverviewFilterUrlValue[] | null;
   outcomes: KeysOverviewFilterUrlValue[] | null;
+  identities: KeysOverviewFilterUrlValue[] | null;
 };

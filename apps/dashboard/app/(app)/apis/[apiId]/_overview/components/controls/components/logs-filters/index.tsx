@@ -16,7 +16,7 @@ export const LogsFilters = () => {
     label: op,
   }));
   const activeNameFilter = filters.find((f) => f.field === "names");
-
+  const activeIdentityFilter = filters.find((f) => f.field === "identities");
   const activeKeyIdsFilter = filters.find((f) => f.field === "keyIds");
   const keyIdOptions = keysOverviewFilterFieldConfig.names.operators.map((op) => ({
     id: op,
@@ -41,6 +41,31 @@ export const LogsFilters = () => {
                   ...activeFiltersWithoutNames,
                   {
                     field: "names",
+                    id: crypto.randomUUID(),
+                    operator: id,
+                    value: text,
+                  },
+                ]);
+              }}
+            />
+          ),
+        },
+        {
+          id: "identities",
+          label: "Identity",
+          shortcut: "i",
+          component: (
+            <FilterOperatorInput
+              label="Identity"
+              options={options}
+              defaultOption={activeIdentityFilter?.operator}
+              defaultText={activeIdentityFilter?.value as string}
+              onApply={(id, text) => {
+                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "identities");
+                updateFilters([
+                  ...activeFiltersWithoutNames,
+                  {
+                    field: "identities",
                     id: crypto.randomUUID(),
                     operator: id,
                     value: text,

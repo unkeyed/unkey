@@ -8,6 +8,7 @@ export interface QueryApiKeysInput {
   workspaceId: string;
   keyIds: KeysOverviewFilterUrlValue[] | null;
   names?: KeysOverviewFilterUrlValue[] | null;
+  identities?: KeysOverviewFilterUrlValue[] | null;
 }
 
 // Response interface with the query results
@@ -29,6 +30,7 @@ export async function queryApiKeys({
   workspaceId,
   keyIds: keyIdsFromInput,
   names: namesFromInput,
+  identities: identitiesFromInput,
 }: QueryApiKeysInput): Promise<QueryApiKeysResult> {
   const combinedResults = await db.query.apis
     .findFirst({
@@ -73,11 +75,9 @@ export async function queryApiKeys({
                   const nameValues = namesFromInput
                     .filter((filter) => filter.operator === "is")
                     .map((filter) => filter.value);
-
                   if (nameValues.length > 0) {
                     conditions.push(inArray(key.name, nameValues as string[]));
                   }
-
                   const nameContainsValues = namesFromInput
                     .filter((filter) => filter.operator === "contains")
                     .map((filter) => filter.value);
@@ -93,11 +93,9 @@ export async function queryApiKeys({
                   const keyIdValues = keyIdsFromInput
                     .filter((filter) => filter.operator === "is")
                     .map((filter) => filter.value);
-
                   if (keyIdValues.length > 0) {
                     conditions.push(inArray(key.id, keyIdValues as string[]));
                   }
-
                   const keyIdContainsValues = keyIdsFromInput
                     .filter((filter) => filter.operator === "contains")
                     .map((filter) => filter.value);
@@ -108,9 +106,109 @@ export async function queryApiKeys({
                   }
                 }
 
+                // Add identity filters
+                if (identitiesFromInput && identitiesFromInput.length > 0) {
+                  // First, categorize the identity filters by type
+                  const externalIdFilters = [];
+                  const ownerIdFilters = [];
+
+                  // Parse the identity filter values to determine their type
+                  for (const filter of identitiesFromInput) {
+                    // Check if the value starts with known prefixes
+                    const value = filter.value;
+                    if (typeof value === "string") {
+                      if (value.startsWith("ext_")) {
+                        // This is an external ID filter
+                        externalIdFilters.push(filter);
+                      } else {
+                        // Treat as owner ID filter for other formats
+                        ownerIdFilters.push(filter);
+                      }
+                    }
+                  }
+
+                  // Initialize arrays for identity conditions
+                  const identityConditions = [];
+
+                  // Process owner ID filters
+                  if (ownerIdFilters.length > 0) {
+                    const ownerIsValues = ownerIdFilters
+                      .filter((filter) => filter.operator === "is")
+                      .map((filter) => filter.value);
+
+                    const ownerContainsValues = ownerIdFilters
+                      .filter((filter) => filter.operator === "contains")
+                      .map((filter) => filter.value);
+
+                    const ownerConditions = [];
+
+                    // Add "is" conditions for ownerId
+                    if (ownerIsValues.length > 0) {
+                      ownerConditions.push(sql`(${key.ownerId} IN (${sql.join(ownerIsValues)}))`);
+                    }
+
+                    // Add "contains" conditions for ownerId
+                    if (ownerContainsValues.length > 0) {
+                      ownerContainsValues.forEach((value) => {
+                        ownerConditions.push(sql`(${key.ownerId} LIKE ${`%${value}%`})`);
+                      });
+                    }
+
+                    // Combine owner conditions with OR
+                    if (ownerConditions.length > 0) {
+                      identityConditions.push(sql`(${sql.join(ownerConditions, sql` OR `)})`);
+                    }
+                  }
+
+                  // Process external ID filters
+                  if (externalIdFilters.length > 0) {
+                    const externalIdIsValues = externalIdFilters
+                      .filter((filter) => filter.operator === "is")
+                      .map((filter) => filter.value);
+
+                    const externalIdContainsValues = externalIdFilters
+                      .filter((filter) => filter.operator === "contains")
+                      .map((filter) => filter.value);
+
+                    // Build the subquery for external ID
+                    if (externalIdIsValues.length > 0 || externalIdContainsValues.length > 0) {
+                      const externalIdConditions = [];
+
+                      // Add "is" conditions for externalId
+                      if (externalIdIsValues.length > 0) {
+                        const inClause = sql.join(externalIdIsValues.map((value) => sql`${value}`));
+                        externalIdConditions.push(sql`identities.external_id IN (${inClause})`);
+                      }
+
+                      // Add "contains" conditions for externalId
+                      if (externalIdContainsValues.length > 0) {
+                        externalIdContainsValues.forEach((value) => {
+                          externalIdConditions.push(
+                            sql`identities.external_id LIKE ${`%${value}%`}`,
+                          );
+                        });
+                      }
+
+                      // Create the EXISTS subquery with OR between conditions
+                      const externalIdCondition = sql`
+      EXISTS (
+        SELECT 1 FROM identities 
+        WHERE identities.id = ${key.identityId}
+        AND (${sql.join(externalIdConditions, sql` OR `)})
+      )`;
+
+                      identityConditions.push(externalIdCondition);
+                    }
+                  }
+
+                  // Add the combined identity conditions with OR between different identity types
+                  if (identityConditions.length > 0) {
+                    conditions.push(sql`(${sql.join(identityConditions, sql` OR `)})`);
+                  }
+                }
+
                 return and(...conditions);
               },
-              // Include all key columns
               columns: {
                 id: true,
                 keyAuthId: true,
@@ -131,7 +229,8 @@ export async function queryApiKeys({
         },
       },
     })
-    .catch((_err) => {
+    .catch((err) => {
+      console.error("Database query error:", err);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
@@ -170,33 +269,32 @@ export async function queryApiKeys({
 
 export function createKeyDetailsMap(keys: any[]): Map<string, any> {
   const keyDetailsMap = new Map();
-
   for (const key of keys) {
-    // Format roles data
     const rolesData = key.roles
-      ? key.roles.map((roleRelation: any) => ({
-          name: roleRelation.role.name,
-          description: roleRelation.role.description,
-          createdAt: roleRelation.role.createdAtM,
-          updatedAt: roleRelation.role.updatedAtM,
-        }))
+      ? key.roles
+          .filter((roleRelation: any) => roleRelation.role != null)
+          .map((roleRelation: any) => ({
+            name: roleRelation.role.name,
+            description: roleRelation.role.description,
+            createdAt: roleRelation.role.createdAtM,
+            updatedAt: roleRelation.role.updatedAtM,
+          }))
       : [];
-
     const permissionsData = key.permissions
-      ? key.permissions.map((permRelation: any) => ({
-          name: permRelation.permission.name,
-          description: permRelation.permission.description,
-          createdAt: permRelation.permission.createdAtM,
-          updatedAt: permRelation.permission.updatedAtM,
-        }))
+      ? key.permissions
+          .filter((permRelation: any) => permRelation.permission != null)
+          .map((permRelation: any) => ({
+            name: permRelation.permission.name,
+            description: permRelation.permission.description,
+            createdAt: permRelation.permission.createdAtM,
+            updatedAt: permRelation.permission.updatedAtM,
+          }))
       : [];
-
     const identityData = key.identity
       ? {
           external_id: key.identity.externalId,
         }
       : null;
-
     const keyDetails = {
       id: key.id,
       key_auth_id: key.keyAuthId,
@@ -215,28 +313,28 @@ export function createKeyDetailsMap(keys: any[]): Map<string, any> {
       roles: rolesData,
       permissions: permissionsData,
     };
-
     keyDetailsMap.set(key.id, keyDetails);
   }
-
   return keyDetailsMap;
 }
 
 export function extractRolesAndPermissions(key: any) {
   const roles = key.roles
-    ? key.roles.map((roleRelation: any) => ({
-        name: roleRelation.role.name,
-        description: roleRelation.role.description,
-      }))
+    ? key.roles
+        .filter((roleRelation: any) => roleRelation.role != null)
+        .map((roleRelation: any) => ({
+          name: roleRelation.role.name,
+          description: roleRelation.role.description,
+        }))
     : [];
-
   const permissions = key.permissions
-    ? key.permissions.map((permRelation: any) => ({
-        name: permRelation.permission.name,
-        description: permRelation.permission.description,
-      }))
+    ? key.permissions
+        .filter((permRelation: any) => permRelation.permission != null)
+        .map((permRelation: any) => ({
+          name: permRelation.permission.name,
+          description: permRelation.permission.description,
+        }))
     : [];
-
   return {
     roles,
     permissions,

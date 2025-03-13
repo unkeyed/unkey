@@ -17,6 +17,7 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
       keyIds: { filters: [] },
       outcomes: { filters: [] },
       names: { filters: [] },
+      identities: { filters: [] },
       apiId: apiId ?? "",
       since: "",
     };
@@ -62,9 +63,18 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
           });
           break;
         }
+        case "identities": {
+          if (typeof filter.value !== "string") {
+            console.error("Identities filter value type has to be 'string'");
+            return;
+          }
+          params.identities?.filters?.push({
+            operator: filter.operator,
+            value: filter.value,
+          });
+          break;
+        }
         case "outcomes": {
-          //TODO: later use enum from zod type in clickhouse
-
           type ValidOutcome = (typeof KEY_VERIFICATION_OUTCOMES)[number];
           if (
             typeof filter.value === "string" &&

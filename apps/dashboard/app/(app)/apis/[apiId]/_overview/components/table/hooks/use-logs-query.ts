@@ -28,6 +28,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
       endTime: dateNow,
       keyIds: [],
       outcomes: [],
+      identities: [],
       names: [],
       apiId,
       since: "",
@@ -52,6 +53,17 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
             return;
           }
           params.names?.push({
+            operator: filter.operator,
+            value: filter.value,
+          });
+          break;
+        }
+        case "identities": {
+          if (typeof filter.value !== "string") {
+            console.error("Identites filter value type has to be 'string'");
+            return;
+          }
+          params.identities?.push({
             operator: filter.operator,
             value: filter.value,
           });

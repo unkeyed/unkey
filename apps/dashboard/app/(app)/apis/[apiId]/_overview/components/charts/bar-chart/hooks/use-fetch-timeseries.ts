@@ -17,6 +17,7 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
       keyIds: { filters: [] },
       outcomes: { filters: [] },
       names: { filters: [] },
+      identities: { filters: [] },
       apiId: apiId ?? "",
       since: "",
     };
@@ -58,6 +59,17 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
             return;
           }
           params.names?.filters?.push({
+            operator: filter.operator,
+            value: filter.value,
+          });
+          break;
+        }
+        case "identities": {
+          if (typeof filter.value !== "string") {
+            console.error("Identities filter value type has to be 'string'");
+            return;
+          }
+          params.identities?.filters?.push({
             operator: filter.operator,
             value: filter.value,
           });

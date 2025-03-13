@@ -31,6 +31,7 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
       workspaceId: ctx.workspace.id,
       keyIds: transformedInputs.keyIds,
       names: transformedInputs.names,
+      identities: transformedInputs.identities,
     });
 
     const keyDetailsMap = createKeyDetailsMap(keys);
