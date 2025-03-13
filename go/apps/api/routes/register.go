@@ -92,6 +92,7 @@ func Register(srv *zen.Server, svc *Services) {
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
 		}),
 	)
 

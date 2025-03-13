@@ -16,6 +16,10 @@ type Querier interface {
 	//  SET deleted_at_m = ?
 	//  WHERE id = ?
 	DeleteRatelimitNamespace(ctx context.Context, db DBTX, arg DeleteRatelimitNamespaceParams) (sql.Result, error)
+	//FindAuditLogBucketIDByWorkspaceIDAndName
+	//
+	//  SELECT id FROM audit_log_bucket WHERE workspace_id = ? AND name = ?
+	FindAuditLogBucketIDByWorkspaceIDAndName(ctx context.Context, db DBTX, arg FindAuditLogBucketIDByWorkspaceIDAndNameParams) (string, error)
 	//FindIdentityByID
 	//
 	//  SELECT external_id, workspace_id, environment, meta, created_at, updated_at FROM identities WHERE id = ?
@@ -203,6 +207,22 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAuditLog(ctx context.Context, db DBTX, arg InsertAuditLogParams) error
+	//InsertAuditLogBucket
+	//
+	//  INSERT INTO `audit_log_bucket` (
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      retention_days,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertAuditLogBucket(ctx context.Context, db DBTX, arg InsertAuditLogBucketParams) error
 	//InsertAuditLogTarget
 	//
 	//  INSERT INTO `audit_log_target` (

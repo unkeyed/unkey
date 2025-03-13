@@ -15,12 +15,10 @@ import (
 
 func TestBadRequests(t *testing.T) {
 	metaData := make(map[string]*interface{}, 0)
-
-	for i := range 1_000_000 {
+	for i := range 300_000 {
 		var data interface{} = fmt.Sprintf("some_%d", i)
 		metaData[fmt.Sprintf("key_%d", i)] = &data
 	}
-
 	rawMeta, _ := json.Marshal(metaData)
 
 	testCases := []struct {

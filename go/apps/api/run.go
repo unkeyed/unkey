@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/routes"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -142,6 +143,10 @@ func Run(ctx context.Context, cfg Config) error {
 		Permissions: permissions.New(permissions.Config{
 			DB:     db,
 			Logger: logger,
+		}),
+		Auditlogs: auditlogs.New(auditlogs.Config{
+			Logger: logger,
+			DB:     db,
 		}),
 	})
 

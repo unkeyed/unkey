@@ -37,8 +37,8 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
+	// Create a identity
 	t.Run("insert identity", func(t *testing.T) {
-		// Create a identity
 		identityID := uid.New(uid.TestPrefix + "_" + uid.IdentityPrefix)
 		externalTestID := uid.New("test_external_id")
 		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{

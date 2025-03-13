@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
@@ -30,6 +31,7 @@ type Services struct {
 	DB          db.Database
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
+	Auditlogs   auditlogs.AuditLogService
 }
 
 const (
@@ -149,6 +151,8 @@ func New(svc Services) zen.Route {
 					ID:   auth.KeyID,
 					Type: auditlog.RootKeyActor,
 				},
+				RemoteIP:  s.Location(),
+				UserAgent: s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:   identityID,
@@ -180,11 +184,13 @@ func New(svc Services) zen.Route {
 				auditLogs = append(auditLogs, auditlog.AuditLog{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Event:       auditlog.RatelimitCreateEvent,
+					Display:     fmt.Sprintf("Created ratelimit %s.", ratelimitID),
 					Actor: auditlog.AuditLogActorData{
 						Type: auditlog.RootKeyActor,
 						ID:   auth.KeyID,
 					},
-					Display: fmt.Sprintf("Created ratelimit %s.", ratelimitID),
+					RemoteIP:  s.Location(),
+					UserAgent: s.UserAgent(),
 					Resources: []auditlog.AuditLogResource{
 						{
 							Type: auditlog.IdentityResourceType,
@@ -200,9 +206,7 @@ func New(svc Services) zen.Route {
 			}
 		}
 
-		err = auditlog.InsertAuditLog(ctx, auditlog.Services{
-			DB: svc.DB,
-		}, tx, s, auditLogs)
+		err = svc.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.WithTag(fault.DATABASE_ERROR),
