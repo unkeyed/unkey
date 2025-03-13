@@ -85,7 +85,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                     ? STATUS_STYLES.success.badge.selected
                     : STATUS_STYLES.success.badge.default,
                 )}
-                title={`${log.error_count.toLocaleString()} Valid requests (${successPercentage.toFixed(
+                title={`${log.valid_count.toLocaleString()} Valid requests (${successPercentage.toFixed(
                   1,
                 )}%)`}
               >
