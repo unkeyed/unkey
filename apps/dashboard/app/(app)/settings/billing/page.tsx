@@ -1,21 +1,21 @@
-import { SettingCard } from "@/components/settings-card"
-import { getTenantId } from "@/lib/auth"
-import { clickhouse } from "@/lib/clickhouse"
-import { db } from "@/lib/db"
-import { stripeEnv } from "@/lib/env"
-import { formatNumber } from "@/lib/fmt"
-import { Button, Empty, Input } from "@unkey/ui"
-import Link from "next/link"
-import { redirect } from "next/navigation"
-import Stripe from "stripe"
-import { Client } from "./client"
-import { Shell } from "./components/shell"
+import { SettingCard } from "@/components/settings-card";
+import { getTenantId } from "@/lib/auth";
+import { clickhouse } from "@/lib/clickhouse";
+import { db } from "@/lib/db";
+import { stripeEnv } from "@/lib/env";
+import { formatNumber } from "@/lib/fmt";
+import { Button, Empty, Input } from "@unkey/ui";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import Stripe from "stripe";
+import { Client } from "./client";
+import { Shell } from "./components/shell";
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function BillingPage() {
-  const tenantId = getTenantId()
+  const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -23,36 +23,35 @@ export default async function BillingPage() {
     with: {
       quota: true,
     },
-  })
+  });
 
   if (!workspace) {
-    return redirect("/new")
+    return redirect("/new");
   }
 
-  const e = stripeEnv()
+  const e = stripeEnv();
   if (!e) {
     return (
       <Empty>
         <Empty.Title>Stripe is not configured</Empty.Title>
         <Empty.Description>
-          If you are selfhosting Unkey, you need to configure Stripe in your
-          environment variables.
+          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
         </Empty.Description>
       </Empty>
-    )
+    );
   }
 
   const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
     apiVersion: "2023-10-16",
     typescript: true,
-  })
+  });
 
-  const startOfMonth = new Date()
-  startOfMonth.setUTCDate(1)
-  startOfMonth.setUTCHours(0, 0, 0, 0)
+  const startOfMonth = new Date();
+  startOfMonth.setUTCDate(1);
+  startOfMonth.setUTCHours(0, 0, 0, 0);
 
-  const year = startOfMonth.getUTCFullYear()
-  const month = startOfMonth.getUTCMonth() + 1
+  const year = startOfMonth.getUTCFullYear();
+  const month = startOfMonth.getUTCMonth() + 1;
 
   const [usedVerifications, usedRatelimits] = await Promise.all([
     clickhouse.billing.billableVerifications({
@@ -65,10 +64,9 @@ export default async function BillingPage() {
       year,
       month,
     }),
-  ])
+  ]);
 
-  const isLegacy =
-    workspace.subscriptions && Object.keys(workspace.subscriptions).length > 0
+  const isLegacy = workspace.subscriptions && Object.keys(workspace.subscriptions).length > 0;
 
   if (isLegacy) {
     return (
@@ -102,13 +100,9 @@ export default async function BillingPage() {
           description={
             <>
               <p>
-                You are on the legacy usage-based plan. You can stay on this
-                plan if you want but it's likely more expensive than our new{" "}
-                <Link
-                  href="https://unkey.com/pricing"
-                  className="underline"
-                  target="_blank"
-                >
+                You are on the legacy usage-based plan. You can stay on this plan if you want but
+                it's likely more expensive than our new{" "}
+                <Link href="https://unkey.com/pricing" className="underline" target="_blank">
                   tiered pricing
                 </Link>
                 .
@@ -124,7 +118,7 @@ export default async function BillingPage() {
           </div>
         </SettingCard>
       </Shell>
-    )
+    );
   }
 
   const [products, subscription, hasPreviousSubscriptions] = await Promise.all([
@@ -138,20 +132,18 @@ export default async function BillingPage() {
       .then((res) =>
         res.data
           .map((p) => {
-            const price = p.default_price as Stripe.Price
+            const price = p.default_price as Stripe.Price;
             return {
               id: p.id,
               name: p.name,
               priceId: price.id,
               dollar: price.unit_amount! / 100,
               quota: {
-                requestsPerMonth: Number.parseInt(
-                  p.metadata.quota_requests_per_month
-                ),
+                requestsPerMonth: Number.parseInt(p.metadata.quota_requests_per_month),
               },
-            }
+            };
           })
-          .sort((a, b) => a.dollar - b.dollar)
+          .sort((a, b) => a.dollar - b.dollar),
       ),
     workspace.stripeSubscriptionId
       ? await stripe.subscriptions.retrieve(workspace.stripeSubscriptionId)
@@ -165,7 +157,7 @@ export default async function BillingPage() {
           })
           .then((res) => res.data.length > 0)
       : false,
-  ])
+  ]);
 
   return (
     <Client
@@ -181,15 +173,11 @@ export default async function BillingPage() {
           ? {
               id: subscription.id,
               status: subscription.status,
-              trialUntil: subscription.trial_end
-                ? subscription.trial_end * 1000
-                : undefined,
+              trialUntil: subscription.trial_end ? subscription.trial_end * 1000 : undefined,
             }
           : undefined
       }
-      currentProductId={
-        subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined
-      }
+      currentProductId={subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined}
     />
-  )
+  );
 }

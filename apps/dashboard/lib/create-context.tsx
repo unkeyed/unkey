@@ -21,13 +21,17 @@ export function createContext<ContextValueType extends object | null>(
 
   function useContext(consumerName: string) {
     const context = React.useContext(Context)
-    if (context) return context
-    if (defaultContext !== undefined) return defaultContext
+    if (context) {
+      return context
+    }
+    if (defaultContext !== undefined) {
+      return defaultContext
+    }
     throw new Error(
       `\`${consumerName}\` must be used within \`${rootComponentName}\``
     )
   }
 
-  Provider.displayName = rootComponentName + "Provider"
+  Provider.displayName = `${rootComponentName}Provider`
   return [Provider, useContext] as const
 }

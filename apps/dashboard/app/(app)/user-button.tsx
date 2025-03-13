@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,24 +8,20 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { SignOutButton, useUser } from "@clerk/nextjs"
-import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import type React from "react"
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { SignOutButton, useUser } from "@clerk/nextjs";
+import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type React from "react";
 
 export const UserButton: React.FC = () => {
-  const { user } = useUser()
-  const router = useRouter()
+  const { user } = useUser();
+  const router = useRouter();
 
   if (!user) {
-    return null
+    return null;
   }
 
   return (
@@ -38,23 +34,17 @@ export const UserButton: React.FC = () => {
               asChild
             >
               <span className="overflow-hidden text-ellipsis text-sm font-medium">
-                {user.username ??
-                  user.fullName ??
-                  user.primaryEmailAddress?.emailAddress}
+                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
               </span>
             </TooltipTrigger>
             <TooltipContent>
               <span className="text-sm font-medium">
-                {user.username ??
-                  user.fullName ??
-                  user.primaryEmailAddress?.emailAddress}
+                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
               </span>
             </TooltipContent>
           </Tooltip>
           <Avatar className="w-8 h-8 lg:w-5 lg:h-5">
-            {user.imageUrl ? (
-              <AvatarImage src={user.imageUrl} alt="Profile picture" />
-            ) : null}
+            {user.imageUrl ? <AvatarImage src={user.imageUrl} alt="Profile picture" /> : null}
             <AvatarFallback className="w-8 h-8 lg:w-5 lg:h-5 bg-gray-100 border border-gray-500 rounded-md">
               {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>
@@ -66,27 +56,19 @@ export const UserButton: React.FC = () => {
               asChild
             >
               <span className="overflow-hidden text-ellipsis text-sm font-medium  select-none">
-                {user.username ??
-                  user.fullName ??
-                  user.primaryEmailAddress?.emailAddress}
+                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
               </span>
             </TooltipTrigger>
             <TooltipContent>
               <span className="text-sm font-medium">
-                {user.username ??
-                  user.fullName ??
-                  user.primaryEmailAddress?.emailAddress}
+                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
               </span>
             </TooltipContent>
           </Tooltip>
         </div>
         <ChevronRight className="hidden lg:inline w-4 h-4" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        side="bottom"
-        align="start"
-        className="w-full max-w-xs md:w-96"
-      >
+      <DropdownMenuContent side="bottom" align="start" className="w-full max-w-xs md:w-96">
         <DropdownMenuGroup>
           <Link href="/new">
             <DropdownMenuItem className="cursor-pointer">
@@ -120,5 +102,5 @@ export const UserButton: React.FC = () => {
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
-}
+  );
+};

@@ -1,19 +1,19 @@
-import { getTenantId } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { Empty } from "@unkey/ui"
-import Link from "next/link"
-import { redirect } from "next/navigation"
-import { UsageBanner } from "./banner"
-import { DesktopSidebar } from "./desktop-sidebar"
-import { MobileSideBar } from "./mobile-sidebar"
-import { clickhouse } from "@/lib/clickhouse"
+import { getTenantId } from "@/lib/auth";
+import { clickhouse } from "@/lib/clickhouse";
+import { db } from "@/lib/db";
+import { Empty } from "@unkey/ui";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { UsageBanner } from "./banner";
+import { DesktopSidebar } from "./desktop-sidebar";
+import { MobileSideBar } from "./mobile-sidebar";
 
 interface LayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export default async function Layout({ children }: LayoutProps) {
-  const tenantId = getTenantId()
+  const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
@@ -23,17 +23,17 @@ export default async function Layout({ children }: LayoutProps) {
       },
       quota: true,
     },
-  })
+  });
   if (!workspace) {
-    return redirect("/apis")
+    return redirect("/apis");
   }
 
-  const startOfMonth = new Date()
-  startOfMonth.setUTCDate(1)
-  startOfMonth.setUTCHours(0, 0, 0, 0)
+  const startOfMonth = new Date();
+  startOfMonth.setUTCDate(1);
+  startOfMonth.setUTCHours(0, 0, 0, 0);
 
-  const year = startOfMonth.getUTCFullYear()
-  const month = startOfMonth.getUTCMonth() + 1
+  const year = startOfMonth.getUTCFullYear();
+  const month = startOfMonth.getUTCMonth() + 1;
 
   const [usedVerifications, usedRatelimits] = await Promise.all([
     clickhouse.billing.billableVerifications({
@@ -46,7 +46,7 @@ export default async function Layout({ children }: LayoutProps) {
       year,
       month,
     }),
-  ])
+  ]);
 
   return (
     <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-background lg:flex-row">
@@ -92,5 +92,5 @@ export default async function Layout({ children }: LayoutProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
