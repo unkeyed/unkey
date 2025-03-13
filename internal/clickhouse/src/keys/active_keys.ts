@@ -11,7 +11,15 @@ export const activeKeysTimeseriesParams = z.object({
   names: z
     .array(
       z.object({
-        operator: z.enum(["is", "contains"]),
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  identities: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
       }),
     )

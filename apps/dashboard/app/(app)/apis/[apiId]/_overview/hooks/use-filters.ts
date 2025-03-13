@@ -5,27 +5,36 @@ import {
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import {
+  type AllOperatorsUrlValue,
+  type IsContainsUrlValue,
+  type IsOnlyUrlValue,
   type KeysOverviewFilterField,
   type KeysOverviewFilterOperator,
-  type KeysOverviewFilterUrlValue,
   type KeysOverviewFilterValue,
   type KeysQuerySearchParams,
   keysOverviewFilterFieldConfig,
 } from "../filters.schema";
 
-const parseAsFilterValArray = parseAsFilterValueArray<KeysOverviewFilterOperator>([
+const parseAsAllOperatorsFilterArray = parseAsFilterValueArray<KeysOverviewFilterOperator>([
   "is",
   "contains",
+  "startsWith",
+  "endsWith",
 ]);
 
+const parseAsIsContainsFilterArray = parseAsFilterValueArray<"is" | "contains">(["is", "contains"]);
+
+const parseAsIsOnlyFilterArray = parseAsFilterValueArray<"is">(["is"]);
+
+// Map fields to appropriate parsers based on their allowed operators in the config
 export const queryParamsPayload = {
-  keyIds: parseAsFilterValArray,
-  names: parseAsFilterValArray,
+  keyIds: parseAsIsContainsFilterArray,
+  names: parseAsAllOperatorsFilterArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
   since: parseAsRelativeTime,
-  outcomes: parseAsFilterValArray,
-  identities: parseAsFilterValArray,
+  outcomes: parseAsIsOnlyFilterArray,
+  identities: parseAsAllOperatorsFilterArray,
 } as const;
 
 export const useFilters = () => {
@@ -34,46 +43,33 @@ export const useFilters = () => {
   const filters = useMemo(() => {
     const activeFilters: KeysOverviewFilterValue[] = [];
 
-    searchParams.keyIds?.forEach((keyFilter) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "keyIds",
-        operator: keyFilter.operator,
-        value: keyFilter.value,
-      });
-    });
+    for (const [field, value] of Object.entries(searchParams)) {
+      if (!Array.isArray(value) || !["keyIds", "names", "identities", "outcomes"].includes(field)) {
+        continue;
+      }
 
-    searchParams.names?.forEach((keyFilter) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "names",
-        operator: keyFilter.operator,
-        value: keyFilter.value,
-      });
-    });
+      for (const filterItem of value) {
+        const baseFilter = {
+          id: crypto.randomUUID(),
+          field: field as KeysOverviewFilterField,
+          operator: filterItem.operator,
+          value: filterItem.value,
+        };
 
-    searchParams.identities?.forEach((keyFilter) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "identities",
-        operator: keyFilter.operator,
-        value: keyFilter.value,
-      });
-    });
-
-    searchParams.outcomes?.forEach((outcomeFilter) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "outcomes",
-        operator: outcomeFilter.operator,
-        value: outcomeFilter.value,
-        metadata: {
-          colorClass: keysOverviewFilterFieldConfig.outcomes.getColorClass?.(
-            outcomeFilter.value as string,
-          ),
-        },
-      });
-    });
+        if (field === "outcomes") {
+          activeFilters.push({
+            ...baseFilter,
+            metadata: {
+              colorClass: keysOverviewFilterFieldConfig.outcomes.getColorClass?.(
+                filterItem.value as string,
+              ),
+            },
+          });
+        } else {
+          activeFilters.push(baseFilter);
+        }
+      }
+    }
 
     ["startTime", "endTime", "since"].forEach((field) => {
       const value = searchParams[field as keyof KeysQuerySearchParams];
@@ -97,53 +93,82 @@ export const useFilters = () => {
         endTime: null,
         since: null,
         keyIds: null,
+        names: null,
+        identities: null,
         outcomes: null,
       };
 
-      const keyIdFilters: KeysOverviewFilterUrlValue[] = [];
-      const nameIdFilters: KeysOverviewFilterUrlValue[] = [];
-      const identitiesFilters: KeysOverviewFilterUrlValue[] = [];
-      const outcomeFilters: KeysOverviewFilterUrlValue[] = [];
+      const keyIdFilters: IsContainsUrlValue[] = [];
+      const nameFilters: AllOperatorsUrlValue[] = [];
+      const identitiesFilters: AllOperatorsUrlValue[] = [];
+      const outcomeFilters: IsOnlyUrlValue[] = [];
 
       newFilters.forEach((filter) => {
+        const fieldConfig = keysOverviewFilterFieldConfig[filter.field];
+        const validOperators = fieldConfig.operators;
+
+        const operator = validOperators.includes(filter.operator)
+          ? filter.operator
+          : validOperators[0];
+
         switch (filter.field) {
           case "keyIds":
-            keyIdFilters.push({
-              value: filter.value,
-              operator: filter.operator,
-            });
+            if (typeof filter.value === "string") {
+              keyIdFilters.push({
+                value: filter.value,
+                operator: operator as "is" | "contains",
+              });
+            }
             break;
+
           case "names":
-            nameIdFilters.push({
-              value: filter.value,
-              operator: filter.operator,
-            });
-            break;
           case "identities":
-            identitiesFilters.push({
-              value: filter.value,
-              operator: filter.operator,
-            });
+            if (typeof filter.value === "string") {
+              const filterValue = {
+                value: filter.value,
+                operator: operator as "is" | "contains" | "startsWith" | "endsWith",
+              };
+
+              filter.field === "names"
+                ? nameFilters.push(filterValue)
+                : identitiesFilters.push(filterValue);
+            }
             break;
+
           case "outcomes":
-            outcomeFilters.push({
-              value: filter.value,
-              operator: filter.operator,
-            });
+            if (typeof filter.value === "string") {
+              outcomeFilters.push({
+                value: filter.value,
+                operator: "is",
+              });
+            }
             break;
+
           case "startTime":
-          case "endTime":
-            newParams[filter.field] = filter.value as number;
+          case "endTime": {
+            const numValue =
+              typeof filter.value === "number"
+                ? filter.value
+                : typeof filter.value === "string"
+                  ? Number(filter.value)
+                  : Number.NaN;
+
+            if (!Number.isNaN(numValue)) {
+              newParams[filter.field] = numValue;
+            }
             break;
+          }
+
           case "since":
-            newParams.since = filter.value as string;
+            if (typeof filter.value === "string") {
+              newParams.since = filter.value;
+            }
             break;
         }
       });
 
-      // Set arrays to null when empty, otherwise use the filtered values
       newParams.keyIds = keyIdFilters.length > 0 ? keyIdFilters : null;
-      newParams.names = nameIdFilters.length > 0 ? nameIdFilters : null;
+      newParams.names = nameFilters.length > 0 ? nameFilters : null;
       newParams.identities = identitiesFilters.length > 0 ? identitiesFilters : null;
       newParams.outcomes = outcomeFilters.length > 0 ? outcomeFilters : null;
 

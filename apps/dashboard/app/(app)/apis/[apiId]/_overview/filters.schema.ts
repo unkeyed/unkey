@@ -27,11 +27,11 @@ export const keysOverviewFilterFieldConfig: FilterFieldConfigs = {
   },
   names: {
     type: "string",
-    operators: ["is", "contains"],
+    operators: ["is", "contains", "startsWith", "endsWith"],
   },
   identities: {
     type: "string",
-    operators: ["is", "contains"],
+    operators: ["is", "contains", "startsWith", "endsWith"],
   },
   outcomes: {
     type: "string",
@@ -42,7 +42,8 @@ export const keysOverviewFilterFieldConfig: FilterFieldConfigs = {
 };
 
 // Schemas
-export const keysOverviewFilterOperatorEnum = z.enum(["is", "contains"]);
+export const keysOverviewFilterOperatorEnum = z.enum(["is", "contains", "startsWith", "endsWith"]);
+
 export const keysOverviewFilterFieldEnum = z.enum([
   "startTime",
   "endTime",
@@ -61,6 +62,7 @@ export const filterOutputSchema = createFilterOutputSchema(
 
 // Types
 export type KeysOverviewFilterOperator = z.infer<typeof keysOverviewFilterOperatorEnum>;
+
 export type KeysOverviewFilterField = z.infer<typeof keysOverviewFilterFieldEnum>;
 
 export type FilterFieldConfigs = {
@@ -71,6 +73,21 @@ export type FilterFieldConfigs = {
   names: StringConfig<KeysOverviewFilterOperator>;
   outcomes: StringConfig<KeysOverviewFilterOperator>;
   identities: StringConfig<KeysOverviewFilterOperator>;
+};
+
+export type IsOnlyUrlValue = {
+  value: string | number;
+  operator: "is";
+};
+
+export type IsContainsUrlValue = {
+  value: string;
+  operator: "is" | "contains";
+};
+
+export type AllOperatorsUrlValue = {
+  value: string;
+  operator: "is" | "contains" | "startsWith" | "endsWith";
 };
 
 export type KeysOverviewFilterUrlValue = Pick<
@@ -87,8 +104,8 @@ export type KeysQuerySearchParams = {
   startTime?: number | null;
   endTime?: number | null;
   since?: string | null;
-  keyIds: KeysOverviewFilterUrlValue[] | null;
-  names: KeysOverviewFilterUrlValue[] | null;
-  outcomes: KeysOverviewFilterUrlValue[] | null;
-  identities: KeysOverviewFilterUrlValue[] | null;
+  keyIds: IsContainsUrlValue[] | null;
+  names: AllOperatorsUrlValue[] | null;
+  outcomes: IsOnlyUrlValue[] | null;
+  identities: AllOperatorsUrlValue[] | null;
 };

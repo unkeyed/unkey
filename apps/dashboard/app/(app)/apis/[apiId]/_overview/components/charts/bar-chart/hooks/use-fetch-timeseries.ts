@@ -3,6 +3,7 @@ import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { useMemo } from "react";
+import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { KeysOverviewQueryTimeseriesPayload } from "../query-timeseries.schema";
 
@@ -22,59 +23,68 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
       since: "",
     };
 
+    if (!apiId) {
+      return params;
+    }
+
     filters.forEach((filter) => {
+      if (!(filter.field in keysOverviewFilterFieldConfig)) {
+        return;
+      }
+
+      const fieldConfig = keysOverviewFilterFieldConfig[filter.field];
+      const validOperators = fieldConfig.operators;
+
+      const operator = validOperators.includes(filter.operator)
+        ? filter.operator
+        : validOperators[0];
+
       switch (filter.field) {
         case "startTime":
         case "endTime": {
-          if (typeof filter.value !== "number") {
-            console.error(`${filter.field} filter value type has to be 'number'`);
-            return;
+          const numValue =
+            typeof filter.value === "number"
+              ? filter.value
+              : typeof filter.value === "string"
+                ? Number(filter.value)
+                : Number.NaN;
+
+          if (!Number.isNaN(numValue)) {
+            params[filter.field] = numValue;
           }
-          params[filter.field] = filter.value;
           break;
         }
+
         case "since": {
-          if (typeof filter.value !== "string") {
-            console.error("Since filter value type has to be 'string'");
-            return;
+          if (typeof filter.value === "string") {
+            params.since = filter.value;
           }
-          params.since = filter.value;
           break;
         }
 
         case "keyIds": {
-          if (typeof filter.value !== "string") {
-            console.error("Keys filter value type has to be 'string'");
-            return;
+          if (typeof filter.value === "string" && filter.value.trim()) {
+            const keyIdOperator = operator === "is" || operator === "contains" ? operator : "is";
+
+            params.keyIds?.filters?.push({
+              operator: keyIdOperator,
+              value: filter.value,
+            });
           }
-          params.keyIds?.filters?.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
           break;
         }
-        case "names": {
-          if (typeof filter.value !== "string") {
-            console.error("Names filter value type has to be 'string'");
-            return;
-          }
-          params.names?.filters?.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
-          break;
-        }
+
+        case "names":
         case "identities": {
-          if (typeof filter.value !== "string") {
-            console.error("Identities filter value type has to be 'string'");
-            return;
+          if (typeof filter.value === "string" && filter.value.trim()) {
+            params[filter.field]?.filters?.push({
+              operator,
+              value: filter.value,
+            });
           }
-          params.identities?.filters?.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
           break;
         }
+
         case "outcomes": {
           type ValidOutcome = (typeof KEY_VERIFICATION_OUTCOMES)[number];
           if (
@@ -82,11 +92,9 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
             KEY_VERIFICATION_OUTCOMES.includes(filter.value as ValidOutcome)
           ) {
             params.outcomes?.filters?.push({
-              operator: "is",
+              operator: "is", // outcomes only support 'is' operator
               value: filter.value as ValidOutcome,
             });
-          } else {
-            console.error("Invalid outcome value:", filter.value);
           }
           break;
         }
@@ -97,55 +105,54 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
   }, [filters, dateNow, apiId]);
 
   const { data, isLoading, isError } = trpc.api.keys.timeseries.useQuery(queryParams, {
-    refetchInterval: queryParams.endTime ? false : 10_000,
+    refetchInterval: queryParams.endTime === dateNow ? 10_000 : false,
+    enabled: Boolean(apiId),
   });
 
-  // Process timeseries data to work with our chart component
-  const timeseries = data?.timeseries.map((ts) => {
-    // Base result object with backward compatibility fields
-    const result = {
-      displayX: formatTimestampForChart(ts.x, data.granularity),
-      originalTimestamp: ts.x,
-      valid: ts.y.valid,
-      total: ts.y.total,
-      success: ts.y.valid,
-      error: ts.y.total - ts.y.valid,
-    };
-
-    const outcomeFields: Record<string, number> = {};
-
-    if (ts.y.rate_limited_count !== undefined) {
-      outcomeFields.rate_limited = ts.y.rate_limited_count;
+  const timeseries = useMemo(() => {
+    if (!data?.timeseries) {
+      return [];
     }
 
-    if (ts.y.insufficient_permissions_count !== undefined) {
-      outcomeFields.insufficient_permissions = ts.y.insufficient_permissions_count;
-    }
+    return data.timeseries.map((ts) => {
+      const result = {
+        displayX: formatTimestampForChart(ts.x, data.granularity),
+        originalTimestamp: ts.x,
+        valid: ts.y.valid,
+        total: ts.y.total,
+        success: ts.y.valid,
+        error: ts.y.total - ts.y.valid,
+      };
 
-    if (ts.y.forbidden_count !== undefined) {
-      outcomeFields.forbidden = ts.y.forbidden_count;
-    }
+      const outcomeFields: Record<string, number> = {};
+      if (ts.y.rate_limited_count !== undefined) {
+        outcomeFields.rate_limited = ts.y.rate_limited_count;
+      }
+      if (ts.y.insufficient_permissions_count !== undefined) {
+        outcomeFields.insufficient_permissions = ts.y.insufficient_permissions_count;
+      }
+      if (ts.y.forbidden_count !== undefined) {
+        outcomeFields.forbidden = ts.y.forbidden_count;
+      }
+      if (ts.y.disabled_count !== undefined) {
+        outcomeFields.disabled = ts.y.disabled_count;
+      }
+      if (ts.y.expired_count !== undefined) {
+        outcomeFields.expired = ts.y.expired_count;
+      }
+      if (ts.y.usage_exceeded_count !== undefined) {
+        outcomeFields.usage_exceeded = ts.y.usage_exceeded_count;
+      }
 
-    if (ts.y.disabled_count !== undefined) {
-      outcomeFields.disabled = ts.y.disabled_count;
-    }
-
-    if (ts.y.expired_count !== undefined) {
-      outcomeFields.expired = ts.y.expired_count;
-    }
-
-    if (ts.y.usage_exceeded_count !== undefined) {
-      outcomeFields.usage_exceeded = ts.y.usage_exceeded_count;
-    }
-
-    return {
-      ...result,
-      ...outcomeFields,
-    };
-  });
+      return {
+        ...result,
+        ...outcomeFields,
+      };
+    });
+  }, [data]);
 
   return {
-    timeseries,
+    timeseries: timeseries || [],
     isLoading,
     isError,
     granularity: data?.granularity,

@@ -1,5 +1,5 @@
 import type { KeysOverviewFilterUrlValue } from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
-import { db } from "@/lib/db";
+import { type SQL, db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 
 // Input interface for the query abstraction
@@ -70,35 +70,59 @@ export async function queryApiKeys({
               where: (key, { and, isNull, inArray, sql }) => {
                 const conditions = [isNull(key.deletedAtM)];
 
-                // Add name filters
                 if (namesFromInput && namesFromInput.length > 0) {
-                  const nameValues = namesFromInput
+                  const nameIsValues = namesFromInput
                     .filter((filter) => filter.operator === "is")
                     .map((filter) => filter.value);
-                  if (nameValues.length > 0) {
-                    conditions.push(inArray(key.name, nameValues as string[]));
-                  }
+
                   const nameContainsValues = namesFromInput
                     .filter((filter) => filter.operator === "contains")
                     .map((filter) => filter.value);
+
+                  const nameStartsWithValues = namesFromInput
+                    .filter((filter) => filter.operator === "startsWith")
+                    .map((filter) => filter.value);
+
+                  const nameEndsWithValues = namesFromInput
+                    .filter((filter) => filter.operator === "endsWith")
+                    .map((filter) => filter.value);
+
+                  if (nameIsValues.length > 0) {
+                    conditions.push(inArray(key.name, nameIsValues as string[]));
+                  }
+
                   if (nameContainsValues.length > 0) {
                     nameContainsValues.forEach((value) => {
                       conditions.push(sql`${key.name} LIKE ${`%${value}%`}`);
                     });
                   }
+
+                  if (nameStartsWithValues.length > 0) {
+                    nameStartsWithValues.forEach((value) => {
+                      conditions.push(sql`${key.name} LIKE ${`${value}%`}`);
+                    });
+                  }
+
+                  if (nameEndsWithValues.length > 0) {
+                    nameEndsWithValues.forEach((value) => {
+                      conditions.push(sql`${key.name} LIKE ${`%${value}`}`);
+                    });
+                  }
                 }
 
-                // Add keyId filters
                 if (keyIdsFromInput && keyIdsFromInput.length > 0) {
                   const keyIdValues = keyIdsFromInput
                     .filter((filter) => filter.operator === "is")
                     .map((filter) => filter.value);
-                  if (keyIdValues.length > 0) {
-                    conditions.push(inArray(key.id, keyIdValues as string[]));
-                  }
+
                   const keyIdContainsValues = keyIdsFromInput
                     .filter((filter) => filter.operator === "contains")
                     .map((filter) => filter.value);
+
+                  if (keyIdValues.length > 0) {
+                    conditions.push(inArray(key.id, keyIdValues as string[]));
+                  }
+
                   if (keyIdContainsValues.length > 0) {
                     keyIdContainsValues.forEach((value) =>
                       conditions.push(sql`${key.id} LIKE ${`%${value}%`}`),
@@ -106,104 +130,73 @@ export async function queryApiKeys({
                   }
                 }
 
-                // Add identity filters
                 if (identitiesFromInput && identitiesFromInput.length > 0) {
-                  // First, categorize the identity filters by type
-                  const externalIdFilters = [];
-                  const ownerIdFilters = [];
+                  const allIdentityConditions = [];
 
-                  // Parse the identity filter values to determine their type
                   for (const filter of identitiesFromInput) {
-                    // Check if the value starts with known prefixes
                     const value = filter.value;
-                    if (typeof value === "string") {
-                      if (value.startsWith("ext_")) {
-                        // This is an external ID filter
-                        externalIdFilters.push(filter);
-                      } else {
-                        // Treat as owner ID filter for other formats
-                        ownerIdFilters.push(filter);
+                    if (typeof value !== "string") {
+                      continue;
+                    }
+
+                    const operator = filter.operator;
+
+                    const isExternalId = value.startsWith("ext_");
+
+                    if (isExternalId) {
+                      let condition: SQL<any>;
+
+                      switch (operator) {
+                        case "is":
+                          condition = sql`identities.external_id = ${value}`;
+                          break;
+                        case "contains":
+                          condition = sql`identities.external_id LIKE ${`%${value}%`}`;
+                          break;
+                        case "startsWith":
+                          condition = sql`identities.external_id LIKE ${`${value}%`}`;
+                          break;
+                        case "endsWith":
+                          condition = sql`identities.external_id LIKE ${`%${value}`}`;
+                          break;
+                        default:
+                          condition = sql`identities.external_id = ${value}`;
                       }
+
+                      allIdentityConditions.push(sql`
+        EXISTS (
+          SELECT 1 FROM identities 
+          WHERE identities.id = ${key.identityId}
+          AND ${condition}
+        )`);
+                    } else {
+                      let ownerCondition: SQL<any>;
+
+                      switch (operator) {
+                        case "is":
+                          ownerCondition = sql`${key.ownerId} = ${value}`;
+                          break;
+                        case "contains":
+                          ownerCondition = sql`${key.ownerId} LIKE ${`%${value}%`}`;
+                          break;
+                        case "startsWith":
+                          ownerCondition = sql`${key.ownerId} LIKE ${`${value}%`}`;
+                          break;
+                        case "endsWith":
+                          ownerCondition = sql`${key.ownerId} LIKE ${`%${value}`}`;
+                          break;
+                        default:
+                          ownerCondition = sql`${key.ownerId} = ${value}`;
+                      }
+
+                      allIdentityConditions.push(ownerCondition);
                     }
                   }
 
-                  // Initialize arrays for identity conditions
-                  const identityConditions = [];
-
-                  // Process owner ID filters
-                  if (ownerIdFilters.length > 0) {
-                    const ownerIsValues = ownerIdFilters
-                      .filter((filter) => filter.operator === "is")
-                      .map((filter) => filter.value);
-
-                    const ownerContainsValues = ownerIdFilters
-                      .filter((filter) => filter.operator === "contains")
-                      .map((filter) => filter.value);
-
-                    const ownerConditions = [];
-
-                    // Add "is" conditions for ownerId
-                    if (ownerIsValues.length > 0) {
-                      ownerConditions.push(sql`(${key.ownerId} IN (${sql.join(ownerIsValues)}))`);
-                    }
-
-                    // Add "contains" conditions for ownerId
-                    if (ownerContainsValues.length > 0) {
-                      ownerContainsValues.forEach((value) => {
-                        ownerConditions.push(sql`(${key.ownerId} LIKE ${`%${value}%`})`);
-                      });
-                    }
-
-                    // Combine owner conditions with OR
-                    if (ownerConditions.length > 0) {
-                      identityConditions.push(sql`(${sql.join(ownerConditions, sql` OR `)})`);
-                    }
-                  }
-
-                  // Process external ID filters
-                  if (externalIdFilters.length > 0) {
-                    const externalIdIsValues = externalIdFilters
-                      .filter((filter) => filter.operator === "is")
-                      .map((filter) => filter.value);
-
-                    const externalIdContainsValues = externalIdFilters
-                      .filter((filter) => filter.operator === "contains")
-                      .map((filter) => filter.value);
-
-                    // Build the subquery for external ID
-                    if (externalIdIsValues.length > 0 || externalIdContainsValues.length > 0) {
-                      const externalIdConditions = [];
-
-                      // Add "is" conditions for externalId
-                      if (externalIdIsValues.length > 0) {
-                        const inClause = sql.join(externalIdIsValues.map((value) => sql`${value}`));
-                        externalIdConditions.push(sql`identities.external_id IN (${inClause})`);
-                      }
-
-                      // Add "contains" conditions for externalId
-                      if (externalIdContainsValues.length > 0) {
-                        externalIdContainsValues.forEach((value) => {
-                          externalIdConditions.push(
-                            sql`identities.external_id LIKE ${`%${value}%`}`,
-                          );
-                        });
-                      }
-
-                      // Create the EXISTS subquery with OR between conditions
-                      const externalIdCondition = sql`
-      EXISTS (
-        SELECT 1 FROM identities 
-        WHERE identities.id = ${key.identityId}
-        AND (${sql.join(externalIdConditions, sql` OR `)})
-      )`;
-
-                      identityConditions.push(externalIdCondition);
-                    }
-                  }
-
-                  // Add the combined identity conditions with OR between different identity types
-                  if (identityConditions.length > 0) {
-                    conditions.push(sql`(${sql.join(identityConditions, sql` OR `)})`);
+                  // Combine all conditions with OR
+                  if (allIdentityConditions.length > 0) {
+                    // Make sure to properly wrap the entire condition
+                    conditions.push(sql`(${sql.join(allIdentityConditions, sql` OR `)})`);
                   }
                 }
 

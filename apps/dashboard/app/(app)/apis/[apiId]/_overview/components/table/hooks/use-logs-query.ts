@@ -2,6 +2,7 @@ import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { useEffect, useMemo, useState } from "react";
+import { keysOverviewFilterFieldConfig } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import type { KeysQueryOverviewLogsPayload } from "../query-logs.schema";
 
@@ -18,7 +19,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
   const { filters } = useFilters();
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
-  //Required for preventing double trpc call during initial render
+  // Required for preventing double trpc call during initial render
   const dateNow = useMemo(() => Date.now(), []);
 
   const queryParams = useMemo(() => {
@@ -35,40 +36,36 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     };
 
     filters.forEach((filter) => {
+      const fieldConfig = keysOverviewFilterFieldConfig[filter.field];
+      const validOperators = fieldConfig.operators;
+
+      const operator = validOperators.includes(filter.operator)
+        ? filter.operator
+        : validOperators[0];
+
       switch (filter.field) {
         case "keyIds": {
-          if (typeof filter.value !== "string") {
-            console.error("Keys filter value type has to be 'string'");
-            return;
+          if (typeof filter.value === "string") {
+            const keyIdOperator = operator === "is" || operator === "contains" ? operator : "is";
+
+            params.keyIds?.push({
+              operator: keyIdOperator,
+              value: filter.value,
+            });
           }
-          params.keyIds?.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
           break;
         }
-        case "names": {
-          if (typeof filter.value !== "string") {
-            console.error("Names filter value type has to be 'string'");
-            return;
+
+        case "names":
+        case "identities":
+          if (typeof filter.value === "string") {
+            params[filter.field]?.push({
+              operator,
+              value: filter.value,
+            });
           }
-          params.names?.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
           break;
-        }
-        case "identities": {
-          if (typeof filter.value !== "string") {
-            console.error("Identites filter value type has to be 'string'");
-            return;
-          }
-          params.identities?.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
-          break;
-        }
+
         case "outcomes": {
           type ValidOutcome = (typeof KEY_VERIFICATION_OUTCOMES)[number];
           if (
@@ -79,28 +76,30 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
               operator: "is",
               value: filter.value as ValidOutcome,
             });
-          } else {
-            console.error("Invalid outcome value:", filter.value);
           }
           break;
         }
+
         case "startTime":
         case "endTime": {
-          if (typeof filter.value !== "number") {
-            console.error(`${filter.field} filter value type has to be 'number'`);
-            return;
+          const numValue =
+            typeof filter.value === "number"
+              ? filter.value
+              : typeof filter.value === "string"
+                ? Number(filter.value)
+                : Number.NaN;
+
+          if (!Number.isNaN(numValue)) {
+            params[filter.field] = numValue;
           }
-          params[filter.field] = filter.value;
           break;
         }
-        case "since": {
-          if (typeof filter.value !== "string") {
-            console.error("Since filter value type has to be 'string'");
-            return;
+
+        case "since":
+          if (typeof filter.value === "string") {
+            params.since = filter.value;
           }
-          params.since = filter.value;
           break;
-        }
       }
     });
 

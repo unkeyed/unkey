@@ -3,6 +3,7 @@ import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { useMemo } from "react";
+import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { KeysOverviewQueryTimeseriesPayload } from "../../bar-chart/query-timeseries.schema";
 
@@ -22,58 +23,68 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
       since: "",
     };
 
+    if (!apiId) {
+      return params;
+    }
+
     filters.forEach((filter) => {
+      if (!(filter.field in keysOverviewFilterFieldConfig)) {
+        return;
+      }
+
+      const fieldConfig = keysOverviewFilterFieldConfig[filter.field];
+      const validOperators = fieldConfig.operators;
+
+      const operator = validOperators.includes(filter.operator)
+        ? filter.operator
+        : validOperators[0];
+
       switch (filter.field) {
         case "startTime":
         case "endTime": {
-          if (typeof filter.value !== "number") {
-            console.error(`${filter.field} filter value type has to be 'number'`);
-            return;
+          const numValue =
+            typeof filter.value === "number"
+              ? filter.value
+              : typeof filter.value === "string"
+                ? Number(filter.value)
+                : Number.NaN;
+
+          if (!Number.isNaN(numValue)) {
+            params[filter.field] = numValue;
           }
-          params[filter.field] = filter.value;
           break;
         }
+
         case "since": {
-          if (typeof filter.value !== "string") {
-            console.error("Since filter value type has to be 'string'");
-            return;
+          if (typeof filter.value === "string") {
+            params.since = filter.value;
           }
-          params.since = filter.value;
           break;
         }
+
         case "keyIds": {
-          if (typeof filter.value !== "string") {
-            console.error("Keys filter value type has to be 'string'");
-            return;
+          if (typeof filter.value === "string" && filter.value.trim()) {
+            const keyIdOperator = operator === "is" || operator === "contains" ? operator : "is";
+
+            params.keyIds?.filters?.push({
+              operator: keyIdOperator,
+              value: filter.value,
+            });
           }
-          params.keyIds?.filters?.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
           break;
         }
-        case "names": {
-          if (typeof filter.value !== "string") {
-            console.error("Names filter value type has to be 'string'");
-            return;
-          }
-          params.names?.filters?.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
-          break;
-        }
+
+        case "names":
         case "identities": {
-          if (typeof filter.value !== "string") {
-            console.error("Identities filter value type has to be 'string'");
-            return;
+          if (typeof filter.value === "string" && filter.value.trim()) {
+            params[filter.field]?.filters?.push({
+              operator,
+              value: filter.value,
+            });
           }
-          params.identities?.filters?.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
           break;
         }
+
         case "outcomes": {
           type ValidOutcome = (typeof KEY_VERIFICATION_OUTCOMES)[number];
           if (
@@ -84,8 +95,6 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
               operator: "is",
               value: filter.value as ValidOutcome,
             });
-          } else {
-            console.error("Invalid outcome value:", filter.value);
           }
           break;
         }
@@ -96,20 +105,26 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
   }, [filters, dateNow, apiId]);
 
   const { data, isLoading, isError } = trpc.api.keys.activeKeysTimeseries.useQuery(queryParams, {
-    refetchInterval: queryParams.endTime ? false : 10_000,
+    refetchInterval: queryParams.endTime === dateNow ? 10_000 : false,
+    enabled: Boolean(apiId),
   });
 
-  // Process timeseries data to work with our chart component
-  const timeseries = data?.timeseries.map((ts) => {
-    return {
-      displayX: formatTimestampForChart(ts.x, data.granularity),
-      originalTimestamp: ts.x,
-      keys: ts.y.keys,
-    };
-  });
+  const timeseries = useMemo(() => {
+    if (!data?.timeseries) {
+      return [];
+    }
+
+    return data.timeseries.map((ts) => {
+      return {
+        displayX: formatTimestampForChart(ts.x, data.granularity),
+        originalTimestamp: ts.x,
+        keys: ts.y.keys,
+      };
+    });
+  }, [data]);
 
   return {
-    timeseries,
+    timeseries: timeseries || [],
     isLoading,
     isError,
     granularity: data?.granularity,

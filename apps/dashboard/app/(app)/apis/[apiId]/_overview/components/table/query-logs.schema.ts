@@ -35,7 +35,7 @@ export const keysQueryOverviewLogsPayload = z.object({
   names: z
     .array(
       z.object({
-        operator: z.enum(["is", "contains"]),
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
       }),
     )
@@ -44,7 +44,7 @@ export const keysQueryOverviewLogsPayload = z.object({
   identities: z
     .array(
       z.object({
-        operator: z.enum(["is", "contains"]),
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
       }),
     )

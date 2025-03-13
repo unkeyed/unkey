@@ -44,7 +44,7 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
       keyspaceId: keyspaceId,
       keyIds: (keyIds ?? []).map((x) => ({
         value: String(x.value),
-        operator: x.operator,
+        operator: x.operator as "is" | "contains",
       })),
     });
 
