@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/contrib/processors/minsev"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
@@ -26,11 +28,12 @@ type TelemetryConfig struct {
 	Meter             metric.Meter
 	MetricHTTPOptions []otlpmetrichttp.Option
 	Metrics           struct {
-		BatchCounter  metric.Int64Counter
-		ErrorCounter  metric.Int64Counter
-		FlushCounter  metric.Int64Counter
-		FlushDuration metric.Float64Histogram
-		RowCounter    metric.Int64Counter
+		BatchCounter   metric.Int64Counter
+		ErrorCounter   metric.Int64Counter
+		FlushCounter   metric.Int64Counter
+		FlushDuration  metric.Float64Histogram
+		RequestCounter metric.Int64Counter
+		RowCounter     metric.Int64Counter
 	}
 	TraceHTTPOptions []otlptracehttp.Option
 	Tracer           trace.Tracer
@@ -40,12 +43,12 @@ var currentBufferSize int64
 
 // SetBufferSize updates the current buffer size for metrics
 func SetBufferSize(size int64) {
-	currentBufferSize = size
+	atomic.StoreInt64(&currentBufferSize, size)
 }
 
 // GetBufferSize returns the current buffer size
 func GetBufferSize() int64 {
-	return currentBufferSize
+	return atomic.LoadInt64(&currentBufferSize)
 }
 
 // SetupTelemetry initializes OTEL tracing, metrics, and logging
@@ -80,24 +83,33 @@ func setupTelemetry(ctx context.Context, config *Config) (*TelemetryConfig, func
 	otel.SetMeterProvider(meterProvider)
 	telemetryConfig.Meter = meterProvider.Meter(config.ServiceName)
 
-	logExporter, err := otlploghttp.New(ctx)
+	// Configure OTLP log handler
+	logExporter, err := otlploghttp.New(ctx,
+		otlploghttp.WithCompression(otlploghttp.GzipCompression),
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create log exporter: %w", err)
 	}
 
+	var processor sdklog.Processor = sdklog.NewBatchProcessor(logExporter, sdklog.WithExportBufferSize(512))
+
+	processor = minsev.NewLogProcessor(processor, minsev.SeverityInfo)
+
+	if config.LogDebug {
+		processor = minsev.NewLogProcessor(processor, minsev.SeverityDebug)
+	}
+
 	logProvider := sdklog.NewLoggerProvider(
 		sdklog.WithResource(res),
-		sdklog.WithProcessor(
-			sdklog.NewBatchProcessor(logExporter),
-		),
+		sdklog.WithProcessor(processor),
 	)
 
-	otlpHandler := otelslog.NewHandler(
+	otlpLogHandler := otelslog.NewHandler(
 		config.ServiceName,
 		otelslog.WithLoggerProvider(logProvider),
 	)
 
-	telemetryConfig.LogHandler = otlpHandler
+	telemetryConfig.LogHandler = otlpLogHandler
 
 	// Configure tracer
 	traceExporter, err := otlptracehttp.New(ctx)
@@ -113,7 +125,7 @@ func setupTelemetry(ctx context.Context, config *Config) (*TelemetryConfig, func
 	telemetryConfig.Tracer = traceProvider.Tracer(config.ServiceName)
 
 	// Initialize metrics
-	var err1, err2, err3, err4, err5 error
+	var err1, err2, err3, err4, err5, err6 error
 	telemetryConfig.Metrics.BatchCounter, err1 = telemetryConfig.Meter.Int64Counter(
 		"clickhouse_batches_total",
 		metric.WithDescription("Total number of batches sent to Clickhouse"),
@@ -136,8 +148,13 @@ func setupTelemetry(ctx context.Context, config *Config) (*TelemetryConfig, func
 		metric.WithDescription("Duration of flush operations"),
 		metric.WithUnit("s"),
 	)
+	telemetryConfig.Metrics.RequestCounter, err6 = telemetryConfig.Meter.Int64Counter(
+		"clickhouse_http_requests_total",
+		metric.WithDescription("Total number of HTTP requests received"),
+		metric.WithUnit("{request}"),
+	)
 
-	for _, err := range []error{err1, err2, err3, err4, err5} {
+	for _, err := range []error{err1, err2, err3, err4, err5, err6} {
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to create metric: %w", err)
 		}
