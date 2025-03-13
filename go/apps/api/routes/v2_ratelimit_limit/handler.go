@@ -69,7 +69,6 @@ func New(svc Services) zen.Route {
 			ctx,
 			auth.KeyID,
 			rbac.Or(
-				rbac.S("*"),
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Ratelimit,
 					ResourceID:   namespace.ID,
