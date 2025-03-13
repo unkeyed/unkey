@@ -5,7 +5,7 @@ import { EmailSignUp } from "../email-signup";
 import { OAuthSignUp } from "../oauth-signup";
 import { SignUpProvider } from "@/lib/auth/context/signup-context";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loading } from "@/components/dashboard/loading";
 import { useSignUp } from "@/lib/auth/hooks";
@@ -17,33 +17,37 @@ export default function AuthenticationPage() {
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
   const [isLoading, setIsLoading] = useState(false);
-
+  const hasAttemptedSignUp = useRef(false);
 
   // Handle auto sign-up with invitation token and email
-    useEffect(() => {
-      const attemptAutoSignUp = async () => {
-        if (invitationToken && invitationEmail && !isLoading) {
-          // Set loading state to true
-          setIsLoading(true);
-          
-          try {
-            // Attempt sign-in with the provided email
-            await handleSignUpViaEmail({
-              firstName: "", // they can set their first and
-              lastName: "", // last name later
-              email: invitationEmail
-            });
-          } catch (err) {
-            console.error("Auto sign-in failed:", err);
-          } finally {
-            // Reset loading state
-            setIsLoading(false);
-          }
+  useEffect(() => {
+    const attemptAutoSignUp = async () => {
+      // Only proceed if we have the required data and haven't attempted sign-up yet
+      if (invitationToken && invitationEmail && !hasAttemptedSignUp.current) {
+        // Mark that we've attempted sign-up to prevent multiple attempts
+        hasAttemptedSignUp.current = true;
+        
+        // Set loading state to true
+        setIsLoading(true);
+        
+        try {
+          // Attempt sign-in with the provided email
+          await handleSignUpViaEmail({
+            firstName: "", // they can set their first and
+            lastName: "", // last name later
+            email: invitationEmail
+          });
+        } catch (err) {
+          console.error("Auto sign-in failed:", err);
+        } finally {
+          // Reset loading state
+          setIsLoading(false);
         }
-      };
-      
-      attemptAutoSignUp();
-    }, [invitationToken, invitationEmail, handleSignUpViaEmail, isLoading]);
+      }
+    };
+    
+    attemptAutoSignUp();
+  }, [invitationToken, invitationEmail, handleSignUpViaEmail]);
 
   return (
     <SignUpProvider>

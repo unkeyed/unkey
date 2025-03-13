@@ -12,7 +12,7 @@ import { OAuthSignIn } from "../oauth-signin";
 import { OrgSelector } from "../org-selector";
 import { useSearchParams } from "next/navigation";
 import { EmailVerify } from "../email-verify";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loading } from "@/components/dashboard/loading";
 
 function SignInContent() {
@@ -22,11 +22,17 @@ function SignInContent() {
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
   const [isLoading, setIsLoading] = useState(false);
+  const hasAttemptedSignIn = useRef(false);
+
 
   // Handle auto sign-in with invitation token and email
   useEffect(() => {
     const attemptAutoSignIn = async () => {
-      if (invitationToken && invitationEmail && !isVerifying && !hasPendingAuth && !isLoading) {
+      // Only proceed if we have required data, aren't in other auth states, and haven't attempted sign-in yet
+      if (invitationToken && invitationEmail && !isVerifying && !hasPendingAuth && !hasAttemptedSignIn.current) {
+        // Mark that we've attempted sign-in to prevent multiple attempts
+        hasAttemptedSignIn.current = true;
+        
         // Set loading state to true
         setIsLoading(true);
         
@@ -43,7 +49,7 @@ function SignInContent() {
     };
     
     attemptAutoSignIn();
-  }, [invitationToken, invitationEmail, isVerifying, hasPendingAuth, handleSignInViaEmail, isLoading]);
+  }, [invitationToken, invitationEmail, isVerifying, hasPendingAuth, handleSignInViaEmail]);
   
 
   if (isLoading) {
