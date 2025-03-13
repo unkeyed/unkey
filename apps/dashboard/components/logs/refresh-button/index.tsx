@@ -59,7 +59,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
           title={isEnabled ? "Refresh data (Shortcut: CTRL+R)" : ""}
           disabled={!isEnabled || isLoading}
           loading={isLoading}
-          className="flex w-full items-center justify-center rounded-lg border"
+          className="flex w-full items-center justify-center rounded-lg border border-gray-4"
         >
           <Refresh3 className="size-4" />
           <span className="font-medium text-[13px] relative z-10">Refresh</span>
