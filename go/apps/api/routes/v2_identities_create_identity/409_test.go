@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/api"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -29,16 +30,16 @@ func TestCreateIdentityDuplicate(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	externalTestID := uid.New("test")
 	t.Run("create identity twice", func(t *testing.T) {
-		req := handler.Request{ExternalId: externalTestID}
+		req := handler.Request{ExternalId: uid.New("test_external_id")}
 
 		successRes := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, successRes.Status, "expected 200, received: %#v", successRes.Body)
 		require.NotNil(t, successRes.Body)
 		require.NotEmpty(t, successRes.Body.IdentityId, successRes.Body)
 
-		errorRes := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		errorRes := testutil.CallRoute[handler.Request, api.ConflictError](h, route, headers, req)
 		require.Equal(t, 409, errorRes.Status, "expected 409, received: %#v", errorRes)
+		require.NotNil(t, errorRes.Body)
 	})
 }

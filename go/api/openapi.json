@@ -87,9 +87,6 @@
           }
         ]
       },
-      "TooManyRequestsError": {
-        "$ref": "#/components/schemas/BaseError"
-      },
       "InternalServerError": {
         "$ref": "#/components/schemas/BaseError"
       },
@@ -765,32 +762,12 @@
               }
             }
           },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundError"
-                }
-              }
-            }
-          },
           "409": {
             "description": "This response is sent when a request conflicts with the current state of the server.",
             "content": {
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConflictError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "The user has sent too many requests in a given amount of time (\"rate limiting\")",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TooManyRequestsError"
                 }
               }
             }

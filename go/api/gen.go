@@ -63,9 +63,6 @@ type NotFoundError = BaseError
 // PreconditionFailedError defines model for PreconditionFailedError.
 type PreconditionFailedError = BaseError
 
-// TooManyRequestsError defines model for TooManyRequestsError.
-type TooManyRequestsError = BaseError
-
 // UnauthorizedError defines model for UnauthorizedError.
 type UnauthorizedError = BaseError
 

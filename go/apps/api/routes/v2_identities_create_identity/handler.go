@@ -135,16 +135,16 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		auditLogs := []AuditLog{
+		auditLogs := []auditlog.AuditLog{
 			{
 				WorkspaceID: s.AuthorizedWorkspaceID(),
 				Event:       auditlog.IdentityCreateEvent,
 				Display:     fmt.Sprintf("Created identity %s.", identityID),
-				Actor: AuditLogActor{
+				Actor: auditlog.AuditLogActorData{
 					ID:   auth.KeyID,
 					Type: auditlog.RootKeyActor,
 				},
-				Resources: []AuditLogResource{
+				Resources: []auditlog.AuditLogResource{
 					{
 						ID:   identityID,
 						Type: auditlog.IdentityResourceType,
@@ -172,15 +172,15 @@ func New(svc Services) zen.Route {
 					)
 				}
 
-				auditLogs = append(auditLogs, AuditLog{
+				auditLogs = append(auditLogs, auditlog.AuditLog{
 					WorkspaceID: s.AuthorizedWorkspaceID(),
 					Event:       auditlog.RatelimitCreateEvent,
-					Actor: AuditLogActor{
+					Actor: auditlog.AuditLogActorData{
 						Type: auditlog.RootKeyActor,
 						ID:   auth.KeyID,
 					},
 					Display: fmt.Sprintf("Created ratelimit %s.", ratelimitID),
-					Resources: []AuditLogResource{
+					Resources: []auditlog.AuditLogResource{
 						{
 							Type: auditlog.IdentityResourceType,
 							ID:   identityID,
@@ -195,7 +195,9 @@ func New(svc Services) zen.Route {
 			}
 		}
 
-		err = InsertAuditLog(ctx, svc, tx, s, auditLogs)
+		err = auditlog.InsertAuditLog(ctx, auditlog.Services{
+			DB: svc.DB,
+		}, tx, s, auditLogs)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.WithTag(fault.DATABASE_ERROR),
@@ -215,94 +217,4 @@ func New(svc Services) zen.Route {
 			IdentityId: identityID,
 		})
 	})
-}
-
-type AuditLog struct {
-	WorkspaceID string
-	Event       auditlog.AuditLogEvent
-	Display     string
-
-	Actor AuditLogActor
-
-	Resources []AuditLogResource
-}
-
-type AuditLogActor struct {
-	ID   string
-	Type auditlog.AuditLogActor
-	Name string
-	Meta json.RawMessage
-}
-
-type AuditLogResource struct {
-	ID          string
-	Name        string
-	DisplayName string
-	Meta        json.RawMessage
-	Type        auditlog.AuditLogResourceType
-}
-
-func InsertAuditLog(ctx context.Context, svc Services, tx *sql.Tx, s *zen.Session, logs []AuditLog) error {
-	auditLogs := make([]db.InsertAuditLogParams, 0)
-	auditLogTargets := make([]db.InsertAuditLogTargetParams, 0)
-
-	if len(logs) == 0 {
-		return nil
-	}
-
-	var dbTx db.DBTX = tx
-	if tx == nil {
-		dbTx = svc.DB.RW()
-	}
-
-	for _, log := range logs {
-		auditLogID := uid.New(uid.AuditLogPrefix)
-		now := time.Now().UnixMilli()
-
-		bucketId := ""
-
-		auditLogs = append(auditLogs, db.InsertAuditLogParams{
-			ID:          auditLogID,
-			WorkspaceID: log.WorkspaceID,
-			CreatedAt:   now,
-			ActorMeta:   log.Actor.Meta,
-			ActorType:   string(log.Actor.Type),
-			ActorID:     log.Actor.ID,
-			ActorName:   sql.NullString{String: log.Actor.Name, Valid: log.Actor.Name != ""},
-			BucketID:    bucketId,
-			Event:       string(log.Event),
-			Time:        now,
-			Display:     log.Display,
-			RemoteIp:    sql.NullString{String: s.Location(), Valid: s.Location() != ""},
-			UserAgent:   sql.NullString{String: s.UserAgent(), Valid: s.UserAgent() != ""},
-		})
-
-		for _, resource := range log.Resources {
-			auditLogTargets = append(auditLogTargets, db.InsertAuditLogTargetParams{
-				WorkspaceID: log.WorkspaceID,
-				CreatedAt:   now,
-				AuditLogID:  auditLogID,
-				Name:        sql.NullString{String: resource.DisplayName, Valid: resource.DisplayName != ""},
-				DisplayName: resource.DisplayName,
-				Meta:        resource.Meta,
-				ID:          resource.ID,
-				Type:        string(resource.Type),
-				BucketID:    bucketId,
-			})
-		}
-	}
-
-	for _, log := range auditLogs {
-		if err := db.Query.InsertAuditLog(ctx, dbTx, log); err != nil {
-			return err
-		}
-	}
-
-	for _, logTarget := range auditLogTargets {
-		if err := db.Query.InsertAuditLogTarget(ctx, dbTx, logTarget); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

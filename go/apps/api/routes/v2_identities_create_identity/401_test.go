@@ -5,8 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/api"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestUnauthorizedAccess(t *testing.T) {
@@ -27,8 +29,8 @@ func TestUnauthorizedAccess(t *testing.T) {
 			// No Authorization header
 		}
 
-		req := handler.Request{ExternalId: "test_id"}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		req := handler.Request{ExternalId: uid.New("test")}
+		res := testutil.CallRoute[handler.Request, api.UnauthorizedError](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
 	})
@@ -39,8 +41,8 @@ func TestUnauthorizedAccess(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		req := handler.Request{ExternalId: "test_id"}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		req := handler.Request{ExternalId: uid.New("test")}
+		res := testutil.CallRoute[handler.Request, api.UnauthorizedError](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
 	})
@@ -51,8 +53,8 @@ func TestUnauthorizedAccess(t *testing.T) {
 			"Authorization": {"malformed_header"},
 		}
 
-		req := handler.Request{ExternalId: "test_id"}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		req := handler.Request{ExternalId: uid.New("test")}
+		res := testutil.CallRoute[handler.Request, api.UnauthorizedError](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
 	})

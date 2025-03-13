@@ -22,19 +22,6 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
-	// Create a identity
-	identityID := uid.New(uid.TestPrefix + "_" + uid.IdentityPrefix)
-	externalTestID := "test_external_id"
-	err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identityID,
-		ExternalID:  externalTestID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
-		Meta:        nil,
-		CreatedAt:   time.Now().UnixMilli(),
-		Environment: "default",
-	})
-	require.NoError(t, err)
-
 	route := handler.New(handler.Services{
 		DB:          h.DB,
 		Keys:        h.Keys,
@@ -50,12 +37,32 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
+	t.Run("insert identity", func(t *testing.T) {
+		// Create a identity
+		identityID := uid.New(uid.TestPrefix + "_" + uid.IdentityPrefix)
+		externalTestID := uid.New("test_external_id")
+		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
+			ID:          identityID,
+			ExternalID:  externalTestID,
+			WorkspaceID: h.Resources.UserWorkspace.ID,
+			Meta:        nil,
+			CreatedAt:   time.Now().UnixMilli(),
+			Environment: "default",
+		})
+		require.NoError(t, err)
+
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), identityID)
+		require.NoError(t, err)
+		require.Equal(t, identity.ExternalID, externalTestID)
+	})
+
 	// Test creating a identity with no other information
 	t.Run("create identity", func(t *testing.T) {
-		req := handler.Request{ExternalId: externalTestID + "_1"}
-
+		externalTestID := uid.New("test_external_id")
+		req := handler.Request{ExternalId: externalTestID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
+
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.IdentityId)
 
@@ -66,6 +73,8 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 	// Test creating a identity with metadata
 	t.Run("create identity with metadata", func(t *testing.T) {
+		externalTestID := uid.New("test_external_id")
+
 		var someMetaValue interface{} = "example"
 		meta := &map[string]*interface{}{"key": ptr.P(someMetaValue)}
 		req := handler.Request{
@@ -74,14 +83,12 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.IdentityId)
 
 		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.IdentityId)
 		require.NoError(t, err)
-		require.NoError(t, err)
-
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
 		var dbMeta *map[string]*interface{}
@@ -91,8 +98,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 	// Test creating a identity with ratelimits
 	t.Run("create identity with ratelimits", func(t *testing.T) {
+		externalTestID := uid.New("test_external_id")
 		req := handler.Request{
-			ExternalId: externalTestID + "_3",
+			ExternalId: externalTestID,
 			Ratelimits: &[]struct {
 				Duration int    "json:\"duration\""
 				Limit    int    "json:\"limit\""
@@ -130,6 +138,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 			require.True(t, idx <= len(rateLimits)-1)
 			require.Equal(t, int(rateLimits[idx].Duration), ratelimit.Duration)
 			require.Equal(t, int(rateLimits[idx].Limit), ratelimit.Limit)
+			require.Equal(t, rateLimits[idx].Name, ratelimit.Name)
 		}
 	})
 }

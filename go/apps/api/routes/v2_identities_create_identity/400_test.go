@@ -4,7 +4,6 @@ package handler_test
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"testing"
 
@@ -23,7 +22,6 @@ func TestBadRequests(t *testing.T) {
 	}
 
 	rawMeta, _ := json.Marshal(metaData)
-	log.Printf("RawMeta has size %d", len(rawMeta))
 
 	testCases := []struct {
 		name          string
