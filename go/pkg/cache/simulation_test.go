@@ -105,7 +105,7 @@ func TestSimulation(t *testing.T) {
 					fresh := time.Second + time.Duration(rng.IntN(60*60*1000))*time.Millisecond
 					stale := fresh + time.Duration(rng.IntN(24*60*60*1000))*time.Millisecond
 
-					c := cache.New[uint64, uint64](cache.Config[uint64, uint64]{
+					c, err := cache.New[uint64, uint64](cache.Config[uint64, uint64]{
 						Clock:    clk,
 						Fresh:    fresh,
 						Stale:    stale,
@@ -113,7 +113,7 @@ func TestSimulation(t *testing.T) {
 						MaxSize:  rng.IntN(1_000_000) + 1, // Ensure at least size 1
 						Resource: "test",
 					})
-
+					require.NoError(t, err)
 					return &state{
 						keys:  []uint64{},
 						cache: c,

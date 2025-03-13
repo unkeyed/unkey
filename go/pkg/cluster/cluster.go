@@ -7,7 +7,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/events"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/ring"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // Config configures a new cluster instance with the necessary components
@@ -49,6 +52,11 @@ func New(config Config) (*cluster, error) {
 		leaveEvents: events.NewTopic[Node](),
 	}
 
+	err = c.registerMetrics()
+	if err != nil {
+		return nil, err
+	}
+
 	go c.keepInSync()
 
 	err = r.AddNode(context.Background(), ring.Node[Node]{
@@ -79,6 +87,25 @@ var _ Cluster = (*cluster)(nil)
 // Self returns information about the local node.
 func (c *cluster) Self() Node {
 	return c.self
+}
+
+func (c *cluster) registerMetrics() error {
+
+	err := metrics.Cluster.Size.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		members, err := c.membership.Members()
+		if err != nil {
+			return err
+		}
+
+		o.Observe(int64(len(members)), metric.WithAttributes(attribute.String("nodeID", c.self.ID)))
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SubscribeJoin returns a channel that receives Node events
