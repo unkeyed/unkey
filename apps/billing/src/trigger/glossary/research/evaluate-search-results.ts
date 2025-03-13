@@ -1,8 +1,8 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { type TaskOutput, task } from "@trigger.dev/sdk/v3";
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { exaDomainSearchTask } from "./exa-domain-search";
+import { google } from "@/lib/google";
 
 // Evaluation schema for content quality and relevance
 const evaluationSchema = z.object({
@@ -22,11 +22,6 @@ export const evaluateSearchResults = task({
     const batchEvaluationSchema = z.object({
       url: z.string(),
       evaluation: evaluationSchema,
-    });
-
-    // Call Gemini for evaluation
-    const google = createGoogleGenerativeAI({
-      apiKey: process.env.GEMINI_API_KEY,
     });
 
     const geminiResponse = await generateObject({
