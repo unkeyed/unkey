@@ -26,11 +26,18 @@ type Querier interface {
 	FindIdentityByID(ctx context.Context, db DBTX, id string) (FindIdentityByIDRow, error)
 	//FindKeyByHash
 	//
-	//  SELECT
-	//      id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
-	//  FROM `keys`
+	//  SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//  ws.id as ws_id,
+	//  ws.enabled as ws_enabled,
+	//  ws.deleted_at_m as ws_deleted_at_m,
+	//  fws.id as for_workspace_id,
+	//  fws.enabled as for_workspace_enabled,
+	//  fws.deleted_at_m as for_workspace_deleted_at_m
+	//  FROM `keys` k
+	//  LEFT JOIN `workspaces` ws ON ws.id = k.workspace_id
+	//  LEFT JOIN `workspaces` fws ON fws.id = k.for_workspace_id
 	//  WHERE hash = ?
-	FindKeyByHash(ctx context.Context, db DBTX, hash string) (Key, error)
+	FindKeyByHash(ctx context.Context, db DBTX, hash string) (FindKeyByHashRow, error)
 	//FindKeyByID
 	//
 	//  SELECT

@@ -52,6 +52,34 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 		)
 	}
 
+	if key.WsDeletedAtM.Valid {
+		return VerifyResponse{}, fault.New(
+			"key is deleted",
+			fault.WithDesc("ws_deleted_at is non-zero", "The key has been deleted."),
+		)
+	}
+
+	if key.ForWorkspaceDeletedAtM.Valid {
+		return VerifyResponse{}, fault.New(
+			"key is deleted",
+			fault.WithDesc("for_workspace_deleted_at is non-zero", "The key has been deleted."),
+		)
+	}
+
+	if !key.WsEnabled.Valid || !key.WsEnabled.Bool {
+		return VerifyResponse{}, fault.New(
+			"key is disabled",
+			fault.WithDesc("Workspace is disabled or not found", "The key is disabled."),
+		)
+	}
+
+	if !key.ForWorkspaceEnabled.Valid || !key.ForWorkspaceEnabled.Bool {
+		return VerifyResponse{}, fault.New(
+			"key is disabled",
+			fault.WithDesc("Workspace is disabled or not found", "The key is disabled."),
+		)
+	}
+
 	res := VerifyResponse{
 		AuthorizedWorkspaceID: key.WorkspaceID,
 		KeyID:                 key.ID,
