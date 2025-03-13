@@ -14,7 +14,7 @@ export default function AuthenticationPage() {
   const [verify, setVerify] = useState(false);
   const { handleSignUpViaEmail } = useSignUp();
   const searchParams = useSearchParams(); 
-  const invitationToken = searchParams?.get("invitationToken");
+  const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
   const [isLoading, setIsLoading] = useState(false);
 

@@ -19,7 +19,7 @@ function SignInContent() {
   const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs, handleSignInViaEmail } = useSignIn();
   const searchParams = useSearchParams(); 
   const verifyParam = searchParams?.get("verify");
-  const invitationToken = searchParams?.get("invitationToken");
+  const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
   const [isLoading, setIsLoading] = useState(false);
 

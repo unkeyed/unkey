@@ -22,6 +22,7 @@ export default async function (req: NextRequest, _evt: NextFetchEvent) {
         "/auth/sign-up",
         "/auth/sso-callback",
         "/auth/oauth-sign-in",
+        "/auth/join",
         "/favicon.ico",
         "/_next",
       ],
