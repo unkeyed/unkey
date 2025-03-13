@@ -54,7 +54,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Hits Int64ObservableGauge
+		Hits Int64Observable
 
 		// Misses tracks the number of cache read operations that did not find the requested item.
 		// Use this to monitor cache efficiency and identify opportunities for improvement.
@@ -69,7 +69,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Misses Int64ObservableGauge
+		Misses Int64Observable
 
 		// Writes tracks the number of cache write operations.
 		// Use this to monitor write pressure on the cache.
@@ -84,7 +84,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Writes Int64ObservableGauge
+		Writes Int64Observable
 
 		// Evicted tracks the number of items removed from the cache due to space constraints
 		// or explicit deletion. Use this to monitor cache churn and capacity issues.
@@ -101,7 +101,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Evicted Int64ObservableGauge
+		Evicted Int64Observable
 
 		// ReadLatency measures the duration of cache read operations in milliseconds.
 		// This histogram helps track cache performance and identify slowdowns.
@@ -130,7 +130,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Size Int64ObservableGauge
+		Size Int64Observable
 
 		// Capacity tracks the current maximum number of items in the cache
 		// Use this to monitor cache utilization and growth patterns.
@@ -145,7 +145,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Capacity Int64ObservableGauge
+		Capacity Int64Observable
 	}
 
 	// Cluster contains metrics related to cluster operations and status
@@ -163,7 +163,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Size Int64ObservableGauge
+		Size Int64Observable
 	}
 )
 
@@ -197,34 +197,34 @@ func Init(m metric.Meter) error {
 	}
 
 	// Initialize Cache metrics
-	Cache.Hits = &int64ObservableGauge{
+	Cache.Hits = &int64ObservableCounter{
 		m:    m,
 		name: "cache_hit",
-		opts: []metric.Int64ObservableGaugeOption{
+		opts: []metric.Int64ObservableCounterOption{
 			metric.WithDescription("How many cache hits we encountered."),
 		},
 	}
 
-	Cache.Misses = &int64ObservableGauge{
+	Cache.Misses = &int64ObservableCounter{
 		m:    m,
 		name: "cache_miss",
-		opts: []metric.Int64ObservableGaugeOption{
+		opts: []metric.Int64ObservableCounterOption{
 			metric.WithDescription("How many cache misses we encountered."),
 		},
 	}
 
-	Cache.Writes = &int64ObservableGauge{
+	Cache.Writes = &int64ObservableCounter{
 		m:    m,
 		name: "cache_writes",
-		opts: []metric.Int64ObservableGaugeOption{
+		opts: []metric.Int64ObservableCounterOption{
 			metric.WithDescription("How many cache writes we did."),
 		},
 	}
 
-	Cache.Evicted = &int64ObservableGauge{
+	Cache.Evicted = &int64ObservableCounter{
 		m:    m,
 		name: "cache_evicted",
-		opts: []metric.Int64ObservableGaugeOption{
+		opts: []metric.Int64ObservableCounterOption{
 			metric.WithDescription("How many cache evictions we did."),
 		},
 	}
