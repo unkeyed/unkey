@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Clone } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { formatOutcomeName, getOutcomeColor } from "../../../../../utils";
 
@@ -60,11 +60,13 @@ export const OutcomeDistributionSection = ({
             ))}
           </div>
           <Button
+            shape="square"
             onClick={handleClick}
-            className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
-            aria-label="Copy outcome distribution"
+            variant="outline"
+            className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
+            aria-label="Copy content"
           >
-            <Copy size={14} />
+            <Clone />
           </Button>
         </CardContent>
       </Card>

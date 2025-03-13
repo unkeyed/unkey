@@ -92,7 +92,7 @@ export const KeysOverviewLogDetails = ({
 
   const identity = log.key_details.identity
     ? [`External ID: ${log.key_details.identity.external_id || "N/A"}`]
-    : ["No identity information available"];
+    : ["No identity connected"];
 
   const metaString = metaData ? JSON.stringify(metaData, null, 2) : "<EMPTY>";
 

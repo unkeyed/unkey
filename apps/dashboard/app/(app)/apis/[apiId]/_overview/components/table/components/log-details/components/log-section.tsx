@@ -2,9 +2,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 import { Button } from "@unkey/ui";
-import { Copy } from "lucide-react";
 
 import { TimestampInfo } from "@/components/timestamp-info";
+import { Clone } from "@unkey/icons";
 import { isValid, parse, parseISO } from "date-fns";
 
 const TIME_KEYWORDS = [
@@ -83,10 +83,11 @@ export const LogSection = ({
           <Button
             shape="square"
             onClick={handleClick}
-            className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+            variant="outline"
+            className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
             aria-label="Copy content"
           >
-            <Copy size={14} />
+            <Clone />
           </Button>
         </CardContent>
       </Card>

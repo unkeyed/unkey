@@ -60,7 +60,8 @@ export const SummarySection = ({
           <Button
             shape="square"
             onClick={handleClick}
-            className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+            variant="outline"
+            className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
             aria-label="Copy content"
           >
             <Clone />
