@@ -7,7 +7,7 @@ author: andreas
 tags: ["engineering"]
 ---
 
-When we started migrating our API services from TypeScript to Go at Unkey, we were looking for an HTTP framework that would provide a clean developer experience, offer precise control over middleware execution, and integrate seamlessly with OpenAPI for our SDK generation. After evaluating the popular frameworks in the Go ecosystem, we found that none quite matched our specific requirements.
+When we started migrating our API services from TypeScript to Go, we were looking for an HTTP framework that would provide a clean developer experience, offer precise control over middleware execution, and integrate seamlessly with OpenAPI for our SDK generation. After evaluating the popular frameworks in the Go ecosystem, we found that none quite matched our specific requirements.
 
 So, we did what engineers do: we built our own. Enter Zen, a lightweight HTTP framework built directly on top of Go's standard library.
 
@@ -262,7 +262,31 @@ func WithValidation(validator *validation.Validator) Middleware {
 }
 ```
 
-Our validation package uses `github.com/pb33f/libopenapi-validator` which provides structural and semantic validation based on our OpenAPI spec. In an ideal world we wouldn't use a dependency for this, but it's way too much and too error prone to implement ourselves at this stage.
+Our validation package uses [`pb33f/libopenapi-validator`](https://github.com/pb33f/libopenapi-validator) which provides structural and semantic validation based on our OpenAPI spec. In an ideal world we wouldn't use a dependency for this, but it's way too much and too error prone to implement ourselves at this stage.
+
+## The Benefits of Building Zen
+
+Creating Zen has provided us with several key advantages:
+
+### Complete Middleware Control
+
+We now have granular control over middleware execution, allowing us to capture metrics, logs, and errors exactly as needed. The middleware is simple to understand and compose, making it easy to add new functionality or modify existing behavior.
+
+### Schema-First API Design
+
+By taking a schema-first approach to OpenAPI, we maintain full control over our API contract while still getting Go type safety through generated types. This ensures consistency across our SDKs and reduces the likelihood of API-breaking changes.
+
+### Minimal Dependencies
+
+Zen relies almost entirely on the standard library, with only a few external dependencies for OpenAPI validation. This reduces our dependency footprint and makes the codebase easier to understand and maintain.
+
+### Idiomatic Go
+
+Zen follows Go conventions and idioms, making it feel natural to Go developers. Handler functions receive a context as the first parameter and return an error, following common Go patterns.
+
+### Type Safety with Ergonomics
+
+The Session methods for binding request bodies and query parameters into Go structs provide type safety without boilerplate. The error handling middleware gives structured, consistent error responses.
 
 ## Real-World Example: Rate Limiting API
 
@@ -444,29 +468,14 @@ func TestRatelimitEndpoint(t *testing.T) {
 
 We've built test utilities that make it easy to set up a test harness with database dependencies, register routes, and call them with typed requests and responses.
 
-## The Benefits of Building Zen
+## Zen is Open Source
 
-Creating Zen has provided us with several key advantages:
+Zen lives in our open source mono repo, so you can explore or even use it in your own projects. The full source code is available in our GitHub repository at [github.com/unkeyed/unkey/tree/main/go/pkg/zen](https://github.com/unkeyed/unkey/tree/main/go/pkg/zen).
 
-### Complete Middleware Control
-
-We now have granular control over middleware execution, allowing us to capture metrics, logs, and errors exactly as needed. The middleware is simple to understand and compose, making it easy to add new functionality or modify existing behavior.
-
-### Schema-First API Design
-
-By taking a schema-first approach to OpenAPI, we maintain full control over our API contract while still getting Go type safety through generated types. This ensures consistency across our SDKs and reduces the likelihood of API-breaking changes.
-
-### Minimal Dependencies
-
-Zen relies almost entirely on the standard library, with only a few external dependencies for OpenAPI validation. This reduces our dependency footprint and makes the codebase easier to understand and maintain.
-
-### Idiomatic Go
-
-Zen follows Go conventions and idioms, making it feel natural to Go developers. Handler functions receive a context as the first parameter and return an error, following common Go patterns.
-
-### Type Safety with Ergonomics
-
-The Session methods for binding request bodies and query parameters into Go structs provide type safety without boilerplate. The error handling middleware gives structured, consistent error responses.
+While we built Zen specifically for our needs, we recognize that other teams might face similar challenges with Go HTTP frameworks. You're welcome to:
+- Read through the implementation to understand our approach
+- Fork the code and adapt it to your own requirements
+- Use it directly in your projects if it fits your needs
 
 ## Conclusion
 
