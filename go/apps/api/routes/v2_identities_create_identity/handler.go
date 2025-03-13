@@ -115,7 +115,7 @@ func New(svc Services) zen.Route {
 		defer func() {
 			rollbackErr := tx.Rollback()
 			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), rollbackErr)
+				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
 			}
 		}()
 
@@ -222,8 +222,6 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		return s.JSON(http.StatusOK, Response{
-			IdentityId: identityID,
-		})
+		return s.JSON(http.StatusOK, Response{IdentityId: identityID})
 	})
 }

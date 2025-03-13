@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -46,6 +47,7 @@ type Harness struct {
 	Logger      logging.Logger
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
+	Auditlogs   auditlogs.AuditLogService
 	Ratelimit   ratelimit.Service
 	Resources   Resources
 }
@@ -81,11 +83,6 @@ func NewHarness(t *testing.T) *Harness {
 	validator, err := validation.New()
 	require.NoError(t, err)
 
-	permissionService := permissions.New(permissions.Config{
-		DB:     db,
-		Logger: logger,
-	})
-
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
 		Logger:  logger,
 		Cluster: cluster.NewNoop("test", "localhost"),
@@ -94,15 +91,22 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	h := Harness{
-		t:           t,
-		Logger:      logger,
-		srv:         srv,
-		containers:  cont,
-		validator:   validator,
-		Keys:        keyService,
-		Permissions: permissionService,
-		Ratelimit:   ratelimitService,
-		DB:          db,
+		t:          t,
+		Logger:     logger,
+		srv:        srv,
+		containers: cont,
+		validator:  validator,
+		Keys:       keyService,
+		Permissions: permissions.New(permissions.Config{
+			DB:     db,
+			Logger: logger,
+		}),
+		Auditlogs: auditlogs.New(auditlogs.Config{
+			DB:     db,
+			Logger: logger,
+		}),
+		Ratelimit: ratelimitService,
+		DB:        db,
 		// resources are seeded later
 		// nolint:exhaustruct
 		Resources: Resources{},

@@ -27,6 +27,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
 	})
 
 	h.Register(route)
@@ -39,7 +40,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 	// Create a identity
 	t.Run("insert identity", func(t *testing.T) {
-		identityID := uid.New(uid.TestPrefix + "_" + uid.IdentityPrefix)
+		identityID := uid.New(uid.IdentityPrefix)
 		externalTestID := uid.New("test_external_id")
 		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 			ID:          identityID,
@@ -78,7 +79,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		var someMetaValue interface{} = "example"
 		meta := &map[string]*interface{}{"key": ptr.P(someMetaValue)}
 		req := handler.Request{
-			ExternalId: externalTestID + "_2",
+			ExternalId: externalTestID,
 			Meta:       meta,
 		}
 
@@ -99,24 +100,27 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 	// Test creating a identity with ratelimits
 	t.Run("create identity with ratelimits", func(t *testing.T) {
 		externalTestID := uid.New("test_external_id")
+
+		identityRateLimits := []struct {
+			Duration int    "json:\"duration\""
+			Limit    int    "json:\"limit\""
+			Name     string "json:\"name\""
+		}{
+			{
+				Duration: int(time.Minute.Milliseconds()),
+				Limit:    100,
+				Name:     "test",
+			},
+			{
+				Duration: int(time.Minute.Milliseconds()),
+				Limit:    200,
+				Name:     "test2",
+			},
+		}
+
 		req := handler.Request{
 			ExternalId: externalTestID,
-			Ratelimits: &[]struct {
-				Duration int    "json:\"duration\""
-				Limit    int    "json:\"limit\""
-				Name     string "json:\"name\""
-			}{
-				{
-					Duration: int(time.Minute.Milliseconds()),
-					Limit:    100,
-					Name:     "test",
-				},
-				{
-					Duration: int(time.Minute.Milliseconds()),
-					Limit:    200,
-					Name:     "test2",
-				},
-			},
+			Ratelimits: &identityRateLimits,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -130,9 +134,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: res.Body.IdentityId, Valid: true})
 		require.NoError(t, err)
-		require.Len(t, rateLimits, 2)
+		require.Len(t, rateLimits, len(identityRateLimits))
 
-		for _, ratelimit := range *req.Ratelimits {
+		for _, ratelimit := range identityRateLimits {
 			idx := slices.IndexFunc(rateLimits, func(c db.FindRatelimitsByIdentityIDRow) bool { return c.Name == ratelimit.Name })
 
 			require.True(t, idx <= len(rateLimits)-1)

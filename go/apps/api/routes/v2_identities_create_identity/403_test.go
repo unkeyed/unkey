@@ -19,6 +19,7 @@ func TestWorkspacePermissions(t *testing.T) {
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
 	})
 
 	h.Register(route)
