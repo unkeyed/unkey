@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	LogDebug       bool
 	Logger         *slog.Logger
 	BasicAuth      string
 	ClickhouseURL  string
@@ -22,12 +23,13 @@ type Config struct {
 func LoadConfig() (*Config, error) {
 	// New config with defaults
 	config := &Config{
-		FlushInterval:  time.Second * 3,
+		LogDebug:       false,
+		FlushInterval:  time.Second * 5,
 		ListenerPort:   "7123",
 		MaxBatchSize:   10000,
 		MaxBufferSize:  50000,
 		ServiceName:    "chproxy",
-		ServiceVersion: "1.1.0",
+		ServiceVersion: "1.2.0",
 	}
 
 	config.ClickhouseURL = os.Getenv("CLICKHOUSE_URL")
@@ -38,6 +40,10 @@ func LoadConfig() (*Config, error) {
 	config.BasicAuth = os.Getenv("BASIC_AUTH")
 	if config.BasicAuth == "" {
 		return nil, fmt.Errorf("BASIC_AUTH must be defined")
+	}
+
+	if debug := os.Getenv("OTEL_EXPORTER_LOG_DEBUG"); debug == "true" {
+		config.LogDebug = true
 	}
 
 	if port := os.Getenv("PORT"); port != "" {
