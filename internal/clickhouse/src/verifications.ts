@@ -143,6 +143,14 @@ export const verificationTimeseriesParams = z.object({
       }),
     )
     .nullable(),
+  identities: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
   keyIds: z
     .array(
       z.object({
