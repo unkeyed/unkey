@@ -1,11 +1,15 @@
-import { ControlsContainer, ControlsLeft, ControlsRight } from "@/components/logs/logs-container";
+import {
+  ControlsContainer,
+  ControlsLeft,
+  ControlsRight,
+} from "@/components/logs/controls-container";
+import { Separator } from "@/components/ui/separator";
 import type { WorkspaceProps } from "../logs-client";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";
+import { LogsQueries } from "./components/logs-queries";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
-import { Separator } from "@/components/ui/separator";
-import { LogsQueries } from "./components/logs-queries";
 
 export function AuditLogsControls(props: WorkspaceProps) {
   return (

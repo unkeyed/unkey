@@ -1,14 +1,12 @@
-import type { SavedFiltersGroup } from "@/components/logs/hooks/use-bookmarked-filters";
 import { Book2, Bookmark, ClockRotateClockwise } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 
 type EmptyQueriesProps = {
   selectedTab: number;
-  list: SavedFiltersGroup[];
+  isEmpty: boolean;
 };
-export const EmptyQueries = ({ selectedTab, list }: EmptyQueriesProps) => {
-  return list.length === 0 ||
-    (list.filter((filter) => filter.bookmarked).length === 0 && selectedTab === 1) ? (
+export const EmptyQueries = ({ selectedTab, isEmpty }: EmptyQueriesProps) => {
+  return isEmpty ? (
     <div className="flex items-center justify-between w-full h-full p-2 mt-[-15px]">
       <Empty>
         <Empty.Icon>

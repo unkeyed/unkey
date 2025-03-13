@@ -1,19 +1,20 @@
+import { useBookmarkedFilters } from "@/components/logs/hooks/use-bookmarked-filters";
 import { QueriesPopover } from "@/components/logs/queries/queries-popover";
 import { cn } from "@/lib/utils";
 import { ChartBarAxisY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { type SavedFiltersGroup, useBookmarkedFilters } from "@/components/logs/hooks/use-bookmarked-filters";
 import { useState } from "react";
-
+import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsQueries = () => {
+  const { filters, updateFilters } = useFilters();
+  const { savedFilters, toggleBookmark, applyFilterGroup } = useBookmarkedFilters({
+    localStorageName: "logsSavedFilters",
+    filters,
+    updateFilters,
+  });
+  const [filterGroups, setfilterGroups] = useState(savedFilters);
 
- 
-const { savedFilters, toggleBookmark, applyFilterGroup } = useBookmarkedFilters({ localStorageName: "logsSavedFilters" });
-
-  const [filterGroups, setfilterGroups] = useState<SavedFiltersGroup<any>[]>(
-    savedFilters.filter((filter) => filter),
-  );
   const handleApplyFilterGroup = (id: string) => {
     const group = savedFilters.find((filter) => filter.id === id);
     if (group) {
@@ -22,15 +23,20 @@ const { savedFilters, toggleBookmark, applyFilterGroup } = useBookmarkedFilters(
   };
   const handleGetFilters = () => {
     setfilterGroups(savedFilters);
-  }
+  };
   return (
-    <QueriesPopover savedFilters={filterGroups} toggleBookmark={toggleBookmark} applyFilterGroup={handleApplyFilterGroup} updateGroups={handleGetFilters}>
+    <QueriesPopover
+      savedFilters={filterGroups}
+      toggleBookmark={toggleBookmark}
+      applyFilterGroup={handleApplyFilterGroup}
+      updateGroups={handleGetFilters}
+    >
       <div className="group">
         <Button
           variant="ghost"
           size="md"
           className={cn("group-data-[state=open]:bg-gray-4 px-2 rounded-lg")}
-          aria-label="Log queries"
+          aria-label="Audit log queries"
           aria-haspopup="true"
           title="Press 'Q' to toggle queries"
         >

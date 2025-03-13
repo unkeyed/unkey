@@ -1,13 +1,6 @@
-import {
-  type LogsFilterField,
-  type LogsFilterValue,
-  type QuerySearchParams,
-  logsFilterFieldConfig,
-} from "@/app/(app)/logs/filters.schema";
-import type { FilterUrlValue } from "@/components/logs/validation/filter.types";
+import { type QuerySearchParams, logsFilterFieldConfig } from "@/app/(app)/logs/filters.schema";
 import { useCallback, useEffect } from "react";
-
-import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
+import type { FilterValue } from "../validation/filter.types";
 
 export type SavedFiltersGroup<T> = {
   id: string;
@@ -16,9 +9,17 @@ export type SavedFiltersGroup<T> = {
   bookmarked?: boolean;
 };
 
-export const useBookmarkedFilters = ({ localStorageName }: { localStorageName: string }) => {
-  const { filters, updateFilters } = useFilters();
+type BookmarkFilterType<T extends FilterValue> = {
+  localStorageName: string;
+  filters: T[];
+  updateFilters: (filters: T[]) => void;
+};
 
+export function useBookmarkedFilters<T extends FilterValue>({
+  localStorageName,
+  filters,
+  updateFilters,
+}: BookmarkFilterType<T>) {
   useEffect(() => {
     if (!filters.length) {
       return;
@@ -34,6 +35,7 @@ export const useBookmarkedFilters = ({ localStorageName }: { localStorageName: s
           //@ts-expect-error fix later
           acc[field] = value;
         } else {
+          //@ts-expect-error fix later
           if (!acc[field]) {
             //@ts-expect-error fix later
             acc[field] = [];
@@ -77,38 +79,43 @@ export const useBookmarkedFilters = ({ localStorageName }: { localStorageName: s
 
   const applyFilterGroup = useCallback(
     (savedGroup: SavedFiltersGroup<QuerySearchParams>) => {
-      const reconstructedFilters: LogsFilterValue[] = [];
-
-      Object.entries(savedGroup.filters).forEach(([field, value]) => {
-        if (["startTime", "endTime", "since"].includes(field)) {
-          value &&
-            reconstructedFilters.push({
-              id: crypto.randomUUID(),
-              field: field as LogsFilterField,
-              operator: "is",
-              value: value as number | string,
-            });
-        } else {
-          value !== null &&
-            value !== undefined &&
-            (value as FilterUrlValue[]).forEach((filter) => {
-              reconstructedFilters.push({
+      const reconstructedFilters: T[] = Object.entries(savedGroup.filters).flatMap(
+        ([field, value]) => {
+          if (!value) {
+            return [] as T[];
+          }
+          if (["startTime", "endTime", "since"].includes(field)) {
+            return [
+              {
                 id: crypto.randomUUID(),
-                field: field as LogsFilterField,
-                operator: filter.operator,
-                value: filter.value,
-                metadata:
-                  field === "status"
-                    ? {
-                        colorClass: logsFilterFieldConfig.status.getColorClass?.(
-                          filter.value as number,
-                        ),
-                      }
-                    : undefined,
-              });
-            });
-        }
-      });
+                field: field,
+                operator: "is",
+                value: value as number | string,
+                metadata: undefined,
+              } as T,
+            ];
+          }
+          if (!Array.isArray(value)) {
+            return [] as T[];
+          }
+          return value.map((filter) => {
+            return {
+              id: crypto.randomUUID(),
+              field: field,
+              operator: filter.operator,
+              value: filter.value,
+              metadata:
+                field === "status"
+                  ? {
+                      colorClass: logsFilterFieldConfig.status.getColorClass?.(
+                        filter.value as number,
+                      ),
+                    }
+                  : undefined,
+            } as T;
+          });
+        },
+      );
 
       updateFilters(reconstructedFilters);
     },
@@ -133,7 +140,9 @@ export const useBookmarkedFilters = ({ localStorageName }: { localStorageName: s
 
   return {
     savedFilters: (
-      JSON.parse(localStorage.getItem(localStorageName) || "[]") as SavedFiltersGroup<QuerySearchParams>[]
+      JSON.parse(
+        localStorage.getItem(localStorageName) || "[]",
+      ) as SavedFiltersGroup<QuerySearchParams>[]
     ).map((filter) => ({
       ...filter,
       filters: {
@@ -149,4 +158,4 @@ export const useBookmarkedFilters = ({ localStorageName }: { localStorageName: s
     applyFilterGroup,
     toggleBookmark,
   };
-};
+}

@@ -1,15 +1,21 @@
-import type { LogsFilterUrlValue } from "@/app/(app)/logs/filters.schema";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import type { UserResource } from "@clerk/types";
 
+import { defaultFormatValue } from "@/components/logs/control-cloud/utils";
+import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { QueriesItemRow } from "./queries-item-row";
 import { QueriesMadeBy } from "./queries-made-by";
 import { QueriesToast } from "./queries-toast";
-import { getSinceTime, getIcon } from "./utils";
-import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
+import { getSinceTime } from "./utils";
+import { iconsPerField } from "./utils";
+export type QuerySearchParams = {
+  startTime?: number | null;
+  endTime?: number | null;
+  since?: string | null;
+};
 
 type SavedFiltersGroup<T> = {
   id: string;
@@ -17,21 +23,24 @@ type SavedFiltersGroup<T> = {
   filters: T;
   bookmarked?: boolean;
 };
-type ListGroupProps = {
-  filterList: SavedFiltersGroup<any>;
+
+type ListGroupProps<T> = {
+  filterList: SavedFiltersGroup<T>;
   user: UserResource | null | undefined;
   index: number;
   total: number;
   selectedIndex: number;
   isSaved: boolean | undefined;
-  querySelected: (index: number) => void;
+  querySelected: (index: string) => void;
   changeBookmark: (index: string) => void;
 };
+
 type ToolTipMessageType =
   | "Saved!"
   | "Save Query"
   | "Remove query from Saved"
   | "Query removed from Saved!";
+
 const tooltipMessageOptions: { [key: string]: ToolTipMessageType } = {
   saved: "Saved!",
   save: "Save Query",
@@ -39,7 +48,7 @@ const tooltipMessageOptions: { [key: string]: ToolTipMessageType } = {
   removed: "Query removed from Saved!",
 };
 
-export const ListGroup = ({
+export function ListGroup<T extends QuerySearchParams>({
   filterList,
   user,
   index,
@@ -48,47 +57,65 @@ export const ListGroup = ({
   isSaved,
   querySelected,
   changeBookmark,
-}: ListGroupProps) => {
+}: ListGroupProps<T>) {
   const [toolTipOpen, setToolTipOpen] = useState(false);
+  const [saved, setSaved] = useState(isSaved);
   const [toastMessage, setToastMessage] = useState<ToolTipMessageType>();
   const [tooltipMessage, setTooltipMessage] = useState<ToolTipMessageType>(
-    isSaved ? tooltipMessageOptions.saved : tooltipMessageOptions.save,
+    saved ? tooltipMessageOptions.saved : tooltipMessageOptions.save,
   );
+
+  useEffect(() => {
+    setSaved(isSaved);
+  }, [isSaved]);
+  let timeOperator = "since";
   const formatedFilters = () => {
     // Create a formatted version of each filter entry
     const formatted: Record<string, Array<{ operator: string; value: string }>> = {};
+    // Initialize formatted with an empty time array
+    formatted.time = [];
+
+    // Determine timeOperator based on available time filters
+
+    if (filterList.filters.startTime && filterList.filters.endTime) {
+      timeOperator = "between";
+    } else if (filterList.filters.startTime) {
+      timeOperator = "starts from";
+    }
 
     // Process each field in the filters
     Object.entries(filterList.filters).forEach(([field, value]) => {
       if (!value || (Array.isArray(value) && value.length === 0)) {
         return;
       }
-      if (field === 'startTime' || field === 'endTime' || field === 'since') {
-        formatted.time = [{ operator: "is", value: String(value) }];
+      if (field === "startTime") {
+        formatted.time.push({
+          operator: timeOperator,
+          value: defaultFormatValue(Number(value), field),
+        });
+      }
+      if (field === "endTime") {
+        formatted.time.push({
+          operator: timeOperator,
+          value: defaultFormatValue(Number(value), field),
+        });
+      }
+      if (field === "since") {
+        formatted.time.push({ operator: timeOperator, value: String(value) });
       }
       // Handle different types of values
-      if (Array.isArray(value)) {
-        // If already in expected format with operator and value
-        if (value[0] && typeof value[0] === 'object' && 'operator' in value[0]) {
-          formatted[field] = value;
-        } else {
-          // Convert simple array values
-          formatted[field] = value.map(item => ({
-            operator: "is",
-            value: String(item)
-          }));
-        }
-      } else if (typeof value === 'object') {
-        // Handle object values
-        formatted[field] = [{ operator: "is", value: JSON.stringify(value) }];
-      } else {
-        // Handle primitive values
-        formatted[field] = [{ operator: "is", value: String(value) }];
+      else if (Array.isArray(value)) {
+        value.forEach((filter) => {
+          if (!formatted[field]) {
+            formatted[field] = [];
+          }
+          formatted[field].push({ operator: filter.operator, value: filter.value });
+        });
       }
     });
 
     return formatted;
-  }
+  };
   useEffect(() => {
     if (toastMessage) {
       handleToast(toastMessage);
@@ -102,11 +129,6 @@ export const ListGroup = ({
       </QueriesToast>,
     );
   };
-
-
-
-
-
 
   const handleBookmarkChanged = () => {
     changeBookmark(filterList.id);
@@ -125,8 +147,8 @@ export const ListGroup = ({
     setToolTipOpen(false);
   };
 
-  const handleSelection = (index: number) => {
-    querySelected(index);
+  const handleSelection = () => {
+    querySelected(filterList.id);
   };
 
   return (
@@ -140,7 +162,7 @@ export const ListGroup = ({
         <div
           className={cn("flex flex-col w-11/12 ", `tabIndex-${index}`)}
           role="button"
-          onClick={() => handleSelection(index)}
+          onClick={() => handleSelection()}
           onKeyUp={(e) => e.key === "Enter"}
           tabIndex={index}
         >
@@ -159,38 +181,19 @@ export const ListGroup = ({
               {/* Vertical Line on Left */}
               <div className="flex flex-col ml-[9px] border-l-[1px] border-l-gray-5 w-[1px]" />
               <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
-      {Object.entries(formatedFilters()).map(([field, list]) => {
-        // Choose icon based on field type
-        const IconComponent = getIcon({ field });
-        return (
-          <QueriesItemRow
-            key={field}
-            list={list}
-            field={field}
-            icon={IconComponent && <IconComponent size="md-regular" className="justify-center" />}
-          />
-        );
-      })}
-                {/* <QueriesItemRow
-                  list={status}
-                  field="status"
-                  icon={<ChartActivity2 size="md-regular" className="justify-center" />}
-                />
-                <QueriesItemRow
-                  list={methods}
-                  field="methods"
-                  icon={<Conversion size="md-regular" className="justify-center" />}
-                />
-                <QueriesItemRow
-                  list={paths}
-                  field="paths"
-                  icon={<Link4 size="md-thin" className="justify-center" />}
-                />
-                <QueriesItemRow
-                  list={getTime()}
-                  field="time"
-                  icon={<Clock size="md-regular" className="justify-center" />}
-                /> */}
+                {Object.entries(formatedFilters()).map(([field, list]) => {
+                  const Icon = iconsPerField[field] || Layers2;
+                  // Choose icon based on field type
+                  return (
+                    <QueriesItemRow
+                      key={field}
+                      list={list}
+                      field={field}
+                      Icon={<Icon size="md-regular" className="justify-center" />}
+                      operator={field === "time" ? timeOperator : "is"}
+                    />
+                  );
+                })}
               </div>
             </div>
             <QueriesMadeBy
@@ -211,15 +214,15 @@ export const ListGroup = ({
               <div
                 className={cn(
                   "flex h-7 w-6 ml-[1px]  justify-center items-center text-accent-9 rounded-md",
-                  isSaved ? "text-info-9 hover:bg-info-3" : "hover:bg-gray-3 hover:text-accent-12",
+                  saved ? "text-info-9 hover:bg-info-3" : "hover:bg-gray-3 hover:text-accent-12",
                   `tabIndex-${0}`,
                 )}
                 role="button"
                 onClick={handleBookmarkChanged}
                 onKeyUp={(e) => e.key === "Enter"}
-                aria-label={isSaved ? "Remove from bookmarks" : "Add to bookmarks"}
+                aria-label={saved ? "Remove from bookmarks" : "Add to bookmarks"}
               >
-                <Bookmark size="md-regular" filled={isSaved || false} />
+                <Bookmark size="md-regular" filled={saved || false} />
               </div>
             </TooltipTrigger>
             <TooltipContent
@@ -239,4 +242,4 @@ export const ListGroup = ({
       />
     </div>
   );
-};
+}

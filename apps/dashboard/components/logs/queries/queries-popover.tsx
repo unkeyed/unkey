@@ -1,72 +1,58 @@
 import { KeyboardButton } from "@/components/keyboard-button";
-
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useUser } from "@clerk/nextjs";
-import { type PropsWithChildren, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { SavedFiltersGroup } from "../hooks/use-bookmarked-filters";
 import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
 import { QueriesTabs } from "./queries-tabs";
 
-
-type SavedFiltersGroup<T> = {
-  id: string;
-  createdAt: number;
-  filters: T;
-  bookmarked?: boolean;
+export type QuerySearchParams = {
+  startTime?: number | null;
+  endTime?: number | null;
+  since?: string | null;
 };
 
-interface QueriesPopoverProps extends PropsWithChildren<{
-  savedFilters: SavedFiltersGroup<any>[];
+type QueriesPopoverProps<T> = {
+  children: React.ReactNode;
+  savedFilters: SavedFiltersGroup<T>[];
   toggleBookmark: (groupId: string) => void;
   applyFilterGroup: (id: string) => void;
-  updateGroups: () => void;  
-  
-}> {}
+  updateGroups: () => void;
+};
 
-export const QueriesPopover = ({ children, savedFilters, toggleBookmark, applyFilterGroup, updateGroups }: QueriesPopoverProps) => {
+export function QueriesPopover<T extends QuerySearchParams>({
+  children,
+  savedFilters,
+  toggleBookmark,
+  applyFilterGroup,
+  updateGroups,
+}: QueriesPopoverProps<T>) {
   // Get the user Data
 
-  const { user } = useUser(); 
-  const containerRef = useRef<HTMLDivElement>(null); 
+  const { user } = useUser();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [focusedTabIndex, setFocusedTabIndex] = useState(0);
   const [selectedQueryIndex, setSelectedQueryIndex] = useState(0);
-  // Things I need to handle here:
-  // - Open/close the popover
-  // - Handle tab change
-  // - Handle selected query
-  // - Handle bookmark changed  
-  // - Track selected query index and focused tab index
-  // - Handle keyboard navigation
-  // - Handle toggling bookmark status with 'b' or 'B'
-  
-
-  
-
-  const [filterGroups, setfilterGroups] = useState<SavedFiltersGroup<any>[]>(
-    savedFilters.filter((filter) => filter),
+  const [filterGroups, setfilterGroups] = useState<typeof savedFilters>(savedFilters);
+  const [savedGroups, setSavedGroups] = useState<typeof savedFilters>(
+    savedFilters.filter((filter) => filter.bookmarked),
   );
-
-  const [savedGroups, setSavedGroups] = useState<SavedFiltersGroup<any>[]>(
-    filterGroups.filter((filter) => filter.bookmarked),
-  );
-
   const [isDisabled, setIsDisabled] = useState(savedFilters.length === 0);
 
   const handleUpdateGroups = () => {
     updateGroups();
   };
 
-useEffect(() => {
-  setfilterGroups(savedFilters);
-  setSavedGroups(savedFilters.filter((filter) => filter.bookmarked));
-  setIsDisabled(savedFilters.length === 0);
-}, [savedFilters]);
+  useEffect(() => {
+    setfilterGroups(savedFilters);
+    setSavedGroups(savedFilters.filter((filter) => filter.bookmarked));
+    setIsDisabled(savedFilters.length === 0);
+  }, [savedFilters]);
 
   useKeyboardShortcut("q", () => {
-    console.log({ savedFilters });
-    
     setIsDisabled(savedFilters.length === 0);
     if (!open && !isDisabled) {
       setOpen(true);
@@ -86,11 +72,13 @@ useEffect(() => {
   };
 
   const handleSelectedQuery = (id: string) => {
-    const filterId = savedFilters.find((filter) => filter.id === id);
-    const filterIndex = savedFilters.findIndex((filter) => filter.id === id);
+    const filterId = savedFilters.find((filter: { id: string }) => filter.id === id);
+    const filterIndex = savedFilters.findIndex((filter: { id: string }) => filter.id === id);
+
     if (!filterId) {
       return;
     }
+
     applyFilterGroup(filterId.id);
     setSelectedQueryIndex(filterIndex);
   };
@@ -156,7 +144,6 @@ useEffect(() => {
     // Handle toggling bookmark status with 'b' or 'B'
     if (e.key === "b" || e.key === "B") {
       e.preventDefault();
-
       const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
       if (currentList.length > 0 && selectedQueryIndex < currentList.length) {
         const selectedGroup = currentList[selectedQueryIndex];
@@ -186,7 +173,7 @@ useEffect(() => {
         >
           <EmptyQueries
             selectedTab={focusedTabIndex}
-            list={focusedTabIndex === 0 ? filterGroups : savedGroups}
+            isEmpty={focusedTabIndex === 0 ? filterGroups.length === 0 : savedGroups.length === 0}
           />
           {focusedTabIndex === 0 &&
             filterGroups?.map((filterItem: SavedFiltersGroup<any>, index: number) => {
@@ -224,7 +211,7 @@ useEffect(() => {
       </PopoverContent>
     </Popover>
   );
-};
+}
 
 const PopoverHeader = () => {
   return (

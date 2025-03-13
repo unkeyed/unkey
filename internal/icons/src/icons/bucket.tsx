@@ -9,12 +9,13 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-
 import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const Clock: React.FC<IconProps> = ({ size, filled, ...props }) => {
+export const Bucket: React.FC<IconProps> = ({ size, filled, ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
+
   return (
     <svg
       height={pixelSize}
@@ -23,20 +24,18 @@ export const Clock: React.FC<IconProps> = ({ size, filled, ...props }) => {
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g fill="currentColor">
-        <circle
-          cx="9"
-          cy="9"
+      <g fill={filled ? "currentColor" : "none"} stroke="currentColor">
+        <path
+          d="M2.75 4.5l1.25 9.45c0 0.99 2.24 1.8 5 1.8s5-0.81 5-1.8l1.25-9.45"
           fill={filled ? "currentColor" : "none"}
-          r="7.25"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <polyline
+        <path
+          d="M9 2.25a6.25 2.25 0 1 0 0 4.5 6.25 2.25 0 1 0 0-4.5z"
           fill={filled ? "currentColor" : "none"}
-          points="9 4.75 9 9 12.25 11.25"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"

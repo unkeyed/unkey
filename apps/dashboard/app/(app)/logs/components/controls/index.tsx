@@ -1,4 +1,8 @@
-import { ControlsContainer, ControlsLeft, ControlsRight } from "@/components/logs/logs-container";
+import {
+  ControlsContainer,
+  ControlsLeft,
+  ControlsRight,
+} from "@/components/logs/controls-container";
 import { Separator } from "@/components/ui/separator";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsDisplay } from "./components/logs-display";
