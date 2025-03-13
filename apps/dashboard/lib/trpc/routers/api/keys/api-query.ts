@@ -1,6 +1,7 @@
 import type { KeysOverviewFilterUrlValue } from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
 import { type SQL, db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
+import { identities } from "@unkey/db/src/schema";
 
 // Input interface for the query abstraction
 export interface QueryApiKeysInput {
@@ -130,9 +131,8 @@ export async function queryApiKeys({
                   }
                 }
 
+                const allIdentityConditions = [];
                 if (identitiesFromInput && identitiesFromInput.length > 0) {
-                  const allIdentityConditions = [];
-
                   for (const filter of identitiesFromInput) {
                     const value = filter.value;
                     if (typeof value !== "string") {
@@ -141,63 +141,56 @@ export async function queryApiKeys({
 
                     const operator = filter.operator;
 
-                    const isExternalId = value.startsWith("ext_");
+                    let condition: SQL<any>;
 
-                    if (isExternalId) {
-                      let condition: SQL<any>;
+                    switch (operator) {
+                      case "is":
+                        condition = sql`identities.external_id = ${value}`;
+                        break;
+                      case "contains":
+                        condition = sql`identities.external_id LIKE ${`%${value}%`}`;
+                        break;
+                      case "startsWith":
+                        condition = sql`identities.external_id LIKE ${`${value}%`}`;
+                        break;
+                      case "endsWith":
+                        condition = sql`identities.external_id LIKE ${`%${value}`}`;
+                        break;
+                      default:
+                        condition = sql`identities.external_id = ${value}`;
+                    }
 
-                      switch (operator) {
-                        case "is":
-                          condition = sql`identities.external_id = ${value}`;
-                          break;
-                        case "contains":
-                          condition = sql`identities.external_id LIKE ${`%${value}%`}`;
-                          break;
-                        case "startsWith":
-                          condition = sql`identities.external_id LIKE ${`${value}%`}`;
-                          break;
-                        case "endsWith":
-                          condition = sql`identities.external_id LIKE ${`%${value}`}`;
-                          break;
-                        default:
-                          condition = sql`identities.external_id = ${value}`;
-                      }
-
-                      allIdentityConditions.push(sql`
+                    allIdentityConditions.push(sql`
         EXISTS (
-          SELECT 1 FROM identities 
-          WHERE identities.id = ${key.identityId}
+          SELECT 1 FROM ${identities} 
+          WHERE ${identities.id} = ${key.identityId}
           AND ${condition}
         )`);
-                    } else {
-                      let ownerCondition: SQL<any>;
+                    let ownerCondition: SQL<any>;
 
-                      switch (operator) {
-                        case "is":
-                          ownerCondition = sql`${key.ownerId} = ${value}`;
-                          break;
-                        case "contains":
-                          ownerCondition = sql`${key.ownerId} LIKE ${`%${value}%`}`;
-                          break;
-                        case "startsWith":
-                          ownerCondition = sql`${key.ownerId} LIKE ${`${value}%`}`;
-                          break;
-                        case "endsWith":
-                          ownerCondition = sql`${key.ownerId} LIKE ${`%${value}`}`;
-                          break;
-                        default:
-                          ownerCondition = sql`${key.ownerId} = ${value}`;
-                      }
-
-                      allIdentityConditions.push(ownerCondition);
+                    switch (operator) {
+                      case "is":
+                        ownerCondition = sql`${key.ownerId} = ${value}`;
+                        break;
+                      case "contains":
+                        ownerCondition = sql`${key.ownerId} LIKE ${`%${value}%`}`;
+                        break;
+                      case "startsWith":
+                        ownerCondition = sql`${key.ownerId} LIKE ${`${value}%`}`;
+                        break;
+                      case "endsWith":
+                        ownerCondition = sql`${key.ownerId} LIKE ${`%${value}`}`;
+                        break;
+                      default:
+                        ownerCondition = sql`${key.ownerId} = ${value}`;
                     }
-                  }
 
-                  // Combine all conditions with OR
-                  if (allIdentityConditions.length > 0) {
-                    // Make sure to properly wrap the entire condition
-                    conditions.push(sql`(${sql.join(allIdentityConditions, sql` OR `)})`);
+                    allIdentityConditions.push(ownerCondition);
                   }
+                }
+
+                if (allIdentityConditions.length > 0) {
+                  conditions.push(sql`(${sql.join(allIdentityConditions, sql` OR `)})`);
                 }
 
                 return and(...conditions);
