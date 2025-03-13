@@ -33,6 +33,7 @@ import { navigation } from "../constants";
 import { InviteButton } from "./invite";
 import { User } from "@/lib/auth/types";
 import { Navigation } from "@/components/navigation/navigation";
+import Link from "next/link";
 
 type MembersProps = {
   memberships: Membership[];
@@ -64,7 +65,7 @@ type StatusBadgeProps = {
   status: "pending" | "accepted" | "revoked" | "expired";
 };
 
-export function TeamPageClient() {
+export function TeamPageClient({ workspace }: { workspace: any }) {
   const userData = useUser();
   const orgData = useOrganization();
 
@@ -73,16 +74,12 @@ export function TeamPageClient() {
     return userData.membership?.role === "admin";
   }, [userData.membership]);
 
+  const isLoading = useMemo(() => {
+    return userData.isLoading || orgData.isLoading;
+  }, [userData.isLoading, orgData.isLoading]);
+
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
-
-  if (userData.isLoading || orgData.isLoading) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <Loading />
-      </div>
-    );
-  }
 
   const actions: React.ReactNode[] = [];
 
@@ -111,13 +108,20 @@ export function TeamPageClient() {
   }
 
   return (
-    <div>
-      <Navigation href="/settings/team" name="Settings" icon={<Gear />} />
-      <PageContent>
-        <SubMenu navigation={navigation} segment="team" />
-        <div className="mb-20 flex flex-col gap-8 mt-8">
-          <PageHeader title="Members" description="Manage your team members" actions={actions} />
-          {tab === "members" ? (
+    <>
+          {workspace.plan === 'free' ? (
+          <Empty>
+              <Empty.Title>This is a personal account</Empty.Title>
+              <Empty.Description>You can only manage teams in paid workspaces.</Empty.Description>
+              <Empty.Actions>
+                <Link href="/new">
+                  <Button>Create a new workspace</Button>
+                </Link>
+              </Empty.Actions>
+            </Empty>) : (
+          <PageHeader title="Members" description="Manage your team members" actions={actions} />)}
+          {isLoading ? <Loading /> :
+          tab === "members" ? (
             <Members 
               memberships={orgData.memberships || []} 
               loading={orgData.loading.memberships} 
@@ -136,9 +140,7 @@ export function TeamPageClient() {
               organization={orgData.organization}
             />
           )}
-        </div>
-      </PageContent>
-    </div>
+        </>
   );
 }
 

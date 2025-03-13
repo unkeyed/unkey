@@ -20,27 +20,15 @@ export default async function TeamPage() {
   const { orgId } = user;
   const workspace = await getWorkspace(orgId);
 
-  if (workspace.plan === "free") {
     return (
       <div>
         <Navigation href="/settings/team" name="Settings" icon={<Gear />} />
         <PageContent>
           <SubMenu navigation={navigation} segment="team" />
           <div className="mb-20 flex flex-col gap-8 mt-8">
-            <Empty>
-              <Empty.Title>This is a personal account</Empty.Title>
-              <Empty.Description>You can only manage teams in paid workspaces.</Empty.Description>
-              <Empty.Actions>
-                <Link href="/new">
-                  <Button>Create a new workspace</Button>
-                </Link>
-              </Empty.Actions>
-            </Empty>
+            <TeamPageClient workspace={workspace} />
           </div>
         </PageContent>
       </div>
     );
   }
-
-  return <TeamPageClient />;
-}
