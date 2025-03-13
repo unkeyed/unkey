@@ -2,6 +2,8 @@ package sim
 
 import "math/rand/v2"
 
+type Rand = rand.Rand
+
 // source implements rand.Source interface with a fixed seed.
 // This allows for reproducible random number generation in simulations.
 type source struct {

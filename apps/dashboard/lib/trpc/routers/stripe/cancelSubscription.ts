@@ -1,5 +1,3 @@
-import { insertAuditLogs } from "@/lib/audit";
-import { type Quotas, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -28,45 +26,7 @@ export const cancelSubscription = t.procedure.use(auth).mutation(async ({ ctx })
     });
   }
 
-  await stripe.subscriptions.cancel(ctx.workspace.stripeSubscriptionId, {
-    prorate: true,
-  });
-
-  await db
-    .update(schema.workspaces)
-    .set({
-      stripeSubscriptionId: null,
-    })
-    .where(eq(schema.workspaces.id, ctx.workspace.id));
-
-  const freeTierQuotas: Omit<Quotas, "workspaceId"> = {
-    requestsPerMonth: 150_000,
-    logsRetentionDays: 7,
-    auditLogsRetentionDays: 30,
-    team: false,
-  };
-  await db
-    .insert(schema.quotas)
-    .values({
-      workspaceId: ctx.workspace.id,
-      ...freeTierQuotas,
-    })
-    .onDuplicateKeyUpdate({
-      set: freeTierQuotas,
-    });
-
-  await insertAuditLogs(db, ctx.workspace.auditLogBucket.id, {
-    workspaceId: ctx.workspace.id,
-    actor: {
-      type: "user",
-      id: ctx.user.id,
-    },
-    event: "workspace.update",
-    description: "Cancelled subscription.",
-    resources: [],
-    context: {
-      location: ctx.audit.location,
-      userAgent: ctx.audit.userAgent,
-    },
+  await stripe.subscriptions.update(ctx.workspace.stripeSubscriptionId, {
+    cancel_at_period_end: true,
   });
 });

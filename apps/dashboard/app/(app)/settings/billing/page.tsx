@@ -174,6 +174,7 @@ export default async function BillingPage() {
               id: subscription.id,
               status: subscription.status,
               trialUntil: subscription.trial_end ? subscription.trial_end * 1000 : undefined,
+              cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
             }
           : undefined
       }

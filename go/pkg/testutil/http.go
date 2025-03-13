@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
@@ -33,10 +34,10 @@ type Resources struct {
 type Harness struct {
 	t *testing.T
 
-	Clock clock.Clock
+	Clock *clock.TestClock
 
 	srv        *zen.Server
-	containers *Containers
+	containers *containers.Containers
 	validator  *validation.Validator
 
 	middleware []zen.Middleware
@@ -54,9 +55,9 @@ func NewHarness(t *testing.T) *Harness {
 
 	logger := logging.New(logging.Config{Development: true, NoColor: false})
 
-	containers := NewContainers(t)
+	cont := containers.New(t)
 
-	dsn := containers.RunMySQL()
+	dsn := cont.RunMySQL()
 
 	db, err := db.New(db.Config{
 		Logger:      logger,
@@ -96,7 +97,7 @@ func NewHarness(t *testing.T) *Harness {
 		t:           t,
 		Logger:      logger,
 		srv:         srv,
-		containers:  containers,
+		containers:  cont,
 		validator:   validator,
 		Keys:        keyService,
 		Permissions: permissionService,

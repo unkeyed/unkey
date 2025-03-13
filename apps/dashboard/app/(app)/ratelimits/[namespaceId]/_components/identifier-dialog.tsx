@@ -25,11 +25,7 @@ const overrideValidationSchema = z.object({
     .trim()
     .min(2, "Name is required and should be at least 2 characters")
     .max(250),
-  limit: z.coerce
-    .number()
-    .int()
-    .min(1, "Limit must be at least 1")
-    .max(10_000, "Limit cannot exceed 10,000"),
+  limit: z.coerce.number().int().nonnegative().max(10_000, "Limit cannot exceed 10,000"),
   duration: z.coerce
     .number()
     .int()
@@ -43,7 +39,7 @@ type FormValues = z.infer<typeof overrideValidationSchema>;
 type Props = PropsWithChildren<{
   isModalOpen: boolean;
   onOpenChange: (value: boolean) => void;
-  identifier: string;
+  identifier?: string;
   isLoading?: boolean;
   namespaceId: string;
   overrideDetails?: OverrideDetails | null;
@@ -139,7 +135,7 @@ export const IdentifierDialog = ({
       onOpenChange={onOpenChange}
       title="Override Identifier"
       footer={
-        <div className="w-full flex flex-col gap-2 items-center justify-center">
+        <div className="flex flex-col items-center justify-center w-full gap-2">
           <Button
             type="submit"
             form="identifier-form" // Connect to form ID
@@ -151,7 +147,7 @@ export const IdentifierDialog = ({
           >
             Override Identifier
           </Button>
-          <div className="text-gray-9 text-xs">
+          <div className="text-xs text-gray-9">
             Changes are propagated globally within 60 seconds
           </div>
         </div>
@@ -167,8 +163,8 @@ export const IdentifierDialog = ({
           description="The identifier you use when ratelimiting."
           error={errors.identifier?.message}
           {...register("identifier")}
-          readOnly
-          disabled
+          readOnly={Boolean(identifier)}
+          disabled={Boolean(identifier)}
         />
 
         <FormInput

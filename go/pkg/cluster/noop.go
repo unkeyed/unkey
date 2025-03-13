@@ -26,10 +26,9 @@ var _ Cluster = (*noop)(nil)
 //
 //	// Create a no-op cluster for local development
 //	cluster := cluster.NewNoop("local-node", "localhost")
-func NewNoop(id string, addr string) *noop {
+func NewNoop(id string, host string) *noop {
 	return &noop{self: Node{
 		ID:      id,
-		Addr:    addr,
 		RpcAddr: "",
 	}}
 }

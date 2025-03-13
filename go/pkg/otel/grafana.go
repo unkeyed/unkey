@@ -63,8 +63,8 @@ type Config struct {
 //	        log.Printf("Error during telemetry shutdown: %v", err)
 //	    }
 //	}
-func InitGrafana(ctx context.Context, config Config) ([]shutdown.ShutdownFn, error) {
-	shutdowns := make([]shutdown.ShutdownFn, 0)
+func InitGrafana(ctx context.Context, config Config) ([]shutdown.ShutdownCtx, error) {
+	shutdowns := make([]shutdown.ShutdownCtx, 0)
 
 	// Initialize trace exporter
 	traceExporter, err := otlptrace.New(ctx, otlptracehttp.NewClient())

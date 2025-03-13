@@ -13,9 +13,6 @@ type Node struct {
 
 	// RpcAddr is the address (host:port) where the node listens for RPC calls
 	RpcAddr string
-
-	// Addr is the node's network address used for cluster membership
-	Addr string
 }
 
 // Cluster abstracts away membership and consistent hashing to provide
