@@ -15,6 +15,7 @@ export default async function RatelimitNamespacePage(props: {
     props.params.namespaceId,
     "/ratelimits",
   );
+
   return (
     <div>
       <NamespaceNavbar

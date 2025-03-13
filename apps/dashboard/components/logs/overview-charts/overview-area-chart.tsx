@@ -1,12 +1,17 @@
+"use client";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
-import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
+import {
+  formatTimestampLabel,
+  formatTimestampTooltip,
+} from "@/components/logs/chart/utils/format-timestamp";
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { useEffect, useState } from "react";
+import { cn } from "@unkey/ui/src/lib/utils";
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -15,75 +20,51 @@ import {
   ResponsiveContainer,
   YAxis,
 } from "recharts";
-import { LogsTimeseriesAreaChartError } from "./components/logs-chart-error";
-import { LogsTimeseriesAreaChartLoading } from "./components/logs-chart-loading";
+import { OverviewAreaChartError } from "./overview-area-chart-error";
+import { OverviewAreaChartLoader } from "./overview-area-chart-loader";
+import type { Selection, TimeseriesData } from "./types";
+import { compactFormatter } from "./utils";
 
-const latencyFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 2,
-  minimumFractionDigits: 2,
-});
-
-type Selection = {
-  start: string | number;
-  end: string | number;
-  startTimestamp?: number;
-  endTimestamp?: number;
+export type ChartMetric = {
+  key: string;
+  label: string;
+  color: string;
+  formatter?: (value: number) => string;
 };
 
-type TimeseriesData = {
-  originalTimestamp: number;
-  avgLatency: number;
-  p99Latency: number;
-  [key: string]: any;
+export type TimeseriesChartLabels = {
+  title: string;
+  rangeLabel: string;
+  metrics: ChartMetric[];
+  showRightSide?: boolean;
+  reverse?: boolean;
 };
 
-interface LogsTimeseriesAreaChartProps {
+export interface TimeseriesAreaChartProps {
   data?: TimeseriesData[];
   config: ChartConfig;
   onSelectionChange?: (selection: { start: number; end: number }) => void;
   isLoading?: boolean;
   isError?: boolean;
   enableSelection?: boolean;
+  labels: TimeseriesChartLabels;
 }
 
-const formatTimestampTooltip = (timestamp: number): string => {
-  return new Date(timestamp).toLocaleString();
-};
-
-export const LogsTimeseriesAreaChart: React.FC<LogsTimeseriesAreaChartProps> = ({
+export const OverviewAreaChart = ({
   data = [],
   config,
   onSelectionChange,
   isLoading,
   isError,
   enableSelection = false,
-}) => {
+  labels,
+}: TimeseriesAreaChartProps) => {
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  useEffect(() => {
-    const darkModeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDarkMode(darkModeMediaQuery.matches);
-
-    const handleThemeChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-    darkModeMediaQuery.addEventListener("change", handleThemeChange);
-
-    return () => darkModeMediaQuery.removeEventListener("change", handleThemeChange);
-  }, []);
-
-  const getThemeColor = (lightColor: string, darkColor: string) => {
-    return isDarkMode ? darkColor : lightColor;
-  };
-
-  const chartConfig = {
-    avgLatency: {
-      color: getThemeColor("hsl(var(--accent-11))", "hsl(var(--accent-11))"),
-      label: config.avgLatency.label,
-    },
-    p99Latency: {
-      color: getThemeColor("hsl(var(--warning-10))", "hsl(var(--warning-11))"),
-      label: config.p99Latency.label,
-    },
+  const labelsWithDefaults = {
+    ...labels,
+    showRightSide: labels.showRightSide !== undefined ? labels.showRightSide : true,
+    reverse: labels.reverse !== undefined ? labels.reverse : false,
   };
 
   const handleMouseDown = (e: any) => {
@@ -131,48 +112,77 @@ export const LogsTimeseriesAreaChart: React.FC<LogsTimeseriesAreaChartProps> = (
   };
 
   if (isError) {
-    return <LogsTimeseriesAreaChartError />;
+    return <OverviewAreaChartError labels={labelsWithDefaults} />;
   }
   if (isLoading) {
-    return <LogsTimeseriesAreaChartLoading />;
+    return <OverviewAreaChartLoader labels={labelsWithDefaults} />;
   }
 
   // Calculate metrics
-  const minLatency = data.length > 0 ? Math.min(...data.map((d) => d.avgLatency)) : 0;
-  const maxLatency = data.length > 0 ? Math.max(...data.map((d) => d.p99Latency)) : 0;
-  const avgLatency =
-    data.length > 0 ? data.reduce((acc, curr) => acc + curr.avgLatency, 0) / data.length : 0;
+  const ranges: Record<string, { min: number; max: number; avg: number }> = {};
+
+  labelsWithDefaults.metrics.forEach((metric) => {
+    const values = data.map((d) => d[metric.key]);
+    const min = data.length > 0 ? Math.min(...values) : 0;
+    const max = data.length > 0 ? Math.max(...values) : 0;
+    const avg = data.length > 0 ? values.reduce((sum, val) => sum + val, 0) / data.length : 0;
+
+    ranges[metric.key] = { min, max, avg };
+  });
+
+  // Get primary metric for range display
+  const primaryMetric = labelsWithDefaults.metrics[0];
 
   return (
     <div className="flex flex-col h-full">
-      <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10">
+      <div
+        className={cn(
+          "pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10",
+          labelsWithDefaults.reverse && "flex-row-reverse",
+        )}
+      >
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">DURATION</div>
+          <div className="flex items-center gap-2">
+            {labelsWithDefaults.reverse &&
+              labelsWithDefaults.metrics.map((metric) => (
+                <div
+                  key={metric.key}
+                  className="rounded h-[10px] w-1"
+                  style={{ backgroundColor: metric.color }}
+                />
+              ))}
+            <div className="text-accent-10 text-[11px] leading-4">
+              {labelsWithDefaults.rangeLabel}
+            </div>
+          </div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
-            {minLatency} - {maxLatency}ms
+            {primaryMetric.formatter
+              ? `${primaryMetric.formatter(
+                  ranges[primaryMetric.key].min,
+                )} - ${primaryMetric.formatter(ranges[primaryMetric.key].max)}`
+              : `${compactFormatter.format(
+                  ranges[primaryMetric.key].min,
+                )} - ${compactFormatter.format(ranges[primaryMetric.key].max)}`}
           </div>
         </div>
 
-        <div className="flex gap-10 items-center">
-          <div className="flex flex-col gap-1">
-            <div className="flex gap-2 items-center">
-              <div className="bg-accent-8 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">AVG</div>
-            </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {latencyFormatter.format(avgLatency)}ms
-            </div>
+        {labelsWithDefaults.showRightSide && (
+          <div className="flex gap-10 items-center">
+            {labelsWithDefaults.metrics.map((metric) => (
+              <div key={metric.key} className="flex flex-col gap-1">
+                <div className="flex gap-2 items-center">
+                  <div className="rounded h-[10px] w-1" style={{ backgroundColor: metric.color }} />
+                  <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+                </div>
+                <div className="text-accent-12 text-[18px] font-semibold leading-7">
+                  {metric.formatter
+                    ? metric.formatter(ranges[metric.key].avg)
+                    : compactFormatter.format(ranges[metric.key].avg)}
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="flex flex-col gap-1">
-            <div className="flex gap-2 items-center">
-              <div className="bg-orange-9 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">P99</div>
-            </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {latencyFormatter.format(maxLatency)}ms
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="flex-1 min-h-0">
@@ -187,14 +197,19 @@ export const LogsTimeseriesAreaChart: React.FC<LogsTimeseriesAreaChartProps> = (
               onMouseLeave={handleMouseUp}
             >
               <defs>
-                <linearGradient id="avgGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={chartConfig.avgLatency.color} stopOpacity={0.2} />
-                  <stop offset="95%" stopColor={chartConfig.avgLatency.color} stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="p99Gradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={chartConfig.p99Latency.color} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={chartConfig.p99Latency.color} stopOpacity={0} />
-                </linearGradient>
+                {labelsWithDefaults.metrics.map((metric) => (
+                  <linearGradient
+                    key={`${metric.key}Gradient`}
+                    id={`${metric.key}Gradient`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor={metric.color} stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={metric.color} stopOpacity={0} />
+                  </linearGradient>
+                ))}
               </defs>
 
               <YAxis domain={["auto", (dataMax: number) => dataMax * 1.1]} hide />
@@ -242,22 +257,19 @@ export const LogsTimeseriesAreaChart: React.FC<LogsTimeseriesAreaChartProps> = (
                   );
                 }}
               />
-              <Area
-                type="monotone"
-                dataKey="avgLatency"
-                stroke={chartConfig.avgLatency.color}
-                fill="url(#avgGradient)"
-                fillOpacity={1}
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="p99Latency"
-                stroke={chartConfig.p99Latency.color}
-                strokeWidth={2}
-                fill="url(#p99Gradient)"
-                fillOpacity={1}
-              />
+
+              {labelsWithDefaults.metrics.map((metric) => (
+                <Area
+                  key={metric.key}
+                  type="monotone"
+                  dataKey={metric.key}
+                  stroke={metric.color}
+                  fill={`url(#${metric.key}Gradient)`}
+                  fillOpacity={1}
+                  strokeWidth={2}
+                />
+              ))}
+
               {enableSelection && selection.start && selection.end && (
                 <ReferenceArea
                   x1={Math.min(Number(selection.start), Number(selection.end))}
@@ -271,8 +283,8 @@ export const LogsTimeseriesAreaChart: React.FC<LogsTimeseriesAreaChartProps> = (
         </ResponsiveContainer>
       </div>
 
-      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between border-t-gray-2">
-        {data
+      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
+        {data.length > 0
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
               data.at(-1)?.originalTimestamp ?? Date.now(),

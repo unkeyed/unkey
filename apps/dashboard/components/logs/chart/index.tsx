@@ -10,6 +10,7 @@ import {
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
 import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
+import { compactFormatter } from "../overview-charts/utils";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
@@ -134,8 +135,6 @@ export function LogsTimeseriesBarChart({
         <ChartContainer config={config}>
           <BarChart
             data={data}
-            barGap={2}
-            barSize={8}
             margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
@@ -176,7 +175,7 @@ export function LogsTimeseriesBarChart({
                             </div>
                             <div className="ml-auto">
                               <span className="font-mono tabular-nums text-accent-12">
-                                {payload[0]?.payload?.total}
+                                {compactFormatter.format(payload[0]?.payload?.total)}
                               </span>
                             </div>
                           </div>

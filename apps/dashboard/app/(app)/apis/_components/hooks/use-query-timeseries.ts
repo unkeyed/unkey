@@ -50,13 +50,10 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
     setTimeout(() => setEnabled(true), 2000);
   }, []);
 
-  const { data, isLoading, isError } = trpc.api.logs.queryVerificationTimeseries.useQuery(
-    queryParams,
-    {
-      refetchInterval: queryParams.endTime ? false : 10_000,
-      enabled,
-    },
-  );
+  const { data, isLoading, isError } = trpc.api.overview.timeseries.useQuery(queryParams, {
+    refetchInterval: queryParams.endTime ? false : 10_000,
+    enabled,
+  });
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),

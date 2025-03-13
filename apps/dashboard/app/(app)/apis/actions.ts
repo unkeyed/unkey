@@ -1,6 +1,6 @@
 "use server";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
-import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/query-overview/schemas";
+import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 
 export type ApiOverviewOptions = {
   workspaceId: string;

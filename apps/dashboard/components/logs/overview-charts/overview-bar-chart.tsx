@@ -1,4 +1,3 @@
-// GenericTimeseriesChart.tsx
 "use client";
 
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
@@ -13,43 +12,59 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Grid } from "@unkey/icons";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
-import { compactFormatter } from "../../../utils";
-import { LogsChartError } from "./components/logs-chart-error";
-import { LogsChartLoading } from "./components/logs-chart-loading";
+import { OverviewChartError } from "./overview-bar-chart-error";
+import { OverviewChartLoader } from "./overview-bar-chart-loader";
+import type { Selection, TimeseriesData } from "./types";
+import { compactFormatter } from "./utils";
 
-type Selection = {
-  start: string | number;
-  end: string | number;
-  startTimestamp?: number;
-  endTimestamp?: number;
+type ChartTooltipItem = {
+  label: string;
+  dataKey: string;
 };
 
-type TimeseriesData = {
-  originalTimestamp: number;
-  total: number;
-  [key: string]: any;
+type ChartLabels = {
+  title: string;
+  primaryLabel: string;
+  primaryKey: string;
+  secondaryLabel: string;
+  secondaryKey: string;
 };
 
-type LogsTimeseriesBarChartProps = {
+type OverviewBarChartProps = {
   data?: TimeseriesData[];
   config: ChartConfig;
   onSelectionChange?: (selection: { start: number; end: number }) => void;
   isLoading?: boolean;
   isError?: boolean;
   enableSelection?: boolean;
+  labels: ChartLabels;
+  tooltipItems?: ChartTooltipItem[];
+  onMount?: (distanceToTop: number) => void;
 };
 
-export function LogsTimeseriesBarChart({
+export function OverviewBarChart({
   data,
   config,
   onSelectionChange,
   isLoading,
   isError,
   enableSelection = false,
-}: LogsTimeseriesBarChartProps) {
+  labels,
+  tooltipItems = [],
+  onMount,
+}: OverviewBarChartProps) {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
+  useEffect(() => {
+    if (onMount) {
+      const distanceToTop = chartRef.current?.getBoundingClientRect().top ?? 0;
+      onMount(distanceToTop);
+    }
+  }, [onMount, isLoading, isError]);
 
   const handleMouseDown = (e: any) => {
     if (!enableSelection) {
@@ -99,21 +114,27 @@ export function LogsTimeseriesBarChart({
   };
 
   if (isError) {
-    return <LogsChartError />;
+    return <OverviewChartError labels={labels} />;
   }
   if (isLoading) {
-    return <LogsChartLoading />;
+    return <OverviewChartLoader labels={labels} />;
   }
 
+  // Calculate totals based on the provided keys
+  const totalCount = (data ?? []).reduce(
+    (acc, crr) => acc + crr[labels.primaryKey] + crr[labels.secondaryKey],
+    0,
+  );
+  const primaryCount = (data ?? []).reduce((acc, crr) => acc + crr[labels.primaryKey], 0);
+  const secondaryCount = (data ?? []).reduce((acc, crr) => acc + crr[labels.secondaryKey], 0);
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" ref={chartRef}>
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">REQUESTS</div>
+          <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
-            {compactFormatter.format(
-              (data ?? []).reduce((acc, crr) => acc + crr.success + crr.error, 0),
-            )}
+            {compactFormatter.format(totalCount)}
           </div>
         </div>
 
@@ -121,19 +142,19 @@ export function LogsTimeseriesBarChart({
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-accent-8 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">PASSED</div>
+              <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {compactFormatter.format((data ?? []).reduce((acc, crr) => acc + crr.success, 0))}
+              {compactFormatter.format(primaryCount)}
             </div>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-orange-9 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">BLOCKED</div>
+              <div className="text-accent-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {compactFormatter.format((data ?? []).reduce((acc, crr) => acc + crr.error, 0))}
+              {compactFormatter.format(secondaryCount)}
             </div>
           </div>
         </div>
@@ -195,6 +216,31 @@ export function LogsTimeseriesBarChart({
                               </div>
                             </div>
                           </div>
+
+                          {/* Dynamic tooltip items */}
+                          {tooltipItems.map((item, index) => (
+                            <div
+                              key={`${item.label}-${index}`}
+                              className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center"
+                            >
+                              <Grid className="text-gray-6" />
+                              <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
+                                <div className="flex gap-4 items-center min-w-[80px]">
+                                  <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
+                                    All
+                                  </span>
+                                  <span className="capitalize text-accent-12 text-xs">
+                                    {item.label}
+                                  </span>
+                                </div>
+                                <div className="ml-auto">
+                                  <span className="font-mono tabular-nums text-accent-12">
+                                    {payload[0]?.payload?.[item.dataKey]}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       }
                       className="rounded-lg shadow-lg border border-gray-4"

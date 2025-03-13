@@ -28,47 +28,43 @@ export const getEventType = (event: string): "create" | "update" | "delete" | "o
 
 export const AUDIT_STATUS_STYLES = {
   create: {
-    base: "text-accent-11",
+    base: "text-grayA-9",
     hover: "hover:bg-success-3",
     selected: "bg-success-3 text-success-11",
     badge: {
       default: "bg-success-4 text-success-11 group-hover:bg-success-5",
       selected: "bg-success-5 text-success-12 hover:bg-success-5",
     },
-    background: "bg-success-2",
     focusRing: "focus:ring-success-7",
   },
   update: {
-    base: "text-accent-11",
+    base: "text-grayA-9",
     hover: "hover:bg-warning-3",
     selected: "bg-warning-3 text-warning-11",
     badge: {
       default: "bg-warning-4 text-warning-11 group-hover:bg-warning-5",
       selected: "bg-warning-5 text-warning-12 hover:bg-warning-5",
     },
-    background: "bg-warning-2",
     focusRing: "focus:ring-warning-7",
   },
   delete: {
-    base: "text-accent-11",
+    base: "text-grayA-9",
     hover: "hover:bg-orange-3",
     selected: "bg-orange-3 text-orange-11",
     badge: {
       default: "bg-orange-4 text-orange-11 group-hover:bg-orange-5",
       selected: "bg-orange-5 text-orange-12 hover:bg-orange-5",
     },
-    background: "bg-orange-2",
     focusRing: "focus:ring-orange-7",
   },
   other: {
-    base: "text-accent-11",
-    hover: "hover:bg-accent-3",
-    selected: "bg-accent-3",
+    base: "text-grayA-9",
+    hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
+    selected: "text-accent-12 bg-grayA-3 hover:text-accent-12",
     badge: {
-      default: "bg-accent-4 text-accent-11 group-hover:bg-accent-5",
-      selected: "bg-accent-5 text-accent-12 hover:bg-accent-5",
+      default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5",
+      selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5",
     },
-    background: "bg-accent-2",
     focusRing: "focus:ring-accent-7",
   },
 };
