@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
@@ -16,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -28,6 +28,7 @@ type Services struct {
 	DB          db.Database
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
+	Auditlogs   auditlogs.AuditLogService
 }
 
 func New(svc Services) zen.Route {
@@ -105,8 +106,8 @@ func New(svc Services) zen.Route {
 		}
 		defer func() {
 			rollbackErr := tx.Rollback()
-			if rollbackErr != nil {
-				svc.Logger.Error("rollback failed", "requestId", s.RequestID())
+			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
 			}
 		}()
 
@@ -140,61 +141,36 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		auditLogID := uid.New(uid.AuditLogPrefix)
-		err = db.Query.InsertAuditLog(ctx, tx, db.InsertAuditLogParams{
-			ID:          auditLogID,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			BucketID:    "",
-			Event:       string(auditlog.RatelimitDeleteOverrideEvent),
-			Time:        time.Now().UnixMilli(),
-			Display:     fmt.Sprintf("Deleted override %s.", override.ID),
-			RemoteIp:    sql.NullString{String: "", Valid: false},
-			UserAgent:   sql.NullString{String: "", Valid: false},
-			ActorType:   string(auditlog.RootKeyActor),
-			ActorID:     auth.KeyID,
-			ActorName:   sql.NullString{String: "", Valid: false},
-			ActorMeta:   nil,
-			CreatedAt:   time.Now().UnixMilli(),
-		})
-		if err != nil {
-			svc.Logger.Error(err.Error())
-			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
-				fault.WithDesc("database failed to insert audit log", "Failed to insert audit log."),
-			)
-		}
-		err = db.Query.InsertAuditLogTarget(ctx, tx, db.InsertAuditLogTargetParams{
-			ID:          override.ID,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			BucketID:    "",
-			AuditLogID:  auditLogID,
-			DisplayName: override.Identifier,
-			Type:        "ratelimit_override",
-			Name:        sql.NullString{String: "", Valid: false},
-			Meta:        nil,
-			CreatedAt:   time.Now().UnixMilli(),
+		err = svc.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.RatelimitDeleteOverrideEvent,
+				Display:     fmt.Sprintf("Deleted override %s.", override.ID),
+				Actor: auditlog.AuditLogActorData{
+					Type: auditlog.RootKeyActor,
+					ID:   auth.KeyID,
+				},
+				RemoteIP:  s.Location(),
+				UserAgent: s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          override.ID,
+						DisplayName: override.Identifier,
+						Type:        auditlog.RatelimitOverrideResourceType,
+					},
+					{
+						ID:          namespace.ID,
+						Name:        override.Identifier,
+						DisplayName: namespace.Name,
+						Type:        auditlog.RatelimitNamespaceResourceType,
+					},
+				},
+			},
 		})
 		if err != nil {
 			return fault.Wrap(err,
 				fault.WithTag(fault.DATABASE_ERROR),
-				fault.WithDesc("database failed to insert audit log target namespace", "Failed to insert audit log target."),
-			)
-		}
-		err = db.Query.InsertAuditLogTarget(ctx, tx, db.InsertAuditLogTargetParams{
-			ID:          namespace.ID,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			BucketID:    "",
-			AuditLogID:  auditLogID,
-			DisplayName: namespace.Name,
-			Type:        "ratelimit_namespace",
-			Name:        sql.NullString{String: override.Identifier, Valid: true},
-			Meta:        nil,
-			CreatedAt:   time.Now().UnixMilli(),
-		})
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
-				fault.WithDesc("database failed to insert audit log target override", "Failed to insert audit log target."),
+				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
 			)
 		}
 

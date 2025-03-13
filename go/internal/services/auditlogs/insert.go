@@ -13,13 +13,17 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditLog) error {
-	auditLogs := make([]db.InsertAuditLogParams, 0)
-	auditLogTargets := make([]db.InsertAuditLogTargetParams, 0)
+const (
+	DEFAULT_BUCKET = "unkey_mutations"
+)
 
+func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditLog) error {
 	if len(logs) == 0 {
 		return nil
 	}
+
+	auditLogs := make([]db.InsertAuditLogParams, 0)
+	auditLogTargets := make([]db.InsertAuditLogTargetParams, 0)
 
 	var dbTx db.DBTX = tx
 	if tx == nil {
@@ -27,11 +31,11 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 	}
 
 	for _, l := range logs {
-		auditLogID := uid.New(uid.AuditLogPrefix)
 		now := time.Now().UnixMilli()
+		auditLogID := uid.New(uid.AuditLogPrefix)
 
 		if l.Bucket == "" {
-			l.Bucket = "unkey_mutations"
+			l.Bucket = DEFAULT_BUCKET
 		}
 
 		cacheKey := fmt.Sprintf("%s:%s", l.WorkspaceID, l.Bucket)

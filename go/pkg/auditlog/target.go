@@ -4,6 +4,8 @@ package auditlog
 type AuditLogResourceType string
 
 const (
-	IdentityResourceType  AuditLogResourceType = "identity"
-	RatelimitResourceType AuditLogResourceType = "ratelimit"
+	IdentityResourceType           AuditLogResourceType = "identity"
+	RatelimitResourceType          AuditLogResourceType = "ratelimit"
+	RatelimitNamespaceResourceType AuditLogResourceType = "ratelimit_namespace"
+	RatelimitOverrideResourceType  AuditLogResourceType = "ratelimit_override"
 )
