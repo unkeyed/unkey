@@ -1,6 +1,7 @@
 "use client";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
+import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,8 @@ export const ApisNavbar = ({
             {api.id}
             <CopyButton value={api.id} />
           </Badge>
+
+          <CreateKeyButton apiId={api.id} keyAuthId={api.keyAuthId!} />
         </Navbar.Actions>
       </Navbar>
     </>

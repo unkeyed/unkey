@@ -62,7 +62,7 @@ export const KeysOverviewLogsCharts = ({
 
   const keysChartLabels = {
     title: "Keys Chart",
-    rangeLabel: "RANGE",
+    rangeLabel: "ACTIVE KEYS",
     metrics: [
       {
         key: "keys",
@@ -74,7 +74,7 @@ export const KeysOverviewLogsCharts = ({
 
   return (
     <div className="flex w-full h-[320px]">
-      <div className="w-1/2">
+      <div className="w-1/2 border-r border-gray-4">
         <OverviewBarChart
           data={verificationTimeseries}
           isLoading={verificationIsLoading}
