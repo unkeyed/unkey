@@ -81,23 +81,27 @@ Sessions are pooled and reused between requests to reduce memory allocations and
 
 The `Route` interface represents an HTTP endpoint with its method, path, and handler function. Routes can be decorated with middleware chains:
 
+
 ```go
-// Create a route
-route := zen.NewRoute("POST", "/v2/ratelimit.limit", handleRateLimit)
+func main(){
+	// ...
 
-// Register with middleware
-server.RegisterRoute(
-    []zen.Middleware{
-        zen.WithTracing(),
-        zen.WithMetrics(eventBuffer),
-        zen.WithLogging(logger),
-        zen.WithErrorHandling(logger),
-        zen.WithValidation(validator),
-    },
-    route,
-)
+	// Create a route
+	route := zen.NewRoute("POST", "/v2/ratelimit.limit", handler)
+
+	// Register with middleware
+	server.RegisterRoute(
+	    []zen.Middleware{
+	      zen.WithTracing(),
+	      zen.WithMetrics(eventBuffer),
+	      zen.WithLogging(logger),
+	      zen.WithErrorHandling(logger),
+	      zen.WithValidation(validator),
+	    },
+	    route,
+	)
+}
 ```
-
 ### Middleware
 
 At the core of Zen, middleware is just a function:
@@ -222,8 +226,8 @@ The `Server` type manages HTTP server configuration, lifecycle, and route regist
 ```go
 // Initialize a server
 server, err := zen.New(zen.Config{
-    NodeID: "api-1",
     Logger: logger,
+    // ...
 })
 if err != nil {
     log.Fatalf("failed to create server: %v", err)
