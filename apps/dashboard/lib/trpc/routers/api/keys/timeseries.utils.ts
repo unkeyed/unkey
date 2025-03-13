@@ -27,7 +27,7 @@ export function transformVerificationFilters(params: KeysOverviewQueryTimeseries
       endTime: timeConfig.endTime,
       keyIds:
         params.keyIds?.filters.map((f) => ({
-          operator: f.operator,
+          operator: f.operator as "is" | "contains",
           value: f.value,
         })) || null,
       names:
