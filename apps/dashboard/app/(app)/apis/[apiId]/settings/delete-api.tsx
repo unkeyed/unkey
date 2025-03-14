@@ -1,12 +1,6 @@
 "use client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,7 +30,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { revalidate } from "./actions";
-import { formatNumber } from "@/lib/fmt";
 
 type Props = {
   keys: number;
@@ -51,17 +45,11 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const [open, setOpen] = useState(false);
 
   const intent =
-    keys > 0
-      ? `delete this api and ${keys} key${keys > 1 ? "s" : ""}`
-      : "delete this api";
+    keys > 0 ? `delete this api and ${keys} key${keys > 1 ? "s" : ""}` : "delete this api";
 
   const formSchema = z.object({
-    name: z
-      .string()
-      .refine((v) => v === api.name, "Please confirm the API name"),
-    intent: z
-      .string()
-      .refine((v) => v === intent, "Please confirm your intent"),
+    name: z.string().refine((v) => v === api.name, "Please confirm the API name"),
+    intent: z.string().refine((v) => v === intent, "Please confirm your intent"),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -72,9 +60,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const deleteApi = trpc.api.delete.useMutation({
     async onSuccess() {
       toast.message("API Deleted", {
-        description: `Your API and ${formatNumber(
-          keys
-        )} keys have been deleted.`,
+        description: `Your API and ${formatNumber(keys)} keys have been deleted.`,
       });
 
       await revalidate();
@@ -87,8 +73,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
     },
   });
 
-  const isValid =
-    form.watch("intent") === intent && form.watch("name") === api.name;
+  const isValid = form.watch("intent") === intent && form.watch("name") === api.name;
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
     deleteApi.mutate({ apiId: api.id });
@@ -110,8 +95,8 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
         <CardHeader>
           <CardTitle>Delete</CardTitle>
           <CardDescription>
-            This api will be deleted, along with all of its keys and data. This
-            action cannot be undone.
+            This api will be deleted, along with all of its keys and data. This action cannot be
+            undone.
           </CardDescription>
         </CardHeader>
 
@@ -126,8 +111,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           </Button>
           {api.deleteProtection ? (
             <p className="text-sm text-content">
-              Deletion protection is enabled, you need to disable it before
-              deleting this API.
+              Deletion protection is enabled, you need to disable it before deleting this API.
             </p>
           ) : null}
         </CardFooter>
@@ -137,15 +121,12 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           <DialogHeader>
             <DialogTitle>Delete API</DialogTitle>
             <DialogDescription>
-              This API will be deleted, along with ${formatNumber(keys)} keys.
-              This action cannot be undone.
+              This API will be deleted, along with ${formatNumber(keys)} keys. This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form
-              className="flex flex-col space-y-8"
-              onSubmit={form.handleSubmit(onSubmit)}
-            >
+            <form className="flex flex-col space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
               <Alert variant="alert">
                 <AlertTitle>Warning</AlertTitle>
                 <AlertDescription>
@@ -161,10 +142,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
                     <FormLabel className="font-normal text-content-subtle">
                       {" "}
                       Enter the API name{" "}
-                      <span className="font-medium text-content">
-                        {api.name}
-                      </span>{" "}
-                      to continue:
+                      <span className="font-medium text-content">{api.name}</span> to continue:
                     </FormLabel>
                     <FormControl>
                       <Input {...field} autoComplete="off" />
@@ -180,8 +158,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-normal text-content-subtle">
-                      To verify, type{" "}
-                      <span className="font-medium text-content">{intent}</span>{" "}
+                      To verify, type <span className="font-medium text-content">{intent}</span>{" "}
                       below:
                     </FormLabel>
                     <FormControl>
@@ -194,11 +171,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
               />
 
               <DialogFooter className="justify-end gap-4">
-                <Button
-                  type="button"
-                  disabled={deleteApi.isLoading}
-                  onClick={() => setOpen(!open)}
-                >
+                <Button type="button" disabled={deleteApi.isLoading} onClick={() => setOpen(!open)}>
                   Cancel
                 </Button>
                 <Button

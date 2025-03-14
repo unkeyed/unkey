@@ -2,11 +2,11 @@
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { Empty } from "@unkey/ui";
 import ms from "ms";
 import { OverridesTableAction } from "./logs-actions";
-import { formatNumber } from "@/lib/fmt";
 
 type Override = {
   id: string;
@@ -43,15 +43,11 @@ const getRowClassName = () => {
     style.hover,
     "group rounded-md",
     "focus:outline-none focus:ring-1 focus:ring-opacity-40",
-    style.focusRing
+    style.focusRing,
   );
 };
 
-export const OverridesTable = ({
-  namespaceId,
-  ratelimits,
-  lastUsedTimes,
-}: Props) => {
+export const OverridesTable = ({ namespaceId, ratelimits, lastUsedTimes }: Props) => {
   const columns: Column<Override>[] = [
     {
       key: "identifier",
@@ -77,7 +73,7 @@ export const OverridesTable = ({
             <Badge
               className={cn(
                 " px-2 rounded-md font-mono w-[100px] truncate",
-                STATUS_STYLES.default.badge.default
+                STATUS_STYLES.default.badge.default,
               )}
             >
               {formatNumber(override.limit)} Requests
@@ -88,7 +84,7 @@ export const OverridesTable = ({
             <Badge
               className={cn(
                 "uppercase px-2 rounded-md font-mono",
-                STATUS_STYLES.default.badge.default
+                STATUS_STYLES.default.badge.default,
               )}
             >
               {ms(override.duration)}
@@ -108,7 +104,7 @@ export const OverridesTable = ({
           <Badge
             className={cn(
               "uppercase px-[6px] rounded-md font-mono min-w-[70px] inline-block text-center",
-              STATUS_STYLES.default.badge.default
+              STATUS_STYLES.default.badge.default,
             )}
           >
             {override.async ? "async" : "sync"}
@@ -162,8 +158,7 @@ export const OverridesTable = ({
             <Empty.Icon className="w-auto" />
             <Empty.Title>No overrides found</Empty.Title>
             <Empty.Description className="text-left">
-              No custom ratelimits found. Create your first override to get
-              started.
+              No custom ratelimits found. Create your first override to get started.
             </Empty.Description>
           </Empty>
         </div>

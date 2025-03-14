@@ -22,19 +22,18 @@ export const UsageBanner: React.FC<{
   const month = t.getUTCMonth() + 1;
 
   if (workspace.plan === "free") {
-    const billableVerifications =
-      await clickhouse.billing.billableVerifications({
-        workspaceId: workspace.id,
-        year,
-        month,
-      });
+    const billableVerifications = await clickhouse.billing.billableVerifications({
+      workspaceId: workspace.id,
+      year,
+      month,
+    });
 
     if (billableVerifications >= QUOTA.free.maxVerifications) {
       return (
         <Banner variant="alert">
           <p className="text-xs text-center">
-            You have exceeded your plan&apos;s monthly usage limit for
-            verifications: <strong>{fmt(billableVerifications)}</strong> /{" "}
+            You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
+            <strong>{fmt(billableVerifications)}</strong> /{" "}
             <strong>{fmt(QUOTA.free.maxVerifications)}</strong>.{" "}
             <Link href="/settings/billing" className="underline">
               Upgrade your plan
@@ -49,21 +48,15 @@ export const UsageBanner: React.FC<{
     }
   }
   // Show a banner if their trial is ending within 7 days
-  if (
-    workspace.trialEnds &&
-    workspace.trialEnds.getTime() < Date.now() + 1000 * 60 * 60 * 24 * 7
-  ) {
+  if (workspace.trialEnds && workspace.trialEnds.getTime() < Date.now() + 1000 * 60 * 60 * 24 * 7) {
     return (
       <Banner>
         <p className="text-xs text-center">
           {workspace.trialEnds.getTime() <= Date.now()
             ? "Your trial has expired."
-            : `Your trial expires in ${ms(
-                workspace.trialEnds.getTime() - Date.now(),
-                {
-                  long: true,
-                }
-              )}.`}{" "}
+            : `Your trial expires in ${ms(workspace.trialEnds.getTime() - Date.now(), {
+                long: true,
+              })}.`}{" "}
           <Link href="/settings/billing" className="underline">
             Add a payment method
           </Link>

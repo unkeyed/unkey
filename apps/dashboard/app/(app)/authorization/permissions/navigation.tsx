@@ -1,11 +1,11 @@
 "use client";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
+import { formatNumber } from "@/lib/fmt";
 import { ShieldKey } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { RBACForm } from "../_components/rbac-form";
-import { formatNumber } from "@/lib/fmt";
 
 export function Navigation({
   numberOfPermissions,
