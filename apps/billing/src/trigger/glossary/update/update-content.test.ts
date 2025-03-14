@@ -106,10 +106,10 @@ async function handleCleanup(testCaseName: string, result: any) {
     return null;
   }
 
-  console.log("\n========== CLEANUP STARTED ==========");
-  console.log(`Cleaning up after successful test: ${testCaseName}`);
-  console.log(`PR URL to close: ${result.output.prUrl}`);
-  console.log(`Branch to delete: ${result.output.branch}`);
+  console.info("\n========== CLEANUP STARTED ==========");
+  console.info(`Cleaning up after successful test: ${testCaseName}`);
+  console.info(`PR URL to close: ${result.output.prUrl}`);
+  console.info(`Branch to delete: ${result.output.branch}`);
 
   safeSetMetadata("cleanupStatus", "started");
 
@@ -120,8 +120,8 @@ async function handleCleanup(testCaseName: string, result: any) {
     }),
   );
 
-  console.log(`Cleanup task completed with ID: ${cleanupResult?.id || "unknown"}`);
-  console.log("========== CLEANUP FINISHED ==========\n");
+  console.info(`Cleanup task completed with ID: ${cleanupResult?.id || "unknown"}`);
+  console.info("========== CLEANUP FINISHED ==========\n");
 
   if (cleanupError) {
     const errorMessage =
@@ -150,7 +150,7 @@ async function handleCleanup(testCaseName: string, result: any) {
     };
   }
 
-  console.log("✅ Successfully cleaned up PR and branch");
+  console.info("✅ Successfully cleaned up PR and branch");
 
   safeSetMetadata("cleanupStatus", "completed");
   safeSetMetadata("cleanupDetails", {
@@ -212,13 +212,13 @@ export const runTestCase = task({
       content: testCase.input.content,
     });
 
-    console.log(`Running test case: ${testCaseName}`);
-    console.log(`Input: ${JSON.stringify(testCase.input)}`);
+    console.info(`Running test case: ${testCaseName}`);
+    console.info(`Input: ${JSON.stringify(testCase.input)}`);
 
     // Run the update content task
     const result = await updateGlossaryContentTask.triggerAndWait(testCase.input);
 
-    console.log(`Task result: ${JSON.stringify(result)}`);
+    console.info(`Task result: ${JSON.stringify(result)}`);
 
     // Store safe serializable version of the result
     safeSetMetadata("taskResult", {
@@ -340,10 +340,10 @@ export const runAllTests = task({
     safeSetMetadata("results", []);
     safeSetMetadata("cleanedUpRuns", []);
 
-    console.log(`Running all ${testCases.length} test cases`);
+    console.info(`Running all ${testCases.length} test cases`);
 
     for (const testCase of testCases) {
-      console.log(`\n========== STARTING TEST: ${testCase.name} ==========`);
+      console.info(`\n========== STARTING TEST: ${testCase.name} ==========`);
 
       // Update metadata to show current test
       safeSetMetadata("currentTest", testCase.name);
@@ -356,7 +356,7 @@ export const runAllTests = task({
 
       if (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.log(`Error running test ${testCase.name}: ${errorMessage}`);
+        console.info(`Error running test ${testCase.name}: ${errorMessage}`);
 
         // Update metadata for failed test
         const metadata = getAllTestsMetadata();
@@ -375,7 +375,7 @@ export const runAllTests = task({
         continue;
       }
 
-      console.log(`Test ${testCase.name} completed with result: ${JSON.stringify(result)}`);
+      console.info(`Test ${testCase.name} completed with result: ${JSON.stringify(result)}`);
 
       // Update completed tests count
       const metadata = getAllTestsMetadata();
