@@ -291,8 +291,8 @@ In AWS, this could be an RDS read replica. In other environments, it could be a
 MySQL replica configured with binary log replication.
 
 Examples:
-	--database-primary=mysql://root:password@localhost:3306/unkey?parseTime=true
-  --database-primary=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require`,
+	--database-readonly-replica=mysql://root:password@localhost:3306/unkey?parseTime=true
+	--database-readonly-replica=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require`,
 			Sources:  cli.EnvVars("UNKEY_DATABASE_READONLY_DSN"),
 			Required: false,
 		},

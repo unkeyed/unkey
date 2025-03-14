@@ -120,8 +120,8 @@ The Unkey API requires a MySQL database for storing keys and configuration. For 
   Unkey is using [PlanetScales](https://planetscale.com/) global read replica endpoint.
 
   **Examples:**
-  - `--database-primary=mysql://root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
-  - `--database-primary=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
+  - `--database-readonly-replica=mysql://root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
+  - `--database-readonly-replica=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
 </Property>
 
 ## Analytics & Monitoring
