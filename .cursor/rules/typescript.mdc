@@ -1,0 +1,32 @@
+---
+description: TypeScript type system Usage instructions
+globs: *.ts,*.tsx
+alwaysApply: true
+---
+## Guidelines
+Follow these guidelines for all TypeScript code:
+1. Use generics in utilities to keep app code JavaScript-like.
+2. Ensure types flow via inference, avoiding redundant annotations.
+3. Restrict 'as' to library boundaries, never in app logic.
+4. Example: Define `createFetcher<T>(...)` in libs, use simply in app.
+5. Exceptions: Isolate unavoidable 'as' in utils with comments.
+
+## TypeScript Implementation
+- **Strict Mode**: Enable `strict` in `tsconfig.json` for maximum type safety.  
+- **Utility Types**: Leverage `Partial`, `Pick`, `Omit` for reusable type variations (e.g., `type UserPreview = Pick<User, 'name'>`).  
+- **Mapped Types**: Use mapped types (e.g., `{ [K in keyof T]: string }`) for dynamic type transformations in libraries.  
+- **Library Boundary**: Isolate `as` to utils (e.g., `await fetch('/api').then(res => res.json()) as User`), never in app logic.  
+- **Control Flow Analysis**: For either/or data (e.g., `T | undefined`), use `if` with `return` or `throw` to narrow types below, letting TypeScript infer without extra statements.  
+
+
+**Example**:
+```typescript
+// Library utility
+interface User { id: number; name: string }
+const fetchUser = async <T extends User>() => (await fetch('/user').then(res => res.json())) as T;
+
+// App code (JavaScript-like)
+fetchUser().then(user => console.log(user.name)); // Types flow, no 'as'
+
+
+

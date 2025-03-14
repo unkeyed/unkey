@@ -658,6 +658,27 @@ export const myTask = task({
 });
 ```
 
+Initialize metadata inside a task's lifecycle hook.
+
+
+```ts
+//myTasks.ts
+import { task, metadata } from "@trigger.dev/sdk/v3";
+
+export const myTask = task({
+  id: "my-task",
+  run: async (payload: { message: string }) => {
+    // Your run function work here
+  },
+  onStart: async () => {
+    metadata.set("progress", 0.5);
+  },
+  onSuccess: async () => {
+    metadata.set("progress", 1.0);
+  },
+});
+```
+
 ### Update methods
 
 Metadata can be updated as the run progresses:
@@ -1266,4 +1287,4 @@ When asked about Trigger.dev task implementation, you MUST:
 1. FIRST use code patterns from this guide
 2. NEVER suggest deprecated approaches
 3. VERIFY your response against the patterns shown here
-4. If an answer cannot be found using this guide, look up further information ONLY from the official LLM-friendly version of the [Trigger.dev docs site](https://trigger.dev/docs/llms.txt).
+4. If an answer cannot be found using this guide, look up further information ONLY from the official LLM-friendly version of the [Trigger.dev docs site](mdc:https:/trigger.dev/docs/llms.txt).
