@@ -4,8 +4,8 @@ import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@/lib/utils";
+import { compactFormatter } from "../logs/overview-charts/utils";
 
-// Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
 
 export type ChartConfig = {
@@ -232,7 +232,7 @@ const ChartTooltipContent = React.forwardRef<
                       <div className="ml-auto">
                         {item.value && (
                           <span className="font-mono tabular-nums text-accent-12">
-                            {item.value.toLocaleString()}
+                            {compactFormatter.format(item.value as number)}
                           </span>
                         )}
                       </div>

@@ -69,5 +69,5 @@ export const useFetchRatelimitTimeseries = (namespaceId: string) => {
     total: ts.y.total,
   }));
 
-  return { timeseries, isLoading, isError };
+  return { timeseries, isLoading, isError, granularity: data?.granularity };
 };

@@ -1,4 +1,5 @@
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
+import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchRatelimitOverviewTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 
@@ -14,7 +15,8 @@ export const RatelimitOverviewLogsCharts = ({
 }) => {
   const { filters, updateFilters } = useFilters();
 
-  const { isError, isLoading, timeseries } = useFetchRatelimitOverviewTimeseries(namespaceId);
+  const { isError, isLoading, timeseries, granularity } =
+    useFetchRatelimitOverviewTimeseries(namespaceId);
 
   // const {
   //   isError: latencyIsError,
@@ -32,6 +34,12 @@ export const RatelimitOverviewLogsCharts = ({
     const activeFilters = filters.filter(
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
+
+    let adjustedEnd = end;
+    if (start === end && granularity) {
+      adjustedEnd = end + getTimeBufferForGranularity(granularity);
+    }
+
     updateFilters([
       ...activeFilters,
       {
@@ -42,7 +50,7 @@ export const RatelimitOverviewLogsCharts = ({
       },
       {
         field: "endTime",
-        value: end,
+        value: adjustedEnd,
         id: crypto.randomUUID(),
         operator: "is",
       },

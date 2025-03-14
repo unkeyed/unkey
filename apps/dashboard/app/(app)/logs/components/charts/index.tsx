@@ -1,5 +1,6 @@
 "use client";
 import { LogsTimeseriesBarChart } from "@/components/logs/chart";
+import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchTimeseries } from "./hooks/use-fetch-timeseries";
 
@@ -9,7 +10,7 @@ export function LogsChart({
   onMount: (distanceToTop: number) => void;
 }) {
   const { filters, updateFilters } = useFilters();
-  const { timeseries, isLoading, isError } = useFetchTimeseries();
+  const { timeseries, isLoading, isError, granularity } = useFetchTimeseries();
 
   const handleSelectionChange = ({
     start,
@@ -22,6 +23,11 @@ export function LogsChart({
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
 
+    let adjustedEnd = end;
+    if (start === end && granularity) {
+      adjustedEnd = end + getTimeBufferForGranularity(granularity);
+    }
+
     updateFilters([
       ...activeFilters,
       {
@@ -32,7 +38,7 @@ export function LogsChart({
       },
       {
         field: "endTime",
-        value: end,
+        value: adjustedEnd,
         id: crypto.randomUUID(),
         operator: "is",
       },
