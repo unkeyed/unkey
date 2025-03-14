@@ -85,6 +85,31 @@ func TestBadRequests(t *testing.T) {
 				Instance:  nil,
 			},
 		},
+		{
+			name: "Invalid ratelimit",
+			req: api.V2IdentitiesCreateIdentityRequestBody{
+				ExternalId: "abc",
+				Ratelimits: &[]struct {
+					Duration int    "json:\"duration\""
+					Limit    int    "json:\"limit\""
+					Name     string "json:\"name\""
+				}{
+					{
+						Duration: 1,
+						Limit:    1,
+					},
+				},
+			},
+			expectedError: api.BadRequestError{
+				Title:     "Bad Request",
+				Detail:    "One or more fields failed validation",
+				Status:    http.StatusBadRequest,
+				Type:      "https://unkey.com/docs/errors/bad_request",
+				Errors:    []api.ValidationError{},
+				RequestId: "test",
+				Instance:  nil,
+			},
+		},
 	}
 
 	h := testutil.NewHarness(t)

@@ -42,5 +42,6 @@ func TestCreateIdentityDuplicate(t *testing.T) {
 		errorRes := testutil.CallRoute[handler.Request, api.ConflictError](h, route, headers, req)
 		require.Equal(t, 409, errorRes.Status, "expected 409, received: %#v", errorRes)
 		require.NotNil(t, errorRes.Body)
+		require.Equal(t, "https://unkey.com/docs/errors/conflict", errorRes.Body.Type)
 	})
 }
