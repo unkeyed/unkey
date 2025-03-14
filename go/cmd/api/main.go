@@ -2,32 +2,10 @@ package api
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
-	"os"
-	"os/signal"
-	"runtime/debug"
-	"syscall"
-	"time"
 
-	"github.com/unkeyed/unkey/go/cmd/api/routes"
-	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
-	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
-	"github.com/unkeyed/unkey/go/pkg/aws/ecs"
-	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/cluster"
-	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/discovery"
-	"github.com/unkeyed/unkey/go/pkg/logging"
-	"github.com/unkeyed/unkey/go/pkg/membership"
-	"github.com/unkeyed/unkey/go/pkg/otel"
-	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/uid"
-	"github.com/unkeyed/unkey/go/pkg/version"
-	"github.com/unkeyed/unkey/go/pkg/zen"
-	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 	"github.com/urfave/cli/v3"
 )
 
@@ -69,9 +47,7 @@ In containerized environments, ensure this port is properly exposed.
 The default port is 7070 if not specified.
 
 Examples:
-  --http-port=7070  # Default port
-  --http-port=8080  # Common alternative for local development
-  --http-port=80    # Standard HTTP port (requires root privileges on Unix systems)`,
+  --http-port=7070  # Default port`,
 			Sources:  cli.EnvVars("UNKEY_HTTP_PORT"),
 			Value:    7070,
 			Required: false,
@@ -180,8 +156,7 @@ In containerized environments, ensure this port is properly exposed between cont
 For security, this port should typically not be exposed to external networks.
 
 Examples:
-  --cluster-rpc-port=7071  # Default RPC port
-  --cluster-rpc-port=9000  # Alternative port if 7071 is unavailable`,
+  --cluster-rpc-port=7071  # Default RPC port`,
 			Sources:  cli.EnvVars("UNKEY_CLUSTER_RPC_PORT"),
 			Value:    7071,
 			Required: false,
@@ -199,8 +174,7 @@ In containerized environments, ensure this port is properly exposed between cont
 For security, this port should typically not be exposed to external networks.
 
 Examples:
-  --cluster-gossip-port=7072  # Default gossip port
-  --cluster-gossip-port=9001  # Alternative port if 7072 is unavailable`,
+  --cluster-gossip-port=7072  # Default gossip port`,
 			Sources:  cli.EnvVars("UNKEY_CLUSTER_GOSSIP_PORT"),
 			Value:    7072,
 			Required: false,
@@ -299,9 +273,8 @@ The connection string must be a valid MySQL connection string with all
 necessary parameters, including SSL mode for secure connections.
 
 Examples:
-  --database-primary=mysql://root:password@localhost:3306/unkey
-  --database-primary=mysql://user:password@mysql.example.com:3306/unkey?tls=true
-  --database-primary=mysql://unkey:password@mysql.default.svc.cluster.local:3306/unkey`,
+	--database-primary=mysql://root:password@localhost:3306/unkey?parseTime=true
+  --database-primary=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require`,
 			Sources:  cli.EnvVars("UNKEY_DATABASE_PRIMARY_DSN"),
 			Required: true,
 		},
@@ -318,281 +291,75 @@ In AWS, this could be an RDS read replica. In other environments, it could be a
 MySQL replica configured with binary log replication.
 
 Examples:
-  --database-readonly-replica=mysql://readonly:password@replica.mysql.example.com:3306/unkey?tls=true
-  --database-readonly-replica=mysql://readonly:password@mysql-replica.default.svc.cluster.local:3306/unkey`,
+	--database-readonly-replica=mysql://root:password@localhost:3306/unkey?parseTime=true
+	--database-readonly-replica=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require`,
 			Sources:  cli.EnvVars("UNKEY_DATABASE_READONLY_DSN"),
 			Required: false,
 		},
 		// OpenTelemetry configuration
-		&cli.StringFlag{
-			Name: "otel-otlp-endpoint",
-			Usage: `OpenTelemetry collector endpoint for metrics, traces, and logs.
-Specified as host:port (without scheme or path)
+		&cli.BoolFlag{
+			Name: "otel",
+			Usage: `Enable OpenTelemetry tracing and metrics.
+When enabled, the Unkey API will collect and export telemetry data (metrics, traces, and logs)
+using the OpenTelemetry protocol. This provides comprehensive observability for production deployments.
 
-When provided, the Unkey API will send telemetry data (metrics, traces, and logs)
-to this endpoint using the OTLP protocol. This enables comprehensive observability
-for production deployments.
+When this flag is set to true, the following standard OpenTelemetry environment variables are used:
+- OTEL_EXPORTER_OTLP_ENDPOINT: The URL of your OpenTelemetry collector
+- OTEL_EXPORTER_OTLP_PROTOCOL: The protocol to use (http/protobuf or grpc)
+- OTEL_EXPORTER_OTLP_HEADERS: Headers for authentication (e.g., "authorization=Bearer <token>")
 
-The endpoint should be an OpenTelemetry collector capable of receiving OTLP data.
-The implementation is currently configured for Grafana Cloud integration but is
-compatible with any OTLP-compliant collector.
-
-Enabling telemetry is highly recommended for production deployments to monitor
-performance, detect issues, and troubleshoot problems.
+For more information on these variables, see:
+https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/
 
 Examples:
-  --otel-otlp-endpoint=http://localhost:4317                    # Local collector
-  --otel-otlp-endpoint=https://otlp.grafana-cloud.example.com   # Grafana Cloud
-  --otel-otlp-endpoint=https://api.honeycomb.io:443             # Honeycomb.io`,
-			Sources:  cli.EnvVars("UNKEY_OTEL_OTLP_ENDPOINT"),
+  --otel=true   # Enable OpenTelemetry with environment variable configuration
+  --otel=false  # Disable OpenTelemetry (default)`,
+			Sources:  cli.EnvVars("UNKEY_OTEL"),
 			Required: false,
 		},
 	},
+
 	Action: action,
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
-	cfg := configFromFlags(cmd)
 
-	return run(ctx, cfg)
-}
+	config := api.Config{
+		// Basic configuration
+		Platform: cmd.String("platform"),
+		Image:    cmd.String("image"),
+		HttpPort: int(cmd.Int("http-port")),
+		Region:   cmd.String("region"),
 
-// nolint:gocognit
-func run(ctx context.Context, cfg nodeConfig) error {
+		// Database configuration
+		DatabasePrimary:         cmd.String("database-primary"),
+		DatabaseReadonlyReplica: cmd.String("database-readonly-replica"),
 
-	err := cfg.Validate()
+		// Logs
+		LogsColor: cmd.Bool("color"),
+
+		// ClickHouse
+		ClickhouseURL: cmd.String("clickhouse-url"),
+
+		// OpenTelemetry configuration
+		OtelEnabled: cmd.Bool("otel"),
+
+		// Cluster
+		ClusterEnabled:                     cmd.Bool("cluster"),
+		ClusterNodeID:                      cmd.String("cluster-node-id"),
+		ClusterRpcPort:                     int(cmd.Int("cluster-rpc-port")),
+		ClusterGossipPort:                  int(cmd.Int("cluster-gossip-port")),
+		ClusterAdvertiseAddrStatic:         cmd.String("cluster-advertise-addr-static"),
+		ClusterAdvertiseAddrAwsEcsMetadata: cmd.Bool("cluster-advertise-addr-aws-ecs-metadata"),
+		ClusterDiscoveryStaticAddrs:        cmd.StringSlice("cluster-discovery-static-addrs"),
+		ClusterDiscoveryRedisURL:           cmd.String("cluster-discovery-redis-url"),
+		Clock:                              clock.New(),
+	}
+
+	err := config.Validate()
 	if err != nil {
-		return fmt.Errorf("bad config: %w", err)
+		return err
 	}
 
-	shutdowns := []shutdown.ShutdownFn{}
-
-	clk := clock.New()
-
-	logger := logging.New(logging.Config{Development: true, NoColor: true}).
-		With(
-			slog.String("nodeId", cfg.ClusterNodeID),
-			slog.String("platform", cfg.Platform),
-			slog.String("region", cfg.Region),
-			slog.String("version", version.Version),
-		)
-
-	// Catch any panics now after we have a logger but before we start the server
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("panic",
-				"panic", r,
-				"stack", string(debug.Stack()),
-			)
-		}
-	}()
-
-	if cfg.OtelOtlpEndpoint != "" {
-		shutdownOtel, grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			GrafanaEndpoint: cfg.OtelOtlpEndpoint,
-			Application:     "api",
-			Version:         version.Version,
-		})
-		if grafanaErr != nil {
-			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
-		}
-		shutdowns = append(shutdowns, shutdownOtel...)
-	}
-
-	db, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
-		Logger:      logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create db: %w", err)
-	}
-
-	defer db.Close()
-
-	c, shutdownCluster, err := setupCluster(cfg, logger)
-	if err != nil {
-		return fmt.Errorf("unable to create cluster: %w", err)
-	}
-	shutdowns = append(shutdowns, shutdownCluster...)
-
-	var ch clickhouse.Bufferer = clickhouse.NewNoop()
-	if cfg.ClickhouseURL != "" {
-		ch, err = clickhouse.New(clickhouse.Config{
-			URL:    cfg.ClickhouseURL,
-			Logger: logger,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create clickhouse: %w", err)
-		}
-	}
-
-	srv, err := zen.New(zen.Config{
-		NodeID: cfg.ClusterNodeID,
-		Logger: logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create server: %w", err)
-	}
-
-	validator, err := validation.New()
-	if err != nil {
-		return fmt.Errorf("unable to create validator: %w", err)
-	}
-
-	keySvc, err := keys.New(keys.Config{
-		Logger: logger,
-		DB:     db,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create key service: %w", err)
-	}
-
-	rlSvc, err := ratelimit.New(ratelimit.Config{
-		Logger:  logger,
-		Cluster: c,
-		Clock:   clk,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create ratelimit service: %w", err)
-	}
-
-	routes.Register(srv, &routes.Services{
-		Logger:      logger,
-		Database:    db,
-		EventBuffer: ch,
-		Keys:        keySvc,
-		Validator:   validator,
-		Ratelimit:   rlSvc,
-		Permissions: permissions.New(permissions.Config{
-			DB:     db,
-			Logger: logger,
-		}),
-	})
-
-	go func() {
-		listenErr := srv.Listen(ctx, fmt.Sprintf(":%d", cfg.HttpPort))
-		if listenErr != nil {
-			panic(listenErr)
-		}
-	}()
-
-	return gracefulShutdown(ctx, logger, shutdowns)
-}
-
-func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns []shutdown.ShutdownFn) error {
-	cShutdown := make(chan os.Signal, 1)
-	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
-
-	<-cShutdown
-	ctx, cancel := context.WithTimeout(ctx, time.Minute)
-	defer cancel()
-	logger.Info("shutting down")
-
-	errors := []error{}
-	for i := len(shutdowns) - 1; i >= 0; i-- {
-		err := shutdowns[i](ctx)
-		if err != nil {
-			errors = append(errors, err)
-		}
-	}
-
-	if len(errors) > 0 {
-		return fmt.Errorf("errors occurred during shutdown: %v", errors)
-	}
-	return nil
-}
-
-func setupCluster(cfg nodeConfig, logger logging.Logger) (cluster.Cluster, []shutdown.ShutdownFn, error) {
-	shutdowns := []shutdown.ShutdownFn{}
-	if !cfg.ClusterEnabled {
-		return cluster.NewNoop("", "127.0.0.1"), shutdowns, nil
-	}
-
-	var advertiseAddr string
-	{
-		switch {
-		case cfg.ClusterAdvertiseAddrStatic != "":
-			{
-				advertiseAddr = cfg.ClusterAdvertiseAddrStatic
-			}
-		case cfg.ClusterAdvertiseAddrAwsEcsMetadata:
-
-			{
-				var getDnsErr error
-				advertiseAddr, getDnsErr = ecs.GetPrivateDnsName()
-				if getDnsErr != nil {
-					return nil, shutdowns, fmt.Errorf("unable to get private dns name: %w", getDnsErr)
-				}
-
-			}
-		default:
-			return nil, shutdowns, fmt.Errorf("invalid advertise address configuration")
-		}
-	}
-
-	m, err := membership.New(membership.Config{
-		NodeID:        cfg.ClusterNodeID,
-		AdvertiseAddr: advertiseAddr,
-		GossipPort:    cfg.ClusterGossipPort,
-		Logger:        logger,
-	})
-	if err != nil {
-		return nil, shutdowns, fmt.Errorf("unable to create membership: %w", err)
-	}
-
-	c, err := cluster.New(cluster.Config{
-		Self: cluster.Node{
-
-			ID:      cfg.ClusterNodeID,
-			Addr:    advertiseAddr,
-			RpcAddr: "TO DO",
-		},
-		Logger:     logger,
-		Membership: m,
-		RpcPort:    cfg.ClusterRpcPort,
-	})
-	if err != nil {
-		return nil, shutdowns, fmt.Errorf("unable to create cluster: %w", err)
-	}
-	shutdowns = append(shutdowns, c.Shutdown)
-
-	var d discovery.Discoverer
-
-	switch {
-	case cfg.ClusterDiscoveryStaticAddrs != nil:
-		{
-			d = &discovery.Static{
-				Addrs: cfg.ClusterDiscoveryStaticAddrs,
-			}
-			break
-		}
-
-	case cfg.ClusterDiscoveryRedisURL != "":
-		{
-			rd, rErr := discovery.NewRedis(discovery.RedisConfig{
-				URL:    cfg.ClusterDiscoveryRedisURL,
-				NodeID: cfg.ClusterNodeID,
-				Addr:   advertiseAddr,
-				Logger: logger,
-			})
-			if rErr != nil {
-				return nil, shutdowns, fmt.Errorf("unable to create redis discovery: %w", rErr)
-			}
-			shutdowns = append(shutdowns, rd.Shutdown)
-			d = rd
-			break
-		}
-	default:
-		{
-			return nil, nil, fmt.Errorf("missing discovery method")
-		}
-	}
-
-	err = m.Start(d)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to start membership: %w", err)
-	}
-
-	return c, shutdowns, nil
+	return api.Run(ctx, config)
 }

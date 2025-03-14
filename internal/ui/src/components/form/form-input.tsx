@@ -6,7 +6,7 @@ import { type DocumentedInputProps, Input, type InputProps } from "../input";
 // Hack to populate fumadocs' AutoTypeTable
 export type DocumentedFormInputProps = DocumentedInputProps & {
   label?: string;
-  description?: string;
+  description?: string | React.ReactNode;
   required?: boolean;
   error?: string;
 };
@@ -51,14 +51,14 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           <div className="text-[13px] leading-5">
             {error ? (
               <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
-                <TriangleWarning2 aria-hidden="true" />
-                {error}
+                <TriangleWarning2 className="flex-shrink-0" aria-hidden="true" />
+                <span className="flex-1">{error}</span>
               </div>
             ) : description ? (
               <output
                 id={descriptionId}
                 className={cn(
-                  "text-gray-9 flex gap-2 items-center",
+                  "text-gray-9 flex gap-2 items-start",
                   variant === "success"
                     ? "text-success-11"
                     : variant === "warning"
@@ -67,11 +67,19 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
                 )}
               >
                 {variant === "warning" ? (
-                  <TriangleWarning2 size="md-regular" aria-hidden="true" />
+                  <TriangleWarning2
+                    size="md-regular"
+                    className="flex-shrink-0"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <CircleInfo size="md-regular" aria-hidden="true" />
+                  <CircleInfo
+                    size="md-regular"
+                    className="flex-shrink-0 mt-[3px]"
+                    aria-hidden="true"
+                  />
                 )}
-                <span>{description}</span>
+                <span className="flex-1">{description}</span>
               </output>
             ) : null}
           </div>

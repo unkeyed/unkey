@@ -1,3 +1,4 @@
+import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { Refresh3 } from "@unkey/icons";
@@ -25,7 +26,6 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
     if (isLoading) {
       return;
     }
-
     const isLiveBefore = Boolean(isLive);
     setIsLoading(true);
     toggleLive?.(false);
@@ -41,22 +41,31 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
         toggleLive?.(true);
       }
     }, REFRESH_TIMEOUT_MS);
+
     setRefreshTimeout(timeout);
   };
 
   return (
-    <Button
-      onClick={handleRefresh}
-      variant="ghost"
-      size="md"
-      title="Refresh data (Shortcut: R)"
-      disabled={!isEnabled || isLoading}
-      loading={isLoading}
-      className="flex items-center justify-center rounded-lg"
+    <RatelimitOverviewTooltip
+      content="Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
+      position={{ side: "bottom", align: "center" }}
+      disabled={isEnabled && !isLoading}
     >
-      <Refresh3 className="size-4" />
-      <span className="font-medium text-[13px] relative z-10">Refresh</span>
-      <KeyboardButton shortcut="r" modifierKey="CTRL" className="pointer-events-none" />
-    </Button>
+      <div>
+        <Button
+          onClick={handleRefresh}
+          variant="ghost"
+          size="md"
+          title={isEnabled ? "Refresh data (Shortcut: CTRL+R)" : ""}
+          disabled={!isEnabled || isLoading}
+          loading={isLoading}
+          className="flex w-full items-center justify-center rounded-lg border border-gray-4"
+        >
+          <Refresh3 className="size-4" />
+          <span className="font-medium text-[13px] relative z-10">Refresh</span>
+          <KeyboardButton shortcut="r" modifierKey="CTRL" className="pointer-events-none" />
+        </Button>
+      </div>
+    </RatelimitOverviewTooltip>
   );
 };

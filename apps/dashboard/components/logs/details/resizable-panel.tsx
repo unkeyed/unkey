@@ -68,11 +68,11 @@ export const ResizablePanel = ({
   return (
     <div
       ref={panelRef}
-      className={`relative ${className}`}
+      className={`relative border-l border-gray-4 ${className}`}
       style={{ ...style, width, right: 0, position: "fixed" }}
     >
       <div
-        className="absolute top-0 left-0 w-[3px] h-full border-l border-gray-4 cursor-ew-resize hover:bg-gray-6 transition-all"
+        className="absolute top-0 left-0 w-[3px] h-full cursor-ew-resize hover:bg-gray-6 transition-all z-10"
         onMouseDown={handleMouseDown}
       />
       {children}

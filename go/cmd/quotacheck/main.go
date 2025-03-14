@@ -12,7 +12,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/number"
@@ -56,7 +56,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 	year, month, _ := time.Now().Date()
 
-	logger := logging.New(logging.Config{Development: true, NoColor: false})
+	logger := logging.New()
 
 	slackWebhookURL := cmd.String("slack-webhook-url")
 
@@ -87,6 +87,9 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	for range workers {
 		go func() {
 			for e := range queue {
+				if !e.Workspace.Enabled {
+					continue
+				}
 
 				usedVerifications, err := ch.GetBillableVerifications(ctx, e.Workspace.ID, year, int(month))
 				if err != nil {

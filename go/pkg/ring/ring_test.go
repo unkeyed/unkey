@@ -8,7 +8,7 @@ import (
 	"github.com/gonum/stat"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // we don't need tags for this test.
@@ -89,4 +89,87 @@ func TestAddingNodeAddsTokensToRing(t *testing.T) {
 		require.Len(t, r.tokens, tokensPerNode*i)
 	}
 
+}
+func TestNodeCount(t *testing.T) {
+	r, err := New[tags](Config{TokensPerNode: 256, Logger: logging.NewNoop()})
+	require.NoError(t, err)
+
+	// Initial ring should be empty
+	require.Empty(t, r.nodes)
+	require.Empty(t, r.Members())
+
+	// Add 5 nodes and verify count after each
+	for i := 1; i <= 5; i++ {
+		err = r.AddNode(context.Background(), Node[tags]{ID: fmt.Sprintf("node-%d", i), Tags: tags{}})
+		require.NoError(t, err)
+		require.Len(t, r.nodes, i)
+		require.Len(t, r.Members(), i)
+	}
+
+	// Add a duplicate node - should fail and count remains the same
+	err = r.AddNode(context.Background(), Node[tags]{ID: "node-1", Tags: tags{}})
+	require.Error(t, err)
+	require.Len(t, r.nodes, 5)
+	require.Len(t, r.Members(), 5)
+
+	// Remove nodes and verify count
+	for i := 5; i >= 1; i-- {
+		err = r.RemoveNode(context.Background(), fmt.Sprintf("node-%d", i))
+		require.NoError(t, err)
+		require.Len(t, r.nodes, i-1)
+		require.Len(t, r.Members(), i-1)
+	}
+
+	// Removing a non-existent node should not return an error
+	err = r.RemoveNode(context.Background(), "non-existent-node")
+	require.NoError(t, err)
+	require.Empty(t, r.nodes)
+}
+
+func TestFindNodeEmpty(t *testing.T) {
+	r, err := New[tags](Config{TokensPerNode: 256, Logger: logging.NewNoop()})
+	require.NoError(t, err)
+
+	// Finding a node in an empty ring should return an error
+	_, err = r.FindNode("any-key")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "ring is empty")
+}
+
+func TestNodeRemovalRebuild(t *testing.T) {
+	r, err := New[tags](Config{TokensPerNode: 256, Logger: logging.NewNoop()})
+	require.NoError(t, err)
+
+	// Add 3 nodes
+	for i := 1; i <= 3; i++ {
+		addErr := r.AddNode(context.Background(), Node[tags]{ID: fmt.Sprintf("node-%d", i), Tags: tags{}})
+		require.NoError(t, addErr)
+	}
+
+	// Get initial node count and token count
+	initialNodeCount := len(r.nodes)
+	initialTokenCount := len(r.tokens)
+	require.Equal(t, 3, initialNodeCount)
+	require.Equal(t, 3*256, initialTokenCount)
+
+	// Remove a node
+	err = r.RemoveNode(context.Background(), "node-2")
+	require.NoError(t, err)
+
+	// Verify node count decreased by 1
+	require.Len(t, r.nodes, initialNodeCount-1)
+
+	// Verify token count decreased by tokensPerNode
+	require.Len(t, r.tokens, initialTokenCount-256)
+
+	// Verify that all remaining tokens have valid node IDs
+	nodeIDs := make(map[string]struct{})
+	for _, node := range r.Members() {
+		nodeIDs[node.ID] = struct{}{}
+	}
+
+	for _, token := range r.tokens {
+		_, exists := nodeIDs[token.nodeID]
+		require.True(t, exists, "Token references non-existent node ID: %s", token.nodeID)
+	}
 }

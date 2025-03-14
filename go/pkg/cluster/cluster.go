@@ -5,9 +5,12 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/go/pkg/events"
-	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/ring"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // Config configures a new cluster instance with the necessary components
@@ -21,9 +24,6 @@ type Config struct {
 
 	// Logger for cluster operations
 	Logger logging.Logger
-
-	// RpcPort is the port used for RPC communication between nodes
-	RpcPort int
 }
 
 // New creates a new cluster instance with the provided configuration.
@@ -50,12 +50,22 @@ func New(config Config) (*cluster, error) {
 		logger:      config.Logger,
 		joinEvents:  events.NewTopic[Node](),
 		leaveEvents: events.NewTopic[Node](),
+	}
 
-		rpcPort: config.RpcPort,
+	err = c.registerMetrics()
+	if err != nil {
+		return nil, err
 	}
 
 	go c.keepInSync()
 
+	err = r.AddNode(context.Background(), ring.Node[Node]{
+		ID:   config.Self.ID,
+		Tags: config.Self,
+	})
+	if err != nil {
+		return nil, err
+	}
 	return c, nil
 }
 
@@ -69,8 +79,6 @@ type cluster struct {
 
 	joinEvents  events.Topic[Node]
 	leaveEvents events.Topic[Node]
-
-	rpcPort int
 }
 
 // Ensure cluster implements the Cluster interface
@@ -79,6 +87,25 @@ var _ Cluster = (*cluster)(nil)
 // Self returns information about the local node.
 func (c *cluster) Self() Node {
 	return c.self
+}
+
+func (c *cluster) registerMetrics() error {
+
+	err := metrics.Cluster.Size.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		members, err := c.membership.Members()
+		if err != nil {
+			return err
+		}
+
+		o.Observe(int64(len(members)), metric.WithAttributes(attribute.String("nodeID", c.self.ID)))
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SubscribeJoin returns a channel that receives Node events
@@ -109,9 +136,8 @@ func (c *cluster) keepInSync() {
 				err := c.ring.AddNode(ctx, ring.Node[Node]{
 					ID: node.NodeID,
 					Tags: Node{
-						RpcAddr: fmt.Sprintf("%s:%d", node.Addr, c.rpcPort),
+						RpcAddr: fmt.Sprintf("%s:%d", node.Host, node.RpcPort),
 						ID:      node.NodeID,
-						Addr:    node.Addr,
 					},
 				})
 				if err != nil {

@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"math"
 	"sync"
 	"time"
 
@@ -13,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -87,7 +86,6 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	_, span := tracing.Start(ctx, "slidingWindow.Ratelimit")
 	defer span.End()
 
-	r.logger.Info("Ratelimit", "req", req)
 	err := assert.Multi(
 		assert.NotEmpty(req.Identifier, "ratelimit identifier must not be empty"),
 		assert.Greater(req.Limit, 0, "ratelimit limit must be greater than zero"),
@@ -117,7 +115,6 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	})
 	return res, nil
 }
-
 func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitRequest) (RatelimitResponse, error) {
 	_, span := tracing.Start(ctx, "slidingWindow.ratelimit")
 	defer span.End()
@@ -130,48 +127,51 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	// Get current and previous windows
 	currentWindow := b.getCurrentWindow(now)
 	previousWindow := b.getPreviousWindow(now)
-	currentWindowPercentage := float64(now.UnixMilli()-currentWindow.GetStart()) / float64(req.Duration)
-	previousWindowPercentage := 1.0 - currentWindowPercentage
 
-	// Calculate the current count including all leases
-	fromPreviousWindow := float64(previousWindow.GetCounter()) * previousWindowPercentage
-	fromCurrentWindow := float64(currentWindow.GetCounter())
+	// Calculate time elapsed in current window (as a fraction)
+	windowElapsed := float64(now.UnixMilli()-currentWindow.GetStart()) / float64(req.Duration.Milliseconds())
 
-	current := int64(math.Ceil(fromCurrentWindow + fromPreviousWindow))
+	// Pure sliding window calculation:
+	// - We count 100% of current window
+	// - We count a decreasing portion of previous window based on how far we are into current window
+	effectiveCount := currentWindow.GetCounter() + int64(float64(previousWindow.GetCounter())*(1.0-windowElapsed))
 
-	// Evaluate if the request should pass or not
-
-	if current+req.Cost > req.Limit {
-
-		remaining := req.Limit - current
+	// Check if this request would exceed the limit
+	if effectiveCount+req.Cost > req.Limit {
+		remaining := req.Limit - effectiveCount
 		if remaining < 0 {
 			remaining = 0
 		}
+
 		return RatelimitResponse{
 			Success:   false,
 			Remaining: remaining,
 			Reset:     currentWindow.GetStart() + currentWindow.GetDuration(),
 			Limit:     req.Limit,
-			Current:   current,
+			Current:   effectiveCount,
 		}, nil
 	}
 
+	// Increment current window counter
 	currentWindow.Counter += req.Cost
 
-	current += req.Cost
+	// Recalculate effective count with updated current window
+	effectiveCount = currentWindow.GetCounter() + int64(float64(previousWindow.GetCounter())*(1.0-windowElapsed))
 
-	remaining := req.Limit - current
+	remaining := req.Limit - effectiveCount
 	if remaining < 0 {
 		remaining = 0
 	}
+
 	return RatelimitResponse{
 		Success:   true,
 		Remaining: remaining,
 		Reset:     currentWindow.GetStart() + currentWindow.GetDuration(),
 		Limit:     req.Limit,
-		Current:   current,
+		Current:   effectiveCount,
 	}, nil
 }
 

@@ -5,189 +5,129 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 const (
-	MAX_BUFFER_SIZE = 50000
-	MAX_BATCH_SIZE  = 10000
-	FLUSH_INTERVAL  = time.Second * 3
+	LOG_TICKER_SAMPLE_RATE = 10 // Only log every 10th ticker flush
 )
 
 var (
-	CLICKHOUSE_URL string
-	BASIC_AUTH     string
-	PORT           string
-	logger         *slog.Logger
+	telemetry  *TelemetryConfig
+	inFlight   sync.WaitGroup // incoming requests
+	httpClient *http.Client   // shared http client
 )
 
-func setupLogger() {
-	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		AddSource: false,
-	})
-
-	logger = slog.New(handler)
-
-	slog.SetDefault(logger)
-
-	logger.Info("chproxy starting",
-		slog.Int("max_buffer_size", MAX_BUFFER_SIZE),
-		slog.Int("max_batch_size", MAX_BATCH_SIZE),
-		slog.String("flush_interval", FLUSH_INTERVAL.String()))
-}
-
-func init() {
-	setupLogger()
-
-	CLICKHOUSE_URL = os.Getenv("CLICKHOUSE_URL")
-	if CLICKHOUSE_URL == "" {
-		panic("CLICKHOUSE_URL must be defined")
-	}
-	BASIC_AUTH = os.Getenv("BASIC_AUTH")
-	if BASIC_AUTH == "" {
-		panic("BASIC_AUTH must be defined")
-	}
-	PORT = os.Getenv("PORT")
-	if PORT == "" {
-		PORT = "7123"
-	}
-}
-
-type Batch struct {
-	Rows   []string
-	Params url.Values
-}
-
-func persist(batch *Batch) error {
-	if len(batch.Rows) == 0 {
-		return nil
-	}
-
-	u, err := url.Parse(CLICKHOUSE_URL)
-	if err != nil {
-		return err
-	}
-
-	u.RawQuery = batch.Params.Encode()
-
-	req, err := http.NewRequest("POST", u.String(), strings.NewReader(strings.Join(batch.Rows, "\n")))
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Content-Type", "text/plain")
-	username := u.User.Username()
-	password, ok := u.User.Password()
-	if !ok {
-		return fmt.Errorf("password not set")
-	}
-	req.SetBasicAuth(username, password)
-
-	client := http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode == http.StatusOK {
-		logger.Info("rows persisted",
-			slog.Int("count", len(batch.Rows)),
-			slog.String("query", batch.Params.Get("query")))
-	} else {
-		body, err := io.ReadAll(res.Body)
-		if err != nil {
-			return err
-		}
-		logger.Error("unable to persist rows",
-			slog.String("response", string(body)),
-			slog.Int("status_code", res.StatusCode),
-			slog.String("query", batch.Params.Get("query")))
-	}
-	return nil
-}
-
 func main() {
-	requiredAuthorization := "Basic " + base64.StdEncoding.EncodeToString([]byte(BASIC_AUTH))
+	config, err := LoadConfig()
+	if err != nil {
+		log.Fatalf("failed to load configuration: %v", err)
+	}
 
-	buffer := make(chan *Batch, MAX_BUFFER_SIZE)
-	// blocks until we've persisted everything and the process may stop
-	done := make(chan bool)
+	httpClient = &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        25,
+			MaxIdleConnsPerHost: 25,
+			IdleConnTimeout:     60 * time.Second,
+		},
+	}
 
-	go func() {
-		buffered := 0
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-		batchesByParams := make(map[string]*Batch)
-
-		ticker := time.NewTicker(FLUSH_INTERVAL)
-
-		flushAndReset := func() {
-			for _, batch := range batchesByParams {
-				err := persist(batch)
-				if err != nil {
-					logger.Error("error flushing batch",
-						slog.String("error", err.Error()),
-						slog.String("query", batch.Params.Get("query")))
-				}
-			}
-			buffered = 0
-			batchesByParams = make(map[string]*Batch)
-			ticker.Reset(FLUSH_INTERVAL)
-		}
-		for {
-			select {
-			case b, ok := <-buffer:
-				if !ok {
-					// channel closed
-					flushAndReset()
-					done <- true
-					return
-				}
-
-				params := b.Params.Encode()
-				batch, ok := batchesByParams[params]
-				if !ok {
-					batchesByParams[params] = b
-				} else {
-
-					batch.Rows = append(batch.Rows, b.Rows...)
-				}
-
-				buffered += len(b.Rows)
-
-				if buffered >= MAX_BATCH_SIZE {
-					logger.Info("flushing due to max size")
-					flushAndReset()
-				}
-			case <-ticker.C:
-				logger.Info("flushing from ticker")
-
-				flushAndReset()
-			}
+	var cleanup func(context.Context) error
+	telemetry, cleanup, err = setupTelemetry(ctx, config)
+	if err != nil {
+		log.Fatalf("failed to setup telemetry: %v", err)
+	}
+	defer func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := cleanup(cleanupCtx); err != nil {
+			log.Printf("failed to cleanup telemetry: %v", err)
 		}
 	}()
 
+	if telemetry != nil && telemetry.LogHandler != nil {
+		config.Logger = slog.New(telemetry.LogHandler)
+
+		slog.SetDefault(config.Logger)
+	}
+
+	config.Logger.Info(fmt.Sprintf("%s starting", config.ServiceName),
+		"max_buffer_size", config.MaxBufferSize,
+		"max_batch_size", config.MaxBatchSize,
+		"flush_interval", config.FlushInterval.String())
+
+	requiredAuthorization := "Basic " + base64.StdEncoding.EncodeToString([]byte(config.BasicAuth))
+
+	buffer := make(chan *Batch, config.MaxBufferSize)
+
+	// blocks until we've persisted everything and the process may stop
+	done := startBufferProcessor(ctx, buffer, config, telemetry)
+
 	http.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
+		_, span := telemetry.Tracer.Start(r.Context(), "liveness_check")
+		defer span.End()
+
+		span.SetAttributes(
+			attribute.String("method", r.Method),
+			attribute.String("path", r.URL.Path),
+		)
+
 		w.Write([]byte("ok"))
+		span.SetStatus(codes.Ok, "")
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		inFlight.Add(1)
+		defer inFlight.Done()
+
+		ctx, span := telemetry.Tracer.Start(r.Context(), "handle_request")
+		defer span.End()
+
+		telemetry.Metrics.RequestCounter.Add(ctx, 1)
+
+		span.SetAttributes(
+			attribute.String("method", r.Method),
+			attribute.String("path", r.URL.Path),
+			attribute.String("remote_addr", r.RemoteAddr),
+		)
+
 		if r.Header.Get("Authorization") != requiredAuthorization {
-			logger.Warn("invalid authorization header",
-				slog.String("expected", requiredAuthorization),
-				slog.String("authorization", r.Header.Get("Authorization")))
+			telemetry.Metrics.ErrorCounter.Add(ctx, 1)
+			config.Logger.Error("invalid authorization header",
+				"remote_addr", r.RemoteAddr,
+				"user_agent", r.UserAgent())
+
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "unauthorized")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		query := r.URL.Query().Get("query")
+		span.SetAttributes(attribute.String("query", query))
+
 		if query == "" || !strings.HasPrefix(strings.ToLower(query), "insert into") {
+			telemetry.Metrics.ErrorCounter.Add(ctx, 1)
+			config.Logger.Warn("invalid query",
+				"query", query,
+				"remote_addr", r.RemoteAddr)
+
+			span.SetStatus(codes.Error, "wrong query")
 			http.Error(w, "wrong query", http.StatusBadRequest)
 			return
 		}
@@ -197,11 +137,21 @@ func main() {
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			logger.Error("failed to read request body", slog.String("error", err.Error()))
+			telemetry.Metrics.ErrorCounter.Add(ctx, 1)
+			config.Logger.Error("failed to read request body",
+				"error", err.Error(),
+				"remote_addr", r.RemoteAddr)
+
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "cannot read body")
 			http.Error(w, "cannot read body", http.StatusInternalServerError)
 			return
 		}
 		rows := strings.Split(string(body), "\n")
+
+		config.Logger.Debug("received insert request",
+			"row_count", len(rows),
+			"table", strings.Split(query, " ")[2])
 
 		buffer <- &Batch{
 			Params: params,
@@ -209,23 +159,50 @@ func main() {
 		}
 
 		w.Write([]byte("ok"))
+		span.SetStatus(codes.Ok, "")
+		span.SetAttributes(
+			attribute.Int("row_count", len(rows)),
+			attribute.String("table", strings.Split(query, " ")[2]),
+		)
 	})
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	// Setup signal handling
+	signalCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	srv := &http.Server{Addr: fmt.Sprintf(":%s", PORT)}
+	// Start HTTP server in a goroutine
+	server := &http.Server{Addr: fmt.Sprintf(":%s", config.ListenerPort)}
 	go func() {
-		logger.Info("listening", slog.String("port", PORT))
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("failed to start server", slog.String("error", err.Error()))
+		config.Logger.Info("server listening", "port", config.ListenerPort)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			config.Logger.Error("failed to start server", "error", err.Error())
 			os.Exit(1)
 		}
 	}()
 
-	<-ctx.Done()
+	// Wait for interrupt signal
+	<-signalCtx.Done()
+	config.Logger.Info("shutdown signal received")
+
+	// Create a timeout context for shutdown
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	// Start a goroutine to track in-flight requests
+	shutdownComplete := make(chan struct{})
+	go func() {
+		inFlight.Wait()
+		close(shutdownComplete)
+	}()
+
+	// Attempt graceful shutdown
+	config.Logger.Info("shutting down server")
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		config.Logger.Error("server shutdown error", "error", err.Error())
+	}
+
+	// Close the buffer channel and wait for processing to finish
 	close(buffer)
 	<-done
-
-	logger.Info("shutdown complete")
+	config.Logger.Info("graceful shutdown complete")
 }

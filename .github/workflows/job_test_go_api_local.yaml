@@ -3,7 +3,8 @@ on:
   workflow_call:
 
 jobs:
-  test_agent_local:
+  tests:
+    name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -20,3 +21,6 @@ jobs:
       - name: Test
         run: task test
         working-directory: go
+        env:
+          SIMULATON_TEST: true
+          INTEGRATION_TEST: true

@@ -154,7 +154,7 @@ export default function PricingPage() {
 
           <PricingCardHeader
             title="Pro Tier"
-            description="Predicatable pricing without surprises."
+            description="Predictable pricing without surprises."
             className="bg-gradient-to-tr from-black/50 to-[#FFD600]/10 "
             color={Color.Yellow}
           />

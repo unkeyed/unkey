@@ -1,6 +1,17 @@
-import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from "./active_keys";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
+import {
+  getDailyActiveKeysTimeseries,
+  getFourHourlyActiveKeysTimeseries,
+  getHourlyActiveKeysTimeseries,
+  getMonthlyActiveKeysTimeseries,
+  getSixHourlyActiveKeysTimeseries,
+  getThreeDayActiveKeysTimeseries,
+  getTwelveHourlyActiveKeysTimeseries,
+  getTwoHourlyActiveKeysTimeseries,
+  getWeeklyActiveKeysTimeseries,
+} from "./keys/active_keys";
+import { getKeysOverviewLogs } from "./keys/keys";
 import { getLatestVerifications } from "./latest_verifications";
 import {
   getDailyLogsTimeseries,
@@ -111,13 +122,17 @@ export class ClickHouse {
         perWeek: getWeeklyVerificationTimeseries(this.querier),
         perMonth: getMonthlyVerificationTimeseries(this.querier),
       },
-    };
-  }
-  public get activeKeys() {
-    return {
-      perHour: getActiveKeysPerHour(this.querier),
-      perDay: getActiveKeysPerDay(this.querier),
-      perMonth: getActiveKeysPerMonth(this.querier),
+      activeKeysTimeseries: {
+        perHour: getHourlyActiveKeysTimeseries(this.querier),
+        per2Hours: getTwoHourlyActiveKeysTimeseries(this.querier),
+        per4Hours: getFourHourlyActiveKeysTimeseries(this.querier),
+        per6Hours: getSixHourlyActiveKeysTimeseries(this.querier),
+        per12Hours: getTwelveHourlyActiveKeysTimeseries(this.querier),
+        perDay: getDailyActiveKeysTimeseries(this.querier),
+        per3Days: getThreeDayActiveKeysTimeseries(this.querier),
+        perWeek: getWeeklyActiveKeysTimeseries(this.querier),
+        perMonth: getMonthlyActiveKeysTimeseries(this.querier),
+      },
     };
   }
   public get ratelimits() {
@@ -136,7 +151,6 @@ export class ClickHouse {
         per6Hours: getSixHourlyRatelimitTimeseries(this.querier),
         perDay: getDailyRatelimitTimeseries(this.querier),
         perMonth: getMonthlyRatelimitTimeseries(this.querier),
-
         latency: {
           perMinute: getMinutelyLatencyTimeseries(this.querier),
           per5Minutes: getFiveMinuteLatencyTimeseries(this.querier),
@@ -164,6 +178,9 @@ export class ClickHouse {
     return {
       insert: insertApiRequest(this.inserter),
       logs: getLogs(this.querier),
+      keys: {
+        logs: getKeysOverviewLogs(this.querier),
+      },
       timeseries: {
         perMinute: getMinutelyLogsTimeseries(this.querier),
         per5Minutes: getFiveMinuteLogsTimeseries(this.querier),

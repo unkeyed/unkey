@@ -69,6 +69,7 @@ export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checke
   }
   return (
     <Checkbox
+      className="size-[14px]"
       checked={optimisticChecked}
       onClick={() => {
         if (optimisticChecked) {
