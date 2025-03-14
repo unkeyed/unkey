@@ -1,6 +1,7 @@
 "use client";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
+import { formatNumber } from "@/lib/fmt";
 import { ShieldKey } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
@@ -47,7 +48,7 @@ export function Navigation({ workspace }: NavigationProps) {
             className="text-xs font-medium ph-no-capture h-8 bg-grayA-3 hover:bg-grayA-3 !text-grayA-8"
           >
             <div className="flex gap-1 items-center justify-center text-sm">
-              {Intl.NumberFormat().format(workspace.roles.length)} Roles
+              {formatNumber(workspace.roles.length)} Roles
             </div>
           </Button>
           <NavbarActionButton

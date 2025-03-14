@@ -2,6 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { Empty } from "@unkey/ui";
 import ms from "ms";
@@ -75,7 +76,7 @@ export const OverridesTable = ({ namespaceId, ratelimits, lastUsedTimes }: Props
                 STATUS_STYLES.default.badge.default,
               )}
             >
-              {Intl.NumberFormat().format(override.limit)} Requests
+              {formatNumber(override.limit)} Requests
             </Badge>
           </div>
           <span className="text-content-subtle">/</span>

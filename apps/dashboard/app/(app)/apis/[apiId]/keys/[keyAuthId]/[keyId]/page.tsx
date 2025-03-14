@@ -364,10 +364,10 @@ export default async function APIKeyDetailPage(props: {
             <div className="flex w-full flex-1 items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="h-8">
-                  {Intl.NumberFormat().format(key.roles.length)} Roles{" "}
+                  {formatNumber(key.roles.length)} Roles{" "}
                 </Badge>
                 <Badge variant="secondary" className="h-8">
-                  {Intl.NumberFormat().format(transientPermissionIds.size)} Permissions
+                  {formatNumber(transientPermissionIds.size)} Permissions
                 </Badge>
               </div>
               <RBACButtons permissions={key.workspace.permissions} />
