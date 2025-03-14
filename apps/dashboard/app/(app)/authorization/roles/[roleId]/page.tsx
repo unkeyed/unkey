@@ -46,8 +46,7 @@ export default async function RolePage(props: Props) {
 
   // Get workspace with active permissions only
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq, isNull }) =>
-      eq(table.tenantId, tenantId) && isNull(table.deletedAtM),
+    where: (table, { eq, isNull }) => eq(table.tenantId, tenantId) && isNull(table.deletedAtM),
     with: {
       roles: {
         where: (table, { eq }) => eq(table.id, props.params.roleId),
@@ -84,8 +83,7 @@ export default async function RolePage(props: Props) {
   }
 
   // Filter out soft-deleted keys
-  const activeKeys =
-    role.keys?.filter(({ key }) => key.deletedAtM === null) || [];
+  const activeKeys = role.keys?.filter(({ key }) => key.deletedAtM === null) || [];
 
   // Get all active permissions in the workspace
   const activePermissions = workspace.permissions;
@@ -94,7 +92,7 @@ export default async function RolePage(props: Props) {
   const activeRolePermissionIds = new Set(
     role.permissions
       .filter((rp) => activePermissions.some((p) => p.id === rp.permissionId))
-      .map((rp) => rp.permissionId)
+      .map((rp) => rp.permissionId),
   );
 
   const sortedPermissions = activePermissions.sort((a, b) => {
@@ -139,9 +137,7 @@ export default async function RolePage(props: Props) {
       <RoleClient
         role={{
           ...role,
-          permissions: role.permissions.filter((p) =>
-            activeRolePermissionIds.has(p.permissionId)
-          ),
+          permissions: role.permissions.filter((p) => activeRolePermissionIds.has(p.permissionId)),
         }}
         activeKeys={activeKeys}
         sortedNestedPermissions={sortedNestedPermissions}

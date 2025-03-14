@@ -110,19 +110,14 @@ export const PermissionClient = ({ permission }: Props) => {
                 title="Permission name"
                 description={
                   <div>
-                    Used in API calls. Changing this may affect your access
-                    control
+                    Used in API calls. Changing this may affect your access control
                     <br /> requests.
                   </div>
                 }
                 border="top"
               >
                 <div className="flex gap-2 items-center justify-center w-full">
-                  <Input
-                    placeholder="Permission name"
-                    className="h-9"
-                    {...form.register("name")}
-                  />
+                  <Input placeholder="Permission name" className="h-9" {...form.register("name")} />
                   <Button
                     type="submit"
                     size="lg"
@@ -181,10 +176,7 @@ export const PermissionClient = ({ permission }: Props) => {
                 <p className="text-sm text-accent-11">Updated At</p>
                 <p className="text-accent-12 font-medium text-sm">
                   {permission.updatedAtM
-                    ? format(
-                        new Date(permission.updatedAtM).toDateString(),
-                        "PPPP"
-                      )
+                    ? format(new Date(permission.updatedAtM).toDateString(), "PPPP")
                     : "Not updated yet"}
                 </p>
               </div>
@@ -196,9 +188,7 @@ export const PermissionClient = ({ permission }: Props) => {
               </div>
               <div>
                 <p className="text-sm text-accent-11">Connected Keys</p>
-                <p className="text-accent-12 font-medium text-sm">
-                  {connectedKeys.size}
-                </p>
+                <p className="text-accent-12 font-medium text-sm">{connectedKeys.size}</p>
               </div>
             </div>
           </SettingCard>
@@ -217,12 +207,7 @@ export const PermissionClient = ({ permission }: Props) => {
               <DeletePermission
                 permission={permission}
                 trigger={
-                  <Button
-                    className="w-fit rounded-lg"
-                    variant="outline"
-                    color="danger"
-                    size="lg"
-                  >
+                  <Button className="w-fit rounded-lg" variant="outline" color="danger" size="lg">
                     Delete Permission...
                   </Button>
                 }

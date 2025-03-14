@@ -3,6 +3,7 @@ import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, inArray, isNull } from "@/lib/db";
+import { keys, roles } from "@unkey/db/src/schema";
 import { Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -10,7 +11,6 @@ import { redirect } from "next/navigation";
 import { navigation } from "../constants";
 import { EmptyRoles } from "./empty";
 import { Navigation } from "./navigation";
-import { keys, roles } from "@unkey/db/src/schema";
 
 export const revalidate = 0;
 
@@ -41,9 +41,7 @@ export default async function RolesPage() {
             db
               .select()
               .from(keys)
-              .where(
-                and(eq(keys.id, keysRolesTable.keyId), isNull(keys.deletedAtM))
-              )
+              .where(and(eq(keys.id, keysRolesTable.keyId), isNull(keys.deletedAtM))),
           ),
         with: {
           key: true,
@@ -82,9 +80,7 @@ export default async function RolesPage() {
                     className="grid items-center grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle "
                   >
                     <div className="flex flex-col items-start col-span-6 ">
-                      <pre className="text-sm text-content truncate w-full pr-1">
-                        {r.name}
-                      </pre>
+                      <pre className="text-sm text-content truncate w-full pr-1">{r.name}</pre>
                       <span className="text-xs text-content-subtle truncate w-full">
                         {r.description}
                       </span>
