@@ -1,28 +1,9 @@
 "use client";
-
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { DialogContainer } from "@/components/dialog-container";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DialogTrigger } from "@radix-ui/react-dialog";
-import { Button } from "@unkey/ui";
+import { Button, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -36,96 +17,108 @@ type Props = {
   };
 };
 
-export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
+export const DeleteRole = ({ trigger, role }: Props) => {
   const router = useRouter();
-
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
     name: z.string().refine((v) => v === role.name, "Please confirm the role's name"),
   });
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  type FormValues = z.infer<typeof formSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<FormValues>({
+    mode: "onChange",
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+    },
   });
 
-  const isValid = form.watch("name") === role.name;
+  const isValid = watch("name") === role.name;
 
   const deleteRole = trpc.rbac.deleteRole.useMutation({
-    onMutate() {
-      toast.loading("Deleting Role");
-    },
     onSuccess() {
-      toast.success("Role deleted successfully");
+      toast.success("Role deleted successfully", {
+        description: "The role has been permanently removed",
+      });
       router.push("/authorization/roles");
     },
     onError(err) {
-      toast.error(err.message);
+      toast.error("Failed to delete role", {
+        description: err.message,
+      });
     },
   });
 
-  async function onSubmit() {
-    deleteRole.mutate({ roleId: role.id });
-  }
+  const onSubmit = async () => {
+    try {
+      await deleteRole.mutateAsync({ roleId: role.id });
+    } catch (error) {
+      console.error("Delete error:", error);
+    }
+  };
 
-  function handleDialogOpenChange(newState: boolean) {
+  const handleOpenChange = (newState: boolean) => {
     setOpen(newState);
-    form.reset();
-  }
+    if (!newState) {
+      reset();
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="border-alert">
-        <DialogHeader>
-          <DialogTitle>Delete Role</DialogTitle>
-          <DialogDescription>
-            This role will be deleted, keys with this role will be disconnected from all permissions
-            granted by this role.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form className="flex flex-col space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
-            <Alert variant="alert">
-              <AlertTitle>Warning</AlertTitle>
-              <AlertDescription>This action is not reversible. Please be certain.</AlertDescription>
-            </Alert>
+    <>
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+      <div onClick={() => handleOpenChange(true)}>{trigger}</div>
+      <DialogContainer
+        isOpen={open}
+        onOpenChange={handleOpenChange}
+        title="Delete Role"
+        footer={
+          <div className="w-full flex flex-col gap-2 items-center justify-center">
+            <Button
+              type="submit"
+              form="delete-role-form"
+              variant="primary"
+              color="danger"
+              size="xlg"
+              disabled={!isValid || deleteRole.isLoading || isSubmitting}
+              loading={deleteRole.isLoading || isSubmitting}
+              className="w-full rounded-lg"
+            >
+              Delete Role
+            </Button>
+            <div className="text-gray-9 text-xs">
+              This action cannot be undone – proceed with caution
+            </div>
+          </div>
+        }
+      >
+        <p className="text-gray-11 text-[13px]">
+          <span className="font-medium">Warning: </span>
+          This role will be deleted, and keys with this role will be disconnected from all
+          permissions granted by this role. This action is not reversible.
+        </p>
 
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="font-normal text-content-subtle">
-                    {" "}
-                    Enter the role's key{" "}
-                    <span className="font-medium text-content">{role.name}</span> to continue:
-                  </FormLabel>
-                  <FormControl>
-                    <Input {...field} autoComplete="off" />
-                  </FormControl>
-
-                  <FormMessage />
-                </FormItem>
-              )}
+        <form id="delete-role-form" onSubmit={handleSubmit(onSubmit)}>
+          <div className="space-y-1">
+            <p className="text-gray-11 text-[13px]">
+              Type <span className="text-gray-12 font-medium">{role.name}</span> to confirm
+            </p>
+            <Input
+              {...register("name")}
+              placeholder={`Enter "${role.name}" to confirm`}
+              autoComplete="off"
             />
-
-            <DialogFooter className="justify-end gap-4">
-              <Button type="button" disabled={deleteRole.isLoading} onClick={() => setOpen(!open)}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="destructive"
-                disabled={!isValid || deleteRole.isLoading}
-                loading={deleteRole.isLoading}
-              >
-                Delete Role
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </form>
+      </DialogContainer>
+    </>
   );
 };
