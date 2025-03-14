@@ -1,7 +1,7 @@
-import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
-import { Octokit } from "@octokit/rest";
-import GithubSlugger from "github-slugger";
 import { tryCatch } from "@/lib/utils/try-catch";
+import { Octokit } from "@octokit/rest";
+import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
+import GithubSlugger from "github-slugger";
 
 /**
  * Task that updates glossary content on the website by creating a GitHub PR

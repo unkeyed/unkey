@@ -1,8 +1,8 @@
+import { google } from "@/lib/google";
 import { type TaskOutput, task } from "@trigger.dev/sdk/v3";
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { exaDomainSearchTask } from "./exa-domain-search";
-import { google } from "@/lib/google";
 
 // Evaluation schema for content quality and relevance
 const evaluationSchema = z.object({

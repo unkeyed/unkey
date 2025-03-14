@@ -1,9 +1,9 @@
-import { AbortTaskRunError, task, metadata } from "@trigger.dev/sdk/v3";
+import { google } from "@/lib/google";
+import { AbortTaskRunError, metadata, task } from "@trigger.dev/sdk/v3";
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { CacheStrategy } from "../../_generate-glossary-entry";
 import { technicalResearchTask } from "../../research/_technical-research";
-import { google } from "@/lib/google";
 
 // Define Zod schemas for the content generation and review
 const contentGenerationSchema = z.object({
@@ -74,14 +74,14 @@ export const generateContentTask = task({
         generation: { status: "pending" },
         review: { status: "pending" },
       });
-      
+
       throw new AbortTaskRunError(`Technical research failed for term: ${inputTerm}`);
     }
 
     // Log the structure of the research results
     console.info(`Research results structure: ${typeof technicalResearch.output}`);
     console.info(`Research results keys: ${Object.keys(technicalResearch.output).join(", ")}`);
-    
+
     // Update metadata for successful research
     metadata.set("steps", {
       research: { status: "completed" },
@@ -104,7 +104,7 @@ export const generateContentTask = task({
       term: inputTerm,
       researchResults: technicalResearch.output,
     });
-    
+
     if (!contentResult.ok) {
       // Update metadata for failure
       metadata.set("status", "failed");
@@ -115,10 +115,10 @@ export const generateContentTask = task({
         generation: { status: "failed" },
         review: { status: "pending" },
       });
-      
+
       throw new AbortTaskRunError(`Content generation failed for term: ${inputTerm}`);
     }
-    
+
     console.info(`Generated content for ${inputTerm}`);
 
     // Update metadata for successful generation
@@ -143,7 +143,7 @@ export const generateContentTask = task({
       term: inputTerm,
       content: contentResult.output.markdown,
     });
-    
+
     if (!reviewResult.ok) {
       // Update metadata for failure
       metadata.set("status", "failed");
@@ -154,10 +154,10 @@ export const generateContentTask = task({
         generation: { status: "completed" },
         review: { status: "failed" },
       });
-      
+
       throw new AbortTaskRunError(`Content review failed for term: ${inputTerm}`);
     }
-    
+
     console.info(`Reviewed content for ${inputTerm} with rating: ${reviewResult.output.rating}/10`);
 
     // Update steps and rating before onSuccess is called
@@ -209,17 +209,17 @@ export const generateContentFromResearchTask = task({
     // Extract relevant information from research results
     // Log the structure for debugging
     console.info(`Research results type: ${typeof researchResults}`);
-    if (typeof researchResults === 'object' && researchResults !== null) {
+    if (typeof researchResults === "object" && researchResults !== null) {
       console.info(`Research results keys: ${Object.keys(researchResults).join(", ")}`);
     }
-    
+
     // Try different possible structures to find the sources
     let sources: any[] = [];
-    
+
     if (Array.isArray(researchResults)) {
       // If researchResults is directly an array
       sources = researchResults;
-    } else if (researchResults && typeof researchResults === 'object') {
+    } else if (researchResults && typeof researchResults === "object") {
       // Check for common properties that might contain the sources
       if (Array.isArray(researchResults.included)) {
         sources = researchResults.included;
@@ -233,23 +233,23 @@ export const generateContentFromResearchTask = task({
       } else {
         // Look for any array property that might contain sources
         const findSourcesArray = (obj: any, depth = 0, maxDepth = 3): any[] | null => {
-          if (depth > maxDepth || !obj || typeof obj !== 'object') {
+          if (depth > maxDepth || !obj || typeof obj !== "object") {
             return null;
           }
-          
+
           // Check if this object has properties that look like sources
           for (const key in obj) {
             if (Array.isArray(obj[key])) {
               // Check if this array contains objects with url or text properties
               const arr = obj[key];
-              if (arr.length > 0 && typeof arr[0] === 'object' && arr[0] !== null) {
+              if (arr.length > 0 && typeof arr[0] === "object" && arr[0] !== null) {
                 const firstItem = arr[0];
                 if (firstItem.url || firstItem.text || firstItem.summary) {
                   console.info(`Found sources array in property: ${key}`);
                   return arr;
                 }
               }
-            } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+            } else if (typeof obj[key] === "object" && obj[key] !== null) {
               // Recursively search nested objects
               const result = findSourcesArray(obj[key], depth + 1, maxDepth);
               if (result !== null) {
@@ -257,36 +257,45 @@ export const generateContentFromResearchTask = task({
               }
             }
           }
-          
+
           return null;
         };
-        
+
         const foundSources = findSourcesArray(researchResults);
         if (foundSources) {
           sources = foundSources;
         }
       }
     }
-    
+
     // Make sure we're getting an array of sources
     sources = Array.isArray(sources) ? sources : [];
-    
+
     // Log the structure for debugging
-    console.info(`Sources structure: ${typeof sources}, isArray: ${Array.isArray(sources)}, length: ${sources.length}`);
-    
+    console.info(
+      `Sources structure: ${typeof sources}, isArray: ${Array.isArray(sources)}, length: ${
+        sources.length
+      }`,
+    );
+
     // If no sources are found, throw an error instead of using a fallback
     if (sources.length === 0) {
       console.error(`No sources found in research results for term: ${term}`);
-      console.info("Research results structure:", `${JSON.stringify(researchResults, null, 2).substring(0, 500)}...`);
-      
+      console.info(
+        "Research results structure:",
+        `${JSON.stringify(researchResults, null, 2).substring(0, 500)}...`,
+      );
+
       // Update metadata for failure
       metadata.set("status", "failed");
       metadata.set("error", `No sources found for term: ${term}`);
       metadata.set("completedAt", new Date().toISOString());
-      
-      throw new AbortTaskRunError(`No sources found for term: ${term}. Cannot generate content without research data.`);
+
+      throw new AbortTaskRunError(
+        `No sources found for term: ${term}. Cannot generate content without research data.`,
+      );
     }
-    
+
     // Update metadata with source information
     metadata.set("sourcesCount", sources.length);
     metadata.set("progress", 0.3);
@@ -356,7 +365,7 @@ Content: ${source.text || source.summary || "N/A"}
         metadata.set("tokenUsage", {
           total: result.usage.totalTokens,
           prompt: result.usage.promptTokens,
-          completion: result.usage.completionTokens
+          completion: result.usage.completionTokens,
         });
       }
 
@@ -367,12 +376,12 @@ Content: ${source.text || source.summary || "N/A"}
       return result.object;
     } catch (error) {
       console.error("Error generating content:", error);
-      
+
       // Update metadata for failure
       metadata.set("status", "failed");
       metadata.set("error", typeof error === "object" ? JSON.stringify(error) : String(error));
       metadata.set("completedAt", new Date().toISOString());
-      
+
       // Fallback with minimal response if generation fails
       return {
         markdown: `## ${term}\n\nContent generation failed. Please try again later.`,
@@ -456,7 +465,7 @@ export const reviewContentTask = task({
         metadata.set("tokenUsage", {
           total: result.usage.totalTokens,
           prompt: result.usage.promptTokens,
-          completion: result.usage.completionTokens
+          completion: result.usage.completionTokens,
         });
       }
 
@@ -468,12 +477,12 @@ export const reviewContentTask = task({
       return result.object;
     } catch (error) {
       console.error("Error reviewing content:", error);
-      
+
       // Update metadata for failure
       metadata.set("status", "failed");
       metadata.set("error", typeof error === "object" ? JSON.stringify(error) : String(error));
       metadata.set("completedAt", new Date().toISOString());
-      
+
       // Fallback with original content if review fails
       return {
         markdown: content,

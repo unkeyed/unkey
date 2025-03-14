@@ -1,6 +1,6 @@
-import { task, AbortTaskRunError } from "@trigger.dev/sdk/v3";
-import { Octokit } from "@octokit/rest";
 import { tryCatch } from "@/lib/utils/try-catch";
+import { Octokit } from "@octokit/rest";
+import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 
 /**
  * Task that cleans up GitHub PRs and branches created by the update-content task
@@ -42,53 +42,54 @@ export const cleanupGlossaryUpdateTask = task({
     // If PR number is provided, close the PR
     if (prNumber) {
       // Extract PR number from URL if a full URL was provided
-      const extractedPrNumber = typeof prNumber === 'string' && prNumber.includes('github.com') 
-        ? prNumber.split('/').pop() 
-        : prNumber;
-      
+      const extractedPrNumber =
+        typeof prNumber === "string" && prNumber.includes("github.com")
+          ? prNumber.split("/").pop()
+          : prNumber;
+
       if (!extractedPrNumber) {
         throw new AbortTaskRunError("Could not extract PR number from URL");
       }
 
-      console.log(`Closing PR #${extractedPrNumber}`);
-      
+      console.info(`Closing PR #${extractedPrNumber}`);
+
       const closePrResult = await tryCatch(
         octokit.pulls.update({
           owner,
           repo,
           pull_number: Number(extractedPrNumber),
           state: "closed",
-        })
+        }),
       );
 
       if (closePrResult.error) {
         console.error(`Failed to close PR: ${closePrResult.error.message}`);
       } else {
-        console.log(`Successfully closed PR #${extractedPrNumber}`);
+        console.info(`Successfully closed PR #${extractedPrNumber}`);
         results.prClosed = true;
       }
     }
 
     // If branch name is provided, delete the branch
     if (branch) {
-      console.log(`Deleting branch: ${branch}`);
-      
+      console.info(`Deleting branch: ${branch}`);
+
       const deleteBranchResult = await tryCatch(
         octokit.git.deleteRef({
           owner,
           repo,
           ref: `heads/${branch}`,
-        })
+        }),
       );
 
       if (deleteBranchResult.error) {
         console.error(`Failed to delete branch: ${deleteBranchResult.error.message}`);
       } else {
-        console.log(`Successfully deleted branch: ${branch}`);
+        console.info(`Successfully deleted branch: ${branch}`);
         results.branchDeleted = true;
       }
     }
 
     return results;
   },
-}); 
+});
