@@ -8,16 +8,12 @@ import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { Ban, BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 
+import { formatNumber } from "@/lib/fmt";
 import { OutcomesPopover } from "./components/outcome-popover";
 import { KeyIdentifierColumn } from "./components/override-indicator";
 import { useKeysOverviewLogsQuery } from "./hooks/use-logs-query";
 import { getErrorPercentage, getSuccessPercentage } from "./utils/calculate-blocked-percentage";
 import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
-
-const compactFormatter = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
 
 type Props = {
   log: KeysOverviewLog | null;
@@ -89,7 +85,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                   1,
                 )}%)`}
               >
-                {compactFormatter.format(log.valid_count)}
+                {formatNumber(log.valid_count)}
               </Badge>
             </div>
           );
@@ -119,7 +115,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                     <Ban size="sm-regular" />
                   </span>
                   <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[45px]">
-                    {compactFormatter.format(log.error_count)}
+                    {formatNumber(log.error_count)}
                   </span>
                 </Badge>
               </div>

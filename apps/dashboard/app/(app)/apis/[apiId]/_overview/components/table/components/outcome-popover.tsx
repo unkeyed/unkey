@@ -1,7 +1,7 @@
 "use client";
-import { compactFormatter } from "@/components/logs/overview-charts/utils";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -35,7 +35,7 @@ export const OutcomesPopover = ({ outcomeCounts, isSelected }: OutcomesPopoverPr
           <span className="overflow-hidden text-ellipsis whitespace-nowrap">
             {formatOutcomeName(outcome)}:
           </span>
-          <span className="tabular-nums flex-shrink-0 ml-1">{compactFormatter.format(count)}</span>
+          <span className="tabular-nums flex-shrink-0 ml-1">{formatNumber(count)}</span>
         </div>
       </Badge>
     );

@@ -4,12 +4,12 @@ import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { Ban, BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useState } from "react";
-import { compactFormatter } from "../../utils";
 import { InlineFilter } from "./components/inline-filter";
 import { LogsTableAction } from "./components/logs-actions";
 import { IdentifierColumn } from "./components/override-indicator";
@@ -64,7 +64,7 @@ export const RatelimitOverviewLogsTable = ({
                 )}
                 title={`${log.passed_count.toLocaleString()} Passed requests`}
               >
-                {compactFormatter.format(log.passed_count)}
+                {formatNumber(log.passed_count)}
               </Badge>
               <InlineFilter
                 filterPair={{ identifiers: log.identifier, status: "passed" }}
@@ -92,7 +92,7 @@ export const RatelimitOverviewLogsTable = ({
                 title={`${log.blocked_count.toLocaleString()} Blocked requests`}
               >
                 <Ban size="sm-regular" />
-                {compactFormatter.format(log.blocked_count)}
+                {formatNumber(log.blocked_count)}
               </Badge>
               <InlineFilter
                 content="Filter by identifier and blocked status"

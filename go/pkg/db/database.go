@@ -7,7 +7,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // Config defines the parameters needed to establish database connections.

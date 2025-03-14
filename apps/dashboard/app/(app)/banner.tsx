@@ -1,6 +1,7 @@
 import { Banner } from "@/components/banner";
 import { clickhouse } from "@/lib/clickhouse";
 import type { Workspace } from "@/lib/db";
+import { formatNumber as fmt } from "@/lib/fmt";
 import { QUOTA } from "@unkey/billing";
 import ms from "ms";
 import Link from "next/link";
@@ -8,9 +9,9 @@ import Link from "next/link";
 /**
  * Shows a banner if necessary
  */
-export const UsageBanner: React.FC<{ workspace: Workspace | undefined }> = async ({
-  workspace,
-}) => {
+export const UsageBanner: React.FC<{
+  workspace: Workspace | undefined;
+}> = async ({ workspace }) => {
   if (!workspace) {
     return null;
   }
@@ -19,8 +20,6 @@ export const UsageBanner: React.FC<{ workspace: Workspace | undefined }> = async
 
   const year = t.getUTCFullYear();
   const month = t.getUTCMonth() + 1;
-
-  const fmt = new Intl.NumberFormat("en-US").format;
 
   if (workspace.plan === "free") {
     const billableVerifications = await clickhouse.billing.billableVerifications({

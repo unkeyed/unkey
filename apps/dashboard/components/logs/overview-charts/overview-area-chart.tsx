@@ -10,6 +10,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 import {
@@ -23,7 +24,6 @@ import {
 import { OverviewAreaChartError } from "./overview-area-chart-error";
 import { OverviewAreaChartLoader } from "./overview-area-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
-import { compactFormatter } from "./utils";
 
 export type ChartMetric = {
   key: string;
@@ -160,9 +160,9 @@ export const OverviewAreaChart = ({
               ? `${primaryMetric.formatter(
                   ranges[primaryMetric.key].min,
                 )} - ${primaryMetric.formatter(ranges[primaryMetric.key].max)}`
-              : `${compactFormatter.format(
-                  ranges[primaryMetric.key].min,
-                )} - ${compactFormatter.format(ranges[primaryMetric.key].max)}`}
+              : `${formatNumber(ranges[primaryMetric.key].min)} - ${formatNumber(
+                  ranges[primaryMetric.key].max,
+                )}`}
           </div>
         </div>
 
@@ -177,7 +177,7 @@ export const OverviewAreaChart = ({
                 <div className="text-accent-12 text-[18px] font-semibold leading-7">
                   {metric.formatter
                     ? metric.formatter(ranges[metric.key].avg)
-                    : compactFormatter.format(ranges[metric.key].avg)}
+                    : formatNumber(ranges[metric.key].avg)}
                 </div>
               </div>
             ))}

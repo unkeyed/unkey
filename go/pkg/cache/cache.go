@@ -11,7 +11,7 @@ import (
 	"github.com/panjf2000/ants"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -55,23 +55,23 @@ type Config[K comparable, V any] struct {
 var _ Cache[any, any] = (*cache[any, any])(nil)
 
 // New creates a new cache instance
-func New[K comparable, V any](config Config[K, V]) *cache[K, V] {
+func New[K comparable, V any](config Config[K, V]) (*cache[K, V], error) {
 
 	builder, err := otter.NewBuilder[K, swrEntry[V]](config.MaxSize)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	otter, err := builder.CollectStats().Cost(func(key K, value swrEntry[V]) uint32 {
 		return 1
 	}).WithTTL(config.Stale).Build()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	pool, err := ants.NewPool(10)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	c := &cache[K, V]{
@@ -87,31 +87,60 @@ func New[K comparable, V any](config Config[K, V]) *cache[K, V] {
 		inflightRefreshes: make(map[K]bool),
 	}
 
-	go c.collectMetrics()
-
-	return c
+	err = c.registerMetrics()
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 
 }
 
-func (c *cache[K, V]) collectMetrics() {
+func (c *cache[K, V]) registerMetrics() error {
 
 	attributes := metric.WithAttributes(
 		attribute.String("resource", c.resource),
 	)
 
-	t := time.NewTicker(time.Second * 5)
-	for range t.C {
-		ctx := context.Background()
-
-		metrics.Cache.Size.Record(ctx, int64(c.otter.Size()), attributes)
-
-		stats := c.otter.Stats()
-		metrics.Cache.Hits.Record(ctx, stats.Hits(), attributes)
-		metrics.Cache.Misses.Record(ctx, stats.Misses(), attributes)
-		metrics.Cache.Evicted.Record(ctx, stats.EvictedCount(), attributes)
-
+	err := metrics.Cache.Size.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		o.Observe(int64(c.otter.Size()), attributes)
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
+	err = metrics.Cache.Capacity.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		o.Observe(int64(c.otter.Capacity()), attributes)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	err = metrics.Cache.Hits.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		o.Observe(c.otter.Stats().Hits(), attributes)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	err = metrics.Cache.Misses.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		o.Observe(c.otter.Stats().Misses(), attributes)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	err = metrics.Cache.Evicted.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		o.Observe(c.otter.Stats().EvictedCount(), attributes)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {

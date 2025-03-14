@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // Node represents an individual entity in the ring, usually a service instance

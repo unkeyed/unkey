@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/discovery"
-	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/port"
 )
 

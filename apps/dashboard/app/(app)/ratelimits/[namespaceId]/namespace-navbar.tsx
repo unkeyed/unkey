@@ -1,9 +1,9 @@
 "use client";
 import { QuickNavPopover } from "@/components/navbar-popover";
+import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { ChevronExpandY, Gauge } from "@unkey/icons";
-import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { IdentifierDialog } from "./_components/identifier-dialog";
 
@@ -80,14 +80,7 @@ export const NamespaceNavbar = ({
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <Button
-            onClick={() => setOpen(true)}
-            variant="outline"
-            size="md"
-            className="bg-grayA-2 hover:bg-grayA-3"
-          >
-            Override Identifier
-          </Button>
+          <NavbarActionButton onClick={() => setOpen(true)}>Override Identifier</NavbarActionButton>
           <CopyableIDButton value={namespace.id} />
         </Navbar.Actions>
       </Navbar>

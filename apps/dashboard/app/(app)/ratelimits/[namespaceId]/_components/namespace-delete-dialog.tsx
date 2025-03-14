@@ -2,12 +2,11 @@
 
 import { revalidateTag } from "@/app/actions";
 import { DialogContainer } from "@/components/dialog-container";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@unkey/ui";
+import { Button, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";

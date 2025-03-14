@@ -2,20 +2,22 @@ import { CircleInfo, TriangleWarning2 } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { type DocumentedInputProps, Input, type InputProps } from "../input";
+import { OptionalTag, RequiredTag } from "./form-textarea";
 
 // Hack to populate fumadocs' AutoTypeTable
 export type DocumentedFormInputProps = DocumentedInputProps & {
   label?: string;
-  description?: string;
+  description?: string | React.ReactNode;
   required?: boolean;
+  optional?: boolean;
   error?: string;
 };
+
 export type FormInputProps = InputProps & DocumentedFormInputProps;
 
 export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
-  ({ label, description, error, required, id, className, variant, ...props }, ref) => {
+  ({ label, description, error, required, id, className, optional, variant, ...props }, ref) => {
     const inputVariant = error ? "error" : variant;
-
     const inputId = id || React.useId();
     const descriptionId = `${inputId}-helper`;
     const errorId = `${inputId}-error`;
@@ -29,14 +31,10 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
             className="text-gray-11 text-[13px] flex items-center"
           >
             {label}
-            {required && (
-              <span className="text-error-9 ml-1" aria-label="required field">
-                *
-              </span>
-            )}
+            {required && <RequiredTag hasError={!!error} />}
+            {optional && <OptionalTag />}
           </label>
         )}
-
         <Input
           ref={ref}
           id={inputId}
@@ -46,19 +44,18 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           aria-required={required}
           {...props}
         />
-
         {(description || error) && (
           <div className="text-[13px] leading-5">
             {error ? (
               <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
-                <TriangleWarning2 aria-hidden="true" />
-                {error}
+                <TriangleWarning2 className="flex-shrink-0" aria-hidden="true" />
+                <span className="flex-1">{error}</span>
               </div>
             ) : description ? (
               <output
                 id={descriptionId}
                 className={cn(
-                  "text-gray-9 flex gap-2 items-center",
+                  "text-gray-9 flex gap-2 items-start",
                   variant === "success"
                     ? "text-success-11"
                     : variant === "warning"
@@ -67,11 +64,19 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
                 )}
               >
                 {variant === "warning" ? (
-                  <TriangleWarning2 size="md-regular" aria-hidden="true" />
+                  <TriangleWarning2
+                    size="md-regular"
+                    className="flex-shrink-0"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <CircleInfo size="md-regular" aria-hidden="true" />
+                  <CircleInfo
+                    size="md-regular"
+                    className="flex-shrink-0 mt-[3px]"
+                    aria-hidden="true"
+                  />
                 )}
-                <span>{description}</span>
+                <span className="flex-1">{description}</span>
               </output>
             ) : null}
           </div>

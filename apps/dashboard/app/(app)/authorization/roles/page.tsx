@@ -2,14 +2,15 @@ import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { Empty } from "@unkey/ui";
+import { and, db, eq, inArray, isNull } from "@/lib/db";
+import { formatNumber } from "@/lib/fmt";
+import { keys, roles } from "@unkey/db/src/schema";
 import { Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
-import { CreateNewRole } from "./create-new-role";
+import { EmptyRoles } from "./empty";
 import { Navigation } from "./navigation";
 
 export const revalidate = 0;
@@ -22,61 +23,58 @@ export default async function RolesPage() {
       and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     with: {
       permissions: true,
-      roles: {
-        with: {
-          keys: {
-            with: {
-              key: {
-                columns: {
-                  deletedAtM: true,
-                },
-              },
-            },
-          },
-          permissions: {
-            with: {
-              permission: true,
-            },
-          },
-        },
-      },
     },
   });
+
   if (!workspace) {
     return redirect("/new");
   }
 
-  /**
-   * Filter out all the soft deleted keys cause I'm not smart enough to do it with drizzle
-   */
-  workspace.roles = workspace.roles.map((role) => {
-    role.keys = role.keys.filter(({ key }) => key.deletedAtM === null);
-    return role;
+  const activePermissionIds = workspace.permissions.map((p) => p.id);
+
+  const rolesData = await db.query.roles.findMany({
+    where: eq(roles.workspaceId, workspace.id),
+    with: {
+      // Only include non-deleted keys
+      keys: {
+        where: (keysRolesTable, { exists }) =>
+          exists(
+            db
+              .select()
+              .from(keys)
+              .where(and(eq(keys.id, keysRolesTable.keyId), isNull(keys.deletedAtM))),
+          ),
+        with: {
+          key: true,
+        },
+      },
+      permissions: {
+        where: (rolesPermissionsTable) =>
+          inArray(rolesPermissionsTable.permissionId, activePermissionIds),
+        with: {
+          permission: true,
+        },
+      },
+    },
   });
+
+  const workspaceWithRoles = {
+    ...workspace,
+    roles: rolesData,
+  };
 
   return (
     <div>
-      <Navigation workspace={workspace} />
-
+      <Navigation workspace={workspaceWithRoles} />
       <PageContent>
         <SubMenu navigation={navigation} segment="roles" />
         <div className="mt-8 mb-20 overflow-x-auto">
           <div className="flex flex-col gap-8 mb-20 ">
-            {workspace.roles.length === 0 ? (
-              <Empty>
-                <Empty.Icon />
-                <Empty.Title>No roles found</Empty.Title>
-                <Empty.Description>Create your first role</Empty.Description>
-                <Empty.Actions>
-                  <CreateNewRole
-                    trigger={<Button variant="primary">Create New Role</Button>}
-                    permissions={workspace.permissions}
-                  />
-                </Empty.Actions>
-              </Empty>
+            {workspaceWithRoles.roles.length === 0 ? (
+              <EmptyRoles />
             ) : (
               <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border">
-                {workspace.roles.map((r) => (
+                {workspaceWithRoles.roles.map((r) => (
                   <Link
                     href={`/authorization/roles/${r.id}`}
                     key={r.id}
@@ -88,25 +86,15 @@ export default async function RolesPage() {
                         {r.description}
                       </span>
                     </div>
-
                     <div className="flex items-center col-span-3 gap-2">
                       <Badge variant="secondary">
-                        {Intl.NumberFormat(undefined, {
-                          notation: "compact",
-                        }).format(r.permissions.length)}{" "}
-                        Permission
-                        {r.permissions.length !== 1 ? "s" : ""}
+                        {formatNumber(r.permissions.length)} Permissions
                       </Badge>
-
                       <Badge variant="secondary">
-                        {Intl.NumberFormat(undefined, {
-                          notation: "compact",
-                        }).format(r.keys.length)}{" "}
-                        Key
+                        {formatNumber(r.keys.length)} Key
                         {r.keys.length !== 1 ? "s" : ""}
                       </Badge>
                     </div>
-
                     <div className="flex items-center justify-end col-span-3">
                       <Button variant="ghost">
                         <ChevronRight className="w-4 h-4" />

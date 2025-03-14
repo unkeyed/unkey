@@ -111,20 +111,52 @@ func setupTelemetry(ctx context.Context, config *Config) (*TelemetryConfig, func
 
 	telemetryConfig.LogHandler = otlpLogHandler
 
-	// Configure tracer
-	traceExporter, err := otlptracehttp.New(ctx)
+	// Configure tracer with compression
+	traceExporter, err := otlptracehttp.New(ctx,
+		otlptracehttp.WithCompression(otlptracehttp.GzipCompression),
+	)
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
 
+	var sampler sdktrace.Sampler
+
+	// We'll always sample errors
+	alwaysOnError := sdktrace.ParentBased(
+		sdktrace.TraceIDRatioBased(config.TraceSampleRate),
+		sdktrace.WithRemoteParentSampled(sdktrace.AlwaysSample()),
+		sdktrace.WithRemoteParentNotSampled(sdktrace.TraceIDRatioBased(config.TraceSampleRate)),
+		sdktrace.WithLocalParentSampled(sdktrace.AlwaysSample()),
+		sdktrace.WithLocalParentNotSampled(sdktrace.TraceIDRatioBased(config.TraceSampleRate)),
+	)
+
+	// Configure the sampler
+	if config.TraceSampleRate >= 1.0 {
+		sampler = sdktrace.AlwaysSample()
+	} else if config.TraceSampleRate <= 0.0 {
+		sampler = sdktrace.NeverSample()
+	} else {
+		sampler = alwaysOnError
+	}
+
+	config.Logger.Info("configured tracer with sampling",
+		"rate", config.TraceSampleRate)
+
 	traceProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithResource(res),
-		sdktrace.WithBatcher(traceExporter),
+		sdktrace.WithBatcher(traceExporter,
+			sdktrace.WithMaxExportBatchSize(config.TraceMaxBatchSize),
+		),
+		sdktrace.WithSampler(sampler),
 	)
+
 	otel.SetTracerProvider(traceProvider)
 	telemetryConfig.Tracer = traceProvider.Tracer(config.ServiceName)
 
+	//
 	// Initialize metrics
+	//
 	var err1, err2, err3, err4, err5, err6 error
 	telemetryConfig.Metrics.BatchCounter, err1 = telemetryConfig.Meter.Int64Counter(
 		"clickhouse_batches_total",
@@ -174,8 +206,7 @@ func setupTelemetry(ctx context.Context, config *Config) (*TelemetryConfig, func
 
 	// Return a cleanup function (should be nil but might be an actual error)
 	cleanup := func(ctx context.Context) error {
-		err := meterProvider.Shutdown(ctx)
-		if err != nil {
+		if err := meterProvider.Shutdown(ctx); err != nil {
 			return err
 		}
 
@@ -183,8 +214,11 @@ func setupTelemetry(ctx context.Context, config *Config) (*TelemetryConfig, func
 			return err
 		}
 
-		// Actually shutdown the log exporter
-		return logExporter.Shutdown(ctx)
+		if err := logProvider.Shutdown(ctx); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	return telemetryConfig, cleanup, nil

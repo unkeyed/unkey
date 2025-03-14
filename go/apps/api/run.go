@@ -23,9 +23,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/discovery"
-	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
 	"github.com/unkeyed/unkey/go/pkg/otel"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -44,7 +44,21 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := clock.New()
 
-	logger := logging.New(logging.Config{Development: true, NoColor: true}).
+	if cfg.OtelEnabled {
+		grafanaErr := otel.InitGrafana(ctx, otel.Config{
+			Application: "api",
+			Version:     version.Version,
+			NodeID:      cfg.ClusterNodeID,
+			CloudRegion: cfg.Region,
+		},
+			shutdowns,
+		)
+		if grafanaErr != nil {
+			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
+		}
+	}
+
+	logger := logging.New().
 		With(
 			slog.String("nodeId", cfg.ClusterNodeID),
 			slog.String("platform", cfg.Platform),
@@ -61,18 +75,6 @@ func Run(ctx context.Context, cfg Config) error {
 			)
 		}
 	}()
-
-	if cfg.OtelOtlpEndpoint != "" {
-		shutdownOtel, grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			GrafanaEndpoint: cfg.OtelOtlpEndpoint,
-			Application:     "api",
-			Version:         version.Version,
-		})
-		if grafanaErr != nil {
-			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
-		}
-		shutdowns.RegisterCtx(shutdownOtel...)
-	}
 
 	db, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,

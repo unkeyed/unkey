@@ -10,12 +10,12 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 func TestWriteRead(t *testing.T) {
 
-	c := cache.New[string, string](cache.Config[string, string]{
+	c, err := cache.New[string, string](cache.Config[string, string]{
 		MaxSize: 10_000,
 
 		Fresh:    time.Minute,
@@ -23,6 +23,7 @@ func TestWriteRead(t *testing.T) {
 		Logger:   logging.NewNoop(),
 		Resource: "test", Clock: clock.New(),
 	})
+	require.NoError(t, err)
 	c.Set(context.Background(), "key", "value")
 	value, hit := c.Get(context.Background(), "key")
 	require.Equal(t, cache.Hit, hit)
@@ -32,7 +33,7 @@ func TestWriteRead(t *testing.T) {
 func TestEviction(t *testing.T) {
 
 	clk := clock.NewTestClock()
-	c := cache.New[string, string](cache.Config[string, string]{
+	c, err := cache.New[string, string](cache.Config[string, string]{
 		MaxSize: 10_000,
 
 		Fresh:    time.Second,
@@ -41,7 +42,7 @@ func TestEviction(t *testing.T) {
 		Resource: "test",
 		Clock:    clk,
 	})
-
+	require.NoError(t, err)
 	c.Set(context.Background(), "key", "value")
 	clk.Tick(2 * time.Second)
 	_, hit := c.Get(context.Background(), "key")
@@ -55,7 +56,7 @@ func TestRefresh(t *testing.T) {
 	// count how many times we refreshed from origin
 	refreshedFromOrigin := atomic.Int32{}
 
-	c := cache.New[string, string](cache.Config[string, string]{
+	c, err := cache.New[string, string](cache.Config[string, string]{
 		MaxSize: 10_000,
 
 		Fresh:    time.Second * 2,
@@ -64,7 +65,7 @@ func TestRefresh(t *testing.T) {
 		Resource: "test",
 		Clock:    clk,
 	})
-
+	require.NoError(t, err)
 	c.Set(context.Background(), "key", "value")
 	clk.Tick(time.Second)
 
@@ -79,7 +80,7 @@ func TestRefresh(t *testing.T) {
 
 func TestNull(t *testing.T) {
 
-	c := cache.New[string, string](cache.Config[string, string]{
+	c, err := cache.New[string, string](cache.Config[string, string]{
 		MaxSize:  10_000,
 		Fresh:    time.Second * 1,
 		Stale:    time.Minute * 5,
@@ -87,7 +88,7 @@ func TestNull(t *testing.T) {
 		Resource: "test",
 		Clock:    clock.New(),
 	})
-
+	require.NoError(t, err)
 	c.SetNull(context.Background(), "key")
 
 	_, hit := c.Get(context.Background(), "key")
