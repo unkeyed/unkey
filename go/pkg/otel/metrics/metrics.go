@@ -244,6 +244,13 @@ func Init(m metric.Meter) error {
 			metric.WithDescription("How many entries are stored in the cache."),
 		},
 	}
+	Cache.Capacity = &int64ObservableGauge{
+		m:    m,
+		name: "cache_capacity",
+		opts: []metric.Int64ObservableGaugeOption{
+			metric.WithDescription("Maximum number of items the cache can hold."),
+		},
+	}
 
 	Cluster.Size = &int64ObservableGauge{
 		m:    m,
