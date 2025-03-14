@@ -2,7 +2,7 @@ import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useUser } from "@clerk/nextjs";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { SavedFiltersGroup } from "../hooks/use-bookmarked-filters";
 import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
@@ -16,44 +16,30 @@ export type QuerySearchParams = {
 
 type QueriesPopoverProps<T> = {
   children: React.ReactNode;
-  savedFilters: SavedFiltersGroup<T>[];
+  filterGroups: SavedFiltersGroup<T>[];
   toggleBookmark: (groupId: string) => void;
-  applyFilterGroup: (id: string) => void;
-  updateGroups: () => void;
+  applyFilterGroup: (group: SavedFiltersGroup<T>) => void;
 };
 
 export function QueriesPopover<T extends QuerySearchParams>({
   children,
-  savedFilters,
+  filterGroups,
   toggleBookmark,
   applyFilterGroup,
-  updateGroups,
 }: QueriesPopoverProps<T>) {
-  // Get the user Data
-
   const { user } = useUser();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [focusedTabIndex, setFocusedTabIndex] = useState(0);
   const [selectedQueryIndex, setSelectedQueryIndex] = useState(0);
-  const [filterGroups, setfilterGroups] = useState<typeof savedFilters>(savedFilters);
-  const [savedGroups, setSavedGroups] = useState<typeof savedFilters>(
-    savedFilters.filter((filter) => filter.bookmarked),
-  );
-  const [isDisabled, setIsDisabled] = useState(savedFilters.length === 0);
+  const [isDisabled, setIsDisabled] = useState(filterGroups.length === 0);
 
-  const handleUpdateGroups = () => {
-    updateGroups();
-  };
-
-  useEffect(() => {
-    setfilterGroups(savedFilters);
-    setSavedGroups(savedFilters.filter((filter) => filter.bookmarked));
-    setIsDisabled(savedFilters.length === 0);
-  }, [savedFilters]);
+  function handleToggleBookmark(groupId: string) {
+    toggleBookmark(groupId);
+  }
 
   useKeyboardShortcut("q", () => {
-    setIsDisabled(savedFilters.length === 0);
+    setIsDisabled(filterGroups.length === 0);
     if (!open && !isDisabled) {
       setOpen(true);
       setSelectedQueryIndex(0);
@@ -68,24 +54,23 @@ export function QueriesPopover<T extends QuerySearchParams>({
   const handleTabChange = (index: number) => {
     setSelectedQueryIndex(0);
     setFocusedTabIndex(index);
-    handleUpdateGroups();
   };
 
   const handleSelectedQuery = (id: string) => {
-    const filterId = savedFilters.find((filter: { id: string }) => filter.id === id);
-    const filterIndex = savedFilters.findIndex((filter: { id: string }) => filter.id === id);
-
-    if (!filterId) {
+    let filterIndex = undefined;
+    if (focusedTabIndex === 0) {
+      filterIndex = filterGroups.findIndex((filter: { id: string }) => filter.id === id);
+    } else {
+      filterIndex = filterGroups
+        .filter((filter) => filter.bookmarked)
+        .findIndex((filter: { id: string }) => filter.id === id);
+    }
+    const FilterGroup = filterGroups.find((filter) => filter.id === id);
+    if (!FilterGroup) {
       return;
     }
-
-    applyFilterGroup(filterId.id);
+    applyFilterGroup(FilterGroup);
     setSelectedQueryIndex(filterIndex);
-  };
-
-  const handleBookmarkChanged = (groupId: string) => {
-    toggleBookmark(groupId);
-    handleUpdateGroups();
   };
 
   const handleKeyNavigation = (e: React.KeyboardEvent) => {
@@ -97,7 +82,8 @@ export function QueriesPopover<T extends QuerySearchParams>({
       if (e.key === "ArrowUp" || e.key === "k" || e.key === "K") {
         e.preventDefault();
 
-        const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
+        const currentList =
+          focusedTabIndex === 0 ? filterGroups : filterGroups.filter((filter) => filter.bookmarked);
         const totalItems = currentList.length - 1;
         containerRef.current.scrollTop -= scrollSpeed;
         if (totalItems === 0) {
@@ -110,7 +96,8 @@ export function QueriesPopover<T extends QuerySearchParams>({
         e.preventDefault();
 
         containerRef.current.scrollTop += scrollSpeed;
-        const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
+        const currentList =
+          focusedTabIndex === 0 ? filterGroups : filterGroups.filter((filter) => filter.bookmarked);
         const totalItems = currentList.length - 1;
 
         if (totalItems === 0) {
@@ -134,7 +121,8 @@ export function QueriesPopover<T extends QuerySearchParams>({
       setSelectedQueryIndex(0);
     } else if (e.key === "Enter" || e.key === " ") {
       // Apply the selected filter
-      const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
+      const currentList =
+        focusedTabIndex === 0 ? filterGroups : filterGroups.filter((filter) => filter.bookmarked);
       if (currentList.length > 0 && selectedQueryIndex < currentList.length) {
         handleSelectedQuery(currentList[selectedQueryIndex].id);
         setOpen(false);
@@ -144,10 +132,11 @@ export function QueriesPopover<T extends QuerySearchParams>({
     // Handle toggling bookmark status with 'b' or 'B'
     if (e.key === "b" || e.key === "B") {
       e.preventDefault();
-      const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
+      const currentList =
+        focusedTabIndex === 0 ? filterGroups : filterGroups.filter((filter) => filter.bookmarked);
       if (currentList.length > 0 && selectedQueryIndex < currentList.length) {
         const selectedGroup = currentList[selectedQueryIndex];
-        handleBookmarkChanged(selectedGroup.id);
+        handleToggleBookmark(selectedGroup.id);
       }
     }
   };
@@ -158,7 +147,6 @@ export function QueriesPopover<T extends QuerySearchParams>({
         {children}
       </PopoverTrigger>
       <PopoverContent
-        onFocus={() => handleUpdateGroups()}
         className="flex flex-col min-w-[430px] w-full h-[924px] bg-white dark:bg-black rounded-lg p-2 pb-0 shadow-lg border-none"
         align="start"
         onKeyDown={handleKeyNavigation}
@@ -173,10 +161,14 @@ export function QueriesPopover<T extends QuerySearchParams>({
         >
           <EmptyQueries
             selectedTab={focusedTabIndex}
-            isEmpty={focusedTabIndex === 0 ? filterGroups.length === 0 : savedGroups.length === 0}
+            isEmpty={
+              focusedTabIndex === 0
+                ? filterGroups.length === 0
+                : filterGroups.filter((filter) => filter.bookmarked).length === 0
+            }
           />
           {focusedTabIndex === 0 &&
-            filterGroups?.map((filterItem: SavedFiltersGroup<any>, index: number) => {
+            filterGroups?.map((filterItem: SavedFiltersGroup<T>, index: number) => {
               return (
                 <ListGroup
                   key={filterItem.id}
@@ -185,28 +177,28 @@ export function QueriesPopover<T extends QuerySearchParams>({
                   index={index}
                   total={filterGroups.length}
                   selectedIndex={selectedQueryIndex}
-                  isSaved={filterItem.bookmarked}
                   querySelected={() => handleSelectedQuery(filterItem.id)}
-                  changeBookmark={handleBookmarkChanged}
+                  changeBookmark={() => toggleBookmark(filterItem.id)}
                 />
               );
             })}
           {focusedTabIndex === 1 &&
-            savedGroups.map((filterItem: SavedFiltersGroup<any>, index: number) => {
-              return (
-                <ListGroup
-                  key={filterItem.id}
-                  user={user}
-                  filterList={filterItem}
-                  index={index}
-                  total={savedGroups.filter((filter) => filter.bookmarked).length}
-                  selectedIndex={selectedQueryIndex}
-                  isSaved={filterItem.bookmarked}
-                  querySelected={() => handleSelectedQuery(filterItem.id)}
-                  changeBookmark={handleBookmarkChanged}
-                />
-              );
-            })}
+            filterGroups
+              .filter((filter) => filter.bookmarked)
+              .map((filterItem: SavedFiltersGroup<T>, index: number) => {
+                return (
+                  <ListGroup
+                    key={filterItem.id}
+                    user={user}
+                    filterList={filterItem}
+                    index={index}
+                    total={filterGroups.filter((filter) => filter.bookmarked).length}
+                    selectedIndex={selectedQueryIndex}
+                    querySelected={() => handleSelectedQuery(filterItem.id)}
+                    changeBookmark={() => handleToggleBookmark(filterItem.id)}
+                  />
+                );
+              })}
         </div>
       </PopoverContent>
     </Popover>

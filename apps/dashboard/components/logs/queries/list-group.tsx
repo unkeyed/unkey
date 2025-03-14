@@ -1,8 +1,7 @@
+import { defaultFormatValue } from "@/components/logs/control-cloud/utils";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import type { UserResource } from "@clerk/types";
-
-import { defaultFormatValue } from "@/components/logs/control-cloud/utils";
 import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { useEffect, useState } from "react";
@@ -11,6 +10,7 @@ import { QueriesMadeBy } from "./queries-made-by";
 import { QueriesToast } from "./queries-toast";
 import { getSinceTime } from "./utils";
 import { iconsPerField } from "./utils";
+
 export type QuerySearchParams = {
   startTime?: number | null;
   endTime?: number | null;
@@ -21,7 +21,7 @@ type SavedFiltersGroup<T> = {
   id: string;
   createdAt: number;
   filters: T;
-  bookmarked?: boolean;
+  bookmarked: boolean;
 };
 
 type ListGroupProps<T> = {
@@ -30,7 +30,6 @@ type ListGroupProps<T> = {
   index: number;
   total: number;
   selectedIndex: number;
-  isSaved: boolean | undefined;
   querySelected: (index: string) => void;
   changeBookmark: (index: string) => void;
 };
@@ -54,22 +53,24 @@ export function ListGroup<T extends QuerySearchParams>({
   index,
   total,
   selectedIndex,
-  isSaved,
   querySelected,
   changeBookmark,
 }: ListGroupProps<T>) {
   const [toolTipOpen, setToolTipOpen] = useState(false);
-  const [saved, setSaved] = useState(isSaved);
+  const [formatedFilters, setFormatedFilters] =
+    useState<Record<string, Array<{ operator: string; value: string }>>>();
   const [toastMessage, setToastMessage] = useState<ToolTipMessageType>();
   const [tooltipMessage, setTooltipMessage] = useState<ToolTipMessageType>(
-    saved ? tooltipMessageOptions.saved : tooltipMessageOptions.save,
+    filterList.bookmarked ? tooltipMessageOptions.saved : tooltipMessageOptions.save,
   );
 
   useEffect(() => {
-    setSaved(isSaved);
-  }, [isSaved]);
+    const formated = setformatedFilters();
+    setFormatedFilters(formated);
+  }, []);
+
   let timeOperator = "since";
-  const formatedFilters = () => {
+  const setformatedFilters = () => {
     // Create a formatted version of each filter entry
     const formatted: Record<string, Array<{ operator: string; value: string }>> = {};
     // Initialize formatted with an empty time array
@@ -116,6 +117,7 @@ export function ListGroup<T extends QuerySearchParams>({
 
     return formatted;
   };
+
   useEffect(() => {
     if (toastMessage) {
       handleToast(toastMessage);
@@ -124,23 +126,25 @@ export function ListGroup<T extends QuerySearchParams>({
 
   const handleToast = (message: ToolTipMessageType) => {
     toast.success(
-      <QueriesToast message={message} undoBookmarked={handleBookmarkChanged}>
+      <QueriesToast message={message} undoBookmarked={() => changeBookmark(filterList.id)}>
         <CircleCheck size="xl-regular" className="text-success-9" />
       </QueriesToast>,
     );
   };
 
-  const handleBookmarkChanged = () => {
-    changeBookmark(filterList.id);
-    const newIsSaved = !isSaved;
+  function handleBookmarkChanged() {
+    const newIsSaved = !filterList.bookmarked;
     const message = newIsSaved ? tooltipMessageOptions.saved : tooltipMessageOptions.removed;
     setToastMessage(message);
     setTooltipMessage(message);
-  };
+    changeBookmark(filterList.id);
+  }
 
   const handleMouseEnter = () => {
     setToolTipOpen(true);
-    setTooltipMessage(isSaved ? tooltipMessageOptions.remove : tooltipMessageOptions.save);
+    setTooltipMessage(
+      filterList.bookmarked ? tooltipMessageOptions.remove : tooltipMessageOptions.save,
+    );
   };
 
   const handleMouseLeave = () => {
@@ -181,19 +185,20 @@ export function ListGroup<T extends QuerySearchParams>({
               {/* Vertical Line on Left */}
               <div className="flex flex-col ml-[9px] border-l-[1px] border-l-gray-5 w-[1px]" />
               <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
-                {Object.entries(formatedFilters()).map(([field, list]) => {
-                  const Icon = iconsPerField[field] || Layers2;
-                  // Choose icon based on field type
-                  return (
-                    <QueriesItemRow
-                      key={field}
-                      list={list}
-                      field={field}
-                      Icon={<Icon size="md-regular" className="justify-center" />}
-                      operator={field === "time" ? timeOperator : "is"}
-                    />
-                  );
-                })}
+                {formatedFilters &&
+                  Object.entries(formatedFilters).map(([field, list]) => {
+                    // Choose icon based on field type
+                    const Icon = iconsPerField[field] || Layers2;
+                    return (
+                      <QueriesItemRow
+                        key={field}
+                        list={list}
+                        field={field}
+                        Icon={<Icon size="md-regular" className="justify-center" />}
+                        operator={field === "time" ? timeOperator : "is"}
+                      />
+                    );
+                  })}
               </div>
             </div>
             <QueriesMadeBy
@@ -214,15 +219,17 @@ export function ListGroup<T extends QuerySearchParams>({
               <div
                 className={cn(
                   "flex h-7 w-6 ml-[1px]  justify-center items-center text-accent-9 rounded-md",
-                  saved ? "text-info-9 hover:bg-info-3" : "hover:bg-gray-3 hover:text-accent-12",
+                  filterList.bookmarked
+                    ? "text-info-9 hover:bg-info-3"
+                    : "hover:bg-gray-3 hover:text-accent-12",
                   `tabIndex-${0}`,
                 )}
                 role="button"
-                onClick={handleBookmarkChanged}
+                onClick={() => handleBookmarkChanged()}
                 onKeyUp={(e) => e.key === "Enter"}
-                aria-label={saved ? "Remove from bookmarks" : "Add to bookmarks"}
+                aria-label={filterList.bookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
               >
-                <Bookmark size="md-regular" filled={saved || false} />
+                <Bookmark size="md-regular" filled={filterList.bookmarked} />
               </div>
             </TooltipTrigger>
             <TooltipContent

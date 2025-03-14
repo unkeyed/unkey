@@ -3,7 +3,7 @@ import { QueriesPopover } from "@/components/logs/queries/queries-popover";
 import { cn } from "@/lib/utils";
 import { ChartBarAxisY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsQueries = () => {
@@ -13,23 +13,25 @@ export const LogsQueries = () => {
     filters,
     updateFilters,
   });
-  const [filterGroups, setfilterGroups] = useState(savedFilters);
+  const [filterGroups, setfilterGroups] = useState<typeof savedFilters>(savedFilters);
 
-  const handleApplyFilterGroup = (id: string) => {
-    const group = savedFilters.find((filter) => filter.id === id);
-    if (group) {
-      applyFilterGroup(group);
-    }
-  };
-  const handleGetFilters = () => {
+  function handleBookmarkTooggle(groupId: string) {
+    toggleBookmark(groupId);
     setfilterGroups(savedFilters);
-  };
+  }
+
+  useEffect(() => {
+    if (JSON.stringify(savedFilters) === JSON.stringify(filterGroups)) {
+      return;
+    }
+    setfilterGroups(savedFilters);
+  }, [savedFilters, filterGroups]);
+
   return (
     <QueriesPopover
-      savedFilters={filterGroups}
-      toggleBookmark={toggleBookmark}
-      applyFilterGroup={handleApplyFilterGroup}
-      updateGroups={handleGetFilters}
+      filterGroups={filterGroups}
+      toggleBookmark={handleBookmarkTooggle}
+      applyFilterGroup={applyFilterGroup}
     >
       <div className="group">
         <Button

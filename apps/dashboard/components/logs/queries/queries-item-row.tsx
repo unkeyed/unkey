@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { QueriesOverflow } from "./queries-overflow-tooltip";
 import { QueriesPill } from "./queries-pill";
 
@@ -23,37 +23,29 @@ const FieldsToTruncate = [
   "requestId",
 ];
 export const QueriesItemRow = ({ list, field, Icon, operator }: QueriesItemRowProps) => {
+  const [firstItem, setFirstItem] = useState(list[0]);
+  const [overflowList, setOverflowList] = useState(list.slice(1));
   const shouldTruncate = FieldsToTruncate.includes(field.toString());
-  const overflowList = list.slice(1);
-  // const [ newList, setNewList ] = useState<ListType | null>(null);
   if (!list || list.length === 0) {
     return null;
   }
 
-  // if (list.length > 2 && shouldTruncate) {
-  //   const newOverflowList = list.slice(1);
-  //   setOverflowList(newOverflowList);
-  //   const newlist = list.slice(0, 1);
-  //   setNewList(newlist);
-  // } else {
-  //   setNewList(list);
-  // }
+  useEffect(() => {
+    setFirstItem(list[0]);
+    setOverflowList(list.slice(1));
+  }, [list]);
 
   return (
     <div className="flex flex-row items-center justify-start w-full gap-2">
-      <div className="flex-col font-mono font-normal text-xs text-gray-9 align-start w-[50px]">
+      <div className="flex-col font-mono text-xs font-normal text-gray-9 align-start ">
         {field.charAt(0).toUpperCase() + field.slice(1)}
       </div>
       <div className="flex w-[20px] justify-center shrink-0 grow-0">{Icon}</div>
       <span className="font-mono text-xs font-normal text-gray-9">{operator}</span>
-      <QueriesPill value={list[0].value} />
+      <QueriesPill value={firstItem.value} />
       {!shouldTruncate &&
-        list.slice(1).map((item) => <QueriesPill key={item.value} value={item.value} />)}
-      {shouldTruncate && overflowList && <QueriesOverflow list={overflowList} />}
-      {/* {newList?.map((item) => (
-        <QueriesPill key={item.value} value={item.value} />
-      ))} */}
-      {/* {shouldTruncate && overflowList ? <QueriesOverflow list={overflowList} /> : null} */}
+        overflowList.map((item) => <QueriesPill key={item.value} value={item.value} />)}
+      {shouldTruncate && <QueriesOverflow list={overflowList} />}
     </div>
   );
 };

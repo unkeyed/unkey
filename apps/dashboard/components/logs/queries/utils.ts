@@ -52,7 +52,12 @@ export const iconsPerField: Record<string, FC<IconProps>> = {
 
 export function parseValue(value: string) {
   // Check if value can be parsed as a number
-
+  if (value === "passed") {
+    return { color: "bg-success-9", phrase: value };
+  }
+  if (value === "blocked") {
+    return { color: "bg-warning-9", phrase: value };
+  }
   const isNumeric = !Number.isNaN(Number.parseFloat(value)) && Number.isFinite(Number(value));
   if (!isNumeric) {
     return { color: null, phrase: value };
@@ -67,6 +72,7 @@ export function parseValue(value: string) {
   if (numValue >= 500 && numValue < 600) {
     return { color: "bg-error-9", phrase: value === "500" ? "5xx" : value };
   }
+
   return { color: null, phrase: value };
 }
 

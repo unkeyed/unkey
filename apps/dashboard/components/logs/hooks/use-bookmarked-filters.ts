@@ -6,7 +6,7 @@ export type SavedFiltersGroup<T> = {
   id: string;
   createdAt: number;
   filters: T;
-  bookmarked?: boolean;
+  bookmarked: boolean;
 };
 
 type BookmarkFilterType<T extends FilterValue> = {
@@ -121,7 +121,8 @@ export function useBookmarkedFilters<T extends FilterValue>({
     },
     [updateFilters],
   );
-  const toggleBookmark = (groupId: string) => {
+
+  function toggleBookmark(groupId: string) {
     const savedFilters = JSON.parse(
       localStorage.getItem(localStorageName) || "[]",
     ) as SavedFiltersGroup<QuerySearchParams>[];
@@ -135,8 +136,7 @@ export function useBookmarkedFilters<T extends FilterValue>({
       return filter;
     });
     localStorage.setItem(localStorageName, JSON.stringify(updatedFilters) || "[]");
-    return updatedFilters;
-  };
+  }
 
   return {
     savedFilters: (
