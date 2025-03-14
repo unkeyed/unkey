@@ -39,7 +39,6 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           </p>
         }
       >
-        {" "}
         <div className={cn(hasMoreBlocked ? "block" : "invisible")}>
           <TriangleWarning2 />
         </div>

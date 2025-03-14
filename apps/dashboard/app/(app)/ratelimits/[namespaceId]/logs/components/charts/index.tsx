@@ -1,5 +1,6 @@
 "use client";
 import { LogsTimeseriesBarChart } from "@/components/logs/chart";
+import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useRatelimitLogsContext } from "../../context/logs";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchRatelimitTimeseries } from "./hooks/use-fetch-timeseries";
@@ -11,7 +12,7 @@ export function RatelimitLogsChart({
 }) {
   const { namespaceId } = useRatelimitLogsContext();
   const { filters, updateFilters } = useFilters();
-  const { timeseries, isLoading, isError } = useFetchRatelimitTimeseries(namespaceId);
+  const { timeseries, isLoading, isError, granularity } = useFetchRatelimitTimeseries(namespaceId);
 
   const handleSelectionChange = ({
     start,
@@ -24,6 +25,11 @@ export function RatelimitLogsChart({
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
 
+    let adjustedEnd = end;
+    if (start === end && granularity) {
+      adjustedEnd = end + getTimeBufferForGranularity(granularity);
+    }
+
     updateFilters([
       ...activeFilters,
       {
@@ -34,7 +40,7 @@ export function RatelimitLogsChart({
       },
       {
         field: "endTime",
-        value: end,
+        value: adjustedEnd,
         id: crypto.randomUUID(),
         operator: "is",
       },

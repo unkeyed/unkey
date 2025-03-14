@@ -12,15 +12,17 @@ export const RatelimitOverviewTooltip = ({
   children,
   position,
   disabled = false,
+  asChild = false,
 }: PropsWithChildren<{
   content: React.ReactNode;
   position?: TooltipPosition;
   disabled?: boolean;
+  asChild?: boolean;
 }>) => {
   return (
     <TooltipProvider>
       <Tooltip open={disabled ? false : undefined}>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipTrigger asChild={asChild}>{children}</TooltipTrigger>
         <TooltipContent
           className="bg-gray-12 text-gray-1 px-3 py-2 border border-accent-6 shadow-md font-medium text-xs"
           side={position?.side || "right"}
