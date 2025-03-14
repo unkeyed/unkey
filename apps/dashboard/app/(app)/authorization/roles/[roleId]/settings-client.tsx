@@ -172,9 +172,7 @@ export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleCl
             <div>
               <p className="text-sm text-accent-11">Updated At</p>
               <p className="text-accent-12 font-medium text-sm">
-                {role.updatedAtM
-                  ? format(new Date(role.updatedAtM).toDateString(), "PPPP")
-                  : "Not updated yet"}
+                {role.updatedAtM ? format(role.updatedAtM, "PPPP") : "Not updated yet"}
               </p>
             </div>
             <div>
