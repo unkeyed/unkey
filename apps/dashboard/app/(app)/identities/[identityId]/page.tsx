@@ -16,6 +16,7 @@ import {
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { formatNumber } from "@/lib/fmt";
 import { Button } from "@unkey/ui";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
@@ -110,13 +111,9 @@ export default async function Page(props: Props) {
               </TableHeader>
               <TableBody>
                 {identity.ratelimits.map((ratelimit) => (
-                  <TableRow>
+                  <TableRow key={ratelimit.id}>
                     <TableCell className="font-mono">{ratelimit.name}</TableCell>
-                    <TableCell className="font-mono">
-                      {Intl.NumberFormat(undefined, {
-                        notation: "compact",
-                      }).format(ratelimit.limit)}
-                    </TableCell>
+                    <TableCell className="font-mono">{formatNumber(ratelimit.limit)}</TableCell>
                     <TableCell className="font-mono">{ms(ratelimit.duration)}</TableCell>
                   </TableRow>
                 ))}

@@ -3,6 +3,7 @@ import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, inArray, isNull } from "@/lib/db";
+import { formatNumber } from "@/lib/fmt";
 import { keys, roles } from "@unkey/db/src/schema";
 import { Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
@@ -87,16 +88,10 @@ export default async function RolesPage() {
                     </div>
                     <div className="flex items-center col-span-3 gap-2">
                       <Badge variant="secondary">
-                        {Intl.NumberFormat(undefined, {
-                          notation: "compact",
-                        }).format(r.permissions.length)}{" "}
-                        Permissions
+                        {formatNumber(r.permissions.length)} Permissions
                       </Badge>
                       <Badge variant="secondary">
-                        {Intl.NumberFormat(undefined, {
-                          notation: "compact",
-                        }).format(r.keys.length)}{" "}
-                        Key
+                        {formatNumber(r.keys.length)} Key
                         {r.keys.length !== 1 ? "s" : ""}
                       </Badge>
                     </div>

@@ -7,10 +7,10 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatNumber } from "@/lib/fmt";
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
 import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
-import { compactFormatter } from "../overview-charts/utils";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
@@ -175,7 +175,7 @@ export function LogsTimeseriesBarChart({
                             </div>
                             <div className="ml-auto">
                               <span className="font-mono tabular-nums text-accent-12">
-                                {compactFormatter.format(payload[0]?.payload?.total)}
+                                {formatNumber(payload[0]?.payload?.total)}
                               </span>
                             </div>
                           </div>
