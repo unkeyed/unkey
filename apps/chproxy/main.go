@@ -67,13 +67,13 @@ func main() {
 	}
 
 	config.Logger.Info(fmt.Sprintf("%s starting", config.ServiceName),
-		"max_buffer_size", config.MaxBufferSize,
-		"max_batch_size", config.MaxBatchSize,
+		"max_buffer_size", MAX_BUFFER_SIZE,
+		"max_batch_size", MAX_BATCH_SIZE,
 		"flush_interval", config.FlushInterval.String())
 
 	requiredAuthorization := "Basic " + base64.StdEncoding.EncodeToString([]byte(config.BasicAuth))
 
-	buffer := make(chan *Batch, config.MaxBufferSize)
+	buffer := make(chan *Batch, MAX_BUFFER_SIZE)
 
 	// blocks until we've persisted everything and the process may stop
 	done := startBufferProcessor(ctx, buffer, config, telemetry)

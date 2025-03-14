@@ -8,6 +8,10 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+const (
+	MAX_BUFFER_SIZE int = 5000
+)
+
 // startBufferProcessor manages processing of data sent to Clickhouse.
 // Returns a channel that signals when all pending batches have been processed during shutdown
 func startBufferProcessor(
@@ -108,10 +112,10 @@ func startBufferProcessor(
 				buffered += len(b.Rows)
 				SetBufferSize(int64(buffered))
 
-				if buffered >= config.MaxBatchSize {
+				if buffered >= MAX_BATCH_SIZE {
 					config.Logger.Info("flushing due to max batch size",
 						"buffered_rows", buffered,
-						"max_size", config.MaxBatchSize)
+						"max_size", MAX_BATCH_SIZE)
 					flushAndReset(ctx, "max_size")
 				}
 			case <-ticker.C:

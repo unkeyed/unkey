@@ -12,6 +12,10 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
+const (
+	MAX_BATCH_SIZE int = 10000
+)
+
 type Batch struct {
 	Rows   []string
 	Params url.Values
