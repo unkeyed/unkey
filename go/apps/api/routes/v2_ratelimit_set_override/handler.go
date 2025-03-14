@@ -133,13 +133,11 @@ func New(svc Services) zen.Route {
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.RatelimitSetOverrideEvent,
-				Actor: auditlog.AuditLogActorData{
-					Type: auditlog.RootKeyActor,
-					ID:   auth.KeyID,
-				},
-				RemoteIP:  s.Location(),
-				UserAgent: s.UserAgent(),
-				Display:   fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
+				ActorID:     auth.KeyID,
+				ActorType:   auditlog.RootKeyActor,
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Display:     fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type: auditlog.RatelimitOverrideResourceType,

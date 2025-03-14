@@ -146,12 +146,10 @@ func New(svc Services) zen.Route {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.RatelimitDeleteOverrideEvent,
 				Display:     fmt.Sprintf("Deleted override %s.", override.ID),
-				Actor: auditlog.AuditLogActorData{
-					Type: auditlog.RootKeyActor,
-					ID:   auth.KeyID,
-				},
-				RemoteIP:  s.Location(),
-				UserAgent: s.UserAgent(),
+				ActorID:     auth.KeyID,
+				ActorType:   auditlog.RootKeyActor,
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          override.ID,

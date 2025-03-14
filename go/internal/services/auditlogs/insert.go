@@ -31,53 +31,17 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 	}
 
 	for _, l := range logs {
-		now := time.Now().UnixMilli()
 		auditLogID := uid.New(uid.AuditLogPrefix)
-
 		if l.Bucket == "" {
 			l.Bucket = DEFAULT_BUCKET
 		}
 
-		cacheKey := fmt.Sprintf("%s:%s", l.WorkspaceID, l.Bucket)
-		bucketID, err := s.bucketCache.SWR(
-			ctx,
-			cacheKey,
-			func(ctx context.Context) (string, error) {
-				return db.Query.FindAuditLogBucketIDByWorkspaceIDAndName(ctx, s.db.RO(), db.FindAuditLogBucketIDByWorkspaceIDAndNameParams{
-					WorkspaceID: l.WorkspaceID,
-					Name:        l.Bucket,
-				})
-			},
-			func(err error) cache.CacheHit {
-				if errors.Is(err, sql.ErrNoRows) {
-					return cache.Null
-				}
-
-				return cache.Miss
-			},
-		)
-
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			s.logger.Error("Failed to fetch audit log bucket", "workspaceID", l.WorkspaceID, "bucket", l.Bucket, "error", err)
+		bucketID, err := s.findBucketID(ctx, l.WorkspaceID, l.Bucket)
+		if err != nil {
 			continue
 		}
 
-		if errors.Is(err, sql.ErrNoRows) {
-			bucketID = uid.New(uid.AuditLogBucketPrefix)
-			err = db.Query.InsertAuditLogBucket(ctx, s.db.RW(), db.InsertAuditLogBucketParams{
-				ID:            bucketID,
-				WorkspaceID:   l.WorkspaceID,
-				Name:          l.Bucket,
-				CreatedAt:     time.Now().UnixMilli(),
-				RetentionDays: sql.NullInt32{Int32: 90, Valid: true},
-			})
-			if err != nil {
-				s.logger.Error("Failed to insert audit log bucket", "workspaceID", l.WorkspaceID, "bucket", l.Bucket, "error", err)
-				continue
-			}
-
-			s.bucketCache.Set(ctx, cacheKey, bucketID)
-		}
+		now := time.Now().UnixMilli()
 
 		auditLogs = append(auditLogs, db.InsertAuditLogParams{
 			ID:          auditLogID,
@@ -85,10 +49,10 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 			BucketID:    bucketID,
 			Event:       string(l.Event),
 			Display:     l.Display,
-			ActorMeta:   l.Actor.Meta,
-			ActorType:   string(l.Actor.Type),
-			ActorID:     l.Actor.ID,
-			ActorName:   sql.NullString{String: l.Actor.Name, Valid: l.Actor.Name != ""},
+			ActorMeta:   l.ActorMeta,
+			ActorType:   string(l.ActorType),
+			ActorID:     l.ActorID,
+			ActorName:   sql.NullString{String: l.ActorName, Valid: l.ActorName != ""},
 			RemoteIp:    sql.NullString{String: l.RemoteIP, Valid: l.RemoteIP != ""},
 			UserAgent:   sql.NullString{String: l.UserAgent, Valid: l.UserAgent != ""},
 			Time:        now,
@@ -123,4 +87,49 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 	}
 
 	return nil
+}
+
+func (s *service) findBucketID(ctx context.Context, workspaceID, bucket string) (string, error) {
+	cacheKey := fmt.Sprintf("%s:%s", workspaceID, bucket)
+	bucketID, err := s.bucketCache.SWR(
+		ctx,
+		cacheKey,
+		func(ctx context.Context) (string, error) {
+			return db.Query.FindAuditLogBucketIDByWorkspaceIDAndName(ctx, s.db.RO(), db.FindAuditLogBucketIDByWorkspaceIDAndNameParams{
+				WorkspaceID: workspaceID,
+				Name:        bucket,
+			})
+		},
+		func(err error) cache.CacheHit {
+			if errors.Is(err, sql.ErrNoRows) {
+				return cache.Null
+			}
+
+			return cache.Miss
+		},
+	)
+
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		s.logger.Error("Failed to fetch audit log bucket", "workspaceID", workspaceID, "bucket", bucket, "error", err)
+		return "", err
+	}
+
+	if errors.Is(err, sql.ErrNoRows) {
+		bucketID = uid.New(uid.AuditLogBucketPrefix)
+		err = db.Query.InsertAuditLogBucket(ctx, s.db.RW(), db.InsertAuditLogBucketParams{
+			ID:            bucketID,
+			WorkspaceID:   workspaceID,
+			Name:          bucket,
+			CreatedAt:     time.Now().UnixMilli(),
+			RetentionDays: sql.NullInt32{Int32: 90, Valid: true},
+		})
+		if err != nil {
+			s.logger.Error("Failed to insert audit log bucket", "workspaceID", workspaceID, "bucket", bucket, "error", err)
+			return "", err
+		}
+
+		s.bucketCache.Set(ctx, cacheKey, bucketID)
+	}
+
+	return bucketID, nil
 }

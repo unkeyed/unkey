@@ -146,12 +146,10 @@ func New(svc Services) zen.Route {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.IdentityCreateEvent,
 				Display:     fmt.Sprintf("Created identity %s.", identityID),
-				Actor: auditlog.AuditLogActorData{
-					ID:   auth.KeyID,
-					Type: auditlog.RootKeyActor,
-				},
-				RemoteIP:  s.Location(),
-				UserAgent: s.UserAgent(),
+				ActorID:     auth.KeyID,
+				ActorType:   auditlog.RootKeyActor,
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:   identityID,
@@ -184,12 +182,10 @@ func New(svc Services) zen.Route {
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Event:       auditlog.RatelimitCreateEvent,
 					Display:     fmt.Sprintf("Created ratelimit %s.", ratelimitID),
-					Actor: auditlog.AuditLogActorData{
-						Type: auditlog.RootKeyActor,
-						ID:   auth.KeyID,
-					},
-					RemoteIP:  s.Location(),
-					UserAgent: s.UserAgent(),
+					ActorID:     auth.KeyID,
+					ActorType:   auditlog.RootKeyActor,
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
 					Resources: []auditlog.AuditLogResource{
 						{
 							Type: auditlog.IdentityResourceType,
