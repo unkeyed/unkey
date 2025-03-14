@@ -62,15 +62,18 @@ func Run(ctx context.Context, cfg Config) error {
 	}()
 
 	if cfg.OtelOtlpEndpoint != "" {
-		shutdownOtel, grafanaErr := otel.InitGrafana(ctx, otel.Config{
+		grafanaErr := otel.InitGrafana(ctx, otel.Config{
 			GrafanaEndpoint: cfg.OtelOtlpEndpoint,
 			Application:     "api",
 			Version:         version.Version,
-		})
+			NodeID:          cfg.ClusterNodeID,
+			CloudRegion:     cfg.Region,
+		},
+			shutdowns,
+		)
 		if grafanaErr != nil {
 			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
 		}
-		shutdowns.RegisterCtx(shutdownOtel...)
 	}
 
 	db, err := db.New(db.Config{
