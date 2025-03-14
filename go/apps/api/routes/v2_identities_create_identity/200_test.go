@@ -38,8 +38,8 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Create a identity
-	t.Run("insert identity", func(t *testing.T) {
+	// Create a identity via DB
+	t.Run("insert identity via DB", func(t *testing.T) {
 		identityID := uid.New(uid.IdentityPrefix)
 		externalTestID := uid.New("test_external_id")
 		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
@@ -55,6 +55,43 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), identityID)
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, externalTestID)
+	})
+
+	// Create a identity with ratelimits via DB
+	t.Run("insert identity via DB and add ratelimits", func(t *testing.T) {
+		identityID := uid.New(uid.IdentityPrefix)
+		externalTestID := uid.New("test_external_id")
+		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
+			ID:          identityID,
+			ExternalID:  externalTestID,
+			WorkspaceID: h.Resources.UserWorkspace.ID,
+			Meta:        nil,
+			CreatedAt:   time.Now().UnixMilli(),
+			Environment: "default",
+		})
+		require.NoError(t, err)
+
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), identityID)
+		require.NoError(t, err)
+		require.Equal(t, identity.ExternalID, externalTestID)
+
+		err = db.Query.InsertIdentityRatelimit(ctx, h.DB.RW(), db.InsertIdentityRatelimitParams{
+			ID:          uid.New(uid.RatelimitPrefix),
+			WorkspaceID: h.Resources.UserWorkspace.ID,
+			IdentityID:  sql.NullString{String: identityID, Valid: true},
+			Name:        "Requests",
+			Limit:       15,
+			Duration:    (time.Minute * 15).Milliseconds(),
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identityID, Valid: true})
+		require.NoError(t, err)
+		require.Len(t, rateLimits, 1)
+		require.Equal(t, rateLimits[0].Name, "Requests")
+		require.Equal(t, rateLimits[0].Limit, int32(15))
+		require.Equal(t, rateLimits[0].Duration, int64((time.Minute * 15).Milliseconds()))
 	})
 
 	// Test creating a identity with no other information

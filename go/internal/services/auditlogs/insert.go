@@ -89,6 +89,8 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 	return nil
 }
 
+// This handles finding the bucket ID for a given workspace and bucket name
+// It will create a new bucket if it doesn't already exist
 func (s *service) findBucketID(ctx context.Context, workspaceID, bucket string) (string, error) {
 	cacheKey := fmt.Sprintf("%s:%s", workspaceID, bucket)
 	bucketID, err := s.bucketCache.SWR(
