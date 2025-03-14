@@ -30,7 +30,6 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
       links: [
         httpBatchLink({
           url: `${getBaseUrl()}/api/trpc`,
-          maxURLLength: 500, // We ran into issues on vercel with long URLs of 1000 characters or more
         }),
       ],
     }),
