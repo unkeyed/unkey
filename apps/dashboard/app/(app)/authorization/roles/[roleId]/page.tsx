@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { Navigation } from "./navigation";
 import { RoleClient } from "./settings-client";
-import type { NestedPermissions } from "./tree";
+import type { NestedPermissions } from "./settings-client";
 
 export const revalidate = 0;
 
@@ -27,6 +27,7 @@ function sortNestedPermissions(nested: NestedPermissions) {
 
   const sortedShallowKeys = Object.keys(shallowPermissions).sort();
   const sortedNestedKeys = Object.keys(nestedPermissions).sort();
+
   const sortedObject: NestedPermissions = {};
 
   for (const key of sortedShallowKeys) {
@@ -42,8 +43,11 @@ function sortNestedPermissions(nested: NestedPermissions) {
 
 export default async function RolePage(props: Props) {
   const tenantId = getTenantId();
+
+  // Get workspace with active permissions only
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.tenantId, tenantId),
+    where: (table, { eq, isNull }) =>
+      eq(table.tenantId, tenantId) && isNull(table.deletedAtM),
     with: {
       roles: {
         where: (table, { eq }) => eq(table.id, props.params.roleId),
@@ -79,10 +83,21 @@ export default async function RolePage(props: Props) {
     return notFound();
   }
 
-  // Filter out soft deleted keys
-  const activeKeys = role.keys?.filter(({ key }) => key.deletedAtM === null) || [];
+  // Filter out soft-deleted keys
+  const activeKeys =
+    role.keys?.filter(({ key }) => key.deletedAtM === null) || [];
 
-  const sortedPermissions = workspace.permissions.sort((a, b) => {
+  // Get all active permissions in the workspace
+  const activePermissions = workspace.permissions;
+
+  // Filter role's permissions to only include active ones
+  const activeRolePermissionIds = new Set(
+    role.permissions
+      .filter((rp) => activePermissions.some((p) => p.id === rp.permissionId))
+      .map((rp) => rp.permissionId)
+  );
+
+  const sortedPermissions = activePermissions.sort((a, b) => {
     const aParts = a.name.split(".");
     const bParts = b.name.split(".");
     if (aParts.length !== bParts.length) {
@@ -92,22 +107,26 @@ export default async function RolePage(props: Props) {
   });
 
   const nested: NestedPermissions = {};
+
   for (const permission of sortedPermissions) {
     let n = nested;
     const parts = permission.name.split(".");
+
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
+
       if (!(p in n)) {
         n[p] = {
           id: permission.id,
           name: permission.name,
           description: permission.description,
-          checked: role.permissions.some((p) => p.permissionId === permission.id),
+          checked: activeRolePermissionIds.has(permission.id),
           part: p,
           permissions: {},
           path: parts.slice(0, i).join("."),
         };
       }
+
       n = n[p].permissions;
     }
   }
@@ -118,7 +137,12 @@ export default async function RolePage(props: Props) {
     <div>
       <Navigation role={role} />
       <RoleClient
-        role={role}
+        role={{
+          ...role,
+          permissions: role.permissions.filter((p) =>
+            activeRolePermissionIds.has(p.permissionId)
+          ),
+        }}
         activeKeys={activeKeys}
         sortedNestedPermissions={sortedNestedPermissions}
       />

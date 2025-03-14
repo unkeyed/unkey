@@ -31,7 +31,7 @@ export function Navigation({
             className="text-xs font-medium ph-no-capture h-8 bg-grayA-3 hover:bg-grayA-3 !text-grayA-8"
           >
             <div className="flex gap-1 items-center justify-center text-sm">
-              {Intl.NumberFormat().format(numberOfPermissions)} Permissions (Unlimited)
+              {Intl.NumberFormat().format(numberOfPermissions)} Permissions
             </div>
           </Button>
           <NavbarActionButton

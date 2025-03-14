@@ -15,12 +15,25 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Tree } from "./tree";
+import { DeleteRole } from "./delete-role";
 
 const formSchema = z.object({
   name: validation.name,
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+export type NestedPermission = {
+  id: string;
+  checked: boolean;
+  description: string | null;
+  name: string;
+  part: string;
+  path: string;
+  permissions: NestedPermissions;
+};
+
+export type NestedPermissions = Record<string, NestedPermission>;
 
 type RoleClientProps = {
   role: {
@@ -32,10 +45,14 @@ type RoleClientProps = {
     permissions: { permissionId: string }[];
   };
   activeKeys: { keyId: string }[];
-  sortedNestedPermissions: any; // Using 'any' here, but ideally you'd define the proper type
+  sortedNestedPermissions: NestedPermissions;
 };
 
-export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleClientProps) => {
+export const RoleClient = ({
+  role,
+  activeKeys,
+  sortedNestedPermissions,
+}: RoleClientProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const router = useRouter();
 
@@ -81,6 +98,9 @@ export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleCl
   const isNameChanged = watchedName !== role.name;
   const isNameValid = watchedName && watchedName.trim() !== "";
 
+  // Get the count of active permissions for this role
+  const activePermissionsCount = role.permissions.length;
+
   return (
     <div className="py-3 w-full flex items-center justify-center">
       <div className="w-[760px] flex flex-col justify-center items-center gap-5">
@@ -93,12 +113,19 @@ export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleCl
             <SettingCard
               title="Role name"
               description={
-                <div>The name of this role used to identify it in API calls and the UI.</div>
+                <div>
+                  The name of this role used to identify it in API calls and the
+                  UI.
+                </div>
               }
               border="top"
             >
               <div className="flex gap-2 items-center justify-center w-full">
-                <Input placeholder="Role name" className="h-9" {...form.register("name")} />
+                <Input
+                  placeholder="Role name"
+                  className="h-9"
+                  {...form.register("name")}
+                />
                 <Button
                   type="submit"
                   size="lg"
@@ -163,11 +190,15 @@ export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleCl
             </div>
             <div>
               <p className="text-sm text-accent-11">Permissions</p>
-              <p className="text-accent-12 font-medium text-sm">{role.permissions.length}</p>
+              <p className="text-accent-12 font-medium text-sm">
+                {activePermissionsCount}
+              </p>
             </div>
             <div>
               <p className="text-sm text-accent-11">Connected Keys</p>
-              <p className="text-accent-12 font-medium text-sm">{activeKeys.length}</p>
+              <p className="text-accent-12 font-medium text-sm">
+                {activeKeys.length}
+              </p>
             </div>
           </div>
         </SettingCard>
@@ -179,31 +210,36 @@ export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleCl
           className="flex-col items-start"
           contentWidth="w-full"
         >
-          <Tree nestedPermissions={sortedNestedPermissions} role={{ id: role.id }} />
+          <Tree
+            nestedPermissions={sortedNestedPermissions}
+            role={{ id: role.id }}
+          />
         </SettingCard>
 
         <SettingCard
           title="Delete role"
           description={
             <>
-              Deletes this role along with all its connections to permissions and keys. This action
-              cannot be undone.
+              Deletes this role along with all its connections to permissions
+              and keys. This action cannot be undone.
             </>
           }
           border="both"
         >
           <div className="w-full flex justify-end">
-            <Button
-              className="w-fit rounded-lg"
-              variant="outline"
-              color="danger"
-              size="lg"
-              onClick={() => {
-                toast.info("Delete role functionality would be implemented here");
-              }}
-            >
-              Delete Role...
-            </Button>
+            <DeleteRole
+              role={role}
+              trigger={
+                <Button
+                  className="w-fit rounded-lg"
+                  variant="outline"
+                  color="danger"
+                  size="lg"
+                >
+                  Delete Role...
+                </Button>
+              }
+            />
           </div>
         </SettingCard>
       </div>
