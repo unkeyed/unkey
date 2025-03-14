@@ -5,12 +5,18 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
+	"github.com/unkeyed/unkey/go/pkg/version"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
+	"go.opentelemetry.io/contrib/processors/minsev"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/metric"
@@ -29,10 +35,6 @@ type Config struct {
 	// CloudRegion indicates the geographic region where this service instance is running,
 	// which helps with identifying regional performance patterns or issues.
 	CloudRegion string
-
-	// GrafanaEndpoint is the URL endpoint where telemetry data will be sent.
-	// For Grafana Cloud, this looks like "https://otlp-gateway-{your-stack-id}.grafana.net/otlp"
-	GrafanaEndpoint string
 
 	// Application is the name of your application, used to identify the source of telemetry data.
 	// This appears in Grafana dashboards and alerts.
@@ -89,12 +91,41 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 		return fmt.Errorf("failed to create resource: %w", err)
 	}
 
+	// Configure OTLP log handler
+	logExporter, err := otlploghttp.New(ctx,
+		otlploghttp.WithCompression(otlploghttp.GzipCompression),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create log exporter: %w", err)
+	}
+	shutdowns.RegisterCtx(logExporter.Shutdown)
+
+	var processor sdklog.Processor = sdklog.NewBatchProcessor(logExporter, sdklog.WithExportBufferSize(512))
+
+	processor = minsev.NewLogProcessor(processor, minsev.SeverityInfo)
+	shutdowns.RegisterCtx(processor.Shutdown)
+
+	//	if config.LogDebug {
+	//		processor = minsev.NewLogProcessor(processor, minsev.SeverityDebug)
+	//	}
+
+	logProvider := sdklog.NewLoggerProvider(
+		sdklog.WithResource(res),
+		sdklog.WithProcessor(processor),
+	)
+	shutdowns.RegisterCtx(logProvider.Shutdown)
+
+	logging.SetHandler(otelslog.NewHandler(
+		config.Application,
+		otelslog.WithLoggerProvider(logProvider),
+		otelslog.WithVersion(version.Version),
+		otelslog.WithSource(true),
+	))
+
 	// Initialize trace exporter with configuration matching the old implementation
 	traceExporter, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpoint(config.GrafanaEndpoint),
 		otlptracehttp.WithCompression(otlptracehttp.GzipCompression),
-		otlptracehttp.WithInsecure(), // For local development
-
+	//	otlptracehttp.WithInsecure(), // For local development
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create trace exporter: %w", err)
@@ -118,10 +149,8 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 
 	// Initialize metrics exporter with configuration matching the old implementation
 	metricExporter, err := otlpmetrichttp.New(ctx,
-		otlpmetrichttp.WithEndpoint(config.GrafanaEndpoint),
 		otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression),
-		otlpmetrichttp.WithInsecure(), // For local development
-
+	//	otlpmetrichttp.WithInsecure(), // For local development
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create metric exporter: %w", err)

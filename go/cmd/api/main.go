@@ -47,9 +47,7 @@ In containerized environments, ensure this port is properly exposed.
 The default port is 7070 if not specified.
 
 Examples:
-  --http-port=7070  # Default port
-  --http-port=8080  # Common alternative for local development
-  --http-port=80    # Standard HTTP port (requires root privileges on Unix systems)`,
+  --http-port=7070  # Default port`,
 			Sources:  cli.EnvVars("UNKEY_HTTP_PORT"),
 			Value:    7070,
 			Required: false,
@@ -158,8 +156,7 @@ In containerized environments, ensure this port is properly exposed between cont
 For security, this port should typically not be exposed to external networks.
 
 Examples:
-  --cluster-rpc-port=7071  # Default RPC port
-  --cluster-rpc-port=9000  # Alternative port if 7071 is unavailable`,
+  --cluster-rpc-port=7071  # Default RPC port`,
 			Sources:  cli.EnvVars("UNKEY_CLUSTER_RPC_PORT"),
 			Value:    7071,
 			Required: false,
@@ -177,8 +174,7 @@ In containerized environments, ensure this port is properly exposed between cont
 For security, this port should typically not be exposed to external networks.
 
 Examples:
-  --cluster-gossip-port=7072  # Default gossip port
-  --cluster-gossip-port=9001  # Alternative port if 7072 is unavailable`,
+  --cluster-gossip-port=7072  # Default gossip port`,
 			Sources:  cli.EnvVars("UNKEY_CLUSTER_GOSSIP_PORT"),
 			Value:    7072,
 			Required: false,
@@ -277,9 +273,8 @@ The connection string must be a valid MySQL connection string with all
 necessary parameters, including SSL mode for secure connections.
 
 Examples:
-  --database-primary=mysql://root:password@localhost:3306/unkey
-  --database-primary=mysql://user:password@mysql.example.com:3306/unkey?tls=true
-  --database-primary=mysql://unkey:password@mysql.default.svc.cluster.local:3306/unkey`,
+	--database-primary=mysql://root:password@localhost:3306/unkey?parseTime=true
+  --database-primary=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require`,
 			Sources:  cli.EnvVars("UNKEY_DATABASE_PRIMARY_DSN"),
 			Required: true,
 		},
@@ -296,36 +291,34 @@ In AWS, this could be an RDS read replica. In other environments, it could be a
 MySQL replica configured with binary log replication.
 
 Examples:
-  --database-readonly-replica=mysql://readonly:password@replica.mysql.example.com:3306/unkey?tls=true
-  --database-readonly-replica=mysql://readonly:password@mysql-replica.default.svc.cluster.local:3306/unkey`,
+	--database-primary=mysql://root:password@localhost:3306/unkey?parseTime=true
+  --database-primary=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require`,
 			Sources:  cli.EnvVars("UNKEY_DATABASE_READONLY_DSN"),
 			Required: false,
 		},
 		// OpenTelemetry configuration
-		&cli.StringFlag{
-			Name: "otel-otlp-endpoint",
-			Usage: `OpenTelemetry collector endpoint for metrics, traces, and logs.
-Specified as host:port (without scheme or path)
+		&cli.BoolFlag{
+			Name: "otel",
+			Usage: `Enable OpenTelemetry tracing and metrics.
+When enabled, the Unkey API will collect and export telemetry data (metrics, traces, and logs)
+using the OpenTelemetry protocol. This provides comprehensive observability for production deployments.
 
-When provided, the Unkey API will send telemetry data (metrics, traces, and logs)
-to this endpoint using the OTLP protocol. This enables comprehensive observability
-for production deployments.
+When this flag is set to true, the following standard OpenTelemetry environment variables are used:
+- OTEL_EXPORTER_OTLP_ENDPOINT: The URL of your OpenTelemetry collector
+- OTEL_EXPORTER_OTLP_PROTOCOL: The protocol to use (http/protobuf or grpc)
+- OTEL_EXPORTER_OTLP_HEADERS: Headers for authentication (e.g., "authorization=Bearer <token>")
 
-The endpoint should be an OpenTelemetry collector capable of receiving OTLP data.
-The implementation is currently configured for Grafana Cloud integration but is
-compatible with any OTLP-compliant collector.
-
-Enabling telemetry is highly recommended for production deployments to monitor
-performance, detect issues, and troubleshoot problems.
+For more information on these variables, see:
+https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/
 
 Examples:
-  --otel-otlp-endpoint=http://localhost:4317                    # Local collector
-  --otel-otlp-endpoint=https://otlp.grafana-cloud.example.com   # Grafana Cloud
-  --otel-otlp-endpoint=https://api.honeycomb.io:443             # Honeycomb.io`,
-			Sources:  cli.EnvVars("UNKEY_OTEL_OTLP_ENDPOINT"),
+  --otel=true   # Enable OpenTelemetry with environment variable configuration
+  --otel=false  # Disable OpenTelemetry (default)`,
+			Sources:  cli.EnvVars("UNKEY_OTEL"),
 			Required: false,
 		},
 	},
+
 	Action: action,
 }
 
@@ -349,7 +342,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		ClickhouseURL: cmd.String("clickhouse-url"),
 
 		// OpenTelemetry configuration
-		OtelOtlpEndpoint: cmd.String("otel-otlp-endpoint"),
+		OtelEnabled: cmd.Bool("otel"),
 
 		// Cluster
 		ClusterEnabled:                     cmd.Bool("cluster"),

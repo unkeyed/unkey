@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 type Validator[S any] func(*S) error
@@ -66,7 +66,7 @@ func New[State any](seed Seed, fns ...apply[State]) *Simulation[State] {
 		Errors:      []error{},
 		applied:     0,
 		eventStats:  make(map[string]int), // Initialize event stats map
-		logger:      logging.New(logging.Config{NoColor: false, Development: true}),
+		logger:      logging.New(),
 		validators:  []Validator[State]{},
 	}
 

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/go/pkg/events"
-	"github.com/unkeyed/unkey/go/pkg/logging"
 	"github.com/unkeyed/unkey/go/pkg/membership"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/ring"
 	"go.opentelemetry.io/otel/attribute"
