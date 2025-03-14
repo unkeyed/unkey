@@ -3,7 +3,7 @@ package membership
 import (
 	"bytes"
 
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // logger implements io.Writer interface to integrate memberlist's logging system

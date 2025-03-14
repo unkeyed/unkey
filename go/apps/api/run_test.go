@@ -52,7 +52,7 @@ func TestClusterFormation(t *testing.T) {
 			ClickhouseURL:               "",
 			DatabasePrimary:             dbDsn,
 			DatabaseReadonlyReplica:     "",
-			OtelOtlpEndpoint:            "",
+			OtelEnabled:                 false,
 		}
 
 		joinAddrs = append(joinAddrs, fmt.Sprintf("localhost:%d", gossipPort))

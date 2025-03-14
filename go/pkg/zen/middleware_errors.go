@@ -6,7 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/api"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // WithErrorHandling returns middleware that translates errors into appropriate

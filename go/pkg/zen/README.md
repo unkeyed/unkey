@@ -38,7 +38,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/pkg/zen"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )

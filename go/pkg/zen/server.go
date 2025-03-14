@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // Server manages HTTP server configuration, route registration, and lifecycle.

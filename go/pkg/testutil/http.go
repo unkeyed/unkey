@@ -18,7 +18,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -53,7 +53,7 @@ type Harness struct {
 func NewHarness(t *testing.T) *Harness {
 	clk := clock.NewTestClock()
 
-	logger := logging.New(logging.Config{Development: true, NoColor: false})
+	logger := logging.New()
 
 	cont := containers.New(t)
 
