@@ -44,7 +44,11 @@ export const exaDomainSearchTask = task({
     numResults?: number;
     domain: (typeof domainCategories)[number]["name"];
   }) => {
-    const exa = new Exa(process.env.EXA_API_KEY || "");
+    const apiKey = process.env.EXA_API_KEY;
+    if (!apiKey) {
+      throw new Error("EXA_API_KEY environment variable is not set");
+    }
+    const exa = new Exa(apiKey);
     const domainCategory = domainCategories.find((c) => c.name === domain);
 
     // Initial search with only summaries
