@@ -5,6 +5,7 @@ import { ShieldKey } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { RBACForm } from "../_components/rbac-form";
+import { formatNumber } from "@/lib/fmt";
 
 export function Navigation({
   numberOfPermissions,
@@ -31,7 +32,7 @@ export function Navigation({
             className="text-xs font-medium ph-no-capture h-8 bg-grayA-3 hover:bg-grayA-3 !text-grayA-8"
           >
             <div className="flex gap-1 items-center justify-center text-sm">
-              {Intl.NumberFormat().format(numberOfPermissions)} Permissions
+              {formatNumber(numberOfPermissions)} Permissions
             </div>
           </Button>
           <NavbarActionButton

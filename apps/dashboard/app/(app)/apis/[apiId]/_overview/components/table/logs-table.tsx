@@ -11,13 +11,16 @@ import { Button, Empty } from "@unkey/ui";
 import { OutcomesPopover } from "./components/outcome-popover";
 import { KeyIdentifierColumn } from "./components/override-indicator";
 import { useKeysOverviewLogsQuery } from "./hooks/use-logs-query";
-import { getErrorPercentage, getSuccessPercentage } from "./utils/calculate-blocked-percentage";
-import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
-
-const compactFormatter = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+import {
+  getErrorPercentage,
+  getSuccessPercentage,
+} from "./utils/calculate-blocked-percentage";
+import {
+  STATUS_STYLES,
+  getRowClassName,
+  getStatusStyle,
+} from "./utils/get-row-class";
+import { formatNumber } from "@/lib/fmt";
 
 type Props = {
   log: KeysOverviewLog | null;
@@ -25,10 +28,15 @@ type Props = {
   apiId: string;
 };
 
-export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog }: Props) => {
-  const { historicalLogs, isLoading, isLoadingMore, loadMore } = useKeysOverviewLogsQuery({
-    apiId,
-  });
+export const KeysOverviewLogsTable = ({
+  apiId,
+  setSelectedLog,
+  log: selectedLog,
+}: Props) => {
+  const { historicalLogs, isLoading, isLoadingMore, loadMore } =
+    useKeysOverviewLogsQuery({
+      apiId,
+    });
 
   const columns = (): Column<KeysOverviewLog>[] => {
     return [
@@ -47,7 +55,10 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
           const name = log.key_details?.name || "—";
           return (
             <div className="flex items-center font-mono">
-              <div className="w-full max-w-[150px] truncate whitespace-nowrap" title={name}>
+              <div
+                className="w-full max-w-[150px] truncate whitespace-nowrap"
+                title={name}
+              >
                 {name}
               </div>
             </div>
@@ -60,10 +71,15 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         width: "15%",
         render: (log) => {
           const externalId =
-            (log.key_details?.identity?.external_id ?? log.key_details?.owner_id) || "—";
+            (log.key_details?.identity?.external_id ??
+              log.key_details?.owner_id) ||
+            "—";
           return (
             <div className="flex items-center font-mono">
-              <div className="w-full max-w-[150px] truncate whitespace-nowrap" title={externalId}>
+              <div
+                className="w-full max-w-[150px] truncate whitespace-nowrap"
+                title={externalId}
+              >
                 {externalId}
               </div>
             </div>
@@ -83,13 +99,13 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                   "px-[6px] rounded-md font-mono whitespace-nowrap",
                   selectedLog?.key_id === log.key_id
                     ? STATUS_STYLES.success.badge.selected
-                    : STATUS_STYLES.success.badge.default,
+                    : STATUS_STYLES.success.badge.default
                 )}
                 title={`${log.valid_count.toLocaleString()} Valid requests (${successPercentage.toFixed(
-                  1,
+                  1
                 )}%)`}
               >
-                {compactFormatter.format(log.valid_count)}
+                {formatNumber(log.valid_count)}
               </Badge>
             </div>
           );
@@ -109,17 +125,19 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                 <Badge
                   className={cn(
                     "px-[6px] rounded-md font-mono whitespace-nowrap flex items-center",
-                    selectedLog?.key_id === log.key_id ? style.badge.selected : style.badge.default,
+                    selectedLog?.key_id === log.key_id
+                      ? style.badge.selected
+                      : style.badge.default
                   )}
                   title={`${log.error_count.toLocaleString()} Invalid requests (${errorPercentage.toFixed(
-                    1,
+                    1
                   )}%)`}
                 >
                   <span className="mr-[6px] flex-shrink-0">
                     <Ban size="sm-regular" />
                   </span>
                   <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[45px]">
-                    {compactFormatter.format(log.error_count)}
+                    {formatNumber(log.error_count)}
                   </span>
                 </Badge>
               </div>
@@ -142,7 +160,9 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
             value={log.time}
             className={cn(
               "font-mono group-hover:underline decoration-dotted",
-              selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
+              selectedLog &&
+                selectedLog.request_id !== log.request_id &&
+                "pointer-events-none"
             )}
           />
         ),
@@ -160,15 +180,18 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
       onRowClick={setSelectedLog}
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
-      rowClassName={(log) => getRowClassName(log, selectedLog as KeysOverviewLog)}
+      rowClassName={(log) =>
+        getRowClassName(log, selectedLog as KeysOverviewLog)
+      }
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
             <Empty.Title>Key Verification Logs</Empty.Title>
             <Empty.Description className="text-left">
-              No key verification data to show. Once requests are made with API keys, you'll see a
-              summary of successful and failed verification attempts.
+              No key verification data to show. Once requests are made with API
+              keys, you'll see a summary of successful and failed verification
+              attempts.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a

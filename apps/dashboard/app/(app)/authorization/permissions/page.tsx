@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 import { navigation } from "../constants";
 import { EmptyPermissions } from "./empty";
 import { Navigation } from "./navigation";
+import { formatNumber } from "@/lib/fmt";
 
 export const revalidate = 0;
 
@@ -50,7 +51,9 @@ export default async function RolesPage() {
    * Filter out all the soft deleted keys cause I'm not smart enough to do it with drizzle
    */
   workspace.permissions = workspace.permissions.map((permission) => {
-    permission.keys = permission.keys.filter(({ key }) => key.deletedAtM === null);
+    permission.keys = permission.keys.filter(
+      ({ key }) => key.deletedAtM === null
+    );
     return permission;
   });
 
@@ -73,24 +76,22 @@ export default async function RolesPage() {
                     className="grid items-center grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle "
                   >
                     <div className="flex flex-col items-start col-span-6 ">
-                      <pre className="text-sm text-content truncate w-full">{p.name}</pre>
-                      <span className="text-xs text-content-subtle">{p.description}</span>
+                      <pre className="text-sm text-content truncate w-full">
+                        {p.name}
+                      </pre>
+                      <span className="text-xs text-content-subtle">
+                        {p.description}
+                      </span>
                     </div>
 
                     <div className="flex items-center col-span-3 gap-2">
                       <Badge variant="secondary">
-                        {Intl.NumberFormat(undefined, {
-                          notation: "compact",
-                        }).format(p.roles.length)}{" "}
-                        Role
+                        {formatNumber(p.roles.length)} Role
                         {p.roles.length !== 1 ? "s" : ""}
                       </Badge>
 
                       <Badge variant="secondary">
-                        {Intl.NumberFormat(undefined, {
-                          notation: "compact",
-                        }).format(p.keys.length)}{" "}
-                        Key
+                        {formatNumber(p.keys.length)} Key
                         {p.keys.length !== 1 ? "s" : ""}
                       </Badge>
                     </div>

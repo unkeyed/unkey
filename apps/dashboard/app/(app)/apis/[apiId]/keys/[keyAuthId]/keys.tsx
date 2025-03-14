@@ -2,6 +2,7 @@ import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import BackButton from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
+import { formatNumber } from "@/lib/fmt";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ChevronRight, User, VenetianMask } from "lucide-react";
@@ -52,7 +53,8 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
     }[];
   };
   const keysByExternalId = keys.reduce((acc, curr) => {
-    const externalId = curr.identity?.externalId ?? curr.ownerId ?? nullExternalId;
+    const externalId =
+      curr.identity?.externalId ?? curr.ownerId ?? nullExternalId;
     if (!acc[externalId]) {
       acc[externalId] = [];
     }
@@ -98,8 +100,8 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
                   <VenetianMask className="w-4 h-4 text-content" />
                   Without OwnerID
                   <span className="text-xs text-content-subtle">
-                    You can associate keys with the a userId or other identifier from your own
-                    system.
+                    You can associate keys with the a userId or other identifier
+                    from your own system.
                   </span>
                 </div>
               ) : (
@@ -125,18 +127,19 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
                   </div>
 
                   <div className="flex items-center col-span-2 gap-2">
-                    {k.environment ? <Badge variant="secondary">env: {k.environment}</Badge> : null}
+                    {k.environment ? (
+                      <Badge variant="secondary">env: {k.environment}</Badge>
+                    ) : null}
                   </div>
 
                   <div className="flex items-center col-span-3 gap-2">
                     <Badge variant="secondary">
-                      {Intl.NumberFormat(undefined, { notation: "compact" }).format(k.permissions)}{" "}
-                      Permission
+                      {formatNumber(k.permissions)} Permission
                       {k.permissions !== 1 ? "s" : ""}
                     </Badge>
 
                     <Badge variant="secondary">
-                      {Intl.NumberFormat(undefined, { notation: "compact" }).format(k.roles)} Role
+                      {formatNumber(k.roles)} Role
                       {k.roles !== 1 ? "s" : ""}
                     </Badge>
 
