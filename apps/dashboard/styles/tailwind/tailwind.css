@@ -34,8 +34,10 @@
 
     --border: 24, 6%, 83%;
     --ring: 24, 6%, 83%;
-    
-    --shadow-lg: shadow-[0_12px_32px_-16px_rgba(var(--black-a5)),0_12px_60px_0px_rgba(var(--black-a3)),0_0px_0px_1px_rgba(var(--inverted-2))]
+
+    --shadow-lg: 0 12px 32px -16px rgba(var(--black-a5)),
+      0 12px 60px 0px rgba(var(--black-a3)),
+      0 0px 0px 1px rgba(var(--inverted-2));
   }
 
   .dark {
@@ -69,21 +71,24 @@
     --content-warn: 46, 100%, 55%;
     --content-alert: 0 84.2% 60.2%;
 
-    --border: 12, 6%, 15%;
-    --ring: 12, 6%, 15%;
+    --shadow-lg: 0 12px 32px -16px rgba(var(--black-a5)), 
+    0 12px 60px 0px rgba(var(--black-a3)), 
+    0 0px 0px 1px rgba(var(--inverted-2));
 
-    --shadow-lg: shadow-[0_12px_32px_-16px_rgba(var(--black-a5)),0_12px_60px_0px_rgba(var(--black-a3)),0_0px_0px_1px_rgba(var(--inverted-2))]
   
-  }
+
+}
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   html {
     @apply scroll-smooth;
   }
+
   body {
     @apply bg-background text-content;
   }
@@ -115,19 +120,23 @@ code .line::before {
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }
 }
+
 /* For Webkit-based browsers (Chrome, Safari and Opera) */
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 
 /* For IE, Edge and Firefox */
 .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .animate-fill-left {

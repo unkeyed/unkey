@@ -67,7 +67,7 @@ export function ListGroup<T extends QuerySearchParams>({
   useEffect(() => {
     const formated = setformatedFilters();
     setFormatedFilters(formated);
-  }, []);
+  }, [filterList]);
 
   let timeOperator = "since";
   const setformatedFilters = () => {

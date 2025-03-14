@@ -20,7 +20,9 @@ export const QueriesOverflow = ({ list }: QueriesOverflowProps) => {
       >
         <ul className="flex flex-col gap-2 p-2">
           {list?.map((item) => (
-            <QueriesPill value={item.value} />
+            <li key={item.value}>
+              <QueriesPill value={item.value} />
+            </li>
           ))}
         </ul>
       </TooltipContent>
