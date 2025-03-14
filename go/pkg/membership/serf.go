@@ -3,6 +3,7 @@ package membership
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -45,10 +46,15 @@ var _ Membership = (*serfMembership)(nil)
 // New creates a new membership instance with Serf
 func New(config Config) (*serfMembership, error) {
 
+	host, err := parseHost(config.AdvertiseHost)
+
+	if err != nil {
+		return nil, err
+	}
 	// Create self member with metadata
 	self := Member{
 		NodeID:     config.NodeID,
-		Host:       config.AdvertiseHost,
+		Host:       host,
 		GossipPort: config.GossipPort,
 		RpcPort:    config.RpcPort,
 	}
@@ -56,7 +62,7 @@ func New(config Config) (*serfMembership, error) {
 	// Serf configuration
 	serfConfig := serf.DefaultConfig()
 	serfConfig.NodeName = config.NodeID
-	serfConfig.MemberlistConfig.AdvertiseAddr = config.AdvertiseHost
+	serfConfig.MemberlistConfig.AdvertiseAddr = host
 	serfConfig.MemberlistConfig.AdvertisePort = config.GossipPort
 	serfConfig.MemberlistConfig.BindAddr = "0.0.0.0"
 	serfConfig.MemberlistConfig.BindPort = config.GossipPort
@@ -90,6 +96,20 @@ func New(config Config) (*serfMembership, error) {
 	go m.handleEvents(eventCh)
 
 	return m, nil
+}
+
+// docker compose gives us weird hostnames that we need to look up first
+func parseHost(host string) (string, error) {
+
+	advertiseAddrs, err := net.LookupHost(host)
+	if err != nil {
+		return "", fmt.Errorf("unable to lookup addr %s: %w", host, err)
+	}
+	if len(advertiseAddrs) == 0 {
+		return "", fmt.Errorf("no advertise addrs found")
+	}
+
+	return advertiseAddrs[0], nil
 }
 
 // Handle Serf events and propagate to our event system
