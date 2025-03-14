@@ -12,17 +12,14 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-const (
-	MAX_BATCH_SIZE int = 10000
-)
-
 type Batch struct {
 	Rows   []string
 	Params url.Values
+	Table  string
 }
 
 func persist(ctx context.Context, batch *Batch, config *Config) error {
-	ctx, span := telemetry.Tracer.Start(ctx, "persist_batch")
+	ctx, span := telemetry.Tracer.Start(ctx, batch.Table)
 	defer span.End()
 
 	if len(batch.Rows) == 0 {
@@ -34,7 +31,6 @@ func persist(ctx context.Context, batch *Batch, config *Config) error {
 
 	span.SetAttributes(
 		attribute.Int("rows", len(batch.Rows)),
-		attribute.String("query", batch.Params.Get("query")),
 	)
 
 	u, err := url.Parse(config.ClickhouseURL)
@@ -106,12 +102,9 @@ func persist(ctx context.Context, batch *Batch, config *Config) error {
 
 	config.Logger.Info("rows persisted",
 		"count", len(batch.Rows),
-		"query", batch.Params.Get("query"))
+		"table", batch.Table)
+
 	span.SetStatus(codes.Ok, "")
-	span.SetAttributes(
-		attribute.String("result", "successfully sent to Clickhouse"),
-		attribute.Int("rows_processed", len(batch.Rows)),
-	)
 
 	return nil
 }

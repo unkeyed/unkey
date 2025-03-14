@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
-)
-
-const (
-	MAX_BUFFER_SIZE int = 5000
+	"go.opentelemetry.io/otel/codes"
 )
 
 // startBufferProcessor manages processing of data sent to Clickhouse.
@@ -28,54 +25,39 @@ func startBufferProcessor(
 		ticker := time.NewTicker(config.FlushInterval)
 		defer ticker.Stop()
 
-		tickerCount := 0
-
 		flushAndReset := func(ctx context.Context, reason string) {
-			ctx, span := telemetryConfig.Tracer.Start(ctx, "flush_batches")
+			reason = fmt.Sprintf("flush_batches.%s", reason)
+			ctx, span := telemetryConfig.Tracer.Start(ctx, reason)
 			defer span.End()
 
 			startTime := time.Now()
 
-			// Record metrics
-			telemetryConfig.Metrics.FlushCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("reason", reason)))
+			telemetryConfig.Metrics.FlushCounter.Add(ctx, 1)
 
 			span.SetAttributes(
 				attribute.Int("batch_count", len(batchesByParams)),
 				attribute.Int("buffered_rows", buffered),
-				attribute.String("reason", reason),
 			)
-
-			// We'll sample logs for ticker-based flushes
-			shouldLog := true
-			if reason == "ticker" {
-				tickerCount++
-				// Only log every LOG_TICKER_SAMPLE_RATE times
-				shouldLog = (tickerCount%LOG_TICKER_SAMPLE_RATE == 0)
-			}
-
-			// Only log if we should based on sampling
-			if shouldLog {
-				config.Logger.Info("flushing batches",
-					"reason", reason,
-					"batch_count", len(batchesByParams),
-					"buffered_rows", buffered)
-			}
 
 			for _, batch := range batchesByParams {
 				err := persist(ctx, batch, config)
 				if err != nil {
-					// Always log errors regardless of sampling
-					config.Logger.Error("error flushing batch",
+					span.RecordError(err)
+					span.SetStatus(codes.Error, err.Error())
+
+					config.Logger.Error("error persisting batch",
 						"error", err.Error(),
-						"query", batch.Params.Get("query"))
+						"table", batch.Table,
+						"query", batch.Params.Get("query"),
+					)
 				}
 			}
 
 			duration := time.Since(startTime).Seconds()
-			telemetryConfig.Metrics.FlushDuration.Record(ctx, duration,
-				metric.WithAttributes(attribute.String("reason", reason)))
+			telemetryConfig.Metrics.FlushDuration.Record(ctx, duration)
 
 			span.SetAttributes(attribute.Float64("duration_seconds", duration))
+			span.SetStatus(codes.Ok, "")
 
 			buffered = 0
 			SetBufferSize(0)
@@ -85,16 +67,14 @@ func startBufferProcessor(
 		for {
 			select {
 			case <-ctx.Done():
-				config.Logger.Info("context cancelled, flushing remaining batches",
-					"buffered_rows", buffered,
-					"elapsed_time", config.FlushInterval.String())
-				flushAndReset(ctx, "shutdown")
+				config.Logger.Info("context cancelled, flushing remaining batches")
+				flushAndReset(ctx, "context_cancelled")
 				done <- true
 				return
 			case b, ok := <-buffer:
 				if !ok {
 					config.Logger.Info("buffer channel closed, flushing remaining batches")
-					flushAndReset(ctx, "shutdown")
+					flushAndReset(ctx, "buffer_closed")
 					done <- true
 					return
 				}
@@ -112,16 +92,13 @@ func startBufferProcessor(
 				buffered += len(b.Rows)
 				SetBufferSize(int64(buffered))
 
-				if buffered >= MAX_BATCH_SIZE {
-					config.Logger.Info("flushing due to max batch size",
-						"buffered_rows", buffered,
-						"max_size", MAX_BATCH_SIZE)
-					flushAndReset(ctx, "max_size")
+				if buffered >= maxBatchSize {
+					config.Logger.Info("flushing due to max batch size")
+					flushAndReset(ctx, "max_batch_size")
 				}
 			case <-ticker.C:
 				config.Logger.Info("flushing on ticker",
-					"buffered_rows", buffered,
-					"elapsed_time", config.FlushInterval.String())
+					"buffered_rows", buffered)
 				flushAndReset(ctx, "ticker")
 			}
 		}
