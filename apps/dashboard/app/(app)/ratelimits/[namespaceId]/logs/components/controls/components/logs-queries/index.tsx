@@ -9,7 +9,7 @@ import { useFilters } from "../../../../hooks/use-filters";
 export const LogsQueries = () => {
   const { filters, updateFilters } = useFilters();
   const { savedFilters, toggleBookmark, applyFilterGroup } = useBookmarkedFilters({
-    localStorageName: "auditSavedFilters",
+    localStorageName: "ratelimitSavedFilters",
     filters,
     updateFilters,
   });
