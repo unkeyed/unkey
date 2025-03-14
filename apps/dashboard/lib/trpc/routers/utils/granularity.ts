@@ -126,3 +126,47 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
     context,
   };
 };
+
+/**
+ * Returns the appropriate buffer in milliseconds for a given granularity
+ * Use this to expand time ranges when exact timestamps are selected
+ * @param granularity The current timeseries granularity
+ * @returns Buffer time in milliseconds
+ */
+export const getTimeBufferForGranularity = (granularity: CompoundTimeseriesGranularity): number => {
+  // Constants for commonly used durations
+  const MINUTE_IN_MS = 60 * 1000;
+
+  // Return appropriate buffer based on granularity
+  switch (granularity) {
+    case "perMinute":
+      return MINUTE_IN_MS;
+    case "per5Minutes":
+      return 5 * MINUTE_IN_MS;
+    case "per15Minutes":
+      return 15 * MINUTE_IN_MS;
+    case "per30Minutes":
+      return 30 * MINUTE_IN_MS;
+    case "perHour":
+      return HOUR_IN_MS;
+    case "per2Hours":
+      return 2 * HOUR_IN_MS;
+    case "per4Hours":
+      return 4 * HOUR_IN_MS;
+    case "per6Hours":
+      return 6 * HOUR_IN_MS;
+    case "per12Hours":
+      return 12 * HOUR_IN_MS;
+    case "perDay":
+      return DAY_IN_MS;
+    case "per3Days":
+      return 3 * DAY_IN_MS;
+    case "perWeek":
+      return 7 * DAY_IN_MS;
+    case "perMonth":
+      return 30 * DAY_IN_MS;
+    default:
+      // Default to 5 minutes if granularity is unknown
+      return 5 * MINUTE_IN_MS;
+  }
+};

@@ -1,5 +1,6 @@
 import { OverviewAreaChart } from "@/components/logs/overview-charts/overview-area-chart";
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
+import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 import { createOutcomeChartConfig } from "./bar-chart/utils";
@@ -24,6 +25,7 @@ export const KeysOverviewLogsCharts = ({
     timeseries: activeKeysTimeseries,
     isLoading: activeKeysIsLoading,
     isError: activeKeysIsError,
+    granularity,
   } = useFetchActiveKeysTimeseries(apiId);
 
   const handleSelectionChange = ({
@@ -36,6 +38,11 @@ export const KeysOverviewLogsCharts = ({
     const activeFilters = filters.filter(
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
+
+    let adjustedEnd = end;
+    if (start === end && granularity) {
+      adjustedEnd = end + getTimeBufferForGranularity(granularity);
+    }
     updateFilters([
       ...activeFilters,
       {
@@ -46,7 +53,7 @@ export const KeysOverviewLogsCharts = ({
       },
       {
         field: "endTime",
-        value: end,
+        value: adjustedEnd,
         id: crypto.randomUUID(),
         operator: "is",
       },
