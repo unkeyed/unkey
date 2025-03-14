@@ -86,8 +86,6 @@ These options control the fundamental behavior of the API server.
 
   **Examples:**
   - `--http-port=7070` - Default port
-  - `--http-port=8080` - Common alternative for local development
-  - `--http-port=80` - Standard HTTP port (requires root privileges on Unix systems)
 </Property>
 
 <Property name="--region | UNKEY_REGION" type="string" defaultValue="unknown" required={false}>
@@ -110,9 +108,8 @@ The Unkey API requires a MySQL database for storing keys and configuration. For 
   For production use, ensure the database has proper backup procedures in place. Unkey is using [PlanetScale](https://planetscale.com/)
 
   **Examples:**
-  - `--database-primary=mysql://root:password@localhost:3306/unkey`
-  - `--database-primary=mysql://user:password@mysql.example.com:3306/unkey?tls=true`
-  - `--database-primary=mysql://unkey:password@mysql.default.svc.cluster.local:3306/unkey`
+  - `--database-primary=mysql://root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
+  - `--database-primary=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
 </Property>
 
 <Property name="--database-readonly-replica | UNKEY_DATABASE_READONLY_DSN" type="string" required={false}>
@@ -123,8 +120,8 @@ The Unkey API requires a MySQL database for storing keys and configuration. For 
   Unkey is using [PlanetScales](https://planetscale.com/) global read replica endpoint.
 
   **Examples:**
-  - `--database-readonly-replica=mysql://readonly:password@replica.mysql.example.com:3306/unkey?tls=true`
-  - `--database-readonly-replica=mysql://readonly:password@mysql-replica.default.svc.cluster.local:3306/unkey`
+  - `--database-readonly-replica=mysql://root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
+  - `--database-readonly-replica=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
 </Property>
 
 ## Analytics & Monitoring
@@ -143,15 +140,29 @@ These options configure analytics storage and observability for the Unkey API.
   - `--clickhouse-url=clickhouse://default:password@clickhouse.default.svc.cluster.local:9000/unkey?secure=true`
 </Property>
 
-<Property name="--otel-otlp-endpoint | UNKEY_OTEL_OTLP_ENDPOINT" type="string" required={false}>
-  OpenTelemetry collector endpoint for metrics, traces, and logs. When provided, the Unkey API will send telemetry data (metrics, traces, and logs) to this endpoint using the OTLP protocol.
+<Property name="--otel | UNKEY_OTEL" type="boolean" defaultValue={false} required={false}>
+  Enable OpenTelemetry. The Unkey API will collect and export telemetry data (metrics, traces, and logs) using the OpenTelemetry protocol.
 
-  This should be specified as a host and optional port without scheme or path. The implementation is configured for HTTP protocol by default.
+  When this flag is set to true, the following standard OpenTelemetry environment variables are used to configure the exporter:
+
+  - `OTEL_EXPORTER_OTLP_ENDPOINT`: The URL of your OpenTelemetry collector
+  - `OTEL_EXPORTER_OTLP_PROTOCOL`: The protocol to use (http/protobuf or grpc)
+  - `OTEL_EXPORTER_OTLP_HEADERS`: Headers for authentication (e.g., "authorization=Bearer \<token\>")
+
+  Using these standard variables ensures compatibility with OpenTelemetry documentation and tools. For detailed configuration information, see the [official OpenTelemetry documentation](https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/).
 
   **Examples:**
-  - `--otel-otlp-endpoint=localhost:4317` - Local collector
-  - `--otel-otlp-endpoint=otlp-gateway-prod-us-east-0.grafana.net:443` - Grafana Cloud
-  - `--otel-otlp-endpoint=api.honeycomb.io:443` - Honeycomb.io
+
+  ```bash
+  # Enable OpenTelemetry
+  export UNKEY_OTEL=true
+  export OTEL_EXPORTER_OTLP_ENDPOINT="https://otlp-gateway-prod-us-east-0.grafana.net/otlp"
+  export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+  export OTEL_EXPORTER_OTLP_HEADERS="authorization=Basic ..."
+
+  # Or as command-line flags
+  unkey api --otel=true"
+  ```
 </Property>
 
 <Property name="--color | UNKEY_COLOR" type="boolean" defaultValue={false} required={false}>

@@ -52,7 +52,6 @@ services:
       - mysql
       - redis
       - clickhouse
-      - tempo
     environment:
       UNKEY_HTTP_PORT: 7070
       UNKEY_CLUSTER: true
@@ -62,7 +61,6 @@ services:
       UNKEY_CLUSTER_DISCOVERY_REDIS_URL: "redis://redis:6379"
       UNKEY_DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey?parseTime=true"
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
-      UNKEY_OTEL_OTLP_ENDPOINT: "otel-collector:4318" # Point directly to Tempo
 
   redis:
     image: redis:latest
@@ -170,73 +168,9 @@ services:
       - agent
       - clickhouse
       - chproxy
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    container_name: otel-collector
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    volumes:
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
-    ports:
-      - "4318:4318" # OTLP HTTP
-    depends_on:
-      - prometheus
-      - tempo
-      - loki
-      - grafana
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    command:
-      - "--config.file=/etc/prometheus/config.yaml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--web.enable-lifecycle"
-      - "--web.enable-remote-write-receiver" # Add this flag
-    ports:
-      - 9090:9090
-    volumes:
-      - ./prometheus/config.yaml:/etc/prometheus/config.yaml
-      - prometheus:/prometheus
-
-  grafana:
-    image: grafana/grafana-oss:latest
-    container_name: grafana
-    ports:
-      - 3000:3000
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=grafana
-      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - grafana:/var/lib/grafana
-
-  # Tempo for distributed tracing
-  tempo:
-    image: grafana/tempo:latest
-    container_name: tempo
-    command: ["-config.file=/etc/tempo.yaml"]
-    volumes:
-      - ./tempo/config.yaml:/etc/tempo.yaml
-      - tempo:/tmp/tempo
-    ports:
-      - "3200:3200" # tempo
-
-  # Loki for logs
-  loki:
-    container_name: loki
-    image: grafana/loki:latest
-    ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/config.yaml
-    volumes:
-      - ./loki/config.yaml:/etc/loki/config.yaml
 
 volumes:
   mysql:
-  grafana:
-  tempo:
-  loki:
   clickhouse:
   clickhouse-keeper:
   s3:
-  prometheus:

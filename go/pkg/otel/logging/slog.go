@@ -9,17 +9,19 @@ import (
 	"github.com/lmittmann/tint"
 )
 
-// Config defines the configuration options for creating a logger.
-type Config struct {
-	// Development enables human-readable logging with additional details
-	// that are helpful during development. When false, logs are formatted
-	// as JSON for easier machine processing.
-	Development bool
+var handler slog.Handler
 
-	// NoColor disables ANSI color codes in the development output format.
-	// This is useful for environments where colors are not supported or
-	// when redirecting logs to files.
-	NoColor bool
+func init() {
+	handler = tint.NewHandler(os.Stdout, &tint.Options{
+		AddSource:   false,
+		Level:       slog.LevelDebug,
+		ReplaceAttr: nil,
+		TimeFormat:  time.StampMilli,
+		NoColor:     false,
+	})
+}
+func SetHandler(h slog.Handler) {
+	handler = h
 }
 
 // logger implements the Logger interface using Go's standard slog package.
@@ -44,27 +46,10 @@ type logger struct {
 //	prodLogger := logging.New(logging.Config{
 //	    Development: false,
 //	})
-func New(cfg Config) Logger {
-	var handler slog.Handler
-	switch {
-	case cfg.Development && !cfg.NoColor:
-		// Colored, human-readable format for development with terminal colors
-		handler = tint.NewHandler(os.Stdout, &tint.Options{
-			AddSource:   false,
-			Level:       slog.LevelInfo,
-			ReplaceAttr: nil,
-			TimeFormat:  time.StampMilli,
-			NoColor:     false,
-		})
-	case cfg.Development:
-		// Plain text format for development without colors
-		handler = slog.NewTextHandler(os.Stdout, nil)
-	default:
-		// JSON format for production environments
-		handler = slog.NewJSONHandler(os.Stdout, nil)
-	}
+func New() Logger {
 
 	l := slog.New(handler)
+
 	return &logger{
 		logger: l,
 	}

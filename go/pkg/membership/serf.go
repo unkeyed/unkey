@@ -12,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/discovery"
 	"github.com/unkeyed/unkey/go/pkg/events"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
