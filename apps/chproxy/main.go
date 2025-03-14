@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	LOG_TICKER_SAMPLE_RATE = 10 // Only log every 10th ticker flush
+	maxBufferSize int = 50000
+	maxBatchSize  int = 10000
 )
 
 var (
@@ -67,13 +68,11 @@ func main() {
 	}
 
 	config.Logger.Info(fmt.Sprintf("%s starting", config.ServiceName),
-		"max_buffer_size", config.MaxBufferSize,
-		"max_batch_size", config.MaxBatchSize,
 		"flush_interval", config.FlushInterval.String())
 
 	requiredAuthorization := "Basic " + base64.StdEncoding.EncodeToString([]byte(config.BasicAuth))
 
-	buffer := make(chan *Batch, config.MaxBufferSize)
+	buffer := make(chan *Batch, maxBufferSize)
 
 	// blocks until we've persisted everything and the process may stop
 	done := startBufferProcessor(ctx, buffer, config, telemetry)
@@ -100,12 +99,6 @@ func main() {
 
 		telemetry.Metrics.RequestCounter.Add(ctx, 1)
 
-		span.SetAttributes(
-			attribute.String("method", r.Method),
-			attribute.String("path", r.URL.Path),
-			attribute.String("remote_addr", r.RemoteAddr),
-		)
-
 		if r.Header.Get("Authorization") != requiredAuthorization {
 			telemetry.Metrics.ErrorCounter.Add(ctx, 1)
 			config.Logger.Error("invalid authorization header",
@@ -117,6 +110,12 @@ func main() {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
+
+		span.SetAttributes(
+			attribute.String("method", r.Method),
+			attribute.String("path", r.URL.Path),
+			attribute.String("remote_addr", r.RemoteAddr),
+		)
 
 		query := r.URL.Query().Get("query")
 		span.SetAttributes(attribute.String("query", query))
@@ -156,6 +155,7 @@ func main() {
 		buffer <- &Batch{
 			Params: params,
 			Rows:   rows,
+			Table:  strings.Split(query, " ")[2],
 		}
 
 		w.Write([]byte("ok"))

@@ -4,32 +4,34 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"time"
 )
 
 type Config struct {
-	LogDebug       bool
-	Logger         *slog.Logger
-	BasicAuth      string
-	ClickhouseURL  string
-	FlushInterval  time.Duration
-	ListenerPort   string
-	MaxBatchSize   int
-	MaxBufferSize  int
-	ServiceName    string
-	ServiceVersion string
+	BasicAuth         string
+	ClickhouseURL     string
+	FlushInterval     time.Duration
+	ListenerPort      string
+	LogDebug          bool
+	Logger            *slog.Logger
+	ServiceName       string
+	ServiceVersion    string
+	TraceMaxBatchSize int
+	TraceSampleRate   float64
 }
 
 func LoadConfig() (*Config, error) {
-	// New config with defaults
+	// Defaults set are for production use.
+	// Configure to your liking for development/testing
 	config := &Config{
-		LogDebug:       false,
-		FlushInterval:  time.Second * 5,
-		ListenerPort:   "7123",
-		MaxBatchSize:   10000,
-		MaxBufferSize:  50000,
-		ServiceName:    "chproxy",
-		ServiceVersion: "1.2.0",
+		FlushInterval:     time.Second * 5,
+		ListenerPort:      "7123",
+		LogDebug:          false,
+		ServiceName:       "chproxy",
+		ServiceVersion:    "1.3.0",
+		TraceMaxBatchSize: 512,
+		TraceSampleRate:   0.25, // Sample 25%
 	}
 
 	config.ClickhouseURL = os.Getenv("CLICKHOUSE_URL")
@@ -48,6 +50,17 @@ func LoadConfig() (*Config, error) {
 
 	if port := os.Getenv("PORT"); port != "" {
 		config.ListenerPort = port
+	}
+
+	if sampleRateStr := os.Getenv("OTEL_TRACE_SAMPLE_RATE"); sampleRateStr != "" {
+		sampleRate, err := strconv.ParseFloat(sampleRateStr, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid TRACE_SAMPLE_RATE: %w", err)
+		}
+		if sampleRate < 0.0 || sampleRate > 1.0 {
+			return nil, fmt.Errorf("OTEL_TRACE_SAMPLE_RATE must be between 0.0 and 1.0")
+		}
+		config.TraceSampleRate = sampleRate
 	}
 
 	return config, nil
