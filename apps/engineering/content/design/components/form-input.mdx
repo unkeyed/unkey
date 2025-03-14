@@ -5,6 +5,8 @@ description: A form input component with built-in label, description, and error 
 import {
   DefaultFormInputVariant,
   RequiredFormInputVariant,
+  RequiredWithErrorFormInputVariant,
+  OptionalFormInputVariant,
   SuccessFormInputVariant,
   WarningFormInputVariant,
   ErrorFormInputVariant,
@@ -15,9 +17,11 @@ import {
 } from "./form/form-input.variants"
 
 # FormInput
+
 A comprehensive form input component that combines labels, descriptions, and validation states. Perfect for creating accessible, user-friendly forms with proper labeling and helpful context.
 
 ## Default
+
 The default FormInput includes a label and optional description text, providing clear context for users.
 
 <DefaultFormInputVariant />
@@ -25,57 +29,78 @@ The default FormInput includes a label and optional description text, providing 
 ## Input States
 
 ### Required Field
-Use the required prop to indicate mandatory fields. This automatically adds an asterisk (*) to the label.
+
+Use the required prop to indicate mandatory fields. This automatically adds a "Required" tag to the label.
 
 <RequiredFormInputVariant />
 
+### Required Field with Error
+
+When a required field has an error, the "Required" tag changes to error styling to draw more attention.
+
+<RequiredWithErrorFormInputVariant />
+
+### Optional Field
+
+Use the optional prop to explicitly indicate non-mandatory fields. This adds an "Optional" tag to the label.
+
+<OptionalFormInputVariant />
+
 ### Success State
+
 Indicates successful validation or acceptance of input value. The success icon and text provide positive feedback.
 
 <SuccessFormInputVariant />
 
 ### Warning State
+
 Used for potentially problematic inputs that don't prevent form submission. Includes a warning icon and explanatory text.
 
 <WarningFormInputVariant />
 
 ### Error State
+
 Shows validation errors or other issues that need user attention. Features prominent error styling and message.
 
 <ErrorFormInputVariant />
 
 ### Disabled State
+
 Apply when the field should be non-interactive, such as during form submission or based on other field values.
 
 <DisabledFormInputVariant />
 
 ### With Default Value
+
 Pre-populated input with an initial value that users can modify.
 
 <DefaultValueFormInputVariant />
 
 ### Read-only State
+
 For displaying non-editable information while maintaining form layout consistency.
 
 <ReadonlyFormInputVariant />
 
 ## Complex Usage
+
 Example of a FormInput with multiple props configured for a specific use case.
 
 <ComplexFormInputVariant />
 
 ## Props
+
 The FormInput component extends the standard Input component props with additional form-specific properties:
 
-  <AutoTypeTable
-      name="DocumentedFormInputProps"
-      path="../../internal/ui/src/components/form/index.tsx"
-
-    />
-
+<AutoTypeTable
+    name="DocumentedFormInputProps"
+    path="../../internal/ui/src/components/form/index.tsx"
+/>
 
 ## Accessibility
+
 FormInput is built with accessibility in mind:
+
 - Labels are properly associated with inputs using htmlFor/id
 - Error messages are announced to screen readers using role="alert"
 - Required fields are marked both visually and via aria-required
@@ -83,7 +108,9 @@ FormInput is built with accessibility in mind:
 - Error states are indicated using aria-invalid
 
 ## Best Practices
+
 When using the FormInput component:
+
 - Always provide clear, concise labels
 - Use description text to provide additional context when needed
 - Keep error messages specific and actionable
@@ -96,6 +123,8 @@ When using the FormInput component:
 - Test with screen readers to ensure accessibility
 
 ## Layout Guidelines
+
 - Labels should be clear and concise
 - Error messages should appear immediately below the input
 - Description text should be helpful but not too lengthy
+- Consider using the optional tag for clarity in forms with many fields
