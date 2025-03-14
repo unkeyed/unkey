@@ -83,8 +83,8 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 				ResponseBody:    string(redact(s.responseBody)),
 				Error:           "",
 				ServiceLatency:  serviceLatency.Milliseconds(),
-				UserAgent:       s.userAgent,
-				IPAddress:       s.location,
+				UserAgent:       s.UserAgent(),
+				IPAddress:       s.Location(),
 			})
 			return nextErr
 		}

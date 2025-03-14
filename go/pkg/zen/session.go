@@ -26,8 +26,6 @@ import (
 // is handled.
 type Session struct {
 	requestID string
-	location  string
-	userAgent string
 
 	w http.ResponseWriter
 	r *http.Request
@@ -47,13 +45,6 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 	s.w = w
 	s.r = r
 
-	s.location = r.Header.Get("True-Client-IP")
-	// Fall back to RemoteAddr
-	if s.location == "" {
-		s.location = strings.Split(r.RemoteAddr, ":")[0]
-	}
-
-	s.userAgent = r.UserAgent()
 	s.workspaceID = ""
 	return nil
 }
@@ -67,11 +58,17 @@ func (s *Session) AuthorizedWorkspaceID() string {
 }
 
 func (s *Session) UserAgent() string {
-	return s.userAgent
+	return s.r.UserAgent()
 }
 
 func (s *Session) Location() string {
-	return s.location
+	location := s.r.Header.Get("True-Client-IP")
+	// Fall back to RemoteAddr
+	if location == "" {
+		location = strings.Split(s.r.RemoteAddr, ":")[0]
+	}
+
+	return location
 }
 
 // Request returns the underlying http.Request.
@@ -355,8 +352,6 @@ func (s *Session) Send(status int, body []byte) error {
 // requests.
 func (s *Session) reset() {
 	s.requestID = ""
-	s.userAgent = ""
-	s.location = ""
 
 	s.w = nil
 	s.r = nil

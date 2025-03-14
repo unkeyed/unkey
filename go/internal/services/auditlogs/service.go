@@ -6,7 +6,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 type service struct {
@@ -23,7 +23,7 @@ type Config struct {
 }
 
 func New(cfg Config) *service {
-	c := cache.New(cache.Config[string, string]{
+	c, _ := cache.New(cache.Config[string, string]{
 		MaxSize:  100_000,
 		Fresh:    time.Minute,
 		Stale:    time.Hour * 24,
