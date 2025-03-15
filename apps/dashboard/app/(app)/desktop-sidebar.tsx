@@ -1,61 +1,72 @@
-"use client";
-import { createWorkspaceNavigation, resourcesNavigation } from "@/app/(app)/workspace-navigations";
-import { UsageInsight } from "@/components/billing/usage-insights";
-import { Feedback } from "@/components/dashboard/feedback-component";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useDelayLoader } from "@/hooks/useDelayLoader";
-import type { Workspace } from "@/lib/db";
-import { cn } from "@/lib/utils";
-import { Loader2, type LucideIcon } from "lucide-react";
-import Link from "next/link";
-import { useSelectedLayoutSegments } from "next/navigation";
-import { useRouter } from "next/navigation";
-import type React from "react";
-import { useTransition } from "react";
-import { WorkspaceSwitcher } from "./team-switcher";
-import { UserButton } from "./user-button";
+"use client"
+import {
+  createWorkspaceNavigation,
+  resourcesNavigation,
+} from "@/app/(app)/workspace-navigations"
+import { UsageInsight } from "@/components/billing/usage-insights"
+import { Feedback } from "@/components/dashboard/feedback-component"
+import { Badge } from "@/components/ui/badge"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useDelayLoader } from "@/hooks/useDelayLoader"
+import type { Workspace } from "@/lib/db"
+import { cn } from "@/lib/utils"
+import { Loader2, type LucideIcon } from "lucide-react"
+import Link from "next/link"
+import { useSelectedLayoutSegments } from "next/navigation"
+import { useRouter } from "next/navigation"
+import type React from "react"
+import { useTransition } from "react"
+import { WorkspaceSwitcher } from "./team-switcher"
+import { UserButton } from "./user-button"
 
 type Props = {
   workspace: Workspace & {
     apis: {
-      id: string;
-      name: string;
-    }[];
-  };
+      id: string
+      name: string
+    }[]
+  }
   requests: {
-    usedVerifications: number;
-    usedRatelimits: number;
-    maxRequests: number;
-  };
-  className?: string;
-};
+    usedVerifications: number
+    usedRatelimits: number
+    maxRequests: number
+  }
+  className?: string
+}
 
 type NavItem = {
-  disabled?: boolean;
-  tooltip?: string;
-  icon: LucideIcon | React.ElementType;
-  href: string;
-  external?: boolean;
-  label: string;
-  active?: boolean;
-  tag?: React.ReactNode;
-  hidden?: boolean;
-};
+  disabled?: boolean
+  tooltip?: string
+  icon: LucideIcon | React.ElementType
+  href: string
+  external?: boolean
+  label: string
+  active?: boolean
+  tag?: React.ReactNode
+  hidden?: boolean
+}
 
-export const DesktopSidebar: React.FC<Props> = ({ requests, workspace, className }) => {
-  const segments = useSelectedLayoutSegments() ?? [];
-  const workspaceNavigation = createWorkspaceNavigation(workspace, segments);
+export const DesktopSidebar: React.FC<Props> = ({
+  requests,
+  workspace,
+  className,
+}) => {
+  const segments = useSelectedLayoutSegments() ?? []
+  const workspaceNavigation = createWorkspaceNavigation(workspace, segments)
 
-  const firstOfNextMonth = new Date();
-  firstOfNextMonth.setUTCMonth(firstOfNextMonth.getUTCMonth() + 1);
-  firstOfNextMonth.setDate(1);
+  const firstOfNextMonth = new Date()
+  firstOfNextMonth.setUTCMonth(firstOfNextMonth.getUTCMonth() + 1)
+  firstOfNextMonth.setDate(1)
 
   return (
     <aside
       className={cn(
         "bg-background text-content/65 inset-y-0 w-64 px-5 z-10 h-full shrink-0 flex flex-col overflow-y-auto",
-        className,
+        className
       )}
     >
       <div className="flex min-w-full mt-2 -mx-2">
@@ -68,8 +79,9 @@ export const DesktopSidebar: React.FC<Props> = ({ requests, workspace, className
               <Badge size="sm">Subscription ending</Badge>
             </TooltipTrigger>
             <TooltipContent>
-              Your plan is schedueld to be downgraded to the {workspace.planDowngradeRequest} tier
-              on {firstOfNextMonth.toDateString()}
+              Your plan is schedueld to be downgraded to the{" "}
+              {workspace.planDowngradeRequest} tier on{" "}
+              {firstOfNextMonth.toDateString()}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -102,31 +114,30 @@ export const DesktopSidebar: React.FC<Props> = ({ requests, workspace, className
         </ul>
       </nav>
 
-      <div className="bg-[inherit] min-w-full [flex:0_0_56px] -mx-2 sticky bottom-2">
+      <div className="bg-[inherit] min-w-full [flex:0_0_56px] -mx-2 sticky flex flex-col justify-end items-start pb-3 gap-3">
         <UsageInsight.Root
-          plan={workspace.tier ?? "Free"}
+          isLoading={false}
+          plan={workspace.tier ?? "free"}
           current={requests.usedRatelimits + requests.usedVerifications}
           max={requests.maxRequests}
         >
           <UsageInsight.Details>
             <UsageInsight.Item title="Request limit" description="requests" />
           </UsageInsight.Details>
-          <UsageInsight.Footer>
-            <UserButton />
-          </UsageInsight.Footer>
         </UsageInsight.Root>
+        <UserButton />
 
         {/* Fading indicator that there are more items to scroll */}
         <div className="pointer-events-none absolute bottom-full inset-x-0 h-10 bg-[inherit] [mask-image:linear-gradient(to_top,white,transparent)]" />
       </div>
     </aside>
-  );
-};
+  )
+}
 
 const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
-  const [isPending, startTransition] = useTransition();
-  const showLoader = useDelayLoader(isPending);
-  const router = useRouter();
+  const [isPending, startTransition] = useTransition()
+  const showLoader = useDelayLoader(isPending)
+  const router = useRouter()
   const link = (
     <Link
       prefetch
@@ -134,8 +145,8 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
       onClick={() => {
         if (!item.external) {
           startTransition(() => {
-            router.push(item.href);
-          });
+            router.push(item.href)
+          })
         }
       }}
       target={item.external ? "_blank" : undefined}
@@ -145,7 +156,7 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
           "bg-background border-border text-content [box-shadow:0px_1px_3px_0px_rgba(0,0,0,0.03)]":
             item.active,
           "text-content-subtle pointer-events-none": item.disabled,
-        },
+        }
       )}
     >
       <div className="flex items-center group gap-x-2">
@@ -153,14 +164,17 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
           {showLoader ? (
             <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
           ) : (
-            <item.icon className="w-5 h-5 shrink-0 [stroke-width:1.25px]" aria-hidden="true" />
+            <item.icon
+              className="w-5 h-5 shrink-0 [stroke-width:1.25px]"
+              aria-hidden="true"
+            />
           )}
         </span>
         <p className="truncate whitespace-nowrap">{item.label}</p>
       </div>
       {item.tag}
     </Link>
-  );
+  )
 
   if (item.tooltip) {
     return (
@@ -170,7 +184,7 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
           <TooltipContent>{item.tooltip}</TooltipContent>
         </TooltipTrigger>
       </Tooltip>
-    );
+    )
   }
-  return link;
-};
+  return link
+}

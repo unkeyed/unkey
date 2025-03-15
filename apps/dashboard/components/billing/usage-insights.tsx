@@ -1,175 +1,181 @@
-import { ProgressCircle } from "@/app/(app)/settings/billing/components/usage";
-import { Particles } from "@/components/ui/particles";
-import { createContext } from "@/lib/create-context";
-import { cn } from "@/lib/utils";
-import { Button } from "@unkey/ui";
-import Link from "next/link";
-import React from "react";
+import { ProgressCircle } from "@/app/(app)/settings/billing/components/usage"
+import { createContext } from "@/lib/create-context"
+import { cn } from "@/lib/utils"
+import { Button } from "@unkey/ui"
+import Link from "next/link"
+import React from "react"
+import { delay, motion } from "framer-motion"
 
 /* ----------------------------------------------------------------------------
  * UsageInsight - Root
  * --------------------------------------------------------------------------*/
 
-type DivElement = React.ElementRef<"div">;
-type DivProps = React.ComponentPropsWithoutRef<"div">;
+type DivElement = React.ElementRef<typeof motion.div>
+type DivProps = React.ComponentPropsWithoutRef<typeof motion.div>
 type UsageContextValue = {
-  plan: string;
-  current: number;
-  max: number;
-};
+  plan: string
+  current: number
+  max: number
+}
 export interface UsageRootProps extends DivProps {
-  plan: string;
-  current: number;
-  max: number;
+  plan: string
+  current: number
+  max: number
+  isLoading?: boolean
+  children: React.ReactNode | React.ReactNode[]
 }
 
-const ROOT_NAME = "UsageRoot";
+const ROOT_NAME = "UsageRoot"
 
-const [UsageProvider, useUsageContext] = createContext<UsageContextValue>(ROOT_NAME);
+const [UsageProvider, useUsageContext] =
+  createContext<UsageContextValue>(ROOT_NAME)
 
-export const Root = React.forwardRef<DivElement, UsageRootProps>((props, ref) => {
-  const { plan, current, max, className, children, ...rootProps } = props;
-  const { format } = Intl.NumberFormat(undefined, { notation: "compact" });
+export const Root = React.forwardRef<DivElement, UsageRootProps>(
+  (props, ref) => {
+    const {
+      plan,
+      current,
+      max,
+      className,
+      children,
+      isLoading = false,
+      ...rootProps
+    } = props
 
-  return (
-    <UsageProvider plan={plan} current={current} max={max}>
-      <div
-        {...rootProps}
-        ref={ref}
-        className={cn(
-          "relative flex flex-col bg-background border border-border rounded-xl pt-2.5 pb-2 px-2 group",
-          { className },
-        )}
-      >
-        <Particles
-          className="absolute inset-0 duration-500 opacity-0 pointer-events-none group-hover:opacity-75"
-          quantity={50}
-          color={plan === "Free" ? "#818181" : "#d6b300"}
-          vx={0.1}
-          vy={-0.1}
-        />
-
-        <div className="z-10">
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center justify-start gap-2">
-              <h2 className="text-gray-12 text-lg capitalize">{plan}</h2>
-              <span
-                className={cn(
-                  "h-6 rounded-md px-2 text-gray-11 text-xs bg-secondary flex items-center justify-center",
-                  {
-                    "bg-warning-11": current / max >= 0.94,
-                  },
-                )}
-              >
-                {format((current / max) * 100)}%
-              </span>
-            </div>
-
-            {current / max >= 0.94 && (
-              <Button variant="primary" size="sm">
-                <Link href="/settings/billing">Upgrade</Link>
-              </Button>
+    return (
+      <UsageProvider plan={plan} current={current} max={max}>
+        {!isLoading && (
+          <motion.div
+            layout
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "110px" }}
+            transition={{
+              type: "spring",
+              stiffness: 243,
+              damping: 34,
+              mass: 1,
+            }}
+            {...rootProps}
+            ref={ref}
+            className={cn(
+              "relative flex flex-col bg-background border border-border rounded-xl pt-2.5 pb-2 px-2 group overflow-hidden w-full",
+              { className }
             )}
-          </div>
+          >
+            {!isLoading && (
+              <div className="z-10">
+                <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center justify-start gap-2">
+                    <h2 className="text-gray-12 text-lg capitalize">{plan}</h2>
+                  </div>
 
-          {children}
-        </div>
-      </div>
-    </UsageProvider>
-  );
-});
+                  {current / max >= 0.94 ? (
+                    <Button variant="primary" size="sm">
+                      <Link href="/settings/billing">Upgrade</Link>
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm">
+                      <Link href="/settings/billing">Manage Plan</Link>
+                    </Button>
+                  )}
+                </div>
 
-Root.displayName = ROOT_NAME;
+                {children}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </UsageProvider>
+    )
+  }
+)
+
+Root.displayName = ROOT_NAME
 
 /* ----------------------------------------------------------------------------
  * UsageInsight - Details
  * --------------------------------------------------------------------------*/
 
-const DETAILS_NAME = "UsageDetails";
+const DETAILS_NAME = "UsageDetails"
 
 export const Details = React.forwardRef<DivElement, DivProps>((props, ref) => {
-  const { className, children, ...detailsProps } = props;
+  const { className, children, ...detailsProps } = props
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: -0 }}
+      transition={{
+        ease: "easeInOut",
+        duration: 0.4,
+        opacity: { duration: 0.8, delay: 0.1 },
+      }}
       {...detailsProps}
       ref={ref}
       className={cn(
-        "h-0 group-hover:h-12 duration-500 ease-out w-full overflow-hidden group-hover:opacity-100 opacity-0 flex flex-col gap-4 group-hover:mt-4 mt-1.5",
-        { className },
+        "h-16 duration-500 ease-out w-full flex flex-col gap-4 items-start justify-center pt-2",
+        {
+          className,
+        }
       )}
     >
       {children}
-    </div>
-  );
-});
+    </motion.div>
+  )
+})
 
-Details.displayName = DETAILS_NAME;
+Details.displayName = DETAILS_NAME
 
 /* ----------------------------------------------------------------------------
  * UsageInsight - Item
  * --------------------------------------------------------------------------*/
+type PrimitiveDivElement = React.ElementRef<"div">
+type PrimitiveDivProps = React.ComponentPropsWithoutRef<"div">
 
-export interface UsageItemProps extends DivProps {
+export interface UsageItemProps extends PrimitiveDivProps {
   item?: {
-    current: number;
-    max: number;
-  };
-  title: string;
-  description?: string;
-  color?: string;
+    current: number
+    max: number
+  }
+  title: string
+  description?: string
+  color?: string
 }
 
-const ITEM_NAME = "UsageItem";
+const ITEM_NAME = "UsageItem"
 
-export const Item = React.forwardRef<DivElement, UsageItemProps>((props, ref) => {
-  const { item, title, description, color, className, ...itemProps } = props;
-  const { format } = Intl.NumberFormat(undefined, { notation: "compact" });
-  const { current, max } = useUsageContext("UsageItem");
+export const Item = React.forwardRef<PrimitiveDivElement, UsageItemProps>(
+  (props, ref) => {
+    const { item, title, description, color, className, ...itemProps } = props
+    const { format } = Intl.NumberFormat(undefined, { notation: "compact" })
+    const { current, max } = useUsageContext("UsageItem")
 
-  return (
-    <div
-      {...itemProps}
-      ref={ref}
-      className={cn(
-        "flex items-start justify-start px-2 gap-3 group-hover:opacity-100 opacity-0 transition-opacity duration-500 ease-out delay-150",
-        { className },
-      )}
-    >
-      <ProgressCircle
-        value={item?.current ?? current}
-        max={item?.max ?? max}
-        color={color ?? "#f76e19"}
-      />
-      <div className="flex flex-col gap-2 justify-start items-start select-none">
-        <h6 className="text-gray-12 text-sm leading-none">{title}</h6>
-        <p className="text-xs font-normal line-clamp-1">
-          {format(item?.current ?? current)} of {format(item?.max ?? max)} {description}
-        </p>
+    return (
+      <div
+        {...itemProps}
+        ref={ref}
+        className={cn("flex items-start justify-start px-2 gap-3", {
+          className,
+        })}
+      >
+        <ProgressCircle
+          value={item?.current ?? current}
+          max={item?.max ?? max}
+          color={color ?? "#f76e19"}
+        />
+        <div className="flex flex-col gap-2 justify-start items-start select-none">
+          <h6 className="text-gray-12 text-sm leading-none">{title}</h6>
+          <p className="text-xs font-normal line-clamp-1">
+            {format(item?.current ?? current)} of {format(item?.max ?? max)}{" "}
+            {description}
+          </p>
+        </div>
       </div>
-    </div>
-  );
-});
+    )
+  }
+)
 
-Item.displayName = ITEM_NAME;
-
-/* ----------------------------------------------------------------------------
- * UsageInsight - Footer
- * --------------------------------------------------------------------------*/
-
-const FOOTER_NAME = "UsageFooter";
-
-export const Footer = React.forwardRef<DivElement, DivProps>((props, ref) => {
-  const { className, children, ...detailsProps } = props;
-
-  return (
-    <div {...detailsProps} ref={ref} className={cn({ className })}>
-      {children}
-    </div>
-  );
-});
-
-Footer.displayName = FOOTER_NAME;
+Item.displayName = ITEM_NAME
 
 /* -------------------------------------------------------------------------------------------------
  * Exports
@@ -181,6 +187,5 @@ export const UsageInsight = Object.assign(
     Root,
     Details,
     Item,
-    Footer,
-  },
-);
+  }
+)
