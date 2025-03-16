@@ -135,6 +135,28 @@ export class SwrCache<TNamespace extends string, TValue> {
     }
   }
 
+  public async swrMany<K extends string>(
+    namespace: TNamespace,
+    keys: K[],
+    loadFromOrigin: (keys: K[]) => Promise<Record<string, TValue | undefined>>,
+  ): Promise<Result<Record<K, TValue | undefined>, CacheError>> {
+    return Ok();
+  }
+
+  public async getMany(
+    namespace: TNamespace,
+    keys: string[],
+  ): Promise<Result<Record<string, TValue | undefined>, CacheError>> {
+    return Ok();
+  }
+
+  public async setMany(
+    namespace: TNamespace,
+    entries: Record<string, TValue>,
+  ): Promise<Result<void, CacheError>> {
+    return Ok();
+  }
+
   /**
    * Deduplicating the origin load helps when the same value is requested many times at once and is
    * not yet in the cache. If we don't deduplicate, we'd create a lot of unnecessary load on the db.

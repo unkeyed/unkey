@@ -98,4 +98,18 @@ export class LibSQLStore<TNamespace extends string, TValue = any>
       return Ok();
     }
   }
+
+  public async getMany(
+    namespace: TNamespace,
+    keys: string[],
+  ): Promise<Result<Record<string, Entry<TValue> | undefined>, CacheError>> {
+    return Ok();
+  }
+
+  public async setMany(
+    namespace: TNamespace,
+    entries: Record<string, Entry<TValue>>,
+  ): Promise<Result<void, CacheError>> {
+    return Ok();
+  }
 }
