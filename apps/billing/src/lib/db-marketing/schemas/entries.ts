@@ -30,12 +30,12 @@ export const entries = mysqlTable(
   "entries",
   {
     id: int("id").primaryKey().autoincrement(),
-    inputTerm: varchar("input_term", { length: 255 }).notNull(),
-    githubPrUrl: varchar("github_pr_url", { length: 255 }),
+    inputTerm: varchar("input_term", { length: 767 }).notNull(),
+    githubPrUrl: text("github_pr_url"),
     dynamicSectionsContent: text("dynamic_sections_content"),
-    metaTitle: varchar("meta_title", { length: 255 }),
-    metaDescription: varchar("meta_description", { length: 255 }),
-    metaH1: varchar("meta_h1", { length: 255 }),
+    metaTitle: text("meta_title"),
+    metaDescription: text("meta_description"),
+    metaH1: text("meta_h1"),
     categories: json("linking_categories").$type<string[]>().default([]),
     status: mysqlEnum("status", entryStatus),
     takeaways: json("content_takeaways").$type<Takeaways>(),
@@ -47,7 +47,7 @@ export const entries = mysqlTable(
       .$onUpdate(() => new Date()),
   },
   (table) => ({
-    inputTermIdx: index("input_term_idx").on(table.inputTerm),
+    inputTermHashIdx: index("input_term_idx").on(table.inputTerm),
   }),
 );
 
