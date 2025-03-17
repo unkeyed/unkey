@@ -2,9 +2,9 @@ import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, inArray, isNull } from "@/lib/db";
+import { and, db, eq, isNull } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { keys, roles } from "@unkey/db/src/schema";
+import { keys } from "@unkey/db/src/schema";
 import { Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -18,11 +18,35 @@ export const revalidate = 0;
 export default async function RolesPage() {
   const tenantId = getTenantId();
 
+  // Get workspace with all permissions and roles with their permissions
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     with: {
       permissions: true,
+      roles: {
+        with: {
+          // Include all permissions for each role
+          permissions: {
+            with: {
+              permission: true,
+            },
+          },
+          // Only include non-deleted keys
+          keys: {
+            where: (keysRolesTable, { exists }) =>
+              exists(
+                db
+                  .select()
+                  .from(keys)
+                  .where(and(eq(keys.id, keysRolesTable.keyId), isNull(keys.deletedAtM))),
+              ),
+            with: {
+              key: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -30,37 +54,29 @@ export default async function RolesPage() {
     return redirect("/new");
   }
 
-  const activePermissionIds = workspace.permissions.map((p) => p.id);
+  // Create a Set of active permission IDs from the workspace
+  const activePermissionIds = new Set(workspace.permissions.map((p) => p.id));
 
-  const rolesData = await db.query.roles.findMany({
-    where: eq(roles.workspaceId, workspace.id),
-    with: {
-      // Only include non-deleted keys
-      keys: {
-        where: (keysRolesTable, { exists }) =>
-          exists(
-            db
-              .select()
-              .from(keys)
-              .where(and(eq(keys.id, keysRolesTable.keyId), isNull(keys.deletedAtM))),
-          ),
-        with: {
-          key: true,
-        },
-      },
-      permissions: {
-        where: (rolesPermissionsTable) =>
-          inArray(rolesPermissionsTable.permissionId, activePermissionIds),
-        with: {
-          permission: true,
-        },
-      },
-    },
+  // Enhance roles with filtered permissions
+  const enhancedRoles = workspace.roles.map((role) => {
+    // Filter to only include permissions that exist in the workspace
+    const filteredPermissions = role.permissions.filter((rp) =>
+      activePermissionIds.has(rp.permissionId),
+    );
+
+    return {
+      ...role,
+      // Replace the permissions array with filtered one
+      permissions: filteredPermissions,
+      // Add permission count for display
+      permissionCount: filteredPermissions.length,
+    };
   });
 
+  // Create the final workspace object with enhanced roles
   const workspaceWithRoles = {
     ...workspace,
-    roles: rolesData,
+    roles: enhancedRoles,
   };
 
   return (
@@ -88,7 +104,7 @@ export default async function RolesPage() {
                     </div>
                     <div className="flex items-center col-span-3 gap-2">
                       <Badge variant="secondary">
-                        {formatNumber(r.permissions.length)} Permissions
+                        {formatNumber(r.permissionCount)} Permissions
                       </Badge>
                       <Badge variant="secondary">
                         {formatNumber(r.keys.length)} Key
