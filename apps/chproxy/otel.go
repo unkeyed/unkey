@@ -141,7 +141,7 @@ func setupTelemetry(ctx context.Context, config *Config) (*TelemetryConfig, func
 	}
 
 	config.Logger.Info("configured tracer with sampling",
-		"rate", config.TraceSampleRate)
+		slog.Float64("rate", config.TraceSampleRate))
 
 	traceProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithResource(res),
