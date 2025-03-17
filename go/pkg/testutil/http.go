@@ -75,16 +75,19 @@ func NewHarness(t *testing.T) *Harness {
 	keyService, err := keys.New(keys.Config{
 		Logger: logger,
 		DB:     db,
+		Clock:  clk,
 	})
 	require.NoError(t, err)
 
 	validator, err := validation.New()
 	require.NoError(t, err)
 
-	permissionService := permissions.New(permissions.Config{
+	permissionService, err := permissions.New(permissions.Config{
 		DB:     db,
 		Logger: logger,
+		Clock:  clk,
 	})
+	require.NoError(t, err)
 
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
 		Logger:  logger,
