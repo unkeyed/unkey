@@ -6,6 +6,7 @@ import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { ratelimitOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
+import { StatusFilter } from "./components/status-filter";
 
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
@@ -20,6 +21,12 @@ export const LogsFilters = () => {
   return (
     <FiltersPopover
       items={[
+        {
+          id: "status",
+          label: "Status",
+          shortcut: "e",
+          component: <StatusFilter />,
+        },
         {
           id: "identifiers",
           label: "Identifier",
