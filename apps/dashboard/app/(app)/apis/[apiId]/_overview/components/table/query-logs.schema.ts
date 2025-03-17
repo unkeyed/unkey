@@ -1,5 +1,6 @@
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
+import { MAX_KEYID_COUNT } from "../charts/bar-chart/query-timeseries.schema";
 
 export const keysQueryOverviewLogsPayload = z.object({
   limit: z.number().int(),
@@ -30,6 +31,7 @@ export const keysQueryOverviewLogsPayload = z.object({
         value: z.string(),
       }),
     )
+    .max(MAX_KEYID_COUNT)
     .optional()
     .nullable(),
   names: z

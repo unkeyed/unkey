@@ -101,7 +101,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
 
           return (
             <div className="flex items-center w-full">
-              <div className="flex-shrink-0 w-[50px]">
+              <div className="flex-shrink-0">
                 <Badge
                   className={cn(
                     "px-[6px] rounded-md font-mono whitespace-nowrap flex items-center",

@@ -47,6 +47,7 @@ export const activeKeysTimeseriesDataPoint = z.object({
   y: z.object({
     keys: z.number().int().default(0),
   }),
+  key_ids: z.array(z.string()).optional(),
 });
 
 export type ActiveKeysTimeseriesDataPoint = z.infer<typeof activeKeysTimeseriesDataPoint>;
@@ -143,7 +144,8 @@ function createActiveKeysTimeseriesQuery(interval: TimeInterval, whereClause: st
       toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3))) as x,
       map(
         'keys', count(DISTINCT key_id)
-      ) as y
+      ) as y,
+      groupArray(DISTINCT key_id) as key_ids
     FROM ${interval.table}
     ${whereClause}
     GROUP BY x
