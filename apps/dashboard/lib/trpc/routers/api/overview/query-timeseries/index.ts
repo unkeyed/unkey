@@ -1,7 +1,6 @@
 import { verificationQueryTimeseriesPayload } from "@/app/(app)/apis/_components/hooks/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
 import { transformVerificationFilters } from "./utils";
 
 export const queryVerificationTimeseries = rateLimitedProcedure(ratelimit.read)
@@ -16,7 +15,7 @@ export const queryVerificationTimeseries = rateLimitedProcedure(ratelimit.read)
     });
 
     return {
-      timeseries: result as VerificationTimeseriesDataPoint[],
+      timeseries: result,
       granularity,
     };
   });

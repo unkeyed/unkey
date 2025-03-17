@@ -407,7 +407,7 @@ async function batchVerificationTimeseries(
   maxBatchSize = 15,
 ) {
   if (!args.keyIds || args.keyIds.length <= maxBatchSize) {
-    return createVerificationTimeseriesQuerier(interval)(ch)(args);
+    return (await createVerificationTimeseriesQuerier(interval)(ch)(args)).val;
   }
 
   const keyIdBatches: any[] = [];
