@@ -20,7 +20,7 @@ jobs:
         run: echo "VERSION=$(git describe --tags --always)" >> $GITHUB_ENV
 
       - name: Get tags
-        run: echo "TAGS=ghcr.io/unkeyed/agent:${{env.VERSION}},ghcr.io/unkeyed/agent:${{github.ref}},ghcr.io/unkeyed/agent:latest" >> $GITHUB_ENV
+        run: echo "TAGS=ghcr.io/unkeyed/agent:${{env.VERSION}},ghcr.io/unkeyed/agent:latest" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
