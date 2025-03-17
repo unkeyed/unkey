@@ -1,3 +1,4 @@
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
@@ -112,9 +113,7 @@ const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
             {log.override && (
               <div className="text-accent-9">
                 Limit set to{" "}
-                <span className="text-accent-12">
-                  {Intl.NumberFormat().format(log.override.limit)}{" "}
-                </span>
+                <span className="text-accent-12">{formatNumber(log.override.limit)} </span>
                 requests per <span className="text-accent-12">{ms(log.override.duration)}</span>
               </div>
             )}

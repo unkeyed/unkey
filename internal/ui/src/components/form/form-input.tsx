@@ -2,20 +2,22 @@ import { CircleInfo, TriangleWarning2 } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { type DocumentedInputProps, Input, type InputProps } from "../input";
+import { OptionalTag, RequiredTag } from "./form-textarea";
 
 // Hack to populate fumadocs' AutoTypeTable
 export type DocumentedFormInputProps = DocumentedInputProps & {
   label?: string;
   description?: string | React.ReactNode;
   required?: boolean;
+  optional?: boolean;
   error?: string;
 };
+
 export type FormInputProps = InputProps & DocumentedFormInputProps;
 
 export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
-  ({ label, description, error, required, id, className, variant, ...props }, ref) => {
+  ({ label, description, error, required, id, className, optional, variant, ...props }, ref) => {
     const inputVariant = error ? "error" : variant;
-
     const inputId = id || React.useId();
     const descriptionId = `${inputId}-helper`;
     const errorId = `${inputId}-error`;
@@ -29,14 +31,10 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
             className="text-gray-11 text-[13px] flex items-center"
           >
             {label}
-            {required && (
-              <span className="text-error-9 ml-1" aria-label="required field">
-                *
-              </span>
-            )}
+            {required && <RequiredTag hasError={!!error} />}
+            {optional && <OptionalTag />}
           </label>
         )}
-
         <Input
           ref={ref}
           id={inputId}
@@ -46,7 +44,6 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           aria-required={required}
           {...props}
         />
-
         {(description || error) && (
           <div className="text-[13px] leading-5">
             {error ? (

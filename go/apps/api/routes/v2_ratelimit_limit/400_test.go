@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
@@ -19,128 +19,128 @@ import (
 func TestBadRequests(t *testing.T) {
 	testCases := []struct {
 		name          string
-		req           api.V2RatelimitLimitRequestBody
-		expectedError api.BadRequestError
+		req           openapi.V2RatelimitLimitRequestBody
+		expectedError openapi.BadRequestError
 	}{
 		//	{
 		//		name: "missing namespace",
-		//		req: api.V2RatelimitLimitRequestBody{
+		//		req: openapi.V2RatelimitLimitRequestBody{
 		//			Identifier: "user_123",
 		//			Limit:      100,
 		//			Duration:   60000,
 		//		},
-		//		expectedError: api.BadRequestError{
+		//		expectedError: openapi.BadRequestError{
 		//			Title:     "Bad Request",
 		//			Detail:    "One or more fields failed validation",
 		//			Status:    http.StatusBadRequest,
 		//			Type:      "https://unkey.com/docs/errors/bad_request",
-		//			Errors:    []api.ValidationError{},
+		//			Errors:    []openapi.ValidationError{},
 		//			RequestId: "test",
 		//			Instance:  nil,
 		//		},
 		//	},
 		// {
 		// 	name: "missing identifier",
-		// 	req: api.V2RatelimitLimitRequestBody{
+		// 	req: openapi.V2RatelimitLimitRequestBody{
 		// 		Namespace: "test_namespace",
 		// 		Limit:     100,
 		// 		Duration:  60000,
 		// 	},
-		// 	expectedError: api.BadRequestError{
+		// 	expectedError: openapi.BadRequestError{
 		// 		Title:     "Bad Request",
 		// 		Detail:    "One or more fields failed validation",
 		// 		Status:    http.StatusBadRequest,
 		// 		Type:      "https://unkey.com/docs/errors/bad_request",
-		// 		Errors:    []api.ValidationError{},
+		// 		Errors:    []openapi.ValidationError{},
 		// 		RequestId: "test",
 		// 		Instance:  nil,
 		// 	},
 		// },
 		// {
 		// 	name: "missing limit",
-		// 	req: api.V2RatelimitLimitRequestBody{
+		// 	req: openapi.V2RatelimitLimitRequestBody{
 		// 		Namespace:  "test_namespace",
 		// 		Identifier: "user_123",
 		// 		Duration:   60000,
 		// 	},
-		// 	expectedError: api.BadRequestError{
+		// 	expectedError: openapi.BadRequestError{
 		// 		Title:     "Bad Request",
 		// 		Detail:    "One or more fields failed validation",
 		// 		Status:    http.StatusBadRequest,
 		// 		Type:      "https://unkey.com/docs/errors/bad_request",
-		// 		Errors:    []api.ValidationError{},
+		// 		Errors:    []openapi.ValidationError{},
 		// 		RequestId: "test",
 		// 		Instance:  nil,
 		// 	},
 		// },
 		// {
 		// 	name: "missing duration",
-		// 	req: api.V2RatelimitLimitRequestBody{
+		// 	req: openapi.V2RatelimitLimitRequestBody{
 		// 		Namespace:  "test_namespace",
 		// 		Identifier: "user_123",
 		// 		Limit:      100,
 		// 	},
-		// 	expectedError: api.BadRequestError{
+		// 	expectedError: openapi.BadRequestError{
 		// 		Title:     "Bad Request",
 		// 		Detail:    "One or more fields failed validation",
 		// 		Status:    http.StatusBadRequest,
 		// 		Type:      "https://unkey.com/docs/errors/bad_request",
-		// 		Errors:    []api.ValidationError{},
+		// 		Errors:    []openapi.ValidationError{},
 		// 		RequestId: "test",
 		// 		Instance:  nil,
 		// 	},
 		// },
 		// {
 		// 	name: "negative limit",
-		// 	req: api.V2RatelimitLimitRequestBody{
+		// 	req: openapi.V2RatelimitLimitRequestBody{
 		// 		Namespace:  "test_namespace",
 		// 		Identifier: "user_123",
 		// 		Limit:      -1,
 		// 		Duration:   60000,
 		// 	},
-		// 	expectedError: api.BadRequestError{
+		// 	expectedError: openapi.BadRequestError{
 		// 		Title:     "Bad Request",
 		// 		Detail:    "One or more fields failed validation",
 		// 		Status:    http.StatusBadRequest,
 		// 		Type:      "https://unkey.com/docs/errors/bad_request",
-		// 		Errors:    []api.ValidationError{},
+		// 		Errors:    []openapi.ValidationError{},
 		// 		RequestId: "test",
 		// 		Instance:  nil,
 		// 	},
 		// },
 		// {
 		// 	name: "negative duration",
-		// 	req: api.V2RatelimitLimitRequestBody{
+		// 	req: openapi.V2RatelimitLimitRequestBody{
 		// 		Namespace:  "test_namespace",
 		// 		Identifier: "user_123",
 		// 		Limit:      100,
 		// 		Duration:   -1,
 		// 	},
-		// 	expectedError: api.BadRequestError{
+		// 	expectedError: openapi.BadRequestError{
 		// 		Title:     "Bad Request",
 		// 		Detail:    "One or more fields failed validation",
 		// 		Status:    http.StatusBadRequest,
 		// 		Type:      "https://unkey.com/docs/errors/bad_request",
-		// 		Errors:    []api.ValidationError{},
+		// 		Errors:    []openapi.ValidationError{},
 		// 		RequestId: "test",
 		// 		Instance:  nil,
 		// 	},
 		// },
 		{
 			name: "negative cost",
-			req: api.V2RatelimitLimitRequestBody{
+			req: openapi.V2RatelimitLimitRequestBody{
 				Namespace:  "test_namespace",
 				Identifier: "user_123",
 				Limit:      100,
 				Duration:   60000,
 				Cost:       ptr.P[int64](-5),
 			},
-			expectedError: api.BadRequestError{
+			expectedError: openapi.BadRequestError{
 				Title:     "Bad Request",
 				Detail:    "One or more fields failed validation",
 				Status:    http.StatusBadRequest,
 				Type:      "https://unkey.com/docs/errors/bad_request",
-				Errors:    []api.ValidationError{},
+				Errors:    []openapi.ValidationError{},
 				RequestId: "test",
 				Instance:  nil,
 			},
@@ -179,7 +179,7 @@ func TestBadRequests(t *testing.T) {
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}
 
-			res := testutil.CallRoute[handler.Request, api.BadRequestError](h, route, headers, tc.req)
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, tc.req)
 			require.Equal(t, 400, res.Status, "expected 400, received: %s", res.RawBody)
 			require.NotNil(t, res.Body)
 			require.Equal(t, tc.expectedError.Type, res.Body.Type)

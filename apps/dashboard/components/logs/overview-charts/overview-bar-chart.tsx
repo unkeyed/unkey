@@ -11,13 +11,13 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatNumber } from "@/lib/fmt";
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
 import { OverviewChartError } from "./overview-bar-chart-error";
 import { OverviewChartLoader } from "./overview-bar-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
-import { compactFormatter } from "./utils";
 
 type ChartTooltipItem = {
   label: string;
@@ -134,7 +134,7 @@ export function OverviewBarChart({
         <div className="flex flex-col gap-1">
           <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
-            {compactFormatter.format(totalCount)}
+            {formatNumber(totalCount)}
           </div>
         </div>
 
@@ -145,7 +145,7 @@ export function OverviewBarChart({
               <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {compactFormatter.format(primaryCount)}
+              {formatNumber(primaryCount)}
             </div>
           </div>
           <div className="flex flex-col gap-1">
@@ -154,7 +154,7 @@ export function OverviewBarChart({
               <div className="text-accent-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {compactFormatter.format(secondaryCount)}
+              {formatNumber(secondaryCount)}
             </div>
           </div>
         </div>

@@ -3,8 +3,8 @@
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
-import { compactFormatter } from "../logs/overview-charts/utils";
 
 const THEMES = { light: "", dark: ".dark" } as const;
 
@@ -232,7 +232,7 @@ const ChartTooltipContent = React.forwardRef<
                       <div className="ml-auto">
                         {item.value && (
                           <span className="font-mono tabular-nums text-accent-12">
-                            {compactFormatter.format(item.value as number)}
+                            {formatNumber(item.value as number)}
                           </span>
                         )}
                       </div>
