@@ -17,7 +17,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Get Version
-        run: echo "VERSION=$(git describe --tags --always)" >> $GITHUB_ENV
+        run: |
+          VERSION=$(git describe --tags --always)
+          VERSION=${VERSION#agent/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Get tags
         run: echo "TAGS=ghcr.io/unkeyed/agent:${{env.VERSION}},ghcr.io/unkeyed/agent:latest" >> $GITHUB_ENV
