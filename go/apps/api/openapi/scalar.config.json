@@ -1,0 +1,10 @@
+{
+  "subdomain": "api.apidocumentation.com",
+  "references": [
+    {
+      "name": "API Reference",
+      "path": "./openapi.json"
+    }
+  ],
+  "guides": []
+}
