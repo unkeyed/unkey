@@ -326,3 +326,27 @@ export function extractRolesAndPermissions(key: any) {
     permissions,
   };
 }
+
+export const getApi = async (apiId: string, workspaceId: string) => {
+  const api = await db.query.apis
+    .findFirst({
+      where: (api, { and, eq, isNull }) =>
+        and(eq(api.id, apiId), eq(api.workspaceId, workspaceId), isNull(api.deletedAtM)),
+      with: {
+        keyAuth: {
+          columns: {
+            id: true,
+          },
+        },
+      },
+    })
+    .catch((err) => {
+      console.error("Database query error:", err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to retrieve API information.",
+      });
+    });
+
+  return api;
+};

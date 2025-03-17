@@ -400,24 +400,123 @@ function createVerificationTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
-export const getHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(INTERVALS.hour);
-export const getTwoHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.twoHours,
-);
-export const getFourHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.fourHours,
-);
-export const getSixHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.sixHours,
-);
-export const getTwelveHourlyVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.twelveHours,
-);
-export const getDailyVerificationTimeseries = createVerificationTimeseriesQuerier(INTERVALS.day);
-export const getThreeDayVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.threeDays,
-);
-export const getWeeklyVerificationTimeseries = createVerificationTimeseriesQuerier(INTERVALS.week);
-export const getMonthlyVerificationTimeseries = createVerificationTimeseriesQuerier(
-  INTERVALS.month,
-);
+async function batchVerificationTimeseries(
+  ch: Querier,
+  interval: TimeInterval,
+  args: VerificationTimeseriesParams,
+  maxBatchSize = 15,
+) {
+  if (!args.keyIds || args.keyIds.length === 0 || args.keyIds.length <= maxBatchSize) {
+    return (await createVerificationTimeseriesQuerier(interval)(ch)(args)).val;
+  }
+
+  const keyIdBatches: any[] = [];
+  for (let i = 0; i < args.keyIds.length; i += maxBatchSize) {
+    keyIdBatches.push(args.keyIds.slice(i, i + maxBatchSize));
+  }
+
+  const batchResults = await Promise.allSettled(
+    keyIdBatches.map(async (batchKeyIds, batchIndex) => {
+      const batchArgs = {
+        ...args,
+        keyIds: batchKeyIds,
+      };
+      try {
+        const res = await createVerificationTimeseriesQuerier(interval)(ch)(batchArgs);
+        if (res?.val) {
+          return res.val;
+        }
+        return res; // Return res directly if no .val
+      } catch (error) {
+        console.error(`Batch ${batchIndex} query failed:`, error);
+        return [];
+      }
+    }),
+  );
+
+  const successfulResults = batchResults
+    .filter((result) => result.status === "fulfilled")
+    .map((result) => (result as PromiseFulfilledResult<VerificationTimeseriesDataPoint[]>).value)
+    .filter((value) => Array.isArray(value));
+
+  return mergeVerificationTimeseriesResults(successfulResults);
+}
+
+function mergeVerificationTimeseriesResults(
+  results: VerificationTimeseriesDataPoint[][],
+): VerificationTimeseriesDataPoint[] {
+  const mergedMap = new Map<number, VerificationTimeseriesDataPoint>();
+
+  results.forEach((resultBatch) => {
+    resultBatch.forEach((dataPoint) => {
+      if (!dataPoint) {
+        return; // Skip undefined or null points
+      }
+      const existingPoint = mergedMap.get(dataPoint.x);
+
+      if (!existingPoint) {
+        mergedMap.set(dataPoint.x, dataPoint);
+      } else {
+        mergedMap.set(dataPoint.x, {
+          x: dataPoint.x,
+          y: {
+            total: (existingPoint.y.total ?? 0) + (dataPoint.y.total ?? 0),
+            valid: (existingPoint.y.valid ?? 0) + (dataPoint.y.valid ?? 0),
+            valid_count: (existingPoint.y.valid_count ?? 0) + (dataPoint.y.valid_count ?? 0),
+            rate_limited_count:
+              (existingPoint.y.rate_limited_count ?? 0) + (dataPoint.y.rate_limited_count ?? 0),
+            insufficient_permissions_count:
+              (existingPoint.y.insufficient_permissions_count ?? 0) +
+              (dataPoint.y.insufficient_permissions_count ?? 0),
+            forbidden_count:
+              (existingPoint.y.forbidden_count ?? 0) + (dataPoint.y.forbidden_count ?? 0),
+            disabled_count:
+              (existingPoint.y.disabled_count ?? 0) + (dataPoint.y.disabled_count ?? 0),
+            expired_count: (existingPoint.y.expired_count ?? 0) + (dataPoint.y.expired_count ?? 0),
+            usage_exceeded_count:
+              (existingPoint.y.usage_exceeded_count ?? 0) + (dataPoint.y.usage_exceeded_count ?? 0),
+          },
+        });
+      }
+    });
+  });
+
+  // Convert map back to sorted array
+  return Array.from(mergedMap.values()).sort((a, b) => a.x - b.x);
+}
+
+export const getHourlyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.hour, args);
+
+export const getTwoHourlyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.twoHours, args);
+
+export const getFourHourlyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.fourHours, args);
+
+export const getSixHourlyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.sixHours, args);
+
+export const getTwelveHourlyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.twelveHours, args);
+
+export const getDailyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.day, args);
+
+export const getThreeDayVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.threeDays, args);
+
+export const getWeeklyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.week, args);
+
+export const getMonthlyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.month, args);
