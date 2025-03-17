@@ -120,6 +120,7 @@ func Run(ctx context.Context, cfg Config) error {
 	keySvc, err := keys.New(keys.Config{
 		Logger: logger,
 		DB:     db,
+		Clock:  clk,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -134,6 +135,15 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
 	}
 
+	p, err := permissions.New(permissions.Config{
+		DB:     db,
+		Logger: logger,
+		Clock:  clk,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create permissions service: %w", err)
+	}
+
 	routes.Register(srv, &routes.Services{
 		Logger:      logger,
 		Database:    db,
@@ -141,10 +151,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Keys:        keySvc,
 		Validator:   validator,
 		Ratelimit:   rlSvc,
-		Permissions: permissions.New(permissions.Config{
-			DB:     db,
-			Logger: logger,
-		}),
+		Permissions: p,
 	})
 
 	go func() {

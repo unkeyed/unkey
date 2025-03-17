@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/hash"
@@ -19,7 +20,19 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	}
 	h := hash.Sha256(rawKey)
 
-	key, err := db.Query.FindKeyByHash(ctx, s.db.RO(), h)
+	key, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.Key, error) {
+		return db.Query.FindKeyByHash(ctx, s.db.RO(), h)
+	}, func(err error) cache.CacheHit {
+		if err == nil {
+			return cache.Hit
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			return cache.Null
+		}
+		return cache.Miss
+
+	})
+
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return VerifyResponse{}, fault.Wrap(

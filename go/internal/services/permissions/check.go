@@ -3,6 +3,7 @@ package permissions
 import (
 	"context"
 
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -10,8 +11,16 @@ import (
 
 func (s *service) Check(ctx context.Context, keyID string, query rbac.PermissionQuery) (rbac.EvaluationResult, error) {
 
-	permissions, err := db.Query.FindPermissionsForKey(ctx, s.db.RO(), db.FindPermissionsForKeyParams{
-		KeyID: keyID,
+	permissions, err := s.cache.SWR(ctx, keyID, func(ctx context.Context) ([]string, error) {
+		return db.Query.FindPermissionsForKey(ctx, s.db.RO(), db.FindPermissionsForKeyParams{
+			KeyID: keyID,
+		})
+	}, func(err error) cache.CacheHit {
+		if err == nil {
+			return cache.Hit
+		}
+		return cache.Miss
+
 	})
 
 	if err != nil {
