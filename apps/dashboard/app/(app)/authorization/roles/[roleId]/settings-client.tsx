@@ -193,7 +193,16 @@ export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleCl
           className="flex-col items-start"
           contentWidth="w-full"
         >
-          <Tree nestedPermissions={sortedNestedPermissions} role={{ id: role.id }} />
+          {Object.keys(sortedNestedPermissions).length > 0 ? (
+            <Tree nestedPermissions={sortedNestedPermissions} role={{ id: role.id }} />
+          ) : (
+            <div className="w-full py-6 flex flex-col items-center justify-center text-center border border-dashed border-gray-4 rounded-lg bg-gray-1">
+              <p className="text-sm text-accent-10 max-w-md">
+                There are no permissions configured for this role. Permissions need to be created
+                first before they can be assigned to roles.
+              </p>
+            </div>
+          )}
         </SettingCard>
 
         <SettingCard

@@ -12,9 +12,7 @@ import { redirect } from "next/navigation";
 import { navigation } from "../constants";
 import { EmptyPermissions } from "./empty";
 import { Navigation } from "./navigation";
-
 export const revalidate = 0;
-
 export default async function RolesPage() {
   const tenantId = getTenantId();
 
@@ -43,22 +41,40 @@ export default async function RolesPage() {
       },
     },
   });
+
   if (!workspace) {
     return redirect("/new");
   }
 
+  const activeRoles = await db.query.roles.findMany({
+    where: (table, { and, eq }) =>
+      and(
+        eq(table.workspaceId, workspace.id), // Use workspace ID from the fetched workspace
+      ),
+    columns: {
+      id: true,
+    },
+  });
+
+  const activeRoleIds = new Set(activeRoles.map((role) => role.id));
+
   /**
-   * Filter out all the soft deleted keys cause I'm not smart enough to do it with drizzle
+   * Filter out all the soft deleted keys and roles
    */
   workspace.permissions = workspace.permissions.map((permission) => {
+    // Filter out deleted keys
     permission.keys = permission.keys.filter(({ key }) => key.deletedAtM === null);
+
+    permission.roles = permission.roles.filter(
+      ({ role }) => role?.id && activeRoleIds.has(role.id),
+    );
+
     return permission;
   });
 
   return (
     <div>
       <Navigation numberOfPermissions={workspace.permissions.length} />
-
       <PageContent>
         <SubMenu navigation={navigation} segment="permissions" />
         <div className="mt-8 mb-20 overflow-x-auto">
@@ -77,19 +93,16 @@ export default async function RolesPage() {
                       <pre className="text-sm text-content truncate w-full">{p.name}</pre>
                       <span className="text-xs text-content-subtle">{p.description}</span>
                     </div>
-
                     <div className="flex items-center col-span-3 gap-2">
                       <Badge variant="secondary">
                         {formatNumber(p.roles.length)} Role
                         {p.roles.length !== 1 ? "s" : ""}
                       </Badge>
-
                       <Badge variant="secondary">
                         {formatNumber(p.keys.length)} Key
                         {p.keys.length !== 1 ? "s" : ""}
                       </Badge>
                     </div>
-
                     <div className="flex items-center justify-end col-span-3">
                       <Button variant="ghost">
                         <ChevronRight className="w-4 h-4" />
