@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -17,8 +17,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = api.V2RatelimitGetOverrideRequestBody
-type Response = api.V2RatelimitGetOverrideResponseBody
+type Request = openapi.V2RatelimitGetOverrideRequestBody
+type Response = openapi.V2RatelimitGetOverrideResponseBody
 
 type Services struct {
 	Logger      logging.Logger
