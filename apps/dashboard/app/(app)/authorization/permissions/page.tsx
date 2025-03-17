@@ -46,7 +46,6 @@ export default async function RolesPage() {
     return redirect("/new");
   }
 
-  // After we have the workspace, get active roles for this workspace's tenant
   const activeRoles = await db.query.roles.findMany({
     where: (table, { and, eq }) =>
       and(
@@ -57,7 +56,6 @@ export default async function RolesPage() {
     },
   });
 
-  // Create a Set of active role IDs for efficient lookup
   const activeRoleIds = new Set(activeRoles.map((role) => role.id));
 
   /**
@@ -67,8 +65,6 @@ export default async function RolesPage() {
     // Filter out deleted keys
     permission.keys = permission.keys.filter(({ key }) => key.deletedAtM === null);
 
-    // Filter out deleted roles using our pre-fetched Set of active role IDs
-    // Add null checks to handle potential null role objects
     permission.roles = permission.roles.filter(
       ({ role }) => role?.id && activeRoleIds.has(role.id),
     );

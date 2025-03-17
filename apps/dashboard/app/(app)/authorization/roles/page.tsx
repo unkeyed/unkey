@@ -54,12 +54,9 @@ export default async function RolesPage() {
     return redirect("/new");
   }
 
-  // Create a Set of active permission IDs from the workspace
   const activePermissionIds = new Set(workspace.permissions.map((p) => p.id));
 
-  // Enhance roles with filtered permissions
   const enhancedRoles = workspace.roles.map((role) => {
-    // Filter to only include permissions that exist in the workspace
     const filteredPermissions = role.permissions.filter((rp) =>
       activePermissionIds.has(rp.permissionId),
     );
