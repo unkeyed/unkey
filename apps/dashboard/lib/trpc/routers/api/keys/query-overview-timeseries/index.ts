@@ -1,6 +1,7 @@
 import { keysOverviewQueryTimeseriesPayload } from "@/app/(app)/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
 import { queryApiKeys } from "../api-query";
 import { transformVerificationFilters } from "../timeseries.utils";
 
@@ -27,5 +28,8 @@ export const keyVerificationsTimeseries = rateLimitedProcedure(ratelimit.read)
       })),
     });
 
-    return { timeseries: result, granularity };
+    return {
+      timeseries: result as VerificationTimeseriesDataPoint[],
+      granularity,
+    };
   });
