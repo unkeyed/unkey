@@ -89,11 +89,7 @@ func TestBadRequests(t *testing.T) {
 			name: "Invalid ratelimit",
 			req: api.V2IdentitiesCreateIdentityRequestBody{
 				ExternalId: "abc",
-				Ratelimits: &[]struct {
-					Duration int    "json:\"duration\""
-					Limit    int    "json:\"limit\""
-					Name     string "json:\"name\""
-				}{
+				Ratelimits: &[]api.V2Ratelimit{
 					{
 						Duration: 1,
 						Limit:    1,

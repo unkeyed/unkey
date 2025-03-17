@@ -336,6 +336,7 @@
         "type": "object"
       },
       "V2IdentitiesCreateIdentityRequestBody": {
+        "additionalProperties": false,
         "type": "object",
         "properties": {
           "externalId": {
@@ -354,27 +355,7 @@
           "ratelimits": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "The name of this limit. You will need to use this again when verifying a key.",
-                  "example": "tokens"
-                },
-                "limit": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "description": "How many requests may pass within a given window before requests are rejected.",
-                  "example": 10
-                },
-                "duration": {
-                  "type": "integer",
-                  "minimum": 1000,
-                  "description": "The duration for each ratelimit window in milliseconds.",
-                  "example": 1000
-                }
-              },
-              "required": ["name", "limit", "duration"]
+              "$ref": "#/components/schemas/V2Ratelimit"
             },
             "description": "Attach ratelimits to this identity.\n\nWhen verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits."
           }
@@ -391,6 +372,29 @@
           }
         },
         "required": ["identityId"]
+      },
+      "V2Ratelimit": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of this limit. You will need to use this again when verifying a key.",
+            "example": "tokens"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "How many requests may pass within a given window before requests are rejected.",
+            "example": 10
+          },
+          "duration": {
+            "type": "integer",
+            "minimum": 1000,
+            "description": "The duration for each ratelimit window in milliseconds.",
+            "example": 1000
+          }
+        },
+        "required": ["name", "limit", "duration"]
       }
     }
   },

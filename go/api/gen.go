@@ -84,16 +84,7 @@ type V2IdentitiesCreateIdentityRequestBody struct {
 	// Ratelimits Attach ratelimits to this identity.
 	//
 	// When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits.
-	Ratelimits *[]struct {
-		// Duration The duration for each ratelimit window in milliseconds.
-		Duration int `json:"duration"`
-
-		// Limit How many requests may pass within a given window before requests are rejected.
-		Limit int `json:"limit"`
-
-		// Name The name of this limit. You will need to use this again when verifying a key.
-		Name string `json:"name"`
-	} `json:"ratelimits,omitempty"`
+	Ratelimits *[]V2Ratelimit `json:"ratelimits,omitempty"`
 }
 
 // V2IdentitiesCreateIdentityResponseBody defines model for V2IdentitiesCreateIdentityResponseBody.
@@ -106,6 +97,18 @@ type V2IdentitiesCreateIdentityResponseBody struct {
 type V2LivenessResponseBody struct {
 	// Message Whether we're alive or not
 	Message string `json:"message"`
+}
+
+// V2Ratelimit defines model for V2Ratelimit.
+type V2Ratelimit struct {
+	// Duration The duration for each ratelimit window in milliseconds.
+	Duration int `json:"duration"`
+
+	// Limit How many requests may pass within a given window before requests are rejected.
+	Limit int `json:"limit"`
+
+	// Name The name of this limit. You will need to use this again when verifying a key.
+	Name string `json:"name"`
 }
 
 // V2RatelimitDeleteOverrideRequestBody Deletes an existing override.
