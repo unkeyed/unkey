@@ -406,7 +406,7 @@ async function batchVerificationTimeseries(
   args: VerificationTimeseriesParams,
   maxBatchSize = 15,
 ) {
-  if (!args.keyIds || args.keyIds.length <= maxBatchSize) {
+  if (!args.keyIds || args.keyIds.length === 0 || args.keyIds.length <= maxBatchSize) {
     return (await createVerificationTimeseriesQuerier(interval)(ch)(args)).val;
   }
 
