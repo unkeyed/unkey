@@ -33,6 +33,8 @@ type Props = {
     keys: { keyId: string }[];
     roles?: {
       role?: {
+        id?: string;
+        deletedAt?: number | null;
         keys?: { keyId: string }[];
       };
     }[];
@@ -50,13 +52,20 @@ export const PermissionClient = ({ permission }: Props) => {
     },
   });
 
+  // Filter out deleted or invalid roles
+  const activeRoles = (permission?.roles ?? []).filter(
+    (roleRelation) =>
+      roleRelation?.role?.id &&
+      (roleRelation.role.deletedAt === undefined || roleRelation.role.deletedAt === null),
+  );
+
   // Count all unique connected keys
   const connectedKeys = new Set<string>();
   for (const key of permission.keys) {
     connectedKeys.add(key.keyId);
   }
-  for (const role of permission?.roles ?? []) {
-    for (const key of role?.role?.keys ?? []) {
+  for (const roleRelation of activeRoles) {
+    for (const key of roleRelation?.role?.keys ?? []) {
       connectedKeys.add(key.keyId);
     }
   }
@@ -182,9 +191,7 @@ export const PermissionClient = ({ permission }: Props) => {
               </div>
               <div>
                 <p className="text-sm text-accent-11">Connected Roles</p>
-                <p className="text-accent-12 font-medium text-sm">
-                  {permission.roles?.length ?? 0}
-                </p>
+                <p className="text-accent-12 font-medium text-sm">{activeRoles.length}</p>
               </div>
               <div>
                 <p className="text-sm text-accent-11">Connected Keys</p>
