@@ -29,10 +29,13 @@ func LoadConfig() (*Config, error) {
 		ListenerPort:      "7123",
 		LogDebug:          false,
 		ServiceName:       "chproxy",
-		ServiceVersion:    "1.3.0",
+		ServiceVersion:    "1.3.1",
 		TraceMaxBatchSize: 512,
 		TraceSampleRate:   0.25, // Sample 25%
 	}
+
+	// Generic logger
+	config.Logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config.ClickhouseURL = os.Getenv("CLICKHOUSE_URL")
 	if config.ClickhouseURL == "" {

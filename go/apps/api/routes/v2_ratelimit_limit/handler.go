@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	openapi "github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"

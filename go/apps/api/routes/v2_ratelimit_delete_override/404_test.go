@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
@@ -54,7 +54,7 @@ func TestNotFound(t *testing.T) {
 			Identifier:  "non_existent_identifier",
 		}
 
-		res := testutil.CallRoute[handler.Request, api.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
@@ -69,7 +69,7 @@ func TestNotFound(t *testing.T) {
 			Identifier:  "some_identifier",
 		}
 
-		res := testutil.CallRoute[handler.Request, api.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
@@ -83,7 +83,7 @@ func TestNotFound(t *testing.T) {
 			Identifier:    "some_identifier",
 		}
 
-		res := testutil.CallRoute[handler.Request, api.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)

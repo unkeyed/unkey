@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	openapi "github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
 

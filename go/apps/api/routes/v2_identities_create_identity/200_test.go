@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
@@ -139,7 +139,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 	t.Run("create identity with ratelimits", func(t *testing.T) {
 		externalTestID := uid.New("test_external_id")
 
-		identityRateLimits := []api.V2Ratelimit{
+		identityRateLimits := []openapi.V2Ratelimit{
 			{
 				Duration: int(time.Minute.Milliseconds()),
 				Limit:    100,

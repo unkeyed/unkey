@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
@@ -23,8 +23,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = api.V2IdentitiesCreateIdentityRequestBody
-type Response = api.V2IdentitiesCreateIdentityResponseBody
+type Request = openapi.V2IdentitiesCreateIdentityRequestBody
+type Response = openapi.V2IdentitiesCreateIdentityResponseBody
 
 type Services struct {
 	Logger      logging.Logger

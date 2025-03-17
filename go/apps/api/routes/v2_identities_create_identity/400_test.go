@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
@@ -23,85 +23,85 @@ func TestBadRequests(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		req           api.V2IdentitiesCreateIdentityRequestBody
-		expectedError api.BadRequestError
+		req           openapi.V2IdentitiesCreateIdentityRequestBody
+		expectedError openapi.BadRequestError
 	}{
 		{
 			name: "missing external id",
-			req:  api.V2IdentitiesCreateIdentityRequestBody{},
-			expectedError: api.BadRequestError{
+			req:  openapi.V2IdentitiesCreateIdentityRequestBody{},
+			expectedError: openapi.BadRequestError{
 				Title:     "Bad Request",
 				Detail:    "One or more fields failed validation",
 				Status:    http.StatusBadRequest,
 				Type:      "https://unkey.com/docs/errors/bad_request",
-				Errors:    []api.ValidationError{},
+				Errors:    []openapi.ValidationError{},
 				RequestId: "test",
 				Instance:  nil,
 			},
 		},
 		{
 			name: "empty external id",
-			req: api.V2IdentitiesCreateIdentityRequestBody{
+			req: openapi.V2IdentitiesCreateIdentityRequestBody{
 				ExternalId: "",
 			},
-			expectedError: api.BadRequestError{
+			expectedError: openapi.BadRequestError{
 				Title:     "Bad Request",
 				Detail:    "One or more fields failed validation",
 				Status:    http.StatusBadRequest,
 				Type:      "https://unkey.com/docs/errors/bad_request",
-				Errors:    []api.ValidationError{},
+				Errors:    []openapi.ValidationError{},
 				RequestId: "test",
 				Instance:  nil,
 			},
 		},
 		{
 			name: "too short identifier",
-			req: api.V2IdentitiesCreateIdentityRequestBody{
+			req: openapi.V2IdentitiesCreateIdentityRequestBody{
 				ExternalId: "ab",
 			},
-			expectedError: api.BadRequestError{
+			expectedError: openapi.BadRequestError{
 				Title:     "Bad Request",
 				Detail:    "One or more fields failed validation",
 				Status:    http.StatusBadRequest,
 				Type:      "https://unkey.com/docs/errors/bad_request",
-				Errors:    []api.ValidationError{},
+				Errors:    []openapi.ValidationError{},
 				RequestId: "test",
 				Instance:  nil,
 			},
 		},
 		{
 			name: "too much metadata",
-			req: api.V2IdentitiesCreateIdentityRequestBody{
+			req: openapi.V2IdentitiesCreateIdentityRequestBody{
 				ExternalId: "abc",
 				Meta:       &metaData,
 			},
-			expectedError: api.BadRequestError{
+			expectedError: openapi.BadRequestError{
 				Title:     "Bad Request",
 				Detail:    fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", handler.MAX_META_LENGTH_MB, float64(len(rawMeta))/1024/1024),
 				Status:    http.StatusBadRequest,
 				Type:      "https://unkey.com/docs/errors/bad_request",
-				Errors:    []api.ValidationError{},
+				Errors:    []openapi.ValidationError{},
 				RequestId: "test",
 				Instance:  nil,
 			},
 		},
 		{
 			name: "Invalid ratelimit",
-			req: api.V2IdentitiesCreateIdentityRequestBody{
+			req: openapi.V2IdentitiesCreateIdentityRequestBody{
 				ExternalId: "abc",
-				Ratelimits: &[]api.V2Ratelimit{
+				Ratelimits: &[]openapi.V2Ratelimit{
 					{
 						Duration: 1,
 						Limit:    1,
 					},
 				},
 			},
-			expectedError: api.BadRequestError{
+			expectedError: openapi.BadRequestError{
 				Title:     "Bad Request",
 				Detail:    "One or more fields failed validation",
 				Status:    http.StatusBadRequest,
 				Type:      "https://unkey.com/docs/errors/bad_request",
-				Errors:    []api.ValidationError{},
+				Errors:    []openapi.ValidationError{},
 				RequestId: "test",
 				Instance:  nil,
 			},
@@ -128,7 +128,7 @@ func TestBadRequests(t *testing.T) {
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}
 
-			res := testutil.CallRoute[handler.Request, api.BadRequestError](h, route, headers, tc.req)
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, tc.req)
 			require.Equal(t, 400, res.Status, "expected 400, received: %v", res.Body)
 			require.NotNil(t, res.Body)
 			require.Equal(t, tc.expectedError.Type, res.Body.Type)

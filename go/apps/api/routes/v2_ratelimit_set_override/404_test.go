@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
@@ -41,7 +41,7 @@ func TestNamespaceNotFound(t *testing.T) {
 			Duration:    1000,
 		}
 
-		res := testutil.CallRoute[handler.Request, api.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
@@ -57,7 +57,7 @@ func TestNamespaceNotFound(t *testing.T) {
 			Duration:      1000,
 		}
 
-		res := testutil.CallRoute[handler.Request, api.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -31,7 +31,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 		}
 
 		req := handler.Request{ExternalId: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, api.UnauthorizedError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedError](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
 	})
@@ -43,7 +43,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 		}
 
 		req := handler.Request{ExternalId: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, api.UnauthorizedError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedError](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
 	})
@@ -55,7 +55,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 		}
 
 		req := handler.Request{ExternalId: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, api.UnauthorizedError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedError](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
 	})
