@@ -93,7 +93,6 @@ export const queryKeysOverviewLogs = rateLimitedProcedure(ratelimit.read)
         key_details: keyDetailsMap.get(log.key_id) || null,
       }));
 
-    //  Prepare the paginated response
     const response: KeysOverviewLogsResponse = {
       keysOverviewLogs,
       hasMore: logs.length === input.limit && keysOverviewLogs.length > 0,
