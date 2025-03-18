@@ -6,26 +6,31 @@ import {
 import { useQueryState } from "nuqs";
 import { useCallback } from "react";
 import type { z } from "zod";
-import type { sortFields } from "../query-logs.schema";
 
-type SortField = z.infer<typeof sortFields>;
+export type SortField<TSortFields> = TSortFields extends z.ZodEnum<infer U> ? U : TSortFields;
 
-export function useSort() {
-  const [sortParams, setSortParams] = useQueryState("sorts", parseAsSortArray<SortField>());
+export function createSortArrayParser<TSortFields extends string>() {
+  return parseAsSortArray<TSortFields>();
+}
+
+export function useSort<TSortFields extends string>(paramName = "sorts") {
+  const [sortParams, setSortParams] = useQueryState(
+    paramName,
+    createSortArrayParser<TSortFields>(),
+  );
 
   const getSortDirection = useCallback(
-    (columnKey: SortField): SortDirection | undefined => {
+    (columnKey: TSortFields): SortDirection | undefined => {
       return sortParams?.find((sort) => sort.column === columnKey)?.direction;
     },
     [sortParams],
   );
 
   const toggleSort = useCallback(
-    (columnKey: SortField, multiSort = false) => {
+    (columnKey: TSortFields, multiSort = false) => {
       const currentSort = sortParams?.find((sort) => sort.column === columnKey);
       const otherSorts = sortParams?.filter((sort) => sort.column !== columnKey) ?? [];
-
-      let newSorts: SortUrlValue<SortField>[];
+      let newSorts: SortUrlValue<TSortFields>[];
 
       if (!currentSort) {
         // Add new sort

@@ -25,7 +25,9 @@ export const auditQueryParamsPayload = {
 } as const;
 
 export const useFilters = () => {
-  const [searchParams, setSearchParams] = useQueryStates(auditQueryParamsPayload);
+  const [searchParams, setSearchParams] = useQueryStates(auditQueryParamsPayload, {
+    history: "push",
+  });
 
   const filters = useMemo(() => {
     const activeFilters: AuditLogsFilterValue[] = [];
