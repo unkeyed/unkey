@@ -1,6 +1,7 @@
 "use client";
 
 import { DialogContainer } from "@/components/dialog-container";
+import { NavbarActionButton } from "@/components/navigation/action-button";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -60,10 +61,10 @@ export const CreateNamespaceButton = ({
 
   return (
     <>
-      <Button {...rest} color="default" onClick={() => setIsOpen(true)}>
+      <NavbarActionButton {...rest} color="default" onClick={() => setIsOpen(true)}>
         <Plus size={18} className="w-4 h-4" />
         Create new namespace
-      </Button>
+      </NavbarActionButton>
 
       <DialogContainer
         isOpen={isOpen}

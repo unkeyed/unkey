@@ -5,25 +5,36 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
+	"github.com/unkeyed/unkey/go/pkg/version"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
+	"go.opentelemetry.io/contrib/processors/minsev"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/metric"
-
+	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
 // Config defines the configuration settings for OpenTelemetry integration with Grafana.
 // It specifies connection details and application metadata needed for proper telemetry.
 type Config struct {
-	// GrafanaEndpoint is the URL endpoint where telemetry data will be sent.
-	// For Grafana Cloud, this looks like "https://otlp-gateway-{your-stack-id}.grafana.net/otlp"
-	GrafanaEndpoint string
+	// NodeID is a unique identifier for the current service instance,
+	// used to distinguish between multiple instances of the same service.
+	NodeID string
+
+	// CloudRegion indicates the geographic region where this service instance is running,
+	// which helps with identifying regional performance patterns or issues.
+	CloudRegion string
 
 	// Application is the name of your application, used to identify the source of telemetry data.
 	// This appears in Grafana dashboards and alerts.
@@ -43,57 +54,132 @@ type Config struct {
 // - Runtime metrics for Go applications (memory, GC, goroutines, etc.)
 // - Custom application metrics defined in the metrics package
 //
-// The function returns a slice of shutdown functions that should be called in reverse
-// order during application shutdown to ensure proper cleanup of telemetry resources.
+// The function registers all necessary shutdown handlers with the provided shutdowns instance.
+// These handlers will be called during application termination to ensure proper cleanup.
 //
 // Example:
 //
-//	shutdownFuncs, err := otel.InitGrafana(ctx, otel.Config{
+//	shutdowns := shutdown.New()
+//	err := otel.InitGrafana(ctx, otel.Config{
 //	    GrafanaEndpoint: "https://otlp-gateway-prod-us-east-0.grafana.net/otlp",
 //	    Application:     "unkey-api",
 //	    Version:         version.Version,
-//	})
+//	}, shutdowns)
+//
 //	if err != nil {
 //	    log.Fatalf("Failed to initialize telemetry: %v", err)
 //	}
 //
 //	// Later during shutdown:
-//	for i := len(shutdownFuncs) - 1; i >= 0; i-- {
-//	    if err := shutdownFuncs[i](ctx); err != nil {
-//	        log.Printf("Error during telemetry shutdown: %v", err)
-//	    }
+//	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+//	defer cancel()
+//	errs := shutdowns.Shutdown(ctx)
+//	for _, err := range errs {
+//	    log.Printf("Shutdown error: %v", err)
 //	}
-func InitGrafana(ctx context.Context, config Config) ([]shutdown.ShutdownFn, error) {
-	shutdowns := make([]shutdown.ShutdownFn, 0)
-
-	// Initialize trace exporter
-	traceExporter, err := otlptrace.New(ctx, otlptracehttp.NewClient())
+func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdowns) error {
+	// Create a resource with common attributes
+	res, err := resource.New(ctx,
+		resource.WithAttributes(
+			semconv.ServiceName(config.Application),
+			semconv.ServiceVersion(config.Version),
+			semconv.ServiceInstanceID(config.NodeID),
+			semconv.CloudRegion(config.CloudRegion),
+		),
+	)
 	if err != nil {
-		return nil, fmt.Errorf("unable to init grafana tracing: %w", err)
+		return fmt.Errorf("failed to create resource: %w", err)
 	}
-	shutdowns = append(shutdowns, traceExporter.Shutdown)
 
-	// Create and register trace provider
-	traceProvider := trace.NewTracerProvider(trace.WithBatcher(traceExporter))
-	shutdowns = append(shutdowns, traceProvider.Shutdown)
+	// Configure OTLP log handler
+	logExporter, err := otlploghttp.New(ctx,
+		otlploghttp.WithCompression(otlploghttp.GzipCompression),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create log exporter: %w", err)
+	}
+	shutdowns.RegisterCtx(logExporter.Shutdown)
 
+	var processor sdklog.Processor = sdklog.NewBatchProcessor(logExporter, sdklog.WithExportBufferSize(512))
+
+	processor = minsev.NewLogProcessor(processor, minsev.SeverityInfo)
+	shutdowns.RegisterCtx(processor.Shutdown)
+
+	//	if config.LogDebug {
+	//		processor = minsev.NewLogProcessor(processor, minsev.SeverityDebug)
+	//	}
+
+	logProvider := sdklog.NewLoggerProvider(
+		sdklog.WithResource(res),
+		sdklog.WithProcessor(processor),
+	)
+	shutdowns.RegisterCtx(logProvider.Shutdown)
+
+	logging.SetHandler(otelslog.NewHandler(
+		config.Application,
+		otelslog.WithLoggerProvider(logProvider),
+		otelslog.WithVersion(version.Version),
+		otelslog.WithSource(true),
+	))
+
+	// Initialize trace exporter with configuration matching the old implementation
+	traceExporter, err := otlptracehttp.New(ctx,
+		otlptracehttp.WithCompression(otlptracehttp.GzipCompression),
+	//	otlptracehttp.WithInsecure(), // For local development
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create trace exporter: %w", err)
+	}
+
+	// Register shutdown function for trace exporter
+	shutdowns.RegisterCtx(traceExporter.Shutdown)
+
+	// Create and register trace provider with the same batch settings as the old code
+	traceProvider := trace.NewTracerProvider(
+		trace.WithBatcher(traceExporter),
+		trace.WithResource(res),
+	)
+
+	// Register shutdown function for trace provider
+	shutdowns.RegisterCtx(traceProvider.Shutdown)
+
+	// Set the global trace provider
+	otel.SetTracerProvider(traceProvider)
 	tracing.SetGlobalTraceProvider(traceProvider)
 
-	// Initialize metrics exporter
-	metricExporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpoint(config.GrafanaEndpoint))
+	// Initialize metrics exporter with configuration matching the old implementation
+	metricExporter, err := otlpmetrichttp.New(ctx,
+		otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression),
+	//	otlpmetrichttp.WithInsecure(), // For local development
+	)
 	if err != nil {
-		return nil, fmt.Errorf("unable to init grafana metrics: %w", err)
+		return fmt.Errorf("failed to create metric exporter: %w", err)
 	}
-	shutdowns = append(shutdowns, metricExporter.Shutdown)
 
-	// Create and register meter provider
-	meterProvider := metric.NewMeterProvider(metric.WithReader(metric.NewPeriodicReader(metricExporter)))
-	shutdowns = append(shutdowns, meterProvider.Shutdown)
+	// Register shutdown function for metric exporter
+	shutdowns.RegisterCtx(metricExporter.Shutdown)
+
+	// Create and register meter provider with the same reader settings as the old code
+	meterProvider := metric.NewMeterProvider(
+		metric.WithReader(
+			metric.NewPeriodicReader(
+				metricExporter,
+				metric.WithInterval(10*time.Second), // Match the 10s interval from the old code
+			),
+		),
+		metric.WithResource(res),
+	)
+
+	// Register shutdown function for meter provider
+	shutdowns.RegisterCtx(meterProvider.Shutdown)
+
+	// Set the global meter provider
+	otel.SetMeterProvider(meterProvider)
 
 	// Initialize application metrics
 	err = metrics.Init(meterProvider.Meter(config.Application))
 	if err != nil {
-		return nil, fmt.Errorf("unable to init custom metrics: %w", err)
+		return fmt.Errorf("failed to initialize custom metrics: %w", err)
 	}
 
 	// Collect runtime metrics (memory, GC, goroutines, etc.)
@@ -102,8 +188,8 @@ func InitGrafana(ctx context.Context, config Config) ([]shutdown.ShutdownFn, err
 		runtime.WithMinimumReadMemStatsInterval(time.Second),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("unable to init runtime metrics: %w", err)
+		return fmt.Errorf("failed to start runtime metrics collection: %w", err)
 	}
 
-	return shutdowns, nil
+	return nil
 }

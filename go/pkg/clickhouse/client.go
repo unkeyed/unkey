@@ -2,7 +2,6 @@ package clickhouse
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -10,7 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/batch"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
@@ -66,15 +65,16 @@ func New(config Config) (*Clickhouse, error) {
 	opts.Debugf = func(format string, v ...any) {
 		config.Logger.Debug(fmt.Sprintf(format, v...))
 	}
-	if opts.TLS == nil {
-
-		opts.TLS = new(tls.Config)
-	}
+	//	if opts.TLS == nil {
+	//
+	//		opts.TLS = new(tls.Config)
+	//	}
 
 	config.Logger.Info("connecting to clickhouse")
 	conn, err := ch.Open(opts)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.WithDesc("opening clickhouse failed", ""))
+
 	}
 
 	err = retry.New(
@@ -101,7 +101,7 @@ func New(config Config) (*Clickhouse, error) {
 			FlushInterval: time.Second,
 			Consumers:     4,
 			Flush: func(ctx context.Context, rows []schema.ApiRequestV1) {
-				table := "raw_api_requests_v1"
+				table := "metrics.raw_api_requests_v1"
 				err := flush(ctx, conn, table, rows)
 				if err != nil {
 					config.Logger.Error("failed to flush batch",
@@ -120,7 +120,7 @@ func New(config Config) (*Clickhouse, error) {
 				FlushInterval: time.Second,
 				Consumers:     4,
 				Flush: func(ctx context.Context, rows []schema.KeyVerificationRequestV1) {
-					table := "raw_key_verifications_v1"
+					table := "verifications.raw_key_verifications_v1"
 					err := flush(ctx, conn, table, rows)
 					if err != nil {
 						config.Logger.Error("failed to flush batch",

@@ -7,10 +7,22 @@ tasks:
     cmds:
       - go fmt ./...
       - task: lint
-  test:
+
+  pull:
     cmds:
       - docker pull mysql:latest
-      - go test -cover -json -failfast ./... | tparse -all -progress  -smallscreen
+
+  test:
+    deps:
+      - pull
+    cmds:
+      - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
+
+  test-e2e:
+    env:
+      SIMULATON_TEST: true
+    cmds:
+      - task: test
 
   build:
     cmds:
@@ -24,7 +36,3 @@ tasks:
   lint:
     cmds:
       - golangci-lint run
-
-  simulate:
-    cmds:
-      - go run github.com/jellevandenhooff/gosim/cmd/gosim test -v -run TestGosim

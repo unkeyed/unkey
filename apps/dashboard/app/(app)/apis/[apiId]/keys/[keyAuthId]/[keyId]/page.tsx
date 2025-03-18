@@ -1,10 +1,5 @@
-import { ArrowLeft, Settings2 } from "lucide-react";
-import Link from "next/link";
-
 import { type Interval, IntervalSelect } from "@/app/(app)/apis/[apiId]/select";
-import { CreateNewPermission } from "@/app/(app)/authorization/permissions/create-new-permission";
 import type { NestedPermissions } from "@/app/(app)/authorization/roles/[roleId]/tree";
-import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
@@ -17,12 +12,16 @@ import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
+import { ArrowLeft, Settings2 } from "lucide-react";
 import { Minus } from "lucide-react";
 import ms from "ms";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RBACButtons } from "./_components/rbac-buttons";
 import { Navigation } from "./navigation";
-import PermissionTree from "./permission-list";
+import { PermissionList } from "./permission-list";
 import { VerificationTable } from "./verification-table";
+
 export default async function APIKeyDetailPage(props: {
   params: {
     apiId: string;
@@ -365,22 +364,15 @@ export default async function APIKeyDetailPage(props: {
             <div className="flex w-full flex-1 items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="h-8">
-                  {Intl.NumberFormat().format(key.roles.length)} Roles{" "}
+                  {formatNumber(key.roles.length)} Roles{" "}
                 </Badge>
                 <Badge variant="secondary" className="h-8">
-                  {Intl.NumberFormat().format(transientPermissionIds.size)} Permissions
+                  {formatNumber(transientPermissionIds.size)} Permissions
                 </Badge>
               </div>
-              <div className="flex items-center gap-2 border-border">
-                <CreateNewRole
-                  trigger={<Button>Create New Role</Button>}
-                  permissions={key.workspace.permissions}
-                />
-                <CreateNewPermission trigger={<Button>Create New Permission</Button>} />
-              </div>
+              <RBACButtons permissions={key.workspace.permissions} />
             </div>
-
-            <PermissionTree roles={roleTee} />
+            <PermissionList roles={roleTee} />
           </div>
         </div>
       </PageContent>

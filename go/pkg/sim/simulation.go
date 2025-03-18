@@ -2,22 +2,32 @@ package sim
 
 import (
 	"fmt"
-	"math/rand"
-	"testing"
+	"math/rand/v2"
+	"sort"
+	"time"
+
+	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
+
+type Validator[S any] func(*S) error
 
 // Simulation manages a property-based testing simulation with a typed state.
 // It provides a framework for running randomized sequences of events against
 // a system state to discover edge cases and bugs that might not be found
 // with traditional unit testing.
 type Simulation[State any] struct {
-	t       *testing.T // The test instance for reporting failures
-	seed    int64      // Random seed for reproducibility
-	rng     *rand.Rand // Random number generator
-	steps   int        // Number of steps to run in the simulation
-	Errors  []error    // Errors encountered during the simulation
-	state   *State     // The current system state
-	applied int        // Tracks how many configurations have been applied
+	clock       *clock.TestClock
+	seed        Seed       // Random seed for reproducibility
+	rng         *rand.Rand // Random number generator
+	ticks       int64      // Number of steps to run in the simulation
+	timePerTick time.Duration
+	Errors      []error            // Errors encountered during the simulation
+	state       *State             // The current system state
+	applied     int                // Tracks how many configurations have been applied
+	validators  []Validator[State] // Add validators
+	eventStats  map[string]int     // Track how many times each event is called
+	logger      logging.Logger
 }
 
 // apply is a function type for configuring a simulation
@@ -40,19 +50,24 @@ type apply[S any] func(*Simulation[S]) *Simulation[S]
 //	        }
 //	    }),
 //	)
-func New[State any](t *testing.T, fns ...apply[State]) *Simulation[State] {
-	// Get a random seed for reproducibility
-	seed := NewSeed()
+func New[State any](seed Seed, fns ...apply[State]) *Simulation[State] {
+	// Create a source for reproducible random number generation
 
+	// nolint:gosec
+	rng := rand.New(rand.NewChaCha8(seed))
 	// Initialize the simulation
 	s := &Simulation[State]{
-		t:       t,
-		seed:    seed,
-		rng:     rand.New(rand.NewSource(seed)), // nolint:gosec
-		steps:   1_000_000_000,                  // Default to a very large number of steps
-		state:   nil,
-		Errors:  []error{},
-		applied: 0,
+		clock:       clock.NewTestClock(time.UnixMilli(2000000000000)),
+		seed:        seed,
+		rng:         rng,                   // Use our custom source
+		ticks:       rng.Int64N(1_000_000), // Default to a reasonable number
+		timePerTick: time.Duration(1+rng.IntN(10)) * time.Millisecond,
+		state:       nil,
+		Errors:      []error{},
+		applied:     0,
+		eventStats:  make(map[string]int), // Initialize event stats map
+		logger:      logging.New(),
+		validators:  []Validator[State]{},
 	}
 
 	// Apply configuration functions
@@ -62,29 +77,9 @@ func New[State any](t *testing.T, fns ...apply[State]) *Simulation[State] {
 	}
 	return s
 }
-
-// WithSeed configures the simulation to use a specific random seed.
-// This allows for reproducible test runs. If a failure occurs, the seed
-// can be used to reproduce the exact sequence of events that led to the failure.
-//
-// Important: If you need a custom seed, call WithSeed before any other configuration.
-func WithSeed[S any](seed int64) apply[S] {
+func WithValidator[S any](validator Validator[S]) apply[S] {
 	return func(s *Simulation[S]) *Simulation[S] {
-		if s.applied > 0 {
-			s.t.Fatalf("WithSeed called too late. If you need a custom seed, call WithSeed before any other configuration.")
-		}
-
-		s.seed = seed
-		s.rng = rand.New(rand.NewSource(seed)) // nolint:gosec
-		return s
-	}
-}
-
-// WithSteps configures the number of steps to run in the simulation.
-// Each step executes a randomly selected event from the provided events.
-func WithSteps[S any](steps int) apply[S] {
-	return func(s *Simulation[S]) *Simulation[S] {
-		s.steps = steps
+		s.validators = append(s.validators, validator)
 		return s
 	}
 }
@@ -110,44 +105,32 @@ func WithState[S any](fn func(rng *rand.Rand) *S) apply[S] {
 //	    &RemoveEvent{},
 //	    &UpdateEvent{},
 //	})
-func (s *Simulation[State]) Run(events []Event[State]) {
-	s.t.Helper()
+func (s *Simulation[State]) Run(events []Event[State]) error {
 
 	if len(events) == 0 {
-		return
+		return fmt.Errorf("no events to run")
+	}
+	defer s.PrintEventStats()
+
+	// Validate initial state
+	for _, validator := range s.validators {
+		if err := validator(s.state); err != nil {
+			return fmt.Errorf("initial state validation failed: %w", err)
+		}
 	}
 
-	fmt.Printf("Simulation [seed=%d], steps=%d\n", s.seed, s.steps)
-
-	// Calculate event weights for random selection
-	total := 0.0
-	weights := make([]float64, len(events))
-
-	for i := range weights {
-		weights[i] = s.rng.Float64()
-		total += weights[i]
-	}
+	s.logger.Info("Simulation",
+		"seed", s.seed.String(),
+		"ticks", s.ticks,
+	)
 
 	// Run the simulation steps
-	for i := 0; i < s.steps; i++ {
-		// Log progress every 10%
-		if i%(s.steps/10) == 0 {
-			s.t.Logf("progress: %d%%\n", i*100/s.steps)
-		}
+	for i := int64(0); i < s.ticks; i++ {
+		s.clock.Tick(s.timePerTick)
 
 		// Select a random event based on weights
-		r := s.rng.Float64() * total
-		sum := 0.0
-		var index int
-		for j, w := range weights {
-			sum += w
-			if r <= sum {
-				index = j
-				break
-			}
-		}
-
-		event := events[index]
+		event := s.selectEvent(events)
+		s.eventStats[event.Name()]++
 
 		// Run the selected event
 		err := event.Run(s.rng, s.state)
@@ -155,4 +138,106 @@ func (s *Simulation[State]) Run(events []Event[State]) {
 			s.Errors = append(s.Errors, err)
 		}
 	}
+	return nil
+}
+
+func (s *Simulation[State]) State() *State {
+	return s.state
+}
+
+// selectEvent chooses an event from the provided slice using a selection method
+// determined by the random seed
+func (s *Simulation[State]) selectEvent(events []Event[State]) Event[State] {
+	// The first random choice determines the selection method
+	selectionMethod := s.rng.IntN(3) // 0, 1, or 2
+
+	switch selectionMethod {
+	case 0: // Uniform selection
+		return events[s.rng.IntN(len(events))]
+
+	case 1: // Weighted selection with linear distribution
+		weights := make([]float64, len(events))
+		total := 0.0
+
+		// Generate linearly decreasing weights
+		for i := range weights {
+			weights[i] = float64(len(events) - i)
+			total += weights[i]
+		}
+
+		// Shuffle the weights to avoid bias toward specific events
+		s.rng.Shuffle(len(weights), func(i, j int) {
+			weights[i], weights[j] = weights[j], weights[i]
+		})
+
+		// Select based on weights
+		r := s.rng.Float64() * total
+		sum := 0.0
+		for i, w := range weights {
+			sum += w
+			if r <= sum {
+				return events[i]
+			}
+		}
+
+	case 2: // Weighted selection with exponential bias
+		weights := make([]float64, len(events))
+		total := 0.0
+
+		// Generate exponentially decreasing weights
+		for i := range weights {
+			weights[i] = 1.0 / float64(i+1) // 1, 1/2, 1/3, 1/4, ...
+			total += weights[i]
+		}
+
+		// Shuffle the weights to avoid bias toward specific events
+		s.rng.Shuffle(len(weights), func(i, j int) {
+			weights[i], weights[j] = weights[j], weights[i]
+		})
+
+		// Select based on weights
+		r := s.rng.Float64() * total
+		sum := 0.0
+		for i, w := range weights {
+			sum += w
+			if r <= sum {
+				return events[i]
+			}
+		}
+	}
+
+	// Fallback
+	return events[s.rng.IntN(len(events))]
+}
+
+func (s *Simulation[State]) PrintEventStats() {
+	fmt.Println("\n--- Event Statistics ---")
+
+	if len(s.eventStats) == 0 {
+		fmt.Println("No events were executed.")
+		return
+	}
+
+	// Calculate totals
+	total := int64(0)
+	for _, count := range s.eventStats {
+		total += int64(count)
+	}
+
+	// Create a sorted list of event names for consistent output
+	eventNames := make([]string, 0, len(s.eventStats))
+	for name := range s.eventStats {
+		eventNames = append(eventNames, name)
+	}
+	sort.Strings(eventNames)
+
+	// Print stats for each event
+	fmt.Printf("Total events executed: %d\n", total)
+	fmt.Println("Distribution:")
+	for _, name := range eventNames {
+		count := s.eventStats[name]
+		percentage := float64(count) / float64(total) * 100
+		fmt.Printf("  %-20s: %6d (%6.2f%%)\n", name, count, percentage)
+	}
+	fmt.Println("------------------------")
 }

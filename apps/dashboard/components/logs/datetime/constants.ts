@@ -1,6 +1,6 @@
 import type { OptionsType } from "./types";
 
-export const OPTIONS: OptionsType = [
+export const DEFAULT_OPTIONS: OptionsType = [
   {
     id: 1,
     value: "1m",
@@ -93,4 +93,4 @@ export const OPTIONS: OptionsType = [
   },
 ];
 
-export const CUSTOM_OPTION_ID = OPTIONS.find((o) => o.value === undefined)?.id;
+export const CUSTOM_OPTION_ID = DEFAULT_OPTIONS.find((o) => o.value === undefined)?.id;

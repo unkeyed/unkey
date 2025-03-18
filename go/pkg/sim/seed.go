@@ -1,21 +1,33 @@
 package sim
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/binary"
 )
 
-// NewSeed generates a new random seed for simulation reproducibility.
-// When a simulation fails, the seed can be used to reproduce the exact
-// sequence of events that led to the failure.
-//
-// Example:
-//
-//	seed := sim.NewSeed()
-//	fmt.Printf("Using seed: %d\n", seed)
-//
-//	// Later, to reproduce a failing test:
-//	sim := sim.New[MyState](t, sim.WithSeed(seed))
-func NewSeed() int64 {
-	// nolint:gosec
-	return rand.Int63()
+type Seed [32]byte
+
+func (s Seed) String() string {
+	return base64.StdEncoding.EncodeToString(s[:])
+}
+
+// NewSeed generates a cryptographically secure random 32-byte seed
+// suitable for simulations requiring high entropy and unpredictability.
+func NewSeed() Seed {
+	var seed [32]byte
+	_, err := rand.Read(seed[:])
+	if err != nil {
+		panic(err)
+	}
+	return seed
+}
+
+func NewSeedFromInt(i int) Seed {
+	// Create a seed from the integer value
+
+	seed := [32]byte{}
+	binary.BigEndian.PutUint32(seed[:], uint32(i)) //nolint:gosec
+
+	return seed
 }

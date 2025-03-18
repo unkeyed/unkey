@@ -54,17 +54,17 @@ const styleClassNames = {
     "flex flex-start w-full border-none h-8 mx-0 px-0 pt-2 gap-3 justify-center items-center",
   head_cell: "w-8 h-8 font-normal text-xs text-gray-8 bg-transparent border-none ",
   row: "flex w-full border-none justify-between ",
-  cell: "border-none h-8 w-8 text-center text-gray-12 rounded rounded-3 text-sm p-0 relative [&:has([aria-selected].day-outside)]:bg-gray-4 [&:has([aria-selected])]:bg-gray-4 focus-within:relative focus-within:z-20",
+  cell: "border-none h-8 w-8 text-center text-gray-12 rounded rounded-3 text-sm p-0 relative focus:outline-none focus:ring-0 [&:has([aria-selected].day-outside)]:bg-gray-4 [&:has([aria-selected])]:bg-gray-4 focus-within:relative focus-within:z-20",
   day: cn(
     buttonVariants({ variant: "ghost" }),
-    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-[13px] flex items-center justify-center hover:bg-gray-3 text-gray-12 rounded rounded-3",
+    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-[13px] flex items-center justify-center hover:bg-gray-3 text-gray-12 rounded rounded-3 focus:outline-none focus:ring-0",
   ),
   day_range_start: "hover:bg-gray-3 focus:bg-gray-5 text-gray-12",
   day_range_middle: "",
   day_range_end: "hover:bg-gray-2 focus:bg-gray-3 focus:text-gray-12",
   day_selected: "bg-gray-4 hover:bg-gray-3 hover:text-gray-10 focus:bg-gray-3 text-gray-12",
   day_today:
-    "hover:aria-selected:bg-gray-3 hover:aria-selected:border-gray-8 bg-gray-12 text-gray-3 hover:text-gray-12 aria-selected:border aria-selected:border-2 aria-selected:border-gray-12 aria-selected:bg-gray-4 aria-selected:text-gray-12",
+    "relative after:content-[''] after:absolute after:bottom-0.5 after:left-1/2 after:w-1 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-gray-10 text-gray-12 hover:bg-gray-3",
   day_outside:
     "day-outside text-gray-10 opacity-50 aria-selected:bg-gray-3 aria-selected:text-gray-12 aria-selected:opacity-100",
   day_disabled: "text-gray-10",

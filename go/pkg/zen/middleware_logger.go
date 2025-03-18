@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // WithLogging returns middleware that logs information about each request.

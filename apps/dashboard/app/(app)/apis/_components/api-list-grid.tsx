@@ -1,8 +1,9 @@
 import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
+
 import type {
   ApiOverview,
   ApisOverviewResponse,
-} from "@/lib/trpc/routers/api/query-overview/schemas";
+} from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { ChevronDown } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import type { Dispatch, SetStateAction } from "react";
@@ -48,7 +49,7 @@ export const ApiListGrid = ({
           Showing {apiList.length} of {total} APIs
         </div>
         {!isSearching && hasMore && (
-          <Button onClick={loadMore} disabled={isLoading}>
+          <Button onClick={loadMore} disabled={isLoading} size="md">
             {isLoading ? (
               <div className="flex items-center space-x-2">
                 <div className="animate-spin h-4 w-4 border-2 border-gray-7 border-t-transparent rounded-full" />
