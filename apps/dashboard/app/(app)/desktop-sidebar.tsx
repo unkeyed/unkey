@@ -57,7 +57,6 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   const usageQuery = useFetchUsage()
   const segments = useSelectedLayoutSegments() ?? []
   const workspaceNavigation = createWorkspaceNavigation(workspace, segments)
-  console.log(usageQuery.isFetching)
 
   const firstOfNextMonth = new Date()
   firstOfNextMonth.setUTCMonth(firstOfNextMonth.getUTCMonth() + 1)
