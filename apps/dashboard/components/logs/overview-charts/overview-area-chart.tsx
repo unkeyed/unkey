@@ -1,9 +1,6 @@
 "use client";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
-import {
-  formatTimestampLabel,
-  formatTimestampTooltip,
-} from "@/components/logs/chart/utils/format-timestamp";
+import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import {
   type ChartConfig,
   ChartContainer,
@@ -24,6 +21,7 @@ import {
 import { OverviewAreaChartError } from "./overview-area-chart-error";
 import { OverviewAreaChartLoader } from "./overview-area-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
+import { createTimeIntervalFormatter } from "./utils";
 
 export type ChartMetric = {
   key: string;
@@ -241,18 +239,9 @@ export const OverviewAreaChart = ({
                       label={label}
                       active={active}
                       className="rounded-lg shadow-lg border border-gray-4"
-                      labelFormatter={(_, tooltipPayload) => {
-                        const originalTimestamp = tooltipPayload[0]?.payload?.originalTimestamp;
-                        return originalTimestamp ? (
-                          <div>
-                            <span className="font-mono text-accent-9 text-xs px-4">
-                              {formatTimestampTooltip(originalTimestamp)}
-                            </span>
-                          </div>
-                        ) : (
-                          ""
-                        );
-                      }}
+                      labelFormatter={(_, tooltipPayload) =>
+                        createTimeIntervalFormatter(data)(tooltipPayload)
+                      }
                     />
                   );
                 }}
