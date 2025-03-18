@@ -11,10 +11,11 @@ import { formatNumber } from "@/lib/fmt";
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
 import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
+import { createTimeIntervalFormatter } from "../overview-charts/utils";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
-import { formatTimestampLabel, formatTimestampTooltip } from "./utils/format-timestamp";
+import { formatTimestampLabel } from "./utils/format-timestamp";
 
 type Selection = {
   start: string | number;
@@ -183,18 +184,7 @@ export function LogsTimeseriesBarChart({
                       </div>
                     }
                     className="rounded-lg shadow-lg border border-gray-4"
-                    labelFormatter={(_, tooltipPayload) => {
-                      const originalTimestamp = tooltipPayload[0]?.payload?.originalTimestamp;
-                      return originalTimestamp ? (
-                        <div>
-                          <span className="font-mono text-accent-9 text-xs px-4">
-                            {formatTimestampTooltip(originalTimestamp)}
-                          </span>
-                        </div>
-                      ) : (
-                        ""
-                      );
-                    }}
+                    labelFormatter={(_, payload) => createTimeIntervalFormatter(data)(payload)}
                   />
                 );
               }}
