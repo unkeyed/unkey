@@ -18,7 +18,6 @@ import {
   type OrgInviteParams,
   type Organization,
   PENDING_SESSION_COOKIE,
-  type SessionData,
   type SignInViaOAuthOptions,
   UNKEY_SESSION_COOKIE,
   type User,
@@ -54,6 +53,20 @@ async function requireOrgAdmin(orgId: string, _userId: string): Promise<void> {
   }
 }
 
+// Helper to check invite email matches
+async function requireEmailMatch(params: {email: string, invitationToken: string}): Promise<void> {
+  const {email, invitationToken} = params;
+  try {
+    const invitation = await auth.getInvitation(invitationToken);
+    if (invitation?.email !== email) {
+      throw new Error("Email address does not match the invitation email.");
+    }
+  }
+  catch (error) {
+    throw new Error("Invalid invitation");
+  }
+}
+
 // Authentication Actions
 export async function signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
   return await auth.signUpViaEmail(params);
@@ -70,6 +83,10 @@ export async function verifyAuthCode(params: {
 }): Promise<VerificationResult> {
   const { email, code, invitationToken } = params;
   try {
+    if (invitationToken) {
+      await requireEmailMatch({email, invitationToken});
+    }
+
     const result = await auth.verifyAuthCode({ email, code, invitationToken });
 
     if (result.cookies) {
