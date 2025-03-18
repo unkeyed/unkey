@@ -26,7 +26,9 @@ export const queryParamsPayload = {
 } as const;
 
 export const useFilters = () => {
-  const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload);
+  const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
+    history: "push",
+  });
   const filters = useMemo(() => {
     const activeFilters: RatelimitOverviewFilterValue[] = [];
 
