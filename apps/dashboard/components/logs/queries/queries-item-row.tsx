@@ -10,6 +10,9 @@ type QueriesItemRowProps = {
 };
 
 export const QueriesItemRow = ({ list, field, Icon, operator }: QueriesItemRowProps) => {
+  if (!list || list.length === 0) {
+    return null;
+  }
   const [firstItem, setFirstItem] = useState(list[0]);
   const [overflowList, setOverflowList] = useState(list.slice(1));
   const shouldTruncate = FieldsToTruncate.includes(field.toString());
