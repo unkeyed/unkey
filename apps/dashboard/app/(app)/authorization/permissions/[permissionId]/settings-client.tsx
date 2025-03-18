@@ -1,12 +1,12 @@
 "use client";
 
 import { revalidateTag } from "@/app/actions";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { SettingCard } from "@/components/settings-card";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Clone } from "@unkey/icons";
 import { Button, Input } from "@unkey/ui";
 import { validation } from "@unkey/validation";
 import { format } from "date-fns";
@@ -145,25 +145,7 @@ export const PermissionClient = ({ permission }: Props) => {
               description="An identifier for the permission, used in API calls."
               border="bottom"
             >
-              <Input
-                readOnly
-                disabled
-                defaultValue={permission.id}
-                placeholder="Permission ID"
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(permission.id);
-                      toast.success("Copied to clipboard", {
-                        description: permission.id,
-                      });
-                    }}
-                  >
-                    <Clone size="md-regular" />
-                  </button>
-                }
-              />
+              <CopyableIDButton value={permission.id} />
             </SettingCard>
           </div>
 
