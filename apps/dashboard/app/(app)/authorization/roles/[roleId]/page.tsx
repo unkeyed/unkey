@@ -52,7 +52,11 @@ export default async function RolePage(props: Props) {
           permission: true,
         },
       },
-      workspace: true,
+      workspace: {
+        with: {
+          permissions: true,
+        },
+      },
       keys: {
         with: {
           key: true,
@@ -67,7 +71,7 @@ export default async function RolePage(props: Props) {
     return notFound();
   }
 
-  const permissions = role.permissions.map(({ permission }) => permission);
+  const permissions = role.workspace.permissions;
 
   // Filter role's permissions to only include active ones
   const activeRolePermissionIds = new Set(
