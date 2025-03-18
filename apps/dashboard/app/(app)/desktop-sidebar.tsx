@@ -117,7 +117,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       <div className="bg-[inherit] min-w-full [flex:0_0_56px] -mx-2 sticky flex flex-col justify-end items-start pb-3 gap-3">
         <UsageInsight.Root
           isLoading={usageQuery.isFetching}
-          plan={workspace.plan}
+          plan={workspace.tier ?? "Free"}
           current={usageQuery.data?.billableTotal ?? 0}
           max={workspace.quota?.requestsPerMonth ?? 150_000}
         >

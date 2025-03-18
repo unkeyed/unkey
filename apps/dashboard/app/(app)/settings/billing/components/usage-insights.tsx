@@ -14,12 +14,12 @@ import React, { useState, useEffect, useMemo } from "react"
 type DivElement = React.ElementRef<typeof motion.div>
 type DivProps = React.ComponentPropsWithoutRef<typeof motion.div>
 type UsageContextValue = {
-  plan: Workspace["plan"]
+  plan: string
   current: number
   max: number
 }
 export interface UsageRootProps extends DivProps {
-  plan: Workspace["plan"]
+  plan: string
   current: number
   max: number
   isLoading?: boolean
