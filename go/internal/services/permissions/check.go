@@ -19,7 +19,7 @@ func (s *service) Check(ctx context.Context, keyID string, query rbac.Permission
 		return db.Query.FindPermissionsForKey(ctx, s.db.RO(), db.FindPermissionsForKeyParams{
 			KeyID: keyID,
 		})
-		
+
 	}, func(err error) cache.Op {
 		if err == nil {
 			return cache.WriteValue
