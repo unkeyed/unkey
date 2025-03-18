@@ -6,7 +6,10 @@ type SearchExampleTooltipProps = {
   exampleQueries?: { id: string; text: string }[];
 };
 
-export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({ onSelectExample, exampleQueries }) => {
+export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
+  onSelectExample,
+  exampleQueries,
+}) => {
   const examples = exampleQueries ?? [
     { id: "failed-requests", text: "Show failed requests today" },
     { id: "auth-errors", text: "auth errors in the last 3h" },

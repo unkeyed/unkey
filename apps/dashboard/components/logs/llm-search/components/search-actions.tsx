@@ -45,7 +45,9 @@ export const SearchActions: React.FC<SearchActionsProps> = ({
   }
 
   if (searchText.length === 0 && !hideExplainer) {
-    return <SearchExampleTooltip onSelectExample={onSelectExample} />;
+    return (
+      <SearchExampleTooltip onSelectExample={onSelectExample} exampleQueries={exampleQueries} />
+    );
   }
 
   return null;

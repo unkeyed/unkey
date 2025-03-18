@@ -46,6 +46,11 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
 
   return (
     <LogsLLMSearch
+      exampleQueries={[
+        { id: "failed-requests", text: "Show rate limited requests today" },
+        { id: "passed-requests", text: "Show requests that were not rate limited today" },
+        { id: "last-five-minutes", text: "Show requests in the last 5 minutes" },
+      ]}
       hideExplainer
       onClear={handleClear}
       placeholder="Search API using name or ID"

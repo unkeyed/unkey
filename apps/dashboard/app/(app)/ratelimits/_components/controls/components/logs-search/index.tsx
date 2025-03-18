@@ -41,6 +41,11 @@ export const LogsSearch = ({ setNamespaces, initialNamespaces }: LogsSearchProps
 
   return (
     <LogsLLMSearch
+      exampleQueries={[
+        { id: "failed-requests", text: "Show failed requests today" },
+        { id: "auth-errors", text: "auth errors in the last 3h" },
+        { id: "api-calls", text: "API calls from a path that includes /api/v1/oz" },
+      ]}
       hideExplainer
       onClear={handleClear}
       placeholder="Search namespaces"

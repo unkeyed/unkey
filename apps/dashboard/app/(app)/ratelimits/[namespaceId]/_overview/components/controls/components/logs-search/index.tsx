@@ -45,9 +45,9 @@ export const LogsSearch = () => {
   return (
     <LogsLLMSearch
       exampleQueries={[
-        { id: "failed-requests", text: "Show failed requests today" },
-        { id: "auth-errors", text: "auth errors in the last 3h" },
-        { id: "api-calls", text: "API calls from a path that includes /api/v1/oz" },
+        { id: "failed-requests", text: "Failed requests today" },
+        { id: "passed-requests", text: "Requests that were not rate limited today" },
+        { id: "cust-identifier", text: "Identifier that includes 'cust_'" },
       ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
