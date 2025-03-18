@@ -1,11 +1,11 @@
 "use client";
 
 import { revalidateTag } from "@/app/actions";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { SettingCard } from "@/components/settings-card";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Clone } from "@unkey/icons";
 import { Button, Input } from "@unkey/ui";
 import { validation } from "@unkey/validation";
 import { format } from "date-fns";
@@ -133,25 +133,9 @@ export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleCl
             description="An identifier for this role, used in API calls."
             border="bottom"
           >
-            <Input
-              readOnly
-              disabled
-              defaultValue={role.id}
-              placeholder="Role ID"
-              rightIcon={
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(role.id);
-                    toast.success("Copied to clipboard", {
-                      description: role.id,
-                    });
-                  }}
-                >
-                  <Clone size="md-regular" />
-                </button>
-              }
-            />
+            <div className="flex justify-end w-full">
+              <CopyableIDButton value={role.id} />
+            </div>
           </SettingCard>
         </div>
 
