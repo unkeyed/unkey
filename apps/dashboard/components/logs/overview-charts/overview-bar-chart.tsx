@@ -209,7 +209,7 @@ export function OverviewBarChart({
                               </div>
                               <div className="ml-auto">
                                 <span className="font-mono tabular-nums text-accent-12">
-                                  {payload[0]?.payload?.total}
+                                  {formatNumber(payload[0]?.payload?.total)}
                                 </span>
                               </div>
                             </div>
@@ -233,7 +233,7 @@ export function OverviewBarChart({
                                 </div>
                                 <div className="ml-auto">
                                   <span className="font-mono tabular-nums text-accent-12">
-                                    {payload[0]?.payload?.[item.dataKey]}
+                                    {formatNumber(payload[0]?.payload?.[item.dataKey])}
                                   </span>
                                 </div>
                               </div>

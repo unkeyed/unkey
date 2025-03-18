@@ -8,10 +8,12 @@ import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { Ban, BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 
+import { useSort } from "@/components/logs/hooks/use-sort";
 import { formatNumber } from "@/lib/fmt";
 import { OutcomesPopover } from "./components/outcome-popover";
 import { KeyIdentifierColumn } from "./components/override-indicator";
 import { useKeysOverviewLogsQuery } from "./hooks/use-logs-query";
+import type { SortFields } from "./query-logs.schema";
 import { getErrorPercentage, getSuccessPercentage } from "./utils/calculate-blocked-percentage";
 import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
@@ -22,6 +24,7 @@ type Props = {
 };
 
 export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog }: Props) => {
+  const { getSortDirection, toggleSort } = useSort<SortFields>();
   const { historicalLogs, isLoading, isLoadingMore, loadMore } = useKeysOverviewLogsQuery({
     apiId,
   });
@@ -70,6 +73,13 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         key: "valid",
         header: "Valid",
         width: "15%",
+        sort: {
+          direction: getSortDirection("valid"),
+          sortable: true,
+          onSort() {
+            toggleSort("valid", false);
+          },
+        },
         render: (log) => {
           const successPercentage = getSuccessPercentage(log);
           return (
@@ -95,6 +105,13 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         key: "invalid",
         header: "Invalid",
         width: "15%",
+        sort: {
+          direction: getSortDirection("invalid"),
+          sortable: true,
+          onSort() {
+            toggleSort("invalid", false);
+          },
+        },
         render: (log) => {
           const style = getStatusStyle(log);
           const errorPercentage = getErrorPercentage(log);
@@ -133,6 +150,13 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         key: "lastUsed",
         header: "Last Used",
         width: "15%",
+        sort: {
+          direction: getSortDirection("time"),
+          sortable: true,
+          onSort() {
+            toggleSort("time", false);
+          },
+        },
         render: (log) => (
           <TimestampInfo
             value={log.time}
