@@ -36,8 +36,8 @@ type Services struct {
 
 const (
 	// Planetscale only allows for 67MB of json data
-	// 5MB should be enough for most use cases
-	MAX_META_LENGTH_MB = 5
+	// 1MB should be enough for most use cases
+	MAX_META_LENGTH_MB = 1
 )
 
 func New(svc Services) zen.Route {
