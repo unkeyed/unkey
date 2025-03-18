@@ -293,7 +293,7 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
     ORDER BY x ASC
     WITH FILL
       FROM toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3)))
-      TO toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3)))
+      TO toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3))) + ${stepMs}
       STEP ${stepMs}`;
 }
 
@@ -363,7 +363,6 @@ function getVerificationTimeseriesWhereClause(
   };
 }
 
-// Updated timeseries querier function
 function createVerificationTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: VerificationTimeseriesParams) => {
     const { whereClause, paramSchema } = getVerificationTimeseriesWhereClause(args, [
