@@ -11,10 +11,11 @@ import (
 )
 
 func (s *service) Check(ctx context.Context, keyID string, query rbac.PermissionQuery) (rbac.EvaluationResult, error) {
+	
 	ctx, span := tracing.Start(ctx, "permissions.Check")
 	defer span.End()
 
-  permissions, err := s.cache.SWR(ctx, keyID, func(ctx context.Context) ([]string, error) {
+  	permissions, err := s.cache.SWR(ctx, keyID, func(ctx context.Context) ([]string, error) {
 		return db.Query.FindPermissionsForKey(ctx, s.db.RO(), db.FindPermissionsForKeyParams{
 			KeyID: keyID,
 		})
