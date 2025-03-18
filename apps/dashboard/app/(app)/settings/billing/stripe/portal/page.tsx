@@ -10,7 +10,7 @@ import Stripe from "stripe";
 export const revalidate = 0;
 
 export default async function StripeRedirect() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   if (!tenantId) {
     return redirect("/auth/sign-in");
   }
