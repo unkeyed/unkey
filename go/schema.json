@@ -14,9 +14,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "url"
-      ]
+      "required": ["url"]
     },
     "cluster": {
       "type": "object",
@@ -52,9 +50,7 @@
                 }
               },
               "additionalProperties": false,
-              "required": [
-                "url"
-              ]
+              "required": ["url"]
             },
             "static": {
               "type": "object",
@@ -70,9 +66,7 @@
                 }
               },
               "additionalProperties": false,
-              "required": [
-                "addrs"
-              ]
+              "required": ["addrs"]
             }
           },
           "additionalProperties": false
@@ -93,11 +87,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "advertiseAddr",
-        "rpcPort",
-        "gossipPort"
-      ]
+      "required": ["advertiseAddr", "rpcPort", "gossipPort"]
     },
     "database": {
       "type": "object",
@@ -110,9 +100,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "primary"
-      ]
+      "required": ["primary"]
     },
     "heartbeat": {
       "type": "object",
@@ -130,10 +118,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "url",
-        "interval"
-      ]
+      "required": ["url", "interval"]
     },
     "httpPort": {
       "type": "integer",
@@ -154,9 +139,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "color"
-      ]
+      "required": ["color"]
     },
     "platform": {
       "type": "string",
@@ -168,8 +151,5 @@
     }
   },
   "additionalProperties": true,
-  "required": [
-    "httpPort",
-    "database"
-  ]
+  "required": ["httpPort", "database"]
 }
