@@ -36,7 +36,7 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 		}
 		// this is a noop in the cache
 		return cache.Noop
-		
+
 	})
 
 	if err != nil {
