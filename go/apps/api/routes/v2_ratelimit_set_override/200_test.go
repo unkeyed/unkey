@@ -23,7 +23,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 	namespaceName := "test_namespace"
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -39,7 +39,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, "ratelimit.*.set_override")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.set_override")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -62,7 +62,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 
 		// Verify the override was created correctly
 		override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
-			WorkspaceID: h.Resources.UserWorkspace.ID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			OverrideID:  res.Body.OverrideId,
 		})
 		require.NoError(t, err)
@@ -88,7 +88,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 
 		// Verify the override was created correctly
 		override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
-			WorkspaceID: h.Resources.UserWorkspace.ID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			OverrideID:  res.Body.OverrideId,
 		})
 		require.NoError(t, err)
@@ -114,7 +114,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 
 		// Verify the override was created correctly
 		override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
-			WorkspaceID: h.Resources.UserWorkspace.ID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			OverrideID:  res.Body.OverrideId,
 		})
 		require.NoError(t, err)

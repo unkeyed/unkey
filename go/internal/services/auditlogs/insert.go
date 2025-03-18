@@ -102,12 +102,16 @@ func (s *service) findBucketID(ctx context.Context, workspaceID, bucket string) 
 				Name:        bucket,
 			})
 		},
-		func(err error) cache.CacheHit {
-			if errors.Is(err, sql.ErrNoRows) {
-				return cache.Null
+		func(err error) cache.Op {
+			if err == nil {
+				return cache.WriteValue
 			}
 
-			return cache.Miss
+			if errors.Is(err, sql.ErrNoRows) {
+				return cache.WriteNull
+			}
+
+			return cache.Noop
 		},
 	)
 

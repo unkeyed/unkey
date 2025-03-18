@@ -1,12 +1,13 @@
 "use client";
 
-import { formatTimestampTooltip } from "@/components/logs/chart/utils/format-timestamp";
+import { createTimeIntervalFormatter } from "@/components/logs/overview-charts/utils";
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatNumber } from "@/lib/fmt";
 import { Grid } from "@unkey/icons";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, YAxis } from "recharts";
 import { LogsChartError } from "./components/logs-chart-error";
@@ -87,7 +88,7 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
                           </div>
                           <div className="ml-auto">
                             <span className="font-mono tabular-nums text-accent-12">
-                              {payload[0]?.payload?.total}
+                              {formatNumber(payload[0]?.payload?.total)}
                             </span>
                           </div>
                         </div>
@@ -96,18 +97,7 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
                     </div>
                   }
                   className="rounded-lg shadow-lg border border-gray-4"
-                  labelFormatter={(_, tooltipPayload) => {
-                    const originalTimestamp = tooltipPayload[0]?.payload?.originalTimestamp;
-                    return originalTimestamp ? (
-                      <div>
-                        <span className="font-mono text-accent-9 text-xs px-4">
-                          {formatTimestampTooltip(originalTimestamp)}
-                        </span>
-                      </div>
-                    ) : (
-                      ""
-                    );
-                  }}
+                  labelFormatter={(_, payload) => createTimeIntervalFormatter(data)(payload)}
                 />
               );
             }}

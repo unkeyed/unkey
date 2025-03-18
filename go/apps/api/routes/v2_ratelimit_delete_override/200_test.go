@@ -23,7 +23,7 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 	namespaceName := "test_namespace"
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -34,7 +34,7 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 	overrideID := uid.New(uid.RatelimitOverridePrefix)
 	err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
 		ID:          overrideID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		NamespaceID: namespaceID,
 		Identifier:  identifier,
 		Limit:       10,
@@ -53,7 +53,7 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.delete_override", namespaceID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.delete_override", namespaceID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -72,7 +72,7 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 
 		// Verify the override was deleted (check soft delete)
 		override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
-			WorkspaceID: h.Resources.UserWorkspace.ID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			OverrideID:  overrideID,
 		})
 

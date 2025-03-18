@@ -21,7 +21,7 @@
 //	// Using Redis-based discovery
 //	redisDiscoverer, err := discovery.NewRedis(discovery.RedisConfig{
 //	    URL:    "redis://localhost:6379/0",
-//	    NodeID: "node_123",
+//	    InstanceID: "ins_123",
 //	    Addr:   "10.0.1.5:9000",
 //	    Logger: logger,
 //	})

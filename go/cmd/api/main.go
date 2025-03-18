@@ -104,7 +104,7 @@ Examples:
   --cluster-node-id=node_replica2   # For a second replica node
   --cluster-node-id=node_dev_local  # For local development`,
 			Sources:  cli.EnvVars("UNKEY_CLUSTER_NODE_ID"),
-			Value:    uid.New(uid.NodePrefix),
+			Value:    uid.New(uid.InstancePrefix),
 			Required: false,
 		},
 		&cli.StringFlag{
@@ -345,7 +345,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Cluster
 		ClusterEnabled:                     cmd.Bool("cluster"),
-		ClusterNodeID:                      cmd.String("cluster-node-id"),
+		ClusterInstanceID:                  cmd.String("cluster-node-id"),
 		ClusterRpcPort:                     int(cmd.Int("cluster-rpc-port")),
 		ClusterGossipPort:                  int(cmd.Int("cluster-gossip-port")),
 		ClusterAdvertiseAddrStatic:         cmd.String("cluster-advertise-addr-static"),

@@ -51,6 +51,14 @@ export const keysOverviewLogsParams = z.object({
     .nullable(),
   cursorTime: z.number().int().nullable(),
   cursorRequestId: z.string().nullable(),
+  sorts: z
+    .array(
+      z.object({
+        column: z.enum(["time", "valid", "invalid"]),
+        direction: z.enum(["asc", "desc"]),
+      }),
+    )
+    .nullable(),
 });
 
 export const roleSchema = z.object({
@@ -121,6 +129,7 @@ export function getKeysOverviewLogs(ch: Querier) {
 
     const hasKeyIdFilters = args.keyIds && args.keyIds.length > 0;
     const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
+    const hasSortingRules = args.sorts && args.sorts.length > 0;
 
     const outcomeCondition = !hasOutcomeFilters
       ? "TRUE"
@@ -156,14 +165,79 @@ export function getKeysOverviewLogs(ch: Querier) {
           .filter(Boolean)
           .join(" OR ") || "TRUE";
 
-    // Update the cursor condition to use request_id
-    const cursorCondition = `
-      AND (
-          ({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
-          OR (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
-          OR time < {cursorTime: Nullable(UInt64)}
-      )
-    `;
+    const allowedColumns = new Map([
+      ["time", "time"],
+      ["valid", "valid_count"],
+      ["invalid", "error_count"],
+    ]);
+
+    const orderBy =
+      hasSortingRules && args.sorts
+        ? args.sorts.reduce((acc: string[], sort) => {
+            const column = allowedColumns.get(sort.column);
+            // Only add to ORDER BY if it's an allowed column to prevent injection
+            if (column) {
+              const direction =
+                sort.direction.toUpperCase() === "ASC" || sort.direction.toUpperCase() === "DESC"
+                  ? sort.direction.toUpperCase()
+                  : "DESC";
+              acc.push(`${column} ${direction}`);
+            }
+            return acc;
+          }, [])
+        : [];
+
+    // Check if we have sorts for valid or invalid
+    const hasValidSort = args.sorts?.some((s) => s.column === "valid");
+    const hasInvalidSort = args.sorts?.some((s) => s.column === "invalid");
+    const hasCustomSort = hasValidSort || hasInvalidSort;
+
+    // Get explicit time sort if it exists
+    const timeSort = args.sorts?.find((s) => s.column === "time");
+
+    // Determine time direction:
+    // If we have custom sort (valid/invalid), always use ASC for better pagination
+    // Otherwise use explicit time direction or default to DESC
+    const timeDirection = hasCustomSort
+      ? "ASC"
+      : timeSort?.direction.toUpperCase() === "ASC"
+        ? "ASC"
+        : "DESC";
+
+    // Remove any existing time sort from the orderBy array
+    const orderByWithoutTime = orderBy.filter((clause) => !clause.startsWith("time"));
+
+    // Construct final ORDER BY clause with time and request_id always at the end
+    const orderByClause =
+      [...orderByWithoutTime, `time ${timeDirection}`, `request_id ${timeDirection}`].join(", ") ||
+      "time DESC, request_id DESC"; // Fallback if empty
+
+    // Create cursor condition based on time direction
+    let cursorCondition: string;
+
+    // For first page or no cursor provided
+    if (!args.cursorTime || !args.cursorRequestId) {
+      cursorCondition = `
+      AND ({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
+      `;
+    } else {
+      // For subsequent pages, use cursor based on time direction
+      if (timeDirection === "ASC") {
+        cursorCondition = `
+        AND (
+            (time = {cursorTime: Nullable(UInt64)} AND request_id > {cursorRequestId: Nullable(String)})
+            OR time > {cursorTime: Nullable(UInt64)}
+        )
+        `;
+      } else {
+        cursorCondition = `
+        AND (
+            (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
+            OR time < {cursorTime: Nullable(UInt64)}
+        )
+        `;
+      }
+    }
 
     const extendedParamsSchema = keysOverviewLogsParams.extend(paramSchemaExtension);
     const query = ch.query({
@@ -187,7 +261,6 @@ WITH
           -- Handle pagination using time and request_id as cursor
           ${cursorCondition}
     ),
-
     -- Second CTE: Calculate per-key aggregated metrics
     -- This groups all verifications by key_id to get summary counts and most recent activity
     aggregated_data AS (
@@ -204,7 +277,6 @@ WITH
       FROM filtered_keys
       GROUP BY key_id
     ),
-
     -- Third CTE: Build detailed outcome distribution
     -- This provides a breakdown of the exact counts for each outcome type
     outcome_counts AS (
@@ -216,7 +288,6 @@ WITH
       FROM filtered_keys
       GROUP BY key_id, outcome
     )
-
     -- Main query: Join the aggregated data with detailed outcome counts
     SELECT 
       a.key_id,
@@ -237,7 +308,7 @@ WITH
       a.valid_count,
       a.error_count
     -- Sort results with most recent verification first
-    ORDER BY time DESC, request_id DESC
+    ORDER BY ${orderByClause}
     -- Limit results for pagination
     LIMIT {limit: Int}
 `,

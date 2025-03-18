@@ -33,7 +33,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, "identity.*.create_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -46,7 +46,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 			ID:          identityID,
 			ExternalID:  externalTestID,
-			WorkspaceID: h.Resources.UserWorkspace.ID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Meta:        nil,
 			CreatedAt:   time.Now().UnixMilli(),
 			Environment: "default",
@@ -65,7 +65,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 			ID:          identityID,
 			ExternalID:  externalTestID,
-			WorkspaceID: h.Resources.UserWorkspace.ID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Meta:        nil,
 			CreatedAt:   time.Now().UnixMilli(),
 			Environment: "default",
@@ -78,7 +78,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		err = db.Query.InsertIdentityRatelimit(ctx, h.DB.RW(), db.InsertIdentityRatelimitParams{
 			ID:          uid.New(uid.RatelimitPrefix),
-			WorkspaceID: h.Resources.UserWorkspace.ID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			IdentityID:  sql.NullString{String: identityID, Valid: true},
 			Name:        "Requests",
 			Limit:       15,

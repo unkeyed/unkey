@@ -24,7 +24,7 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
