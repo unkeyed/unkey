@@ -1,10 +1,11 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { useSort } from "@/components/logs/hooks/use-sort";
 import { trpc } from "@/lib/trpc/client";
 import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { useEffect, useMemo, useState } from "react";
 import { keysOverviewFilterFieldConfig } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
-import type { KeysQueryOverviewLogsPayload } from "../query-logs.schema";
+import type { KeysQueryOverviewLogsPayload, SortFields } from "../query-logs.schema";
 
 type UseLogsQueryParams = {
   limit?: number;
@@ -17,6 +18,8 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
   );
 
   const { filters } = useFilters();
+  const { sorts } = useSort<SortFields>();
+
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   // Required for preventing double trpc call during initial render
@@ -33,6 +36,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
       names: [],
       apiId,
       since: "",
+      sorts: sorts.length > 0 ? sorts : null,
     };
 
     filters.forEach((filter) => {
@@ -104,7 +108,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     });
 
     return params;
-  }, [filters, limit, dateNow, apiId]);
+  }, [filters, limit, dateNow, apiId, sorts]);
 
   // Main query for historical data
   const {
