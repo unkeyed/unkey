@@ -37,6 +37,12 @@ export function transformKeysFilters(
       value: o.value,
     })) ?? null;
 
+  const sorts =
+    params.sorts?.map((sort) => ({
+      column: sort.column,
+      direction: sort.direction,
+    })) ?? null;
+
   return {
     limit: params.limit,
     startTime,
@@ -47,5 +53,6 @@ export function transformKeysFilters(
     outcomes,
     cursorTime: params.cursor?.time ?? null,
     cursorRequestId: params.cursor?.requestId ?? null,
+    sorts,
   };
 }

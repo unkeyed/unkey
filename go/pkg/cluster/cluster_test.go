@@ -23,7 +23,7 @@ func TestClusterAddsSelfToRing(t *testing.T) {
 
 	// Create the first membership system (will be used for our cluster node)
 	membershipSys1, err := membership.New(membership.Config{
-		NodeID:        "node-1",
+		InstanceID:    "i_1",
 		AdvertiseHost: "127.0.0.1",
 		GossipPort:    gossipPort1,
 		Logger:        logging.NewNoop(),
@@ -31,8 +31,8 @@ func TestClusterAddsSelfToRing(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a cluster using the membership system
-	clusterNode := Node{
-		ID:      "node-1",
+	clusterNode := Instance{
+		ID:      "i_1",
 		RpcAddr: fmt.Sprintf("127.0.0.1:%d", rpcPort),
 	}
 
@@ -49,7 +49,7 @@ func TestClusterAddsSelfToRing(t *testing.T) {
 
 	// Test if we can find the local node using its ID as a key
 	// This is the key test - the self node must be in the ring
-	node, err := cluster.FindNode(context.Background(), clusterNode.ID)
+	node, err := cluster.FindInstance(context.Background(), clusterNode.ID)
 	require.NoError(t, err)
 	require.Equal(t, clusterNode.ID, node.ID)
 
@@ -61,7 +61,7 @@ func TestClusterAddsSelfToRing(t *testing.T) {
 	// Create a second membership node
 	gossipPort2 := freePort.Get()
 	membershipSys2, err := membership.New(membership.Config{
-		NodeID:        "node-2",
+		InstanceID:    "i_2",
 		AdvertiseHost: "127.0.0.1",
 		GossipPort:    gossipPort2,
 		Logger:        logging.NewNoop(),
@@ -78,9 +78,9 @@ func TestClusterAddsSelfToRing(t *testing.T) {
 	}, 5*time.Second, 100*time.Millisecond, "Ring should eventually contain both nodes")
 
 	// Verify we can find both nodes by their IDs
-	node1, err := cluster.FindNode(context.Background(), "node-1")
+	node1, err := cluster.FindInstance(context.Background(), "i_1")
 	require.NoError(t, err)
-	require.Equal(t, "node-1", node1.ID)
+	require.Equal(t, "i_1", node1.ID)
 
 	// When we look for node-2, we should get its info
 	// This depends on the consistent hash working correctly
@@ -92,12 +92,12 @@ func TestClusterAddsSelfToRing(t *testing.T) {
 	require.Len(t, members, 2)
 
 	// Check specific member properties
-	nodeIds := make(map[string]bool)
+	instanceIDs := make(map[string]bool)
 	for _, member := range members {
-		nodeIds[member.ID] = true
+		instanceIDs[member.ID] = true
 	}
-	require.True(t, nodeIds["node-1"], "Ring should contain node-1")
-	require.True(t, nodeIds["node-2"], "Ring should contain node-2")
+	require.True(t, instanceIDs["i_1"], "Ring should contain node-1")
+	require.True(t, instanceIDs["i_2"], "Ring should contain node-2")
 
 	// Test shutdown
 	err = cluster.Shutdown(context.Background())
@@ -113,7 +113,7 @@ func TestNoopCluster(t *testing.T) {
 	noop := NewNoop("test-node", "localhost")
 
 	// Test FindNode always returns self
-	node, err := noop.FindNode(context.Background(), "any-key")
+	node, err := noop.FindInstance(context.Background(), "any-key")
 	require.NoError(t, err)
 	require.Equal(t, "test-node", node.ID)
 	require.Equal(t, "", node.RpcAddr)

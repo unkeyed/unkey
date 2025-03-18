@@ -24,8 +24,8 @@ type Redis struct {
 	rdb    *redis.Client
 	logger logging.Logger
 
-	addr   string
-	nodeID string
+	addr       string
+	instanceID string
 
 	ttl               time.Duration
 	heartbeatInterval time.Duration
@@ -37,8 +37,8 @@ type RedisConfig struct {
 	// URL is the Redis connection string, e.g., "redis://user:pass@localhost:6379/0"
 	URL string
 
-	// NodeID is the unique identifier for this node
-	NodeID string
+	// InstanceID is the unique identifier for this node
+	InstanceID string
 
 	// Addr is the address other nodes should use to connect to this node
 	// This is the address that will be advertised in Redis
@@ -72,7 +72,7 @@ func NewRedis(config RedisConfig) (*Redis, error) {
 	r := &Redis{
 		logger:            config.Logger,
 		rdb:               rdb,
-		nodeID:            config.NodeID,
+		instanceID:        config.InstanceID,
 		addr:              config.Addr,
 		heartbeatInterval: time.Second * 60,
 		ttl:               time.Second * 90,
@@ -122,7 +122,7 @@ func (r *Redis) key(nodeID string) string {
 // advertise publishes this node's address to Redis with a TTL.
 // Other nodes can discover this node by scanning for keys with the discovery prefix.
 func (r *Redis) advertise(ctx context.Context) error {
-	return r.rdb.Set(ctx, r.key(r.nodeID), r.addr, r.ttl).Err()
+	return r.rdb.Set(ctx, r.key(r.instanceID), r.addr, r.ttl).Err()
 }
 
 // Discover returns a list of addresses for all active nodes registered in Redis.
@@ -189,5 +189,5 @@ func (r *Redis) discover() ([]string, error) {
 // discoverable once it's offline.
 func (r *Redis) Shutdown(ctx context.Context) error {
 	r.shutdownC <- struct{}{}
-	return r.rdb.Del(ctx, r.key(r.nodeID)).Err()
+	return r.rdb.Del(ctx, r.key(r.instanceID)).Err()
 }

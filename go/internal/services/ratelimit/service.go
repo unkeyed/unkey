@@ -7,6 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
@@ -47,6 +48,8 @@ type service struct {
 	replayCircuitBreaker circuitbreaker.CircuitBreaker[*connect.Response[ratelimitv1.ReplayResponse]]
 }
 
+var _ ratelimitv1connect.RatelimitServiceHandler = (*service)(nil)
+
 type Config struct {
 	Logger  logging.Logger
 	Cluster cluster.Cluster
@@ -83,10 +86,10 @@ func New(config Config) (*service, error) {
 }
 
 func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
-	_, span := tracing.Start(ctx, "slidingWindow.Ratelimit")
+	_, span := tracing.Start(ctx, "Ratelimit")
 	defer span.End()
 
-	err := assert.Multi(
+	err := assert.All(
 		assert.NotEmpty(req.Identifier, "ratelimit identifier must not be empty"),
 		assert.Greater(req.Limit, 0, "ratelimit limit must be greater than zero"),
 		assert.GreaterOrEqual(req.Cost, 0, "ratelimit cost must not be negative"),
@@ -98,12 +101,13 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 	now := r.clock.Now()
 
-	res, err := r.ratelimit(ctx, now, req)
-	if err != nil {
-		return RatelimitResponse{}, err
-	}
-
-	r.replayBuffer.Buffer(&ratelimitv1.ReplayRequest{
+	//	res, err := r.ratelimit(ctx, now, req)
+	//	if err != nil {
+	//		return RatelimitResponse{}, err
+	//	}
+	//	return res, nil
+	//
+	res, err := r.askOrigin(ctx, &ratelimitv1.ReplayRequest{
 		Request: &ratelimitv1.RatelimitRequest{
 			Identifier: req.Identifier,
 			Limit:      req.Limit,
@@ -111,9 +115,27 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 			Cost:       req.Cost,
 		},
 		Time:   now.UnixMilli(),
-		Denied: !res.Success,
+		Denied: false,
 	})
-	return res, nil
+
+	if err != nil {
+		return RatelimitResponse{}, err
+	}
+
+	if res == nil {
+		// we are the origin
+		return r.ratelimit(ctx, now, req)
+
+	}
+	return RatelimitResponse{
+		Limit:          res.Response.Limit,
+		Remaining:      res.Response.Remaining,
+		Reset:          res.Response.Reset_,
+		Success:        res.Response.Success,
+		Current:        res.Response.Current,
+		CurrentWindow:  res.Current,
+		PreviousWindow: res.Previous,
+	}, nil
 }
 func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitRequest) (RatelimitResponse, error) {
 	_, span := tracing.Start(ctx, "slidingWindow.ratelimit")
@@ -122,14 +144,14 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 	key := bucketKey{req.Identifier, req.Limit, req.Duration}
 	span.SetAttributes(attribute.String("key", key.toString()))
 
-	b, _ := r.getOrCreateBucket(key)
+	b, _ := r.getOrCreateBucket(ctx, key)
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	// Get current and previous windows
-	currentWindow := b.getCurrentWindow(now)
-	previousWindow := b.getPreviousWindow(now)
+	currentWindow := b.getCurrentWindow(ctx, now)
+	previousWindow := b.getPreviousWindow(ctx, now)
 
 	// Calculate time elapsed in current window (as a fraction)
 	windowElapsed := float64(now.UnixMilli()-currentWindow.GetStart()) / float64(req.Duration.Milliseconds())
@@ -146,12 +168,15 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 			remaining = 0
 		}
 
+		span.SetAttributes(attribute.Bool("passed", false))
 		return RatelimitResponse{
-			Success:   false,
-			Remaining: remaining,
-			Reset:     currentWindow.GetStart() + currentWindow.GetDuration(),
-			Limit:     req.Limit,
-			Current:   effectiveCount,
+			Success:        false,
+			Remaining:      remaining,
+			Reset:          currentWindow.GetStart() + currentWindow.GetDuration(),
+			Limit:          req.Limit,
+			Current:        effectiveCount,
+			CurrentWindow:  currentWindow,
+			PreviousWindow: previousWindow,
 		}, nil
 	}
 
@@ -165,6 +190,7 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 	if remaining < 0 {
 		remaining = 0
 	}
+	span.SetAttributes(attribute.Bool("passed", true))
 
 	return RatelimitResponse{
 		Success:   true,
@@ -190,7 +216,7 @@ func (r *service) SetWindows(ctx context.Context, requests ...setWindowRequest) 
 	defer span.End()
 	for _, req := range requests {
 		key := bucketKey{req.Identifier, req.Limit, req.Duration}
-		bucket, _ := r.getOrCreateBucket(key)
+		bucket, _ := r.getOrCreateBucket(ctx, key)
 		// Only increment the current value if the new value is greater than the current value
 		// Due to varying network latency, we may receive out of order responses and could decrement the
 		// current value, which would result in inaccurate rate limiting

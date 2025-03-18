@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/pb33f/libopenapi"
@@ -8,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/pkg/ctxutil"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 )
 
 type OpenAPIValidator interface {
@@ -52,7 +54,9 @@ func New() (*Validator, error) {
 	}, nil
 }
 
-func (v *Validator) Validate(r *http.Request) (openapi.BadRequestError, bool) {
+func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestError, bool) {
+	ctx, validationSpan := tracing.Start(ctx, "openapi.Validate")
+	defer validationSpan.End()
 
 	valid, errors := v.validator.ValidateHttpRequest(r)
 	if valid {

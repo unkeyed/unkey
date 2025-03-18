@@ -24,7 +24,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	namespaceName := "test_namespace"
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
-		WorkspaceID: h.Resources.UserWorkspace.ID, // Use the default workspace
+		WorkspaceID: h.Resources().UserWorkspace.ID, // Use the default workspace
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -35,7 +35,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	overrideID := uid.New(uid.RatelimitOverridePrefix)
 	err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
 		ID:          overrideID,
-		WorkspaceID: h.Resources.UserWorkspace.ID, // In default workspace
+		WorkspaceID: h.Resources().UserWorkspace.ID, // In default workspace
 		NamespaceID: namespaceID,
 		Identifier:  identifier,
 		Limit:       10,

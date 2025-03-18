@@ -114,6 +114,7 @@ message ReplayRequest {
   // This field is crucial for maintaining consistency when edge nodes
   // make defensive denials due to network issues or uncertainty.
   bool denied = 3;
+
 }
 
 // ReplayResponse contains the synchronized rate limit state that
