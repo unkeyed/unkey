@@ -3,6 +3,8 @@ package ratelimit
 import (
 	"context"
 	"time"
+
+	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
 )
 
 type Service interface {
@@ -71,5 +73,8 @@ type RatelimitResponse struct {
 	// This represents how many tokens have been consumed so far,
 	// useful for monitoring and debugging purposes.
 	Current int64
+
+	CurrentWindow  *ratelimitv1.Window
+	PreviousWindow *ratelimitv1.Window
 }
 type Middleware func(Service) Service

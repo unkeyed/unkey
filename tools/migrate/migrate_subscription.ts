@@ -14,7 +14,7 @@ async function main() {
   await conn.ping();
   const db = mysqlDrizzle(conn, { schema, mode: "default" });
 
-  const workspaceId = "ws_wB4SmWrYkhSbWE2rH61S6gMseWw";
+  const workspaceId = "ws_4RN4KfMm8oahuthjfVnWu7bAs4mv";
   const productId = "prod_Rtu3rLbjwprz7p";
 
   const workspace = await db.query.workspaces.findFirst({

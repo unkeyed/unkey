@@ -11,11 +11,14 @@ import (
 	"github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type peer struct {
-	node   cluster.Node
-	client ratelimitv1connect.RatelimitServiceClient
+	instance cluster.Instance
+	client   ratelimitv1connect.RatelimitServiceClient
 }
 
 // syncs peers removes old peers based on the cluster's event listeners
@@ -32,7 +35,18 @@ func (s *service) syncPeers() {
 
 }
 
-func (s *service) getPeer(key string) (peer, error) {
+func (s *service) getPeer(ctx context.Context, key string) (peer, error) {
+	ctx, span := tracing.Start(ctx, "getPeer")
+	defer span.End()
+
+	var p peer
+
+	defer func() {
+		metrics.Ratelimit.Origin.Add(ctx, 1, metric.WithAttributeSet(attribute.NewSet(
+			attribute.String("origin_instance_id", p.instance.ID),
+		),
+		))
+	}()
 
 	s.peerMu.RLock()
 	p, ok := s.peers[key]
@@ -59,16 +73,16 @@ func (s *service) newPeer(ctx context.Context, key string) (peer, error) {
 	s.peerMu.Lock()
 	defer s.peerMu.Unlock()
 
-	node, err := s.cluster.FindNode(ctx, key)
+	instance, err := s.cluster.FindInstance(ctx, key)
 	if err != nil {
-		return peer{}, fault.Wrap(err, fault.WithDesc("failed to find node", "The ratelimit origin could not be found."))
+		return peer{}, fault.Wrap(err, fault.WithDesc("failed to find instance", "The ratelimit origin could not be found."))
 	}
 
 	s.logger.Info("peer added",
-		"peer", node.ID,
-		"address", node.RpcAddr,
+		"peer", instance.ID,
+		"address", instance.RpcAddr,
 	)
-	rpcAddr := node.RpcAddr
+	rpcAddr := instance.RpcAddr
 	if !strings.Contains(rpcAddr, "://") {
 		rpcAddr = "http://" + rpcAddr
 	}
@@ -80,5 +94,5 @@ func (s *service) newPeer(ctx context.Context, key string) (peer, error) {
 	}
 
 	c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, rpcAddr, connect.WithInterceptors(interceptor))
-	return peer{node: node, client: c}, nil
+	return peer{instance: instance, client: c}, nil
 }

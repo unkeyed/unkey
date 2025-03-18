@@ -21,7 +21,7 @@ func TestJoin2Nodes(t *testing.T) {
 	freePort := port.New()
 
 	m1, err := membership.New(membership.Config{
-		NodeID:        "node_1",
+		InstanceID:    "ins_1",
 		AdvertiseHost: "127.0.0.1",
 		GossipPort:    freePort.Get(),
 		HttpPort:      freePort.Get(),
@@ -31,7 +31,7 @@ func TestJoin2Nodes(t *testing.T) {
 	require.NoError(t, err)
 
 	m2, err := membership.New(membership.Config{
-		NodeID:        "node_2",
+		InstanceID:    "ins_2",
 		AdvertiseHost: "127.0.0.1",
 		GossipPort:    freePort.Get(),
 		HttpPort:      freePort.Get(),
@@ -100,11 +100,11 @@ func TestJoin_emits_join_event(t *testing.T) {
 
 			var err error
 			for i := 0; i < clusterSize; i++ {
-				nodeID := fmt.Sprintf("node_%d", i)
+				nodeID := fmt.Sprintf("instance_%d", i)
 				nodeIDs[i] = nodeID
 
 				members[i], err = membership.New(membership.Config{
-					NodeID:        nodeID,
+					InstanceID:    nodeID,
 					AdvertiseHost: "127.0.0.1",
 					GossipPort:    freePort.Get(),
 					Logger:        logging.NewNoop(),
@@ -114,12 +114,12 @@ func TestJoin_emits_join_event(t *testing.T) {
 
 			joinEvents := members[0].SubscribeJoinEvents()
 			joinMu := sync.RWMutex{}
-			joinedNodes := make(map[string]bool) // Track by NodeID
+			joinedNodes := make(map[string]bool) // Track by InstanceID
 
 			go func() {
 				for event := range joinEvents {
 					joinMu.Lock()
-					joinedNodes[event.NodeID] = true // Store by NodeID
+					joinedNodes[event.InstanceID] = true // Store by InstanceID
 					joinMu.Unlock()
 				}
 			}()
@@ -157,17 +157,17 @@ func TestLeave_emits_leave_event(t *testing.T) {
 			// Store nodeIDs for later reference
 			nodeIDs := make([]string, clusterSize)
 			for i, n := range nodes {
-				nodeIDs[i] = n.Self().NodeID
+				nodeIDs[i] = n.Self().InstanceID
 			}
 
 			leaveEvents := nodes[0].SubscribeLeaveEvents()
 			leftMu := sync.RWMutex{}
-			leftNodes := make(map[string]bool) // Track by NodeID
+			leftNodes := make(map[string]bool) // Track by InstanceID
 
 			go func() {
 				for event := range leaveEvents {
 					leftMu.Lock()
-					leftNodes[event.NodeID] = true // Store by NodeID
+					leftNodes[event.InstanceID] = true // Store by InstanceID
 					leftMu.Unlock()
 				}
 			}()
@@ -195,7 +195,7 @@ func TestRPCPortPropagation(t *testing.T) {
 
 	// Create nodes with different RPC ports
 	m1, err := membership.New(membership.Config{
-		NodeID:        "rpc_node_1",
+		InstanceID:    "rpc_node_1",
 		AdvertiseHost: "127.0.0.1",
 		GossipPort:    freePort.Get(),
 		RpcPort:       9001,
@@ -204,7 +204,7 @@ func TestRPCPortPropagation(t *testing.T) {
 	require.NoError(t, err)
 
 	m2, err := membership.New(membership.Config{
-		NodeID:        "rpc_node_2",
+		InstanceID:    "rpc_node_2",
 		AdvertiseHost: "127.0.0.1",
 		GossipPort:    freePort.Get(),
 		RpcPort:       9002,
@@ -237,7 +237,7 @@ func TestRPCPortPropagation(t *testing.T) {
 	// Find the m2 member
 	var m2Member membership.Member
 	for _, member := range members {
-		if member.NodeID == "rpc_node_2" {
+		if member.InstanceID == "rpc_node_2" {
 			m2Member = member
 			break
 		}
@@ -260,7 +260,7 @@ func TestRejoinAfterLeave(t *testing.T) {
 
 	// Have one node leave
 	leavingNode := nodes[1]
-	nodeID := leavingNode.Self().NodeID
+	nodeID := leavingNode.Self().InstanceID
 	err := leavingNode.Leave()
 	require.NoError(t, err)
 
@@ -273,7 +273,7 @@ func TestRejoinAfterLeave(t *testing.T) {
 
 	// Create a new node with the same ID
 	rejoinNode, err := membership.New(membership.Config{
-		NodeID:        nodeID,
+		InstanceID:    nodeID,
 		AdvertiseHost: "127.0.0.1",
 		GossipPort:    freePort.Get(),
 		Logger:        logging.NewNoop(),
@@ -301,7 +301,7 @@ func TestConcurrentJoins(t *testing.T) {
 
 	// Create a "seed" node
 	seed, err := membership.New(membership.Config{
-		NodeID:        "seed_node",
+		InstanceID:    "seed_node",
 		AdvertiseHost: "127.0.0.1",
 		GossipPort:    freePort.Get(),
 		RpcPort:       freePort.Get(),
@@ -329,7 +329,7 @@ func TestConcurrentJoins(t *testing.T) {
 			defer wg.Done()
 
 			node, err := membership.New(membership.Config{
-				NodeID:        fmt.Sprintf("concurrent_node_%d", i),
+				InstanceID:    fmt.Sprintf("instance_%d", i),
 				AdvertiseHost: "127.0.0.1",
 				GossipPort:    freePort.Get(),
 				RpcPort:       freePort.Get(),
@@ -411,15 +411,15 @@ func TestConsistentMemberList(t *testing.T) {
 		for _, m0 := range memberLists[0] {
 			found := false
 			for _, mi := range memberLists[i] {
-				if m0.NodeID == mi.NodeID {
+				if m0.InstanceID == mi.InstanceID {
 					found = true
 					// Also check that member attributes match
 					require.Equal(t, m0.RpcPort, mi.RpcPort,
-						"Member %s should have same RpcPort across nodes", m0.NodeID)
+						"Member %s should have same RpcPort across nodes", m0.InstanceID)
 					break
 				}
 			}
-			require.True(t, found, "Member %s from node 0 not found in node %d", m0.NodeID, i)
+			require.True(t, found, "Member %s from node 0 not found in node %d", m0.InstanceID, i)
 		}
 	}
 }
@@ -427,7 +427,7 @@ func TestInvalidJoinAddresses(t *testing.T) {
 	freePort := port.New()
 
 	m, err := membership.New(membership.Config{
-		NodeID:        "test_node",
+		InstanceID:    "test_node",
 		AdvertiseHost: "127.0.0.1",
 		GossipPort:    freePort.Get(),
 		Logger:        logging.NewNoop(),
@@ -453,7 +453,7 @@ func TestSelfDiscovery(t *testing.T) {
 
 	nodeID := "self_test_node"
 	m, err := membership.New(membership.Config{
-		NodeID:        nodeID,
+		InstanceID:    nodeID,
 		AdvertiseHost: "127.0.0.1",
 		GossipPort:    freePort.Get(),
 		RpcPort:       freePort.Get(),
@@ -478,14 +478,14 @@ func TestSelfDiscovery(t *testing.T) {
 	// Find self in members list
 	var selfFromList membership.Member
 	for _, member := range members {
-		if member.NodeID == nodeID {
+		if member.InstanceID == nodeID {
 			selfFromList = member
 			break
 		}
 	}
 
 	// Verify both representations match
-	require.Equal(t, self.NodeID, selfFromList.NodeID)
+	require.Equal(t, self.InstanceID, selfFromList.InstanceID)
 	require.Equal(t, self.Host, selfFromList.Host)
 	require.Equal(t, self.GossipPort, selfFromList.GossipPort)
 	require.Equal(t, self.RpcPort, selfFromList.RpcPort)
@@ -540,7 +540,7 @@ func runMany(t *testing.T, n int) []membership.Membership {
 		})).Do(func() error {
 			var mErr error
 			members[i], mErr = membership.New(membership.Config{
-				NodeID:        fmt.Sprintf("node_%d", i),
+				InstanceID:    fmt.Sprintf("instance_%d", i),
 				AdvertiseHost: "127.0.0.1",
 				GossipPort:    freePort.Get(),
 				Logger:        logging.NewNoop(),

@@ -31,7 +31,7 @@ const (
 	RatelimitPrefix          Prefix = "rl"
 	AuditLogBucketPrefix     Prefix = "buk"
 	AuditLogPrefix           Prefix = "log"
-	NodePrefix               Prefix = "node"
+	InstancePrefix           Prefix = "ins"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a
