@@ -434,7 +434,7 @@ export const ratelimitOverviewLogsParams = z.object({
   sorts: z
     .array(
       z.object({
-        column: z.enum(["time", "avg_latency", "p99_latency"]),
+        column: z.enum(["time", "avg_latency", "p99_latency", "blocked", "passed"]),
         direction: z.enum(["asc", "desc"]),
       }),
     )
@@ -514,6 +514,8 @@ export function getRatelimitOverviewLogs(ch: Querier) {
       ["time", "last_request_time"],
       ["avg_latency", "avg_latency"],
       ["p99_latency", "p99_latency"],
+      ["passed", "passed_count"],
+      ["blocked", "blocked_count"],
     ]);
 
     const orderBy =
@@ -532,9 +534,23 @@ export function getRatelimitOverviewLogs(ch: Querier) {
           }, [])
         : [];
 
-    // If time is explicitly sorted ASC, maintain that direction
+    // Check if we have custom sorts
+    const hasAvgLatencySort = args.sorts?.some((s) => s.column === "avg_latency");
+    const hasP99LatencySort = args.sorts?.some((s) => s.column === "p99_latency");
+    const hasPassedSort = args.sorts?.some((s) => s.column === "passed");
+    const hasBlockedSort = args.sorts?.some((s) => s.column === "blocked");
+    const hasCustomSort = hasAvgLatencySort || hasP99LatencySort || hasPassedSort || hasBlockedSort;
+
+    // Get explicit time sort if it exists
     const timeSort = args.sorts?.find((s) => s.column === "time");
-    const timeDirection = timeSort?.direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+    // If we have custom sort (avg_latency, p99_latency, passed, blocked), always use ASC for better pagination
+    // Otherwise use explicit time direction or default to DESC
+    const timeDirection = hasCustomSort
+      ? "ASC"
+      : timeSort?.direction.toUpperCase() === "ASC"
+        ? "ASC"
+        : "DESC";
 
     // Remove any existing time sort from the orderBy array
     const orderByWithoutTime = orderBy.filter((clause) => !clause.startsWith("last_request_time"));
@@ -546,6 +562,33 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         `last_request_time ${timeDirection}`,
         `request_id ${timeDirection}`,
       ].join(", ") || "last_request_time DESC, request_id DESC"; // Fallback if empty
+
+    // Create cursor condition based on time direction
+    let cursorCondition: string;
+
+    // For first page or no cursor provided
+    if (!args.cursorTime || !args.cursorRequestId) {
+      cursorCondition = `
+      AND ({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
+      `;
+    } else {
+      // For subsequent pages, use cursor based on time direction
+      if (timeDirection === "ASC") {
+        cursorCondition = `
+        AND (
+            (time = {cursorTime: Nullable(UInt64)} AND request_id > {cursorRequestId: Nullable(String)})
+            OR time > {cursorTime: Nullable(UInt64)}
+        )
+        `;
+      } else {
+        cursorCondition = `
+        AND (
+            (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
+            OR time < {cursorTime: Nullable(UInt64)}
+        )
+        `;
+      }
+    }
 
     const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
     const query = ch.query({
@@ -561,9 +604,7 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
         AND (${identifierConditions})
         AND (${statusCondition})
-        AND (({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
-             OR (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
-             OR time < {cursorTime: Nullable(UInt64)})
+        ${cursorCondition}
 ),
 aggregated_data AS (
     SELECT 

@@ -52,6 +52,13 @@ export const RatelimitOverviewLogsTable = ({
         key: "passed",
         header: "Passed",
         width: "7.5%",
+        sort: {
+          direction: getSortDirection("passed"),
+          sortable: true,
+          onSort() {
+            toggleSort("passed", false);
+          },
+        },
         render: (log) => {
           return (
             <div className="flex gap-3 items-center group/identifier">
@@ -78,6 +85,13 @@ export const RatelimitOverviewLogsTable = ({
         key: "blocked",
         header: "Blocked",
         width: "7.5%",
+        sort: {
+          direction: getSortDirection("blocked"),
+          sortable: true,
+          onSort() {
+            toggleSort("blocked", false);
+          },
+        },
         render: (log) => {
           const style = getStatusStyle(log);
           return (
@@ -158,7 +172,7 @@ export const RatelimitOverviewLogsTable = ({
           direction: getSortDirection("time"),
           sortable: true,
           onSort() {
-            toggleSort("time", true);
+            toggleSort("time", false);
           },
         },
         render: (log) => (
