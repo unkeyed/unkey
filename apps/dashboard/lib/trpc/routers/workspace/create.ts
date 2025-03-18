@@ -1,38 +1,38 @@
-import { insertAuditLogs } from "@/lib/audit";
-import { type Workspace, db, schema } from "@/lib/db";
-import { clerkClient } from "@clerk/nextjs";
-import { TRPCError } from "@trpc/server";
-import { newId } from "@unkey/id";
-import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { insertAuditLogs } from "@/lib/audit"
+import { type Workspace, db, schema } from "@/lib/db"
+import { clerkClient } from "@clerk/nextjs"
+import { TRPCError } from "@trpc/server"
+import { newId } from "@unkey/id"
+import { z } from "zod"
+import { auth, t } from "../../trpc"
 export const createWorkspace = t.procedure
   .use(auth)
   .input(
     z.object({
       name: z.string().min(1).max(50),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
-    const userId = ctx.user?.id;
+    const userId = ctx.user?.id
     if (!userId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message:
           "We are not able to authenticate the user. Please make sure you are logged in and try again",
-      });
+      })
     }
 
     const org = await clerkClient.organizations.createOrganization({
       name: input.name,
       createdBy: userId,
-    });
+    })
 
     const workspace: Workspace = {
       id: newId("workspace"),
       tenantId: org.id,
       orgId: null,
       name: input.name,
-      plan: "pro",
+      plan: "free",
       tier: "Free",
       stripeCustomerId: null,
       stripeSubscriptionId: null,
@@ -48,26 +48,26 @@ export const createWorkspace = t.procedure
       createdAtM: Date.now(),
       updatedAtM: null,
       deletedAtM: null,
-    };
+    }
 
     await db
       .transaction(async (tx) => {
-        await tx.insert(schema.workspaces).values(workspace);
+        await tx.insert(schema.workspaces).values(workspace)
         await tx.insert(schema.quotas).values({
           workspaceId: workspace.id,
           requestsPerMonth: 150_000,
           auditLogsRetentionDays: 30,
           logsRetentionDays: 7,
           team: false,
-        });
+        })
 
-        const auditLogBucketId = newId("auditLogBucket");
+        const auditLogBucketId = newId("auditLogBucket")
         await tx.insert(schema.auditLogBucket).values({
           id: auditLogBucketId,
           workspaceId: workspace.id,
           name: "unkey_mutations",
           deleteProtection: true,
-        });
+        })
         await insertAuditLogs(tx, auditLogBucketId, [
           {
             workspaceId: workspace.id,
@@ -101,18 +101,18 @@ export const createWorkspace = t.procedure
               userAgent: ctx.audit.userAgent,
             },
           },
-        ]);
+        ])
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
             "We are unable to create the workspace. Please try again or contact support@unkey.dev",
-        });
-      });
+        })
+      })
 
     return {
       workspace,
       organizationId: org.id,
-    };
-  });
+    }
+  })
