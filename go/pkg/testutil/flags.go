@@ -1,4 +1,4 @@
-package testflags
+package testutil
 
 import (
 	"os"

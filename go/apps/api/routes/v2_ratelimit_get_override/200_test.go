@@ -23,7 +23,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 	namespaceName := "test_namespace"
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -37,7 +37,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
 		ID:          overrideID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		NamespaceID: namespaceID,
 		Identifier:  identifier,
 		Limit:       limit,
@@ -55,7 +55,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

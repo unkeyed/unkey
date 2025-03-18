@@ -36,7 +36,7 @@ func TestContextCancellation(t *testing.T) {
 		Region:                  "test-region",
 		Clock:                   nil,   // Will use real clock
 		ClusterEnabled:          false, // Disable clustering for simpler test
-		ClusterNodeID:           uid.New("node"),
+		ClusterInstanceID:       uid.New(uid.InstancePrefix),
 		LogsColor:               false,
 		ClickhouseURL:           "",
 		DatabasePrimary:         dbDsn,
