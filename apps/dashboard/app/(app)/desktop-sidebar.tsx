@@ -3,7 +3,6 @@ import {
   createWorkspaceNavigation,
   resourcesNavigation,
 } from "@/app/(app)/workspace-navigations"
-import { UsageInsight } from "@/components/billing/usage-insights"
 import { Feedback } from "@/components/dashboard/feedback-component"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -20,6 +19,8 @@ import { useSelectedLayoutSegments } from "next/navigation"
 import { useRouter } from "next/navigation"
 import type React from "react"
 import { useTransition } from "react"
+import { UsageInsight } from "./settings/billing/components/usage-insights"
+import { useFetchUsage } from "./settings/billing/hooks/use-fetch-usage"
 import { WorkspaceSwitcher } from "./team-switcher"
 import { UserButton } from "./user-button"
 
@@ -29,11 +30,13 @@ type Props = {
       id: string
       name: string
     }[]
-  }
-  requests: {
-    usedVerifications: number
-    usedRatelimits: number
-    maxRequests: number
+    quota: {
+      workspaceId: string
+      requestsPerMonth: number
+      logsRetentionDays: number
+      auditLogsRetentionDays: number
+      team: boolean
+    } | null
   }
   className?: string
 }
@@ -50,13 +53,11 @@ type NavItem = {
   hidden?: boolean
 }
 
-export const DesktopSidebar: React.FC<Props> = ({
-  requests,
-  workspace,
-  className,
-}) => {
+export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
+  const usageQuery = useFetchUsage()
   const segments = useSelectedLayoutSegments() ?? []
   const workspaceNavigation = createWorkspaceNavigation(workspace, segments)
+  console.log(usageQuery.isFetching)
 
   const firstOfNextMonth = new Date()
   firstOfNextMonth.setUTCMonth(firstOfNextMonth.getUTCMonth() + 1)
@@ -116,10 +117,10 @@ export const DesktopSidebar: React.FC<Props> = ({
 
       <div className="bg-[inherit] min-w-full [flex:0_0_56px] -mx-2 sticky flex flex-col justify-end items-start pb-3 gap-3">
         <UsageInsight.Root
-          isLoading={false}
-          plan={workspace.tier ?? "free"}
-          current={requests.usedRatelimits + requests.usedVerifications}
-          max={requests.maxRequests}
+          isLoading={usageQuery.isFetching}
+          plan={workspace.plan}
+          current={usageQuery.data?.billableTotal ?? 0}
+          max={workspace.quota?.requestsPerMonth ?? 150_000}
         >
           <UsageInsight.Details>
             <UsageInsight.Item title="Request limit" description="requests" />
