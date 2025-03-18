@@ -90,7 +90,7 @@ export const Root = React.forwardRef<DivElement, UsageRootProps>(
             {...rootProps}
             layout
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "110px" }}
+            animate={{ opacity: 1, height: "116px" }}
             transition={{
               type: "spring",
               stiffness: 243,
@@ -100,12 +100,12 @@ export const Root = React.forwardRef<DivElement, UsageRootProps>(
             }}
             ref={ref}
             className={cn(
-              "relative flex flex-col bg-background border border-border rounded-xl pt-2.5 pb-2 px-2 group overflow-hidden w-full",
+              "relative flex flex-col bg-background border border-border rounded-xl p-4 group overflow-hidden w-full",
               { className }
             )}
           >
             <div className="z-10">
-              <div className="flex items-center justify-between px-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center justify-start gap-2">
                   <h2 className="text-gray-12 text-lg capitalize">
                     {dataToUse.plan}
@@ -155,7 +155,7 @@ export const Details = React.forwardRef<DivElement, DivProps>((props, ref) => {
       {...detailsProps}
       ref={ref}
       className={cn(
-        "h-16 duration-500 ease-out w-full flex flex-col gap-4 items-start justify-center pt-2",
+        "h-16 duration-500 ease-out w-full flex flex-col items-start justify-start pt-4",
         {
           className,
         }
@@ -196,7 +196,7 @@ export const Item = React.forwardRef<PrimitiveDivElement, UsageItemProps>(
       <div
         {...itemProps}
         ref={ref}
-        className={cn("flex items-start justify-start px-2 gap-3", {
+        className={cn("flex items-start justify-start gap-3", {
           className,
         })}
       >
