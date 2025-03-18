@@ -133,7 +133,9 @@ export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleCl
             description="An identifier for this role, used in API calls."
             border="bottom"
           >
-            <CopyableIDButton value={role.id} />
+            <div className="flex justify-end w-full">
+              <CopyableIDButton value={role.id} />
+            </div>
           </SettingCard>
         </div>
 

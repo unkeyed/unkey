@@ -119,8 +119,7 @@ export const PermissionClient = ({ permission }: Props) => {
                 title="Permission name"
                 description={
                   <div>
-                    Used in API calls. Changing this may affect your access control
-                    <br /> requests.
+                    Used in API calls. Changing this may affect your access control requests.
                   </div>
                 }
                 border="top"
@@ -145,7 +144,9 @@ export const PermissionClient = ({ permission }: Props) => {
               description="An identifier for the permission, used in API calls."
               border="bottom"
             >
-              <CopyableIDButton value={permission.id} />
+              <div className="flex justify-end w-full">
+                <CopyableIDButton value={permission.id} />
+              </div>
             </SettingCard>
           </div>
 
