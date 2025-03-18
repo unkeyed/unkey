@@ -167,12 +167,27 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 
 }
 
-func (c *cache[K, V]) SetNull(ctx context.Context, key K) {
-	c.set(ctx, key)
+func (c *cache[K, V]) SetNull(_ context.Context, key K) {
+	now := c.clock.Now()
+
+	var v V
+	c.otter.Set(key, swrEntry[V]{
+		Value: v,
+		Fresh: now.Add(c.fresh),
+		Stale: now.Add(c.stale),
+		Hit:   Null,
+	})
 }
 
-func (c *cache[K, V]) Set(ctx context.Context, key K, value V) {
-	c.set(ctx, key, value)
+func (c *cache[K, V]) Set(_ context.Context, key K, value V) {
+	now := c.clock.Now()
+
+	c.otter.Set(key, swrEntry[V]{
+		Value: value,
+		Fresh: now.Add(c.fresh),
+		Stale: now.Add(c.stale),
+		Hit:   Hit,
+	})
 }
 
 func (c *cache[K, V]) get(ctx context.Context, key K) (swrEntry[V], bool) {
@@ -185,30 +200,6 @@ func (c *cache[K, V]) get(ctx context.Context, key K) (swrEntry[V], bool) {
 	))
 
 	return v, ok
-}
-
-func (c *cache[K, V]) set(_ context.Context, key K, value ...V) {
-	now := c.clock.Now()
-
-	if len(value) == 0 {
-		// Set NULL
-		var v V
-		c.otter.Set(key, swrEntry[V]{
-			Value: v,
-			Fresh: now.Add(c.fresh),
-			Stale: now.Add(c.stale),
-			Hit:   Null,
-		})
-		return
-	}
-
-	c.otter.Set(key, swrEntry[V]{
-		Value: value[0],
-		Fresh: now.Add(c.fresh),
-		Stale: now.Add(c.stale),
-		Hit:   Hit,
-	})
-
 }
 
 func (c *cache[K, V]) Remove(ctx context.Context, key K) {
@@ -260,7 +251,7 @@ func (c *cache[K, V]) Clear(ctx context.Context) {
 func (c *cache[K, V]) refresh(
 	ctx context.Context,
 	key K, refreshFromOrigin func(context.Context) (V, error),
-	translateError func(error) CacheHit,
+	op func(error) Op,
 ) {
 	c.inflightMu.Lock()
 	_, ok := c.inflightRefreshes[key]
@@ -279,13 +270,13 @@ func (c *cache[K, V]) refresh(
 
 	v, err := refreshFromOrigin(ctx)
 
-	switch translateError(err) {
-	case Hit:
-		c.set(ctx, key, v)
-	case Miss:
-		c.set(ctx, key)
-	case Null:
-		c.set(ctx, key)
+	switch op(err) {
+	case WriteValue:
+		c.Set(ctx, key, v)
+	case WriteNull:
+		c.SetNull(ctx, key)
+	case Noop:
+		break
 	}
 
 }
@@ -294,8 +285,9 @@ func (c *cache[K, V]) SWR(
 	ctx context.Context,
 	key K,
 	refreshFromOrigin func(context.Context) (V, error),
-	translateError func(error) CacheHit,
+	op func(error) Op,
 ) (V, error) {
+
 	now := c.clock.Now()
 	e, ok := c.get(ctx, key)
 	if ok {
@@ -312,7 +304,7 @@ func (c *cache[K, V]) SWR(
 			// but return the current value
 
 			err := c.pool.Submit(func() {
-				c.refresh(ctx, key, refreshFromOrigin, translateError)
+				c.refresh(ctx, key, refreshFromOrigin, op)
 			})
 			if err != nil {
 				c.logger.Error("failed to submit refresh task", "error", err.Error())
@@ -331,13 +323,13 @@ func (c *cache[K, V]) SWR(
 
 	v, err := refreshFromOrigin(ctx)
 
-	switch translateError(err) {
-	case Hit:
-		c.set(ctx, key, v)
-	case Miss:
-		c.set(ctx, key)
-	case Null:
-		c.set(ctx, key)
+	switch op(err) {
+	case WriteValue:
+		c.Set(ctx, key, v)
+	case WriteNull:
+		c.SetNull(ctx, key)
+	case Noop:
+		break
 	}
 
 	return v, err

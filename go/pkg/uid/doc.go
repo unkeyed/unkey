@@ -9,7 +9,7 @@
 // and size.
 //
 // Identifiers are typically prefixed with a resource type indicator (e.g., "req_"
-// for request IDs, "node_" for node IDs), making them easily recognizable and
+// for request IDs, "ins_" for node IDs), making them easily recognizable and
 // categorizable. This helps with debugging and logging by making it immediately
 // clear what type of resource an ID refers to.
 //
@@ -18,9 +18,7 @@
 //	// Generate a request ID
 //	requestID := uid.Request()     // returns "req_1z4UVH4AQfoDtVnFZ9VERXeYGSY"
 //
-//	// Generate a node ID
-//	nodeID := uid.Node()           // returns "node_1z4UVH4BqRPvgSfCBmheK2h8xZb"
 //
 //	// Generate a custom ID with a specific prefix
-//	customID := uid.New("custom_") // returns "custom_1z4UVH4C7Bgt8NsssqZxTTVIiWf"
+//	customID := uid.New("custom") // returns "custom_1z4UVH4C7Bgt8NsssqZxTTVIiWf"
 package uid

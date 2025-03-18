@@ -163,7 +163,7 @@ func TestBadRequests(t *testing.T) {
 
 			namespace := db.InsertRatelimitNamespaceParams{
 				ID:          uid.New(uid.TestPrefix),
-				WorkspaceID: h.Resources.UserWorkspace.ID,
+				WorkspaceID: h.Resources().UserWorkspace.ID,
 				Name:        tc.req.Namespace,
 				CreatedAt:   time.Now().UnixMilli(),
 			}
@@ -172,7 +172,7 @@ func TestBadRequests(t *testing.T) {
 				err := db.Query.InsertRatelimitNamespace(context.Background(), h.DB.RW(), namespace)
 				require.NoError(t, err)
 			}
-			rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespace.ID))
+			rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespace.ID))
 
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
