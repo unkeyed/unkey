@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // WithErrorHandling returns middleware that translates errors into appropriate
@@ -68,7 +68,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 
 			switch fault.GetTag(err) {
 			case fault.NOT_FOUND:
-				return s.JSON(http.StatusNotFound, api.NotFoundError{
+				return s.JSON(http.StatusNotFound, openapi.NotFoundError{
 					Title:     "Not Found",
 					Type:      "https://unkey.com/docs/errors/not_found",
 					Detail:    fault.UserFacingMessage(err),
@@ -78,18 +78,18 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				})
 
 			case fault.BAD_REQUEST:
-				return s.JSON(http.StatusBadRequest, api.BadRequestError{
+				return s.JSON(http.StatusBadRequest, openapi.BadRequestError{
 					Title:     "Bad Request",
 					Type:      "https://unkey.com/docs/errors/bad_request",
 					Detail:    fault.UserFacingMessage(err),
 					RequestId: s.requestID,
 					Status:    http.StatusBadRequest,
 					Instance:  nil,
-					Errors:    []api.ValidationError{},
+					Errors:    []openapi.ValidationError{},
 				})
 
 			case fault.UNAUTHORIZED:
-				return s.JSON(http.StatusUnauthorized, api.UnauthorizedError{
+				return s.JSON(http.StatusUnauthorized, openapi.UnauthorizedError{
 					Title:     "Unauthorized",
 					Type:      "https://unkey.com/docs/errors/unauthorized",
 					Detail:    fault.UserFacingMessage(err),
@@ -98,7 +98,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					Instance:  nil,
 				})
 			case fault.FORBIDDEN:
-				return s.JSON(http.StatusForbidden, api.ForbiddenError{
+				return s.JSON(http.StatusForbidden, openapi.ForbiddenError{
 					Title:     "Forbidden",
 					Type:      "https://unkey.com/docs/errors/forbidden",
 					Detail:    fault.UserFacingMessage(err),
@@ -107,7 +107,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					Instance:  nil,
 				})
 			case fault.INSUFFICIENT_PERMISSIONS:
-				return s.JSON(http.StatusForbidden, api.ForbiddenError{
+				return s.JSON(http.StatusForbidden, openapi.ForbiddenError{
 					Title:     "Insufficient Permissions",
 					Type:      "https://unkey.com/docs/errors/insufficient_permissions",
 					Detail:    fault.UserFacingMessage(err),
@@ -116,7 +116,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					Instance:  nil,
 				})
 			case fault.PROTECTED_RESOURCE:
-				return s.JSON(http.StatusPreconditionFailed, api.PreconditionFailedError{
+				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedError{
 					Title:     "Resource is protected",
 					Type:      "https://unkey.com/docs/errors/deletion_prevented",
 					Detail:    fault.UserFacingMessage(err),
@@ -137,7 +137,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				break
 			}
 
-			return s.JSON(http.StatusInternalServerError, api.InternalServerError{
+			return s.JSON(http.StatusInternalServerError, openapi.InternalServerError{
 				Title:     "Internal Server Error",
 				Type:      "https://unkey.com/docs/errors/internal_server_error",
 				Detail:    fault.UserFacingMessage(err),

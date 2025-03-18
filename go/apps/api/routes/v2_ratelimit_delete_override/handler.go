@@ -8,20 +8,20 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = api.V2RatelimitDeleteOverrideRequestBody
-type Response = api.V2RatelimitDeleteOverrideResponseBody
+type Request = openapi.V2RatelimitDeleteOverrideRequestBody
+type Response = openapi.V2RatelimitDeleteOverrideResponseBody
 
 type Services struct {
 	Logger      logging.Logger

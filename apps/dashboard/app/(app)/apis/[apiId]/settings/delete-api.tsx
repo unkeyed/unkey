@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -59,9 +60,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const deleteApi = trpc.api.delete.useMutation({
     async onSuccess() {
       toast.message("API Deleted", {
-        description: `Your API and ${Intl.NumberFormat(undefined).format(
-          keys,
-        )} keys have been deleted.`,
+        description: `Your API and ${formatNumber(keys)} keys have been deleted.`,
       });
 
       await revalidate();
@@ -122,8 +121,8 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           <DialogHeader>
             <DialogTitle>Delete API</DialogTitle>
             <DialogDescription>
-              This API will be deleted, along with ${Intl.NumberFormat(undefined).format(keys)}{" "}
-              keys. This action cannot be undone.
+              This API will be deleted, along with ${formatNumber(keys)} keys. This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>

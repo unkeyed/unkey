@@ -1,9 +1,13 @@
 import { t } from "../trpc";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
+import { keysLlmSearch } from "./api/keys/llm-search";
+import { activeKeysTimeseries } from "./api/keys/query-active-keys-timeseries";
+import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
+import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
 import { overviewApiSearch } from "./api/overview-api-search";
-import { queryApisOverview } from "./api/query-overview";
-import { queryVerificationTimeseries } from "./api/query-timeseries";
+import { queryApisOverview } from "./api/overview/query-overview";
+import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
 import { setDefaultApiBytes } from "./api/setDefaultBytes";
 import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
 import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
@@ -90,11 +94,15 @@ export const router = t.router({
     setDefaultBytes: setDefaultApiBytes,
     updateIpWhitelist: updateApiIpWhitelist,
     updateDeleteProtection: updateAPIDeleteProtection,
-    logs: t.router({
-      queryVerificationTimeseries,
+    keys: t.router({
+      timeseries: keyVerificationsTimeseries,
+      activeKeysTimeseries: activeKeysTimeseries,
+      query: queryKeysOverviewLogs,
+      llmSearch: keysLlmSearch,
     }),
     overview: t.router({
-      queryApisOverview,
+      timeseries: queryVerificationTimeseries,
+      query: queryApisOverview,
       search: overviewApiSearch,
     }),
   }),

@@ -2,6 +2,7 @@ import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import BackButton from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
+import { formatNumber } from "@/lib/fmt";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ChevronRight, User, VenetianMask } from "lucide-react";
@@ -130,13 +131,12 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
 
                   <div className="flex items-center col-span-3 gap-2">
                     <Badge variant="secondary">
-                      {Intl.NumberFormat(undefined, { notation: "compact" }).format(k.permissions)}{" "}
-                      Permission
+                      {formatNumber(k.permissions)} Permission
                       {k.permissions !== 1 ? "s" : ""}
                     </Badge>
 
                     <Badge variant="secondary">
-                      {Intl.NumberFormat(undefined, { notation: "compact" }).format(k.roles)} Role
+                      {formatNumber(k.roles)} Role
                       {k.roles !== 1 ? "s" : ""}
                     </Badge>
 

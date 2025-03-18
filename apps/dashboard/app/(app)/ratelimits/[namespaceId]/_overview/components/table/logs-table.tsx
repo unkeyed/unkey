@@ -4,11 +4,12 @@ import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { Ban, BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { compactFormatter } from "../../utils";
+import { useState } from "react";
 import { InlineFilter } from "./components/inline-filter";
 import { LogsTableAction } from "./components/logs-actions";
 import { IdentifierColumn } from "./components/override-indicator";
@@ -22,6 +23,7 @@ export const RatelimitOverviewLogsTable = ({
 }: {
   namespaceId: string;
 }) => {
+  const [selectedLog, setSelectedLog] = useState<RatelimitOverviewLog>();
   const { getSortDirection, toggleSort } = useSort();
   const { historicalLogs, isLoading, isLoadingMore, loadMore } = useRatelimitOverviewLogsQuery({
     namespaceId,
@@ -56,11 +58,13 @@ export const RatelimitOverviewLogsTable = ({
               <Badge
                 className={cn(
                   "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-                  STATUS_STYLES.success.badge.default,
+                  selectedLog?.request_id === log.request_id
+                    ? STATUS_STYLES.success.badge.selected
+                    : STATUS_STYLES.success.badge.default,
                 )}
                 title={`${log.passed_count.toLocaleString()} Passed requests`}
               >
-                {compactFormatter.format(log.passed_count)}
+                {formatNumber(log.passed_count)}
               </Badge>
               <InlineFilter
                 filterPair={{ identifiers: log.identifier, status: "passed" }}
@@ -81,12 +85,14 @@ export const RatelimitOverviewLogsTable = ({
               <Badge
                 className={cn(
                   "uppercase px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
-                  style.badge.default,
+                  selectedLog?.request_id === log.request_id
+                    ? style.badge.selected
+                    : style.badge.default,
                 )}
                 title={`${log.blocked_count.toLocaleString()} Blocked requests`}
               >
                 <Ban size="sm-regular" />
-                {compactFormatter.format(log.blocked_count)}
+                {formatNumber(log.blocked_count)}
               </Badge>
               <InlineFilter
                 content="Filter by identifier and blocked status"
@@ -156,12 +162,13 @@ export const RatelimitOverviewLogsTable = ({
           },
         },
         render: (log) => (
-          <div className="flex items-center gap-14 truncate text-accent-9">
-            <TimestampInfo
-              value={log.time}
-              className={cn("font-mono group-hover:underline decoration-dotted")}
-            />
-          </div>
+          <TimestampInfo
+            value={log.time}
+            className={cn(
+              "font-mono group-hover:underline decoration-dotted",
+              selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
+            )}
+          />
         ),
       },
       {
@@ -186,10 +193,12 @@ export const RatelimitOverviewLogsTable = ({
       data={historicalLogs}
       isLoading={isLoading}
       isFetchingNextPage={isLoadingMore}
+      onRowClick={setSelectedLog}
+      selectedItem={selectedLog}
       onLoadMore={loadMore}
       columns={columns(namespaceId)}
       keyExtractor={(log) => log.identifier}
-      rowClassName={getRowClassName}
+      rowClassName={(rowLog) => getRowClassName(rowLog, selectedLog as RatelimitOverviewLog)}
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">

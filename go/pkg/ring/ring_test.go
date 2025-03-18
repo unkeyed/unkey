@@ -8,7 +8,7 @@ import (
 	"github.com/gonum/stat"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // we don't need tags for this test.

@@ -68,7 +68,7 @@ type Config struct {
 	// --- OpenTelemetry configuration ---
 
 	// OtelOtlpEndpoint specifies the OpenTelemetry collector endpoint for metrics, traces, and logs
-	OtelOtlpEndpoint string
+	OtelEnabled bool
 
 	Clock clock.Clock
 }

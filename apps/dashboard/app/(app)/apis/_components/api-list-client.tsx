@@ -4,7 +4,7 @@ import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
 import type {
   ApiOverview,
   ApisOverviewResponse,
-} from "@/lib/trpc/routers/api/query-overview/schemas";
+} from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useState } from "react";

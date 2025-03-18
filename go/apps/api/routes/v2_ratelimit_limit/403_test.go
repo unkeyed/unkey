@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
@@ -57,7 +57,7 @@ func TestWorkspacePermissions(t *testing.T) {
 		Duration:   60000,
 	}
 
-	res := testutil.CallRoute[handler.Request, api.NotFoundError](h, route, headers, req)
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
 
 	// This should return a 404 Not Found (for security reasons we don't reveal if the namespace exists)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d, body: %s", res.Status, res.RawBody)

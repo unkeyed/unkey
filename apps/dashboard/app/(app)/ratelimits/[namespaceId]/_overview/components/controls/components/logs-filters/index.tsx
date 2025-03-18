@@ -6,6 +6,7 @@ import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { ratelimitOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
+import { StatusFilter } from "./components/status-filter";
 
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
@@ -20,6 +21,12 @@ export const LogsFilters = () => {
   return (
     <FiltersPopover
       items={[
+        {
+          id: "status",
+          label: "Status",
+          shortcut: "e",
+          component: <StatusFilter />,
+        },
         {
           id: "identifiers",
           label: "Identifier",
@@ -52,9 +59,10 @@ export const LogsFilters = () => {
     >
       <div className="group">
         <Button
+          size="md"
           variant="ghost"
           className={cn(
-            "group-data-[state=open]:bg-gray-4 px-2",
+            "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             filters.length > 0 ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs"
