@@ -3,6 +3,7 @@ package membership
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 	"sync"
@@ -17,7 +18,7 @@ import (
 )
 
 type Config struct {
-	NodeID        string
+	InstanceID    string
 	AdvertiseHost string
 	GossipPort    int
 	RpcPort       int
@@ -53,7 +54,7 @@ func New(config Config) (*serfMembership, error) {
 	}
 	// Create self member with metadata
 	self := Member{
-		NodeID:     config.NodeID,
+		InstanceID: config.InstanceID,
 		Host:       host,
 		GossipPort: config.GossipPort,
 		RpcPort:    config.RpcPort,
@@ -61,14 +62,15 @@ func New(config Config) (*serfMembership, error) {
 
 	// Serf configuration
 	serfConfig := serf.DefaultConfig()
-	serfConfig.NodeName = config.NodeID
+	serfConfig.NodeName = config.InstanceID
 	serfConfig.MemberlistConfig.AdvertiseAddr = host
 	serfConfig.MemberlistConfig.AdvertisePort = config.GossipPort
 	serfConfig.MemberlistConfig.BindAddr = "0.0.0.0"
 	serfConfig.MemberlistConfig.BindPort = config.GossipPort
-
 	serfConfig.Tags = self.ToMap()
-	serfConfig.LogOutput = logger{config.Logger}
+
+	serfConfig.LogOutput = io.Discard
+	serfConfig.MemberlistConfig.LogOutput = io.Discard
 
 	// Create event handlers for Serf
 	eventCh := make(chan serf.Event, 256)
@@ -120,28 +122,28 @@ func (m *serfMembership) handleEvents(ch <-chan serf.Event) {
 			for _, member := range e.Members {
 				m.logger.Debug("Received member event",
 					"type", e.EventType().String(),
-					"nodeID", member.Name,
+					"instanceID", member.Name,
 					"tags", fmt.Sprintf("%v", member.Tags))
 
 				mem, err := memberFromMap(member.Tags)
 				if err != nil {
 					m.logger.Error(err.Error(),
-						"nodeID", member.Name)
+						"instanceID", member.Name)
 					continue
 				}
 
 				switch e.EventType() {
 				case serf.EventMemberJoin:
 					// Don't emit join events for self
-					if mem.NodeID != m.self.NodeID {
-						m.logger.Debug("Emitting join event", "nodeID", mem.NodeID)
+					if mem.InstanceID != m.self.InstanceID {
+						m.logger.Debug("Emitting join event", "instanceID", mem.InstanceID)
 						m.onJoin.Emit(context.Background(), mem)
 					}
 				case serf.EventMemberLeave, serf.EventMemberFailed:
-					m.logger.Debug("Emitting leave event", "nodeID", mem.NodeID)
+					m.logger.Debug("Emitting leave event", "instanceID", mem.InstanceID)
 					m.onLeave.Emit(context.Background(), mem)
 				case serf.EventMemberUpdate:
-					m.logger.Debug("Emitting update event", "nodeID", mem.NodeID)
+					m.logger.Debug("Emitting update event", "instanceID", mem.InstanceID)
 					m.onUpdate.Emit(context.Background(), mem)
 				case serf.EventMemberReap:
 				case serf.EventUser:

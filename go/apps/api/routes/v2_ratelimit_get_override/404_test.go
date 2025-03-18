@@ -24,7 +24,7 @@ func TestOverrideNotFound(t *testing.T) {
 	namespaceName := "test_namespace"
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -38,7 +38,7 @@ func TestOverrideNotFound(t *testing.T) {
 	})
 
 	h.Register(route)
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, "ratelimit.*.read_override")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.read_override")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

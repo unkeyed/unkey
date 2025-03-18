@@ -83,7 +83,7 @@ func TestBadRequests(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
 	route := handler.New(handler.Services{
 		DB:          h.DB,
 		Keys:        h.Keys,

@@ -154,16 +154,20 @@ var (
 		// Use this to monitor cluster health, scaling events, and load distribution.
 		//
 		// Attributes:
-		//   - nodeID (string): The unique identifier of the node (e.g., "node-1", "node-abc123")
+		//   - instanceID (string): The unique identifier of the node (e.g., "node-1", "node-abc123")
 		//
 		// Example:
 		//   metrics.Cluster.Size.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
 		//     o.Observe(nodeCount, metric.WithAttributes(
-		//       attribute.String("nodeID", "node-abc123"),
+		//       attribute.String("instanceID", "node-abc123"),
 		//     ))
 		//     return nil
 		//   })
 		Size Int64Observable
+	}
+
+	Ratelimit struct {
+		Origin Int64Counter
 	}
 )
 
@@ -258,6 +262,13 @@ func Init(m metric.Meter) error {
 		opts: []metric.Int64ObservableGaugeOption{
 			metric.WithDescription("How many nodes are in the cluster."),
 		},
+	}
+
+	Ratelimit.Origin, err = m.Int64Counter("ratelimit_origin",
+		metric.WithDescription("Tracks how often a specific node (by tag) is declared the origin"),
+	)
+	if err != nil {
+		return err
 	}
 	return nil
 }

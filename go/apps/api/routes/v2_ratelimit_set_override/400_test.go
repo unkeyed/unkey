@@ -159,7 +159,7 @@ func TestBadRequests(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, "ratelimit.*.set_override")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.set_override")
 	route := handler.New(handler.Services{
 		DB:          h.DB,
 		Keys:        h.Keys,

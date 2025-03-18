@@ -18,11 +18,19 @@ tasks:
     cmds:
       - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
 
-  test-e2e:
+  test-integration:
     env:
-      SIMULATON_TEST: true
+      INTEGRATION_TEST: true
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    deps:
+      - otel
     cmds:
-      - task: test
+      - go test -v -failfast -timeout=30m ./apps/api/integration/...
+
+  otel:
+    cmds:
+      - docker compose -f ../deployment/docker-compose.yaml up otel -d
 
   build:
     cmds:
