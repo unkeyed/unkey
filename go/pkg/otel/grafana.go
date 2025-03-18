@@ -28,9 +28,9 @@ import (
 // Config defines the configuration settings for OpenTelemetry integration with Grafana.
 // It specifies connection details and application metadata needed for proper telemetry.
 type Config struct {
-	// NodeID is a unique identifier for the current service instance,
+	// InstanceID is a unique identifier for the current service instance,
 	// used to distinguish between multiple instances of the same service.
-	NodeID string
+	InstanceID string
 
 	// CloudRegion indicates the geographic region where this service instance is running,
 	// which helps with identifying regional performance patterns or issues.
@@ -83,7 +83,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 		resource.WithAttributes(
 			semconv.ServiceName(config.Application),
 			semconv.ServiceVersion(config.Version),
-			semconv.ServiceInstanceID(config.NodeID),
+			semconv.ServiceInstanceID(config.InstanceID),
 			semconv.CloudRegion(config.CloudRegion),
 		),
 	)
