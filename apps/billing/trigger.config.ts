@@ -4,6 +4,7 @@ export const config: TriggerConfig = {
   project: "proj_jclajjbtjgzypjvseciy",
   logLevel: "debug",
   enableConsoleLogging: true,
+  maxDuration: 60000,
   retries: {
     enabledInDev: true,
     default: {
