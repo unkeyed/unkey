@@ -172,7 +172,7 @@ export const RatelimitOverviewLogsTable = ({
           direction: getSortDirection("time"),
           sortable: true,
           onSort() {
-            toggleSort("time", true);
+            toggleSort("time", false);
           },
         },
         render: (log) => (
