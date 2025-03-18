@@ -1,11 +1,14 @@
 package ratelimit
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Generally there is one bucket per identifier.
@@ -52,11 +55,15 @@ func (b bucketKey) toString() string {
 // Returns:
 //   - *bucket: the bucket for tracking rate limit state
 //   - bool: true if the bucket already existed, false if it was created
-func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
+func (s *service) getOrCreateBucket(ctx context.Context, key bucketKey) (*bucket, bool) {
+	ctx, span := tracing.Start(ctx, "getOrCreateBucket")
+	defer span.End()
+
 	s.bucketsMu.RLock()
-	b, ok := s.buckets[key.toString()]
+	b, exists := s.buckets[key.toString()]
 	s.bucketsMu.RUnlock()
-	if !ok {
+	if !exists {
+
 		b = &bucket{
 			mu:       sync.RWMutex{},
 			limit:    key.limit,
@@ -67,31 +74,39 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 		s.buckets[key.toString()] = b
 		s.bucketsMu.Unlock()
 	}
-	return b, ok
+	span.SetAttributes(attribute.Bool("created", !exists))
+	return b, exists
 }
 
 // must be called while holding a lock on the bucket
-func (b *bucket) getCurrentWindow(now time.Time) *ratelimitv1.Window {
+func (b *bucket) getCurrentWindow(ctx context.Context, now time.Time) *ratelimitv1.Window {
+	ctx, span := tracing.Start(ctx, "getCurrentWindow")
+	defer span.End()
 	sequence := calculateSequence(now, b.duration)
 
-	w, ok := b.windows[sequence]
-	if !ok {
+	w, exists := b.windows[sequence]
+	if !exists {
 		w = newWindow(sequence, now.Truncate(b.duration), b.duration)
 		b.windows[sequence] = w
 	}
+	span.SetAttributes(attribute.Bool("created", !exists))
 
 	return w
 }
 
 // must be called while holding a lock on the bucket
-func (b *bucket) getPreviousWindow(now time.Time) *ratelimitv1.Window {
+func (b *bucket) getPreviousWindow(ctx context.Context, now time.Time) *ratelimitv1.Window {
+	ctx, span := tracing.Start(ctx, "getCurrentWindow")
+	defer span.End()
+
 	sequence := calculateSequence(now, b.duration) - 1
 
-	w, ok := b.windows[sequence]
-	if !ok {
+	w, exists := b.windows[sequence]
+	if !exists {
 		w = newWindow(sequence, now.Add(-b.duration).Truncate(b.duration), b.duration)
 		b.windows[sequence] = w
 	}
+	span.SetAttributes(attribute.Bool("created", !exists))
 
 	return w
 }

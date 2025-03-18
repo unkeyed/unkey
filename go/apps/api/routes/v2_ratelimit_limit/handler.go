@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -50,10 +51,13 @@ func New(svc Services) zen.Route {
 			cost = *req.Cost
 		}
 
+		ctx, span := tracing.Start(ctx, "FindRatelimitNamespaceByName")
+
 		namespace, err := db.Query.FindRatelimitNamespaceByName(ctx, svc.DB.RO(), db.FindRatelimitNamespaceByNameParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Name:        req.Namespace,
 		})
+		span.End()
 		if err != nil {
 			return db.HandleErr(err, "namespace")
 		}
@@ -95,11 +99,13 @@ func New(svc Services) zen.Route {
 			)
 		}
 
+		ctx, overridesSpan := tracing.Start(ctx, "FindRatelimitOverrideMatches")
 		overrides, err := db.Query.FindRatelimitOverrideMatches(ctx, svc.DB.RO(), db.FindRatelimitOverrideMatchesParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
 			Identifier:  req.Identifier,
 		})
+		overridesSpan.End()
 		if err != nil {
 			return db.HandleErr(err, "override")
 		}
