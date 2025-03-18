@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/cache"
+	cacheMiddleware "github.com/unkeyed/unkey/go/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -48,6 +49,6 @@ func New(config Config) (*service, error) {
 		db:     config.DB,
 		logger: config.Logger,
 		rbac:   rbac.New(),
-		cache:  c,
+		cache:  cacheMiddleware.WithTracing(c),
 	}, nil
 }
