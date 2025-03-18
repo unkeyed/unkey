@@ -15,11 +15,7 @@ import { LogsTableAction } from "./components/logs-actions";
 import { IdentifierColumn } from "./components/override-indicator";
 import { useRatelimitOverviewLogsQuery } from "./hooks/use-logs-query";
 import { useSort } from "./hooks/use-sort";
-import {
-  STATUS_STYLES,
-  getRowClassName,
-  getStatusStyle,
-} from "./utils/get-row-class";
+import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
 // const MAX_LATENCY = 10;
 export const RatelimitOverviewLogsTable = ({
@@ -29,10 +25,9 @@ export const RatelimitOverviewLogsTable = ({
 }) => {
   const [selectedLog, setSelectedLog] = useState<RatelimitOverviewLog>();
   const { getSortDirection, toggleSort } = useSort();
-  const { historicalLogs, isLoading, isLoadingMore, loadMore } =
-    useRatelimitOverviewLogsQuery({
-      namespaceId,
-    });
+  const { historicalLogs, isLoading, isLoadingMore, loadMore } = useRatelimitOverviewLogsQuery({
+    namespaceId,
+  });
 
   const columns = (namespaceId: string): Column<RatelimitOverviewLog>[] => {
     return [
@@ -72,7 +67,7 @@ export const RatelimitOverviewLogsTable = ({
                   "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
                   selectedLog?.request_id === log.request_id
                     ? STATUS_STYLES.success.badge.selected
-                    : STATUS_STYLES.success.badge.default
+                    : STATUS_STYLES.success.badge.default,
                 )}
                 title={`${log.passed_count.toLocaleString()} Passed requests`}
               >
@@ -106,7 +101,7 @@ export const RatelimitOverviewLogsTable = ({
                   "uppercase px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
                   selectedLog?.request_id === log.request_id
                     ? style.badge.selected
-                    : style.badge.default
+                    : style.badge.default,
                 )}
                 title={`${log.blocked_count.toLocaleString()} Blocked requests`}
               >
@@ -185,9 +180,7 @@ export const RatelimitOverviewLogsTable = ({
             value={log.time}
             className={cn(
               "font-mono group-hover:underline decoration-dotted",
-              selectedLog &&
-                selectedLog.request_id !== log.request_id &&
-                "pointer-events-none"
+              selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
             )}
           />
         ),
@@ -219,18 +212,15 @@ export const RatelimitOverviewLogsTable = ({
       onLoadMore={loadMore}
       columns={columns(namespaceId)}
       keyExtractor={(log) => log.identifier}
-      rowClassName={(rowLog) =>
-        getRowClassName(rowLog, selectedLog as RatelimitOverviewLog)
-      }
+      rowClassName={(rowLog) => getRowClassName(rowLog, selectedLog as RatelimitOverviewLog)}
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
             <Empty.Title>Logs</Empty.Title>
             <Empty.Description className="text-left">
-              No rate limit data to show. Once requests are made, you'll see a
-              summary of passed and blocked requests for each rate limit
-              identifier.
+              No rate limit data to show. Once requests are made, you'll see a summary of passed and
+              blocked requests for each rate limit identifier.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
