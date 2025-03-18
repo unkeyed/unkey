@@ -3,30 +3,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useUser } from "@clerk/nextjs";
 import { useRef, useState } from "react";
-import type { SavedFiltersGroup } from "../hooks/use-bookmarked-filters";
+import type { ParsedSavedFiltersType } from "../hooks/use-bookmarked-filters";
 import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
 import { QueriesTabs } from "./queries-tabs";
 
-export type QuerySearchParams = {
-  startTime?: number | null;
-  endTime?: number | null;
-  since?: string | null;
-};
-
-type QueriesPopoverProps<T> = {
+type QueriesPopoverProps = {
   children: React.ReactNode;
-  filterGroups: SavedFiltersGroup<T>[];
+  filterGroups: ParsedSavedFiltersType[];
   toggleBookmark: (groupId: string) => void;
-  applyFilterGroup: (group: SavedFiltersGroup<T>) => void;
+  applyFilterGroup: (groupId: string) => void;
 };
 
-export function QueriesPopover<T extends QuerySearchParams>({
+export function QueriesPopover({
   children,
   filterGroups,
   toggleBookmark,
   applyFilterGroup,
-}: QueriesPopoverProps<T>) {
+}: QueriesPopoverProps) {
   const { user } = useUser();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -69,13 +63,12 @@ export function QueriesPopover<T extends QuerySearchParams>({
     if (!FilterGroup) {
       return;
     }
-    applyFilterGroup(FilterGroup);
+    applyFilterGroup(FilterGroup.id);
     setSelectedQueryIndex(filterIndex);
   };
 
   const handleKeyNavigation = (e: React.KeyboardEvent) => {
     // Adjust scroll speed as needed
-
     if (containerRef.current) {
       const scrollSpeed = 50;
       // Handle up/down navigation
@@ -168,7 +161,7 @@ export function QueriesPopover<T extends QuerySearchParams>({
             }
           />
           {focusedTabIndex === 0 &&
-            filterGroups?.map((filterItem: SavedFiltersGroup<T>, index: number) => {
+            filterGroups?.map((filterItem: ParsedSavedFiltersType, index: number) => {
               return (
                 <ListGroup
                   key={filterItem.id}
@@ -185,7 +178,7 @@ export function QueriesPopover<T extends QuerySearchParams>({
           {focusedTabIndex === 1 &&
             filterGroups
               .filter((filter) => filter.bookmarked)
-              .map((filterItem: SavedFiltersGroup<T>, index: number) => {
+              .map((filterItem: ParsedSavedFiltersType, index: number) => {
                 return (
                   <ListGroup
                     key={filterItem.id}

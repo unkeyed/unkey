@@ -1,12 +1,10 @@
 import { cn } from "@/lib/utils";
-import { parseValue } from "./utils";
 type QueriesPillType = {
   value: string;
   className?: string;
+  color?: string;
 };
-export const QueriesPill = ({ value, className }: QueriesPillType) => {
-  const { color, phrase } = parseValue(value);
-
+export const QueriesPill = ({ value, className, color }: QueriesPillType) => {
   return (
     <div
       className={cn(
@@ -15,7 +13,7 @@ export const QueriesPill = ({ value, className }: QueriesPillType) => {
       )}
     >
       {color && <div className={cn("w-2 h-2 rounded-[2px]", color)} />}
-      <span className="font-mono text-xs font-medium truncate text-gray-12">{phrase}</span>
+      <span className="font-mono text-xs font-medium truncate text-gray-12">{value}</span>
     </div>
   );
 };

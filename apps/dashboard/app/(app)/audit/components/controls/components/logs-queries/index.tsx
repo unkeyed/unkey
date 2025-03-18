@@ -1,4 +1,5 @@
 import { useBookmarkedFilters } from "@/components/logs/hooks/use-bookmarked-filters";
+import type { ParsedSavedFiltersType } from "@/components/logs/hooks/use-bookmarked-filters";
 import { QueriesPopover } from "@/components/logs/queries/queries-popover";
 import { cn } from "@/lib/utils";
 import { ChartBarAxisY } from "@unkey/icons";
@@ -8,30 +9,41 @@ import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsQueries = () => {
   const { filters, updateFilters } = useFilters();
-  const { savedFilters, toggleBookmark, applyFilterGroup } = useBookmarkedFilters({
-    localStorageName: "auditSavedFilters",
-    filters,
-    updateFilters,
-  });
-  const [filterGroups, setfilterGroups] = useState<typeof savedFilters>(savedFilters);
+  const { parseSavedFilters, savedFilters, toggleBookmark, applyFilterGroup } =
+    useBookmarkedFilters({
+      localStorageName: "auditSavedFilters",
+      filters,
+      updateFilters,
+    });
+  const [filterGroups, setfilterGroups] = useState<ParsedSavedFiltersType[]>(parseSavedFilters);
 
   function handleBookmarkTooggle(groupId: string) {
     toggleBookmark(groupId);
-    setfilterGroups(savedFilters);
+    const newFilters: ParsedSavedFiltersType[] = parseSavedFilters();
+    setfilterGroups(newFilters);
   }
 
   useEffect(() => {
-    if (JSON.stringify(savedFilters) === JSON.stringify(filterGroups)) {
+    const newFilters = parseSavedFilters();
+    if (JSON.stringify(newFilters) === JSON.stringify(filterGroups)) {
       return;
     }
-    setfilterGroups(savedFilters);
-  }, [savedFilters, filterGroups]);
+    setfilterGroups(newFilters);
+  });
+
+  const handleApplyFilterGroup = (groupId: string) => {
+    const group = savedFilters.find((group) => group.id === groupId);
+    if (!group) {
+      return;
+    }
+    applyFilterGroup(group);
+  };
 
   return (
     <QueriesPopover
-      filterGroups={filterGroups}
+      filterGroups={filterGroups || []}
       toggleBookmark={handleBookmarkTooggle}
-      applyFilterGroup={applyFilterGroup}
+      applyFilterGroup={handleApplyFilterGroup}
     >
       <div className="group">
         <Button

@@ -2,7 +2,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { QueriesPill } from "./queries-pill";
 
 type QueriesOverflowProps = {
-  list?: { value: string; operator: string }[];
+  list?: { value: string; color: string }[];
 };
 
 export const QueriesOverflow = ({ list }: QueriesOverflowProps) => {
@@ -21,7 +21,7 @@ export const QueriesOverflow = ({ list }: QueriesOverflowProps) => {
         <ul className="flex flex-col gap-2 p-2">
           {list?.map((item) => (
             <li key={item.value}>
-              <QueriesPill value={item.value} />
+              <QueriesPill value={item.value} color={item.color} />
             </li>
           ))}
         </ul>

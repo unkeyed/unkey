@@ -1,31 +1,17 @@
-import { defaultFormatValue } from "@/components/logs/control-cloud/utils";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import type { UserResource } from "@clerk/types";
 import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { useEffect, useState } from "react";
+import type { ParsedSavedFiltersType } from "../hooks/use-bookmarked-filters";
 import { QueriesItemRow } from "./queries-item-row";
 import { QueriesMadeBy } from "./queries-made-by";
 import { QueriesToast } from "./queries-toast";
 import { getSinceTime } from "./utils";
-import { iconsPerField } from "./utils";
 
-export type QuerySearchParams = {
-  startTime?: number | null;
-  endTime?: number | null;
-  since?: string | null;
-};
-
-type SavedFiltersGroup<T> = {
-  id: string;
-  createdAt: number;
-  filters: T;
-  bookmarked: boolean;
-};
-
-type ListGroupProps<T> = {
-  filterList: SavedFiltersGroup<T>;
+type ListGroupProps = {
+  filterList: ParsedSavedFiltersType;
   user: UserResource | null | undefined;
   index: number;
   total: number;
@@ -47,7 +33,7 @@ const tooltipMessageOptions: { [key: string]: ToolTipMessageType } = {
   removed: "Query removed from Saved!",
 };
 
-export function ListGroup<T extends QuerySearchParams>({
+export function ListGroup({
   filterList,
   user,
   index,
@@ -55,68 +41,12 @@ export function ListGroup<T extends QuerySearchParams>({
   selectedIndex,
   querySelected,
   changeBookmark,
-}: ListGroupProps<T>) {
+}: ListGroupProps) {
   const [toolTipOpen, setToolTipOpen] = useState(false);
-  const [formatedFilters, setFormatedFilters] =
-    useState<Record<string, Array<{ operator: string; value: string }>>>();
   const [toastMessage, setToastMessage] = useState<ToolTipMessageType>();
   const [tooltipMessage, setTooltipMessage] = useState<ToolTipMessageType>(
     filterList.bookmarked ? tooltipMessageOptions.saved : tooltipMessageOptions.save,
   );
-
-  useEffect(() => {
-    const formated = setformatedFilters();
-    setFormatedFilters(formated);
-  }, [filterList]);
-
-  let timeOperator = "since";
-  const setformatedFilters = () => {
-    // Create a formatted version of each filter entry
-    const formatted: Record<string, Array<{ operator: string; value: string }>> = {};
-    // Initialize formatted with an empty time array
-    formatted.time = [];
-
-    // Determine timeOperator based on available time filters
-
-    if (filterList.filters.startTime && filterList.filters.endTime) {
-      timeOperator = "between";
-    } else if (filterList.filters.startTime) {
-      timeOperator = "starts from";
-    }
-
-    // Process each field in the filters
-    Object.entries(filterList.filters).forEach(([field, value]) => {
-      if (!value || (Array.isArray(value) && value.length === 0)) {
-        return;
-      }
-      if (field === "startTime") {
-        formatted.time.push({
-          operator: timeOperator,
-          value: defaultFormatValue(Number(value), field),
-        });
-      }
-      if (field === "endTime") {
-        formatted.time.push({
-          operator: timeOperator,
-          value: defaultFormatValue(Number(value), field),
-        });
-      }
-      if (field === "since") {
-        formatted.time.push({ operator: timeOperator, value: String(value) });
-      }
-      // Handle different types of values
-      else if (Array.isArray(value)) {
-        value.forEach((filter) => {
-          if (!formatted[field]) {
-            formatted[field] = [];
-          }
-          formatted[field].push({ operator: filter.operator, value: filter.value });
-        });
-      }
-    });
-
-    return formatted;
-  };
 
   useEffect(() => {
     if (toastMessage) {
@@ -185,17 +115,17 @@ export function ListGroup<T extends QuerySearchParams>({
               {/* Vertical Line on Left */}
               <div className="flex flex-col ml-[9px] border-l-[1px] border-l-gray-5 w-[1px]" />
               <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
-                {formatedFilters &&
-                  Object.entries(formatedFilters).map(([field, list]) => {
-                    // Choose icon based on field type
-                    const Icon = iconsPerField[field] || Layers2;
+                {filterList &&
+                  Object.entries(filterList.filters).map(([field, filter]) => {
+                    const { values, operator, icon } = filter;
+                    const Icon = icon || Layers2;
                     return (
                       <QueriesItemRow
                         key={field}
-                        list={list}
+                        list={values}
                         field={field}
                         Icon={<Icon size="md-regular" className="justify-center" />}
-                        operator={field === "time" ? timeOperator : "is"}
+                        operator={operator}
                       />
                     );
                   })}

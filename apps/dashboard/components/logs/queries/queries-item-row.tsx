@@ -1,27 +1,14 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { QueriesOverflow } from "./queries-overflow-tooltip";
 import { QueriesPill } from "./queries-pill";
-
-type ListType = { value: string; operator: string }[];
-
+import { FieldsToTruncate } from "./utils";
 type QueriesItemRowProps = {
-  list: ListType;
+  list: { value: string; color: string }[];
   field: string;
   Icon: ReactNode;
   operator: string;
 };
-const FieldsToTruncate = [
-  "paths",
-  "methods",
-  "events",
-  "identifiers",
-  "requestIds",
-  "rootKeys",
-  "users",
-  "bucket",
-  "host",
-  "requestId",
-];
+
 export const QueriesItemRow = ({ list, field, Icon, operator }: QueriesItemRowProps) => {
   const [firstItem, setFirstItem] = useState(list[0]);
   const [overflowList, setOverflowList] = useState(list.slice(1));
@@ -42,9 +29,11 @@ export const QueriesItemRow = ({ list, field, Icon, operator }: QueriesItemRowPr
       </div>
       <div className="flex w-[20px] justify-center shrink-0 grow-0">{Icon}</div>
       <span className="font-mono text-xs font-normal text-gray-9">{operator}</span>
-      <QueriesPill value={firstItem.value} />
+      <QueriesPill value={firstItem.value} color={firstItem.color} />
       {!shouldTruncate &&
-        overflowList.map((item) => <QueriesPill key={item.value} value={item.value} />)}
+        overflowList.map((item) => (
+          <QueriesPill key={item.value} value={item.value} color={item.color} />
+        ))}
       {shouldTruncate && <QueriesOverflow list={overflowList} />}
     </div>
   );

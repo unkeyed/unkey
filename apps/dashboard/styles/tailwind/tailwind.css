@@ -34,10 +34,8 @@
 
     --border: 24, 6%, 83%;
     --ring: 24, 6%, 83%;
-
-    --shadow-lg: 0 12px 32px -16px rgba(var(--black-a5)),
-      0 12px 60px 0px rgba(var(--black-a3)),
-      0 0px 0px 1px rgba(var(--inverted-2));
+    
+    
   }
 
   .dark {
@@ -71,13 +69,11 @@
     --content-warn: 46, 100%, 55%;
     --content-alert: 0 84.2% 60.2%;
 
-    --shadow-lg: 0 12px 32px -16px rgba(var(--black-a5)), 
-    0 12px 60px 0px rgba(var(--black-a3)), 
-    0 0px 0px 1px rgba(var(--inverted-2));
+    --border: 12, 6%, 15%;
+    --ring: 12, 6%, 15%;
 
-  
 
-}
+  }
 }
 
 @layer base {

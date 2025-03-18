@@ -129,104 +129,15 @@ export const getSinceTime = (date: number) => {
 
 export type FullFilterField = LogsFilterField | AuditLogsFilterField | RatelimitFilterField;
 
-// export const handleQueryKeyboard = (
-//   e: React.KeyboardEvent,
-//   containerRef: React.RefObject<HTMLElement>,
-//   focusedTabIndex: number,
-//   setFocusedTabIndex: React.Dispatch<React.SetStateAction<number>>,
-//   selectedQueryIndex: number,
-//   setSelectedQueryIndex: React.Dispatch<React.SetStateAction<number>>,
-//   filterGroups: any[],
-//   savedGroups: any[],
-//   handleSelectedQuery: (index: number) => void,
-//   setOpen: React.Dispatch<React.SetStateAction<boolean>>
-// ) => {
-//     // Adjust scroll speed as needed
-
-//     if (containerRef.current) {
-//       const scrollSpeed = 50;
-//       // Handle up/down navigation
-//       if (e.key === "ArrowUp" || e.key === "k" || e.key === "K") {
-//         e.preventDefault();
-
-//         const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
-//         const totalItems = currentList.length - 1;
-//         containerRef.current.scrollTop -= scrollSpeed;
-//         if (totalItems === 0) {
-//           return;
-//         }
-
-//         // Move selection up, wrap to bottom if at top
-//         setSelectedQueryIndex((prevIndex) => (prevIndex > 0 ? prevIndex - 1 : 0));
-//       } else if (e.key === "ArrowDown" || e.key === "j" || e.key === "J") {
-//         e.preventDefault();
-
-//         containerRef.current.scrollTop += scrollSpeed;
-//         const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
-//         const totalItems = currentList.length - 1;
-
-//         if (totalItems === 0) {
-//           return;
-//         }
-
-//         // Move selection down, wrap to top if at bottom
-//         setSelectedQueryIndex((prevIndex) =>
-//           prevIndex < totalItems - 1 ? prevIndex + 1 : totalItems,
-//         );
-//       }
-//     }
-//     // Handle tab navigation
-//     if (e.key === "ArrowLeft" || e.key === "h" || e.key === "H") {
-//       // Move to All tab
-
-//           // Adjust scroll speed as needed
-
-//           // Rest of the function remains the same
-//           setFocusedTabIndex(0);
-//       setSelectedQueryIndex(0);
-//     } else if (e.key === "ArrowRight" || e.key === "l" || e.key === "L") {
-//       // Move to Saved tab
-//       setFocusedTabIndex(1);
-//       setSelectedQueryIndex(0);
-//     } else if (e.key === "Enter" || e.key === " ") {
-//       // Apply the selected filter
-//       const currentList = focusedTabIndex === 0 ? filterGroups : savedGroups;
-//       if (currentList.length > 0 && selectedQueryIndex < currentList.length) {
-//         handleSelectedQuery(selectedQueryIndex);
-//         setOpen(false);
-//       }
-//     }
-//   };
-
-// export const getIcon = ({ field }: { field: LogsFilterField | AuditLogsFilterField | RatelimitFilterField }) => {
-//   // Get the appropriate icon based on the field name
-//   switch (field.toLowerCase()) {
-//     case "status":
-//       return ChartActivity2;
-//     case "time":
-//     case "since":
-//     case "date":
-//       return Clock;
-//     case "tag":
-//       return Tag;
-//     case "user":
-//       return User;
-//     case "layer":
-//     case "layers":
-//       return Layers2;
-//     case "success":
-//     case "verified":
-//       return CircleCheck;
-//     case "conversion":
-//     case "convert":
-//       return Conversion;
-//     case "bookmark":
-//       return Bookmark;
-//     case "link":
-//       return Link4;
-//     case "calendar":
-//       return Calendar;
-//     default:
-//       return ChartActivity2; // Default icon
-//   }
-// };
+export const FieldsToTruncate = [
+  "paths",
+  "methods",
+  "events",
+  "identifiers",
+  "requestIds",
+  "rootKeys",
+  "users",
+  "bucket",
+  "host",
+  "requestId",
+];
