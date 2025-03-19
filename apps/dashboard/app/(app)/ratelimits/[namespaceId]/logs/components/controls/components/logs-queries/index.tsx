@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { ChartBarAxisY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
-
+import { formatFilterValues, getFilterFieldIcon } from "./utils";
 export const LogsQueries = () => {
   const { filters, updateFilters } = useFilters();
 
@@ -12,13 +12,15 @@ export const LogsQueries = () => {
       localStorageName="ratelimitSavedFilters"
       filters={filters}
       updateFilters={updateFilters}
+      formatFilterValues={formatFilterValues}
+      getFilterFieldIcon={getFilterFieldIcon}
     >
       <div className="group">
         <Button
           variant="ghost"
           size="md"
           className={cn("group-data-[state=open]:bg-gray-4 px-2 rounded-lg")}
-          aria-label="Audit log queries"
+          aria-label="Ratelimit log queries"
           aria-haspopup="true"
           title="Press 'Q' to toggle queries"
         >

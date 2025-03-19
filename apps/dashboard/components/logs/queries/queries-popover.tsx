@@ -1,30 +1,28 @@
-import type { QuerySearchParams } from "@/app/(app)/logs/filters.schema";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useRef, useState } from "react";
-import type { SavedFiltersGroup } from "../hooks/use-bookmarked-filters";
 import type { FilterValue } from "../validation/filter.types";
 import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
-import { QueriesProvider, useQueries } from "./queries-context";
+import { QueriesProvider, type QueryParamsTypes, useQueries } from "./queries-context";
 import { QueriesTabs } from "./queries-tabs";
 
-type QueriesPopoverProps<T extends FilterValue> = {
+type QueriesPopoverProps<T extends FilterValue, U extends QueryParamsTypes> = {
   children: React.ReactNode;
   localStorageName: string;
   filters: T[];
   updateFilters: (filters: T[]) => void;
   formatFilterValues?: (
-    filters: QuerySearchParams,
+    filters: U,
   ) => Record<string, { operator: string; values: { value: string; color: string | null }[] }>;
   getFilterFieldIcon?: (field: string) => React.ReactNode;
   shouldTruncateRow?: (field: string) => boolean;
   fieldsToTruncate?: string[];
 };
 
-export function QueriesPopover<T extends FilterValue>({
+export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes>({
   children,
   localStorageName,
   filters,
@@ -32,7 +30,7 @@ export function QueriesPopover<T extends FilterValue>({
   formatFilterValues,
   getFilterFieldIcon,
   shouldTruncateRow,
-}: QueriesPopoverProps<T>) {
+}: QueriesPopoverProps<T, U>) {
   const { user } = useUser();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -87,7 +85,7 @@ export function QueriesPopover<T extends FilterValue>({
   };
 
   return (
-    <QueriesProvider<T>
+    <QueriesProvider<T, U>
       localStorageName={localStorageName}
       filters={filters}
       updateFilters={updateFilters}
@@ -144,14 +142,9 @@ type QueriesContentProps = {
   user: any;
 };
 
-const QueriesContent = <T extends FilterValue>({
-  focusedTabIndex,
-  selectedQueryIndex,
-  user,
-}: QueriesContentProps) => {
-  const { filterGroups, toggleBookmark, applyFilterGroup, formatValues } = useQueries<T>();
-  const [localFilterGroups, setLocalFilterGroups] =
-    useState<SavedFiltersGroup<QuerySearchParams>[]>(filterGroups);
+const QueriesContent = ({ focusedTabIndex, selectedQueryIndex, user }: QueriesContentProps) => {
+  const { filterGroups, toggleBookmark, applyFilterGroup, formatValues } = useQueries();
+  const [localFilterGroups, setLocalFilterGroups] = useState(filterGroups);
 
   useEffect(() => {
     setLocalFilterGroups(filterGroups);
@@ -168,7 +161,7 @@ const QueriesContent = <T extends FilterValue>({
     );
   };
 
-  const transformFilters = (filters: QuerySearchParams) => {
+  const transformFilters = (filters: QueryParamsTypes) => {
     return formatValues(filters);
   };
   return (
@@ -183,32 +176,30 @@ const QueriesContent = <T extends FilterValue>({
       />
 
       {focusedTabIndex === 0 &&
-        localFilterGroups?.map(
-          (filterItem: SavedFiltersGroup<QuerySearchParams>, index: number) => {
-            return (
-              <ListGroup
-                key={filterItem.id}
-                user={user}
-                filterList={{
-                  filters: transformFilters(filterItem.filters),
-                  id: filterItem.id,
-                  createdAt: filterItem.createdAt,
-                  bookmarked: filterItem.bookmarked,
-                }}
-                index={index}
-                total={localFilterGroups.length}
-                selectedIndex={selectedQueryIndex}
-                querySelected={() => handleSelectedQuery(filterItem.id)}
-                changeBookmark={() => handleBookmarkToggle(filterItem.id)}
-              />
-            );
-          },
-        )}
+        localFilterGroups?.map((filterItem, index: number) => {
+          return (
+            <ListGroup
+              key={filterItem.id}
+              user={user}
+              filterList={{
+                filters: transformFilters(filterItem.filters),
+                id: filterItem.id,
+                createdAt: filterItem.createdAt,
+                bookmarked: filterItem.bookmarked,
+              }}
+              index={index}
+              total={localFilterGroups.length}
+              selectedIndex={selectedQueryIndex}
+              querySelected={() => handleSelectedQuery(filterItem.id)}
+              changeBookmark={() => handleBookmarkToggle(filterItem.id)}
+            />
+          );
+        })}
 
       {focusedTabIndex === 1 &&
         localFilterGroups
           .filter((filter) => filter.bookmarked)
-          .map((filterItem: SavedFiltersGroup<QuerySearchParams>) => {
+          .map((filterItem) => {
             return (
               <ListGroup
                 key={filterItem.id}

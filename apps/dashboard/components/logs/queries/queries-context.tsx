@@ -1,34 +1,41 @@
+import type { QuerySearchParams as AuditSearchParams } from "@/app/(app)/audit/filters.schema";
 import type { QuerySearchParams } from "@/app/(app)/logs/filters.schema";
+import type { RatelimitQuerySearchParams } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import { type ReactNode, createContext, useContext } from "react";
 import { type SavedFiltersGroup, useBookmarkedFilters } from "../hooks/use-bookmarked-filters";
 import type { FilterValue } from "../validation/filter.types";
 
-type QueriesContextType = {
+export type QueryParamsTypes = QuerySearchParams | AuditSearchParams | RatelimitQuerySearchParams;
+
+type QueriesContextType<T extends FilterValue, U extends QueryParamsTypes> = {
+  filters: T[];
   formatValues: (
-    filters: QuerySearchParams,
+    filters: U,
   ) => Record<string, { operator: string; values: { value: string; color: string | null }[] }>;
-  filterGroups: SavedFiltersGroup<QuerySearchParams>[];
+  filterGroups: SavedFiltersGroup<U>[];
   toggleBookmark: (groupId: string) => void;
   applyFilterGroup: (groupId: string) => void;
   filterRowIcon: (field: string) => React.ReactNode;
   shouldTruncateRow: (field: string) => boolean;
 };
 
-const QueriesContext = createContext<QueriesContextType | undefined>(undefined);
+const QueriesContext = createContext<QueriesContextType<FilterValue, QueryParamsTypes> | undefined>(
+  undefined,
+);
 
-type QueriesProviderProps<T extends FilterValue> = {
+type QueriesProviderProps<T extends FilterValue, U extends QueryParamsTypes> = {
   children: ReactNode;
   localStorageName: string;
   filters: T[];
   updateFilters: (filters: T[]) => void;
   formatValues?: (
-    filters: QuerySearchParams,
+    filters: U,
   ) => Record<string, { operator: string; values: { value: string; color: string | null }[] }>;
   filterRowIcon?: (field: string) => React.ReactNode;
   shouldTruncateRow?: (field: string) => boolean;
 };
 
-export function QueriesProvider<T extends FilterValue>({
+export function QueriesProvider<T extends FilterValue, U extends QueryParamsTypes>({
   children,
   localStorageName,
   filters,
@@ -36,7 +43,7 @@ export function QueriesProvider<T extends FilterValue>({
   formatValues,
   filterRowIcon,
   shouldTruncateRow,
-}: QueriesProviderProps<T>) {
+}: QueriesProviderProps<T, U>) {
   const {
     savedFilters,
     toggleBookmark,
@@ -47,7 +54,7 @@ export function QueriesProvider<T extends FilterValue>({
     updateFilters,
   });
 
-  const filterGroups = savedFilters;
+  const filterGroups = savedFilters as unknown as SavedFiltersGroup<U>[];
 
   const applyFilterGroup = (groupId: string) => {
     const group = savedFilters.find((g) => g.id === groupId);
@@ -56,16 +63,20 @@ export function QueriesProvider<T extends FilterValue>({
     }
   };
 
+  const value = {
+    formatValues: (formatValues || defaultFormatValues) as unknown as (
+      filters: U,
+    ) => Record<string, { operator: string; values: { value: string; color: string | null }[] }>,
+    filterGroups,
+    toggleBookmark,
+    applyFilterGroup,
+    filterRowIcon: filterRowIcon || defaultGetIcon,
+    shouldTruncateRow: shouldTruncateRow || defaultShouldTruncateRow,
+  } as QueriesContextType<T, U>;
+
   return (
     <QueriesContext.Provider
-      value={{
-        formatValues: formatValues || defaultFormatValues,
-        filterGroups,
-        toggleBookmark,
-        applyFilterGroup,
-        filterRowIcon: filterRowIcon || defaultGetIcon,
-        shouldTruncateRow: shouldTruncateRow || defaultShouldTruncateRow,
-      }}
+      value={value as unknown as QueriesContextType<FilterValue, QueryParamsTypes>}
     >
       {children}
     </QueriesContext.Provider>
@@ -77,7 +88,7 @@ export function useQueries() {
   if (context === undefined) {
     throw new Error("useQueries must be used within a QueriesProvider");
   }
-  return context as QueriesContextType;
+  return context;
 }
 
 import { ChartActivity2 } from "@unkey/icons";
@@ -85,7 +96,7 @@ import React from "react";
 import { iconsPerField } from "./utils";
 // These functions can be overridden by passing custom formatValue and filterRowIcon props to QueriesProvider
 export const defaultFormatValues = (
-  filters: QuerySearchParams,
+  filters: QueryParamsTypes,
 ): Record<string, { operator: string; values: { value: string; color: string | null }[] }> => {
   const transform = (field: string, value: string): { color: string | null; value: string } => {
     switch (field) {
