@@ -64,14 +64,9 @@ export const KeysOverviewLogDetails = ({
   // Process key details data
   const metaData = formatMeta(log.key_details.meta);
   const identifiers = {
-    ID: (
+    "Key ID": (
       <Link
-        title={`View details for ${
-          log.key_details.identity?.external_id ||
-          log.key_details.owner_id ||
-          log.key_details.name ||
-          "this API key"
-        }`}
+        title={`View details for ${log.key_id}`}
         className="font-mono underline decoration-dotted"
         href={`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
       >
