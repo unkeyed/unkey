@@ -90,9 +90,9 @@ Examples:
 			Required: false,
 		},
 		&cli.StringFlag{
-			Name: "cluster-node-id",
-			Usage: `Unique identifier for this node within the cluster.
-Every node in a cluster must have a unique identifier. This ID is used in logs,
+			Name: "cluster-instance-id",
+			Usage: `Unique identifier for this instance within the cluster.
+Every instance in a cluster must have a unique identifier. This ID is used in logs,
 metrics, and for node-to-node communication within the cluster.
 
 If not specified, a random UUID with 'node_' prefix will be automatically generated.
@@ -100,11 +100,11 @@ For ephemeral nodes (like in auto-scaling groups), automatic generation is appro
 For stable deployments, consider setting this to a persistent value tied to the instance.
 
 Examples:
-  --cluster-node-id=node_east1_001  # For a node in East region, instance 001
-  --cluster-node-id=node_replica2   # For a second replica node
-  --cluster-node-id=node_dev_local  # For local development`,
+  --cluster-instance-id=instance_east1_001  # For a instance in East region, instance 001
+  --cluster-instance-id=instance_replica2   # For a second replica instance
+  --cluster-instance-id=instance_dev_local  # For local development`,
 			Sources:  cli.EnvVars("UNKEY_CLUSTER_NODE_ID"),
-			Value:    uid.New(uid.NodePrefix),
+			Value:    uid.New(uid.InstancePrefix),
 			Required: false,
 		},
 		&cli.StringFlag{
@@ -346,7 +346,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Cluster
 		ClusterEnabled:                     cmd.Bool("cluster"),
-		ClusterNodeID:                      cmd.String("cluster-node-id"),
+		ClusterInstanceID:                  cmd.String("cluster-instance-id"),
 		ClusterRpcPort:                     int(cmd.Int("cluster-rpc-port")),
 		ClusterGossipPort:                  int(cmd.Int("cluster-gossip-port")),
 		ClusterAdvertiseAddrStatic:         cmd.String("cluster-advertise-addr-static"),
