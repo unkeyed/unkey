@@ -10,49 +10,61 @@ export default function UnkeyYCPage() {
         <TopLeftShiningLight />
       </div>
       <div className="w-full h-full overflow-hidden -z-20">
-        <MeteorLinesAngular number={1} xPos={0} speed={10} delay={5} className="overflow-hidden" />
-        <MeteorLinesAngular number={1} xPos={0} speed={10} delay={0} className="overflow-hidden" />
+        <MeteorLinesAngular
+          number={1}
+          xPos={0}
+          speed={10}
+          delay={5}
+          className="overflow-hidden bg-gradient-to-r from-orange-500 to-transparent shadow-[0_0_0_1px_#ffffff10]"
+        />
+        <MeteorLinesAngular
+          number={1}
+          xPos={0}
+          speed={10}
+          delay={0}
+          className="overflow-hidden bg-gradient-to-r from-orange-500 to-transparent shadow-[0_0_0_1px_#ffffff10]"
+        />
         <MeteorLinesAngular
           number={1}
           xPos={100}
           speed={10}
           delay={7}
-          className="overflow-hidden md:hidden"
+          className="overflow-hidden md:hidden bg-gradient-to-r from-orange-500 to-transparent shadow-[0_0_0_1px_#ffffff10]"
         />
         <MeteorLinesAngular
           number={1}
           xPos={100}
           speed={10}
           delay={2}
-          className="overflow-hidden md:hidden"
+          className="overflow-hidden md:hidden bg-gradient-to-r from-orange-500 to-transparent shadow-[0_0_0_1px_#ffffff10]"
         />
         <MeteorLinesAngular
           number={1}
           xPos={200}
           speed={10}
           delay={7}
-          className="hidden overflow-hidden md:block"
+          className="hidden overflow-hidden md:block bg-gradient-to-r from-orange-500 to-transparent shadow-[0_0_0_1px_#ffffff10]"
         />
         <MeteorLinesAngular
           number={1}
           xPos={200}
           speed={10}
           delay={2}
-          className="hidden overflow-hidden md:block"
+          className="hidden overflow-hidden md:block bg-gradient-to-r from-orange-500 to-transparent shadow-[0_0_0_1px_#ffffff10]"
         />
         <MeteorLinesAngular
           number={1}
           xPos={400}
           speed={10}
           delay={5}
-          className="hidden overflow-hidden lg:block"
+          className="hidden overflow-hidden lg:block bg-gradient-to-r from-orange-500 to-transparent shadow-[0_0_0_1px_#ffffff10]"
         />
         <MeteorLinesAngular
           number={1}
           xPos={400}
           speed={10}
           delay={0}
-          className="hidden overflow-hidden lg:block"
+          className="hidden overflow-hidden lg:block bg-gradient-to-r from-orange-500 to-transparent shadow-[0_0_0_1px_#ffffff10]"
         />
       </div>
       <div>
