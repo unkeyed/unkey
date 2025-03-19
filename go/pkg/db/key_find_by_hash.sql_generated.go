@@ -15,7 +15,6 @@ SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
 ws.id as ws_id,
 ws.enabled as ws_enabled,
 ws.deleted_at_m as ws_deleted_at_m,
-fws.id as for_workspace_id,
 fws.enabled as for_workspace_enabled,
 fws.deleted_at_m as for_workspace_deleted_at_m
 FROM ` + "`" + `keys` + "`" + ` k
@@ -51,7 +50,6 @@ type FindKeyByHashRow struct {
 	WsID                   sql.NullString `db:"ws_id"`
 	WsEnabled              sql.NullBool   `db:"ws_enabled"`
 	WsDeletedAtM           sql.NullInt64  `db:"ws_deleted_at_m"`
-	ForWorkspaceID_2       sql.NullString `db:"for_workspace_id_2"`
 	ForWorkspaceEnabled    sql.NullBool   `db:"for_workspace_enabled"`
 	ForWorkspaceDeletedAtM sql.NullInt64  `db:"for_workspace_deleted_at_m"`
 }
@@ -62,7 +60,6 @@ type FindKeyByHashRow struct {
 //	ws.id as ws_id,
 //	ws.enabled as ws_enabled,
 //	ws.deleted_at_m as ws_deleted_at_m,
-//	fws.id as for_workspace_id,
 //	fws.enabled as for_workspace_enabled,
 //	fws.deleted_at_m as for_workspace_deleted_at_m
 //	FROM `keys` k
@@ -99,7 +96,6 @@ func (q *Queries) FindKeyByHash(ctx context.Context, db DBTX, hash string) (Find
 		&i.WsID,
 		&i.WsEnabled,
 		&i.WsDeletedAtM,
-		&i.ForWorkspaceID_2,
 		&i.ForWorkspaceEnabled,
 		&i.ForWorkspaceDeletedAtM,
 	)
