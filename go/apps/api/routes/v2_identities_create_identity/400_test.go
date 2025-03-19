@@ -14,11 +14,13 @@ import (
 )
 
 func TestBadRequests(t *testing.T) {
-	metaData := make(map[string]*interface{}, 0)
-	for i := range 300_000 {
+	metaData := make(map[string]*interface{})
+	entriesNeeded := (handler.MAX_META_LENGTH_MB * 1024 * 1024) / 15
+	for i := 0; i < entriesNeeded+1000; i++ {
 		var data interface{} = fmt.Sprintf("some_%d", i)
 		metaData[fmt.Sprintf("key_%d", i)] = &data
 	}
+
 	rawMeta, _ := json.Marshal(metaData)
 
 	testCases := []struct {

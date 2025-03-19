@@ -26,8 +26,24 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 	auditLogTargets := make([]db.InsertAuditLogTargetParams, 0)
 
 	var dbTx db.DBTX = tx
+	var rwTx *sql.Tx
 	if tx == nil {
-		dbTx = s.db.RW()
+		// If we didn't get a transaction, start a new one so we can commit all
+		// audit logs together to not miss anything
+		newTx, err := s.db.RW().Begin(ctx)
+		if err != nil {
+			return err
+		}
+
+		dbTx = newTx
+		rwTx = newTx
+
+		defer func() {
+			rollbackErr := rwTx.Rollback()
+			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				s.logger.Error("rollback failed", "error", rollbackErr)
+			}
+		}()
 	}
 
 	for _, l := range logs {
@@ -82,6 +98,13 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 
 	for _, logTarget := range auditLogTargets {
 		if err := db.Query.InsertAuditLogTarget(ctx, dbTx, logTarget); err != nil {
+			return err
+		}
+	}
+
+	// If we are not using a transaction that has been passed in we will just commit all logs
+	if rwTx != nil {
+		if err := rwTx.Commit(); err != nil {
 			return err
 		}
 	}

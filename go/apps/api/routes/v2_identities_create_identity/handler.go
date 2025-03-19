@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -128,7 +128,7 @@ func New(svc Services) zen.Route {
 			Meta:        meta,
 		})
 		if err != nil {
-			if strings.Contains(err.Error(), "Duplicate entry") {
+			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 				return fault.Wrap(err,
 					fault.WithTag(fault.CONFLICT),
 					fault.WithDesc("identity already exists", fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),
@@ -137,7 +137,7 @@ func New(svc Services) zen.Route {
 
 			return fault.Wrap(err,
 				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
-				fault.WithDesc("unable to create identity", "We're unable to create the identity and it's ratelimits."),
+				fault.WithDesc("unable to create identity", "We're unable to create the identity and its ratelimits."),
 			)
 		}
 

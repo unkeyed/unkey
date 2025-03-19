@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -65,7 +66,12 @@ func (s *Session) Location() string {
 	location := s.r.Header.Get("True-Client-IP")
 	// Fall back to RemoteAddr
 	if location == "" {
-		location = strings.Split(s.r.RemoteAddr, ":")[0]
+		host, _, err := net.SplitHostPort(s.r.RemoteAddr)
+		if err == nil {
+			location = host
+		} else {
+			location = s.r.RemoteAddr
+		}
 	}
 
 	return location

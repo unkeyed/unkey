@@ -173,7 +173,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		for _, ratelimit := range identityRateLimits {
 			idx := slices.IndexFunc(rateLimits, func(c db.FindRatelimitsByIdentityIDRow) bool { return c.Name == ratelimit.Name })
 
-			require.True(t, idx <= len(rateLimits)-1)
+			require.True(t, idx >= 0 && idx < len(rateLimits), "Rate limit with name %s not found in the database", ratelimit.Name)
 			require.Equal(t, int(rateLimits[idx].Duration), ratelimit.Duration)
 			require.Equal(t, int(rateLimits[idx].Limit), ratelimit.Limit)
 			require.Equal(t, rateLimits[idx].Name, ratelimit.Name)
