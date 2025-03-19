@@ -354,7 +354,7 @@
         "operationId": "v1.ratelimit.limit",
         "security": [
           {
-            "bearerAuth": true
+            "bearerAuth": []
           }
         ],
         "summary": "TODO",
