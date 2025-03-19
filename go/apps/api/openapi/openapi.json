@@ -672,6 +672,11 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.deleteOverride",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -750,6 +755,11 @@
       "post": {
         "tags": ["identities"],
         "operationId": "v2.identities.createIdentity",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

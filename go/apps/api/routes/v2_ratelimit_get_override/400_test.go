@@ -97,7 +97,6 @@ func TestBadRequests(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -113,4 +112,21 @@ func TestBadRequests(t *testing.T) {
 			require.NotEmpty(t, res.Body.RequestId)
 		})
 	}
+
+	t.Run("missing authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type": {"application/json"},
+			// No Authorization header
+		}
+
+		namespaceName := "test_namespace"
+		req := handler.Request{
+			NamespaceName: &namespaceName,
+			Identifier:    "test_identifier",
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+	})
 }

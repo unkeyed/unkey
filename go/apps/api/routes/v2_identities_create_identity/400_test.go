@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestBadRequests(t *testing.T) {
@@ -140,4 +141,16 @@ func TestBadRequests(t *testing.T) {
 			require.NotEmpty(t, res.Body.RequestId)
 		})
 	}
+
+	t.Run("missing authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type": {"application/json"},
+			// No Authorization header
+		}
+
+		req := handler.Request{ExternalId: uid.New("test")}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+	})
 }

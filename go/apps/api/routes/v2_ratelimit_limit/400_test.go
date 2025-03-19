@@ -146,34 +146,34 @@ func TestBadRequests(t *testing.T) {
 			},
 		},
 	}
+
+	h := testutil.NewHarness(t)
+
+	route := handler.New(handler.Services{
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Logger:      h.Logger,
+		Permissions: h.Permissions,
+		Ratelimit:   h.Ratelimit,
+	})
+
+	h.Register(route)
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
-			h := testutil.NewHarness(t)
-
-			route := handler.New(handler.Services{
-				DB:          h.DB,
-				Keys:        h.Keys,
-				Logger:      h.Logger,
-				Permissions: h.Permissions,
-				Ratelimit:   h.Ratelimit,
-			})
-
-			h.Register(route)
-
 			namespace := db.InsertRatelimitNamespaceParams{
 				ID:          uid.New(uid.TestPrefix),
 				WorkspaceID: h.Resources().UserWorkspace.ID,
 				Name:        tc.req.Namespace,
 				CreatedAt:   time.Now().UnixMilli(),
 			}
-			if namespace.Name != "" {
 
+			if namespace.Name != "" {
 				err := db.Query.InsertRatelimitNamespace(context.Background(), h.DB.RW(), namespace)
 				require.NoError(t, err)
 			}
-			rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespace.ID))
 
+			rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespace.ID))
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -188,4 +188,22 @@ func TestBadRequests(t *testing.T) {
 			require.NotEmpty(t, res.Body.RequestId)
 		})
 	}
+
+	t.Run("missing authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type": {"application/json"},
+			// No Authorization header
+		}
+
+		req := handler.Request{
+			Namespace:  "test_namespace",
+			Identifier: "user_123",
+			Limit:      100,
+			Duration:   60000,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+	})
 }
