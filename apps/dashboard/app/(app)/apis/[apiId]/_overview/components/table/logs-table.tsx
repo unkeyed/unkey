@@ -154,7 +154,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
           direction: getSortDirection("time"),
           sortable: true,
           onSort() {
-            toggleSort("time", false);
+            toggleSort("time", false, "asc");
           },
         },
         render: (log) => (
