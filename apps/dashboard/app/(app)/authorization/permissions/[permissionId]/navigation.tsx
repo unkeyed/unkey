@@ -1,6 +1,5 @@
 "use client";
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import type { Permission } from "@unkey/db";
 import { ShieldKey } from "@unkey/icons";
@@ -31,8 +30,6 @@ export function Navigation({
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
       <Navbar.Actions>
-        <CopyableIDButton value={permission.name} />
-        <CopyableIDButton value={permission.id} />
         <DeletePermission
           key="delete-permission"
           trigger={
