@@ -17,6 +17,8 @@ type Resources struct {
 	RootWorkspace db.Workspace
 	RootKeyring   db.KeyAuth
 	UserWorkspace db.Workspace
+
+	DifferentWorkspace db.Workspace
 }
 
 // Seeder provides methods to seed test data
@@ -80,6 +82,18 @@ func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.UserWorkspace, err = db.Query.FindWorkspaceByID(ctx, s.DB.RW(), insertUserWorkspaceParams.ID)
 	require.NoError(s.t, err)
 
+	// Insert different workspace for permission tests
+	insertDifferentWorkspaceParams := db.InsertWorkspaceParams{
+		ID:        uid.New("test_ws"),
+		TenantID:  "yeknu",
+		Name:      "yeknu",
+		CreatedAt: time.Now().UnixMilli(),
+	}
+
+	err = db.Query.InsertWorkspace(ctx, s.DB.RW(), insertDifferentWorkspaceParams)
+	require.NoError(s.t, err)
+	s.Resources.DifferentWorkspace, err = db.Query.FindWorkspaceByID(ctx, s.DB.RW(), insertDifferentWorkspaceParams.ID)
+	require.NoError(s.t, err)
 }
 
 // CreateRootKey creates a root key with optional permissions
