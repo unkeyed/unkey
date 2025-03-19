@@ -1,7 +1,9 @@
 "use client";
 import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/logs/constants";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
+import { TimestampInfo } from "@/components/timestamp-info";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
+import Link from "next/link";
 import { useMemo } from "react";
 import { LogHeader } from "./components/log-header";
 import { OutcomeDistributionSection } from "./components/log-outcome-distribution-section";
@@ -33,6 +35,7 @@ export const KeysOverviewLogDetails = ({
   distanceToTop,
   log,
   setSelectedLog,
+  apiId,
 }: KeysOverviewLogDetailsProps) => {
   const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
 
@@ -60,32 +63,50 @@ export const KeysOverviewLogDetails = ({
 
   // Process key details data
   const metaData = formatMeta(log.key_details.meta);
-  const createdAt = metaData?.createdAt
-    ? formatDate(metaData.createdAt.replace(/3NZ$/, "3Z"))
-    : "N/A";
+  const identifiers = {
+    hehe: (
+      <Link
+        title={`View details for ${
+          log.key_details.identity?.external_id ||
+          log.key_details.owner_id ||
+          log.key_details.name ||
+          "this API key"
+        }`}
+        className="font-mono underline decoration-dotted"
+        href={`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
+      >
+        <div className="font-mono font-medium truncate">{log.key_id}</div>
+      </Link>
+    ),
+    Name: log.key_details.name || "N/A",
+  };
 
-  const identifiers = [`ID: ${log.key_details.id}`, `Name: ${log.key_details.name || "N/A"}`];
+  const usage = {
+    Created: metaData?.createdAt ? metaData.createdAt : "N/A",
+    "Last Used": log.time ? (
+      <TimestampInfo value={log.time} className="font-mono underline decoration-dotted" />
+    ) : (
+      "N/A"
+    ),
+  };
 
-  const usage = [`Created: ${createdAt}`, `Last Used: ${log.time ? formatDate(log.time) : "N/A"}`];
-
-  const limits = [
-    `Status: ${log.key_details.enabled ? "Enabled" : "Disabled"}`,
-    `Remaining: ${
-      log.key_details.remaining_requests !== null ? log.key_details.remaining_requests : "Unlimited"
-    }`,
-    `Rate Limit: ${
-      log.key_details.ratelimit_limit
-        ? `${log.key_details.ratelimit_limit} per ${log.key_details.ratelimit_duration || "N/A"}s`
-        : "No limit"
-    }`,
-    `Async: ${log.key_details.ratelimit_async ? "Yes" : "No"}`,
-  ];
+  const limits = {
+    Status: log.key_details.enabled ? "Enabled" : "Disabled",
+    Remaining:
+      log.key_details.remaining_requests !== null
+        ? log.key_details.remaining_requests
+        : "Unlimited",
+    "Rate Limit": log.key_details.ratelimit_limit
+      ? `${log.key_details.ratelimit_limit} per ${log.key_details.ratelimit_duration || "N/A"}s`
+      : "No limit",
+    Async: log.key_details.ratelimit_async ? "Yes" : "No",
+  };
 
   const identity = log.key_details.identity
-    ? [`External ID: ${log.key_details.identity.external_id || "N/A"}`]
-    : ["No identity connected"];
+    ? { "External ID": log.key_details.identity.external_id || "N/A" }
+    : { "No identity connected": null };
 
-  const metaString = metaData ? JSON.stringify(metaData, null, 2) : "<EMPTY>";
+  const metaString = metaData ? JSON.stringify(metaData, null, 2) : { "No meta available": "" };
 
   return (
     <ResizablePanel
@@ -97,33 +118,13 @@ export const KeysOverviewLogDetails = ({
       <LogSection title="Usage" details={usage} />
       {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
       <LogSection title="Limits" details={limits} />
-      <LogSection
-        title="Identifiers"
-        details={identifiers}
-        keyAuthId={log.key_details.key_auth_id}
-        apiId={log.key_id}
-      />
+      <LogSection title="Identifiers" details={identifiers} />
       <LogSection title="Identity" details={identity} />
       <RolesSection roles={log.key_details.roles || []} />
       <PermissionsSection permissions={log.key_details.permissions || []} />
-
       <LogSection title="Meta" details={metaString} />
     </ResizablePanel>
   );
-};
-
-const formatDate = (date: string | number | Date | null): string => {
-  if (!date) {
-    return "N/A";
-  }
-  try {
-    if (date instanceof Date) {
-      return date.toLocaleString();
-    }
-    return new Date(date).toLocaleString();
-  } catch {
-    return "Invalid Date";
-  }
 };
 
 const formatMeta = (meta: string | null): Record<string, any> | null => {

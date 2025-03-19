@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { Clone } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -18,7 +19,7 @@ export const OutcomeDistributionSection = ({
 
   const handleClick = () => {
     const formattedContent = outcomeEntries
-      .map(([outcome, count]) => `${formatOutcomeName(outcome)}: ${count}`)
+      .map(([outcome, count]) => `${formatOutcomeName(outcome)}: ${formatNumber(count)}`)
       .join("\n");
 
     navigator.clipboard

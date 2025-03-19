@@ -76,7 +76,12 @@ export const KeyIdentifierColumn = ({ log, apiId }: KeyIdentifierColumnProps) =>
         </div>
       </KeyTooltip>
       <Link
-        title="Link to the key details"
+        title={`View details for ${
+          log.key_details?.identity?.external_id ||
+          log.key_details?.owner_id ||
+          log.key_details?.name ||
+          "this API key"
+        }`}
         className="font-mono group-hover:underline decoration-dotted"
         href={`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
       >
