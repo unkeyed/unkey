@@ -35,46 +35,24 @@ import Link from "next/link";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
+const getButtonStyles = (isActive?: boolean, showLoader?: boolean) => {
+  return cn(
+    "flex items-center group text-[13px] font-medium text-accent-12 hover:bg-grayA-3 hover:text-accent-12 justify-start active:border focus:ring-2 w-full text-left",
+    "rounded-lg transition-colors focus-visible:ring-1 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed outline-none",
+    "focus:border-grayA-12 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
+    isActive ? "bg-grayA-3 text-accent-12" : "",
+    showLoader ? "bg-grayA-3" : ""
+  );
+};
+
 // Function to create navigation items that can have sub-items
+// Required in the following iterations
 const createNestedNavigation = (
   workspace: Pick<Workspace, "features" | "betaFeatures">,
   segments: string[]
 ): (NavItem & { items?: NavItem[] })[] => {
   // Get the base navigation items
   const baseNav = createWorkspaceNavigation(workspace, segments);
-
-  // // For demonstration purposes, add sub-items to the APIs navigation
-  // // In a real implementation, you might get these from an API or config
-  // const nestedNav = baseNav.map((item) => {
-  //   // Only add sub-items to the APIs navigation
-  //   if (item.label === "APIs" && segments.at(0) === "apis") {
-  //     return {
-  //       ...item,
-  //       items: [
-  //         {
-  //           icon: () => null, // Sub-items typically don't need icons
-  //           href: "/apis/license-keys",
-  //           label: "license-keys",
-  //           active: segments.at(1) === "license-keys",
-  //         },
-  //         {
-  //           icon: () => null,
-  //           href: "/apis/playground",
-  //           label: "playground",
-  //           active: segments.at(1) === "playground",
-  //         },
-  //         {
-  //           icon: () => null,
-  //           href: "/apis/docs-with-keys",
-  //           label: "Docs with Keys",
-  //           active: segments.at(1) === "docs-with-keys",
-  //         },
-  //       ],
-  //     };
-  //   }
-  //   return item;
-  // });
-
   return baseNav;
 };
 
@@ -108,13 +86,7 @@ const NavItems = ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
           <SidebarMenuButton
             tooltip={item.tooltip}
             isActive={item.active}
-            className={cn(
-              "flex items-center group text-[13px] font-medium text-accent-12 hover:bg-grayA-3 hover:text-accent-12 justify-start active:border focus:ring-2 w-full text-left",
-              "rounded-lg transition-colors focus-visible:ring-1  [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed outline-none",
-              "focus:border-grayA-12 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
-              item.active ? "bg-grayA-3 text-accent-12" : "",
-              showLoader ? "bg-grayA-3" : ""
-            )}
+            className={getButtonStyles(item.active, showLoader)}
           >
             {showLoader ? <AnimatedLoadingSpinner /> : <Icon />}
             <span>{item.label}</span>
@@ -136,13 +108,7 @@ const NavItems = ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
           <SidebarMenuButton
             tooltip={item.tooltip}
             isActive={item.active}
-            className={cn(
-              "flex items-center group text-[13px] font-medium text-accent-12 hover:bg-grayA-3 hover:text-accent-12 justify-start active:border focus:ring-2 w-full text-left",
-              "rounded-lg transition-colors focus-visible:ring-1 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed outline-none",
-              "focus:border-grayA-12 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
-              item.active ? "bg-grayA-3 text-accent-12" : "",
-              showLoader ? "bg-grayA-3" : ""
-            )}
+            className={getButtonStyles(item.active, showLoader)}
           >
             {showLoader ? <AnimatedLoadingSpinner /> : <Icon />}
             <span>{item.label}</span>
@@ -179,12 +145,9 @@ const NavItems = ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
                 >
                   <SidebarMenuSubButton
                     isActive={subItem.active}
-                    className={cn(
-                      "flex items-center group text-[13px] font-medium text-accent-12 hover:bg-grayA-3 hover:text-accent-12 justify-start active:border focus:ring-2 w-full text-left",
-                      "rounded-lg transition-colors focus-visible:ring-1 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed outline-none",
-                      "focus:border-grayA-12 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
-                      item.active ? "bg-grayA-3 text-accent-12" : "",
-                      showLoader ? "bg-grayA-3" : ""
+                    className={getButtonStyles(
+                      subItem.active,
+                      subPending[subItem.label]
                     )}
                   >
                     {subPending[subItem.label] ? (
