@@ -92,7 +92,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Len(t, rateLimits, 1)
 		require.Equal(t, rateLimits[0].Name, "Requests")
 		require.Equal(t, rateLimits[0].Limit, int32(15))
-		require.Equal(t, rateLimits[0].Duration, int64((time.Minute * 15).Milliseconds()))
+		require.Equal(t, rateLimits[0].Duration, (time.Minute * 15).Milliseconds())
 	})
 
 	// Test creating a identity with no other information

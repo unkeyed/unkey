@@ -84,9 +84,9 @@ func New(svc Services) zen.Route {
 
 		var meta []byte
 		if req.Meta != nil {
-			rawMeta, err := json.Marshal(req.Meta)
-			if err != nil {
-				return fault.Wrap(err,
+			rawMeta, metaErr := json.Marshal(req.Meta)
+			if metaErr != nil {
+				return fault.Wrap(metaErr,
 					fault.WithTag(fault.BAD_REQUEST),
 					fault.WithDesc("unable to marshal metadata", "We're unable to use your meta object."),
 				)
