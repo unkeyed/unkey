@@ -71,7 +71,7 @@ export default function UnkeyYCPage() {
         <TopRightShiningLight />
       </div>
 
-      <div className="min-h-screen pt-32 md:pt-16 flex justify-center items-center">
+      <div className="min-h-screen pt-48 flex justify-center items-center">
         <div className="container px-4 ">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-16">
             <DetailsComponent />
