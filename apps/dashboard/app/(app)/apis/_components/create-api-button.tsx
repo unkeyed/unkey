@@ -1,33 +1,46 @@
-"use client";
+"use client"
 
-import { revalidate } from "@/app/actions";
-import { DialogContainer } from "@/components/dialog-container";
-import { NavbarActionButton } from "@/components/navigation/action-button";
-import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "@unkey/icons";
-import { Button, FormInput } from "@unkey/ui";
-import { useRouter } from "next/navigation";
-import type React from "react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { revalidate } from "@/app/actions"
+import { DialogContainer } from "@/components/dialog-container"
+import { NavbarActionButton } from "@/components/navigation/action-button"
+import { toast } from "@/components/ui/toaster"
+import { trpc } from "@/lib/trpc/client"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Plus } from "@unkey/icons"
+import { Button, FormInput } from "@unkey/ui"
+import dynamic from "next/dynamic"
+import { useRouter } from "next/navigation"
+import type React from "react"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+
+const DynamicDialogContainer = dynamic(
+  () =>
+    import("@/components/dialog-container").then((mod) => ({
+      default: mod.DialogContainer,
+    })),
+  { ssr: false }
+)
 
 const formSchema = z.object({
-  name: z.string().trim().min(3, "Name must be at least 3 characters long").max(50),
-});
+  name: z
+    .string()
+    .trim()
+    .min(3, "Name must be at least 3 characters long")
+    .max(50),
+})
 
 type Props = {
-  defaultOpen?: boolean;
-};
+  defaultOpen?: boolean
+}
 
 export const CreateApiButton = ({
   defaultOpen,
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? false)
+  const router = useRouter()
 
   const {
     register,
@@ -36,33 +49,37 @@ export const CreateApiButton = ({
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
-  });
+  })
 
   const create = trpc.api.create.useMutation({
     async onSuccess(res) {
-      toast.success("Your API has been created");
-      await revalidate("/apis");
-      router.push(`/apis/${res.id}`);
-      setIsOpen(false);
+      toast.success("Your API has been created")
+      await revalidate("/apis")
+      router.push(`/apis/${res.id}`)
+      setIsOpen(false)
     },
     onError(err) {
-      console.error(err);
-      toast.error(err.message);
+      console.error(err)
+      toast.error(err.message)
     },
-  });
+  })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    create.mutate(values);
+    create.mutate(values)
   }
 
   return (
     <>
-      <NavbarActionButton {...rest} color="default" onClick={() => setIsOpen(true)}>
+      <NavbarActionButton
+        {...rest}
+        color="default"
+        onClick={() => setIsOpen(true)}
+      >
         <Plus />
         Create new API
       </NavbarActionButton>
 
-      <DialogContainer
+      <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
         title="Create New API"
@@ -94,7 +111,7 @@ export const CreateApiButton = ({
             placeholder="my-api"
           />
         </form>
-      </DialogContainer>
+      </DynamicDialogContainer>
     </>
-  );
-};
+  )
+}
