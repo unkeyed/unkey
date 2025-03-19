@@ -1,6 +1,6 @@
 import type * as React from "react";
 
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 
@@ -11,9 +11,9 @@ export default async function AuthorizationLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.tenantId, tenantId),
+    where: (table, { eq }) => eq(table.orgId, orgId),
   });
   if (!workspace) {
     return redirect("/auth/sign-in");

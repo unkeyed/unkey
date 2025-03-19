@@ -86,7 +86,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
       </form>
     </div>
   );
-};
+}
 
 const Slot: React.FC<SlotProps> = (props) => (
   <div

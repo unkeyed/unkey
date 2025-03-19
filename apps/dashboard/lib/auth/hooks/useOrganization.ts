@@ -34,7 +34,7 @@ export function useOrganization() {
 
   // Track if initial fetch is complete to prevent repeated calls
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
-  
+
   const [organization, setOrganization] = useState<Organization | null>(null);
 
   const [errors, setErrors] = useState<ErrorState>(() => ({}));
@@ -65,7 +65,8 @@ export function useOrganization() {
       setLoadingState("memberships", true);
       clearError("memberships");
 
-      const { data: membershipData, metadata: membershipMeta } = await getOrganizationMemberList(orgId);
+      const { data: membershipData, metadata: membershipMeta } =
+        await getOrganizationMemberList(orgId);
       setMemberships(membershipData);
       setMembershipMetadata(membershipMeta);
     } catch (err) {
@@ -106,7 +107,7 @@ export function useOrganization() {
     if (initialFetchComplete && !isLoading) {
       return;
     }
-    
+
     try {
       setLoadingState("organization", true);
       clearError("organization");
@@ -119,11 +120,8 @@ export function useOrganization() {
       const organizationData = await getOrg(user.orgId);
       setOrganization(organizationData);
 
-      await Promise.all([
-        fetchMemberships(user.orgId),
-        fetchInvitations(user.orgId)
-      ]);
-      
+      await Promise.all([fetchMemberships(user.orgId), fetchInvitations(user.orgId)]);
+
       // Mark initial fetch as complete
       setInitialFetchComplete(true);
     } catch (err) {
@@ -159,7 +157,7 @@ export function useOrganization() {
       );
     }
   };
-  
+
   const removeMember = async (membershipId: string) => {
     if (!membershipId) {
       throw new Error("Membership Id is required");
@@ -200,7 +198,7 @@ export function useOrganization() {
 
   // Use a ref to track initial mounting to prevent duplicate calls
   const isMounted = useMemo(() => ({ current: false }), []);
-  
+
   useEffect(() => {
     // Only run once when component mounts
     if (!isMounted.current) {
@@ -214,7 +212,7 @@ export function useOrganization() {
   const memoizedMembershipMetadata = useMemo(() => membershipMetadata, [membershipMetadata]);
   const memoizedInvitations = useMemo(() => invitations, [invitations]);
   const memoizedInvitationMetadata = useMemo(() => invitationMetadata, [invitationMetadata]);
-  
+
   const isLoading = useMemo(() => Object.values(loading).some(Boolean), [loading]);
   const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);
 
@@ -239,8 +237,13 @@ export function useOrganization() {
       setInitialFetchComplete(false); // Reset the flag to allow a new fetch
       return fetchOrganization();
     },
-    refetchMemberships: async () => {organization?.id && await fetchMemberships(organization.id)},
-    refetchInvitations: async() => { const results = await fetchInvitations(organization?.id!); return results},
+    refetchMemberships: async () => {
+      organization?.id && (await fetchMemberships(organization.id));
+    },
+    refetchInvitations: async () => {
+      const results = await fetchInvitations(organization?.id!);
+      return results;
+    },
     removeMember,
     revokeInvitation,
     updateMember,

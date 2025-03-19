@@ -1,5 +1,5 @@
 import { SettingCard } from "@/components/settings-card";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -15,11 +15,10 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function BillingPage() {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       quota: true,
     },

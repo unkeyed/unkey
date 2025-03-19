@@ -2,7 +2,7 @@ import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
 import { Gear } from "@unkey/icons";
@@ -23,10 +23,9 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       apis: {
         where: (table, { isNull }) => isNull(table.deletedAtM),

@@ -1,4 +1,4 @@
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { Navigation } from "./navigation";
@@ -42,7 +42,7 @@ function sortNestedPermissions(nested: NestedPermissions) {
 }
 
 export default async function RolePage(props: Props) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const role = await db.query.roles.findFirst({
     where: (table, { eq }) => eq(table.id, props.params.roleId),
@@ -67,7 +67,7 @@ export default async function RolePage(props: Props) {
   if (!role || !role.workspace) {
     return notFound();
   }
-  if (role.workspace.tenantId !== tenantId) {
+  if (role.workspace.orgId !== orgId) {
     return notFound();
   }
 

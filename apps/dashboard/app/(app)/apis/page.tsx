@@ -1,4 +1,4 @@
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ApiListClient } from "./_components/api-list-client";
@@ -13,10 +13,9 @@ type Props = {
 };
 
 export default async function ApisOverviewPage(props: Props) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
 
   if (!workspace) {
@@ -28,7 +27,7 @@ export default async function ApisOverviewPage(props: Props) {
     limit: DEFAULT_OVERVIEW_FETCH_LIMIT,
   });
 
-  const unpaid = false; // temporarily remove this feature until TBD 
+  const unpaid = false; // temporarily remove this feature until TBD
 
   return (
     <div>

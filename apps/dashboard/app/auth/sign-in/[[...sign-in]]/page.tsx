@@ -16,26 +16,32 @@ import { useEffect, useRef, useState } from "react";
 import { Loading } from "@/components/dashboard/loading";
 
 function SignInContent() {
-  const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs, handleSignInViaEmail } = useSignIn();
-  const searchParams = useSearchParams(); 
+  const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs, handleSignInViaEmail } =
+    useSignIn();
+  const searchParams = useSearchParams();
   const verifyParam = searchParams?.get("verify");
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
   const [isLoading, setIsLoading] = useState(false);
   const hasAttemptedSignIn = useRef(false);
 
-
   // Handle auto sign-in with invitation token and email
   useEffect(() => {
     const attemptAutoSignIn = async () => {
       // Only proceed if we have required data, aren't in other auth states, and haven't attempted sign-in yet
-      if (invitationToken && invitationEmail && !isVerifying && !hasPendingAuth && !hasAttemptedSignIn.current) {
+      if (
+        invitationToken &&
+        invitationEmail &&
+        !isVerifying &&
+        !hasPendingAuth &&
+        !hasAttemptedSignIn.current
+      ) {
         // Mark that we've attempted sign-in to prevent multiple attempts
         hasAttemptedSignIn.current = true;
-        
+
         // Set loading state to true
         setIsLoading(true);
-        
+
         try {
           // Attempt sign-in with the provided email
           await handleSignInViaEmail(invitationEmail);
@@ -47,19 +53,17 @@ function SignInContent() {
         }
       }
     };
-    
+
     attemptAutoSignIn();
   }, [invitationToken, invitationEmail, isVerifying, hasPendingAuth, handleSignInViaEmail]);
-  
 
   if (isLoading) {
-    return <Loading />; 
+    return <Loading />;
   }
-
 
   return (
     <div className="flex flex-col gap-10">
-      { isLoading && <Loading /> }
+      {isLoading && <Loading />}
       {hasPendingAuth && <OrgSelector organizations={orgs} />}
 
       {accountNotFound && (
@@ -81,9 +85,9 @@ function SignInContent() {
           <EmailCode invitationToken={invitationToken || undefined} />
         </FadeIn>
       ) : verifyParam === "email" ? (
-          <FadeIn>
-            <EmailVerify />
-          </FadeIn>
+        <FadeIn>
+          <EmailVerify />
+        </FadeIn>
       ) : (
         <>
           <div className="flex flex-col">

@@ -14,7 +14,6 @@ export default async function (req: NextRequest, _evt: NextFetchEvent) {
   const isEnabled = () => AUTH_PROVIDER === "workos";
 
   try {
-
     res = await auth.createMiddleware({
       enabled: isEnabled(),
       publicPaths: [

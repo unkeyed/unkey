@@ -20,15 +20,15 @@ export default async function TeamPage() {
   const { orgId } = user;
   const workspace = await getWorkspace(orgId);
 
-    return (
-      <div>
-        <Navigation href="/settings/team" name="Settings" icon={<Gear />} />
-        <PageContent>
-          <SubMenu navigation={navigation} segment="team" />
-          <div className="mb-20 flex flex-col gap-8 mt-8">
-            <TeamPageClient workspace={workspace} />
-          </div>
-        </PageContent>
-      </div>
-    );
-  }
+  return (
+    <div>
+      <Navigation href="/settings/team" name="Settings" icon={<Gear />} />
+      <PageContent>
+        <SubMenu navigation={navigation} segment="team" />
+        <div className="mb-20 flex flex-col gap-8 mt-8">
+          <TeamPageClient workspace={workspace} />
+        </div>
+      </PageContent>
+    </div>
+  );
+}

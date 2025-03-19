@@ -31,10 +31,11 @@ export const CreateWorkspace: React.FC = () => {
   const { switchOrganization } = useUser();
   const router = useRouter();
   const createWorkspace = trpc.workspace.create.useMutation({
-    onSuccess: async ({ workspace,organizationId}) => {
+    onSuccess: async ({ workspace, organizationId }) => {
       await switchOrganization(organizationId).then(() => {
         toast.success("Your workspace has been created");
-        router.push(`/new?workspaceId=${workspace.id}`)});
+        router.push(`/new?workspaceId=${workspace.id}`);
+      });
     },
   });
 

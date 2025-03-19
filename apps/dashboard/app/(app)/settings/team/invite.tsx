@@ -50,7 +50,12 @@ interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
   refetchInvitations: () => Promise<InvitationListResponse | undefined>;
 }
 
-export const InviteButton = ({ user, organization, refetchInvitations, ...rest }: InviteButtonProps) => {
+export const InviteButton = ({
+  user,
+  organization,
+  refetchInvitations,
+  ...rest
+}: InviteButtonProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoading, setLoading] = useState(false);
 
@@ -74,21 +79,20 @@ export const InviteButton = ({ user, organization, refetchInvitations, ...rest }
         role: values.role,
         orgId: user!.orgId!,
       })
-      .then(async() => {
-        await refetchInvitations()
-      }).then(() =>{
-        toast.success(
-          `We have sent an email to ${values.email} with instructions on how to join your workspace.`,
-        );
-        setDialogOpen(false);
-        setLoading(false);
-      })
-      .catch((error) => {
-        toast.error(`Failed to send invitation: ${error.message}`);
-      })
-      .finally(() => {
-        
-      });
+        .then(async () => {
+          await refetchInvitations();
+        })
+        .then(() => {
+          toast.success(
+            `We have sent an email to ${values.email} with instructions on how to join your workspace.`,
+          );
+          setDialogOpen(false);
+          setLoading(false);
+        })
+        .catch((error) => {
+          toast.error(`Failed to send invitation: ${error.message}`);
+        })
+        .finally(() => {});
     } catch (err) {
       console.error(err);
       toast.error((err as Error).message);

@@ -26,7 +26,6 @@ export const EmailVerify: React.FC = () => {
     });
   };
 
-
   const [otp, setOtp] = React.useState("");
 
   return (

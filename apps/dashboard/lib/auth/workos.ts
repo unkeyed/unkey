@@ -87,32 +87,32 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     if (!sessionToken) {
       throw new Error("No session token provided");
     }
-  
+
     try {
       const session = this.provider.userManagement.loadSealedSession({
         sessionData: sessionToken,
         cookiePassword: this.cookiePassword,
       });
-  
+
       const refreshResult = await session.refresh({
         cookiePassword: this.cookiePassword,
       });
-  
+
       if (refreshResult.authenticated && refreshResult.session) {
         // Set expiration to 7 days from now
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7);
-        
+
         return {
           newToken: refreshResult.sealedSession!,
           expiresAt,
           session: {
             userId: refreshResult.session.user.id,
             orgId: refreshResult.session.organizationId ?? null,
-          }
+          },
         };
       }
-  
+
       throw new Error("reason" in refreshResult ? refreshResult.reason : "Session refresh failed");
     } catch (error) {
       console.error("Session refresh error:", {
@@ -178,14 +178,13 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
     try {
       const user = await this.provider.userManagement.listUsers({
-        email
+        email,
       });
       if (!user) {
         return null;
       }
 
       return this.transformUserData(user.data[0]);
-
     } catch (error) {
       console.error("Failed to get user:", error);
       return null;
@@ -208,7 +207,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       });
 
       console.table(membership);
-    
+
       return membership.organizationId;
     } catch (error) {
       throw this.handleError(error);
@@ -264,36 +263,36 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     if (!currentToken) {
       throw new Error("No active session found");
     }
-  
+
     try {
       // Load the current session
       const session = this.provider.userManagement.loadSealedSession({
         sessionData: currentToken,
         cookiePassword: this.cookiePassword,
       });
-  
+
       // Create a new session with the new organization ID
       const refreshResult = await session.refresh({
         cookiePassword: this.cookiePassword,
         organizationId: newOrgId,
       });
-  
+
       if (!refreshResult.authenticated || !refreshResult.session) {
         const errMsg = !refreshResult.authenticated ? refreshResult.reason : "";
         throw new Error("Organization switch failed " + errMsg);
       }
-  
+
       // Set expiration to 7 days from now
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
-      
+
       return {
         newToken: refreshResult.sealedSession!,
         expiresAt,
         session: {
           userId: refreshResult.session.user.id,
           orgId: newOrgId,
-        }
+        },
       };
     } catch (error) {
       console.error("Organization switch error:", {
@@ -470,11 +469,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       });
 
       return {
-        data: invitationsList.data.map((invitation) =>
-          this.transformInvitationData(invitation, { orgId }),
-        ).filter((invitation) => 
-          invitation.state === "pending" || invitation.state === "expired"
-        ),
+        data: invitationsList.data
+          .map((invitation) => this.transformInvitationData(invitation, { orgId }))
+          .filter((invitation) => invitation.state === "pending" || invitation.state === "expired"),
         metadata: invitationsList.listMetadata || {},
       };
     } catch (error) {
@@ -486,18 +483,15 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async getInvitation(invitationToken: string): Promise <Invitation | null> {
+  async getInvitation(invitationToken: string): Promise<Invitation | null> {
     if (!invitationToken) {
       return null;
     }
 
     try {
-      const invitation = await this.provider.userManagement.findInvitationByToken(
-        invitationToken
-      );
+      const invitation = await this.provider.userManagement.findInvitationByToken(invitationToken);
 
       return this.transformInvitationData(invitation);
-
     } catch (error) {
       console.error("Error retrieving invitation: ", error);
       return null;
@@ -524,12 +518,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     try {
       const invitation = await this.provider.userManagement.acceptInvitation(invitationId);
       return this.transformInvitationData(invitation);
-
     } catch (error) {
       throw this.handleError(error);
     }
   }
-
 
   // Authentication Management
 
@@ -586,7 +578,11 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async verifyAuthCode(params: { email: string; code: string, invitationToken: string }): Promise<VerificationResult> {
+  async verifyAuthCode(params: {
+    email: string;
+    code: string;
+    invitationToken: string;
+  }): Promise<VerificationResult> {
     const { email, code, invitationToken } = params;
 
     try {
@@ -646,19 +642,20 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async verifyEmail(params: {code: string, token: string}): Promise<VerificationResult> {
+  async verifyEmail(params: { code: string; token: string }): Promise<VerificationResult> {
     const { code, token } = params;
-    
+
     try {
-      const { sealedSession } = await this.provider.userManagement.authenticateWithEmailVerification({
-        clientId: this.clientId,
-        code,
-        pendingAuthenticationToken: token,
-        session: {
-          sealSession: true,
-          cookiePassword: this.cookiePassword,
-        },
-      });
+      const { sealedSession } =
+        await this.provider.userManagement.authenticateWithEmailVerification({
+          clientId: this.clientId,
+          code,
+          pendingAuthenticationToken: token,
+          session: {
+            sealSession: true,
+            cookiePassword: this.cookiePassword,
+          },
+        });
 
       if (!sealedSession) {
         throw new Error("No sealed session returned");
@@ -852,7 +849,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           user: this.transformUserData({
             id: "UNKNOWN", // WorkOS doesn't return a user id in this scenario, and its the ONLY scenario where there isn't one available. Easier to just pass a string than to make the unkey User id nullable
             email: error.rawData.email,
-           }),
+          }),
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
@@ -861,9 +858,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
                 secure: true,
                 httpOnly: true,
                 sameSite: "lax",
-                maxAge: 60*10, // user has 10 mins seconds to verify their email before the cookie expires
+                maxAge: 60 * 10, // user has 10 mins seconds to verify their email before the cookie expires
               },
-          }],
+            },
+          ],
         };
       }
       return this.handleError(error);

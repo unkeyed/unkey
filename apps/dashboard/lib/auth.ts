@@ -2,11 +2,11 @@ import { auth } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
 
 /**
- * Return the tenant id or a 404 not found page.
+ * Return the org id or a 404 not found page.
  *
  * The auth check should already be done at a higher level, and we're just returning 404 to make typescript happy.
  */
-export async function getTenantId(): Promise<string> {
+export async function getOrgId(): Promise<string> {
   const user = await auth.getCurrentUser();
   if (!user) {
     return redirect("/auth/sign-in");

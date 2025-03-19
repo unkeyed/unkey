@@ -1,5 +1,5 @@
 import { Navigation } from "@/components/navigation/navigation";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { InputSearch } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { getWorkspace } from "./actions";
@@ -7,8 +7,8 @@ import { LogsClient } from "./components/logs-client";
 export const dynamic = "force-dynamic";
 
 export default async function AuditPage() {
-  const tenantId = await getTenantId();
-  const { workspace, members } = await getWorkspace(tenantId);
+  const orgId = await getOrgId();
+  const { workspace, members } = await getWorkspace(orgId);
 
   return (
     <div>

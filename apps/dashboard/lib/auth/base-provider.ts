@@ -33,8 +33,12 @@ export abstract class BaseAuthProvider {
 
   // Authentication
   abstract signInViaEmail(email: string): Promise<EmailAuthResult>;
-  abstract verifyAuthCode(params: { email: string; code: string, invitationToken?: string }): Promise<VerificationResult>;
-  abstract verifyEmail(params: {code: string, token: string}): Promise<VerificationResult>;
+  abstract verifyAuthCode(params: {
+    email: string;
+    code: string;
+    invitationToken?: string;
+  }): Promise<VerificationResult>;
+  abstract verifyEmail(params: { code: string; token: string }): Promise<VerificationResult>;
   abstract resendAuthCode(email: string): Promise<EmailAuthResult>;
   abstract signUpViaEmail(params: UserData): Promise<EmailAuthResult>;
   abstract getSignOutUrl(): Promise<string | null>;
@@ -52,13 +56,12 @@ export abstract class BaseAuthProvider {
   abstract getUser(userId: string): Promise<User | null>;
   abstract findUser(email: string): Promise<User | null>;
 
-
   // Organization Management
   abstract createTenant(params: { name: string; userId: string }): Promise<string>;
   abstract updateOrg(params: UpdateOrgParams): Promise<Organization>;
   protected abstract createOrg(name: string): Promise<Organization>;
   abstract getOrg(orgId: string): Promise<Organization>;
-  abstract switchOrg(newOrgId: string): Promise<SessionRefreshResult>
+  abstract switchOrg(newOrgId: string): Promise<SessionRefreshResult>;
 
   // Membership Management
   abstract listMemberships(): Promise<MembershipListResponse>;
@@ -69,7 +72,7 @@ export abstract class BaseAuthProvider {
   // Invitation Management
   abstract inviteMember(params: OrgInviteParams): Promise<Invitation>;
   abstract getInvitationList(orgId: string): Promise<InvitationListResponse>;
-  abstract getInvitation(invitationToken: string): Promise <Invitation | null>;
+  abstract getInvitation(invitationToken: string): Promise<Invitation | null>;
   abstract revokeOrgInvitation(invitationId: string): Promise<void>;
   abstract acceptInvitation(invitationId: string): Promise<Invitation>;
 
@@ -152,7 +155,7 @@ export abstract class BaseAuthProvider {
       const allPublicPaths = [
         ...middlewareConfig.publicPaths,
         "/api/auth/refresh",
-        "/api/auth/create-tenant"
+        "/api/auth/create-tenant",
       ];
 
       if (this.isPublicPath(pathname, allPublicPaths)) {
@@ -178,15 +181,17 @@ export abstract class BaseAuthProvider {
             // Call the refresh route handler because you can only modify cookies in a route handlers or server action
             // and you can't call a server action from middleware
             const refreshResponse = await fetch(`${request.nextUrl.origin}/api/auth/refresh`, {
-              method: 'POST',
+              method: "POST",
               headers: {
-                'x-current-token': token,
+                "x-current-token": token,
               },
             });
 
             if (!refreshResponse.ok) {
-              console.debug("Session refresh failed, redirecting to login: ", 
-                await refreshResponse.text());
+              console.debug(
+                "Session refresh failed, redirecting to login: ",
+                await refreshResponse.text(),
+              );
               const response = this.redirectToLogin(request, middlewareConfig);
               response.cookies.delete(middlewareConfig.cookieName);
               return response;
@@ -194,14 +199,14 @@ export abstract class BaseAuthProvider {
 
             // Create a next response
             const response = NextResponse.next();
-            
+
             // Copy cookies from refresh response
             refreshResponse.headers.forEach((value, key) => {
-              if (key.toLowerCase() === 'set-cookie') {
-                response.headers.append('Set-Cookie', value);
+              if (key.toLowerCase() === "set-cookie") {
+                response.headers.append("Set-Cookie", value);
               }
             });
-            
+
             return response;
           } catch (error) {
             console.debug("Session refresh failed, redirecting to login: ", error);

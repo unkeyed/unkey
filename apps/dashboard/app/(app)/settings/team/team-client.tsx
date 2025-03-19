@@ -24,7 +24,13 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
 import { useOrganization, useUser } from "@/lib/auth/hooks";
-import type { Invitation, InvitationListResponse, Membership, Organization, UpdateMembershipParams } from "@/lib/auth/types";
+import type {
+  Invitation,
+  InvitationListResponse,
+  Membership,
+  Organization,
+  UpdateMembershipParams,
+} from "@/lib/auth/types";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useState, useCallback, memo, useMemo } from "react";
@@ -37,7 +43,7 @@ type MembersProps = {
   loading: boolean;
   removeMember: (membershipId: string) => Promise<void>;
   updateMember: (params: UpdateMembershipParams) => Promise<void>;
-  refetchInvitations: () => Promise<InvitationListResponse | undefined>
+  refetchInvitations: () => Promise<InvitationListResponse | undefined>;
   organization: Organization | null;
   user: User | null;
   userMembership: Membership | null;
@@ -98,253 +104,279 @@ export function TeamPageClient({ workspace }: { workspace: any }) {
     );
 
     actions.push(
-      <InviteButton 
-        key="invite-button" 
-        user={userData.user} 
+      <InviteButton
+        key="invite-button"
+        user={userData.user}
         organization={orgData.organization}
-        refetchInvitations={orgData.refetchInvitations} 
-      />
+        refetchInvitations={orgData.refetchInvitations}
+      />,
     );
   }
 
   return (
     <>
-          {workspace.plan === 'free' ? (
-          <Empty>
-              <Empty.Title>This is a personal account</Empty.Title>
-              <Empty.Description>You can only manage teams in paid workspaces.</Empty.Description>
-              <Empty.Actions>
-                <Link href="/new">
-                  <Button>Create a new workspace</Button>
-                </Link>
-              </Empty.Actions>
-            </Empty>) : (
-          <PageHeader title="Members" description="Manage your team members" actions={actions} />)}
-          {isLoading ? <Loading /> :
-          tab === "members" ? (
-            <Members 
-              memberships={orgData.memberships || []} 
-              loading={orgData.loading.memberships} 
-              removeMember={orgData.removeMember}
-              updateMember={orgData.updateMember}
-              organization={orgData.organization}
-              user={userData.user}
-              userMembership={userData.membership}
-              refetchInvitations={orgData.refetchInvitations}
-            />
-          ) : (
-            <Invitations 
-              invitations={orgData.invitations || []} 
-              loading={orgData.loading.invitations} 
-              revokeInvitation={orgData.revokeInvitation}
-              user={userData.user}
-              organization={orgData.organization}
-              refetchInvitations={orgData.refetchInvitations}
-            />
-          )}
-        </>
+      {workspace.plan === "free" ? (
+        <Empty>
+          <Empty.Title>This is a personal account</Empty.Title>
+          <Empty.Description>You can only manage teams in paid workspaces.</Empty.Description>
+          <Empty.Actions>
+            <Link href="/new">
+              <Button>Create a new workspace</Button>
+            </Link>
+          </Empty.Actions>
+        </Empty>
+      ) : (
+        <PageHeader title="Members" description="Manage your team members" actions={actions} />
+      )}
+      {isLoading ? (
+        <Loading />
+      ) : tab === "members" ? (
+        <Members
+          memberships={orgData.memberships || []}
+          loading={orgData.loading.memberships}
+          removeMember={orgData.removeMember}
+          updateMember={orgData.updateMember}
+          organization={orgData.organization}
+          user={userData.user}
+          userMembership={userData.membership}
+          refetchInvitations={orgData.refetchInvitations}
+        />
+      ) : (
+        <Invitations
+          invitations={orgData.invitations || []}
+          loading={orgData.loading.invitations}
+          revokeInvitation={orgData.revokeInvitation}
+          user={userData.user}
+          organization={orgData.organization}
+          refetchInvitations={orgData.refetchInvitations}
+        />
+      )}
+    </>
   );
 }
 
 // Memoize components to prevent unnecessary re-renders
-const Members = memo<MembersProps>(({ memberships, loading, removeMember, updateMember, organization, user, userMembership, refetchInvitations }) => {
-  const isAdmin = userMembership?.role === "admin";
+const Members = memo<MembersProps>(
+  ({
+    memberships,
+    loading,
+    removeMember,
+    updateMember,
+    organization,
+    user,
+    userMembership,
+    refetchInvitations,
+  }) => {
+    const isAdmin = userMembership?.role === "admin";
 
-  if (loading) {
-    return (
-      <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
-        <Loading />
-      </div>
-    );
-  }
-
-  if (!memberships || memberships.length === 0) {
-    return (
-      <Empty>
-        <Empty.Title>No team members</Empty.Title>
-        <Empty.Description>Invite members to your team</Empty.Description>
-        {isAdmin && <InviteButton user={user} organization={organization} refetchInvitations={refetchInvitations} />}
-      </Empty>
-    );
-  }
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Member</TableHead>
-          <TableHead>Role</TableHead>
-          <TableHead>{/*/ empty */}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {memberships.map(({ id, role, user: member }) => (
-          <TableRow key={id}>
-            <TableCell>
-              <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
-                <Avatar>
-                  <AvatarImage src={member.avatarUrl ?? undefined} />
-                  <AvatarFallback>{member.fullName ?? member.email.slice(0, 1)}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col items-start">
-                  <span className="text-content font-medium">
-                    {`${member.firstName ? member.firstName : member.email} ${
-                      member.lastName ? member.lastName : ""
-                    }`}
-                  </span>
-                  <span className="text-content-subtle text-xs">
-                    {member.firstName ? member.email : ""}
-                  </span>
-                </div>
-              </div>
-            </TableCell>
-            <TableCell>
-              <RoleSwitcher 
-                member={{ id, role }} 
-                updateMember={updateMember}
-                organization={organization}
-                user={user}
-                userMembership={userMembership}
-              />
-            </TableCell>
-            <TableCell>
-              {isAdmin && user && member.id !== user.id ? (
-                <Confirm
-                  variant="destructive"
-                  title="Remove member"
-                  description={`Are you sure you want to remove ${member.email}?`}
-                  onConfirm={async () => {
-                    if (member.id) {
-                      await removeMember(id);
-                    }
-                  }}
-                  trigger={<Button>Remove</Button>}
-                />
-              ) : null}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-});
-
-Members.displayName = 'Members';
-
-const Invitations = memo<InvitationsProps>(({ invitations, loading, revokeInvitation, refetchInvitations, user, organization }) => {
-  if (loading) {
-    return (
-      <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
-        <Loading />
-      </div>
-    );
-  }
-
-  if (!invitations || invitations.length === 0) {
-    return (
-      <Empty>
-        <Empty.Title>No pending invitations</Empty.Title>
-        <Empty.Description>Invite members to your team</Empty.Description>
-        <InviteButton user={user} organization={organization} refetchInvitations={refetchInvitations}/>
-      </Empty>
-    );
-  }
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Email</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>{/*/ empty */}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {invitations.map((invitation) => (
-          <TableRow key={invitation.id}>
-            <TableCell>
-              <span className="text-content font-medium">{invitation.email}</span>
-            </TableCell>
-            <TableCell>
-              <StatusBadge status={invitation.state} />
-            </TableCell>
-            <TableCell>
-              {invitation.state === "pending" && 
-              <Button
-                variant="destructive"
-                onClick={async () => {
-                  await revokeInvitation(invitation.id);
-                  toast.success("Invitation revoked");
-                }}
-              >
-                Revoke
-              </Button>}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-});
-
-Invitations.displayName = 'Invitations';
-
-const RoleSwitcher = memo<RoleSwitcherProps>(({ 
-  member, 
-  updateMember,
-  organization,
-  user,
-  userMembership 
-}) => {
-  const [role, setRole] = useState(member.role);
-  const [isLoading, setLoading] = useState(false);
-  const isAdmin = userMembership?.role === "admin";
-
-  const handleRoleUpdate = useCallback(async (newRole: string) => {
-    try {
-      setLoading(true);
-      if (!organization) {
-        return;
-      }
-      await updateMember({
-        membershipId: member.id,
-        role: newRole,
-      });
-
-      setRole(newRole);
-      toast.success("Role updated");
-    } catch (err) {
-      console.error(err);
-      toast.error((err instanceof Error) ? err.message : "Failed to update role");
-    } finally {
-      setLoading(false);
+    if (loading) {
+      return (
+        <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
+          <Loading />
+        </div>
+      );
     }
-  }, [member.id, organization, updateMember]);
 
-  if (isAdmin) {
+    if (!memberships || memberships.length === 0) {
+      return (
+        <Empty>
+          <Empty.Title>No team members</Empty.Title>
+          <Empty.Description>Invite members to your team</Empty.Description>
+          {isAdmin && (
+            <InviteButton
+              user={user}
+              organization={organization}
+              refetchInvitations={refetchInvitations}
+            />
+          )}
+        </Empty>
+      );
+    }
+
     return (
-      <Select
-        value={role}
-        disabled={Boolean(user) && member.id === user?.id}
-        onValueChange={handleRoleUpdate}
-      >
-        <SelectTrigger className="w-[180px] max-sm:w-36">
-          {isLoading ? <Loading /> : <SelectValue />}
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="basic_member">Member</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Member</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>{/*/ empty */}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {memberships.map(({ id, role, user: member }) => (
+            <TableRow key={id}>
+              <TableCell>
+                <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
+                  <Avatar>
+                    <AvatarImage src={member.avatarUrl ?? undefined} />
+                    <AvatarFallback>{member.fullName ?? member.email.slice(0, 1)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start">
+                    <span className="text-content font-medium">
+                      {`${member.firstName ? member.firstName : member.email} ${
+                        member.lastName ? member.lastName : ""
+                      }`}
+                    </span>
+                    <span className="text-content-subtle text-xs">
+                      {member.firstName ? member.email : ""}
+                    </span>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <RoleSwitcher
+                  member={{ id, role }}
+                  updateMember={updateMember}
+                  organization={organization}
+                  user={user}
+                  userMembership={userMembership}
+                />
+              </TableCell>
+              <TableCell>
+                {isAdmin && user && member.id !== user.id ? (
+                  <Confirm
+                    variant="destructive"
+                    title="Remove member"
+                    description={`Are you sure you want to remove ${member.email}?`}
+                    onConfirm={async () => {
+                      if (member.id) {
+                        await removeMember(id);
+                      }
+                    }}
+                    trigger={<Button>Remove</Button>}
+                  />
+                ) : null}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     );
-  }
+  },
+);
 
-  return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
-});
+Members.displayName = "Members";
 
-RoleSwitcher.displayName = 'RoleSwitcher';
+const Invitations = memo<InvitationsProps>(
+  ({ invitations, loading, revokeInvitation, refetchInvitations, user, organization }) => {
+    if (loading) {
+      return (
+        <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
+          <Loading />
+        </div>
+      );
+    }
+
+    if (!invitations || invitations.length === 0) {
+      return (
+        <Empty>
+          <Empty.Title>No pending invitations</Empty.Title>
+          <Empty.Description>Invite members to your team</Empty.Description>
+          <InviteButton
+            user={user}
+            organization={organization}
+            refetchInvitations={refetchInvitations}
+          />
+        </Empty>
+      );
+    }
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Email</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>{/*/ empty */}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {invitations.map((invitation) => (
+            <TableRow key={invitation.id}>
+              <TableCell>
+                <span className="text-content font-medium">{invitation.email}</span>
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={invitation.state} />
+              </TableCell>
+              <TableCell>
+                {invitation.state === "pending" && (
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      await revokeInvitation(invitation.id);
+                      toast.success("Invitation revoked");
+                    }}
+                  >
+                    Revoke
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  },
+);
+
+Invitations.displayName = "Invitations";
+
+const RoleSwitcher = memo<RoleSwitcherProps>(
+  ({ member, updateMember, organization, user, userMembership }) => {
+    const [role, setRole] = useState(member.role);
+    const [isLoading, setLoading] = useState(false);
+    const isAdmin = userMembership?.role === "admin";
+
+    const handleRoleUpdate = useCallback(
+      async (newRole: string) => {
+        try {
+          setLoading(true);
+          if (!organization) {
+            return;
+          }
+          await updateMember({
+            membershipId: member.id,
+            role: newRole,
+          });
+
+          setRole(newRole);
+          toast.success("Role updated");
+        } catch (err) {
+          console.error(err);
+          toast.error(err instanceof Error ? err.message : "Failed to update role");
+        } finally {
+          setLoading(false);
+        }
+      },
+      [member.id, organization, updateMember],
+    );
+
+    if (isAdmin) {
+      return (
+        <Select
+          value={role}
+          disabled={Boolean(user) && member.id === user?.id}
+          onValueChange={handleRoleUpdate}
+        >
+          <SelectTrigger className="w-[180px] max-sm:w-36">
+            {isLoading ? <Loading /> : <SelectValue />}
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="basic_member">Member</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      );
+    }
+
+    return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
+  },
+);
+
+RoleSwitcher.displayName = "RoleSwitcher";
 
 const StatusBadge = memo<StatusBadgeProps>(({ status }) => {
   switch (status) {
@@ -361,4 +393,4 @@ const StatusBadge = memo<StatusBadgeProps>(({ status }) => {
   }
 });
 
-StatusBadge.displayName = 'StatusBadge';
+StatusBadge.displayName = "StatusBadge";

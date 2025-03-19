@@ -8,8 +8,9 @@ export async function GET(request: NextRequest) {
   if (!authResult.success) {
     if (
       (authResult.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED ||
-      authResult.code === AuthErrorCode.EMAIL_VERIFICATION_REQUIRED) &&
-      (authResult.cookies && authResult.cookies?.length > 0) // make typescript happy
+        authResult.code === AuthErrorCode.EMAIL_VERIFICATION_REQUIRED) &&
+      authResult.cookies &&
+      authResult.cookies?.length > 0 // make typescript happy
     ) {
       const url = new URL(SIGN_IN_URL, request.url);
 
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
       }
 
       const response = NextResponse.redirect(url);
-      
+
       return await setCookiesOnResponse(response, authResult.cookies);
     }
 
@@ -35,7 +36,6 @@ export async function GET(request: NextRequest) {
   // Get base URL from request because Next.js wants it
   const baseUrl = new URL(request.url).origin;
   const response = NextResponse.redirect(new URL(authResult.redirectTo, baseUrl));
-
 
   return await setCookiesOnResponse(response, authResult.cookies);
 }

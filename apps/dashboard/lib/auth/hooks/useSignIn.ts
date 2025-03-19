@@ -91,7 +91,7 @@ export function useSignIn() {
       const result = await verifyAuthCode({
         email: context.email,
         code,
-        invitationToken
+        invitationToken,
       });
 
       // Determine where to redirect based on the verification result

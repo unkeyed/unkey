@@ -59,16 +59,16 @@ export function useUser() {
     if (fetchingRef.current || userFetchedRef.current) {
       return;
     }
-    
+
     fetchingRef.current = true;
 
     try {
       setLoadingState("user", true);
       clearError("user");
-      
+
       const userData = await getCurrentUser();
       setUser(userData);
-      
+
       // Mark user as fetched
       userFetchedRef.current = true;
     } catch (err) {
@@ -88,14 +88,14 @@ export function useUser() {
     try {
       setLoadingState("memberships", true);
       clearError("memberships");
-      
+
       const { data: membershipData, metadata: membershipMetadata } = await listMemberships();
       setMemberships(membershipData);
       setMetadata(membershipMetadata || {});
-      
+
       // Mark memberships as fetched
       membershipsFetchedRef.current = true;
-      
+
       // Mark initial fetch as complete after both user and memberships are loaded
       if (userFetchedRef.current) {
         setInitialFetchComplete(true);
@@ -112,36 +112,35 @@ export function useUser() {
     }
   }, [user, clearError, setError, setLoadingState]);
 
-  const switchOrganization = useCallback(async (orgId: string) => {
-    try {
-      setLoadingState("switch", true);
-      clearError("switch");
-      
-      const result = await switchOrg(orgId);
-      
-      if (result.success) {
-        // Don't refresh the location if it's on the creation page because you will lose context 
-        // due to needed to switch first and then push the parameters after
-        if(window.location.pathname !== '/new'){
-          window.location.reload();
+  const switchOrganization = useCallback(
+    async (orgId: string) => {
+      try {
+        setLoadingState("switch", true);
+        clearError("switch");
+
+        const result = await switchOrg(orgId);
+
+        if (result.success) {
+          // Don't refresh the location if it's on the creation page because you will lose context
+          // due to needed to switch first and then push the parameters after
+          if (window.location.pathname !== "/new") {
+            window.location.reload();
+          }
+        } else {
+          throw new Error(result.error || "Failed to switch organization");
         }
-       
-      } else {
-        throw new Error(result.error || "Failed to switch organization");
+      } catch (err) {
+        setError("switch", err instanceof Error ? err : new Error("Failed to switch organization"));
+      } finally {
+        setLoadingState("switch", false);
       }
-    } catch (err) {
-      setError(
-        "switch", 
-        err instanceof Error ? err : new Error("Failed to switch organization")
-      );
-    } finally {
-      setLoadingState("switch", false);
-    }
-  }, [clearError, setError, setLoadingState]);
+    },
+    [clearError, setError, setLoadingState],
+  );
 
   // Initial data fetching
   const isMounted = useMemo(() => ({ current: false }), []);
-  
+
   useEffect(() => {
     // Only run once when component mounts
     if (!isMounted.current) {
@@ -160,22 +159,14 @@ export function useUser() {
   const memoizedUser = useMemo(() => user, [user]);
   const memoizedMemberships = useMemo(() => memberships, [memberships]);
   const memoizedMetadata = useMemo(() => metadata, [metadata]);
-  
+
   const membership = useMemo(() => {
-    return memoizedMemberships.find((m) => 
-      m.organization.id === memoizedUser?.orgId
-    ) || null;
+    return memoizedMemberships.find((m) => m.organization.id === memoizedUser?.orgId) || null;
   }, [memoizedMemberships, memoizedUser]);
 
-  const isLoading = useMemo(() => 
-    Object.values(loading).some(Boolean), 
-    [loading]
-  );
-  
-  const hasErrors = useMemo(() => 
-    Object.keys(errors).length > 0, 
-    [errors]
-  );
+  const isLoading = useMemo(() => Object.values(loading).some(Boolean), [loading]);
+
+  const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);
 
   // Reset fetch flags to allow refetching
   const resetFetchState = useCallback(() => {

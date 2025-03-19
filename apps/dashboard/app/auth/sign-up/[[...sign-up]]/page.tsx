@@ -13,7 +13,7 @@ import { useSignUp } from "@/lib/auth/hooks";
 export default function AuthenticationPage() {
   const [verify, setVerify] = useState(false);
   const { handleSignUpViaEmail } = useSignUp();
-  const searchParams = useSearchParams(); 
+  const searchParams = useSearchParams();
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
   const [isLoading, setIsLoading] = useState(false);
@@ -26,16 +26,16 @@ export default function AuthenticationPage() {
       if (invitationToken && invitationEmail && !hasAttemptedSignUp.current) {
         // Mark that we've attempted sign-up to prevent multiple attempts
         hasAttemptedSignUp.current = true;
-        
+
         // Set loading state to true
         setIsLoading(true);
-        
+
         try {
           // Attempt sign-in with the provided email
           await handleSignUpViaEmail({
             firstName: "", // they can set their first and
             lastName: "", // last name later
-            email: invitationEmail
+            email: invitationEmail,
           });
         } catch (err) {
           console.error("Auto sign-in failed:", err);
@@ -45,17 +45,17 @@ export default function AuthenticationPage() {
         }
       }
     };
-    
+
     attemptAutoSignUp();
   }, [invitationToken, invitationEmail, handleSignUpViaEmail]);
 
   return (
     <SignUpProvider>
       <div className="flex flex-col justify-center space-y-6">
-        { isLoading && <Loading /> }
+        {isLoading && <Loading />}
         {verify ? (
           <FadeIn>
-            <EmailCode invitationToken={invitationToken || undefined}/>
+            <EmailCode invitationToken={invitationToken || undefined} />
           </FadeIn>
         ) : (
           <>

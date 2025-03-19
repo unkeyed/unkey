@@ -114,7 +114,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
       console.error("Workspace not found");
       return response.status(201).json({});
     }
-    const users = await getUsers(ws.tenantId);
+    const users = await getUsers(ws.orgId!);
     const date = new Date().toDateString();
     foundKeys.push({ token, source: item.source, url: item.url, type: item.type, isFound: true });
     for await (const user of users) {
@@ -132,7 +132,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
       date,
       keyId: keyFound.id,
       wsName: ws.name,
-      tenantId: ws.tenantId,
+      orgId: ws.orgId!,
       email: users[0].email,
     });
   }
@@ -159,7 +159,7 @@ type SlackProps = {
   date: string;
   keyId: string;
   wsName: string;
-  tenantId: string;
+  orgId: string;
   email: string;
 };
 
@@ -170,7 +170,7 @@ async function alertSlack({
   date,
   keyId,
   wsName,
-  tenantId,
+  orgId,
   email,
 }: SlackProps): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_URL_LEAKED_KEY;
@@ -195,7 +195,7 @@ async function alertSlack({
             },
             {
               type: "mrkdwn",
-              text: `Key: ${keyId} \n Workspace: ${wsName} \n Tenant: ${tenantId} \n User: ${email}`,
+              text: `Key: ${keyId} \n Workspace: ${wsName} \n Tenant: ${orgId} \n User: ${email}`,
             },
           ],
         },
@@ -206,9 +206,9 @@ async function alertSlack({
   });
 }
 
-async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
+async function getUsers(orgId: string): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];
-  const members = await auth.getOrganizationMemberList(tenantId);
+  const members = await auth.getOrganizationMemberList(orgId);
   for (const m of members.data) {
     userIds.push(m.user.id);
   }

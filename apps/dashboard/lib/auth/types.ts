@@ -79,7 +79,11 @@ export type VerificationResult =
   | NavigationResponse
   | PendingOrgSelectionResponse
   | AuthErrorResponse;
-export type OAuthResult = NavigationResponse | PendingOrgSelectionResponse | PendingEmailVerificationResponse| AuthErrorResponse;
+export type OAuthResult =
+  | NavigationResponse
+  | PendingOrgSelectionResponse
+  | PendingEmailVerificationResponse
+  | AuthErrorResponse;
 
 // List Response Types
 export interface ListResponse<T> {
@@ -182,7 +186,8 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.ACCOUNT_NOT_FOUND]: "Account not found. Would you like to sign up?",
   [AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED]:
     "Please choose a workspace to continue authentication.",
-  [AuthErrorCode.EMAIL_VERIFICATION_REQUIRED]: "Email address not verified. Please check your email for a verification code."
+  [AuthErrorCode.EMAIL_VERIFICATION_REQUIRED]:
+    "Email address not verified. Please check your email for a verification code.",
 };
 
 export interface MiddlewareConfig {

@@ -23,7 +23,7 @@ export function useSignUp() {
       await verifyAuthCode({
         email: userData.email,
         code,
-        invitationToken
+        invitationToken,
       });
     } catch (error) {
       console.error("OTP Verification error:", error);
@@ -36,7 +36,7 @@ export function useSignUp() {
     } catch (error) {
       console.error("Email verification error:", error);
     }
-  }
+  };
 
   const handleResendCode = async (): Promise<void> => {
     try {

@@ -36,7 +36,7 @@ export const rbacRouter = t.router({
 
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
       if (!workspace) {
         throw new TRPCError({
@@ -88,7 +88,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
 
       if (!workspace) {
@@ -167,7 +167,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
@@ -242,7 +242,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
       if (!workspace) {
         throw new TRPCError({
@@ -292,7 +292,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
@@ -367,7 +367,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
       if (!workspace) {
         throw new TRPCError({
@@ -396,7 +396,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
 
       if (!workspace) {
@@ -482,7 +482,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.id),
@@ -530,7 +530,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
@@ -583,7 +583,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
 
       if (!workspace) {
@@ -635,7 +635,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           permissions: {
             where: (table, { eq }) => eq(table.id, input.id),
@@ -695,7 +695,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           permissions: {
             where: (table, { eq }) => eq(table.id, input.permissionId),

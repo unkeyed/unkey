@@ -22,7 +22,6 @@ const formSchema = z.object({
 type Props = {
   workspace: {
     id: string;
-    tenantId: string;
     name: string;
   };
 };

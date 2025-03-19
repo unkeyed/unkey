@@ -1,4 +1,4 @@
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { Navigation } from "./navigation";
@@ -13,10 +13,10 @@ type Props = {
 };
 
 export default async function RolesPage(props: Props) {
-  const tenantId = await getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.tenantId, tenantId),
+    where: (table, { eq }) => eq(table.orgId, orgId),
     with: {
       permissions: {
         where: (table, { eq }) => eq(table.id, props.params.permissionId),
