@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { db } from "../db";
+import { db, Quotas, Workspace } from "../db";
 import { deleteCookie, getCookie, setCookie, setCookies } from "./cookies";
 import { auth } from "./server";
 import {
@@ -288,7 +288,7 @@ export async function createTenant(params: { name: string; userId: string }): Pr
   return await auth.createTenant(params);
 }
 
-export async function getWorkspace(orgId: string): Promise<any> {
+export async function getWorkspace(orgId: string): Promise<Workspace & { quota: Quotas }> {
   if (!orgId) {
     throw new Error("TenantId/orgId is required to look up workspace");
   }
@@ -296,9 +296,14 @@ export async function getWorkspace(orgId: string): Promise<any> {
   if (orgId !== user.orgId) {
     throw new Error("Unauthorized to view other users memberships");
   }
-  return await db.query.workspaces.findFirst({
+  const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    with: {
+      quota: true,
+    },
   });
+  // Quotas are non-optional, we just can't tell drizzle that they are
+  return ws as Workspace & { quota: Quotas };
 }
 
 export async function getOrg(orgId: string): Promise<Organization> {

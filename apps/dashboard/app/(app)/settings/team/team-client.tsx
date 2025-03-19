@@ -4,6 +4,7 @@ import { Loading } from "@/components/dashboard/loading";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { PageContent } from "@/components/page-content";
+import type { Workspace, Quotas } from "@unkey/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -71,7 +72,11 @@ type StatusBadgeProps = {
   status: "pending" | "accepted" | "revoked" | "expired";
 };
 
-export function TeamPageClient({ workspace }: { workspace: any }) {
+type Props = {
+  workspace: Workspace & { quota: Quotas };
+};
+
+export const TeamPageClient: React.FC<Props> = ({ workspace }) => {
   const userData = useUser();
   const orgData = useOrganization();
 
@@ -114,21 +119,25 @@ export function TeamPageClient({ workspace }: { workspace: any }) {
     );
   }
 
-  return (
-    <>
-      {workspace.plan === "free" ? (
+  if (!workspace.quota.team) {
+    return (
+      <div className="w-full h-screen -mt-40 flex items-center justify-center">
         <Empty>
-          <Empty.Title>This is a personal account</Empty.Title>
-          <Empty.Description>You can only manage teams in paid workspaces.</Empty.Description>
+          <Empty.Title>Upgrade Your Plan to Add Team Members</Empty.Title>
+          <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
           <Empty.Actions>
-            <Link href="/new">
-              <Button>Create a new workspace</Button>
+            <Link href="/settings/billing">
+              <Button>Upgrade</Button>
             </Link>
           </Empty.Actions>
         </Empty>
-      ) : (
-        <PageHeader title="Members" description="Manage your team members" actions={actions} />
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <PageHeader title="Members" description="Manage your team members" actions={actions} />
       {isLoading ? (
         <Loading />
       ) : tab === "members" ? (
@@ -154,7 +163,7 @@ export function TeamPageClient({ workspace }: { workspace: any }) {
       )}
     </>
   );
-}
+};
 
 // Memoize components to prevent unnecessary re-renders
 const Members = memo<MembersProps>(

@@ -81,7 +81,7 @@ export const InviteButton = ({
         .catch((error) => {
           toast.error(`Failed to send invitation: ${error.message}`);
         })
-        .finally(() => { });
+        .finally(() => {});
     } catch (err) {
       console.error(err);
       toast.error((err as Error).message);
@@ -92,7 +92,6 @@ export const InviteButton = ({
 
   return (
     <>
-
       <Button
         onClick={() => {
           setDialogOpen(!dialogOpen);
@@ -104,33 +103,40 @@ export const InviteButton = ({
         <Plus size={18} className="w-4 h-4 " />
         Invite Member
       </Button>
-      <DialogContainer isOpen={dialogOpen} onOpenChange={(o) => setDialogOpen(o)}
+      <DialogContainer
+        isOpen={dialogOpen}
+        onOpenChange={(o) => setDialogOpen(o)}
         title={`Invite someone to join ${organization.name}`}
-
-        footer={<>
-          <Button
-            onClick={() => {
-              setDialogOpen(false);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            form="invite-form"
-            variant="primary"
-            disabled={!form.formState.isValid || isLoading}
-            loading={isLoading}
-            type="submit"
-          >
-            Send invitation
-          </Button>
-        </>}
+        footer={
+          <>
+            <Button
+              onClick={() => {
+                setDialogOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              form="invite-form"
+              variant="primary"
+              disabled={!form.formState.isValid || isLoading}
+              loading={isLoading}
+              type="submit"
+            >
+              Send invitation
+            </Button>
+          </>
+        }
       >
-
-        <p className="text-sm text-gray-11">They will receive an email with instructions on how to join your workspace.</p>
+        <p className="text-sm text-gray-11">
+          They will receive an email with instructions on how to join your workspace.
+        </p>
         <Form {...form}>
-          <form id="invite-form" onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-
+          <form
+            id="invite-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-4"
+          >
             <FormField
               control={form.control}
               name="email"
@@ -172,10 +178,8 @@ export const InviteButton = ({
                 </FormItem>
               )}
             />
-
           </form>
         </Form>
-
       </DialogContainer>
     </>
   );
