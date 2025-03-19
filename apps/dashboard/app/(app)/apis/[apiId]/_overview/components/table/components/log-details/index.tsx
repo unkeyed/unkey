@@ -64,7 +64,7 @@ export const KeysOverviewLogDetails = ({
   // Process key details data
   const metaData = formatMeta(log.key_details.meta);
   const identifiers = {
-    hehe: (
+    ID: (
       <Link
         title={`View details for ${
           log.key_details.identity?.external_id ||
