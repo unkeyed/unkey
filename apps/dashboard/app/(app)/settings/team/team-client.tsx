@@ -37,6 +37,7 @@ import { useState, useCallback, memo, useMemo } from "react";
 import { InviteButton } from "./invite";
 import { User } from "@/lib/auth/types";
 import Link from "next/link";
+import { DialogContainer } from "@/components/dialog-container";
 
 type MembersProps = {
   memberships: Membership[];
