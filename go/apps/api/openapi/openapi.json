@@ -25,7 +25,7 @@
   },
   "components": {
     "securitySchemes": {
-      "bearerAuth": {
+      "rootKey": {
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "root key",
@@ -353,6 +353,11 @@
         "tags": ["ratelimit"],
         "operationId": "v1.ratelimit.limit",
         "summary": "TODO",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -433,7 +438,7 @@
         "operationId": "ratelimit.setOverride",
         "security": [
           {
-            "bearerAuth": []
+            "rootKey": []
           }
         ],
         "requestBody": {
@@ -514,6 +519,11 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.getOverride",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
