@@ -225,7 +225,7 @@ export const ContactForm = () => {
               children={([canSubmit, loading, isPristine, isSubmitting]) => (
                 <Button
                   size="lg"
-                  className="dark w-full bg-orange-500 inset-x-0 bottom-0 "
+                  className="dark w-full bg-orange-500 hover:bg-orange-400 inset-x-0 bottom-0 "
                   type="submit"
                   loading={loading}
                   disabled={!canSubmit || loading || isPristine || isSubmitting}
