@@ -1,11 +1,11 @@
-import { cn } from "@/lib/utils"
-import type { ComponentProps } from "react"
+import { cn } from "@/lib/utils";
+import type { ComponentProps } from "react";
 
-type ModifierKey = "⌘" | "⇧" | "CTRL" | "⌥"
+type ModifierKey = "⌘" | "⇧" | "CTRL" | "⌥";
 
 interface KeyboardButtonProps extends ComponentProps<"div"> {
-  shortcut: string
-  modifierKey?: ModifierKey | null
+  shortcut: string;
+  modifierKey?: ModifierKey | null;
 }
 
 export const KeyboardButton = ({
@@ -23,7 +23,7 @@ export const KeyboardButton = ({
         "focus:border-grayA-12 focus:ring-4 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
         "disabled:border disabled:border-grayA-4 disabled:text-grayA-7",
         "active:bg-grayA-5",
-        { className }
+        { className },
       )}
       aria-label={`Keyboard shortcut ${modifierKey || ""} ${shortcut}`}
       role="presentation"
@@ -34,5 +34,5 @@ export const KeyboardButton = ({
       {modifierKey && <kbd>{modifierKey}+</kbd>}
       <kbd>{shortcut.toUpperCase()}</kbd>
     </span>
-  )
-}
+  );
+};
