@@ -1,5 +1,4 @@
 "use client";
-
 import { WorkspaceSwitcher } from "@/app/(app)/team-switcher";
 import { UserButton } from "@/app/(app)/user-button";
 import {
@@ -26,11 +25,13 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
+  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useDelayLoader } from "@/hooks/useDelayLoader";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Menu } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -40,13 +41,12 @@ const getButtonStyles = (isActive?: boolean, showLoader?: boolean) => {
     "flex items-center group text-[13px] font-medium text-accent-12 hover:bg-grayA-3 hover:text-accent-12 justify-start active:border focus:ring-2 w-full text-left",
     "rounded-lg transition-colors focus-visible:ring-1 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed outline-none",
     "focus:border-grayA-12 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
-    isActive ? "bg-grayA-3 text-accent-12" : "",
-    showLoader ? "bg-grayA-3" : ""
+    isActive ? "bg-grayA-3 text-accent-12" : "[&_svg]:text-gray-9",
+    showLoader ? "bg-grayA-3 [&_svg]:text-accent-12" : ""
   );
 };
 
 // Function to create navigation items that can have sub-items
-// Required in the following iterations
 const createNestedNavigation = (
   workspace: Pick<Workspace, "features" | "betaFeatures">,
   segments: string[]
@@ -61,10 +61,8 @@ const NavItems = ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
   const [isPending, startTransition] = useTransition();
   const showLoader = useDelayLoader(isPending);
   const router = useRouter();
-
   // For loading indicators in sub-items
   const [subPending, setSubPending] = useState<Record<string, boolean>>({});
-
   const Icon = item.icon;
 
   // Render a flat navigation item (no sub-items)
@@ -128,10 +126,8 @@ const NavItems = ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
                       const updatedPending = { ...subPending };
                       updatedPending[subItem.label] = true;
                       setSubPending(updatedPending);
-
                       startTransition(() => {
                         router.push(subItem.href);
-
                         // Reset loading state after transition
                         setTimeout(() => {
                           const resetPending = { ...subPending };
@@ -167,6 +163,23 @@ const NavItems = ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
   );
 };
 
+// Mobile Sidebar Trigger Component
+const MobileSidebarTrigger = () => {
+  const { isMobile } = useSidebar();
+
+  if (!isMobile) {
+    return null;
+  }
+
+  return (
+    <div className="fixed top-4 left-4 z-50 md:hidden">
+      <SidebarTrigger>
+        <Menu className="h-6 w-6" />
+      </SidebarTrigger>
+    </div>
+  );
+};
+
 // AppSidebar component
 export function AppSidebar({
   ...props
@@ -175,33 +188,40 @@ export function AppSidebar({
   const navItems = createNestedNavigation(props.workspace, segments);
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <WorkspaceSwitcher workspace={props.workspace} />
-      </SidebarHeader>
-      <SidebarContent className="space-y-4">
-        <SidebarGroup>
-          <SidebarGroupLabel>WORKSPACE</SidebarGroupLabel>
-          <SidebarMenu className="gap-2">
-            {navItems.map((item) => (
-              <NavItems key={item.label} item={item} />
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>RESOURCES</SidebarGroupLabel>
-          <SidebarMenu>
-            {resourcesNavigation.map((item) => (
-              <NavItems key={item.label} item={item} />
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter>
-        <UserButton />
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+    <>
+      <MobileSidebarTrigger />
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader className="px-1">
+          <WorkspaceSwitcher workspace={props.workspace} />
+        </SidebarHeader>
+        <SidebarContent className="space-y-4">
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-accent-11">
+              WORKSPACE
+            </SidebarGroupLabel>
+            <SidebarMenu className="gap-2">
+              {navItems.map((item) => (
+                <NavItems key={item.label} item={item} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-accent-11">
+              RESOURCES
+            </SidebarGroupLabel>
+            <SidebarMenu>
+              {resourcesNavigation.map((item) => (
+                <NavItems key={item.label} item={item} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter className="px-1">
+          <UserButton />
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+    </>
   );
 }
 
