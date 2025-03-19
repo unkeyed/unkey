@@ -53,8 +53,12 @@ export const ContactForm = () => {
               validators={{
                 onChangeAsyncDebounceMs: 500,
                 onChangeAsync: async ({ value }) => {
-                  if (!value) return "A name is required";
-                  if (value.length < 3) return "Name must be at least 3 characters";
+                  if (!value) {
+                    return "A name is required";
+                  }
+                  if (value.length < 3) {
+                    return "Name must be at least 3 characters";
+                  }
                   return undefined;
                 },
               }}
@@ -84,8 +88,12 @@ export const ContactForm = () => {
               validators={{
                 onChangeAsyncDebounceMs: 500,
                 onChangeAsync: async ({ value }) => {
-                  if (!value) return "Email is required";
-                  if (!EMAIL_REGEX.test(value)) return "Email must be at valid";
+                  if (!value) {
+                    return "Email is required";
+                  }
+                  if (!EMAIL_REGEX.test(value)) {
+                    return "Email must be at valid";
+                  }
                 },
               }}
               children={(field) => {
@@ -115,8 +123,12 @@ export const ContactForm = () => {
               validators={{
                 onChangeAsyncDebounceMs: 500,
                 onChangeAsync: async ({ value }) => {
-                  if (!value) return "A YC batch is required";
-                  if (value.length < 3) return "YC batch must be at least 3 characters";
+                  if (!value) {
+                    return "A YC batch is required";
+                  }
+                  if (value.length < 3) {
+                    return "YC batch must be at least 3 characters";
+                  }
                 },
               }}
               children={(field) => {
@@ -230,13 +242,13 @@ export const ContactForm = () => {
           {serverState?.status === "error" && serverState.errors?.length > 0 && (
             <div className="text-red-500 p-4 rounded-md bg-red-500/10 mb-4">
               {serverState?.status === "error" &&
-                serverState.errors?.map((error, i) => (
-                  <p key={`server-error-${i}`} className="mb-1">
+                serverState.errors?.map((error) => (
+                  <p key={`server-error-${error}`} className="mb-1">
                     {error}
                   </p>
                 ))}
-              {formErrors.map((error, i) => (
-                <p key={`form-error-${i}`} className="mb-1">
+              {formErrors.map((error) => (
+                <p key={`form-error-${error}`} className="mb-1">
                   {error}
                 </p>
               ))}
