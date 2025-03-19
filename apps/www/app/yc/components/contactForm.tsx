@@ -6,9 +6,9 @@ import { useState } from "react";
 import create, { type ServerResponse } from "../server/action";
 import { formOpts } from "../validator";
 
+const EMAIL_REGEX = /^([A-Z0-9_+-]+\.?)*[A-Z0-9_+-]@([A-Z0-9][A-Z0-9-]*\.)+[A-Z]{2,}$/i;
+
 export const ContactForm = () => {
-  // Thanks Zod for a normal email regex
-  const emailRegex = /^([A-Z0-9_+-]+\.?)*[A-Z0-9_+-]@([A-Z0-9][A-Z0-9-]*\.)+[A-Z]{2,}$/i;
   const [loading, setLoading] = useState(false);
   const initialServerState = {
     status: "success",
@@ -85,7 +85,7 @@ export const ContactForm = () => {
                 onChangeAsyncDebounceMs: 500,
                 onChangeAsync: async ({ value }) => {
                   if (!value) return "Email is required";
-                  if (!emailRegex.test(value)) return "Email must be at valid";
+                  if (!EMAIL_REGEX.test(value)) return "Email must be at valid";
                 },
               }}
               children={(field) => {
