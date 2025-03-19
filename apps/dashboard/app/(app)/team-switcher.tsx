@@ -61,32 +61,18 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center justify-between w-full h-10 gap-2 px-2 overflow-hidden rounded-[0.625rem] bg-background border-border border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content">
-        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-          <Avatar className="w-5 h-5">
-            {user?.avatarUrl && (
-              <AvatarImage src={user.avatarUrl} alt={user?.fullName ?? "Profile picture"} />
-            )}
-            <AvatarFallback className="flex items-center justify-center w-8 h-8 text-gray-700 bg-gray-100 border border-gray-500 rounded">
-              {props.workspace.name.slice(0, 1).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          {loading.memberships ? (
-            <Loading />
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="overflow-hidden text-sm font-medium text-ellipsis">
-                  {props.workspace.name}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className="text-sm font-medium">{props.workspace.name}</span>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="overflow-hidden text-sm font-medium text-ellipsis">
+              {props.workspace.name}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <span className="text-sm font-medium">{props.workspace.name}</span>
+          </TooltipContent>
+        </Tooltip>
 
-        <ChevronExpandY className="hidden w-5 h-5 shrink-0 md:block [stroke-width:1px]" />
+        <ChevronExpandY className="w-5 h-5 shrink-0 block [stroke-width:1px]" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="absolute left-0 w-96 max-sm:left-0">
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
