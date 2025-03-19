@@ -18,11 +18,12 @@ import (
 )
 
 func TestAccuracy(t *testing.T) {
+	t.Parallel()
 
 	// How many nodes to simulate
 	nodes := []int{3}
 
-	limits := []int64{5}
+	limits := []int64{5, 100}
 
 	durations := []time.Duration{
 		1 * time.Second,
@@ -44,6 +45,8 @@ func TestAccuracy(t *testing.T) {
 
 						t.Run(fmt.Sprintf("nodes=%d_test=%s_limit=%d_duration=%s_loadFactor=%f", nodeCount, testDuration, limit, duration, loadFactor), func(t *testing.T) {
 							testutil.SkipUnlessIntegration(t)
+
+							t.Parallel()
 
 							ctx := context.Background()
 

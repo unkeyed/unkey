@@ -21,12 +21,20 @@ func (s *service) replayRequests() {
 }
 
 func (s *service) replayToOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest) {
-	ctx, span := tracing.Start(context.Background(), "replayToOrigin")
+	ctx, span := tracing.Start(ctx, "replayToOrigin")
 	defer span.End()
 
 	now := s.clock.Now()
 
 	res, err := s.askOrigin(ctx, req)
+	if err != nil {
+		tracing.RecordError(span, err)
+
+		s.logger.Error("unable to ask origin",
+			"error", err.Error(),
+		)
+		return
+	}
 
 	err = s.SetWindows(ctx,
 		setWindowRequest{
@@ -69,9 +77,9 @@ func (s *service) askOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest)
 	now := s.clock.Now()
 
 	key := bucketKey{
-		req.Request.GetIdentifier(),
-		req.Request.GetLimit(),
-		time.Duration(req.Request.GetDuration()) * time.Millisecond,
+		req.GetRequest().GetIdentifier(),
+		req.GetRequest().GetLimit(),
+		time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
 	}.toString()
 	p, err := s.getPeer(ctx, key)
 	if err != nil {
@@ -86,6 +94,7 @@ func (s *service) askOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest)
 
 	if p.instance.ID == s.cluster.Self().ID {
 		// we're the origin, nothing to replay...
+		// nolint:nilnil
 		return nil, nil
 	}
 

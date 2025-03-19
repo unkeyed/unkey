@@ -136,11 +136,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.ClusterEnabled {
 
-		rpcSvc, err := rpc.New(rpc.Config{
+		rpcSvc, rpcErr := rpc.New(rpc.Config{
 			Logger:           logger,
 			RatelimitService: rlSvc,
 		})
-		if err != nil {
+		if rpcErr != nil {
 			return fmt.Errorf("unable to create rpc service: %w", err)
 		}
 

@@ -12,9 +12,14 @@ import (
 var handler slog.Handler
 
 func init() {
+	level := slog.LevelInfo
+	if os.Getenv("DEBUG") != "" {
+		level = slog.LevelDebug
+	}
+
 	handler = tint.NewHandler(os.Stdout, &tint.Options{
 		AddSource:   false,
-		Level:       slog.LevelDebug,
+		Level:       level,
 		ReplaceAttr: nil,
 		TimeFormat:  time.StampMilli,
 		NoColor:     false,

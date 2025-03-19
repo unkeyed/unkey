@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	mysql "github.com/go-sql-driver/mysql"
+	"github.com/ory/dockertest/v3"
 	"github.com/unkeyed/unkey/go/pkg/db"
 
 	"github.com/stretchr/testify/require"
@@ -60,11 +61,19 @@ import (
 func (c *Containers) RunMySQL() string {
 	c.t.Helper()
 
-	resource, err := c.pool.Run("mysql", "latest", []string{
-		"MYSQL_ROOT_PASSWORD=root",
-		"MYSQL_DATABASE=unkey",
-		"MYSQL_USER=unkey",
-		"MYSQL_PASSWORD=password",
+	// nolint:exhaustruct
+	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "mysql",
+		Tag:        "latest",
+		Env: []string{
+			"MYSQL_ROOT_PASSWORD=root",
+			"MYSQL_DATABASE=unkey",
+			"MYSQL_USER=unkey",
+			"MYSQL_PASSWORD=password",
+		},
+		Networks: []*dockertest.Network{
+			c.network,
+		},
 	})
 	require.NoError(c.t, err)
 
