@@ -352,11 +352,6 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "v1.ratelimit.limit",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "summary": "TODO",
         "requestBody": {
           "content": {
@@ -436,6 +431,11 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.setOverride",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
