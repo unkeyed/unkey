@@ -19,7 +19,7 @@ export const OutcomeDistributionSection = ({
 
   const handleClick = () => {
     const formattedContent = outcomeEntries
-      .map(([outcome, count]) => `${formatOutcomeName(outcome)}: ${formatNumber(count)}`)
+      .map(([outcome, count]) => `${formatOutcomeName(outcome)}: ${count}`)
       .join("\n");
 
     navigator.clipboard
@@ -55,7 +55,7 @@ export const OutcomeDistributionSection = ({
                   <span>{formatOutcomeName(outcome)}:</span>
                 </div>
                 <span className="ml-2 text-xs text-accent-12 truncate font-mono tabular-nums">
-                  {count.toLocaleString()}
+                  {formatNumber(count)}
                 </span>
               </div>
             ))}
