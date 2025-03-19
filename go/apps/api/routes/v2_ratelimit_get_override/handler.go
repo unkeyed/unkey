@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -124,9 +123,7 @@ func getNamespace(ctx context.Context, svc Services, workspaceID string, req Req
 	case req.NamespaceId != nil:
 		{
 			res, err := db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
-			log.Println("getNamespace", res, err)
 			return res, err
-
 		}
 	case req.NamespaceName != nil:
 		{
