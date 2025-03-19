@@ -7,7 +7,7 @@ import (
 // noop provides a no-operation implementation of the Cluster interface.
 // It's useful for testing or for deployments that don't require clustering.
 type noop struct {
-	self Node
+	self Instance
 }
 
 // Ensure noop implements the Cluster interface
@@ -27,20 +27,20 @@ var _ Cluster = (*noop)(nil)
 //	// Create a no-op cluster for local development
 //	cluster := cluster.NewNoop("local-node", "localhost")
 func NewNoop(id string, host string) *noop {
-	return &noop{self: Node{
+	return &noop{self: Instance{
 		ID:      id,
 		RpcAddr: "",
 	}}
 }
 
 // Self returns information about the local node.
-func (n *noop) Self() Node {
+func (n *noop) Self() Instance {
 	return n.self
 }
 
-// FindNode always returns the local node, since there's only
-// one node in a no-op cluster.
-func (n *noop) FindNode(ctx context.Context, key string) (Node, error) {
+// FindInstance always returns the local instance, since there's only
+// one instance in a no-op cluster.
+func (n *noop) FindInstance(ctx context.Context, key string) (Instance, error) {
 	return n.self, nil
 
 }
@@ -51,11 +51,11 @@ func (n *noop) Shutdown(ctx context.Context) error {
 }
 
 // SubscribeJoin returns a never-closing, never-sending channel.
-func (n *noop) SubscribeJoin() <-chan Node {
-	return make(chan Node)
+func (n *noop) SubscribeJoin() <-chan Instance {
+	return make(chan Instance)
 }
 
 // SubscribeLeave returns a never-closing, never-sending channel.
-func (n *noop) SubscribeLeave() <-chan Node {
-	return make(chan Node)
+func (n *noop) SubscribeLeave() <-chan Instance {
+	return make(chan Instance)
 }

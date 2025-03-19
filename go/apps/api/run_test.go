@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/port"
-	"github.com/unkeyed/unkey/go/pkg/testflags"
+	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -18,7 +18,7 @@ import (
 // TestClusterFormation verifies that a cluster of API nodes can successfully form
 // and communicate with each other.
 func TestClusterFormation(t *testing.T) {
-	testflags.SkipUnlessIntegration(t)
+	testutil.SkipUnlessIntegration(t)
 
 	// Create a containers instance for database
 	containers := containers.New(t)
@@ -34,7 +34,7 @@ func TestClusterFormation(t *testing.T) {
 	clusterSize := 3
 	for i := 0; i < clusterSize; i++ {
 
-		nodeID := uid.New("node")
+		instanceID := uid.New(uid.InstancePrefix)
 		gossipPort := portAllocator.Get()
 		config := api.Config{
 			Platform:                    "test",
@@ -43,7 +43,7 @@ func TestClusterFormation(t *testing.T) {
 			Region:                      "test-region",
 			Clock:                       nil, // Will use real clock
 			ClusterEnabled:              true,
-			ClusterNodeID:               nodeID,
+			ClusterInstanceID:           instanceID,
 			ClusterAdvertiseAddrStatic:  "localhost",
 			ClusterRpcPort:              portAllocator.Get(),
 			ClusterGossipPort:           gossipPort,

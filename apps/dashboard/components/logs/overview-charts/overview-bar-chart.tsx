@@ -1,10 +1,7 @@
 "use client";
 
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
-import {
-  formatTimestampLabel,
-  formatTimestampTooltip,
-} from "@/components/logs/chart/utils/format-timestamp";
+import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import {
   type ChartConfig,
   ChartContainer,
@@ -18,6 +15,7 @@ import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis
 import { OverviewChartError } from "./overview-bar-chart-error";
 import { OverviewChartLoader } from "./overview-bar-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
+import { createTimeIntervalFormatter } from "./utils";
 
 type ChartTooltipItem = {
   label: string;
@@ -211,7 +209,7 @@ export function OverviewBarChart({
                               </div>
                               <div className="ml-auto">
                                 <span className="font-mono tabular-nums text-accent-12">
-                                  {payload[0]?.payload?.total}
+                                  {formatNumber(payload[0]?.payload?.total)}
                                 </span>
                               </div>
                             </div>
@@ -235,7 +233,7 @@ export function OverviewBarChart({
                                 </div>
                                 <div className="ml-auto">
                                   <span className="font-mono tabular-nums text-accent-12">
-                                    {payload[0]?.payload?.[item.dataKey]}
+                                    {formatNumber(payload[0]?.payload?.[item.dataKey])}
                                   </span>
                                 </div>
                               </div>
@@ -244,18 +242,9 @@ export function OverviewBarChart({
                         </div>
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
-                      labelFormatter={(_, tooltipPayload) => {
-                        const originalTimestamp = tooltipPayload[0]?.payload?.originalTimestamp;
-                        return originalTimestamp ? (
-                          <div>
-                            <span className="font-mono text-accent-9 text-xs px-4">
-                              {formatTimestampTooltip(originalTimestamp)}
-                            </span>
-                          </div>
-                        ) : (
-                          ""
-                        );
-                      }}
+                      labelFormatter={(_, tooltipPayload) =>
+                        createTimeIntervalFormatter(data)(tooltipPayload)
+                      }
                     />
                   );
                 }}

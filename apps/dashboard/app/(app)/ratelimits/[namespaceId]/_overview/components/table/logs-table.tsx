@@ -1,5 +1,6 @@
 "use client";
 
+import { useSort } from "@/components/logs/hooks/use-sort";
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
@@ -14,7 +15,7 @@ import { InlineFilter } from "./components/inline-filter";
 import { LogsTableAction } from "./components/logs-actions";
 import { IdentifierColumn } from "./components/override-indicator";
 import { useRatelimitOverviewLogsQuery } from "./hooks/use-logs-query";
-import { useSort } from "./hooks/use-sort";
+import type { SortFields } from "./query-logs.schema";
 import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
 
 // const MAX_LATENCY = 10;
@@ -24,7 +25,7 @@ export const RatelimitOverviewLogsTable = ({
   namespaceId: string;
 }) => {
   const [selectedLog, setSelectedLog] = useState<RatelimitOverviewLog>();
-  const { getSortDirection, toggleSort } = useSort();
+  const { getSortDirection, toggleSort } = useSort<SortFields>();
   const { historicalLogs, isLoading, isLoadingMore, loadMore } = useRatelimitOverviewLogsQuery({
     namespaceId,
   });
@@ -52,6 +53,13 @@ export const RatelimitOverviewLogsTable = ({
         key: "passed",
         header: "Passed",
         width: "7.5%",
+        sort: {
+          direction: getSortDirection("passed"),
+          sortable: true,
+          onSort() {
+            toggleSort("passed", false);
+          },
+        },
         render: (log) => {
           return (
             <div className="flex gap-3 items-center group/identifier">
@@ -78,6 +86,13 @@ export const RatelimitOverviewLogsTable = ({
         key: "blocked",
         header: "Blocked",
         width: "7.5%",
+        sort: {
+          direction: getSortDirection("blocked"),
+          sortable: true,
+          onSort() {
+            toggleSort("blocked", false);
+          },
+        },
         render: (log) => {
           const style = getStatusStyle(log);
           return (
@@ -158,7 +173,7 @@ export const RatelimitOverviewLogsTable = ({
           direction: getSortDirection("time"),
           sortable: true,
           onSort() {
-            toggleSort("time", true);
+            toggleSort("time", false, "asc");
           },
         },
         render: (log) => (

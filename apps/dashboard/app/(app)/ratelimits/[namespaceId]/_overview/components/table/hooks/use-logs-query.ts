@@ -2,9 +2,9 @@ import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { useEffect, useMemo, useState } from "react";
+import { useSort } from "../../../../../../../../components/logs/hooks/use-sort";
 import { useFilters } from "../../../hooks/use-filters";
-import type { RatelimitQueryOverviewLogsPayload } from "../query-logs.schema";
-import { useSort } from "./use-sort";
+import type { RatelimitQueryOverviewLogsPayload, SortFields } from "../query-logs.schema";
 
 type UseLogsQueryParams = {
   limit?: number;
@@ -20,7 +20,7 @@ export function useRatelimitOverviewLogsQuery({ namespaceId, limit = 50 }: UseLo
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
-  const { sorts } = useSort();
+  const { sorts } = useSort<SortFields>();
 
   //Required for preventing double trpc call during initial render
   const dateNow = useMemo(() => Date.now(), []);
