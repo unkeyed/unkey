@@ -72,12 +72,12 @@ export function QueriesProvider<T extends FilterValue>({
   );
 }
 
-export function useQueries<T extends FilterValue>() {
+export function useQueries() {
   const context = useContext(QueriesContext);
   if (context === undefined) {
     throw new Error("useQueries must be used within a QueriesProvider");
   }
-  return context as QueriesContextType<T>;
+  return context as QueriesContextType;
 }
 
 import { ChartActivity2 } from "@unkey/icons";
