@@ -1,11 +1,7 @@
-import type React from "react";
+import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
+import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { ContactForm } from "./components/contactForm";
 import { DetailsComponent } from "./components/details";
-import {
-  TopRightShiningLight,
-  TopLeftShiningLight,
-} from "@/components/svg/background-shiny";
-import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 
 export default function UnkeyYCPage() {
   return (
@@ -14,20 +10,8 @@ export default function UnkeyYCPage() {
         <TopLeftShiningLight />
       </div>
       <div className="w-full h-full overflow-hidden -z-20">
-        <MeteorLinesAngular
-          number={1}
-          xPos={0}
-          speed={10}
-          delay={5}
-          className="overflow-hidden"
-        />
-        <MeteorLinesAngular
-          number={1}
-          xPos={0}
-          speed={10}
-          delay={0}
-          className="overflow-hidden"
-        />
+        <MeteorLinesAngular number={1} xPos={0} speed={10} delay={5} className="overflow-hidden" />
+        <MeteorLinesAngular number={1} xPos={0} speed={10} delay={0} className="overflow-hidden" />
         <MeteorLinesAngular
           number={1}
           xPos={100}

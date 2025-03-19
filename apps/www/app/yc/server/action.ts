@@ -1,6 +1,5 @@
 "use server";
 import { PlainClient } from "@team-plain/typescript-sdk";
-import { revalidatePath } from "next/cache";
 
 export type ActionError = {
   code: string;
@@ -16,9 +15,7 @@ export type ServerResponse =
   | { status: "error"; errors: string[] }
   | { status: "success"; submitted: boolean };
 
-export default async function create(
-  formData: FormData
-): Promise<ServerResponse> {
+export default async function create(formData: FormData): Promise<ServerResponse> {
   try {
     const result = await createPlain(formData);
     if (result.error) {

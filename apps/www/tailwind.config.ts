@@ -1,5 +1,5 @@
-import type { Config } from "tailwindcss";
 import defaultTheme from "@unkey/ui/tailwind.config";
+import type { Config } from "tailwindcss";
 
 const config = {
   darkMode: "class",
@@ -152,10 +152,7 @@ const config = {
   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 } satisfies Config;
 
-export function merge<T extends object, U extends object>(
-  obj1: T,
-  obj2: U
-): T & U {
+export function merge<T extends object, U extends object>(obj1: T, obj2: U): T & U {
   for (const key in obj2) {
     if (Object.prototype.hasOwnProperty.call(obj2, key)) {
       const obj2Key = obj2[key];
@@ -164,10 +161,7 @@ export function merge<T extends object, U extends object>(
         if (!(key in obj1)) {
           (obj1 as any)[key] = {};
         }
-        (obj1 as any)[key] = merge(
-          (obj1 as any)[key] as object,
-          obj2Key as object
-        );
+        (obj1 as any)[key] = merge((obj1 as any)[key] as object, obj2Key as object);
       } else {
         (obj1 as any)[key] = obj2Key;
       }
