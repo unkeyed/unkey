@@ -25,6 +25,7 @@ const createPanelStyle = (distanceToTop: number): StyleObject => ({
 type KeysOverviewLogDetailsProps = {
   distanceToTop: number;
   log: KeysOverviewLog | null;
+  apiId: string;
   setSelectedLog: (data: KeysOverviewLog | null) => void;
 };
 
@@ -96,7 +97,12 @@ export const KeysOverviewLogDetails = ({
       <LogSection title="Usage" details={usage} />
       {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
       <LogSection title="Limits" details={limits} />
-      <LogSection title="Identifiers" details={identifiers} />
+      <LogSection
+        title="Identifiers"
+        details={identifiers}
+        keyAuthId={log.key_details.key_auth_id}
+        apiId={log.key_id}
+      />
       <LogSection title="Identity" details={identity} />
       <RolesSection roles={log.key_details.roles || []} />
       <PermissionsSection permissions={log.key_details.permissions || []} />

@@ -6,6 +6,7 @@ import { Button } from "@unkey/ui";
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Clone } from "@unkey/icons";
 import { isValid, parse, parseISO } from "date-fns";
+import Link from "next/link";
 
 const TIME_KEYWORDS = [
   "created",
@@ -28,9 +29,13 @@ const TIME_KEYWORDS = [
 export const LogSection = ({
   details,
   title,
+  keyAuthId,
+  apiId,
 }: {
   details: string | string[];
   title: string;
+  apiId?: string;
+  keyAuthId?: string;
 }) => {
   const handleClick = () => {
     navigator.clipboard
@@ -73,7 +78,19 @@ export const LogSection = ({
                           <TimestampInfo value={value} />
                         </span>
                       ) : (
-                        <span className="ml-2 text-xs text-accent-12 truncate">{value}</span>
+                        <span className="ml-2 text-xs text-accent-12 truncate">
+                          {key === "ID" ? (
+                            <Link
+                              title="Link to the key details"
+                              className="font-mono underline decoration-dotted"
+                              href={`/apis/${apiId}/keys/${keyAuthId}/${value}`}
+                            >
+                              {value}
+                            </Link>
+                          ) : (
+                            value
+                          )}
+                        </span>
                       )}
                     </div>
                   );
