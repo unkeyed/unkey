@@ -43,7 +43,7 @@ export const UserButton: React.FC = () => {
           <Avatar className="w-8 h-8 lg:w-5 lg:h-5">
             {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="Profile picture" /> : null}
             <AvatarFallback className="w-8 h-8 lg:w-5 lg:h-5 bg-gray-100 border border-gray-500 rounded-md">
-              {(user.fullName ?? "U").slice(0, 2).toUpperCase()}
+              {(user.fullName ?? "U").slice(0, 1).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 

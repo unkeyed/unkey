@@ -25,14 +25,11 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { useOrganization, useUser } from "@/lib/auth/hooks";
 import type { Invitation, InvitationListResponse, Membership, Organization, UpdateMembershipParams } from "@/lib/auth/types";
-import { Gear } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useState, useCallback, memo, useMemo } from "react";
-import { navigation } from "../constants";
 import { InviteButton } from "./invite";
 import { User } from "@/lib/auth/types";
-import { Navigation } from "@/components/navigation/navigation";
 import Link from "next/link";
 
 type MembersProps = {
@@ -187,7 +184,7 @@ const Members = memo<MembersProps>(({ memberships, loading, removeMember, update
               <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <Avatar>
                   <AvatarImage src={member.avatarUrl ?? undefined} />
-                  <AvatarFallback>{member.fullName ?? member.email.slice(0, 2)}</AvatarFallback>
+                  <AvatarFallback>{member.fullName ?? member.email.slice(0, 1)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
                   <span className="text-content font-medium">
