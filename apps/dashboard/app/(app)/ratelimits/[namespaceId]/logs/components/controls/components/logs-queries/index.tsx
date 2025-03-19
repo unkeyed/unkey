@@ -1,49 +1,17 @@
-import { useBookmarkedFilters } from "@/components/logs/hooks/use-bookmarked-filters";
-import type { ParsedSavedFiltersType } from "@/components/logs/hooks/use-bookmarked-filters";
 import { QueriesPopover } from "@/components/logs/queries/queries-popover";
 import { cn } from "@/lib/utils";
 import { ChartBarAxisY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useEffect, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsQueries = () => {
   const { filters, updateFilters } = useFilters();
-  const { parseSavedFilters, savedFilters, toggleBookmark, applyFilterGroup } =
-    useBookmarkedFilters({
-      localStorageName: "ratelimitSavedFilters",
-      filters,
-      updateFilters,
-    });
-  const [filterGroups, setfilterGroups] = useState<ParsedSavedFiltersType[]>(parseSavedFilters);
-
-  function handleBookmarkTooggle(groupId: string) {
-    toggleBookmark(groupId);
-    const newFilters: ParsedSavedFiltersType[] = parseSavedFilters();
-    setfilterGroups(newFilters);
-  }
-
-  useEffect(() => {
-    const newFilters = parseSavedFilters();
-    if (JSON.stringify(newFilters) === JSON.stringify(filterGroups)) {
-      return;
-    }
-    setfilterGroups(newFilters);
-  });
-
-  const handleApplyFilterGroup = (groupId: string) => {
-    const group = savedFilters.find((group) => group.id === groupId);
-    if (!group) {
-      return;
-    }
-    applyFilterGroup(group);
-  };
 
   return (
     <QueriesPopover
-      filterGroups={filterGroups || []}
-      toggleBookmark={handleBookmarkTooggle}
-      applyFilterGroup={handleApplyFilterGroup}
+      localStorageName="ratelimitSavedFilters"
+      filters={filters}
+      updateFilters={updateFilters}
     >
       <div className="group">
         <Button

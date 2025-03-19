@@ -6,7 +6,9 @@ import {
   differenceInSeconds,
   differenceInWeeks,
   differenceInYears,
+  format,
 } from "date-fns";
+import React from "react";
 
 import { auditLogsFilterFieldEnum } from "@/app/(app)/audit/filters.schema";
 import { logsFilterFieldEnum } from "@/app/(app)/logs/filters.schema";
@@ -27,7 +29,7 @@ import {
 } from "@unkey/icons";
 
 import type { AuditLogsFilterField } from "@/app/(app)/audit/filters.schema";
-import type { LogsFilterField } from "@/app/(app)/logs/filters.schema";
+import type { LogsFilterField, QuerySearchParams } from "@/app/(app)/logs/filters.schema";
 import type { RatelimitFilterField } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import type { IconProps } from "@unkey/icons/src/props";
 import type { FC } from "react";
@@ -35,7 +37,7 @@ import type { FC } from "react";
 export const iconsPerField: Record<string, FC<IconProps>> = {
   status: ChartActivity2,
   methods: Conversion,
-  path: Link4,
+  paths: Link4,
   time: Clock,
   startTime: Clock,
   endTime: Clock,
@@ -74,6 +76,94 @@ export function parseValue(value: string) {
   }
 
   return { color: null, phrase: value };
+}
+
+export function formatFilterValue(
+  filters: QuerySearchParams,
+): Record<string, { operator: string; values: { value: string; color: string | null }[] }> {
+  // Handle special cases for different field types
+  const transform = (field: string, value: string): { color: string | null; value: string } => {
+    switch (field) {
+      case "status":
+        return {
+          value:
+            value === "200" ? "2xx" : value === "400" ? "4xx" : value === "500" ? "5xx" : value,
+          color:
+            value === "200"
+              ? "bg-success-9"
+              : value === "400"
+                ? "bg-warning-9"
+                : value === "500"
+                  ? "bg-error-9"
+                  : null,
+        };
+      case "methods":
+        return { value: value.toUpperCase(), color: null };
+      case "startTime":
+      case "endTime":
+        return { value: format(Number(value), "MMM d HH:mm:ss"), color: null };
+      case "since":
+        return { value: value, color: null };
+      case "host":
+      case "requestId":
+      case "paths":
+        return { value: value, color: null };
+      default:
+        return { value: value, color: null };
+    }
+  };
+
+  const transformed: Record<
+    string,
+    { operator: string; values: { value: string; color: string | null }[] }
+  > = {};
+  // Handle special cases for different field types const transformed: Record<string, { operator: string; values: { value: string; color: string | null }[], icon: React.ReactNode }> = {};
+  if (filters.startTime && filters.endTime) {
+    transformed.time = {
+      operator: "between",
+      values: [
+        transform("startTime", filters.startTime.toString()),
+        transform("endTime", filters.endTime.toString()),
+      ],
+    };
+  } else if (filters.startTime) {
+    transformed.time = {
+      operator: "starts from",
+      values: [transform("startTime", filters.startTime.toString())],
+    };
+  } else if (filters.since) {
+    transformed.time = {
+      operator: "since",
+      values: [{ value: filters.since, color: null }],
+    };
+  }
+
+  Object.entries(filters).forEach(([field, value]) => {
+    if (field === "startTime" || field === "endTime" || field === "since" || field === "time") {
+      return [];
+    }
+    if (value === null) {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      transformed[field] = {
+        operator: value[0]?.operator || "is",
+        values: value.map((v) => transform(field, v.value.toString())),
+      };
+    } else {
+      transformed[field] = {
+        operator: "is",
+        values: [transform(field, value.toString())],
+      };
+    }
+  });
+  return transformed;
+}
+
+export function getFilterFieldIcon(field: string): JSX.Element {
+  const Icon = iconsPerField[field] || ChartActivity2;
+  return React.createElement(Icon, { size: "md-regular", className: "justify-center" });
 }
 
 export const getFilterFieldEnum = () => {

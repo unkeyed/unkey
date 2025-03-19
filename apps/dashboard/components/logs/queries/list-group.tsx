@@ -4,20 +4,28 @@ import type { UserResource } from "@clerk/types";
 import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { useEffect, useState } from "react";
-import type { ParsedSavedFiltersType } from "../hooks/use-bookmarked-filters";
+import { useQueries } from "./queries-context";
 import { QueriesItemRow } from "./queries-item-row";
 import { QueriesMadeBy } from "./queries-made-by";
 import { QueriesToast } from "./queries-toast";
 import { getSinceTime } from "./utils";
 
 type ListGroupProps = {
-  filterList: ParsedSavedFiltersType;
+  filterList: {
+    filters: Record<
+      string,
+      { operator: string; values: { value: string; color: string | null }[] }
+    >;
+    id: string;
+    createdAt: number;
+    bookmarked: boolean;
+  };
   user: UserResource | null | undefined;
   index: number;
   total: number;
   selectedIndex: number;
   querySelected: (index: string) => void;
-  changeBookmark: (index: string) => void;
+  changeBookmark: (id: string) => void;
 };
 
 type ToolTipMessageType =
@@ -39,7 +47,6 @@ export function ListGroup({
   index,
   total,
   selectedIndex,
-  querySelected,
   changeBookmark,
 }: ListGroupProps) {
   const [toolTipOpen, setToolTipOpen] = useState(false);
@@ -47,6 +54,7 @@ export function ListGroup({
   const [tooltipMessage, setTooltipMessage] = useState<ToolTipMessageType>(
     filterList.bookmarked ? tooltipMessageOptions.saved : tooltipMessageOptions.save,
   );
+  const { filterRowIcon, applyFilterGroup } = useQueries();
 
   useEffect(() => {
     if (toastMessage) {
@@ -82,14 +90,14 @@ export function ListGroup({
   };
 
   const handleSelection = () => {
-    querySelected(filterList.id);
+    applyFilterGroup(filterList.id);
   };
 
   return (
     <div className="w-full">
       <div
         className={cn(
-          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded-[8px] pb-[9px] w-full",
+          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded-[8px] pb-[9px] w-full pl-1",
           index === selectedIndex ? "bg-gray-2" : "",
         )}
       >
@@ -116,19 +124,15 @@ export function ListGroup({
               <div className="flex flex-col ml-[9px] border-l-[1px] border-l-gray-5 w-[1px]" />
               <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
                 {filterList &&
-                  Object.entries(filterList.filters).map(([field, filter]) => {
-                    const { values, operator, icon } = filter;
-                    const Icon = icon || Layers2;
-                    return (
-                      <QueriesItemRow
-                        key={field}
-                        list={values}
-                        field={field}
-                        Icon={<Icon size="md-regular" className="justify-center" />}
-                        operator={operator}
-                      />
-                    );
-                  })}
+                  Object.entries(filterList.filters).map(([field, filter]) => (
+                    <QueriesItemRow
+                      key={field}
+                      list={filter.values}
+                      field={field}
+                      operator={filter.operator}
+                      icon={filterRowIcon(field)}
+                    />
+                  ))}
               </div>
             </div>
             <QueriesMadeBy

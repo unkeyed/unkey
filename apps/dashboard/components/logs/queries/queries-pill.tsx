@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 type QueriesPillType = {
   value: string;
   className?: string;
-  color?: string;
+  color?: string | null;
 };
 export const QueriesPill = ({ value, className, color }: QueriesPillType) => {
   return (
