@@ -1,5 +1,4 @@
 "use client";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -58,17 +57,14 @@ export const UserButton: React.FC = () => {
               {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-
-          {/* Only show username when not collapsed AND not on mobile */}
-          {!isCollapsed && !isMobile && (
+          {/* Show username when not collapsed OR when on mobile with sidebar open */}
+          {(!isCollapsed || (isMobile && openMobile)) && (
             <span className="overflow-hidden text-ellipsis text-sm font-medium">{displayName}</span>
           )}
         </div>
-
-        {/* Only show chevron when not collapsed and not on mobile */}
-        {!isCollapsed && !isMobile && <ChevronRight className="inline w-4 h-4" />}
+        {/* Show chevron when not collapsed OR when on mobile with sidebar open */}
+        {(!isCollapsed || (isMobile && openMobile)) && <ChevronRight className="inline w-4 h-4" />}
       </DropdownMenuTrigger>
-
       <DropdownMenuContent
         side="bottom"
         className="w-full max-w-xs md:w-96"

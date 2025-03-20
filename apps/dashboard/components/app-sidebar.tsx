@@ -24,6 +24,7 @@ import {
 import { useDelayLoader } from "@/hooks/useDelayLoader";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
@@ -156,7 +157,16 @@ export function AppSidebar({
   const segments = useSelectedLayoutSegments() ?? [];
   const navItems = createNestedNavigation(props.workspace, segments);
 
-  const { state, isMobile } = useSidebar();
+  // Create a toggle sidebar nav item
+  const toggleNavItem: NavItem = {
+    label: "Toggle Sidebar",
+    href: "#",
+    icon: SidebarLeftShow,
+    active: false,
+    tooltip: "Toggle Sidebar",
+  };
+
+  const { state, isMobile, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
 
   return (
@@ -169,11 +179,31 @@ export function AppSidebar({
           )}
         >
           <WorkspaceSwitcher workspace={props.workspace} />
+          {state !== "collapsed" && !isMobile && (
+            <button type="button" onClick={toggleSidebar}>
+              <SidebarLeftHide className="text-gray-8" size="xl-medium" />
+            </button>
+          )}
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarGroup>
           <SidebarMenu className="gap-2">
+            {/* Toggle button as NavItem */}
+            {state === "collapsed" && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip={toggleNavItem.tooltip}
+                  isActive={toggleNavItem.active}
+                  className={getButtonStyles(toggleNavItem.active)}
+                  onClick={toggleSidebar}
+                >
+                  <toggleNavItem.icon />
+                  <span>{toggleNavItem.label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+
             {navItems.map((item) => (
               <NavItems key={item.label} item={item} />
             ))}

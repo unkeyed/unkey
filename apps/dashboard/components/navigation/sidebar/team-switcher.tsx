@@ -83,7 +83,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             isCollapsed ? "justify-center" : "",
           )}
         >
-          <Avatar className="w-5 h-5 rounded">
+          <Avatar className="w-5 h-5 rounded border border-grayA-6">
             {currentOrg?.imageUrl ? (
               <AvatarImage src={currentOrg.imageUrl} alt={props.workspace.name} />
             ) : user?.imageUrl ? (
