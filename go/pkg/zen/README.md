@@ -1,7 +1,7 @@
 <div align="center">
     <h1 align="center">Zen</h1>
     <p>A Minimalist HTTP Library for Go</p>
-    <p><a href="http://localhost:3000/blog/zen">Read our blog post</a> about why we built Zen and how it works</p>
+    <p><a href="http://www.unkey.com/blog/zen">Read our blog post</a> about why we built Zen and how it works</p>
 </div>
 
 
