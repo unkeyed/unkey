@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -18,10 +19,9 @@ import (
 )
 
 func TestAccuracy(t *testing.T) {
-	t.Parallel()
 
 	// How many nodes to simulate
-	nodes := []int{3}
+	nodes := []int{1, 3, 27}
 
 	limits := []int64{5, 100}
 
@@ -44,9 +44,8 @@ func TestAccuracy(t *testing.T) {
 					for _, loadFactor := range loadFactors {
 
 						t.Run(fmt.Sprintf("nodes=%d_test=%s_limit=%d_duration=%s_loadFactor=%f", nodeCount, testDuration, limit, duration, loadFactor), func(t *testing.T) {
-							testutil.SkipUnlessIntegration(t)
 
-							t.Parallel()
+							testutil.SkipUnlessIntegration(t)
 
 							ctx := context.Background()
 
@@ -91,10 +90,20 @@ func TestAccuracy(t *testing.T) {
 							total := 0
 							passed := 0
 
-							results := attack.Attack[integration.TestResponse[handler.Response]](t, attack.Rate{Freq: rps, Per: time.Second}, testDuration, func() integration.TestResponse[handler.Response] {
-								return integration.CallRandomNode[handler.Request, handler.Response](h, "POST", "/v2/ratelimit.limit", headers, req)
+							lb := integration.NewLoadbalancer(h)
 
+							errors := atomic.Int64{}
+
+							results := attack.Attack[integration.TestResponse[handler.Response]](t, attack.Rate{Freq: rps, Per: time.Second}, testDuration, func() integration.TestResponse[handler.Response] {
+								res, err := integration.CallRandomNode[handler.Request, handler.Response](lb, "POST", "/v2/ratelimit.limit", headers, req)
+
+								if err != nil {
+									errors.Add(1)
+								}
+								return res
 							})
+
+							require.Less(t, errors.Load(), int64(5))
 
 							for res := range results {
 								require.Equal(t, http.StatusOK, res.Status, "expected 200 status, but got:%s", res.RawBody)
@@ -119,6 +128,8 @@ func TestAccuracy(t *testing.T) {
 								"Success count should be >= lower limit")
 							require.LessOrEqual(t, passed, upperLimit,
 								"Success count should be <= upper limit")
+
+							t.Logf("balance: %+v", lb.GetMetrics())
 
 						})
 					}

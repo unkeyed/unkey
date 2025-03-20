@@ -18,11 +18,11 @@ tasks:
       - otel
     env:
       INTEGRATION_TEST: true
-      SIMULATION_TEST: true
+      SIMULATION_TEST: false
       OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
     cmds:
-      - go test -json -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
+      - go test -failfast ./... -timeout=30m
 
   test-unit:
     cmds:

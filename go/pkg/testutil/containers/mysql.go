@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/ory/dockertest/v3"
@@ -58,8 +59,11 @@ import (
 //
 // Note: This function requires Docker to be installed and running on the system
 // where tests are executed. It will fail if Docker is not available.
-func (c *Containers) RunMySQL() string {
+func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
 	c.t.Helper()
+	defer func(start time.Time) {
+		c.t.Logf("starting MySQL took %s", time.Since(start))
+	}(time.Now())
 
 	// nolint:exhaustruct
 	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
@@ -125,5 +129,8 @@ func (c *Containers) RunMySQL() string {
 
 	}
 
-	return cfg.FormatDSN()
+	hostDsn = cfg.FormatDSN()
+	cfg.Addr = fmt.Sprintf("%s:3306", resource.GetIPInNetwork(c.network))
+	dockerDsn = cfg.FormatDSN()
+	return hostDsn, dockerDsn
 }
