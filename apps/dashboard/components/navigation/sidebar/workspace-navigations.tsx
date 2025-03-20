@@ -11,7 +11,7 @@ import {
   ShieldKey,
   Sparkle3,
 } from "@unkey/icons";
-import { cn } from "../../lib/utils";
+import { cn } from "../../../lib/utils";
 
 export type NavItem = {
   disabled?: boolean;

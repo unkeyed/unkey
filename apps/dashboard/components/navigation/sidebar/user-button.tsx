@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { SignOutButton, useUser } from "@clerk/nextjs";
 import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
@@ -40,7 +39,7 @@ export const UserButton: React.FC = () => {
           "flex items-center rounded-lg hover:bg-background-subtle hover:cursor-pointer text-content",
           isCollapsed
             ? "justify-center w-10 h-10 p-0"
-            : "justify-between gap-2 p-2 w-auto lg:w-full h-12",
+            : "justify-between gap-2 p-2 w-auto lg:w-full h-10",
         )}
       >
         <div
@@ -59,53 +58,15 @@ export const UserButton: React.FC = () => {
               {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          {/* Username - only one instance that's conditionally shown */}
-          {!isCollapsed && (
-            <Tooltip>
-              <TooltipTrigger
-                className={cn(
-                  "w-full overflow-hidden text-ellipsis",
-                  // On desktop: show on small/medium screens, hide on large screens
-                  // On mobile with open sidebar: always show
-                  !isMobile && "sm:inline lg:hidden",
-                )}
-                asChild
-              >
-                <span className="overflow-hidden text-ellipsis text-sm font-medium">
-                  {displayName}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className="text-sm font-medium">{displayName}</span>
-              </TooltipContent>
-            </Tooltip>
-          )}
 
-          {/* Username on large screens */}
-          {!isCollapsed && (
-            <Tooltip>
-              <TooltipTrigger
-                className={cn(
-                  "w-full overflow-hidden text-ellipsis",
-                  // Only show on large screens on desktop
-                  // On mobile with open sidebar: never show this one
-                  "hidden",
-                  !isMobile && "lg:inline",
-                )}
-                asChild
-              >
-                <span className="overflow-hidden text-ellipsis text-sm font-medium">
-                  {displayName}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className="text-sm font-medium">{displayName}</span>
-              </TooltipContent>
-            </Tooltip>
+          {/* Only show username when not collapsed AND not on mobile */}
+          {!isCollapsed && !isMobile && (
+            <span className="overflow-hidden text-ellipsis text-sm font-medium">{displayName}</span>
           )}
         </div>
 
-        {!isCollapsed ? <ChevronRight className="inline w-4 h-4" /> : null}
+        {/* Only show chevron when not collapsed and not on mobile */}
+        {!isCollapsed && !isMobile && <ChevronRight className="inline w-4 h-4" />}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent

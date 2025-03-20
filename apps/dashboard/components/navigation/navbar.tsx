@@ -1,9 +1,11 @@
 "use client";
 
+import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { MoreHorizontal } from "lucide-react";
 import React from "react";
+import { useSidebar } from "../ui/sidebar";
 
 type BaseProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;
 
@@ -28,7 +30,7 @@ type BreadcrumbsComponent = React.ForwardRefExoticComponent<
   BaseProps &
     React.RefAttributes<HTMLElement> & {
       /** Icon to display at the start of the breadcrumb trail */
-      icon: React.ReactNode;
+      icon?: React.ReactNode;
     }
 > & {
   Link: React.ForwardRefExoticComponent<LinkProps & React.RefAttributes<HTMLAnchorElement>>;
@@ -64,19 +66,37 @@ Navbar.Actions = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
   ),
 );
 
-const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.ReactNode }>(
+const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon?: React.ReactNode }>(
   ({ children, className, icon, ...props }, ref) => {
     const childrenArray = React.Children.toArray(children);
+
+    const { toggleSidebar, state } = useSidebar();
+    const isCollapsed = state === "collapsed";
+
     return (
       <nav ref={ref} aria-label="breadcrumb" className={cn("flex", className)} {...props}>
         <ol className="flex items-center gap-3">
           <li className="mr-1">
-            <Button
-              variant="outline"
-              className="size-6 p-0 [&>svg]:size-[18px] bg-gray-4 hover:bg-gray-5"
-            >
-              {icon}
-            </Button>
+            {icon ? (
+              <Button
+                variant="outline"
+                className="size-6 p-0 [&>svg]:size-[18px] bg-gray-4 hover:bg-gray-5"
+              >
+                {icon}
+              </Button>
+            ) : (
+              <Button
+                onClick={toggleSidebar}
+                variant="outline"
+                className="size-6 p-0 [&>svg]:size-[18px] bg-gray-4 hover:bg-gray-5"
+              >
+                {isCollapsed ? (
+                  <SidebarLeftShow size="md-medium" />
+                ) : (
+                  <SidebarLeftHide size="md-medium" />
+                )}
+              </Button>
+            )}
           </li>
           {childrenArray.map((child, index) => {
             if (!React.isValidElement(child)) {
@@ -89,7 +109,6 @@ const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.Reac
                 key: child.key || `breadcrumb-${index}`,
               });
             }
-
             // biome-ignore lint/suspicious/noArrayIndexKey: Usage of index is acceptable here.
             return React.cloneElement(child, { key: index });
           })}

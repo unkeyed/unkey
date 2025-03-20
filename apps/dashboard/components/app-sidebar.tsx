@@ -1,11 +1,11 @@
 "use client";
-import { WorkspaceSwitcher } from "@/app/(app)/team-switcher";
-import { UserButton } from "@/app/(app)/user-button";
+import { WorkspaceSwitcher } from "@/components/navigation/sidebar/team-switcher";
+import { UserButton } from "@/components/navigation/sidebar/user-button";
 import {
   type NavItem,
   createWorkspaceNavigation,
   resourcesNavigation,
-} from "@/app/(app)/workspace-navigations";
+} from "@/components/navigation/sidebar/workspace-navigations";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
@@ -24,7 +24,6 @@ import {
 import { useDelayLoader } from "@/hooks/useDelayLoader";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
@@ -157,12 +156,12 @@ export function AppSidebar({
   const segments = useSelectedLayoutSegments() ?? [];
   const navItems = createNestedNavigation(props.workspace, segments);
 
-  const { toggleSidebar, state, isMobile } = useSidebar();
+  const { state, isMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="px-4 mb-1 items-center">
+      <SidebarHeader className="px-4 mb-1 items-center pt-4">
         <div
           className={cn(
             "flex w-full",
@@ -170,25 +169,6 @@ export function AppSidebar({
           )}
         >
           <WorkspaceSwitcher workspace={props.workspace} />
-          {!isMobile && (
-            <>
-              {!isCollapsed && (
-                // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
-                <div onClick={toggleSidebar} className="cursor-pointer flex-shrink-0">
-                  <SidebarLeftHide className="text-gray-8" size="xl-medium" />
-                </div>
-              )}
-              {isCollapsed && (
-                // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
-                <div
-                  onClick={toggleSidebar}
-                  className="absolute -right-3 top-4 cursor-pointer p-1 rounded-full bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700"
-                >
-                  <SidebarLeftShow className="text-gray-8" size="md-medium" />
-                </div>
-              )}
-            </>
-          )}
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2">
