@@ -203,7 +203,7 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
-		require.Equal(t, http.StatusBadRequest, res.Status, "Expected status code to be 401", "Got %#v", res)
+		require.Equal(t, http.StatusBadRequest, res.Status, "Expected status code to be 400", "Got %#v", res)
 		require.NotNil(t, res.Body)
 	})
 }

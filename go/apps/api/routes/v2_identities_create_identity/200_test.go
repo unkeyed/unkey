@@ -131,7 +131,8 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
 		var dbMeta *map[string]*interface{}
-		json.Unmarshal(identity.Meta, &dbMeta)
+		err = json.Unmarshal(identity.Meta, &dbMeta)
+		require.NoError(t, err)
 		require.Equal(t, dbMeta, meta)
 	})
 
