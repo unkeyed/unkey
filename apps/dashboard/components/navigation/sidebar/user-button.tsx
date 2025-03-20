@@ -67,7 +67,7 @@ export const UserButton: React.FC = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side="bottom"
-        className="w-full max-w-xs md:w-96"
+        className="w-full max-w-xs md:w-96 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
         align={isMobile ? "center" : "end"}
       >
         <DropdownMenuGroup>

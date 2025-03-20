@@ -116,7 +116,10 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
         )}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="absolute left-0 w-72 lg:w-96 max-sm:left-0" align="start">
+      <DropdownMenuContent
+        className="absolute left-0 w-72 lg:w-96 max-sm:left-0 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
+        align="start"
+      >
         <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
         <DropdownMenuItem
           className="flex items-center justify-between"
