@@ -98,7 +98,7 @@
     "stripe": "^14.23.0",
     "superjson": "^2.2.1",
     "svix": "^1.37.0",
-    "tailwind-merge": "^2.2.2",
+    "tailwind-merge": "^2.5.4",
     "tailwindcss": "^3.4.3",
     "tailwindcss-animate": "^1.0.7",
     "trpc-tools": "^0.12.0",
