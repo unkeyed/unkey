@@ -1,23 +1,22 @@
 import type { Workspace } from "@/lib/db";
 import {
-  BookOpen,
-  Cable,
-  Crown,
+  BookBookmark,
   Fingerprint,
   Gauge,
-  List,
-  type LucideIcon,
-  MonitorDot,
-  Settings2,
-  ShieldCheck,
-  TableProperties,
-} from "lucide-react";
-import { cn } from "../../lib/utils";
+  Gear,
+  Grid,
+  InputSearch,
+  Layers3,
+  Nodes,
+  ShieldKey,
+  Sparkle3,
+} from "@unkey/icons";
+import { cn } from "../../../lib/utils";
 
-type NavItem = {
+export type NavItem = {
   disabled?: boolean;
   tooltip?: string;
-  icon: LucideIcon | React.ElementType;
+  icon: React.ElementType;
   href: string;
   external?: boolean;
   label: string;
@@ -60,7 +59,7 @@ export const createWorkspaceNavigation = (
 ) => {
   return [
     {
-      icon: Cable,
+      icon: Nodes,
       href: "/apis",
       label: "APIs",
       active: segments.at(0) === "apis",
@@ -72,34 +71,34 @@ export const createWorkspaceNavigation = (
       active: segments.at(0) === "ratelimits",
     },
     {
-      icon: ShieldCheck,
+      icon: ShieldKey,
       label: "Authorization",
       href: "/authorization/roles",
       active: segments.some((s) => s === "authorization"),
     },
 
     {
-      icon: List,
+      icon: InputSearch,
       href: "/audit",
       label: "Audit Log",
       active: segments.at(0) === "audit",
     },
     {
-      icon: MonitorDot,
+      icon: Grid,
       href: "/monitors/verifications",
       label: "Monitors",
       active: segments.at(0) === "verifications",
       hidden: !workspace.features.webhooks,
     },
     {
-      icon: TableProperties,
+      icon: Layers3,
       href: "/logs",
       label: "Logs",
       active: segments.at(0) === "logs",
       tag: <Tag label="Beta" />,
     },
     {
-      icon: Crown,
+      icon: Sparkle3,
       href: "/success",
       label: "Success",
       active: segments.at(0) === "success",
@@ -114,7 +113,7 @@ export const createWorkspaceNavigation = (
       hidden: !workspace.betaFeatures.identities,
     },
     {
-      icon: Settings2,
+      icon: Gear,
       href: "/settings/general",
       label: "Settings",
       active: segments.at(0) === "settings",
@@ -124,7 +123,7 @@ export const createWorkspaceNavigation = (
 
 export const resourcesNavigation: NavItem[] = [
   {
-    icon: BookOpen,
+    icon: BookBookmark,
     href: "https://unkey.dev/docs",
     external: true,
     label: "Docs",

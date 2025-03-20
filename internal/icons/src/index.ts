@@ -26,6 +26,7 @@ export * from "./icons/circle-check";
 export * from "./icons/circle-half-dotted-clock";
 export * from "./icons/circle-info-sparkle";
 export * from "./icons/circle-info";
+export * from "./icons/circle-question";
 export * from "./icons/clipboard-check";
 export * from "./icons/clipboard";
 export * from "./icons/clock-rotate-clockwise";
@@ -53,6 +54,8 @@ export * from "./icons/pulse";
 export * from "./icons/refresh-3";
 export * from "./icons/shield-check";
 export * from "./icons/shield-key";
+export * from "./icons/sidebar-left-show";
+export * from "./icons/sidebar-left-hide";
 export * from "./icons/sliders";
 export * from "./icons/sparkle-3";
 export * from "./icons/storage";
@@ -65,3 +68,8 @@ export * from "./icons/triangle-warning";
 export * from "./icons/ufo";
 export * from "./icons/user-search";
 export * from "./icons/xmark";
+
+
+
+
+
