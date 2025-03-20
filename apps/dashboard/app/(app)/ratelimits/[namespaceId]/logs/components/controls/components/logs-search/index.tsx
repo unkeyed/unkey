@@ -45,7 +45,7 @@ export const LogsSearch = () => {
   return (
     <LogsLLMSearch
       exampleQueries={[
-        { id: "failed-requests", text: "Shwo failed requests today" },
+        { id: "failed-requests", text: "Show failed requests today" },
         { id: "passed-requests", text: "Show passed requests from the last 1 hour" },
         {
           id: "cust-identifier",
