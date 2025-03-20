@@ -2,10 +2,11 @@ import { ProgressCircle } from "@/app/(app)/settings/billing/components/usage";
 import { createContext } from "@/lib/create-context";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
+import type { Workspace } from "@unkey/db";
 import { Button } from "@unkey/ui";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import React, { useState, useEffect, useMemo } from "react";
+import React from "react";
 
 /* ----------------------------------------------------------------------------
  * UsageInsight - Root
@@ -14,12 +15,12 @@ import React, { useState, useEffect, useMemo } from "react";
 type DivElement = React.ElementRef<typeof motion.div>;
 type DivProps = React.ComponentPropsWithoutRef<typeof motion.div>;
 type UsageContextValue = {
-  plan: string;
+  tier: Workspace["tier"];
   current: number;
   max: number;
 };
 export interface UsageRootProps extends DivProps {
-  plan: string;
+  tier: Workspace["tier"];
   current: number;
   max: number;
   isLoading?: boolean;
@@ -31,86 +32,44 @@ const ROOT_NAME = "UsageRoot";
 const [UsageProvider, useUsageContext] = createContext<UsageContextValue>(ROOT_NAME);
 
 export const Root = React.forwardRef<DivElement, UsageRootProps>((props, ref) => {
-  const { plan, current, max, className, children, isLoading = false, ...rootProps } = props;
-
-  const [hasBeenMounted, setHasBeenMounted] = useState(false);
-  const [hasInitialData, setHasInitialData] = useState(false);
-
-  const cachedData = useMemo(() => {
-    if (plan && typeof current === "number" && typeof max === "number") {
-      return { plan, current, max };
-    }
-    return null;
-  }, [plan, current, max]);
-
-  useEffect(() => {
-    setHasBeenMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasInitialData && cachedData) {
-      setHasInitialData(true);
-    }
-  }, [cachedData, hasInitialData]);
-
-  const dataToUse = useMemo(() => {
-    if (isLoading && cachedData) {
-      return cachedData;
-    }
-    if (plan && typeof current === "number" && typeof max === "number") {
-      return { plan, current, max };
-    }
-    return cachedData;
-  }, [isLoading, cachedData, plan, current, max]);
-
-  if (!dataToUse) {
-    return null;
-  }
-
-  const shouldAnimate = !hasBeenMounted && hasInitialData;
+  const { tier, current, max, className, children, isLoading = false, ...rootProps } = props;
 
   return (
-    <UsageProvider plan={dataToUse.plan} current={dataToUse.current} max={dataToUse.max}>
-      {!shouldAnimate && (
-        <motion.div
-          {...rootProps}
-          layout
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "152px" }}
-          transition={{
-            type: "spring",
-            stiffness: 243,
-            damping: 34,
-            mass: 1,
-            delay: 1,
-          }}
-          ref={ref}
-          className={cn(
-            "relative flex flex-col bg-background border border-border rounded-xl p-4 group overflow-hidden w-full",
-            { className },
-          )}
-        >
-          <div className="z-10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center justify-start gap-2">
-                <h2 className="text-gray-12 text-lg capitalize">{dataToUse.plan}</h2>
+    <UsageProvider tier={tier} current={current} max={max}>
+      <motion.div
+        {...rootProps}
+        layout
+        ref={ref}
+        className={cn(
+          "relative flex flex-col bg-background border border-border rounded-xl p-4 group overflow-hidden w-full",
+          { "max-h-[102px]": isLoading, className },
+        )}
+      >
+        {isLoading ? (
+          <div className="z-10 flex flex-col w-full gap-3">
+            <div className="h-5 w-20 bg-secondary/75 rounded-md animate-pulse" />
+            <div className="flex gap-2">
+              <div className="h-7 w-7 bg-secondary/75 rounded-md animate-pulse delay-100" />
+              <div className="flex flex-col items-start justify-start gap-1.5">
+                <div className="h-4 w-20 bg-secondary/75 rounded-md animate-pulse delay-150" />
+                <div className="h-3 w-32 bg-secondary/50 rounded-md animate-pulse delay-200" />
               </div>
             </div>
+          </div>
+        ) : (
+          <div className="z-10 flex flex-col w-full gap-3">
+            <h2 className="text-gray-12 text-lg capitalize leading-5">{tier}</h2>
 
             {children}
 
-            {dataToUse.current / dataToUse.max >= 0.94 ? (
+            {current / max >= 0.95 && (
               <Button variant="primary" size="sm" className="w-full">
                 <Link href="/settings/billing">Upgrade</Link>
               </Button>
-            ) : (
-              <Button variant="outline" size="sm" className="w-full">
-                <Link href="/settings/billing">Manage Plan</Link>
-              </Button>
             )}
           </div>
-        </motion.div>
-      )}
+        )}
+      </motion.div>
     </UsageProvider>
   );
 });
@@ -137,12 +96,9 @@ export const Details = React.forwardRef<DivElement, DivProps>((props, ref) => {
       }}
       {...detailsProps}
       ref={ref}
-      className={cn(
-        "h-16 duration-500 ease-out w-full flex flex-col items-start justify-start py-3",
-        {
-          className,
-        },
-      )}
+      className={cn("duration-500 ease-out w-full flex flex-col items-start justify-start", {
+        className,
+      })}
     >
       {children}
     </motion.div>
@@ -177,7 +133,7 @@ export const Item = React.forwardRef<PrimitiveDivElement, UsageItemProps>((props
     <div
       {...itemProps}
       ref={ref}
-      className={cn("flex items-start justify-start gap-3", {
+      className={cn("flex items-start justify-start gap-3 w-full", {
         className,
       })}
     >
@@ -186,7 +142,7 @@ export const Item = React.forwardRef<PrimitiveDivElement, UsageItemProps>((props
         max={item?.max ?? max}
         color={color ?? "orange"}
       />
-      <div className="flex flex-col gap-2 justify-start items-start select-none">
+      <div className="flex flex-col gap-1.5 justify-start items-start select-none">
         <h6 className="text-gray-12 text-sm leading-none">{title}</h6>
         <p className="text-xs font-normal line-clamp-1">
           {formatNumber(item?.current ?? current)} of {formatNumber(item?.max ?? max)} {description}
