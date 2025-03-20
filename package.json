@@ -51,5 +51,5 @@
       "path": "cz-conventional-changelog"
     }
   },
-  "packageManager": "pnpm@8.6.9+sha256.c94450b6623ecedb5e8c7045c7e67cb240bbe88e17660b3d8c57207dfd1eff90"
+  "packageManager": "pnpm@10.6.5"
 }
