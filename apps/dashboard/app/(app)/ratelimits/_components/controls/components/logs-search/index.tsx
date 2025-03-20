@@ -42,12 +42,9 @@ export const LogsSearch = ({ setNamespaces, initialNamespaces }: LogsSearchProps
   return (
     <LogsLLMSearch
       exampleQueries={[
-        { id: "failed-requests", text: "Show failed requests today" },
-        { id: "passed-requests", text: "Show passed requests from the last 1 hour" },
-        {
-          id: "cust-identifier",
-          text: "Show failed requests that includes cust_ in the identifier",
-        },
+        "Show failed requests today",
+        "Show passed requests from the last 1 hour",
+        "Show failed requests that includes cust_ in the identifier",
       ]}
       hideExplainer
       onClear={handleClear}

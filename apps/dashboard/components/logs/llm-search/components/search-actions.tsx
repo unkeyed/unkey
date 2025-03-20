@@ -2,7 +2,7 @@ import { XMark } from "@unkey/icons";
 import { SearchExampleTooltip } from "./search-example-tooltip";
 
 type SearchActionsProps = {
-  exampleQueries?: { id: string; text: string }[];
+  exampleQueries?: string[];
   searchText: string;
   hideClear: boolean;
   hideExplainer: boolean;

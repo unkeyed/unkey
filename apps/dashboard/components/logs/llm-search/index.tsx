@@ -9,7 +9,7 @@ import { useSearchStrategy } from "./hooks/use-search-strategy";
 type SearchMode = "allowTypeDuringSearch" | "debounced" | "manual";
 
 type Props = {
-  exampleQueries?: { id: string; text: string }[];
+  exampleQueries?: string[];
   onSearch: (query: string) => void;
   onClear?: () => void;
   placeholder?: string;

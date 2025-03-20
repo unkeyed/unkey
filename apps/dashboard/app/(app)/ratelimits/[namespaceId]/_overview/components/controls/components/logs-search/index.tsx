@@ -45,9 +45,9 @@ export const LogsSearch = () => {
   return (
     <LogsLLMSearch
       exampleQueries={[
-        { id: "identifier-is", text: "Show all identifiers that is test" },
-        { id: "identifier-contains", text: "Show all identifiers that include cust_" },
-        { id: "recent-customers", text: "Show all identifiers for customer in the last 1h" },
+        "Show all identifiers that is test",
+        "Show all identifiers that include cust_",
+        "Show all identifiers for customer in the last 1h",
       ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
