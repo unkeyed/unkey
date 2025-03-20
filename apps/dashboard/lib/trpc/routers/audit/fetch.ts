@@ -99,7 +99,7 @@ export const queryAuditLogs = async (
       : null;
 
   const retentionDays =
-    workspace.features.auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
+    (workspace.features.auditLogRetentionDays ?? workspace.plan === "free") ? 30 : 90;
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
   return db.query.auditLogBucket.findFirst({
