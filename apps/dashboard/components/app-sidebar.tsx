@@ -2,21 +2,16 @@
 import { WorkspaceSwitcher } from "@/app/(app)/team-switcher";
 import { UserButton } from "@/app/(app)/user-button";
 import {
+  type NavItem,
   createWorkspaceNavigation,
   resourcesNavigation,
-  type NavItem,
 } from "@/app/(app)/workspace-navigations";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -24,14 +19,13 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarRail,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useDelayLoader } from "@/hooks/useDelayLoader";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Menu } from "lucide-react";
+import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -42,14 +36,14 @@ const getButtonStyles = (isActive?: boolean, showLoader?: boolean) => {
     "rounded-lg transition-colors focus-visible:ring-1 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed outline-none",
     "focus:border-grayA-12 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
     isActive ? "bg-grayA-3 text-accent-12" : "[&_svg]:text-gray-9",
-    showLoader ? "bg-grayA-3 [&_svg]:text-accent-12" : ""
+    showLoader ? "bg-grayA-3 [&_svg]:text-accent-12" : "",
   );
 };
 
 // Function to create navigation items that can have sub-items
 const createNestedNavigation = (
   workspace: Pick<Workspace, "features" | "betaFeatures">,
-  segments: string[]
+  segments: string[],
 ): (NavItem & { items?: NavItem[] })[] => {
   // Get the base navigation items
   const baseNav = createWorkspaceNavigation(workspace, segments);
@@ -82,7 +76,7 @@ const NavItems = ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
           target={item.external ? "_blank" : undefined}
         >
           <SidebarMenuButton
-            tooltip={item.tooltip}
+            tooltip={item.label}
             isActive={item.active}
             className={getButtonStyles(item.active, showLoader)}
           >
@@ -96,11 +90,7 @@ const NavItems = ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
 
   // Render a collapsible navigation item with sub-items
   return (
-    <Collapsible
-      asChild
-      defaultOpen={item.active}
-      className="group/collapsible"
-    >
+    <Collapsible asChild defaultOpen={item.active} className="group/collapsible">
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
@@ -141,10 +131,7 @@ const NavItems = ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
                 >
                   <SidebarMenuSubButton
                     isActive={subItem.active}
-                    className={getButtonStyles(
-                      subItem.active,
-                      subPending[subItem.label]
-                    )}
+                    className={getButtonStyles(subItem.active, subPending[subItem.label])}
                   >
                     {subPending[subItem.label] ? (
                       <AnimatedLoadingSpinner />
@@ -163,23 +150,6 @@ const NavItems = ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
   );
 };
 
-// Mobile Sidebar Trigger Component
-const MobileSidebarTrigger = () => {
-  const { isMobile } = useSidebar();
-
-  if (!isMobile) {
-    return null;
-  }
-
-  return (
-    <div className="fixed top-4 left-4 z-50 md:hidden">
-      <SidebarTrigger>
-        <Menu className="h-6 w-6" />
-      </SidebarTrigger>
-    </div>
-  );
-};
-
 // AppSidebar component
 export function AppSidebar({
   ...props
@@ -187,41 +157,56 @@ export function AppSidebar({
   const segments = useSelectedLayoutSegments() ?? [];
   const navItems = createNestedNavigation(props.workspace, segments);
 
+  const { toggleSidebar, state, isMobile } = useSidebar();
+  const isCollapsed = state === "collapsed";
+
   return (
-    <>
-      <MobileSidebarTrigger />
-      <Sidebar collapsible="icon" {...props}>
-        <SidebarHeader className="px-1">
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader className="px-4 mb-1 items-center">
+        <div
+          className={cn(
+            "flex w-full",
+            isCollapsed ? "justify-center" : "items-center justify-between gap-4",
+          )}
+        >
           <WorkspaceSwitcher workspace={props.workspace} />
-        </SidebarHeader>
-        <SidebarContent className="space-y-4">
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-accent-11">
-              WORKSPACE
-            </SidebarGroupLabel>
-            <SidebarMenu className="gap-2">
-              {navItems.map((item) => (
-                <NavItems key={item.label} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-accent-11">
-              RESOURCES
-            </SidebarGroupLabel>
-            <SidebarMenu>
-              {resourcesNavigation.map((item) => (
-                <NavItems key={item.label} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
-        <SidebarFooter className="px-1">
-          <UserButton />
-        </SidebarFooter>
-        <SidebarRail />
-      </Sidebar>
-    </>
+          {!isMobile && (
+            <>
+              {!isCollapsed && (
+                // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+                <div onClick={toggleSidebar} className="cursor-pointer flex-shrink-0">
+                  <SidebarLeftHide className="text-gray-8" size="xl-medium" />
+                </div>
+              )}
+              {isCollapsed && (
+                // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+                <div
+                  onClick={toggleSidebar}
+                  className="absolute -right-3 top-4 cursor-pointer p-1 rounded-full bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700"
+                >
+                  <SidebarLeftShow className="text-gray-8" size="md-medium" />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </SidebarHeader>
+      <SidebarContent className="px-2">
+        <SidebarGroup>
+          <SidebarMenu className="gap-2">
+            {navItems.map((item) => (
+              <NavItems key={item.label} item={item} />
+            ))}
+            {resourcesNavigation.map((item) => (
+              <NavItems key={item.label} item={item} />
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter className={cn("px-4", !isMobile && "items-center")}>
+        <UserButton />
+      </SidebarFooter>
+    </Sidebar>
   );
 }
 
@@ -259,8 +244,7 @@ const AnimatedLoadingSpinner = () => {
       <g>
         {segments.map((id, index) => {
           // Calculate opacity based on position relative to current index
-          const distance =
-            (segments.length + index - segmentIndex) % segments.length;
+          const distance = (segments.length + index - segmentIndex) % segments.length;
           const opacity = distance <= 4 ? 1 - distance * 0.2 : 0.1;
           return (
             <path

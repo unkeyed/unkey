@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -32,36 +33,36 @@ export default async function Layout({ children }: LayoutProps) {
       <UsageBanner workspace={workspace} />
       <div className="flex flex-1 overflow-hidden">
         <SidebarProvider>
-          <AppSidebar
-            workspace={workspace}
-            className="bg-gray-1 border-grayA-4"
-          />
-          <div
-            className="isolate bg-base-12 w-full overflow-x-auto flex flex-col items-center"
-            id="layout-wrapper"
-          >
-            <div className="w-full">
-              {workspace.enabled ? (
-                children
-              ) : (
-                <div className="flex items-center justify-center w-full h-full">
-                  <Empty>
-                    <Empty.Icon />
-                    <Empty.Title>This workspace is disabled</Empty.Title>
-                    <Empty.Description>
-                      Contact{" "}
-                      <Link
-                        href={`mailto:support@unkey.dev?body=workspaceId: ${workspace.id}`}
-                        className="underline"
-                      >
-                        support@unkey.dev
-                      </Link>
-                    </Empty.Description>
-                  </Empty>
-                </div>
-              )}
+          <AppSidebar workspace={workspace} className="bg-gray-1 border-grayA-4" />
+          <SidebarInset>
+            <div
+              className="isolate bg-base-12 w-full overflow-x-auto flex flex-col items-center"
+              id="layout-wrapper"
+            >
+              <SidebarMobile workspace={workspace} />
+              <div className="w-full">
+                {workspace.enabled ? (
+                  children
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full">
+                    <Empty>
+                      <Empty.Icon />
+                      <Empty.Title>This workspace is disabled</Empty.Title>
+                      <Empty.Description>
+                        Contact{" "}
+                        <Link
+                          href={`mailto:support@unkey.dev?body=workspaceId: ${workspace.id}`}
+                          className="underline"
+                        >
+                          support@unkey.dev
+                        </Link>
+                      </Empty.Description>
+                    </Empty>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </SidebarInset>
         </SidebarProvider>
       </div>
     </div>

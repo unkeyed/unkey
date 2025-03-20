@@ -9,18 +9,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { useSidebar } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { SignOutButton, useUser } from "@clerk/nextjs";
 import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { cn } from "@/lib/utils";
-import { useSidebar } from "@/components/ui/sidebar";
 
 export const UserButton: React.FC = () => {
   const { user } = useUser();
@@ -28,16 +24,14 @@ export const UserButton: React.FC = () => {
   const { isMobile, state, openMobile } = useSidebar();
 
   // When mobile sidebar is open, we want to show the full component
-  const isCollapsed =
-    (state === "collapsed" || isMobile) && !(isMobile && openMobile);
+  const isCollapsed = (state === "collapsed" || isMobile) && !(isMobile && openMobile);
 
   if (!user) {
     return null;
   }
 
   // Get user display name
-  const displayName =
-    user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress;
+  const displayName = user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress;
 
   return (
     <DropdownMenu>
@@ -46,24 +40,21 @@ export const UserButton: React.FC = () => {
           "flex items-center rounded-lg hover:bg-background-subtle hover:cursor-pointer text-content",
           isCollapsed
             ? "justify-center w-10 h-10 p-0"
-            : "justify-between gap-2 p-2 w-auto lg:w-full h-12"
+            : "justify-between gap-2 p-2 w-auto lg:w-full h-12",
         )}
       >
         <div
           className={cn(
             "flex items-center gap-2 overflow-hidden whitespace-nowrap",
-            isCollapsed ? "justify-center" : ""
+            isCollapsed ? "justify-center" : "",
           )}
         >
-          <Avatar className="w-5 h-5">
+          <Avatar className="w-6 h-6 rounded-full border border-grayA-6">
             {user.imageUrl ? (
-              <AvatarImage src={user.imageUrl} alt="Profile picture" />
+              <AvatarImage src={user.imageUrl} alt="Profile picture" className="rounded-full" />
             ) : null}
             <AvatarFallback
-              className={cn(
-                "bg-gray-100 border border-gray-500 rounded-md",
-                "w-5 h-5"
-              )}
+              className={cn("bg-gray-2 border border-grayA-6 rounded-full", "w-6 h-6")}
             >
               {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>
@@ -76,7 +67,7 @@ export const UserButton: React.FC = () => {
                   "w-full overflow-hidden text-ellipsis",
                   // On desktop: show on small/medium screens, hide on large screens
                   // On mobile with open sidebar: always show
-                  !isMobile && "sm:inline lg:hidden"
+                  !isMobile && "sm:inline lg:hidden",
                 )}
                 asChild
               >
@@ -99,7 +90,7 @@ export const UserButton: React.FC = () => {
                   // Only show on large screens on desktop
                   // On mobile with open sidebar: never show this one
                   "hidden",
-                  !isMobile && "lg:inline"
+                  !isMobile && "lg:inline",
                 )}
                 asChild
               >
