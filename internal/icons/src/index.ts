@@ -68,8 +68,3 @@ export * from "./icons/triangle-warning";
 export * from "./icons/ufo";
 export * from "./icons/user-search";
 export * from "./icons/xmark";
-
-
-
-
-

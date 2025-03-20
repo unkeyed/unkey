@@ -22,7 +22,7 @@ export const sizeMap = {
   "xl-regular": { size: 18, strokeWidth: 2 },
   "xl-bold": { size: 18, strokeWidth: 3 },
   "2xl-thin": { size: 30, strokeWidth: 1 },
-  "2xl-medium":{size: 30, strokeWidth: 1.5 },
+  "2xl-medium": { size: 30, strokeWidth: 1.5 },
   "2xl-regular": { size: 30, strokeWidth: 2 },
   "2xl-bold": { size: 30, strokeWidth: 3 },
 } as const;
