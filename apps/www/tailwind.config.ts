@@ -1,15 +1,18 @@
+import defaultTheme from "@unkey/ui/tailwind.config";
 import type { Config } from "tailwindcss";
 
 const config = {
-  darkMode: ["class"],
+  darkMode: "class",
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    "../../internal/ui/src/**/*.tsx",
+    "../../internal/icons/src/**/*.tsx",
   ],
   prefix: "",
-  theme: {
+  theme: merge(defaultTheme.theme!, {
     extend: {
       container: {
         padding: {
@@ -95,19 +98,31 @@ const config = {
           "100%": { opacity: "1" },
         },
         "fade-in-left": {
-          "0%": { opacity: "0", transform: "translateX(var(--fade-in-left-tx, 1rem))" },
+          "0%": {
+            opacity: "0",
+            transform: "translateX(var(--fade-in-left-tx, 1rem))",
+          },
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
         "fade-in-right": {
-          "0%": { opacity: "0", transform: "translateX(var(--fade-in-right-tx, -1rem))" },
+          "0%": {
+            opacity: "0",
+            transform: "translateX(var(--fade-in-right-tx, -1rem))",
+          },
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
         "fade-in-up": {
-          "0%": { opacity: "0", transform: "translateY(var(--fade-in-up-ty, 1rem))" },
+          "0%": {
+            opacity: "0",
+            transform: "translateY(var(--fade-in-up-ty, 1rem))",
+          },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "fade-in-down": {
-          "0%": { opacity: "0", transform: "translateY(var(--fade-in-down-ty, -1rem))" },
+          "0%": {
+            opacity: "0",
+            transform: "translateY(var(--fade-in-down-ty, -1rem))",
+          },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "logo-cloud": {
@@ -133,8 +148,30 @@ const config = {
         },
       },
     },
-  },
+  }),
   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 } satisfies Config;
+
+export function merge<T extends object, U extends object>(obj1: T, obj2: U): T & U {
+  for (const key in obj2) {
+    if (Object.prototype.hasOwnProperty.call(obj2, key)) {
+      const obj2Key = obj2[key];
+
+      if (isObject(obj2Key)) {
+        if (!(key in obj1)) {
+          (obj1 as any)[key] = {};
+        }
+        (obj1 as any)[key] = merge((obj1 as any)[key] as object, obj2Key as object);
+      } else {
+        (obj1 as any)[key] = obj2Key;
+      }
+    }
+  }
+  return obj1 as T & U;
+}
+
+function isObject(item: any): boolean {
+  return typeof item === "object" && item !== null && !Array.isArray(item);
+}
 
 export default config;
