@@ -27,6 +27,7 @@ export const LogsClient = ({ apiId }: { apiId: string }) => {
       <KeysOverviewLogsCharts apiId={apiId} onMount={handleDistanceToTop} />
       <KeysOverviewLogsTable apiId={apiId} setSelectedLog={handleSelectedLog} log={selectedLog} />
       <KeysOverviewLogDetails
+        apiId={apiId}
         distanceToTop={tableDistanceToTop}
         setSelectedLog={handleSelectedLog}
         log={selectedLog}

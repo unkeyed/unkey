@@ -2,6 +2,7 @@ import { Footer } from "@/components/footer/footer";
 import { Navigation } from "@/components/navbar/navigation";
 import { env } from "@/lib/env";
 import { PHProvider } from "@/providers/posthog/PostHogProvider";
+import "@unkey/ui/css";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";

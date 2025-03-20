@@ -1,18 +1,26 @@
 "use client";
 
 import { revalidate } from "@/app/actions";
-import { DialogContainer } from "@/components/dialog-container";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+const DynamicDialogContainer = dynamic(
+  () =>
+    import("@/components/dialog-container").then((mod) => ({
+      default: mod.DialogContainer,
+    })),
+  { ssr: false },
+);
 
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name must be at least 3 characters long").max(50),
@@ -62,7 +70,7 @@ export const CreateApiButton = ({
         Create new API
       </NavbarActionButton>
 
-      <DialogContainer
+      <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
         title="Create New API"
@@ -94,7 +102,7 @@ export const CreateApiButton = ({
             placeholder="my-api"
           />
         </form>
-      </DialogContainer>
+      </DynamicDialogContainer>
     </>
   );
 };
