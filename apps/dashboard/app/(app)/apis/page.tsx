@@ -29,12 +29,11 @@ export default async function ApisOverviewPage(props: Props) {
     workspaceId: workspace.id,
     limit: DEFAULT_OVERVIEW_FETCH_LIMIT,
   });
-  const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
 
   return (
     <div>
       <Navigation isNewApi={!!props.searchParams.new} apisLength={initialData.total} />
-      <ApiListClient initialData={initialData} unpaid={unpaid} />
+      <ApiListClient initialData={initialData} />
     </div>
   );
 }
