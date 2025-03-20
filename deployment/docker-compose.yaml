@@ -52,6 +52,7 @@ services:
       - mysql
       - redis
       - clickhouse
+      - otel
     environment:
       UNKEY_HTTP_PORT: 7070
       UNKEY_CLUSTER: true
@@ -61,6 +62,9 @@ services:
       UNKEY_CLUSTER_DISCOVERY_REDIS_URL: "redis://redis:6379"
       UNKEY_DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey?parseTime=true"
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
+      UNKEY_OTEL: true
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
 
   redis:
     image: redis:latest
@@ -169,33 +173,16 @@ services:
       - clickhouse
       - chproxy
 
-  # prometheus:
-  #     image: prom/prometheus
-  #     container_name: prometheus
-  #     command:
-  #       - '--config.file=/etc/prometheus/prometheus.yaml'
-  #     ports:
-  #       - 9090:9090
-  #     restart: unless-stopped
-  #     volumes:
-  #       - ./prometheus:/etc/prometheus
-  #       - prometheus:/prometheus
+  otel:
+    image: grafana/otel-lgtm:latest
+    container_name: otel
+    ports:
+      - 3000:3000
+      - 4317:4317
+      - 4318:4318
 
-  # grafana:
-  #   image: grafana/grafana
-  #   container_name: grafana
-  #   ports:
-  #     - 4000:3000
-  #   restart: unless-stopped
-  #   environment:
-  #         - GF_SECURITY_ADMIN_USER=admin
-  #         - GF_SECURITY_ADMIN_PASSWORD=grafana
-  #   volumes:
-  #     - ./grafana:/etc/grafana/provisioning/datasources
 volumes:
   mysql:
-  grafana:
   clickhouse:
   clickhouse-keeper:
   s3:
-  prometheus:

@@ -2,13 +2,14 @@ package zen
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // Server manages HTTP server configuration, route registration, and lifecycle.
@@ -30,8 +31,8 @@ type Server struct {
 
 // Config configures the behavior of a Server instance.
 type Config struct {
-	// NodeID uniquely identifies this server instance, useful for logging and tracing.
-	NodeID string
+	// InstanceID uniquely identifies this server instance, useful for logging and tracing.
+	InstanceID string
 
 	// Logger provides structured logging for the server. If nil, logging is disabled.
 	Logger logging.Logger
@@ -47,7 +48,7 @@ type Config struct {
 // Example:
 //
 //	server, err := zen.New(zen.Config{
-//	    NodeID: "api-server-1",
+//	    InstanceID: "api-server-1",
 //	    Logger: logger,
 //	})
 //	if err != nil {
@@ -83,7 +84,6 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
-					ctx:            context.Background(),
 					workspaceID:    "",
 					requestID:      "",
 					w:              nil,
@@ -146,10 +146,10 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 
 	s.srv.Addr = addr
 
-	s.logger.Info("listening", "addr", addr)
+	s.logger.Info("listening", "srv", "http", "addr", addr)
 
 	err := s.srv.ListenAndServe()
-	if err != nil {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fault.Wrap(err, fault.WithDesc("listening failed", ""))
 	}
 	return nil
@@ -199,7 +199,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				handle = middlewares[i](handle)
 			}
 
-			err = handle(sess)
+			err = handle(r.Context(), sess)
 
 			if err != nil {
 				panic(err)

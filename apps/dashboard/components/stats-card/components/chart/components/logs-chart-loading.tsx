@@ -1,50 +1,37 @@
-import { useEffect, useState } from "react";
+import { useWaveAnimation } from "@/components/logs/overview-charts/hooks";
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 
 export const LogsChartLoading = () => {
-  const [mockData, setMockData] = useState(generateInitialData());
-
-  function generateInitialData() {
-    return Array.from({ length: 100 }).map(() => ({
-      success: Math.random() * 0.5 + 0.5,
-      error: Math.random() * 0.3,
-      originalTimestamp: Date.now(),
-    }));
-  }
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMockData((prevData) =>
-        prevData.map((item) => ({
-          ...item,
-          success: Math.random() * 0.5 + 0.5,
-          error: Math.random() * 0.3,
-        })),
-      );
-    }, 600); // Update every 200ms for smooth animation
-
-    return () => clearInterval(interval);
-  }, []);
+  // Use our custom hook with both primary and secondary keys
+  const { mockData } = useWaveAnimation({
+    animate: false,
+    dataPoints: 100,
+    labels: {
+      primaryKey: "success",
+      title: "Logs Activity",
+      primaryLabel: "Success",
+      secondaryLabel: "",
+      secondaryKey: "",
+    },
+  });
 
   return (
     <div className="flex flex-col h-full animate-pulse">
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-            <YAxis domain={[0, (dataMax: number) => dataMax * 2]} hide />
+            <YAxis domain={[0, 1]} hide />
             <Bar
               dataKey="success"
               fill="hsl(var(--accent-3))"
               stackId="a"
-              animationDuration={600}
-              isAnimationActive
+              isAnimationActive={false}
             />
             <Bar
               dataKey="error"
               fill="hsl(var(--accent-3))"
               stackId="a"
-              animationDuration={600}
-              isAnimationActive
+              isAnimationActive={false}
             />
           </BarChart>
         </ResponsiveContainer>

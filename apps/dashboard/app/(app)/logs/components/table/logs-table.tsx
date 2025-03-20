@@ -26,12 +26,12 @@ type StatusStyle = {
 
 const STATUS_STYLES = {
   success: {
-    base: "text-accent-9",
-    hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-accent-3",
-    selected: "text-accent-11 bg-accent-3 dark:text-accent-12",
+    base: "text-grayA-9",
+    hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
+    selected: "text-accent-12 bg-grayA-3 hover:text-accent-12",
     badge: {
-      default: "bg-accent-4 text-accent-11 group-hover:bg-accent-5",
-      selected: "bg-accent-5 text-accent-12 hover:bg-hover-5",
+      default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5",
+      selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5",
     },
     focusRing: "focus:ring-accent-7",
   },
@@ -55,11 +55,6 @@ const STATUS_STYLES = {
     },
     focusRing: "focus:ring-error-7",
   },
-};
-
-const METHOD_BADGE = {
-  base: "uppercase px-[6px] rounded-md font-mono bg-accent-4 text-accent-11 group-hover:bg-accent-5 group-hover:text-accent-12",
-  selected: "bg-accent-5 text-accent-12",
 };
 
 const getStatusStyle = (status: number): StatusStyle => {
@@ -192,7 +187,14 @@ export const LogsTable = () => {
         render: (log) => {
           const isSelected = selectedLog?.request_id === log.request_id;
           return (
-            <Badge className={cn(METHOD_BADGE.base, isSelected && METHOD_BADGE.selected)}>
+            <Badge
+              className={cn(
+                "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
+                isSelected
+                  ? STATUS_STYLES.success.badge.selected
+                  : STATUS_STYLES.success.badge.default,
+              )}
+            >
               {log.method}
             </Badge>
           );

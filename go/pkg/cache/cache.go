@@ -11,7 +11,7 @@ import (
 	"github.com/panjf2000/ants"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -55,23 +55,23 @@ type Config[K comparable, V any] struct {
 var _ Cache[any, any] = (*cache[any, any])(nil)
 
 // New creates a new cache instance
-func New[K comparable, V any](config Config[K, V]) *cache[K, V] {
+func New[K comparable, V any](config Config[K, V]) (*cache[K, V], error) {
 
 	builder, err := otter.NewBuilder[K, swrEntry[V]](config.MaxSize)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	otter, err := builder.CollectStats().Cost(func(key K, value swrEntry[V]) uint32 {
 		return 1
 	}).WithTTL(config.Stale).Build()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	pool, err := ants.NewPool(10)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	c := &cache[K, V]{
@@ -87,31 +87,60 @@ func New[K comparable, V any](config Config[K, V]) *cache[K, V] {
 		inflightRefreshes: make(map[K]bool),
 	}
 
-	go c.collectMetrics()
-
-	return c
+	err = c.registerMetrics()
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 
 }
 
-func (c *cache[K, V]) collectMetrics() {
+func (c *cache[K, V]) registerMetrics() error {
 
 	attributes := metric.WithAttributes(
 		attribute.String("resource", c.resource),
 	)
 
-	t := time.NewTicker(time.Second * 5)
-	for range t.C {
-		ctx := context.Background()
-
-		metrics.Cache.Size.Record(ctx, int64(c.otter.Size()), attributes)
-
-		stats := c.otter.Stats()
-		metrics.Cache.Hits.Record(ctx, stats.Hits(), attributes)
-		metrics.Cache.Misses.Record(ctx, stats.Misses(), attributes)
-		metrics.Cache.Evicted.Record(ctx, stats.EvictedCount(), attributes)
-
+	err := metrics.Cache.Size.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		o.Observe(int64(c.otter.Size()), attributes)
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
+	err = metrics.Cache.Capacity.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		o.Observe(int64(c.otter.Capacity()), attributes)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	err = metrics.Cache.Hits.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		o.Observe(c.otter.Stats().Hits(), attributes)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	err = metrics.Cache.Misses.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		o.Observe(c.otter.Stats().Misses(), attributes)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	err = metrics.Cache.Evicted.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
+		o.Observe(c.otter.Stats().EvictedCount(), attributes)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
@@ -138,12 +167,27 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 
 }
 
-func (c *cache[K, V]) SetNull(ctx context.Context, key K) {
-	c.set(ctx, key)
+func (c *cache[K, V]) SetNull(_ context.Context, key K) {
+	now := c.clock.Now()
+
+	var v V
+	c.otter.Set(key, swrEntry[V]{
+		Value: v,
+		Fresh: now.Add(c.fresh),
+		Stale: now.Add(c.stale),
+		Hit:   Null,
+	})
 }
 
-func (c *cache[K, V]) Set(ctx context.Context, key K, value V) {
-	c.set(ctx, key, value)
+func (c *cache[K, V]) Set(_ context.Context, key K, value V) {
+	now := c.clock.Now()
+
+	c.otter.Set(key, swrEntry[V]{
+		Value: value,
+		Fresh: now.Add(c.fresh),
+		Stale: now.Add(c.stale),
+		Hit:   Hit,
+	})
 }
 
 func (c *cache[K, V]) get(ctx context.Context, key K) (swrEntry[V], bool) {
@@ -156,30 +200,6 @@ func (c *cache[K, V]) get(ctx context.Context, key K) (swrEntry[V], bool) {
 	))
 
 	return v, ok
-}
-
-func (c *cache[K, V]) set(_ context.Context, key K, value ...V) {
-	now := c.clock.Now()
-
-	if len(value) == 0 {
-		// Set NULL
-		var v V
-		c.otter.Set(key, swrEntry[V]{
-			Value: v,
-			Fresh: now.Add(c.fresh),
-			Stale: now.Add(c.stale),
-			Hit:   Null,
-		})
-		return
-	}
-
-	c.otter.Set(key, swrEntry[V]{
-		Value: value[0],
-		Fresh: now.Add(c.fresh),
-		Stale: now.Add(c.stale),
-		Hit:   Hit,
-	})
-
 }
 
 func (c *cache[K, V]) Remove(ctx context.Context, key K) {
@@ -231,7 +251,7 @@ func (c *cache[K, V]) Clear(ctx context.Context) {
 func (c *cache[K, V]) refresh(
 	ctx context.Context,
 	key K, refreshFromOrigin func(context.Context) (V, error),
-	translateError func(error) CacheHit,
+	op func(error) Op,
 ) {
 	c.inflightMu.Lock()
 	_, ok := c.inflightRefreshes[key]
@@ -250,13 +270,13 @@ func (c *cache[K, V]) refresh(
 
 	v, err := refreshFromOrigin(ctx)
 
-	switch translateError(err) {
-	case Hit:
-		c.set(ctx, key, v)
-	case Miss:
-		c.set(ctx, key)
-	case Null:
-		c.set(ctx, key)
+	switch op(err) {
+	case WriteValue:
+		c.Set(ctx, key, v)
+	case WriteNull:
+		c.SetNull(ctx, key)
+	case Noop:
+		break
 	}
 
 }
@@ -265,8 +285,9 @@ func (c *cache[K, V]) SWR(
 	ctx context.Context,
 	key K,
 	refreshFromOrigin func(context.Context) (V, error),
-	translateError func(error) CacheHit,
+	op func(error) Op,
 ) (V, error) {
+
 	now := c.clock.Now()
 	e, ok := c.get(ctx, key)
 	if ok {
@@ -283,7 +304,7 @@ func (c *cache[K, V]) SWR(
 			// but return the current value
 
 			err := c.pool.Submit(func() {
-				c.refresh(ctx, key, refreshFromOrigin, translateError)
+				c.refresh(ctx, key, refreshFromOrigin, op)
 			})
 			if err != nil {
 				c.logger.Error("failed to submit refresh task", "error", err.Error())
@@ -302,13 +323,13 @@ func (c *cache[K, V]) SWR(
 
 	v, err := refreshFromOrigin(ctx)
 
-	switch translateError(err) {
-	case Hit:
-		c.set(ctx, key, v)
-	case Miss:
-		c.set(ctx, key)
-	case Null:
-		c.set(ctx, key)
+	switch op(err) {
+	case WriteValue:
+		c.Set(ctx, key, v)
+	case WriteNull:
+		c.SetNull(ctx, key)
+	case Noop:
+		break
 	}
 
 	return v, err

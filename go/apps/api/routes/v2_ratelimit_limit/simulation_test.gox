@@ -1,0 +1,450 @@
+package v2RatelimitLimit_test
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
+	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/cluster"
+	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/sim"
+	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
+)
+
+// RateLimitState represents the simulation state for rate limiting tests
+type RateLimitState struct {
+	// Time tracking
+	Clock *clock.TestClock
+
+	// Namespace information
+	NamespaceID   string
+	NamespaceName string
+
+	// Identifiers for tracking different users/resources
+	Identifiers []string
+
+	// Default rate limit configuration
+	DefaultLimit    int64
+	DefaultDuration time.Duration
+
+	// Overrides
+	Overrides map[string]Override
+
+	// Request tracking
+	Requests          map[string][]Request // Map of identifier -> requests
+	ExpectedRemaining map[string]int64     // Expected remaining counts
+	LastReset         map[string]time.Time // When limits were last reset
+}
+
+// Override represents a rate limit override for a specific identifier
+type Override struct {
+	ID       string
+	Limit    int64
+	Duration time.Duration
+}
+
+// Request represents a rate limit request made during simulation
+type Request struct {
+	Timestamp time.Time
+	Cost      int64
+	Success   bool
+	Remaining int64
+}
+
+// createSimulation initializes a simulation for rate limiting tests
+func createSimulation(t *testing.T, seed sim.Seed) *sim.Simulation[RateLimitState] {
+	t.Helper()
+
+	return sim.New[RateLimitState](seed,
+		sim.WithState(func(rng *sim.Rand) *RateLimitState {
+			// Create a test clock starting at a fixed time
+			testClock := clock.NewTestClock(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
+
+			// Generate random namespace details
+			namespaceID := uid.New("ns_test")
+			namespaceName := fmt.Sprintf("test_namespace_%s", uid.New(""))
+
+			// Generate random identifiers (users/resources)
+			identifierCount := 5 + rng.IntN(10) // 5-14 identifiers
+			identifiers := make([]string, identifierCount)
+			for i := range identifiers {
+				identifiers[i] = fmt.Sprintf("user_%s", uid.New(""))
+			}
+
+			// Generate random limit configuration (reasonable values)
+			defaultLimit := int64(10 + rng.IntN(490))                      // 10-500
+			defaultDuration := time.Duration(1+rng.IntN(60)) * time.Second // 1-60 seconds
+
+			return &RateLimitState{
+				Clock:             testClock,
+				NamespaceID:       namespaceID,
+				NamespaceName:     namespaceName,
+				Identifiers:       identifiers,
+				DefaultLimit:      defaultLimit,
+				DefaultDuration:   defaultDuration,
+				Overrides:         make(map[string]Override),
+				Requests:          make(map[string][]Request),
+				ExpectedRemaining: make(map[string]int64),
+				LastReset:         make(map[string]time.Time),
+			}
+		}),
+	)
+}
+
+// validateRateLimitState verifies the simulation state is consistent
+func validateRateLimitState(state *RateLimitState) error {
+	// Validate rate limits for each identifier
+	for _, identifier := range state.Identifiers {
+		// Skip if no requests for this identifier
+		if len(state.Requests[identifier]) == 0 {
+			continue
+		}
+
+		// Get limit and duration for this identifier (from override or default)
+		var limit int64
+		var duration time.Duration
+
+		if override, exists := state.Overrides[identifier]; exists {
+			limit = override.Limit
+			duration = override.Duration
+		} else {
+			limit = state.DefaultLimit
+			duration = state.DefaultDuration
+		}
+
+		// Check if we've exceeded our limit
+		if expected := state.ExpectedRemaining[identifier]; expected < 0 {
+			return fmt.Errorf("validation error: negative remaining count for %s: %d",
+				identifier, expected)
+		}
+
+		// Verify the last successful request didn't exceed the limit
+		requests := state.Requests[identifier]
+		if len(requests) > 0 {
+			lastRequest := requests[len(requests)-1]
+			if lastRequest.Success && lastRequest.Remaining > limit {
+				return fmt.Errorf("validation error: remaining count %d exceeds limit %d for %s",
+					lastRequest.Remaining, limit, identifier)
+			}
+		}
+	}
+
+	return nil
+}
+
+func TestRateLimitSimulation(t *testing.T) {
+	// Skip this test unless explicitly enabled
+	sim.CheckEnabled(t)
+
+	// Create simulation with random seed
+	seed := sim.NewSeed()
+	simulation := createSimulation(t, seed)
+
+	// Add state validator
+	simulation = sim.WithValidator(validateRateLimitState)(simulation)
+
+	// Define events (we'll implement these below)
+	events := []sim.Event[RateLimitState]{
+		&CreateOverrideEvent{},
+		&DeleteOverrideEvent{},
+		&RateLimitRequestEvent{},
+		&AdvanceTimeEvent{},
+	}
+
+	// Run the simulation
+	err := simulation.Run(events)
+	require.NoError(t, err, "Simulation failed with seed %s", seed.String())
+
+	// Additional assertions if needed
+	state := simulation.State()
+	require.NotNil(t, state)
+
+	// Log summary statistics
+	var totalRequests int
+	var successfulRequests int
+
+	for _, identifier := range state.Identifiers {
+		requests := state.Requests[identifier]
+		totalRequests += len(requests)
+
+		for _, req := range requests {
+			if req.Success {
+				successfulRequests++
+			}
+		}
+	}
+
+	t.Logf("Simulation completed: %d/%d successful requests across %d identifiers",
+		successfulRequests, totalRequests, len(state.Identifiers))
+}
+
+// CreateOverrideEvent creates a rate limit override for a random identifier
+type CreateOverrideEvent struct{}
+
+func (e CreateOverrideEvent) Name() string {
+	return "CreateOverride"
+}
+
+func (e CreateOverrideEvent) Run(rng *sim.Rand, state *RateLimitState) error {
+	// Randomly select an identifier to create an override for
+	if len(state.Identifiers) == 0 {
+		return nil // No identifiers to create overrides for
+	}
+
+	identifierIndex := rng.IntN(len(state.Identifiers))
+	identifier := state.Identifiers[identifierIndex]
+
+	// Generate random override values
+	limit := int64(5 + rng.IntN(995))                        // 5-1000
+	duration := time.Duration(rng.IntN(120)+1) * time.Second // 1-120 seconds
+
+	// Create the override
+	overrideID := uid.New("ovr_test")
+	state.Overrides[identifier] = Override{
+		ID:       overrideID,
+		Limit:    limit,
+		Duration: duration,
+	}
+
+	// Reset the expected remaining count to the new limit
+	state.ExpectedRemaining[identifier] = limit
+	state.LastReset[identifier] = state.Clock.Now()
+
+	return nil
+}
+
+// DeleteOverrideEvent removes a rate limit override
+type DeleteOverrideEvent struct{}
+
+func (e DeleteOverrideEvent) Name() string {
+	return "DeleteOverride"
+}
+
+func (e DeleteOverrideEvent) Run(rng *sim.Rand, state *RateLimitState) error {
+	// Find identifiers with overrides
+	var identifiersWithOverrides []string
+	for _, id := range state.Identifiers {
+		if _, exists := state.Overrides[id]; exists {
+			identifiersWithOverrides = append(identifiersWithOverrides, id)
+		}
+	}
+
+	// If no overrides exist, do nothing
+	if len(identifiersWithOverrides) == 0 {
+		return nil
+	}
+
+	// Select a random override to delete
+	identifierIndex := rng.IntN(len(identifiersWithOverrides))
+	identifier := identifiersWithOverrides[identifierIndex]
+
+	// Delete the override
+	delete(state.Overrides, identifier)
+
+	// Reset the expected remaining count to the default limit
+	state.ExpectedRemaining[identifier] = state.DefaultLimit
+	state.LastReset[identifier] = state.Clock.Now()
+
+	return nil
+}
+
+// RateLimitRequestEvent simulates making a rate limit request
+type RateLimitRequestEvent struct{}
+
+func (e RateLimitRequestEvent) Name() string {
+	return "RateLimitRequest"
+}
+
+func (e RateLimitRequestEvent) Run(rng *sim.Rand, state *RateLimitState) error {
+	// Select a random identifier
+	if len(state.Identifiers) == 0 {
+		return nil // No identifiers to make requests for
+	}
+
+	identifierIndex := rng.IntN(len(state.Identifiers))
+	identifier := state.Identifiers[identifierIndex]
+
+	// Generate a random cost with weighted distribution
+	costRoll := rng.Float64()
+	var cost int64
+
+	switch {
+	case costRoll < 0.10: // 10% chance of cost=0
+		cost = 0
+	case costRoll < 0.80: // 70% chance of cost=1
+		cost = 1
+	case costRoll < 0.95: // 15% chance of cost between 2-5
+		cost = int64(2 + rng.IntN(4))
+	default: // 5% chance of cost between 6-20
+		cost = int64(6 + rng.IntN(15))
+	}
+
+	// Get the appropriate limit and duration
+	var limit int64
+	var duration time.Duration
+
+	if override, exists := state.Overrides[identifier]; exists {
+		limit = override.Limit
+		duration = override.Duration
+	} else {
+		limit = state.DefaultLimit
+		duration = state.DefaultDuration
+	}
+
+	// Initialize expected remaining if not already set
+	if _, exists := state.ExpectedRemaining[identifier]; !exists {
+		state.ExpectedRemaining[identifier] = limit
+		state.LastReset[identifier] = state.Clock.Now()
+	}
+
+	// Check if window has reset
+	now := state.Clock.Now()
+	lastReset := state.LastReset[identifier]
+	if now.Sub(lastReset) >= duration {
+		// Reset window
+		state.ExpectedRemaining[identifier] = limit
+		state.LastReset[identifier] = now
+	}
+
+	// Calculate if the request should succeed and the remaining count
+	success := true
+	expectedRemaining := state.ExpectedRemaining[identifier]
+
+	// Only reduce remaining if cost > 0
+	if cost > 0 {
+		if expectedRemaining < cost {
+			success = false
+		} else {
+			expectedRemaining -= cost
+		}
+	}
+
+	// Update the expected remaining count if the request was successful
+	if success && cost > 0 {
+		state.ExpectedRemaining[identifier] = expectedRemaining
+	}
+
+	// Create a ratelimit request
+	request := handler.Request{
+		Identifier: identifier,
+		Duration:   duration,
+		Limit:      limit,
+		Cost:       cost,
+	}
+
+	// Process the rate limit (in a real implementation, this would call the service)
+	response := handler.Response{
+		Success:   success,
+		Remaining: expectedRemaining,
+		Reset:     state.LastReset[identifier].Add(duration).Unix(),
+	}
+
+	if _, exists := state.Requests[identifier]; !exists {
+		state.Requests[identifier] = []Request{}
+	}
+	state.Requests[identifier] = append(state.Requests[identifier], request)
+
+	return nil
+}
+
+// AdvanceTimeEvent advances the simulation clock
+type AdvanceTimeEvent struct{}
+
+func (e AdvanceTimeEvent) Name() string {
+	return "AdvanceTime"
+}
+
+func (e AdvanceTimeEvent) Run(rng *sim.Rand, state *RateLimitState) error {
+	// Determine how much time to advance
+	// Sometimes advance a small amount, sometimes jump ahead significantly
+	var advanceAmount time.Duration
+
+	timeRoll := rng.Float64()
+	switch {
+	case timeRoll < 0.70: // 70% small advancement (under 1s)
+		advanceAmount = time.Duration(rng.IntN(1000)) * time.Millisecond
+	case timeRoll < 0.90: // 20% medium advancement (1-10s)
+		advanceAmount = time.Duration(1+rng.IntN(9)) * time.Second
+	default: // 10% large advancement (10s-2min)
+		advanceAmount = time.Duration(10+rng.IntN(110)) * time.Second
+	}
+
+	// Advance the clock
+	state.Clock.Tick(advanceAmount)
+
+	return nil
+}
+
+// setupRateLimitService creates a test rate limit service using the test clock
+func setupRateLimitService(t *testing.T, testClock *clock.TestClock) ratelimit.Service {
+	t.Helper()
+
+	// Create a logger
+	logger := logging.New(logging.Config{
+		Development: true,
+		NoColor:     true,
+	})
+
+	// Create a cluster (use noop for testing)
+	c := cluster.NewNoop("test_node", "localhost")
+
+	// Create the service using the test clock
+	svc, err := ratelimit.New(ratelimit.Config{
+		Logger:  logger,
+		Cluster: c,
+		Clock:   testClock,
+	})
+
+	if err != nil {
+		t.Fatalf("Failed to create rate limit service: %v", err)
+	}
+
+	return svc
+}
+
+// setupTestNamespace creates a test namespace in the database
+func setupTestNamespace(t *testing.T, h *testutil.Harness, state *RateLimitState) error {
+	t.Helper()
+
+	// Insert the namespace
+	return db.Query.InsertRatelimitNamespace(context.Background(), h.DB.RW(), db.InsertRatelimitNamespaceParams{
+		ID:          state.NamespaceID,
+		WorkspaceID: h.Resources.UserWorkspace.ID,
+		Name:        state.NamespaceName,
+		CreatedAt:   state.Clock.Now().UnixMilli(),
+	})
+}
+
+// setupTestOverride creates a test override in the database
+func setupTestOverride(t *testing.T, h *testutil.Harness, state *RateLimitState, identifier string, override Override) error {
+	t.Helper()
+
+	// Insert the override
+	return db.Query.InsertRatelimitOverride(context.Background(), h.DB.RW(), db.InsertRatelimitOverrideParams{
+		ID:          override.ID,
+		WorkspaceID: h.Resources.UserWorkspace.ID,
+		NamespaceID: state.NamespaceID,
+		Identifier:  identifier,
+		Limit:       int32(override.Limit),
+		Duration:    int32(override.Duration.Milliseconds()),
+		CreatedAt:   state.Clock.Now().UnixMilli(),
+	})
+}
+
+// deleteTestOverride soft-deletes an override from the database
+func deleteTestOverride(t *testing.T, h *testutil.Harness, state *RateLimitState, overrideID string) error {
+	t.Helper()
+
+	return db.Query.SoftDeleteRatelimitOverride(context.Background(), h.DB.RW(), db.SoftDeleteRatelimitOverrideParams{
+		ID:  overrideID,
+		Now: sql.NullInt64{Valid: true, Int64: state.Clock.Now().UnixMilli()},
+	})
+}

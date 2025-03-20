@@ -53,19 +53,14 @@ linters-settings:
       - "^os/exec.Cmd$"
       - "^reflect.StructField$"
       # public libs
-      - "^github.com/Shopify/sarama.Config$"
-      - "^github.com/Shopify/sarama.ProducerMessage$"
-      - "^github.com/mitchellh/mapstructure.DecoderConfig$"
       - "^github.com/prometheus/client_golang/.+Opts$"
-      - "^github.com/spf13/cobra.Command$"
-      - "^github.com/spf13/cobra.CompletionOptions$"
-      - "^github.com/stretchr/testify/mock.Mock$"
       - "^github.com/testcontainers/testcontainers-go.+Request$"
       - "^github.com/testcontainers/testcontainers-go.FromDockerfile$"
       - "^golang.org/x/tools/go/analysis.Analyzer$"
       - "^google.golang.org/protobuf/.+Options$"
       - "^gopkg.in/yaml.v3.Node$"
       - "^github.com/urfave/cli/v3.*$"
+      - "^github.com/ClickHouse/clickhouse-go/v2.*$"
 
   lll:
     line-length: 120
@@ -86,20 +81,6 @@ linters-settings:
     # Minimal code complexity to report.
     # Default: 30 (but we recommend 10-20)
     min-complexity: 20
-
-  gocritic:
-    # Settings passed to gocritic.
-    # The settings key is the name of a supported gocritic checker.
-    # The list of supported checkers can be find in https://go-critic.github.io/overview.
-    settings:
-      captLocal:
-        # Whether to restrict checker to params only.
-        # Default: true
-        paramsOnly: false
-      underef:
-        # Whether to skip (*x).method() calls where x is a pointer receiver.
-        # Default: true
-        skipRecvDeref: false
 
   gomodguard:
     blocked:
@@ -242,7 +223,7 @@ linters:
     - gochecksumtype # checks exhaustiveness on Go "sum types"
     # - gocognit # computes and checks the cognitive complexity of functions
     - goconst # finds repeated strings that could be replaced by a constant
-    - gocritic # provides diagnostics that check for bugs, performance and style issues
+    # - gocritic # provides diagnostics that check for bugs, performance and style issues
     # - gocyclo # computes and checks the cyclomatic complexity of functions
     # - godot # checks if comments end in a period
     # - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt

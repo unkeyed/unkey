@@ -4,4 +4,111 @@ title: Design System
 
 
 
-Component and general design documentation.
+
+The Unkey UI package (`@unkey/ui`) is a collection of reusable React components designed for building Unkey applications with consistent styling and behavior. This document explains how to properly integrate and use this package across different Unkey applications.
+
+## Setup Requirements
+
+To properly use the `@unkey/ui` package in an application, you need to:
+
+1. Import the package's CSS styles
+2. Configure your Tailwind CSS setup correctly
+
+### Importing CSS Styles
+
+The most important step when using `@unkey/ui` is to import its CSS styles. This can be done by adding the following import to your application's main layout or entry file:
+
+```typescript
+import "@unkey/ui/css";
+```
+
+For example, in a Next.js application, you would add this import to your `app/layout.tsx` file:
+
+```typescript
+// In your app/layout.tsx or equivalent entry file
+import "@unkey/ui/css"; // This is critical for the UI components to work properly
+```
+
+Without this import, components will render with default browser styling rather than Unkey's custom design.
+
+### Tailwind Configuration
+
+The UI package leverages Tailwind CSS for styling. To properly use these components, your application's `tailwind.config.js` should extend the core configuration:
+
+```javascript
+// Example tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    // Your app's content paths
+    "./app/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
+    // Also include Unkey UI package contents
+    "../../internal/ui/src/**/*.tsx",
+    "../../internal/icons/src/**/*.tsx",
+  ],
+  theme: {
+    extend: {
+      // Your theme extensions
+    },
+  },
+  plugins: [],
+}
+```
+
+The UI package provides its own color palette and other design tokens, which will be available to your application once the CSS is imported.
+
+## Common Usage Patterns
+
+### Importing Components
+
+Import components directly from the package:
+
+```typescript
+import { Button, FormInput, Id } from "@unkey/ui";
+```
+
+### Basic Component Usage
+
+```tsx
+import { Button, FormInput } from "@unkey/ui";
+
+function MyComponent() {
+  return (
+    <div>
+      <FormInput
+        label="API Key Name"
+        description="Give your key a descriptive name"
+        required
+      />
+
+      <Button>Create Key</Button>
+    </div>
+  );
+}
+```
+
+## Troubleshooting
+
+### Components Look Unstyled
+
+If components appear unstyled or with minimal styling, check that you've:
+
+1. Imported the CSS file with `import "@unkey/ui/css"`
+2. Configured your Tailwind CSS to include the UI package content
+3. Ensured you're not overriding the imported styles elsewhere
+
+### Conflicting Styles
+
+If you're experiencing conflicting styles:
+
+1. Make sure your application's CSS is imported after the UI package CSS
+2. Check for conflicting class names or global styles in your application
+3. Use the `className` prop on components to override specific styles when needed
+
+## Best Practices
+
+1. **Import the CSS Once**: Only import `@unkey/ui/css` once in your application, typically at the root level
+2. **Follow Component Documentation**: Refer to each component's documentation for specific props and variants
+3. **Consistent Usage**: Use the same component for the same purpose throughout your application
+4. **Avoid Direct Styling**: Instead of directly styling UI components, use their provided props and variants

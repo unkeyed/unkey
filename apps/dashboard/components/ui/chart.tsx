@@ -3,9 +3,9 @@
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 
-// Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
 
 export type ChartConfig = {
@@ -164,7 +164,7 @@ const ChartTooltipContent = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "grid sm:w-fit md:w-[256px] items-start gap-2 rounded-lg border border-gray-6 bg-gray-1 pt-4 pb-2 text-xs shadow-xl select-none",
+          "grid sm:w-fit md:w-[256px] items-start gap-2 rounded-lg border border-gray-6 bg-gray-1 pt-4 pb-2 text-xs shadow-2xl select-none",
           className,
         )}
       >
@@ -232,7 +232,7 @@ const ChartTooltipContent = React.forwardRef<
                       <div className="ml-auto">
                         {item.value && (
                           <span className="font-mono tabular-nums text-accent-12">
-                            {item.value.toLocaleString()}
+                            {formatNumber(item.value as number)}
                           </span>
                         )}
                       </div>

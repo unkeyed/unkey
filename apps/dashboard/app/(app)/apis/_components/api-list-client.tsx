@@ -4,7 +4,7 @@ import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
 import type {
   ApiOverview,
   ApisOverviewResponse,
-} from "@/lib/trpc/routers/api/query-overview/schemas";
+} from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useState } from "react";
@@ -15,34 +15,11 @@ import { CreateApiButton } from "./create-api-button";
 
 export const ApiListClient = ({
   initialData,
-  unpaid,
 }: {
   initialData: ApisOverviewResponse;
-  unpaid: boolean;
 }) => {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [apiList, setApiList] = useState<ApiOverview[]>(initialData.apiList);
-
-  if (unpaid) {
-    return (
-      <EmptyComponentSpacer>
-        <Empty className="border border-gray-6 rounded-lg bg-gray-1">
-          <Empty.Title className="text-xl">Upgrade your plan</Empty.Title>
-          <Empty.Description>
-            Team workspaces is a paid feature. Please switch to a paid plan to continue using it.
-          </Empty.Description>
-          <Empty.Actions className="mt-4 ">
-            <a href="/settings/billing" target="_blank" rel="noopener noreferrer">
-              <Button size="md">
-                <BookBookmark />
-                Subscribe
-              </Button>
-            </a>
-          </Empty.Actions>
-        </Empty>
-      </EmptyComponentSpacer>
-    );
-  }
 
   return (
     <div className="flex flex-col">

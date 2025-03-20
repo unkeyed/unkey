@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // Node represents an individual entity in the ring, usually a service instance
@@ -74,8 +74,8 @@ type Config struct {
 type token struct {
 	// hash is the position of this token on the ring
 	hash uint64
-	// nodeID identifies which physical node owns this token
-	nodeID string
+	// instanceID identifies which physical node owns this token
+	instanceID string
 }
 
 // Ring implements a consistent hash ring with support for virtual nodes.
@@ -87,7 +87,7 @@ type Ring[T any] struct {
 	mu sync.RWMutex
 
 	tokensPerNode int
-	// nodeIDs
+	// instanceIDs
 	nodes  map[string]Node[T]
 	tokens []token
 	logger logging.Logger
@@ -151,14 +151,14 @@ func (r *Ring[T]) AddNode(ctx context.Context, node Node[T]) error {
 			return fmt.Errorf("node already exists: %s", node.ID)
 		}
 	}
-	r.logger.Info("adding node to ring", "newNodeID", node.ID)
+	r.logger.Info("adding node to ring", "newInstanceID", node.ID)
 
 	for i := 0; i < r.tokensPerNode; i++ {
 		hash, err := r.hash(fmt.Sprintf("%s-%d", node.ID, i))
 		if err != nil {
 			return err
 		}
-		r.tokens = append(r.tokens, token{hash: hash, nodeID: node.ID})
+		r.tokens = append(r.tokens, token{hash: hash, instanceID: node.ID})
 	}
 	sort.Slice(r.tokens, func(i int, j int) bool {
 		return r.tokens[i].hash < r.tokens[j].hash
@@ -189,16 +189,16 @@ func (r *Ring[T]) AddNode(ctx context.Context, node Node[T]) error {
 //	if err != nil {
 //	    log.Printf("Failed to remove node: %v", err)
 //	}
-func (r *Ring[T]) RemoveNode(ctx context.Context, nodeID string) error {
+func (r *Ring[T]) RemoveNode(ctx context.Context, instanceID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.logger.Info("removing node from ring", "removedNodeID", nodeID)
+	r.logger.Info("removing node from ring", "removedInstanceID", instanceID)
 
-	delete(r.nodes, nodeID)
+	delete(r.nodes, instanceID)
 
 	tokens := make([]token, 0)
 	for _, t := range r.tokens {
-		if t.nodeID != nodeID {
+		if t.instanceID != instanceID {
 			tokens = append(tokens, t)
 		}
 	}
@@ -282,9 +282,9 @@ func (r *Ring[T]) FindNode(key string) (Node[T], error) {
 	}
 
 	token := r.tokens[tokenIndex]
-	node, ok := r.nodes[token.nodeID]
+	node, ok := r.nodes[token.instanceID]
 	if !ok {
-		return Node[T]{}, fmt.Errorf("node not found: %s", token.nodeID)
+		return Node[T]{}, fmt.Errorf("node not found: %s", token.instanceID)
 
 	}
 

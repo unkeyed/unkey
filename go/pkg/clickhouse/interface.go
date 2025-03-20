@@ -1,6 +1,8 @@
 package clickhouse
 
 import (
+	"context"
+
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 )
 
@@ -18,4 +20,9 @@ type Bufferer interface {
 	// BufferKeyVerification adds a key verification event to the buffer.
 	// These represent API key validation operations with their outcomes.
 	BufferKeyVerification(schema.KeyVerificationRequestV1)
+}
+
+type Querier interface {
+	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
+	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
 }

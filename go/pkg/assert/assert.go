@@ -1,3 +1,4 @@
+// unkey/go/pkg/assert/assert.go
 package assert
 
 import (
@@ -9,23 +10,19 @@ import (
 // Equal asserts that two values of the same comparable type are equal.
 // If the values are not equal, it returns an error tagged with ASSERTION_FAILED.
 //
-// This function is useful for validating that operations produce expected results
-// or that input values match expected values.
-//
 // Example:
 //
 //	// Verify a calculation result
-//	if err := assert.Equal(calculateTotal(), 100.0); err != nil {
+//	if err := assert.Equal(calculateTotal(), 100.0, "Total should be 100.0"); err != nil {
 //	    return fault.Wrap(err)
 //	}
-//
-//	// Verify a configuration value
-//	if err := assert.Equal(config.Mode, "production"); err != nil {
-//	    return fmt.Errorf("incorrect configuration: %w", err)
-//	}
-func Equal[T comparable](a T, b T) error {
+func Equal[T comparable](a T, b T, message ...string) error {
 	if a != b {
-		return fault.New("expected equal", fault.WithTag(fault.ASSERTION_FAILED))
+		errorMsg := "expected equal"
+		if len(message) > 0 {
+			errorMsg = message[0]
+		}
+		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil
 }
@@ -33,18 +30,19 @@ func Equal[T comparable](a T, b T) error {
 // Nil asserts that the provided value is nil.
 // If the value is not nil, it returns an error tagged with ASSERTION_FAILED.
 //
-// This is useful for validating that certain operations completed successfully
-// (when they return nil on success) or that a value does not exist in a particular context.
-//
 // Example:
 //
 //	err := potentiallyFailingOperation()
-//	if assertErr := assert.Nil(err); assertErr != nil {
+//	if assertErr := assert.Nil(err, "Operation should complete without errors"); assertErr != nil {
 //	    return fault.Wrap(err, fault.WithDesc("operation should not fail", ""))
 //	}
-func Nil(t any) error {
+func Nil(t any, message ...string) error {
 	if t != nil {
-		return fault.New("expected nil", fault.WithTag(fault.ASSERTION_FAILED))
+		errorMsg := "expected nil"
+		if len(message) > 0 {
+			errorMsg = message[0]
+		}
+		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil
 }
@@ -52,30 +50,24 @@ func Nil(t any) error {
 // NotNil asserts that the provided value is not nil.
 // If the value is nil, it returns an error tagged with ASSERTION_FAILED.
 //
-// This is useful for validating that required values are present and not nil,
-// especially before performing operations that would panic on nil values.
-//
 // Example:
 //
-//	if err := assert.NotNil(user); err != nil {
+//	if err := assert.NotNil(user, "User must be provided"); err != nil {
 //	    return fault.Wrap(err, fault.WithDesc("user object is required", ""))
 //	}
-//
-//	// Now safe to access user fields
-//	processingResult := processUser(user)
-func NotNil(t any) error {
+func NotNil(t any, message ...string) error {
 	if t == nil {
-		return fault.New("expected not nil", fault.WithTag(fault.ASSERTION_FAILED))
+		errorMsg := "expected not nil"
+		if len(message) > 0 {
+			errorMsg = message[0]
+		}
+		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil
 }
 
 // True asserts that a boolean value is true.
 // If the value is false, it returns an error tagged with ASSERTION_FAILED.
-// An optional message can be provided to clarify the assertion failure.
-//
-// This is useful for validating conditions that must be true for the program
-// to proceed correctly, especially for preconditions and invariants.
 //
 // Example:
 //
@@ -83,17 +75,13 @@ func NotNil(t any) error {
 //	if err := assert.True(len(items) > 0, "items cannot be empty"); err != nil {
 //	    return fault.Wrap(err)
 //	}
-//
-//	// Verify system state
-//	if err := assert.True(isInitialized); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc("system not initialized", ""))
-//	}
-func True(value bool, messages ...string) error {
+func True(value bool, message ...string) error {
 	if !value {
-		if len(messages) == 0 {
-			messages = []string{"expected true but got false"}
+		errorMsg := "expected true but got false"
+		if len(message) > 0 {
+			errorMsg = message[0]
 		}
-		return fault.New(messages[0], fault.WithTag(fault.ASSERTION_FAILED))
+		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil
 }
@@ -101,18 +89,19 @@ func True(value bool, messages ...string) error {
 // False asserts that a boolean value is false.
 // If the value is true, it returns an error tagged with ASSERTION_FAILED.
 //
-// This is useful for validating conditions that must not be true for
-// the program to proceed correctly, especially for safety checks.
-//
 // Example:
 //
 //	// Safety check
-//	if err := assert.False(isShuttingDown); err != nil {
+//	if err := assert.False(isShuttingDown, "Cannot perform operation during shutdown"); err != nil {
 //	    return fault.Wrap(err, fault.WithDesc("cannot perform operation during shutdown", ""))
 //	}
-func False(value bool) error {
+func False(value bool, message ...string) error {
 	if value {
-		return fault.New("expected false but got true", fault.WithTag(fault.ASSERTION_FAILED))
+		errorMsg := "expected false but got true"
+		if len(message) > 0 {
+			errorMsg = message[0]
+		}
+		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil
 }
@@ -120,18 +109,19 @@ func False(value bool) error {
 // Empty asserts that a string, slice, or map is empty (has zero length).
 // If the value is not empty, it returns an error tagged with ASSERTION_FAILED.
 //
-// This is useful for validating that collections are empty when required,
-// such as initial states or after clearing operations.
-//
 // Example:
 //
 //	// Verify cleanup was successful
-//	if err := assert.Empty(getRemaining()); err != nil {
+//	if err := assert.Empty(getRemaining(), "No items should remain after cleanup"); err != nil {
 //	    return fault.Wrap(err, fault.WithDesc("cleanup incomplete", ""))
 //	}
-func Empty[T ~string | ~[]any | ~map[any]any](value T) error {
+func Empty[T ~string | ~[]any | ~map[any]any](value T, message ...string) error {
 	if len(value) != 0 {
-		return fault.New("value is not empty", fault.WithTag(fault.ASSERTION_FAILED))
+		errorMsg := "value is not empty"
+		if len(message) > 0 {
+			errorMsg = message[0]
+		}
+		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil
 }
@@ -139,18 +129,19 @@ func Empty[T ~string | ~[]any | ~map[any]any](value T) error {
 // NotEmpty asserts that a string, slice, or map is not empty (has non-zero length).
 // If the value is empty, it returns an error tagged with ASSERTION_FAILED.
 //
-// This is useful for validating that required collections have content,
-// particularly for input validation.
-//
 // Example:
 //
 //	// Validate required input
-//	if err := assert.NotEmpty(request.IDs); err != nil {
+//	if err := assert.NotEmpty(request.IDs, "At least one ID must be provided"); err != nil {
 //	    return fault.Wrap(err, fault.WithDesc("IDs cannot be empty", "Please provide at least one ID"))
 //	}
-func NotEmpty[T ~string | ~[]any | ~map[any]any](value T) error {
+func NotEmpty[T ~string | ~[]any | ~map[any]any](value T, message ...string) error {
 	if len(value) == 0 {
-		return fault.New("value is empty", fault.WithTag(fault.ASSERTION_FAILED))
+		errorMsg := "value is empty"
+		if len(message) > 0 {
+			errorMsg = message[0]
+		}
+		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil
 }
@@ -158,18 +149,19 @@ func NotEmpty[T ~string | ~[]any | ~map[any]any](value T) error {
 // Contains asserts that a string contains a specific substring.
 // If the string does not contain the substring, it returns an error tagged with ASSERTION_FAILED.
 //
-// This is useful for validating that text contains expected content,
-// such as format validation or content checks.
-//
 // Example:
 //
 //	// Validate email format
-//	if err := assert.Contains(email, "@"); err != nil {
+//	if err := assert.Contains(email, "@", "Email must contain @ symbol"); err != nil {
 //	    return fault.Wrap(err, fault.WithDesc("invalid email format", "Please enter a valid email"))
 //	}
-func Contains(s, substr string) error {
+func Contains(s, substr string, message ...string) error {
 	if !strings.Contains(s, substr) {
-		return fault.New("string does not contain substring", fault.WithTag(fault.ASSERTION_FAILED))
+		errorMsg := "string does not contain substring"
+		if len(message) > 0 {
+			errorMsg = message[0]
+		}
+		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil
 }
@@ -177,64 +169,119 @@ func Contains(s, substr string) error {
 // Greater asserts that value 'a' is greater than value 'b'.
 // If 'a' is not greater than 'b', it returns an error tagged with ASSERTION_FAILED.
 //
-// This is useful for validating numerical constraints, such as minimums or
-// sufficient values for operations.
-//
 // Example:
 //
 //	// Validate minimum balance
-//	if err := assert.Greater(account.Balance, minimumRequired); err != nil {
+//	if err := assert.Greater(account.Balance, minimumRequired, "Account balance must exceed minimum"); err != nil {
 //	    return fault.Wrap(err, fault.WithDesc(
 //	        fmt.Sprintf("insufficient balance: %.2f < %.2f", account.Balance, minimumRequired),
 //	        "Insufficient account balance",
 //	    ))
 //	}
-func Greater[T ~int | ~float64](a, b T) error {
-	if a <= b {
-		return fault.New("value is not greater", fault.WithTag(fault.ASSERTION_FAILED))
+func Greater[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message ...string) error {
+	if a > b {
+		return nil
+
 	}
-	return nil
+	errorMsg := "value is not greater"
+	if len(message) > 0 {
+		errorMsg = message[0]
+	}
+	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+}
+
+// GreaterOrEqual asserts that value 'a' is greater or equal compared to value 'b'.
+// If 'a' is not greater or equal than 'b', it returns an error tagged with ASSERTION_FAILED.
+//
+// Example:
+//
+//	// Validate minimum balance
+//	if err := assert.GreaterOrEqual(account.Balance, minimumRequired, "Account balance must exceed minimum"); err != nil {
+//	    return fault.Wrap(err, fault.WithDesc(
+//	        fmt.Sprintf("insufficient balance: %.2f < %.2f", account.Balance, minimumRequired),
+//	        "Insufficient account balance",
+//	    ))
+//	}
+func GreaterOrEqual[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message ...string) error {
+	if a >= b {
+		return nil
+	}
+
+	errorMsg := "value is not greater or equal"
+	if len(message) > 0 {
+		errorMsg = message[0]
+	}
+	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+
+}
+
+// LessOrEqual asserts that value 'a' is less or equal compared to value 'b'.
+// If 'a' is not less or equal than 'b', it returns an error tagged with ASSERTION_FAILED.
+//
+// Example:
+//
+//	// Validate maximum balance
+//	if err := assert.LessOrEqual(account.Balance, minimumRequired, "Account balance must not exceed maximum"); err != nil {
+//	    return fault.Wrap(err, fault.WithDesc(
+//	        fmt.Sprintf("insufficient balance: %.2f < %.2f", account.Balance, maximumRequired),
+//	        "Insufficient account balance",
+//	    ))
+//	}
+func LessOrEqual[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message ...string) error {
+	if a <= b {
+		return nil
+	}
+
+	errorMsg := "value is not less or equal"
+	if len(message) > 0 {
+		errorMsg = message[0]
+	}
+	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+
 }
 
 // Less asserts that value 'a' is less than value 'b'.
 // If 'a' is not less than 'b', it returns an error tagged with ASSERTION_FAILED.
 //
-// This is useful for validating upper bounds or maximum limits.
-//
 // Example:
 //
 //	// Validate rate limit
-//	if err := assert.Less(requestsPerMinute, maxAllowed); err != nil {
+//	if err := assert.Less(requestsPerMinute, maxAllowed, "Request rate exceeds limit"); err != nil {
 //	    return fault.Wrap(err, fault.WithDesc(
 //	        fmt.Sprintf("rate limit exceeded: %d > %d", requestsPerMinute, maxAllowed),
 //	        "Too many requests, please try again later",
 //	    ))
 //	}
-func Less[T ~int | ~float64](a, b T) error {
-	if a >= b {
-		return fault.New("value is not less", fault.WithTag(fault.ASSERTION_FAILED))
+func Less[T ~int | ~float64](a, b T, message ...string) error {
+	if a < b {
+		return nil
 	}
-	return nil
+	errorMsg := "value is not less"
+	if len(message) > 0 {
+		errorMsg = message[0]
+	}
+	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 }
 
 // InRange asserts that a value is within a specified range (inclusive).
 // If the value is outside the range, it returns an error tagged with ASSERTION_FAILED.
 //
-// This is useful for validating that values fall within acceptable bounds,
-// such as configuration parameters or user inputs.
-//
 // Example:
 //
 //	// Validate age input
-//	if err := assert.InRange(age, 18, 120); err != nil {
+//	if err := assert.InRange(age, 18, 120, "Age must be between 18 and 120"); err != nil {
 //	    return fault.Wrap(err, fault.WithDesc(
 //	        fmt.Sprintf("age %d outside valid range [18-120]", age),
 //	        "Please enter a valid age between 18 and 120",
 //	    ))
 //	}
-func InRange[T ~int | ~float64](value, minimum, maximum T) error {
+func InRange[T ~int | ~float64](value, minimum, maximum T, message ...string) error {
 	if value < minimum || value > maximum {
-		return fault.New("value is out of range", fault.WithTag(fault.ASSERTION_FAILED))
+		errorMsg := "value is out of range"
+		if len(message) > 0 {
+			errorMsg = message[0]
+		}
+		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
 	}
 	return nil
 }

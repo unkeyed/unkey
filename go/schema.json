@@ -76,7 +76,7 @@
           "description": "The port used for gossip",
           "default": "7072"
         },
-        "nodeId": {
+        "instanceID": {
           "type": "string",
           "description": "A unique node id"
         },

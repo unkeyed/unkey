@@ -156,10 +156,11 @@ export const registerV1RatelimitLimit = (app: App) =>
       [rootKey.authorizedWorkspaceId, req.namespace, req.identifier].join("::"),
       async () => {
         const dbRes = await db.readonly.query.ratelimitNamespaces.findFirst({
-          where: (table, { eq, and }) =>
+          where: (table, { eq, and, isNull }) =>
             and(
               eq(table.workspaceId, rootKey.authorizedWorkspaceId),
               eq(table.name, req.namespace),
+              isNull(table.deletedAtM),
             ),
           columns: {
             id: true,

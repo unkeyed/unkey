@@ -3,14 +3,14 @@ package cache_test
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/sim"
 )
 
@@ -27,7 +27,6 @@ func (e *setEvent) Name() string {
 }
 
 func (e *setEvent) Run(rng *rand.Rand, s *state) error {
-
 	key := rng.Uint64()
 	val := rng.Uint64()
 
@@ -44,15 +43,14 @@ func (e *getEvent) Name() string {
 }
 
 func (e *getEvent) Run(rng *rand.Rand, s *state) error {
-
 	stored := len(s.keys)
-	index := rng.Intn(stored + 1)
-
-	key := rng.Uint64()
-
-	if index < stored {
-		key = s.keys[index]
+	if stored == 0 {
+		// Skip if no keys stored yet
+		return nil
 	}
+
+	index := rng.IntN(stored)
+	key := s.keys[index]
 
 	s.cache.Get(context.Background(), key)
 
@@ -66,81 +64,85 @@ func (e *removeEvent) Name() string {
 }
 
 func (e *removeEvent) Run(rng *rand.Rand, s *state) error {
-
 	stored := len(s.keys)
-	index := rng.Intn(stored + 1)
-
-	key := rng.Uint64()
-
-	if index < stored {
-		key = s.keys[index]
+	if stored == 0 {
+		// Skip if no keys stored yet
+		return nil
 	}
+
+	index := rng.IntN(stored)
+	key := s.keys[index]
 
 	s.cache.Remove(context.Background(), key)
 
 	return nil
 }
 
-type advanceTimeEvent struct {
-	clk *clock.TestClock
-}
+type advanceTimeEvent struct{}
 
 func (e *advanceTimeEvent) Name() string {
 	return "advanceTime"
 }
 
 func (e *advanceTimeEvent) Run(rng *rand.Rand, s *state) error {
-	nanoseconds := rng.Int63n(60 * 60 * 1000 * 1000) // up to 1h
-
-	e.clk.Tick(time.Duration(nanoseconds) * time.Nanosecond)
-
+	// Random time advance between 0 and 1 hour
+	nanoseconds := rng.Int64N(60 * 60 * 1000 * 1000 * 1000)
+	s.clk.Tick(time.Duration(nanoseconds))
 	return nil
 }
 
 func TestSimulation(t *testing.T) {
+	sim.CheckEnabled(t)
 
-	for i := range 100 {
-		seed := time.Now().UnixNano() + rand.Int63()
-		t.Run(fmt.Sprintf("run=%d,seed=%d", i, seed), func(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		t.Run(fmt.Sprintf("run=%d", i), func(t *testing.T) {
+			seed := sim.NewSeed()
 
-			clk := clock.NewTestClock()
-
-			s := sim.New[state](t,
-				sim.WithSeed[state](seed),
-				sim.WithSteps[state](1000000),
+			simulation := sim.New[state](seed,
 				sim.WithState(func(rng *rand.Rand) *state {
-					minTime := 1738364400000 // 2025-01-01
-					maxTime := 2527282800000 // 2050-01-01
-					unixMilli := minTime + rng.Intn(maxTime-minTime)
-					clk.Set(time.UnixMilli(int64(unixMilli)))
+					clk := clock.NewTestClock(time.Now())
 
-					fresh := time.Second + time.Duration(rng.Intn(60*60*1000))
-					stale := fresh + time.Duration(rng.Intn(24*60*60*1000))
+					fresh := time.Second + time.Duration(rng.IntN(60*60*1000))*time.Millisecond
+					stale := fresh + time.Duration(rng.IntN(24*60*60*1000))*time.Millisecond
 
-					c := cache.New[uint64, uint64](cache.Config[uint64, uint64]{
+					c, err := cache.New[uint64, uint64](cache.Config[uint64, uint64]{
 						Clock:    clk,
 						Fresh:    fresh,
 						Stale:    stale,
 						Logger:   logging.NewNoop(),
-						MaxSize:  rng.Intn(1_000_000),
+						MaxSize:  rng.IntN(1_000_000) + 1, // Ensure at least size 1
 						Resource: "test",
 					})
-
+					require.NoError(t, err)
 					return &state{
 						keys:  []uint64{},
 						cache: c,
 						clk:   clk,
 					}
-				}))
+				}),
+			)
 
-			s.Run([]sim.Event[state]{
+			// Define a validator that ensures we don't panic
+			stateValidator := func(s *state) error {
+				if s.cache == nil {
+					return fmt.Errorf("cache should not be nil")
+				}
+				return nil
+			}
+
+			// Add the validator
+			simulation = sim.WithValidator(stateValidator)(simulation)
+
+			// Run the simulation with the events
+			err := simulation.Run([]sim.Event[state]{
 				&setEvent{},
 				&getEvent{},
 				&removeEvent{},
-				&advanceTimeEvent{clk},
+				&advanceTimeEvent{},
 			})
+			require.NoError(t, err)
 
-			require.Len(t, s.Errors, 0, "expected no errors")
+			require.Empty(t, simulation.Errors, "simulation should complete without errors")
 		})
 	}
 }

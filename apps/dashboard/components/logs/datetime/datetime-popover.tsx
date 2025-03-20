@@ -4,7 +4,7 @@ import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { processTimeFilters } from "@/lib/utils";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
 import { type PropsWithChildren, useEffect, useState } from "react";
-import { CUSTOM_OPTION_ID, OPTIONS } from "./constants";
+import { CUSTOM_OPTION_ID, DEFAULT_OPTIONS } from "./constants";
 import { DateTimeSuggestions } from "./suggestions";
 import type { OptionsType } from "./types";
 
@@ -15,6 +15,7 @@ interface DatetimePopoverProps extends PropsWithChildren {
   initialTimeValues: { startTime?: number; endTime?: number; since?: string };
   onSuggestionChange: (title: string) => void;
   onDateTimeChange: (startTime?: number, endTime?: number, since?: string) => void;
+  customOptions?: OptionsType; // Add this to accept custom options
 }
 
 type TimeRangeType = {
@@ -28,6 +29,7 @@ export const DatetimePopover = ({
   initialTimeValues,
   onSuggestionChange,
   onDateTimeChange,
+  customOptions, // Accept custom options
 }: DatetimePopoverProps) => {
   const [open, setOpen] = useState(false);
   useKeyboardShortcut("t", () => setOpen((prev) => !prev));
@@ -39,11 +41,18 @@ export const DatetimePopover = ({
     endTime?: number;
   }>({ startTime, endTime });
 
+  // Use customOptions if provided, otherwise use DEFAULT_OPTIONS
+  const OPTIONS = customOptions || DEFAULT_OPTIONS;
+  // Find the custom option ID in the provided options
+  const CURRENT_CUSTOM_OPTION_ID = customOptions
+    ? customOptions.find((o) => o.value === undefined)?.id || CUSTOM_OPTION_ID
+    : CUSTOM_OPTION_ID;
+
   const [suggestions, setSuggestions] = useState<OptionsType>(() => {
     const matchingSuggestion = since
       ? OPTIONS.find((s) => s.value === since)
       : startTime
-        ? OPTIONS.find((s) => s.id === CUSTOM_OPTION_ID)
+        ? OPTIONS.find((s) => s.id === CURRENT_CUSTOM_OPTION_ID)
         : null;
 
     return OPTIONS.map((s) => ({
@@ -60,10 +69,10 @@ export const DatetimePopover = ({
         : initialTitle;
 
     onSuggestionChange(newTitle);
-  }, [since, startTime, initialTitle, onSuggestionChange]);
+  }, [since, startTime, initialTitle, onSuggestionChange, OPTIONS]);
 
   const handleSuggestionChange = (id: number) => {
-    if (id === CUSTOM_OPTION_ID) {
+    if (id === CURRENT_CUSTOM_OPTION_ID) {
       return;
     }
 
@@ -81,7 +90,7 @@ export const DatetimePopover = ({
     setSuggestions(
       suggestions.map((s) => ({
         ...s,
-        checked: s.id === CUSTOM_OPTION_ID,
+        checked: s.id === CURRENT_CUSTOM_OPTION_ID,
       })),
     );
 
@@ -111,7 +120,7 @@ export const DatetimePopover = ({
         <div className="flex flex-row items-center">{children}</div>
       </PopoverTrigger>
       <PopoverContent
-        className="flex w-full bg-gray-1 dark:bg-black drop-shadow-3 p-0 m-0 border-gray-6 rounded-lg"
+        className="flex w-full bg-gray-1 dark:bg-black shadow-2xl p-0 m-0 border-gray-6 rounded-lg"
         align="start"
       >
         <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">

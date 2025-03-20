@@ -147,7 +147,8 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
   const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys.verifyKey' \\
   -H 'Content-Type: application/json' \\
   -d '{
-    "key": "${key.data?.key}"
+    "key": "${key.data?.key}",
+    "apiId": "${apiId}"
   }'`;
 
   const split = key.data?.key.split("_") ?? [];

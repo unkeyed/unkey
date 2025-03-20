@@ -61,10 +61,9 @@ export const vercelIntegrationEnv = () =>
 
 const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),
+  // The product ids, comma separated, from lowest to highest pro plan
+  STRIPE_PRODUCT_IDS_PRO: z.string().transform((s) => s.split(",")),
   STRIPE_WEBHOOK_SECRET: z.string(),
-  STRIPE_PRODUCT_ID_KEY_VERIFICATIONS: z.string(),
-  STRIPE_PRODUCT_ID_PRO_PLAN: z.string(),
-  STRIPE_PRODUCT_ID_SUPPORT: z.string(),
 });
 
 const stripeParsed = stripeSchema.safeParse(process.env);

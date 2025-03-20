@@ -1,9 +1,13 @@
 import { t } from "../trpc";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
+import { keysLlmSearch } from "./api/keys/llm-search";
+import { activeKeysTimeseries } from "./api/keys/query-active-keys-timeseries";
+import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
+import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
 import { overviewApiSearch } from "./api/overview-api-search";
-import { queryApisOverview } from "./api/query-overview";
-import { queryVerificationTimeseries } from "./api/query-timeseries";
+import { queryApisOverview } from "./api/overview/query-overview";
+import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
 import { setDefaultApiBytes } from "./api/setDefaultBytes";
 import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
 import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
@@ -51,9 +55,12 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { cancelSubscription } from "./stripe/cancelSubscription";
+import { createSubscription } from "./stripe/createSubscription";
+import { uncancelSubscription } from "./stripe/uncancelSubscription";
+import { updateSubscription } from "./stripe/updateSubscription";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
-import { changeWorkspacePlan } from "./workspace/changePlan";
 import { createWorkspace } from "./workspace/create";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
@@ -86,19 +93,28 @@ export const router = t.router({
     setDefaultBytes: setDefaultApiBytes,
     updateIpWhitelist: updateApiIpWhitelist,
     updateDeleteProtection: updateAPIDeleteProtection,
-    logs: t.router({
-      queryVerificationTimeseries,
+    keys: t.router({
+      timeseries: keyVerificationsTimeseries,
+      activeKeysTimeseries: activeKeysTimeseries,
+      query: queryKeysOverviewLogs,
+      llmSearch: keysLlmSearch,
     }),
     overview: t.router({
-      queryApisOverview,
+      timeseries: queryVerificationTimeseries,
+      query: queryApisOverview,
       search: overviewApiSearch,
     }),
   }),
   workspace: t.router({
     create: createWorkspace,
     updateName: changeWorkspaceName,
-    updatePlan: changeWorkspacePlan,
     optIntoBeta: optWorkspaceIntoBeta,
+  }),
+  stripe: t.router({
+    createSubscription,
+    updateSubscription,
+    cancelSubscription,
+    uncancelSubscription,
   }),
   vercel: vercelRouter,
   plain: t.router({

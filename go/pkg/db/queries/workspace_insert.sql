@@ -8,8 +8,7 @@ INSERT INTO `workspaces` (
     beta_features,
     features,
     enabled,
-    delete_protection,
-    subscriptions
+    delete_protection
 )
 VALUES (
     sqlc.arg(id),
@@ -20,6 +19,5 @@ VALUES (
     '{}',
     '{}',
     true,
-    true,
-    '{}'
+    true
 );

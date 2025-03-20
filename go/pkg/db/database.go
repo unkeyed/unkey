@@ -7,7 +7,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // Config defines the parameters needed to establish database connections.
@@ -50,12 +50,14 @@ func New(config Config) (*database, error) {
 
 	// Initialize primary replica
 	writeReplica := &Replica{
-		db: write,
+		db:   write,
+		mode: "rw",
 	}
 
 	// Initialize read replica with primary by default
 	readReplica := &Replica{
-		db: write,
+		db:   write,
+		mode: "rw",
 	}
 
 	// If a separate read-only DSN is provided, establish that connection
@@ -66,9 +68,11 @@ func New(config Config) (*database, error) {
 		read, err := sql.Open("mysql", config.ReadOnlyDSN)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.WithDesc("cannot open read replica", ""))
+
 		}
 		readReplica = &Replica{
-			db: read,
+			db:   read,
+			mode: "ro",
 		}
 	}
 

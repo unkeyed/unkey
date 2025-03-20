@@ -4,63 +4,60 @@ import (
 	"context"
 )
 
-// Node represents an individual node in the cluster.
+// Instance represents an individual instance in the cluster.
 // It contains identifying information and network addresses
-// needed for node-to-node communication.
-type Node struct {
-	// ID is the unique identifier for this node within the cluster
+// needed for instance-to-instance communication.
+type Instance struct {
+	// ID is the unique identifier for this instance within the cluster
 	ID string
 
-	// RpcAddr is the address (host:port) where the node listens for RPC calls
+	// RpcAddr is the address (host:port) where the instance listens for RPC calls
 	RpcAddr string
-
-	// Addr is the node's network address used for cluster membership
-	Addr string
 }
 
 // Cluster abstracts away membership and consistent hashing to provide
-// a unified interface for distributed operations across multiple nodes.
+// a unified interface for distributed operations across multiple instances.
 //
 // The cluster interface handles:
-// - Finding the responsible node for a given key
-// - Tracking nodes joining and leaving the cluster
-// - Providing information about the local node
+// - Finding the responsible instance for a given key
+// - Tracking instances joining and leaving the cluster
+// - Providing information about the local instance
 // - Managing graceful cluster exit
 type Cluster interface {
-	// Self returns information about the local node.
-	// This is useful for identifying the current node in logs and metrics.
-	Self() Node
+	// Self returns information about the local instance.
+	// This is useful for identifying the current instance in logs and metrics.
+	Self() Instance
 
-	// FindNode determines which node is responsible for a given key
+	// FindInstance determines which instance is responsible for a given key
 	// based on consistent hashing. This ensures that the same key
-	// is always routed to the same node (as long as the node is available).
+	// is always routed to the same instance (as long as the instance is available).
 	//
 	// The key can be any string identifier, such as a user ID, API key,
-	// or resource name. The method returns the node that should handle
+	// or resource name. The method returns the instance that should handle
 	// operations for this key.
 	//
-	// Returns an error if no suitable node is found or if the cluster
+	// Returns an error if no suitable instance is found or if the cluster
 	// is not properly initialized.
-	FindNode(ctx context.Context, key string) (Node, error)
+	FindInstance(ctx context.Context, key string) (Instance, error)
 
-	// Shutdown gracefully exits the cluster, notifying other nodes
+	// Shutdown gracefully exits the cluster, notifying other instances
 	// and cleaning up resources.
 	//
-	// This should be called when the node is being taken down to ensure
+	// This should be called when the instance is being taken down to ensure
 	// proper cluster rebalancing and to avoid false failure detection.
 	Shutdown(ctx context.Context) error
 
-	// SubscribeJoin returns a channel that receives Node events
-	// whenever a new node joins the cluster.
+	// SubscribeJoin returns a channel that receives Instance events
+	// whenever a new instance joins the cluster.
 	//
 	// This can be used to react to cluster topology changes, such as
 	// pre-warming caches or rebalancing workloads.
-	SubscribeJoin() <-chan Node
+	SubscribeJoin() <-chan Instance
 
-	// SubscribeLeave returns a channel that receives Node events
-	// whenever a node leaves the cluster.
+	// SubscribeLeave returns a channel that receives Instance events
+	// whenever a instance leaves the cluster.
 	//
 	// This can be used to handle graceful degradation or workload
-	// redistribution when nodes become unavailable.
-	SubscribeLeave() <-chan Node
+	// redistribution when instances become unavailable.
+	SubscribeLeave() <-chan Instance
 }

@@ -27,6 +27,34 @@ export const RequiredFormInputVariant = () => {
   );
 };
 
+// Required field with error variant
+export const RequiredWithErrorFormInputVariant = () => {
+  return (
+    <RenderComponentWithSnippet>
+      <FormInput
+        label="Username"
+        required
+        error="This username is already taken"
+        placeholder="e.g. aragorn_king"
+      />
+    </RenderComponentWithSnippet>
+  );
+};
+
+// Optional field variant
+export const OptionalFormInputVariant = () => {
+  return (
+    <RenderComponentWithSnippet>
+      <FormInput
+        label="Phone Number"
+        description="We'll only use this for important account notifications"
+        optional
+        placeholder="+1 (555) 123-4567"
+      />
+    </RenderComponentWithSnippet>
+  );
+};
+
 // Success variant
 export const SuccessFormInputVariant = () => {
   return (

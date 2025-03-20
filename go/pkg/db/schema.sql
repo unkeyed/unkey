@@ -177,8 +177,10 @@ CREATE TABLE `ratelimit_overrides` (
 CREATE TABLE `workspaces` (
 	`id` varchar(256) NOT NULL,
 	`tenant_id` varchar(256) NOT NULL,
+	`org_id` varchar(256),
 	`name` varchar(256) NOT NULL,
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
+	`tier` varchar(256) DEFAULT 'Free',
 	`stripe_customer_id` varchar(256),
 	`stripe_subscription_id` varchar(256),
 	`trial_ends` datetime(3),
@@ -187,7 +189,6 @@ CREATE TABLE `workspaces` (
 	`plan_locked_until` datetime(3),
 	`plan_downgrade_request` enum('free'),
 	`plan_changed` datetime(3),
-	`subscriptions` json,
 	`enabled` boolean NOT NULL DEFAULT true,
 	`delete_protection` boolean DEFAULT false,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
@@ -230,6 +231,15 @@ CREATE TABLE `ratelimits` (
 	`duration` bigint NOT NULL,
 	CONSTRAINT `ratelimits_id` PRIMARY KEY(`id`),
 	CONSTRAINT `unique_name_idx` UNIQUE(`name`,`key_id`,`identity_id`)
+);
+
+CREATE TABLE `quota` (
+	`workspace_id` varchar(256) NOT NULL,
+	`requests_per_month` bigint NOT NULL DEFAULT 0,
+	`logs_retention_days` int NOT NULL DEFAULT 0,
+	`audit_logs_retention_days` int NOT NULL DEFAULT 0,
+	`team` boolean NOT NULL DEFAULT false,
+	CONSTRAINT `quota_workspace_id` PRIMARY KEY(`workspace_id`)
 );
 
 CREATE TABLE `audit_log` (
@@ -275,3 +285,23 @@ CREATE TABLE `audit_log_target` (
 	`updated_at` bigint,
 	CONSTRAINT `audit_log_target_audit_log_id_id_pk` PRIMARY KEY(`audit_log_id`,`id`)
 );
+
+CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
+CREATE INDEX `workspace_id_idx` ON `permissions` (`workspace_id`);
+CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
+CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
+CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
+CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
+CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
+CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);
+CREATE INDEX `workspace_id_idx` ON `identities` (`workspace_id`);
+CREATE INDEX `name_idx` ON `ratelimits` (`name`);
+CREATE INDEX `identity_id_idx` ON `ratelimits` (`identity_id`);
+CREATE INDEX `key_id_idx` ON `ratelimits` (`key_id`);
+CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
+CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
+CREATE INDEX `event_idx` ON `audit_log` (`event`);
+CREATE INDEX `actor_id_idx` ON `audit_log` (`actor_id`);
+CREATE INDEX `time_idx` ON `audit_log` (`time`);
+CREATE INDEX `audit_log_id` ON `audit_log_target` (`audit_log_id`);
+CREATE INDEX `id_idx` ON `audit_log_target` (`id`);

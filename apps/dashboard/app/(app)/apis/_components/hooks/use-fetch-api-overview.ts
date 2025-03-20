@@ -1,9 +1,10 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
+
 import type {
   ApiOverview,
   ApisOverviewResponse,
-} from "@/lib/trpc/routers/api/query-overview/schemas";
+} from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { DEFAULT_OVERVIEW_FETCH_LIMIT } from "../constants";
 
@@ -16,7 +17,7 @@ export const useFetchApiOverview = (
   const [total, setTotal] = useState(initialData.total);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  const { data, isFetching, refetch } = trpc.api.overview.queryApisOverview.useQuery(
+  const { data, isFetching, refetch } = trpc.api.overview.query.useQuery(
     { limit: DEFAULT_OVERVIEW_FETCH_LIMIT, cursor },
     {
       enabled: false,

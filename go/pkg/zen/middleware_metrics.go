@@ -1,12 +1,16 @@
 package zen
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type EventBuffer interface {
@@ -39,10 +43,11 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 	}
 
 	return func(next HandleFunc) HandleFunc {
-		return func(s *Session) error {
+		return func(ctx context.Context, s *Session) error {
 			start := time.Now()
-			nextErr := next(s)
+			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
+
 			requestHeaders := []string{}
 			for k, vv := range s.r.Header {
 				if k == "authorization" {
@@ -56,6 +61,13 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 			for k, vv := range s.w.Header() {
 				responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
 			}
+
+			metrics.Http.Requests.Add(ctx, 1, metric.WithAttributeSet(attribute.NewSet(
+				attribute.String("host", s.r.Host),
+				attribute.String("method", s.r.Method),
+				attribute.String("path", s.r.URL.Path),
+				attribute.Int("status", s.responseStatus),
+			)))
 
 			eventBuffer.BufferApiRequest(schema.ApiRequestV1{
 				WorkspaceID:     s.workspaceID,

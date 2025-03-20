@@ -47,6 +47,12 @@ type Membership interface {
 	// The returned channel will be closed when the membership system shuts down.
 	SubscribeJoinEvents() <-chan Member
 
+	// SubscribeUpdateEvents returns a channel that receives Member events
+	// whenever a node changes its configuration in the cluster.
+	//
+	// The returned channel will be closed when the membership system shuts down.
+	SubscribeUpdateEvents() <-chan Member
+
 	// SubscribeLeaveEvents returns a channel that receives Member events
 	// whenever a node leaves the cluster.
 	//

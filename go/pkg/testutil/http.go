@@ -3,38 +3,32 @@ package testutil
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
+	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
-	"github.com/unkeyed/unkey/go/pkg/logging"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
 
-type Resources struct {
-	RootWorkspace db.Workspace
-	RootKeyring   db.KeyAuth
-	UserWorkspace db.Workspace
-}
-
 type Harness struct {
 	t *testing.T
 
-	Clock clock.Clock
+	Clock *clock.TestClock
 
 	srv        *zen.Server
-	containers *Containers
+	containers *containers.Containers
 	validator  *validation.Validator
 
 	middleware []zen.Middleware
@@ -43,17 +37,18 @@ type Harness struct {
 	Logger      logging.Logger
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
-	Resources   Resources
+	Ratelimit   ratelimit.Service
+	seeder      *seed.Seeder
 }
 
 func NewHarness(t *testing.T) *Harness {
 	clk := clock.NewTestClock()
 
-	logger := logging.New(logging.Config{Development: true, NoColor: false})
+	logger := logging.New()
 
-	containers := NewContainers(t)
+	cont := containers.New(t)
 
-	dsn := containers.RunMySQL()
+	dsn := cont.RunMySQL()
 
 	db, err := db.New(db.Config{
 		Logger:      logger,
@@ -63,56 +58,68 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	srv, err := zen.New(zen.Config{
-		NodeID: "test",
-		Logger: logger,
+		InstanceID: "test",
+		Logger:     logger,
 	})
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
 		Logger: logger,
 		DB:     db,
+		Clock:  clk,
 	})
 	require.NoError(t, err)
 
 	validator, err := validation.New()
 	require.NoError(t, err)
 
-	permissionService := permissions.New(permissions.Config{
+	permissionService, err := permissions.New(permissions.Config{
 		DB:     db,
 		Logger: logger,
+		Clock:  clk,
 	})
+	require.NoError(t, err)
+
+	ratelimitService, err := ratelimit.New(ratelimit.Config{
+		Logger:  logger,
+		Cluster: cluster.NewNoop("test", "localhost"),
+		Clock:   clk,
+	})
+	require.NoError(t, err)
+
+	// Create seeder
+	seeder := seed.New(t, db)
+
+	// Seed the database
+	seeder.Seed(context.Background())
 
 	h := Harness{
 		t:           t,
 		Logger:      logger,
 		srv:         srv,
-		containers:  containers,
+		containers:  cont,
 		validator:   validator,
 		Keys:        keyService,
 		Permissions: permissionService,
+		Ratelimit:   ratelimitService,
 		DB:          db,
-		// resources are seeded later
-		// nolint:exhaustruct
-		Resources: Resources{},
-		Clock:     clk,
+		seeder:      seeder,
+		Clock:       clk,
 
 		middleware: []zen.Middleware{
 			zen.WithTracing(),
-			//	zen.WithMetrics(svc.EventBuffer)
 			zen.WithLogging(logger),
-			zen.WithErrorHandling(),
+			zen.WithErrorHandling(logger),
 			zen.WithValidation(validator),
 		},
 	}
 
-	h.seed()
 	return &h
 }
 
 // Register registers a route with the harness.
 // You can override the middleware by passing a list of middleware.
 func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
-
 	if len(middleware) == 0 {
 		middleware = h.middleware
 	}
@@ -121,122 +128,15 @@ func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
 		middleware,
 		route,
 	)
-
 }
 
-func (h *Harness) seed() {
-
-	ctx := context.Background()
-
-	insertRootWorkspaceParams := db.InsertWorkspaceParams{
-		ID:        uid.New("test_ws"),
-		TenantID:  "unkey",
-		Name:      "unkey",
-		CreatedAt: time.Now().UnixMilli(),
-	}
-
-	err := db.Query.InsertWorkspace(ctx, h.DB.RW(), insertRootWorkspaceParams)
-	require.NoError(h.t, err)
-
-	rootWorkspace, err := db.Query.FindWorkspaceByID(ctx, h.DB.RW(), insertRootWorkspaceParams.ID)
-	require.NoError(h.t, err)
-
-	insertRootKeyringParams := db.InsertKeyringParams{
-		ID:                 uid.New("test_kr"),
-		WorkspaceID:        rootWorkspace.ID,
-		StoreEncryptedKeys: false,
-		DefaultPrefix:      sql.NullString{String: "test", Valid: true},
-		DefaultBytes:       sql.NullInt32{Int32: 8, Valid: true},
-		CreatedAtM:         time.Now().UnixMilli(),
-	}
-
-	err = db.Query.InsertKeyring(context.Background(), h.DB.RW(), insertRootKeyringParams)
-	require.NoError(h.t, err)
-
-	rootKeyring, err := db.Query.FindKeyringByID(ctx, h.DB.RW(), insertRootKeyringParams.ID)
-	require.NoError(h.t, err)
-
-	insertUserWorkspaceParams := db.InsertWorkspaceParams{
-		ID:        uid.New("test_ws"),
-		TenantID:  "user",
-		Name:      "user",
-		CreatedAt: time.Now().UnixMilli(),
-	}
-
-	err = db.Query.InsertWorkspace(ctx, h.DB.RW(), insertUserWorkspaceParams)
-	require.NoError(h.t, err)
-
-	userWorkspace, err := db.Query.FindWorkspaceByID(ctx, h.DB.RW(), insertUserWorkspaceParams.ID)
-	require.NoError(h.t, err)
-
-	h.Resources = Resources{
-		RootWorkspace: rootWorkspace,
-		RootKeyring:   rootKeyring,
-		UserWorkspace: userWorkspace,
-	}
-
-}
-
+// CreateRootKey creates a root key with the specified permissions
 func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) string {
-
-	key := uid.New("test_root_key")
-
-	insertKeyParams := db.InsertKeyParams{
-		ID:                uid.New("test_root_key"),
-		Hash:              hash.Sha256(key),
-		WorkspaceID:       h.Resources.RootWorkspace.ID,
-		ForWorkspaceID:    sql.NullString{String: workspaceID, Valid: true},
-		KeyringID:         h.Resources.RootKeyring.ID,
-		Start:             key[:4],
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		Name:              sql.NullString{String: "", Valid: false},
-		IdentityID:        sql.NullString{String: "", Valid: false},
-		Meta:              sql.NullString{String: "", Valid: false},
-		Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
-		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
-		RatelimitAsync:    sql.NullBool{Bool: false, Valid: false},
-		RatelimitLimit:    sql.NullInt32{Int32: 0, Valid: false},
-		RatelimitDuration: sql.NullInt64{Int64: 0, Valid: false},
-		Environment:       sql.NullString{String: "", Valid: false},
-	}
-
-	err := db.Query.InsertKey(context.Background(), h.DB.RW(), insertKeyParams)
-	require.NoError(h.t, err)
-
-	if len(permissions) > 0 {
-		for _, permission := range permissions {
-			permissionID := uid.New(uid.TestPrefix)
-			err = db.Query.InsertPermission(context.Background(), h.DB.RW(), db.InsertPermissionParams{
-				ID:          permissionID,
-				WorkspaceID: h.Resources.RootWorkspace.ID,
-				Name:        permission,
-				Description: sql.NullString{String: "", Valid: false},
-				CreatedAt:   time.Now().UnixMilli(),
-			})
-			require.NoError(h.t, err)
-
-			err = db.Query.InsertKeyPermission(context.Background(), h.DB.RW(), db.InsertKeyPermissionParams{
-				PermissionID: permissionID,
-				KeyID:        insertKeyParams.ID,
-				WorkspaceID:  h.Resources.RootWorkspace.ID,
-				CreatedAt:    time.Now().UnixMilli(),
-			})
-			require.NoError(h.t, err)
-		}
-	}
-
-	return key
-
+	return h.seeder.CreateRootKey(context.Background(), workspaceID, permissions...)
 }
 
-// Post is a helper function to make a POST request to the API.
-// It will hanndle serializing the request and response objects to and from JSON.
-func UnmarshalBody[Body any](t *testing.T, r *httptest.ResponseRecorder, body *Body) {
-
-	err := json.Unmarshal(r.Body.Bytes(), &body)
-	require.NoError(t, err)
-
+func (h *Harness) Resources() seed.Resources {
+	return h.seeder.Resources
 }
 
 type TestResponse[TBody any] struct {
@@ -276,7 +176,14 @@ func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Heade
 	var responseBody Res
 	err = json.Unmarshal(rawBody, &responseBody)
 	require.NoError(h.t, err)
+
 	res.Body = &responseBody
 
 	return res
+}
+
+// UnmarshalBody is a helper function to unmarshal the response body
+func UnmarshalBody[Body any](t *testing.T, r *httptest.ResponseRecorder, body *Body) {
+	err := json.Unmarshal(r.Body.Bytes(), &body)
+	require.NoError(t, err)
 }

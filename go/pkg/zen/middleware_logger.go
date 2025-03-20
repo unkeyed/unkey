@@ -1,10 +1,11 @@
 package zen
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // WithLogging returns middleware that logs information about each request.
@@ -18,12 +19,12 @@ import (
 //	)
 func WithLogging(logger logging.Logger) Middleware {
 	return func(next HandleFunc) HandleFunc {
-		return func(s *Session) error {
+		return func(ctx context.Context, s *Session) error {
 			start := time.Now()
-			nextErr := next(s)
+			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
 
-			logger.InfoContext(s.Context(), "request",
+			logger.InfoContext(ctx, "request",
 				slog.String("method", s.r.Method),
 				slog.String("path", s.r.URL.Path),
 				slog.Int("status", s.responseStatus),
@@ -31,7 +32,7 @@ func WithLogging(logger logging.Logger) Middleware {
 			)
 
 			if nextErr != nil {
-				logger.ErrorContext(s.Context(), nextErr.Error(),
+				logger.ErrorContext(ctx, nextErr.Error(),
 					slog.String("method", s.r.Method),
 					slog.String("path", s.r.URL.Path),
 					slog.Int("status", s.responseStatus))

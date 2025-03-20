@@ -7,13 +7,15 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatNumber } from "@/lib/fmt";
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
 import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
+import { createTimeIntervalFormatter } from "../overview-charts/utils";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
-import { formatTimestampLabel, formatTimestampTooltip } from "./utils/format-timestamp";
+import { formatTimestampLabel } from "./utils/format-timestamp";
 
 type Selection = {
   start: string | number;
@@ -134,8 +136,6 @@ export function LogsTimeseriesBarChart({
         <ChartContainer config={config}>
           <BarChart
             data={data}
-            barGap={2}
-            barSize={8}
             margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
@@ -176,7 +176,7 @@ export function LogsTimeseriesBarChart({
                             </div>
                             <div className="ml-auto">
                               <span className="font-mono tabular-nums text-accent-12">
-                                {payload[0]?.payload?.total}
+                                {formatNumber(payload[0]?.payload?.total)}
                               </span>
                             </div>
                           </div>
@@ -184,18 +184,7 @@ export function LogsTimeseriesBarChart({
                       </div>
                     }
                     className="rounded-lg shadow-lg border border-gray-4"
-                    labelFormatter={(_, tooltipPayload) => {
-                      const originalTimestamp = tooltipPayload[0]?.payload?.originalTimestamp;
-                      return originalTimestamp ? (
-                        <div>
-                          <span className="font-mono text-accent-9 text-xs px-4">
-                            {formatTimestampTooltip(originalTimestamp)}
-                          </span>
-                        </div>
-                      ) : (
-                        ""
-                      );
-                    }}
+                    labelFormatter={(_, payload) => createTimeIntervalFormatter(data)(payload)}
                   />
                 );
               }}

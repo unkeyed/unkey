@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "5542d79d-93e7-4821-9806-c033ba10512f",
+  "id": "ee1b848f-4a6b-4f2d-ae13-08fb6292a7a2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "apis": {
@@ -1114,6 +1114,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "org_id": {
+          "name": "org_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "name": {
           "name": "name",
           "type": "varchar(256)",
@@ -1128,6 +1135,14 @@
           "notNull": false,
           "autoincrement": false,
           "default": "'free'"
+        },
+        "tier": {
+          "name": "tier",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'Free'"
         },
         "stripe_customer_id": {
           "name": "stripe_customer_id",
@@ -1465,6 +1480,59 @@
         "ratelimits_id": {
           "name": "ratelimits_id",
           "columns": ["id"]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "quota": {
+      "name": "quota",
+      "columns": {
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "requests_per_month": {
+          "name": "requests_per_month",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "logs_retention_days": {
+          "name": "logs_retention_days",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "audit_logs_retention_days": {
+          "name": "audit_logs_retention_days",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "team": {
+          "name": "team",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "quota_workspace_id": {
+          "name": "quota_workspace_id",
+          "columns": ["workspace_id"]
         }
       },
       "uniqueConstraints": {}

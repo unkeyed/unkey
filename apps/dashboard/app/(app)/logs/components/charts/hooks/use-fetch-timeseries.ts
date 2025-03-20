@@ -100,5 +100,5 @@ export const useFetchTimeseries = () => {
     ...ts.y,
   }));
 
-  return { timeseries, isLoading, isError };
+  return { timeseries, isLoading, isError, granularity: data?.granularity };
 };
