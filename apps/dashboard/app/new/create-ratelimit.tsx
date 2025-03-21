@@ -1,8 +1,8 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 import { router } from "@/lib/trpc/routers";
-import { auth } from "@clerk/nextjs";
 import { createCallerFactory } from "@trpc/server";
 import type { AuditLogBucket, Workspace } from "@unkey/db";
 import { Button } from "@unkey/ui";
@@ -12,21 +12,22 @@ import Link from "next/link";
 type Props = {
   workspace: Workspace & { auditLogBucket: AuditLogBucket };
 };
+
 export const CreateRatelimit: React.FC<Props> = async (props) => {
-  const { sessionClaims, userId } = auth();
-  if (!userId) {
+  const user = await auth.getCurrentUser();
+  if (!user) {
     return null;
   }
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const trpc = createCallerFactory()(router)({
     req: {} as any,
     user: {
-      id: userId,
+      id: user.id,
     },
     workspace: props.workspace,
     tenant: {
-      id: tenantId,
+      id: orgId,
       role: "",
     },
     audit: {
@@ -45,9 +46,7 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
   -H 'Authorization: Bearer ${rootKey.key}' \\
   -d '{
       "namespace": "hello-ratelimit",
-      "identifier": "${
-        sessionClaims?.userName ?? sessionClaims?.email ?? sessionClaims?.sub ?? "hello"
-      }",
+      "identifier": "${user?.email ?? "hello"}",
       "limit": 10,
       "duration": 10000
   }'`;

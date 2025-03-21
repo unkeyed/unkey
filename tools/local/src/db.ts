@@ -57,7 +57,8 @@ export async function prepareDatabase(url?: string): Promise<{
       .insert(schema.workspaces)
       .values({
         id: ROW_IDS.rootWorkspace,
-        tenantId: "user_REPLACE_ME",
+        orgId: "user_REPLACE_ME",
+        clerkTenantId: "tenant_REPLACE_ME",
         name: "Unkey",
         createdAtM: Date.now(),
         betaFeatures: {},

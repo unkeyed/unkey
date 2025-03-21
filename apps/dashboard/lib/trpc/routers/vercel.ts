@@ -44,7 +44,7 @@ export const vercelRouter = t.router({
       if (!integration) {
         throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
       }
-      if (!integration.workspace || integration.workspace.tenantId !== ctx.tenant.id) {
+      if (!integration.workspace || integration.workspace.orgId !== ctx.tenant.id) {
         throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
       }
       const vercel = new Vercel({
@@ -220,7 +220,7 @@ export const vercelRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
       }
 
-      if (integration.workspace.tenantId !== ctx.tenant.id) {
+      if (integration.workspace.orgId !== ctx.tenant.id) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
@@ -339,7 +339,7 @@ export const vercelRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
       }
 
-      if (integration.workspace.tenantId !== ctx.tenant.id) {
+      if (integration.workspace.orgId !== ctx.tenant.id) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       // It's stupid to have to do this, we should just read `UNKEY_KEY_AUTH_ID` from the env instead
@@ -514,7 +514,7 @@ export const vercelRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
       }
 
-      if (binding.vercelIntegrations.workspace.tenantId !== ctx.tenant.id) {
+      if (binding.vercelIntegrations.workspace.orgId !== ctx.tenant.id) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       const vercel = new Vercel({
@@ -566,7 +566,7 @@ export const vercelRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
       }
 
-      if (integration.workspace.tenantId !== ctx.tenant.id) {
+      if (integration.workspace.orgId !== ctx.tenant.id) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       const vercel = new Vercel({

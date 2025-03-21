@@ -63,6 +63,7 @@ import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
+import { getCurrentUser, listMemberships, switchOrg } from "./user";
 
 export const router = t.router({
   key: t.router({
@@ -169,6 +170,24 @@ export const router = t.router({
     logs: fetchAuditLog,
     llmSearch: auditLogsSearch,
   }),
+  user: t.router({
+    getCurrentUser,
+    listMemberships,
+    switchOrg
+  }),
+  // org: t.router({
+  //   getOrg,
+  //   members: t.router({
+  //     list: getOrganizationMemberList,
+  //     remove: removeMembership,
+  //     update: updateMembership
+  //   }),
+  //   invitations: t.router({
+  //     list: getInvitationList,
+  //     invite: inviteMember,
+  //     revoke: revokeOrgInvitation
+  //   })
+  // }),
 });
 
 // export type definition of API

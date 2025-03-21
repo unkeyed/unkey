@@ -1,7 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { auth as authProvider } from "@/lib/auth/server";
 import { type Workspace, db, schema } from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
-import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -23,15 +23,16 @@ export const createWorkspace = t.procedure
       });
     }
 
-    const org = await clerkClient.organizations.createOrganization({
+    const orgId = await authProvider.createTenant({
       name: input.name,
-      createdBy: userId,
+      userId,
     });
 
     const workspace: Workspace = {
       id: newId("workspace"),
-      tenantId: org.id,
-      orgId: null,
+      orgId: orgId,
+      // dumb hack to keep the unique property but also clearly mark it as a workos identifier
+      clerkTenantId: `workos_${orgId}`,
       name: input.name,
       plan: "pro",
       tier: "Free",
@@ -111,6 +112,6 @@ export const createWorkspace = t.procedure
 
     return {
       workspace,
-      organizationId: org.id,
+      organizationId: orgId,
     };
   });

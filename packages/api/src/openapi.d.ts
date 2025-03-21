@@ -3,14 +3,11 @@
  * Do not make direct changes to the file.
  */
 
+
 /** OneOf type helpers */
 type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
-type XOR<T, U> = T | U extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
-type OneOf<T extends any[]> = T extends [infer Only]
-  ? Only
-  : T extends [infer A, infer B, ...infer Rest]
-    ? OneOf<[XOR<A, B>, ...Rest]>
-    : never;
+type XOR<T, U> = (T | U) extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
+type OneOf<T extends any[]> = T extends [infer Only] ? Only : T extends [infer A, infer B, ...infer Rest] ? OneOf<[XOR<A, B>, ...Rest]> : never;
 
 export interface paths {
   "/v1/liveness": {
@@ -570,16 +567,7 @@ export interface components {
        *
        * @enum {string}
        */
-      code:
-        | "VALID"
-        | "NOT_FOUND"
-        | "FORBIDDEN"
-        | "USAGE_EXCEEDED"
-        | "RATE_LIMITED"
-        | "UNAUTHORIZED"
-        | "DISABLED"
-        | "INSUFFICIENT_PERMISSIONS"
-        | "EXPIRED";
+      code: "VALID" | "NOT_FOUND" | "FORBIDDEN" | "USAGE_EXCEEDED" | "RATE_LIMITED" | "UNAUTHORIZED" | "DISABLED" | "INSUFFICIENT_PERMISSIONS" | "EXPIRED";
       /** @description Sets the key to be enabled or disabled. Disabled keys will not verify. */
       enabled?: boolean;
       /**
@@ -607,18 +595,11 @@ export interface components {
       requestId: string;
     };
     /** @description A query for which permissions you require */
-    PermissionQuery: OneOf<
-      [
-        string,
-        {
-          and: components["schemas"]["PermissionQuery"][];
-        },
-        {
-          or: components["schemas"]["PermissionQuery"][];
-        },
-        null,
-      ]
-    >;
+    PermissionQuery: OneOf<[string, {
+      and: components["schemas"]["PermissionQuery"][];
+    }, {
+      or: components["schemas"]["PermissionQuery"][];
+    }, null]>;
     V1KeysVerifyKeyRequest: {
       /**
        * @description The id of the api where the key belongs to. This is optional for now but will be required soon.
@@ -684,21 +665,21 @@ export interface components {
        * ]
        */
       ratelimits?: {
-        /**
-         * @description The name of the ratelimit.
-         * @example tokens
-         */
-        name: string;
-        /**
-         * @description Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
-         * @default 1
-         */
-        cost?: number;
-        /** @description Optionally override the limit. */
-        limit?: number;
-        /** @description Optionally override the ratelimit window duration. */
-        duration?: number;
-      }[];
+          /**
+           * @description The name of the ratelimit.
+           * @example tokens
+           */
+          name: string;
+          /**
+           * @description Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+           * @default 1
+           */
+          cost?: number;
+          /** @description Optionally override the limit. */
+          limit?: number;
+          /** @description Optionally override the ratelimit window duration. */
+          duration?: number;
+        }[];
     };
     ErrDeleteProtected: {
       error: {
@@ -724,7 +705,8 @@ export interface components {
     };
   };
   responses: never;
-  parameters: {};
+  parameters: {
+  };
   requestBodies: never;
   headers: never;
   pathItems: never;
@@ -735,6 +717,7 @@ export type $defs = Record<string, never>;
 export type external = Record<string, never>;
 
 export interface operations {
+
   "v1.liveness": {
     responses: {
       /** @description The configured services and their status */
@@ -1424,7 +1407,7 @@ export interface operations {
            *   "refillInterval": 60
            * }
            */
-          ratelimit?: {
+          ratelimit?: ({
             /**
              * @deprecated
              * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
@@ -1456,7 +1439,7 @@ export interface operations {
              * This field will become required in a future version.
              */
             duration?: number;
-          } | null;
+          }) | null;
           /**
            * @description The number of requests that can be made with this key before it becomes invalid. Set `null` to disable.
            * @example 1000
@@ -1469,7 +1452,7 @@ export interface operations {
            *   "amount": 100
            * }
            */
-          refill?: {
+          refill?: ({
             /**
              * @description Unkey will automatically refill verifications at the set interval. If null is used the refill functionality will be removed from the key.
              * @enum {string}
@@ -1479,7 +1462,7 @@ export interface operations {
             amount: number;
             /** @description The day verifications will refill each month, when interval is set to 'monthly' */
             refillDay?: number;
-          } | null;
+          }) | null;
           /**
            * @description Set if key is enabled or disabled. If disabled, the key cannot be used to verify.
            * @example true
@@ -1502,16 +1485,16 @@ export interface operations {
            * ]
            */
           roles?: {
-            /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
-            id?: string;
-            /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
-            name?: string;
-            /**
-             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
-             *                     Autocreating roles requires your root key to have the `rbac.*.create_role` permission, otherwise the request will get rejected
-             */
-            create?: boolean;
-          }[];
+              /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
+              id?: string;
+              /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+              name?: string;
+              /**
+               * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+               *                     Autocreating roles requires your root key to have the `rbac.*.create_role` permission, otherwise the request will get rejected
+               */
+              create?: boolean;
+            }[];
           /**
            * @description The permissions you want to set for this key. This overwrites all existing permissions.
            *                 Setting permissions requires the `rbac.*.add_permission_to_key` permission.
@@ -1529,16 +1512,16 @@ export interface operations {
            * ]
            */
           permissions?: {
-            /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
-            id?: string;
-            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
-            name?: string;
-            /**
-             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
-             *                     Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected
-             */
-            create?: boolean;
-          }[];
+              /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
+              id?: string;
+              /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+              name?: string;
+              /**
+               * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+               *                     Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected
+               */
+              create?: boolean;
+            }[];
         };
       };
     };
@@ -1700,27 +1683,27 @@ export interface operations {
         content: {
           "application/json": {
             verifications: {
-              /**
-               * @description The timestamp of the usage data
-               * @example 1620000000000
-               */
-              time: number;
-              /**
-               * @description The number of successful requests
-               * @example 100
-               */
-              success: number;
-              /**
-               * @description The number of requests that were rate limited
-               * @example 10
-               */
-              rateLimited: number;
-              /**
-               * @description The number of requests that exceeded the usage limit
-               * @example 0
-               */
-              usageExceeded: number;
-            }[];
+                /**
+                 * @description The timestamp of the usage data
+                 * @example 1620000000000
+                 */
+                time: number;
+                /**
+                 * @description The number of successful requests
+                 * @example 100
+                 */
+                success: number;
+                /**
+                 * @description The number of requests that were rate limited
+                 * @example 10
+                 */
+                rateLimited: number;
+                /**
+                 * @description The number of requests that exceeded the usage limit
+                 * @example 0
+                 */
+                usageExceeded: number;
+              }[];
           };
         };
       };
@@ -1782,16 +1765,16 @@ export interface operations {
           keyId: string;
           /** @description The permissions you want to add to this key */
           permissions: {
-            /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
-            id?: string;
-            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
-            name?: string;
-            /**
-             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
-             *               Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected
-             */
-            create?: boolean;
-          }[];
+              /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
+              id?: string;
+              /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+              name?: string;
+              /**
+               * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+               *               Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected
+               */
+              create?: boolean;
+            }[];
         };
       };
     };
@@ -1800,17 +1783,17 @@ export interface operations {
       200: {
         content: {
           "application/json": {
-            /**
-             * @description The id of the permission. This is used internally
-             * @example perm_123
-             */
-            id: string;
-            /**
-             * @description The name of the permission
-             * @example dns.record.create
-             */
-            name: string;
-          }[];
+              /**
+               * @description The id of the permission. This is used internally
+               * @example perm_123
+               */
+              id: string;
+              /**
+               * @description The name of the permission
+               * @example dns.record.create
+               */
+              name: string;
+            }[];
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -1881,11 +1864,11 @@ export interface operations {
            * ]
            */
           permissions: {
-            /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
-            id?: string;
-            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
-            name?: string;
-          }[];
+              /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
+              id?: string;
+              /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+              name?: string;
+            }[];
         };
       };
     };
@@ -1969,16 +1952,16 @@ export interface operations {
            * ]
            */
           permissions: {
-            /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
-            id?: string;
-            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
-            name?: string;
-            /**
-             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
-             *                 Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected
-             */
-            create?: boolean;
-          }[];
+              /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
+              id?: string;
+              /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+              name?: string;
+              /**
+               * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+               *                 Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected
+               */
+              create?: boolean;
+            }[];
         };
       };
     };
@@ -1987,17 +1970,17 @@ export interface operations {
       200: {
         content: {
           "application/json": {
-            /**
-             * @description The id of the permission. This is used internally
-             * @example perm_123
-             */
-            id: string;
-            /**
-             * @description The name of the permission
-             * @example dns.record.create
-             */
-            name: string;
-          }[];
+              /**
+               * @description The id of the permission. This is used internally
+               * @example perm_123
+               */
+              id: string;
+              /**
+               * @description The name of the permission
+               * @example dns.record.create
+               */
+              name: string;
+            }[];
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -2073,16 +2056,16 @@ export interface operations {
            * ]
            */
           roles: {
-            /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
-            id?: string;
-            /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
-            name?: string;
-            /**
-             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
-             *               Autocreating roles requires your root key to have the `rbac.*.create_role` permission, otherwise the request will get rejected
-             */
-            create?: boolean;
-          }[];
+              /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
+              id?: string;
+              /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+              name?: string;
+              /**
+               * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+               *               Autocreating roles requires your root key to have the `rbac.*.create_role` permission, otherwise the request will get rejected
+               */
+              create?: boolean;
+            }[];
         };
       };
     };
@@ -2091,17 +2074,17 @@ export interface operations {
       200: {
         content: {
           "application/json": {
-            /**
-             * @description The id of the role. This is used internally
-             * @example role_123
-             */
-            id: string;
-            /**
-             * @description The name of the role
-             * @example dns.record.create
-             */
-            name: string;
-          }[];
+              /**
+               * @description The id of the role. This is used internally
+               * @example role_123
+               */
+              id: string;
+              /**
+               * @description The name of the role
+               * @example dns.record.create
+               */
+              name: string;
+            }[];
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -2172,11 +2155,11 @@ export interface operations {
            * ]
            */
           roles: {
-            /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
-            id?: string;
-            /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
-            name?: string;
-          }[];
+              /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
+              id?: string;
+              /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+              name?: string;
+            }[];
         };
       };
     };
@@ -2260,16 +2243,16 @@ export interface operations {
            * ]
            */
           roles: {
-            /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
-            id?: string;
-            /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
-            name?: string;
-            /**
-             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
-             *                 Autocreating roles requires your root key to have the `rbac.*.create_role` permission, otherwise the request will get rejected
-             */
-            create?: boolean;
-          }[];
+              /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
+              id?: string;
+              /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+              name?: string;
+              /**
+               * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+               *                 Autocreating roles requires your root key to have the `rbac.*.create_role` permission, otherwise the request will get rejected
+               */
+              create?: boolean;
+            }[];
         };
       };
     };
@@ -2278,17 +2261,17 @@ export interface operations {
       200: {
         content: {
           "application/json": {
-            /**
-             * @description The id of the role. This is used internally
-             * @example role_123
-             */
-            id: string;
-            /**
-             * @description The name of the role
-             * @example dns.record.create
-             */
-            name: string;
-          }[];
+              /**
+               * @description The id of the role. This is used internally
+               * @example role_123
+               */
+              id: string;
+              /**
+               * @description The name of the role
+               * @example dns.record.create
+               */
+              name: string;
+            }[];
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -2773,26 +2756,26 @@ export interface operations {
            * ]
            */
           resources?: {
-            /**
-             * @description The type of resource
-             * @example organization
-             */
-            type: string;
-            /**
-             * @description The unique identifier for the resource
-             * @example org_123
-             */
-            id: string;
-            /**
-             * @description A human readable name for this resource
-             * @example unkey
-             */
-            name?: string;
-            /** @description Attach any metadata to this resources */
-            meta?: {
-              [key: string]: unknown;
-            };
-          }[];
+              /**
+               * @description The type of resource
+               * @example organization
+               */
+              type: string;
+              /**
+               * @description The unique identifier for the resource
+               * @example org_123
+               */
+              id: string;
+              /**
+               * @description A human readable name for this resource
+               * @example unkey
+               */
+              name?: string;
+              /** @description Attach any metadata to this resources */
+              meta?: {
+                [key: string]: unknown;
+              };
+            }[];
         };
       };
     };
@@ -2987,13 +2970,13 @@ export interface operations {
       200: {
         content: {
           "application/json": {
-            overrides: {
-              id: string;
-              identifier: string;
-              limit: number;
-              duration: number;
-              async?: boolean | null;
-            }[];
+            overrides: ({
+                id: string;
+                identifier: string;
+                limit: number;
+                duration: number;
+                async?: boolean | null;
+              })[];
             /**
              * @description The cursor to use for the next page of results, if no cursor is returned, there are no more results
              * @example eyJrZXkiOiJrZXlfMTIzNCJ9
@@ -3207,161 +3190,161 @@ export interface operations {
   "v1.migrations.createKeys": {
     requestBody: {
       content: {
-        "application/json": {
-          /**
-           * @description Choose an `API` where this key should be created.
-           * @example api_123
-           */
-          apiId: string;
-          /**
-           * @description To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
-           *
-           * For example Stripe famously prefixes their customer ids with cus_ or their api keys with sk_live_.
-           *
-           * The underscore is automatically added if you are defining a prefix, for example: "prefix": "abc" will result in a key like abc_xxxxxxxxx
-           */
-          prefix?: string;
-          /**
-           * @description The name for your Key. This is not customer facing.
-           * @example my key
-           */
-          name?: string;
-          /** @description The raw key in plaintext. If provided, unkey encrypts this value and stores it securely. Provide either `hash` or `plaintext` */
-          plaintext?: string;
-          /** @description Provide either `hash` or `plaintext` */
-          hash?: {
-            /** @description The hashed and encoded key */
-            value: string;
+        "application/json": ({
             /**
-             * @description The algorithm for hashing and encoding, currently only sha256 and base64 are supported
-             * @enum {string}
+             * @description Choose an `API` where this key should be created.
+             * @example api_123
              */
-            variant: "sha256_base64";
-          };
-          /**
-           * @description The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.
-           * @example unkey_32kq
-           */
-          start?: string;
-          /**
-           * @deprecated
-           * @description Deprecated, use `externalId`
-           * @example team_123
-           */
-          ownerId?: string;
-          /**
-           * @description Your user’s Id. This will provide a link between Unkey and your customer record.
-           * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
-           * @example user_123
-           */
-          externalId?: string;
-          /**
-           * @description This is a place for dynamic meta data, anything that feels useful for you should go here
-           * @example {
-           *   "billingTier": "PRO",
-           *   "trialEnds": "2023-06-16T17:16:37.161Z"
-           * }
-           */
-          meta?: {
-            [key: string]: unknown;
-          };
-          /**
-           * @description A list of roles that this key should have. If the role does not exist, an error is thrown
-           * @example [
-           *   "admin",
-           *   "finance"
-           * ]
-           */
-          roles?: string[];
-          /**
-           * @description A list of permissions that this key should have. If the permission does not exist, an error is thrown
-           * @example [
-           *   "domains.create_record",
-           *   "say_hello"
-           * ]
-           */
-          permissions?: string[];
-          /**
-           * @description You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.
-           * @example 1623869797161
-           */
-          expires?: number;
-          /**
-           * @description You can limit the number of requests a key can make. Once a key reaches 0 remaining requests, it will automatically be disabled and is no longer valid unless you update it.
-           * @example 1000
-           */
-          remaining?: number;
-          /**
-           * @description Unkey enables you to refill verifications for each key at regular intervals.
-           * @example {
-           *   "interval": "daily",
-           *   "amount": 100
-           * }
-           */
-          refill?: {
+            apiId: string;
             /**
-             * @description Unkey will automatically refill verifications at the set interval.
-             * @enum {string}
+             * @description To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
+             *
+             * For example Stripe famously prefixes their customer ids with cus_ or their api keys with sk_live_.
+             *
+             * The underscore is automatically added if you are defining a prefix, for example: "prefix": "abc" will result in a key like abc_xxxxxxxxx
              */
-            interval: "daily" | "monthly";
-            /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
-            amount: number;
-            /** @description The day verifications will refill each month, when interval is set to 'monthly' */
-            refillDay?: number;
-          };
-          /**
-           * @description Unkey comes with per-key ratelimiting out of the box.
-           * @example {
-           *   "type": "fast",
-           *   "limit": 10,
-           *   "refillRate": 1,
-           *   "refillInterval": 60
-           * }
-           */
-          ratelimit?: {
+            prefix?: string;
             /**
-             * @description Async will return a response immediately, lowering latency at the cost of accuracy.
-             * @default false
+             * @description The name for your Key. This is not customer facing.
+             * @example my key
              */
-            async?: boolean;
+            name?: string;
+            /** @description The raw key in plaintext. If provided, unkey encrypts this value and stores it securely. Provide either `hash` or `plaintext` */
+            plaintext?: string;
+            /** @description Provide either `hash` or `plaintext` */
+            hash?: {
+              /** @description The hashed and encoded key */
+              value: string;
+              /**
+               * @description The algorithm for hashing and encoding, currently only sha256 and base64 are supported
+               * @enum {string}
+               */
+              variant: "sha256_base64";
+            };
+            /**
+             * @description The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.
+             * @example unkey_32kq
+             */
+            start?: string;
             /**
              * @deprecated
-             * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
-             * @default fast
-             * @enum {string}
+             * @description Deprecated, use `externalId`
+             * @example team_123
              */
-            type?: "fast" | "consistent";
-            /** @description The total amount of burstable requests. */
-            limit: number;
+            ownerId?: string;
             /**
-             * @deprecated
-             * @description How many tokens to refill during each refillInterval.
+             * @description Your user’s Id. This will provide a link between Unkey and your customer record.
+             * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+             * @example user_123
              */
-            refillRate: number;
+            externalId?: string;
             /**
-             * @deprecated
-             * @description Determines the speed at which tokens are refilled, in milliseconds.
+             * @description This is a place for dynamic meta data, anything that feels useful for you should go here
+             * @example {
+             *   "billingTier": "PRO",
+             *   "trialEnds": "2023-06-16T17:16:37.161Z"
+             * }
              */
-            refillInterval: number;
-          };
-          /**
-           * @description Sets if key is enabled or disabled. Disabled keys are not valid.
-           * @default true
-           * @example false
-           */
-          enabled?: boolean;
-          /**
-           * @description Environments allow you to divide your keyspace.
-           *
-           * Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to
-           * give the developer a way to develop their own application without the risk of modifying real world
-           * resources.
-           *
-           * When you set an environment, we will return it back to you when validating the key, so you can
-           * handle it correctly.
-           */
-          environment?: string;
-        }[];
+            meta?: {
+              [key: string]: unknown;
+            };
+            /**
+             * @description A list of roles that this key should have. If the role does not exist, an error is thrown
+             * @example [
+             *   "admin",
+             *   "finance"
+             * ]
+             */
+            roles?: string[];
+            /**
+             * @description A list of permissions that this key should have. If the permission does not exist, an error is thrown
+             * @example [
+             *   "domains.create_record",
+             *   "say_hello"
+             * ]
+             */
+            permissions?: string[];
+            /**
+             * @description You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.
+             * @example 1623869797161
+             */
+            expires?: number;
+            /**
+             * @description You can limit the number of requests a key can make. Once a key reaches 0 remaining requests, it will automatically be disabled and is no longer valid unless you update it.
+             * @example 1000
+             */
+            remaining?: number;
+            /**
+             * @description Unkey enables you to refill verifications for each key at regular intervals.
+             * @example {
+             *   "interval": "daily",
+             *   "amount": 100
+             * }
+             */
+            refill?: {
+              /**
+               * @description Unkey will automatically refill verifications at the set interval.
+               * @enum {string}
+               */
+              interval: "daily" | "monthly";
+              /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
+              amount: number;
+              /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+              refillDay?: number;
+            };
+            /**
+             * @description Unkey comes with per-key ratelimiting out of the box.
+             * @example {
+             *   "type": "fast",
+             *   "limit": 10,
+             *   "refillRate": 1,
+             *   "refillInterval": 60
+             * }
+             */
+            ratelimit?: {
+              /**
+               * @description Async will return a response immediately, lowering latency at the cost of accuracy.
+               * @default false
+               */
+              async?: boolean;
+              /**
+               * @deprecated
+               * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+               * @default fast
+               * @enum {string}
+               */
+              type?: "fast" | "consistent";
+              /** @description The total amount of burstable requests. */
+              limit: number;
+              /**
+               * @deprecated
+               * @description How many tokens to refill during each refillInterval.
+               */
+              refillRate: number;
+              /**
+               * @deprecated
+               * @description Determines the speed at which tokens are refilled, in milliseconds.
+               */
+              refillInterval: number;
+            };
+            /**
+             * @description Sets if key is enabled or disabled. Disabled keys are not valid.
+             * @default true
+             * @example false
+             */
+            enabled?: boolean;
+            /**
+             * @description Environments allow you to divide your keyspace.
+             *
+             * Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to
+             * give the developer a way to develop their own application without the risk of modifying real world
+             * resources.
+             *
+             * When you set an environment, we will return it back to you when validating the key, so you can
+             * handle it correctly.
+             */
+            environment?: string;
+          })[];
       };
     };
     responses: {
@@ -3438,154 +3421,154 @@ export interface operations {
           migrationId: string;
           /** @description The id of the api, you want to migrate keys to */
           apiId: string;
-          keys: {
-            /**
-             * @description To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
-             *
-             * For example Stripe famously prefixes their customer ids with cus_ or their api keys with sk_live_.
-             *
-             * The underscore is automatically added if you are defining a prefix, for example: "prefix": "abc" will result in a key like abc_xxxxxxxxx
-             */
-            prefix?: string;
-            /**
-             * @description The name for your Key. This is not customer facing.
-             * @example my key
-             */
-            name?: string;
-            /** @description The raw key in plaintext. If provided, unkey encrypts this value and stores it securely. Provide either `hash` or `plaintext` */
-            plaintext?: string;
-            /** @description Provide either `hash` or `plaintext` */
-            hash?: {
-              /** @description The hashed and encoded key */
-              value: string;
+          keys: ({
               /**
-               * @description The algorithm for hashing and encoding, currently only sha256 and base64 are supported
-               * @enum {string}
+               * @description To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
+               *
+               * For example Stripe famously prefixes their customer ids with cus_ or their api keys with sk_live_.
+               *
+               * The underscore is automatically added if you are defining a prefix, for example: "prefix": "abc" will result in a key like abc_xxxxxxxxx
                */
-              variant: "sha256_base64";
-            };
-            /**
-             * @description The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.
-             * @example unkey_32kq
-             */
-            start?: string;
-            /**
-             * @description Your user’s Id. This will provide a link between Unkey and your customer record.
-             * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
-             * @example team_123
-             */
-            ownerId?: string;
-            /**
-             * @description This is a place for dynamic meta data, anything that feels useful for you should go here
-             * @example {
-             *   "billingTier": "PRO",
-             *   "trialEnds": "2023-06-16T17:16:37.161Z"
-             * }
-             */
-            meta?: {
-              [key: string]: unknown;
-            };
-            /**
-             * @description A list of roles that this key should have. If the role does not exist, an error is thrown
-             * @example [
-             *   "admin",
-             *   "finance"
-             * ]
-             */
-            roles?: string[];
-            /**
-             * @description A list of permissions that this key should have. If the permission does not exist, an error is thrown
-             * @example [
-             *   "domains.create_record",
-             *   "say_hello"
-             * ]
-             */
-            permissions?: string[];
-            /**
-             * @description You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.
-             * @example 1623869797161
-             */
-            expires?: number;
-            /**
-             * @description You can limit the number of requests a key can make. Once a key reaches 0 remaining requests, it will automatically be disabled and is no longer valid unless you update it.
-             * @example 1000
-             */
-            remaining?: number;
-            /**
-             * @description Unkey enables you to refill verifications for each key at regular intervals.
-             * @example {
-             *   "interval": "daily",
-             *   "amount": 100
-             * }
-             */
-            refill?: {
+              prefix?: string;
               /**
-               * @description Unkey will automatically refill verifications at the set interval.
-               * @enum {string}
+               * @description The name for your Key. This is not customer facing.
+               * @example my key
                */
-              interval: "daily" | "monthly";
-              /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
-              amount: number;
-              /** @description The day verifications will refill each month, when interval is set to 'monthly' */
-              refillDay?: number;
-            };
-            /**
-             * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
-             * @example {
-             *   "type": "fast",
-             *   "limit": 10,
-             *   "duration": 60000
-             * }
-             */
-            ratelimit?: {
+              name?: string;
+              /** @description The raw key in plaintext. If provided, unkey encrypts this value and stores it securely. Provide either `hash` or `plaintext` */
+              plaintext?: string;
+              /** @description Provide either `hash` or `plaintext` */
+              hash?: {
+                /** @description The hashed and encoded key */
+                value: string;
+                /**
+                 * @description The algorithm for hashing and encoding, currently only sha256 and base64 are supported
+                 * @enum {string}
+                 */
+                variant: "sha256_base64";
+              };
               /**
-               * @description Async will return a response immediately, lowering latency at the cost of accuracy.
+               * @description The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.
+               * @example unkey_32kq
+               */
+              start?: string;
+              /**
+               * @description Your user’s Id. This will provide a link between Unkey and your customer record.
+               * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+               * @example team_123
+               */
+              ownerId?: string;
+              /**
+               * @description This is a place for dynamic meta data, anything that feels useful for you should go here
+               * @example {
+               *   "billingTier": "PRO",
+               *   "trialEnds": "2023-06-16T17:16:37.161Z"
+               * }
+               */
+              meta?: {
+                [key: string]: unknown;
+              };
+              /**
+               * @description A list of roles that this key should have. If the role does not exist, an error is thrown
+               * @example [
+               *   "admin",
+               *   "finance"
+               * ]
+               */
+              roles?: string[];
+              /**
+               * @description A list of permissions that this key should have. If the permission does not exist, an error is thrown
+               * @example [
+               *   "domains.create_record",
+               *   "say_hello"
+               * ]
+               */
+              permissions?: string[];
+              /**
+               * @description You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.
+               * @example 1623869797161
+               */
+              expires?: number;
+              /**
+               * @description You can limit the number of requests a key can make. Once a key reaches 0 remaining requests, it will automatically be disabled and is no longer valid unless you update it.
+               * @example 1000
+               */
+              remaining?: number;
+              /**
+               * @description Unkey enables you to refill verifications for each key at regular intervals.
+               * @example {
+               *   "interval": "daily",
+               *   "amount": 100
+               * }
+               */
+              refill?: {
+                /**
+                 * @description Unkey will automatically refill verifications at the set interval.
+                 * @enum {string}
+                 */
+                interval: "daily" | "monthly";
+                /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
+                amount: number;
+                /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+                refillDay?: number;
+              };
+              /**
+               * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
+               * @example {
+               *   "type": "fast",
+               *   "limit": 10,
+               *   "duration": 60000
+               * }
+               */
+              ratelimit?: {
+                /**
+                 * @description Async will return a response immediately, lowering latency at the cost of accuracy.
+                 * @default true
+                 */
+                async?: boolean;
+                /**
+                 * @deprecated
+                 * @description Deprecated, use `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+                 * @default fast
+                 * @enum {string}
+                 */
+                type?: "fast" | "consistent";
+                /** @description The total amount of requests in a given interval. */
+                limit: number;
+                /**
+                 * @description The window duration in milliseconds
+                 * @example 60000
+                 */
+                duration: number;
+                /**
+                 * @deprecated
+                 * @description How many tokens to refill during each refillInterval.
+                 */
+                refillRate?: number;
+                /**
+                 * @deprecated
+                 * @description The refill timeframe, in milliseconds.
+                 */
+                refillInterval?: number;
+              };
+              /**
+               * @description Sets if key is enabled or disabled. Disabled keys are not valid.
                * @default true
+               * @example false
                */
-              async?: boolean;
+              enabled?: boolean;
               /**
-               * @deprecated
-               * @description Deprecated, use `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
-               * @default fast
-               * @enum {string}
+               * @description Environments allow you to divide your keyspace.
+               *
+               * Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to
+               * give the developer a way to develop their own application without the risk of modifying real world
+               * resources.
+               *
+               * When you set an environment, we will return it back to you when validating the key, so you can
+               * handle it correctly.
                */
-              type?: "fast" | "consistent";
-              /** @description The total amount of requests in a given interval. */
-              limit: number;
-              /**
-               * @description The window duration in milliseconds
-               * @example 60000
-               */
-              duration: number;
-              /**
-               * @deprecated
-               * @description How many tokens to refill during each refillInterval.
-               */
-              refillRate?: number;
-              /**
-               * @deprecated
-               * @description The refill timeframe, in milliseconds.
-               */
-              refillInterval?: number;
-            };
-            /**
-             * @description Sets if key is enabled or disabled. Disabled keys are not valid.
-             * @default true
-             * @example false
-             */
-            enabled?: boolean;
-            /**
-             * @description Environments allow you to divide your keyspace.
-             *
-             * Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to
-             * give the developer a way to develop their own application without the risk of modifying real world
-             * resources.
-             *
-             * When you set an environment, we will return it back to you when validating the key, so you can
-             * handle it correctly.
-             */
-            environment?: string;
-          }[];
+              environment?: string;
+            })[];
         };
       };
     };
@@ -3880,22 +3863,22 @@ export interface operations {
       200: {
         content: {
           "application/json": {
-            /**
-             * @description The id of the permission
-             * @example perm_123
-             */
-            id: string;
-            /**
-             * @description The name of the permission.
-             * @example domain.record.manager
-             */
-            name: string;
-            /**
-             * @description The description of what this permission does. This is just for your team, your users will not see this.
-             * @example Can manage dns records
-             */
-            description?: string;
-          }[];
+              /**
+               * @description The id of the permission
+               * @example perm_123
+               */
+              id: string;
+              /**
+               * @description The name of the permission.
+               * @example domain.record.manager
+               */
+              name: string;
+              /**
+               * @description The description of what this permission does. This is just for your team, your users will not see this.
+               * @example Can manage dns records
+               */
+              description?: string;
+            }[];
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -4182,22 +4165,22 @@ export interface operations {
       200: {
         content: {
           "application/json": {
-            /**
-             * @description The id of the role
-             * @example role_1234
-             */
-            id: string;
-            /**
-             * @description The name of the role.
-             * @example domain.record.manager
-             */
-            name: string;
-            /**
-             * @description The description of what this role does. This is just for your team, your users will not see this.
-             * @example Can manage dns records
-             */
-            description?: string;
-          }[];
+              /**
+               * @description The id of the role
+               * @example role_1234
+               */
+              id: string;
+              /**
+               * @description The name of the role.
+               * @example domain.record.manager
+               */
+              name: string;
+              /**
+               * @description The description of what this role does. This is just for your team, your users will not see this.
+               * @example Can manage dns records
+               */
+              description?: string;
+            }[];
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -4279,22 +4262,22 @@ export interface operations {
            * When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits.
            */
           ratelimits?: {
-            /**
-             * @description The name of this limit. You will need to use this again when verifying a key.
-             * @example tokens
-             */
-            name: string;
-            /**
-             * @description How many requests may pass within a given window before requests are rejected.
-             * @example 10
-             */
-            limit: number;
-            /**
-             * @description The duration for each ratelimit window in milliseconds.
-             * @example 1000
-             */
-            duration: number;
-          }[];
+              /**
+               * @description The name of this limit. You will need to use this again when verifying a key.
+               * @example tokens
+               */
+              name: string;
+              /**
+               * @description How many requests may pass within a given window before requests are rejected.
+               * @example 10
+               */
+              limit: number;
+              /**
+               * @description The duration for each ratelimit window in milliseconds.
+               * @example 1000
+               */
+              duration: number;
+            }[];
         };
       };
     };
@@ -4383,22 +4366,22 @@ export interface operations {
             };
             /** @description When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits. */
             ratelimits: {
-              /**
-               * @description The name of this limit. You will need to use this again when verifying a key.
-               * @example tokens
-               */
-              name: string;
-              /**
-               * @description How many requests may pass within a given window before requests are rejected.
-               * @example 10
-               */
-              limit: number;
-              /**
-               * @description The duration for each ratelimit window in milliseconds.
-               * @example 1000
-               */
-              duration: number;
-            }[];
+                /**
+                 * @description The name of this limit. You will need to use this again when verifying a key.
+                 * @example tokens
+                 */
+                name: string;
+                /**
+                 * @description How many requests may pass within a given window before requests are rejected.
+                 * @example 10
+                 */
+                limit: number;
+                /**
+                 * @description The duration for each ratelimit window in milliseconds.
+                 * @example 1000
+                 */
+                duration: number;
+              }[];
           };
         };
       };
@@ -4467,29 +4450,29 @@ export interface operations {
           "application/json": {
             /** @description A list of identities. */
             identities: {
-              /** @description The id of this identity. Used to interact with unkey's API */
-              id: string;
-              /** @description The id in your system */
-              externalId: string;
-              /** @description When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits. */
-              ratelimits: {
-                /**
-                 * @description The name of this limit. You will need to use this again when verifying a key.
-                 * @example tokens
-                 */
-                name: string;
-                /**
-                 * @description How many requests may pass within a given window before requests are rejected.
-                 * @example 10
-                 */
-                limit: number;
-                /**
-                 * @description The duration for each ratelimit window in milliseconds.
-                 * @example 1000
-                 */
-                duration: number;
+                /** @description The id of this identity. Used to interact with unkey's API */
+                id: string;
+                /** @description The id in your system */
+                externalId: string;
+                /** @description When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits. */
+                ratelimits: {
+                    /**
+                     * @description The name of this limit. You will need to use this again when verifying a key.
+                     * @example tokens
+                     */
+                    name: string;
+                    /**
+                     * @description How many requests may pass within a given window before requests are rejected.
+                     * @example 10
+                     */
+                    limit: number;
+                    /**
+                     * @description The duration for each ratelimit window in milliseconds.
+                     * @example 1000
+                     */
+                    duration: number;
+                  }[];
               }[];
-            }[];
             /**
              * @description The cursor to use for the next page of results, if no cursor is returned, there are no more results
              * @example eyJrZXkiOiJrZXlfMTIzNCJ9
@@ -4588,22 +4571,22 @@ export interface operations {
            * When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits.
            */
           ratelimits?: {
-            /**
-             * @description The name of this limit. You will need to use this again when verifying a key.
-             * @example tokens
-             */
-            name: string;
-            /**
-             * @description How many requests may pass within a given window before requests are rejected.
-             * @example 10
-             */
-            limit: number;
-            /**
-             * @description The duration for each ratelimit window in milliseconds.
-             * @example 1000
-             */
-            duration: number;
-          }[];
+              /**
+               * @description The name of this limit. You will need to use this again when verifying a key.
+               * @example tokens
+               */
+              name: string;
+              /**
+               * @description How many requests may pass within a given window before requests are rejected.
+               * @example 10
+               */
+              limit: number;
+              /**
+               * @description The duration for each ratelimit window in milliseconds.
+               * @example 1000
+               */
+              duration: number;
+            }[];
         };
       };
     };
@@ -4632,22 +4615,22 @@ export interface operations {
               [key: string]: unknown;
             };
             ratelimits: {
-              /**
-               * @description The name of this limit.
-               * @example tokens
-               */
-              name: string;
-              /**
-               * @description How many requests may pass within a given window before requests are rejected.
-               * @example 10
-               */
-              limit: number;
-              /**
-               * @description The duration for each ratelimit window in milliseconds.
-               * @example 1000
-               */
-              duration: number;
-            }[];
+                /**
+                 * @description The name of this limit.
+                 * @example tokens
+                 */
+                name: string;
+                /**
+                 * @description How many requests may pass within a given window before requests are rejected.
+                 * @example 10
+                 */
+                limit: number;
+                /**
+                 * @description The duration for each ratelimit window in milliseconds.
+                 * @example 1000
+                 */
+                duration: number;
+              }[];
           };
         };
       };
@@ -4779,22 +4762,9 @@ export interface operations {
         tag?: string | string[];
         start?: number | null;
         end?: number | null;
-        groupBy?:
-          | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")
-          | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")[];
+        groupBy?: ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour") | (("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")[]);
         limit?: number;
-        orderBy?:
-          | "time"
-          | "valid"
-          | "notFound"
-          | "forbidden"
-          | "usageExceeded"
-          | "rateLimited"
-          | "unauthorized"
-          | "disabled"
-          | "insufficientPermissions"
-          | "expired"
-          | "total";
+        orderBy?: "time" | "valid" | "notFound" | "forbidden" | "usageExceeded" | "rateLimited" | "unauthorized" | "disabled" | "insufficientPermissions" | "expired" | "total";
         order?: "asc" | "desc";
       };
     };
@@ -4803,37 +4773,37 @@ export interface operations {
       200: {
         content: {
           "application/json": {
-            /** @description Unix timestamp in milliseconds of the start of the current time slice. */
-            time?: number;
-            valid?: number;
-            notFound?: number;
-            forbidden?: number;
-            usageExceeded?: number;
-            rateLimited?: number;
-            unauthorized?: number;
-            disabled?: number;
-            insufficientPermissions?: number;
-            expired?: number;
-            /** @description Total number of verifications in the current time slice, regardless of outcome. */
-            total: number;
-            /** @description Only available when grouping by tag. */
-            tag?: string;
-            /** @description Filter by one or multiple tags. If multiple tags are provided */
-            tags?: string[];
-            /**
-             * @description Only available when specifying groupBy=key in the query.
-             * In this case there would be one datapoint per time and groupBy target.
-             */
-            keyId?: string;
-            /**
-             * @description Only available when specifying groupBy=identity in the query.
-             * In this case there would be one datapoint per time and groupBy target.
-             */
-            identity?: {
-              id: string;
-              externalId: string;
-            };
-          }[];
+              /** @description Unix timestamp in milliseconds of the start of the current time slice. */
+              time?: number;
+              valid?: number;
+              notFound?: number;
+              forbidden?: number;
+              usageExceeded?: number;
+              rateLimited?: number;
+              unauthorized?: number;
+              disabled?: number;
+              insufficientPermissions?: number;
+              expired?: number;
+              /** @description Total number of verifications in the current time slice, regardless of outcome. */
+              total: number;
+              /** @description Only available when grouping by tag. */
+              tag?: string;
+              /** @description Filter by one or multiple tags. If multiple tags are provided */
+              tags?: string[];
+              /**
+               * @description Only available when specifying groupBy=key in the query.
+               * In this case there would be one datapoint per time and groupBy target.
+               */
+              keyId?: string;
+              /**
+               * @description Only available when specifying groupBy=identity in the query.
+               * In this case there would be one datapoint per time and groupBy target.
+               */
+              identity?: {
+                id: string;
+                externalId: string;
+              };
+            }[];
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -5143,15 +5113,7 @@ export interface operations {
              * @example NOT_FOUND
              * @enum {string}
              */
-            code?:
-              | "NOT_FOUND"
-              | "FORBIDDEN"
-              | "USAGE_EXCEEDED"
-              | "RATE_LIMITED"
-              | "UNAUTHORIZED"
-              | "DISABLED"
-              | "INSUFFICIENT_PERMISSIONS"
-              | "EXPIRED";
+            code?: "NOT_FOUND" | "FORBIDDEN" | "USAGE_EXCEEDED" | "RATE_LIMITED" | "UNAUTHORIZED" | "DISABLED" | "INSUFFICIENT_PERMISSIONS" | "EXPIRED";
           };
         };
       };

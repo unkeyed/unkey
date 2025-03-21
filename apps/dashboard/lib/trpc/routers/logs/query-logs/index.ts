@@ -28,7 +28,7 @@ export const queryLogs = rateLimitedProcedure(ratelimit.read)
     const workspace = await db.query.workspaces
       .findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       })
       .catch((_err) => {
         throw new TRPCError({
