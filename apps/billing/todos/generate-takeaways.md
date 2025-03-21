@@ -5,7 +5,7 @@
 IMPORTANT: Always follow the rules defined inside .cursor/rules directory. These rules take precedence over any other implementation details.
 E.g. we should minimize explicit type definitions and instead infer types from Zod schemas and task definitions wherever possible.
 
-```
+```ts
 // Import the source of truth
 import { takeawaysSchema } from //...
 
@@ -144,7 +144,7 @@ type TestMetadata = z.infer<typeof TestMetadataSchema>;
 
 Generate:
 
-- Location: `/generate/generate-takeaways.test.ts`
+- Location: `/generate/generate-takeaways-test.ts`
 - Uses inferred types from task definitions
 - Tracks test progress using TestMetadataSchema
 - Provides cleanup functionality for PRs
