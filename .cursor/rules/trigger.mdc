@@ -1,6 +1,6 @@
 ---
 description: Guidelines for writing Trigger.dev tasks
-globs:  **/trigger/**/*.ts
+globs: **/trigger/**/*.ts
 alwaysApply: false
 ---
 # How to write Trigger.dev tasks
