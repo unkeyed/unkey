@@ -1,5 +1,5 @@
-"use client"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+"use client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,31 +7,29 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useSidebar } from "@/components/ui/sidebar"
-import { cn } from "@/lib/utils"
-import { SignOutButton, useUser } from "@clerk/nextjs"
-import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import type React from "react"
+} from "@/components/ui/dropdown-menu";
+import { useSidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
+import { SignOutButton, useUser } from "@clerk/nextjs";
+import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type React from "react";
 
 export const UserButton: React.FC = () => {
-  const { user } = useUser()
-  const router = useRouter()
-  const { isMobile, state, openMobile } = useSidebar()
+  const { user } = useUser();
+  const router = useRouter();
+  const { isMobile, state, openMobile } = useSidebar();
 
   // When mobile sidebar is open, we want to show the full component
-  const isCollapsed =
-    (state === "collapsed" || isMobile) && !(isMobile && openMobile)
+  const isCollapsed = (state === "collapsed" || isMobile) && !(isMobile && openMobile);
 
   if (!user) {
-    return null
+    return null;
   }
 
   // Get user display name
-  const displayName =
-    user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress
+  const displayName = user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress;
 
   return (
     <DropdownMenu>
@@ -40,43 +38,32 @@ export const UserButton: React.FC = () => {
           "flex items-center rounded-lg hover:bg-background-subtle hover:cursor-pointer text-content",
           isCollapsed
             ? "justify-center w-10 h-10 p-0"
-            : "justify-between gap-2 p-2 w-auto lg:w-full h-10"
+            : "justify-between gap-2 p-2 w-auto lg:w-full h-10",
         )}
       >
         <div
           className={cn(
             "flex items-center gap-2 overflow-hidden whitespace-nowrap",
-            isCollapsed ? "justify-center" : ""
+            isCollapsed ? "justify-center" : "",
           )}
         >
           <Avatar className="w-6 h-6 rounded-full border border-grayA-6">
             {user.imageUrl ? (
-              <AvatarImage
-                src={user.imageUrl}
-                alt="Profile picture"
-                className="rounded-full"
-              />
+              <AvatarImage src={user.imageUrl} alt="Profile picture" className="rounded-full" />
             ) : null}
             <AvatarFallback
-              className={cn(
-                "bg-gray-2 border border-grayA-6 rounded-full",
-                "w-6 h-6"
-              )}
+              className={cn("bg-gray-2 border border-grayA-6 rounded-full", "w-6 h-6")}
             >
               {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           {/* Show username when not collapsed OR when on mobile with sidebar open */}
           {(!isCollapsed || (isMobile && openMobile)) && (
-            <span className="overflow-hidden text-ellipsis text-sm font-medium">
-              {displayName}
-            </span>
+            <span className="overflow-hidden text-ellipsis text-sm font-medium">{displayName}</span>
           )}
         </div>
         {/* Show chevron when not collapsed OR when on mobile with sidebar open */}
-        {(!isCollapsed || (isMobile && openMobile)) && (
-          <ChevronRight className="inline w-4 h-4" />
-        )}
+        {(!isCollapsed || (isMobile && openMobile)) && <ChevronRight className="inline w-4 h-4" />}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side="bottom"
@@ -116,5 +103,5 @@ export const UserButton: React.FC = () => {
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
-}
+  );
+};
