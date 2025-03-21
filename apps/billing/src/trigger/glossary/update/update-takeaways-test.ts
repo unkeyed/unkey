@@ -1,75 +1,8 @@
-import { metadata, task } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
-import type { FieldSelection } from "../generate/takeaways/generate-takeaways";
 import { updateTakeawaysTask } from "./update-takeaways";
 import { updateTakeawaysCleanupTask } from "./update-takeaways-cleanup";
 import { takeawaysSchema } from "@/lib/db-marketing/schemas/takeaways-schema";
-
-// Test Metadata Schema
-const TestMetadataSchema = z.object({
-  totalTests: z.number(),
-  completedTests: z.number(),
-  passedTests: z.number(),
-  failedTests: z.number(),
-  currentTest: z.string().optional(),
-  results: z.array(
-    z.object({
-      testCase: z.string(),
-      status: z.enum(["passed", "failed"]),
-      duration: z.number(),
-      error: z.string().optional(),
-      output: z.any().optional(),
-    }),
-  ),
-  cleanupResults: z.array(
-    z.object({
-      testCase: z.string(),
-      status: z.enum(["success", "failed"]),
-      prClosed: z.boolean().optional(),
-      branchDeleted: z.boolean().optional(),
-      error: z.string().optional(),
-    }),
-  ),
-});
-
-type TestMetadata = z.infer<typeof TestMetadataSchema>;
-
-/**
- * Helper functions for type-safe metadata access
- */
-function getAllTestsMetadata(): TestMetadata {
-  const current = metadata.current() ?? {};
-  return TestMetadataSchema.parse(
-    current.testMetadata ?? {
-      totalTests: 0,
-      completedTests: 0,
-      passedTests: 0,
-      failedTests: 0,
-      results: [],
-      cleanupResults: [],
-    },
-  );
-}
-
-function safeSetMetadata(key: string, value: any) {
-  const safeValue = JSON.parse(JSON.stringify(value));
-  metadata.set(key, safeValue);
-}
-
-// Base schema for task run results
-const okResultSchema = z.object({
-  ok: z.literal(true),
-  id: z.string(),
-  taskIdentifier: z.string(),
-  output: z.any(),
-});
-
-const errorResultSchema = z.object({
-  ok: z.literal(false),
-  id: z.string(),
-  taskIdentifier: z.string(),
-  error: z.unknown(),
-});
+import { type TestCase, createTestRunner, okResultSchema, errorResultSchema } from "@/lib/test";
 
 // Pre-generated takeaways from previous run
 const preGeneratedTakeaways = {
@@ -148,21 +81,7 @@ const preGeneratedTakeaways = {
     "The `Content-Disposition` header, often used with a `filename` parameter, can be used in conjunction with the `Content-Type` header to suggest a filename for the downloaded resource.",
 };
 
-// Test Case Interface
-interface TestCase {
-  name: string;
-  input: {
-    term: string;
-    takeaways: typeof preGeneratedTakeaways;
-    fields?: FieldSelection;
-  };
-  validate(result: Awaited<ReturnType<(typeof updateTakeawaysTask)["triggerAndWait"]>>): boolean;
-  cleanup?: (
-    result: Awaited<ReturnType<(typeof updateTakeawaysTask)["triggerAndWait"]>>,
-  ) => Promise<void>;
-}
-
-const testCases: TestCase[] = [
+const testCases: TestCase<typeof updateTakeawaysTask>[] = [
   {
     name: "fullUpdateTest",
     input: {
@@ -205,27 +124,7 @@ const testCases: TestCase[] = [
       }
 
       const { prUrl, branch } = result.output;
-      const cleanupResult = await updateTakeawaysCleanupTask.triggerAndWait({ prUrl, branch });
-
-      const metadata = getAllTestsMetadata();
-      if (cleanupResult.ok) {
-        metadata.cleanupResults.push({
-          testCase: this.name,
-          status: "success",
-          prClosed: cleanupResult.output.prClosed,
-          branchDeleted: cleanupResult.output.branchDeleted,
-        });
-      } else {
-        metadata.cleanupResults.push({
-          testCase: this.name,
-          status: "failed",
-          error:
-            cleanupResult.error instanceof Error
-              ? cleanupResult.error.message
-              : String(cleanupResult.error),
-        });
-      }
-      safeSetMetadata("testMetadata", metadata);
+      await updateTakeawaysCleanupTask.triggerAndWait({ prUrl, branch });
     },
   },
   {
@@ -260,7 +159,7 @@ const testCases: TestCase[] = [
           tldr: takeawaysSchema.shape.tldr,
           definitionAndStructure: takeawaysSchema.shape.definitionAndStructure,
           usageInAPIs: z.object({
-            description: takeawaysSchema.shape.usageInAPIs.shape.description
+            description: takeawaysSchema.shape.usageInAPIs.shape.description,
           }),
         }),
       });
@@ -282,27 +181,7 @@ const testCases: TestCase[] = [
       }
 
       const { prUrl, branch } = result.output;
-      const cleanupResult = await updateTakeawaysCleanupTask.triggerAndWait({ prUrl, branch });
-
-      const metadata = getAllTestsMetadata();
-      if (cleanupResult.ok) {
-        metadata.cleanupResults.push({
-          testCase: this.name,
-          status: "success",
-          prClosed: cleanupResult.output.prClosed,
-          branchDeleted: cleanupResult.output.branchDeleted,
-        });
-      } else {
-        metadata.cleanupResults.push({
-          testCase: this.name,
-          status: "failed",
-          error:
-            cleanupResult.error instanceof Error
-              ? cleanupResult.error.message
-              : String(cleanupResult.error),
-        });
-      }
-      safeSetMetadata("testMetadata", metadata);
+      await updateTakeawaysCleanupTask.triggerAndWait({ prUrl, branch });
     },
   },
   {
@@ -325,101 +204,8 @@ const testCases: TestCase[] = [
   },
 ];
 
-export const updateTakeawaysTest = task({
+export const updateTakeawaysTest = createTestRunner({
   id: "update_takeaways_test",
-  retry: {
-    maxAttempts: 1,
-  },
-  onStart: async () => {
-    const initialMetadata: TestMetadata = {
-      totalTests: testCases.length,
-      completedTests: 0,
-      passedTests: 0,
-      failedTests: 0,
-      results: [],
-      cleanupResults: [],
-    };
-    safeSetMetadata("testMetadata", initialMetadata);
-  },
-  run: async () => {
-    const startTime = Date.now();
-
-    for (const testCase of testCases) {
-      const testStartTime = Date.now();
-
-      const runResult = await updateTakeawaysTask.triggerAndWait(testCase.input);
-      const validation = testCase.validate(runResult);
-
-      const metadata = getAllTestsMetadata();
-      metadata.completedTests++;
-
-      if (validation) {
-        metadata.passedTests++;
-        metadata.results.push({
-          testCase: testCase.name,
-          status: "passed",
-          duration: Date.now() - testStartTime,
-          output: runResult,
-        });
-      } else {
-        metadata.failedTests++;
-        metadata.results.push({
-          testCase: testCase.name,
-          status: "failed",
-          duration: Date.now() - testStartTime,
-          error: "Validation function failed",
-          output: runResult,
-        });
-      }
-
-      if (testCase.cleanup) {
-        await testCase.cleanup(runResult);
-      }
-
-      safeSetMetadata("testMetadata", metadata);
-    }
-
-    // Print final results
-    const metadata = getAllTestsMetadata();
-    console.info("\n========== TEST RESULTS ==========");
-    console.info(
-      `\n${metadata.totalTests === metadata.passedTests ? "✅ All tests passed" : "⚠️ Some tests failed"}`,
-    );
-    console.info(`Total Tests: ${metadata.totalTests}`);
-    console.info(`✓ Passed: ${metadata.passedTests}`);
-    console.info(`✗ Failed: ${metadata.failedTests}`);
-
-    const failedTests = metadata.results.filter((r) => r.status === "failed");
-    if (failedTests.length > 0) {
-      console.info("\nFailed Tests:");
-      failedTests.forEach((result) => {
-        console.info(`- ${result.testCase}`);
-        if (result.error) {
-          console.info(`  Error: ${result.error}`);
-        }
-      });
-    }
-
-    if (metadata.cleanupResults.length > 0) {
-      const successfulCleanups = metadata.cleanupResults.filter(
-        (r) => r.status === "success",
-      ).length;
-      const failedCleanups = metadata.cleanupResults.filter((r) => r.status === "failed");
-
-      console.info("\nCleanup Results:");
-      console.info(`✓ Successfully cleaned up ${successfulCleanups} test(s)`);
-
-      if (failedCleanups.length > 0) {
-        console.info(`✗ Failed to cleanup ${failedCleanups.length} test(s):`);
-        failedCleanups.forEach((result) => {
-          console.info(`- ${result.testCase}: ${result.error}`);
-        });
-      }
-    }
-
-    console.log(`\nDuration: ${Date.now() - startTime}ms`);
-    console.log("===============================");
-
-    return metadata;
-  },
+  task: updateTakeawaysTask,
+  testCases,
 });
