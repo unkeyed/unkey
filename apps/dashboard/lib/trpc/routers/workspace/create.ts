@@ -1,11 +1,11 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type Workspace, db, schema } from "@/lib/db";
+import { freeTierQuotas } from "@/lib/quotas";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
-import { freeTierQuotas } from "@/lib/quotas";
 export const createWorkspace = t.procedure
   .use(auth)
   .input(
@@ -56,7 +56,7 @@ export const createWorkspace = t.procedure
         await tx.insert(schema.workspaces).values(workspace);
         await tx.insert(schema.quotas).values({
           workspaceId: workspace.id,
-          ...freeTierQuotas
+          ...freeTierQuotas,
         });
 
         const auditLogBucketId = newId("auditLogBucket");
