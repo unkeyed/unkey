@@ -5,9 +5,9 @@ import { freeTierQuotas } from "@/lib/quotas";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, t } from "../../trpc";
 export const createWorkspace = t.procedure
-  .use(auth)
+  .use(requireUser)
   .input(
     z.object({
       name: z.string().min(1).max(50),
@@ -60,14 +60,7 @@ export const createWorkspace = t.procedure
           ...freeTierQuotas,
         });
 
-        const auditLogBucketId = newId("auditLogBucket");
-        await tx.insert(schema.auditLogBucket).values({
-          id: auditLogBucketId,
-          workspaceId: workspace.id,
-          name: "unkey_mutations",
-          deleteProtection: true,
-        });
-        await insertAuditLogs(tx, auditLogBucketId, [
+        await insertAuditLogs(tx, [
           {
             workspaceId: workspace.id,
             actor: { type: "user", id: ctx.user.id },
@@ -77,22 +70,6 @@ export const createWorkspace = t.procedure
               {
                 type: "workspace",
                 id: workspace.id,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          },
-          {
-            workspaceId: workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "auditLogBucket.create",
-            description: `Created ${auditLogBucketId}`,
-            resources: [
-              {
-                type: "auditLogBucket",
-                id: auditLogBucketId,
               },
             ],
             context: {

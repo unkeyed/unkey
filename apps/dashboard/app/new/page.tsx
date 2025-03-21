@@ -195,11 +195,6 @@ export default async function (props: Props) {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
-      with: {
-        auditLogBuckets: {
-          where: (table, { eq }) => eq(table.name, "unkey_mutations"),
-        },
-      },
     });
     if (!workspace) {
       return redirect("/new");
@@ -223,9 +218,7 @@ export default async function (props: Props) {
 
         <Separator className="my-8" />
 
-        <CreateRatelimit
-          workspace={{ ...workspace, auditLogBucket: workspace.auditLogBuckets[0] }}
-        />
+        <CreateRatelimit workspace={workspace} />
       </div>
     );
   }
@@ -261,16 +254,7 @@ export default async function (props: Props) {
           ...freeTierQuotas,
         });
 
-        const bucketId = newId("auditLogBucket");
-        await tx.insert(schema.auditLogBucket).values({
-          id: bucketId,
-          workspaceId,
-          name: "unkey_mutations",
-          retentionDays: 30,
-          deleteProtection: true,
-        });
-
-        await insertAuditLogs(tx, bucketId, {
+        await insertAuditLogs(tx, {
           workspaceId: workspaceId,
           event: "workspace.create",
           actor: {

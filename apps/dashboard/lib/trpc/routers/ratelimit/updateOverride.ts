@@ -3,9 +3,10 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const updateOverride = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       id: z.string(),
@@ -65,7 +66,7 @@ export const updateOverride = t.procedure
               code: "INTERNAL_SERVER_ERROR",
             });
           });
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
             type: "user",

@@ -48,60 +48,17 @@ export async function insertGenericAuditLogs(
     return;
   }
 
-  const { cache, logger, db } = c.get("services");
+  const { db } = c.get("services");
 
   const auditLogsInserts = [];
   const auditLogTargetInserts = [];
 
   for (const log of arr) {
-    const cacheKey = [log.workspaceId, log.bucket].join(":");
-    let { val: bucket, err } = await cache.auditLogBucketByWorkspaceIdAndName.swr(
-      cacheKey,
-      async () => {
-        // do not use the transaction here, otherwise we may run into race conditions
-        // https://github.com/unkeyed/unkey/pull/2278
-        const bucket = await db.readonly.query.auditLogBucket.findFirst({
-          where: (table, { eq, and }) =>
-            and(eq(table.workspaceId, log.workspaceId), eq(table.name, log.bucket)),
-        });
-
-        if (!bucket) {
-          return undefined;
-        }
-
-        return {
-          id: bucket.id,
-        };
-      },
-    );
-
-    if (err) {
-      logger.error("Could not find audit log bucket for workspace", {
-        workspaceId: log.workspaceId,
-        error: err.message,
-      });
-      continue;
-    }
-
-    if (!bucket) {
-      const bucketId = newId("auditLogBucket");
-      // do not use the transaction here, otherwise we may run into race conditions
-      // https://github.com/unkeyed/unkey/pull/2278
-      await db.primary.insert(schema.auditLogBucket).values({
-        id: bucketId,
-        workspaceId: log.workspaceId,
-        name: log.bucket,
-        retentionDays: 90,
-      });
-      bucket = { id: bucketId };
-      await cache.auditLogBucketByWorkspaceIdAndName.remove(cacheKey);
-    }
-
     const auditLogId = newId("auditLog");
     auditLogsInserts.push({
       id: auditLogId,
       workspaceId: log.workspaceId,
-      bucketId: bucket.id,
+      bucket: "unkey_mutations",
       event: log.event,
       time: log.time,
 
@@ -119,7 +76,7 @@ export async function insertGenericAuditLogs(
     auditLogTargetInserts.push(
       ...log.resources.map((r) => ({
         workspaceId: log.workspaceId,
-        bucketId: bucket.id,
+        bucket: "unkey_mutations",
         auditLogId,
         displayName: r.name ?? "",
         type: r.type,

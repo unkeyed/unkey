@@ -2,9 +2,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const updateKeyEnabled = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       keyId: z.string(),
@@ -15,10 +16,11 @@ export const updateKeyEnabled = t.procedure
     const key = await db.query.keys
       .findFirst({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.keyId), isNull(table.deletedAtM)),
-        with: {
-          workspace: true,
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.keyId),
+            isNull(table.deletedAtM),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -27,7 +29,7 @@ export const updateKeyEnabled = t.procedure
             "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
         });
       });
-    if (!key || key.workspace.orgId !== ctx.tenant.id) {
+    if (!key) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -50,8 +52,8 @@ export const updateKeyEnabled = t.procedure
                 "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
             });
           });
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
-          workspaceId: key.workspace.id,
+        await insertAuditLogs(tx, {
+          workspaceId: key.workspaceId,
           actor: {
             type: "user",
             id: ctx.user.id,

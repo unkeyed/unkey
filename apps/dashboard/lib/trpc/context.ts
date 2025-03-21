@@ -2,47 +2,17 @@ import type { inferAsyncReturnType } from "@trpc/server";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 
 import { getAuth } from "@/lib/auth/get-auth";
-import { newId } from "@unkey/id";
-import { type AuditLogBucket, type Workspace, db, schema } from "../db";
+import { db } from "../db";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
   const { userId, orgId, orgRole } = await getAuth(req as any);
 
-  let ws: (Workspace & { auditLogBucket: AuditLogBucket }) | undefined;
-  if (orgId) {
-    await db.transaction(async (tx) => {
-      const res = await tx.query.workspaces.findFirst({
+  const ws = orgId
+    ? await db.query.workspaces.findFirst({
         where: (table, { eq, and, isNull }) =>
           and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-        with: {
-          auditLogBuckets: {
-            where: (table, { eq }) => eq(table.name, "unkey_mutations"),
-          },
-        },
-      });
-      if (res) {
-        let auditLogBucket = res.auditLogBuckets.at(0);
-        // @ts-expect-error it should be undefined
-        delete res.auditLogBuckets; // we don't need to pollute or context
-        if (!auditLogBucket) {
-          auditLogBucket = {
-            id: newId("auditLogBucket"),
-            name: "unkey_mutations",
-            createdAt: Date.now(),
-            deleteProtection: true,
-            workspaceId: res.id,
-            retentionDays: 30,
-            updatedAt: null,
-          };
-          await tx.insert(schema.auditLogBucket).values(auditLogBucket);
-        }
-        ws = {
-          ...res,
-          auditLogBucket,
-        };
-      }
-    });
-  }
+      })
+    : undefined;
 
   return {
     req,
