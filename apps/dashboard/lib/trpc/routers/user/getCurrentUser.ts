@@ -1,9 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { auth, t } from "../../trpc";
+import { requireUser, t } from "../../trpc";
 import { auth as authProvider } from "@/lib/auth/server";
 
 export const getCurrentUser = t.procedure
-  .use(auth)
+  .use(requireUser)
   .query(async () => {
     try {
       return await authProvider.getCurrentUser();

@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
-import { auth, t } from "../../trpc";
+import { requireSelf, requireUser, t } from "../../trpc";
 import { auth as authProvider } from "@/lib/auth/server";
+import { z } from "zod";
 
 export const listMemberships = t.procedure
-  .use(auth)
-  .query(async () => {
+  .use(requireUser)
+  .use(requireSelf)
+  .input(z.string())
+  .query(async ({input: userId}) => {
     try {
-        return await authProvider.listMemberships();
+        return await authProvider.listMemberships(userId);
       } catch (error) {
         console.error("Error listing memberships:", error);
         throw new TRPCError({

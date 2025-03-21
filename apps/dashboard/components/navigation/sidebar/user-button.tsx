@@ -19,7 +19,6 @@ import { trpc } from "@/lib/trpc/client";
 import { useRouter } from "next/router";
 
 export const UserButton: React.FC = () => {
-  const router = useRouter();
   const { isMobile, state, openMobile } = useSidebar();
   const { data: user, error } = trpc.user.getCurrentUser.useQuery();
   if (!user || error) {

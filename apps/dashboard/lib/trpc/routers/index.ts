@@ -64,6 +64,7 @@ import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 import { getCurrentUser, listMemberships, switchOrg } from "./user";
+import { getInvitationList, getOrg, getOrganizationMemberList, inviteMember, removeMembership, revokeInvitation, updateMembership } from "./org";
 
 export const router = t.router({
   key: t.router({
@@ -175,19 +176,19 @@ export const router = t.router({
     listMemberships,
     switchOrg
   }),
-  // org: t.router({
-  //   getOrg,
-  //   members: t.router({
-  //     list: getOrganizationMemberList,
-  //     remove: removeMembership,
-  //     update: updateMembership
-  //   }),
-  //   invitations: t.router({
-  //     list: getInvitationList,
-  //     invite: inviteMember,
-  //     revoke: revokeOrgInvitation
-  //   })
-  // }),
+  org: t.router({
+    getOrg,
+    members: t.router({
+      list: getOrganizationMemberList,
+      remove: removeMembership,
+      update: updateMembership
+    }),
+    invitations: t.router({
+      list: getInvitationList,
+      create: inviteMember,
+      remove: revokeInvitation
+    })
+  }),
 });
 
 // export type definition of API
