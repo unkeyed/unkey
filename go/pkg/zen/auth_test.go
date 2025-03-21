@@ -29,13 +29,13 @@ func TestBearer(t *testing.T) {
 			name:        "empty authorization header",
 			headerValue: "",
 			wantErr:     true,
-			errTag:      fault.UNAUTHORIZED,
+			errTag:      fault.BAD_REQUEST,
 		},
 		{
 			name:        "missing bearer prefix",
 			headerValue: "abc123xyz",
 			wantErr:     true,
-			errTag:      fault.UNAUTHORIZED,
+			errTag:      fault.BAD_REQUEST,
 		},
 		{
 			name:        "bearer with extra spaces",
@@ -47,13 +47,13 @@ func TestBearer(t *testing.T) {
 			name:        "empty token",
 			headerValue: "Bearer ",
 			wantErr:     true,
-			errTag:      fault.UNAUTHORIZED,
+			errTag:      fault.BAD_REQUEST,
 		},
 		{
 			name:        "non-bearer auth type",
 			headerValue: "Basic YWxhZGRpbjpvcGVuc2VzYW1l",
 			wantErr:     true,
-			errTag:      fault.UNAUTHORIZED,
+			errTag:      fault.BAD_REQUEST,
 		},
 	}
 
