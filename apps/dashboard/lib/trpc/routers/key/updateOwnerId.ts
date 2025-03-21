@@ -2,9 +2,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const updateKeyOwnerId = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       keyId: z.string(),
@@ -51,7 +52,7 @@ export const updateKeyOwnerId = t.procedure
                 "We were unable to update ownerId on this key. Please try again or contact support@unkey.dev",
             });
           });
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
             type: "user",

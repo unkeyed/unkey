@@ -1,51 +1,34 @@
 "use client";
 
-import { useSignUp } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
+import { useSignUp } from "@/lib/auth/hooks/useSignUp";
+import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { cn } from "@/lib/utils";
 import { OTPInput, type SlotProps } from "input-otp";
-import { Minus } from "lucide-react";
 
-type Props = {
-  setError: (e: string) => void;
-};
-
-export const EmailCode: React.FC<Props> = ({ setError }) => {
-  const router = useRouter();
-  const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
-
+export function EmailCode({ invitationToken }: { invitationToken?: string }) {
+  const { handleCodeVerification, handleResendCode } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
   const [_timeLeft, _setTimeLeft] = React.useState(0);
 
   const verifyCode = async (otp: string) => {
-    if (!signUpLoaded || typeof otp !== "string") {
+    if (typeof otp !== "string") {
       return null;
     }
     setIsLoading(true);
-    await signUp
-      .attemptEmailAddressVerification({
-        code: otp,
-      })
-      .then((result) => {
-        if (result.status === "complete" && result.createdSessionId) {
-          setActive({ session: result.createdSessionId }).then(() => {
-            router.push("/new");
-          });
-        }
-      })
-      .catch((err) => {
-        setIsLoading(false);
-        setError(err.errors.at(0)?.longMessage ?? "Unknown error, pleae contact support@unkey.dev");
-      });
+    await handleCodeVerification(otp, invitationToken).catch((err) => {
+      setIsLoading(false);
+      const errorCode = err.message as AuthErrorCode;
+      toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
+    });
   };
 
   const resendCode = async () => {
     try {
-      const p = signUp!.prepareEmailAddressVerification();
+      const p = handleResendCode();
       toast.promise(p, {
         loading: "Sending new code ...",
         success: "A new code has been sent to your email",
@@ -53,7 +36,6 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
       await p;
     } catch (error) {
       setIsLoading(false);
-      setError((error as Error).message);
       console.error(error);
     }
   };
@@ -84,12 +66,7 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
           maxLength={6}
           render={({ slots }) => (
             <div className="flex items-center justify-between">
-              {slots.slice(0, 3).map((slot, idx) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: I have nothing better
-                <Slot key={idx} {...slot} />
-              ))}
-              <Minus className="w-6 h-6 text-white/15" />
-              {slots.slice(3).map((slot, idx) => (
+              {slots.slice(0, 6).map((slot, idx) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: I have nothing better
                 <Slot key={idx} {...slot} />
               ))}
@@ -109,7 +86,7 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
       </form>
     </div>
   );
-};
+}
 
 const Slot: React.FC<SlotProps> = (props) => (
   <div

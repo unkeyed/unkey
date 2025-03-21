@@ -1,7 +1,7 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { asc, db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { permissions } from "@unkey/db/src/schema";
@@ -14,11 +14,10 @@ import { EmptyPermissions } from "./empty";
 import { Navigation } from "./navigation";
 export const revalidate = 0;
 export default async function RolesPage() {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       permissions: {
         orderBy: [asc(permissions.name)],

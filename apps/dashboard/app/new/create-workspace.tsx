@@ -13,14 +13,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { useOrganizationList } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
+import { useUser } from "@/lib/auth/hooks";
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name is required and should be at least 3 characters").max(50),
 });
@@ -29,17 +28,14 @@ export const CreateWorkspace: React.FC = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
-  const { setActive } = useOrganizationList();
-
+  const { switchOrganization } = useUser();
   const router = useRouter();
   const createWorkspace = trpc.workspace.create.useMutation({
     onSuccess: async ({ workspace, organizationId }) => {
-      toast.success("Your workspace has been created");
-
-      if (setActive) {
-        await setActive({ organization: organizationId });
-      }
-      router.push(`/new?workspaceId=${workspace.id}`);
+      await switchOrganization(organizationId).then(() => {
+        toast.success("Your workspace has been created");
+        router.push(`/new?workspaceId=${workspace.id}`);
+      });
     },
   });
 

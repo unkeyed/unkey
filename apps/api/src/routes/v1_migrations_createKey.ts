@@ -473,7 +473,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           ratelimitLimit: key.ratelimit?.limit ?? key.ratelimit?.refillRate ?? null,
           ratelimitDuration: key.ratelimit?.refillInterval ?? key.ratelimit?.refillInterval ?? null,
           remaining: key.remaining ?? null,
-          refillDay: key.refill?.interval === "daily" ? null : key?.refill?.refillDay ?? 1,
+          refillDay: key.refill?.interval === "daily" ? null : (key?.refill?.refillDay ?? 1),
           refillAmount: key.refill?.amount ?? null,
           deletedAtM: null,
           enabled: key.enabled ?? true,

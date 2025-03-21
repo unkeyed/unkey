@@ -4,10 +4,11 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const createApi = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: z
@@ -54,7 +55,7 @@ export const createApi = t.procedure
             });
           });
 
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
             type: "user",

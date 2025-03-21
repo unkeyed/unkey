@@ -3,9 +3,10 @@ import { db, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const deleteRootKeys = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       keyIds: z.array(z.string()),
@@ -37,7 +38,6 @@ export const deleteRootKeys = t.procedure
           );
         await insertAuditLogs(
           tx,
-          ctx.workspace.auditLogBucket.id,
           rootKeys.map((key) => ({
             workspaceId: ctx.workspace.id,
             actor: { type: "user", id: ctx.user.id },

@@ -50,7 +50,7 @@ async function main() {
             .update(table)
             .set({
               createdAtM: new Date(row.createdAt ?? 0).getTime() ?? 0,
-              updatedAtM: "updatedAt" in row ? row.updatedAt?.getTime() ?? null : null,
+              updatedAtM: "updatedAt" in row ? (row.updatedAt?.getTime() ?? null) : null,
               deletedAtM: row.deletedAt?.getTime() ?? null,
             })
             .where(eq(table.id, row.id));
