@@ -2,14 +2,14 @@ import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 
-export const getWorkspace = async (tenantId: string) => {
+export const getWorkspace = async (orgId: string) => {
   try {
     let members = null;
 
-    if (!tenantId.startsWith("user_")) {
+    if (!orgId.startsWith("user_")) {
       try {
         const membersOfOrg = await clerkClient.organizations.getOrganizationMembershipList({
-          organizationId: tenantId,
+          organizationId: orgId,
         });
         members = membersOfOrg
           .filter((m) => Boolean(m.publicUserData))
@@ -22,7 +22,7 @@ export const getWorkspace = async (tenantId: string) => {
           }));
       } catch (memberError) {
         console.error(
-          `Failed to fetch organization members for tenant ID ${tenantId}: ${
+          `Failed to fetch organization members for tenant ID ${orgId}: ${
             memberError instanceof Error ? memberError.message : "Unknown error"
           }`,
         );
@@ -30,8 +30,7 @@ export const getWorkspace = async (tenantId: string) => {
     }
 
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+      where: (table, { eq, and, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
       with: {
         auditLogBuckets: {
           columns: {
@@ -59,7 +58,7 @@ export const getWorkspace = async (tenantId: string) => {
     return { workspace: { ...workspace, keys: rootKeys }, members };
   } catch (error) {
     console.error(
-      `Failed to fetch workspace for tenant ID ${tenantId}: ${
+      `Failed to fetch workspace for tenant ID ${orgId}: ${
         error instanceof Error ? error.message : "Unknown error"
       }`,
     );

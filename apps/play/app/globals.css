@@ -47,7 +47,7 @@
 
   /** https://developer.chrome.com/docs/css-ui/scrollbar-styling#the_scrollbar-color_and_scrollbar-width_properties */
   * {
-    --scrollbar-color-thumb: rgba(255, 255, 255, .15);
+    --scrollbar-color-thumb: rgba(255, 255, 255, 0.15);
     --scrollbar-color-track: transparent;
     --scrollbar-width: thin;
     --scrollbar-width-legacy: 4px;

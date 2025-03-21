@@ -27,7 +27,7 @@ export const workspaces = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     // Coming from our auth provider clerk
     // This can be either a user_xxx or org_xxx id
-    tenantId: varchar("tenant_id", { length: 256 }).notNull(),
+    clerkTenantId: varchar("tenant_id", { length: 256 }).notNull(),
     orgId: varchar("org_id", { length: 256 }),
     name: varchar("name", { length: 256 }).notNull(),
 
@@ -111,7 +111,7 @@ export const workspaces = mysqlTable(
     ...lifecycleDatesMigration,
   },
   (table) => ({
-    tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
+    clerkTenantIdIdx: uniqueIndex("tenant_id_idx").on(table.clerkTenantId),
   }),
 );
 

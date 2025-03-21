@@ -3,7 +3,7 @@ import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { navigation } from "../constants";
@@ -24,11 +24,10 @@ type Props = {
 };
 
 export default async function SettingsPage(props: Props) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       apis: {
         where: eq(schema.apis.id, props.params.apiId),
@@ -38,7 +37,7 @@ export default async function SettingsPage(props: Props) {
       },
     },
   });
-  if (!workspace || workspace.tenantId !== tenantId) {
+  if (!workspace || workspace.orgId !== orgId) {
     return redirect("/new");
   }
 
