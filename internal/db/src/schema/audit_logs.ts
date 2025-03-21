@@ -5,44 +5,6 @@ import { workspaces } from "./workspaces";
 
 import { newId } from "@unkey/id";
 
-//export const auditLogBucket = mysqlTable(
-//  "audit_log_bucket",
-//  {
-//    id: varchar("id", { length: 256 })
-//      .primaryKey()
-//      .$defaultFn(() => newId("auditLogBucket")),
-//    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-//    /**
-//     * Buckets are used as namespaces for different logs belonging to a single workspace
-//     *
-//     * The name serves as unique identifier and is used in the relationship of audit logs and targets.
-//     * Therefore it must be unique per workspace and cannot be changed once set.
-//     */
-//    name: varchar("name", { length: 256 }).notNull(),
-//    /**
-//     * null means we don't automatically remove logs
-//     */
-//    retentionDays: int("retention_days"),
-//    ...lifecycleDates,
-//    ...deleteProtection,
-//  },
-//  (table) => ({
-//    uniqueNamePerWorkspace: uniqueIndex("unique_name_per_workspace_idx").on(
-//      table.workspaceId,
-//      table.name,
-//    ),
-//  }),
-//);
-//
-//export const auditLogBucketRelations = relations(auditLogBucket, ({ one, many }) => ({
-//  workspace: one(workspaces, {
-//    fields: [auditLogBucket.workspaceId],
-//    references: [workspaces.id],
-//    relationName: "workspace_audit_log_bucket_relation",
-//  }),
-//  logs: many(auditLog),
-//}));
-
 export const auditLog = mysqlTable(
   "audit_log",
   {
@@ -53,7 +15,8 @@ export const auditLog = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     // bucket is the name of the bucket that the target belongs to
     bucket: varchar("bucket", { length: 256 }).notNull().default("unkey_mutations"),
-    // bucketId: varchar("bucket_id", { length: 256 }).notNull(),
+    // @deprecated
+    bucketId: varchar("bucket_id", { length: 256 }).notNull(),
     event: varchar("event", { length: 256 }).notNull(),
 
     // When the event happened
@@ -74,7 +37,7 @@ export const auditLog = mysqlTable(
   },
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),
-    //bucketId: index("bucket_id_idx").on(table.bucketId),
+    bucketId: index("bucket_id_idx").on(table.bucketId),
     bucket: index("bucket_idx").on(table.bucket),
     event: index("event_idx").on(table.event),
     actorId: index("actor_id_idx").on(table.actorId),
@@ -98,7 +61,8 @@ export const auditLogTarget = mysqlTable(
   "audit_log_target",
   {
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    //bucketId: varchar("bucket_id", { length: 256 }).notNull(),
+    // @deprecated
+    bucketId: varchar("bucket_id", { length: 256 }).notNull(),
 
     // bucket is the name of the bucket that the target belongs to
     bucket: varchar("bucket", { length: 256 }).notNull().default("unkey_mutations"),

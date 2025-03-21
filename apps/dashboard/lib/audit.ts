@@ -108,6 +108,7 @@ export async function insertAuditLogs(
     await db.insert(schema.auditLog).values({
       id: auditLogId,
       workspaceId: log.workspaceId,
+      bucketId: "DEPRECATED",
       bucket: AUDIT_LOG_BUCKET,
       event: log.event,
       time: Date.now(),
@@ -124,6 +125,7 @@ export async function insertAuditLogs(
         log.resources.map((r) => ({
           workspaceId: log.workspaceId,
           auditLogId,
+          bucketId: "DEPRECATED",
           bucket: AUDIT_LOG_BUCKET,
           displayName: "",
           type: r.type,

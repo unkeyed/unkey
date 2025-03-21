@@ -58,14 +58,12 @@ export async function insertGenericAuditLogs(
     auditLogsInserts.push({
       id: auditLogId,
       workspaceId: log.workspaceId,
+      bucketId: "DEPRECATED",
       bucket: "unkey_mutations",
       event: log.event,
       time: log.time,
-
       display: log.description ?? "",
-
       remoteIp: log.context?.location,
-
       userAgent: log.context?.userAgent,
       actorType: log.actor.type,
       actorId: log.actor.id,
@@ -76,6 +74,7 @@ export async function insertGenericAuditLogs(
     auditLogTargetInserts.push(
       ...log.resources.map((r) => ({
         workspaceId: log.workspaceId,
+        bucketId: "DEPRECATED",
         bucket: "unkey_mutations",
         auditLogId,
         displayName: r.name ?? "",
