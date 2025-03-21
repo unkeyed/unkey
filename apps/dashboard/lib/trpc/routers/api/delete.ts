@@ -3,9 +3,10 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const deleteApi = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       apiId: z.string(),
@@ -47,7 +48,7 @@ export const deleteApi = t.procedure
           .update(schema.apis)
           .set({ deletedAtM: Date.now() })
           .where(eq(schema.apis.id, input.apiId));
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: api.workspaceId,
           actor: {
             type: "user",
@@ -79,7 +80,6 @@ export const deleteApi = t.procedure
             .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
           await insertAuditLogs(
             tx,
-            ctx.workspace.auditLogBucket.id,
             keyIds.map(({ id }) => ({
               workspaceId: ctx.workspace.id,
               actor: {

@@ -3,10 +3,11 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const setDefaultApiPrefix = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       defaultPrefix: z
@@ -58,7 +59,7 @@ export const setDefaultApiPrefix = t.procedure
                 "We were unable to update the API default prefix. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
             type: "user",

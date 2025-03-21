@@ -3,10 +3,11 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const updateNamespaceName = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: z.string().min(3, "namespace names must contain at least 3 characters"),
@@ -54,7 +55,7 @@ export const updateNamespaceName = t.procedure
             code: "INTERNAL_SERVER_ERROR",
           });
         });
-      await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+      await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
         actor: {
           type: "user",

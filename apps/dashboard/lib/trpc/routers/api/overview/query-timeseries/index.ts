@@ -1,9 +1,13 @@
 import { verificationQueryTimeseriesPayload } from "@/app/(app)/apis/_components/hooks/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+
 import { transformVerificationFilters } from "./utils";
 
-export const queryVerificationTimeseries = rateLimitedProcedure(ratelimit.read)
+export const queryVerificationTimeseries = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
   .input(verificationQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
     const { params: transformedInputs, granularity } = transformVerificationFilters(input);

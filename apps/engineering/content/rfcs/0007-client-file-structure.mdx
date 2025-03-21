@@ -7,7 +7,7 @@ authors:
 ---
 
 ## Executive Summary
-This RFC proposes restructuring our client components from their current flat organization into a feature-based architecture, grouping related components, hooks, and utilities within feature-specific directories. Each Next.js page will be treated as a distinct feature module, ensuring clear boundaries and colocation of related code. The migration can be implemented incrementally, with each feature module being refactored independently without disrupting ongoing development. 
+This RFC proposes restructuring our client components from their current flat organization into a feature-based architecture, grouping related components, hooks, and utilities within feature-specific directories. Each Next.js page will be treated as a distinct feature module, ensuring clear boundaries and colocation of related code. The migration can be implemented incrementally, with each feature module being refactored independently without disrupting ongoing development.
 
 Key benefits include:
 
@@ -31,7 +31,7 @@ Our Next.js application's flat directory structure has led to several challenges
 
 A critical issue in our open-source project is the lack of standardized patterns. Currently:
 
-- Different contributors implement features using their own organizational preferences because they don't know our pattern. 
+- Different contributors implement features using their own organizational preferences because they don't know our pattern.
 - This creates inconsistency across the codebase
 - Code reviews take longer as reviewers need to understand each contributor's unique approach
 - New contributors lack clear examples to follow
@@ -100,14 +100,11 @@ And, actual page files will look like this. Note this is audit component refacto
 ```ts
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { InputSearch } from "@unkey/icons";
 import { type SearchParams, getWorkspace, parseFilterParams } from "./actions";
 import { Filters } from "./components/filters";
 import { AuditLogTableClient } from "./components/table/audit-log-table-client";
-
-export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   params: {
@@ -117,8 +114,8 @@ type Props = {
 };
 
 export default async function AuditPage(props: Props) {
-  const tenantId = getTenantId();
-  const workspace = await getWorkspace(tenantId);
+  const orgId = await getOrgId();
+  const workspace = await getWorkspace(orgId);
   const parsedParams = parseFilterParams({
     ...props.searchParams,
     bucket: props.params.bucket,
@@ -243,7 +240,7 @@ A simpler feature-based structure where all features are in a `/features` direct
 - Simpler top-level organization
 - Common pattern in React applications
 - Less nesting compared to proposed solution
-- Easier to colocate tRPC and page related code 
+- Easier to colocate tRPC and page related code
 
 #### Cons
 - More difficult to colocate route-specific code

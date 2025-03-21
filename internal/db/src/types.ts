@@ -49,9 +49,6 @@ export type InsertIdentity = InferInsertModel<typeof schema.identities>;
 export type AuditLog = InferSelectModel<typeof schema.auditLog>;
 export type InsertAuditLog = InferInsertModel<typeof schema.auditLog>;
 
-export type AuditLogBucket = InferSelectModel<typeof schema.auditLogBucket>;
-export type InsertAuditLogBucket = InferInsertModel<typeof schema.auditLogBucket>;
-
 export type AuditLogTarget = InferSelectModel<typeof schema.auditLogTarget>;
 export type InsertAuditLogTarget = InferInsertModel<typeof schema.auditLogTarget>;
 

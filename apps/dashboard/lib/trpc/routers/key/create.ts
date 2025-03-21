@@ -4,10 +4,11 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const createKey = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       prefix: z
@@ -101,7 +102,7 @@ export const createKey = t.procedure
           environment: input.environment,
         });
 
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "key.create",

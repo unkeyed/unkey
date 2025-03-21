@@ -74,7 +74,7 @@ export const RBACForm = (props: Props) => {
   // Set default values based on form type
   const defaultValues = {
     name: props.type === "update" ? props.item.name : "",
-    description: props.type === "update" ? props.item.description ?? "" : "",
+    description: props.type === "update" ? (props.item.description ?? "") : "",
   };
 
   const {

@@ -63,7 +63,7 @@ export const DatetimePopover = ({
 
   useEffect(() => {
     const newTitle = since
-      ? OPTIONS.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER
+      ? (OPTIONS.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER)
       : startTime
         ? CUSTOM_PLACEHOLDER
         : initialTitle;
