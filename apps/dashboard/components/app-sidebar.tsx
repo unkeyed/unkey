@@ -105,7 +105,7 @@ export function AppSidebar({
       <SidebarFooter className={cn("px-4", !isMobile && "items-center")}>
         {state === "expanded" && (
           <UsageInsight.Root
-            isLoading={usageQuery.isFetching || props.workspace === null}
+            isLoading={usageQuery.isLoading || props.workspace === null}
             tier={props.workspace.tier ?? "Free"}
             current={usageQuery.data?.billableTotal ?? 0}
             max={props.workspace.quotas?.requestsPerMonth ?? 150_000}
