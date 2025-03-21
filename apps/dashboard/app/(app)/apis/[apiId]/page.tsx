@@ -1,14 +1,13 @@
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { and, db, eq, isNull } from "@/lib/db";
 import { apis } from "@unkey/db/src/schema";
 import { redirect } from "next/navigation";
 import { LogsClient } from "./_overview/logs-client";
 import { ApisNavbar } from "./api-id-navbar";
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
   const apiId = props.params.apiId;
 
   const currentApi = await db.query.apis.findFirst({
@@ -17,13 +16,13 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
       workspace: {
         columns: {
           id: true,
-          tenantId: true,
+          orgId: true,
         },
       },
     },
   });
 
-  if (!currentApi || currentApi.workspace.tenantId !== tenantId || !currentApi?.keyAuthId) {
+  if (!currentApi || currentApi.workspace.orgId !== orgId || !currentApi?.keyAuthId) {
     return redirect("/new");
   }
 
