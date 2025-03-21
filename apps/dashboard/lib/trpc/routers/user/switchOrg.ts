@@ -1,9 +1,9 @@
-import { auth, t } from "../../trpc";
+import { requireUser, t } from "../../trpc";
 import { auth as authProvider } from "@/lib/auth/server";
 import { z } from "zod";
 
 export const switchOrg = t.procedure
-  .use(auth)
+  .use(requireUser)
   .input(z.string())
   .mutation(async ({ input: orgId }) => {
     try {

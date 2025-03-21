@@ -36,8 +36,8 @@ async function requireAuth(): Promise<User> {
 }
 
 // Helper function to check organization access
-async function requireOrgAccess(orgId: string, _userId: string): Promise<void> {
-  const memberships = await auth.listMemberships();
+async function requireOrgAccess(orgId: string, userId: string): Promise<void> {
+  const memberships = await auth.listMemberships(userId);
   const hasAccess = memberships.data.some((m) => m.organization.id === orgId);
   if (!hasAccess) {
     throw new Error("You do not have access to this organization");
@@ -45,8 +45,8 @@ async function requireOrgAccess(orgId: string, _userId: string): Promise<void> {
 }
 
 // Helper to check admin status
-async function requireOrgAdmin(orgId: string, _userId: string): Promise<void> {
-  const memberships = await auth.listMemberships();
+async function requireOrgAdmin(orgId: string, userId: string): Promise<void> {
+  const memberships = await auth.listMemberships(userId);
   const isAdmin = memberships.data.some((m) => m.organization.id === orgId && m.role === "admin");
   if (!isAdmin) {
     throw new Error("This action requires admin privileges");
@@ -187,9 +187,9 @@ export async function getCurrentUser(): Promise<User | null> {
   return await auth.getCurrentUser();
 }
 
-export async function listMemberships(): Promise<MembershipListResponse> {
+export async function listMemberships(userId: string): Promise<MembershipListResponse> {
   await requireAuth();
-  return await auth.listMemberships();
+  return await auth.listMemberships(userId);
 }
 
 export async function switchOrg(orgId: string): Promise<{ success: boolean; error?: string }> {

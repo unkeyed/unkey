@@ -304,15 +304,16 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }
 
   // Membership Management
-  async listMemberships(): Promise<MembershipListResponse> {
+  async listMemberships(userId: string): Promise<MembershipListResponse> {
     try {
-      const user = await this.getCurrentUser();
+      const user = await this.getUser(userId);
+      
       if (!user) {
-        return { data: [], metadata: {} };
+        return {data: [], metadata: {}};
       }
 
       const memberships = await this.provider.userManagement.listOrganizationMemberships({
-        userId: user.id,
+        userId: userId,
         limit: 100,
         statuses: ["active"],
       });

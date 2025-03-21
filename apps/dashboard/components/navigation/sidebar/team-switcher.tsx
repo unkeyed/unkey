@@ -21,6 +21,7 @@ import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { useOrganization, useUser } from "@/lib/auth/hooks";
 import { Loading } from "@/components/dashboard/loading";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 type Props = {
   workspace: {
@@ -89,7 +90,11 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             "flex items-center gap-2 overflow-hidden whitespace-nowrap",
             isCollapsed ? "justify-center" : "",
           )}
-        >
+        ><Avatar className="w-5 h-5 rounded border border-grayA-6">
+        <AvatarFallback className="text-gray-700 bg-gray-100 border border-gray-500 rounded">
+          {props.workspace.name.slice(0, 1).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
           {isUserMembershipsLoading ? (
             <Loading />
           ) : !isCollapsed ? (

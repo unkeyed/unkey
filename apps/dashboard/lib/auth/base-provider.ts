@@ -64,7 +64,7 @@ export abstract class BaseAuthProvider {
   abstract switchOrg(newOrgId: string): Promise<SessionRefreshResult>;
 
   // Membership Management
-  abstract listMemberships(): Promise<MembershipListResponse>;
+  abstract listMemberships(userId: string): Promise<MembershipListResponse>;
   abstract getOrganizationMemberList(orgId: string): Promise<MembershipListResponse>;
   abstract updateMembership(params: UpdateMembershipParams): Promise<Membership>;
   abstract removeMembership(membershipId: string): Promise<void>;
