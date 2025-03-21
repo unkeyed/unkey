@@ -41,28 +41,19 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc/client";
 
 type MembersProps = {
-  memberships: Membership[];
-  loading: boolean;
-  removeMember: (membershipId: string) => Promise<void>;
-  updateMember: (params: UpdateMembershipParams) => Promise<void>;
-  refetchInvitations: () => Promise<InvitationListResponse | undefined>;
+
   organization: Organization | null;
   user: User | null;
   userMembership: Membership | null;
 };
 
 type InvitationsProps = {
-  invitations: Invitation[];
-  loading: boolean;
-  revokeInvitation: (invitationId: string) => Promise<void>;
   user: User | null;
   organization: Organization | null;
-  refetchInvitations: () => Promise<InvitationListResponse | undefined>;
 };
 
 type RoleSwitcherProps = {
   member: { id: string; role: string };
-  updateMember: (params: UpdateMembershipParams) => Promise<void>;
   organization: Organization | null;
   user: User | null;
   userMembership: Membership | null;
@@ -78,10 +69,12 @@ type Props = {
 
 export const TeamPageClient: React.FC<Props> = ({ workspace }) => {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
-  const { data: memberships, isLoading: isUserMembershipsLoading } = trpc.user.listMemberships.useQuery(undefined, {
+  const { data: memberships, isLoading: isUserMembershipsLoading } = trpc.user.listMemberships.useQuery(user!.id, {
     enabled: !!user
   })
-  const orgData = useOrganization();
+  const { data: organization, isLoading: isOrganizationLoading } = trpc.org.getOrg.useQuery(user!.orgId!, {
+    enabled: !!user
+  } );
   const userMemberships = memberships?.data;
   const currentOrgMembership = userMemberships?.find(
     (membership) => membership.organization.id === user?.orgId,
@@ -93,13 +86,12 @@ export const TeamPageClient: React.FC<Props> = ({ workspace }) => {
   }, [currentOrgMembership]);
 
   const isLoading = useMemo(() => {
-    return isUserMembershipsLoading || orgData.isLoading;
-  }, [isUserMembershipsLoading, orgData.isLoading]);
+    return isUserMembershipsLoading || isOrganizationLoading;
+  }, [isUserMembershipsLoading, isOrganizationLoading]);
 
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
 
-  console.log("user", user);
 
   const actions: React.ReactNode[] = [];
 
@@ -122,8 +114,7 @@ export const TeamPageClient: React.FC<Props> = ({ workspace }) => {
       <InviteButton
         key="invite-button"
         user={user!}
-        organization={orgData.organization}
-        refetchInvitations={orgData.refetchInvitations}
+        organization={organization!}
       />,
     );
   }
@@ -151,23 +142,14 @@ export const TeamPageClient: React.FC<Props> = ({ workspace }) => {
         <Loading />
       ) : tab === "members" ? (
         <Members
-          memberships={orgData.memberships || []}
-          loading={orgData.loading.memberships}
-          removeMember={orgData.removeMember}
-          updateMember={orgData.updateMember}
-          organization={orgData.organization}
+          organization={organization!}
           user={user!}
           userMembership={currentOrgMembership!}
-          refetchInvitations={orgData.refetchInvitations}
         />
       ) : (
         <Invitations
-          invitations={orgData.invitations || []}
-          loading={orgData.loading.invitations}
-          revokeInvitation={orgData.revokeInvitation}
+          organization={organization!}
           user={user!}
-          organization={orgData.organization}
-          refetchInvitations={orgData.refetchInvitations}
         />
       )}
     </>
@@ -177,18 +159,27 @@ export const TeamPageClient: React.FC<Props> = ({ workspace }) => {
 // Memoize components to prevent unnecessary re-renders
 const Members = memo<MembersProps>(
   ({
-    memberships,
-    loading,
-    removeMember,
-    updateMember,
     organization,
     user,
     userMembership,
-    refetchInvitations,
   }) => {
+    const { data: orgMemberships, isLoading } = trpc.org.members.list.useQuery(organization!.id);
+    const memberships = orgMemberships!.data;
     const isAdmin = userMembership?.role === "admin";
+    const utils = trpc.useUtils();
 
-    if (loading) {
+    const removeMember = trpc.org.members.remove.useMutation({
+      onSuccess: () => {
+        // Invalidate the member list query to trigger a refetch
+        utils.org.members.list.invalidate();
+        toast.success("Member removed successfully");
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to remove member");
+      }
+    });
+
+    if (isLoading) {
       return (
         <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
           <Loading />
@@ -205,7 +196,6 @@ const Members = memo<MembersProps>(
             <InviteButton
               user={user}
               organization={organization}
-              refetchInvitations={refetchInvitations}
             />
           )}
         </Empty>
@@ -245,7 +235,6 @@ const Members = memo<MembersProps>(
               <TableCell>
                 <RoleSwitcher
                   member={{ id, role }}
-                  updateMember={updateMember}
                   organization={organization}
                   user={user}
                   userMembership={userMembership}
@@ -258,8 +247,13 @@ const Members = memo<MembersProps>(
                     title="Remove member"
                     description={`Are you sure you want to remove ${member.email}?`}
                     onConfirm={async () => {
-                      if (member.id) {
-                        await removeMember(id);
+                      try {
+                        await removeMember.mutateAsync({ 
+                          orgId: organization!.id, 
+                          membershipId: id
+                        });
+                      } catch (error) {
+                        console.error("Error removing member:", error);
                       }
                     }}
                     trigger={<Button>Remove</Button>}
@@ -277,8 +271,22 @@ const Members = memo<MembersProps>(
 Members.displayName = "Members";
 
 const Invitations = memo<InvitationsProps>(
-  ({ invitations, loading, revokeInvitation, refetchInvitations, user, organization }) => {
-    if (loading) {
+  ({ user, organization }) => {
+    const { data: invitationsList, isLoading} = trpc.org.invitations.list.useQuery(organization!.id)
+    const invitations = invitationsList!.data;
+    const utils = trpc.useUtils();
+    const revokeInvitation = trpc.org.invitations.remove.useMutation({
+      onSuccess: () => {
+      // Invalidate the invitation list query to trigger a refetch
+      utils.org.invitations.list.invalidate();
+      toast.success("Invitation revoked successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to revoke invitation");
+    }})
+
+
+    if (isLoading) {
       return (
         <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
           <Loading />
@@ -294,7 +302,6 @@ const Invitations = memo<InvitationsProps>(
           <InviteButton
             user={user}
             organization={organization}
-            refetchInvitations={refetchInvitations}
           />
         </Empty>
       );
@@ -323,8 +330,14 @@ const Invitations = memo<InvitationsProps>(
                   <Button
                     variant="destructive"
                     onClick={async () => {
-                      await revokeInvitation(invitation.id);
-                      toast.success("Invitation revoked");
+                      try {
+                        await revokeInvitation.mutateAsync({ 
+                          orgId: organization!.id, 
+                          invitationId: invitation.id
+                        });
+                      } catch (error) {
+                        console.error("Error removing member:", error);
+                      }
                     }}
                   >
                     Revoke
@@ -342,44 +355,48 @@ const Invitations = memo<InvitationsProps>(
 Invitations.displayName = "Invitations";
 
 const RoleSwitcher = memo<RoleSwitcherProps>(
-  ({ member, updateMember, organization, user, userMembership }) => {
+  ({ member, organization, user, userMembership }) => {
     const [role, setRole] = useState(member.role);
-    const [isLoading, setLoading] = useState(false);
     const isAdmin = userMembership?.role === "admin";
-
-    const handleRoleUpdate = useCallback(
-      async (newRole: string) => {
-        try {
-          setLoading(true);
-          if (!organization) {
-            return;
-          }
-          await updateMember({
-            membershipId: member.id,
-            role: newRole,
-          });
-
-          setRole(newRole);
-          toast.success("Role updated");
-        } catch (err) {
-          console.error(err);
-          toast.error(err instanceof Error ? err.message : "Failed to update role");
-        } finally {
-          setLoading(false);
-        }
+    const utils = trpc.useUtils();
+    
+    const updateMember = trpc.org.members.update.useMutation({
+      onSuccess: () => {
+        utils.org.members.list.invalidate();
+        toast.success("Role updated");
       },
-      [member.id, organization, updateMember],
-    );
+      onError: (error) => {
+        toast.error(error.message || "Failed to update role");
+      }
+    });
+
+    async function handleRoleUpdate(newRole: string) {
+      if (!organization) {
+        return;
+      }
+      
+      try {
+        await updateMember.mutateAsync({
+          orgId: organization.id,
+          membershipId: member.id,
+          role: newRole,
+        });
+
+        setRole(newRole);
+      } catch (err) {
+        console.error(err);
+      }
+    }
 
     if (isAdmin) {
       return (
         <Select
           value={role}
-          disabled={Boolean(user) && member.id === user?.id}
+          disabled={Boolean(user) && member.id === user?.id || updateMember.isLoading}
           onValueChange={handleRoleUpdate}
         >
           <SelectTrigger className="w-[180px] max-sm:w-36">
-            {isLoading ? <Loading /> : <SelectValue />}
+            {updateMember.isLoading ? <Loading /> : <SelectValue />}
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
@@ -392,8 +409,10 @@ const RoleSwitcher = memo<RoleSwitcherProps>(
     }
 
     return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
-  },
+  }
 );
+
+RoleSwitcher.displayName = "RoleSwitcher";
 
 RoleSwitcher.displayName = "RoleSwitcher";
 
