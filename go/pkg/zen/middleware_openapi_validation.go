@@ -26,6 +26,7 @@ func WithValidation(validator *validation.Validator) Middleware {
 		return func(ctx context.Context, s *Session) error {
 
 			err, valid := validator.Validate(ctx, s.r)
+
 			if !valid {
 				err.RequestId = s.requestID
 
