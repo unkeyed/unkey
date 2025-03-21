@@ -7,8 +7,8 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
-
-	"github.com/stretchr/testify/require"
+	"sync"
+	"testing"
 )
 
 type TestResponse[TBody any] struct {
@@ -18,17 +18,53 @@ type TestResponse[TBody any] struct {
 	RawBody string
 }
 
-func CallNode[Req any, Res any](h *Harness, node ClusterNode, method string, path string, headers http.Header, req Req) TestResponse[Res] {
-	h.t.Helper()
+type loadbalancer struct {
+	mu      sync.RWMutex
+	metrics map[string]int
+	buffer  chan string
+	h       *Harness
+}
 
-	url := fmt.Sprintf("http://localhost:%d%s", node.HttpPort, path)
+func NewLoadbalancer(h *Harness) *loadbalancer {
+	lb := &loadbalancer{
+		mu:      sync.RWMutex{},
+		metrics: make(map[string]int),
+		buffer:  make(chan string, 1_000_000),
+		h:       h,
+	}
+
+	go func() {
+		for host := range lb.buffer {
+			lb.mu.Lock()
+			lb.metrics[host]++
+			lb.mu.Unlock()
+
+		}
+	}()
+
+	return lb
+}
+
+func (lb *loadbalancer) GetMetrics() map[string]int {
+	lb.mu.RLock()
+	defer lb.mu.RUnlock()
+
+	return lb.metrics
+}
+
+func CallNode[Req any, Res any](t *testing.T, addr, method string, path string, headers http.Header, req Req) (TestResponse[Res], error) {
+	t.Helper()
 
 	body := new(bytes.Buffer)
 	err := json.NewEncoder(body).Encode(req)
-	require.NoError(h.t, err)
+	if err != nil {
+		return TestResponse[Res]{}, err
+	}
 
-	httpReq, err := http.NewRequest(method, url, body)
-	require.NoError(h.t, err)
+	httpReq, err := http.NewRequest(method, fmt.Sprintf("http://%s%s", addr, path), body)
+	if err != nil {
+		return TestResponse[Res]{}, err
+	}
 
 	httpReq.Header = headers
 	if httpReq.Header == nil {
@@ -36,28 +72,35 @@ func CallNode[Req any, Res any](h *Harness, node ClusterNode, method string, pat
 	}
 
 	httpRes, err := http.DefaultClient.Do(httpReq)
-	require.NoError(h.t, err)
+	if err != nil {
+		return TestResponse[Res]{}, err
+	}
 	defer httpRes.Body.Close()
 
 	resBody, err := io.ReadAll(httpRes.Body)
-	require.NoError(h.t, err)
+	if err != nil {
+		return TestResponse[Res]{}, err
+	}
 
 	var res Res
 	err = json.Unmarshal(resBody, &res)
-	require.NoError(h.t, err, fmt.Sprintf("failed to decode response body: %s", string(resBody)))
+	if err != nil {
+		return TestResponse[Res]{}, err
+	}
 
 	return TestResponse[Res]{
 		Status:  httpRes.StatusCode,
 		Headers: httpRes.Header,
 		Body:    res,
 		RawBody: string(resBody),
-	}
+	}, nil
 }
 
-func CallRandomNode[Req any, Res any](h *Harness, method string, path string, headers http.Header, req Req) TestResponse[Res] {
-	h.t.Helper()
+func CallRandomNode[Req any, Res any](lb *loadbalancer, method string, path string, headers http.Header, req Req) (TestResponse[Res], error) {
+	lb.h.t.Helper()
 	// nolint:gosec
-	node := h.nodes[rand.IntN(len(h.nodes))]
-	return CallNode[Req, Res](h, node, method, path, headers, req)
+	addr := lb.h.instanceAddrs[rand.IntN(len(lb.h.instanceAddrs))]
+	lb.buffer <- addr
+	return CallNode[Req, Res](lb.h.t, addr, method, path, headers, req)
 
 }

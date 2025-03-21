@@ -22,7 +22,7 @@ func TestClusterFormation(t *testing.T) {
 
 	// Create a containers instance for database
 	containers := containers.New(t)
-	dbDsn := containers.RunMySQL()
+	dbDsn, _ := containers.RunMySQL()
 
 	// Get free ports for the nodes
 	portAllocator := port.New()
