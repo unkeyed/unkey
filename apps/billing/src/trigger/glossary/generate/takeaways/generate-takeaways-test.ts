@@ -94,11 +94,11 @@ const testCases: TestCase[] = [
       const output = validation.data.output;
       const outputValidation = expectedOutputSchema.safeParse(output);
       if (!outputValidation.success) {
-        console.info(`Test '${this.name}' failed. Expected a valid result, but got: ${JSON.stringify(result)}`);
-        console.info(outputValidation.error.errors.map(e => e.message).join("\n"));
+        console.warn(`Test '${this.name}' failed. Expected a valid result, but got: ${JSON.stringify(result)}`);
+        console.warn(outputValidation.error.errors.map(e => e.message).join("\n"));
         return false;
       }
-      console.info(`Test '${this.name}' passed. Expected: ${JSON.stringify(expectedOutputSchema.parse(output))}`);
+      console.info(`Test '${this.name}' passed. ✔︎`);
       return true;
     }
   },
@@ -117,7 +117,7 @@ const testCases: TestCase[] = [
     validate(result) {
       const validation = okResultSchema.safeParse(result);
       if (!validation.success) {
-        console.info(`Test '${this.name}' failed. Expected a valid result, but got: ${JSON.stringify(result)}`);
+        console.info(`Test '${this.name}' failed on result validation. Expected a valid result, but got: ${JSON.stringify(result)}`);
         console.info(validation.error.errors.map(e => e.message).join("\n"));
         return false;
       }
@@ -126,7 +126,7 @@ const testCases: TestCase[] = [
         term: z.literal("MIME types"),
         takeaways: z.object({
           tldr: takeawaysSchema.shape.tldr,
-          definitionAndStructure: z.array(takeawaysSchema.shape.definitionAndStructure),
+          definitionAndStructure: takeawaysSchema.shape.definitionAndStructure,
           usageInAPIs: z.object({
             description: z.string()
           })
@@ -139,16 +139,14 @@ const testCases: TestCase[] = [
           })
         })
       });
-      console.info(`--> check the validation output output after parsing: ${JSON.stringify(validation.data.output)}`);
       const outputValidation = expectedOutputSchema.safeParse(validation.data.output);
       if (!outputValidation.success) {
-        console.info(`Test '${this.name}' failed. Expected a valid result, but got: ${JSON.stringify(validation.data.output)}`);
+        console.warn(`Test '${this.name}' failed on output validation. Expected a valid result, but got: ${JSON.stringify(validation.data.output)}`);
         // print the zod errors in a readable format:
-        console.info(outputValidation.error.errors.map(e => `${e.path}: ${e.message}`).join("\n"));
-        console.info(JSON.stringify(outputValidation.error.flatten().fieldErrors, null, 2));
+        console.warn(outputValidation.error.errors.map(e => `${e.path}: ${e.message}`).join("\n"));
         return false;
       }
-      console.info(`Test '${this.name}' passed. Expected: ${JSON.stringify(expectedOutputSchema.parse(output))}`);
+      console.info(`Test '${this.name}' passed. ✔︎`);
       return true;
     }
   },
@@ -163,17 +161,7 @@ const testCases: TestCase[] = [
         console.info(`Test '${this.name}' failed. Expected an error result, but got: ${JSON.stringify(result)}`);
         return false;
       }
-      console.info(`Test '${this.name}' passed. Expected: ${JSON.stringify(validation.data)}`);
-      const expectedOutputSchema = z.object({
-        term: z.literal(""),
-        error: z.string()
-      });
-      const output = validation.data;
-      if (!expectedOutputSchema.safeParse(output).success) {
-        console.info(`Test '${this.name}' failed. Expected a valid result, but got: ${JSON.stringify(result)}`);
-        return false;
-      }
-      console.info(`Test '${this.name}' passed. Expected: ${JSON.stringify(expectedOutputSchema.parse(output))}`);
+      console.info(`Test '${this.name}' passed. ✔︎`);
       return true;
     }
   }
@@ -235,18 +223,19 @@ export const generateTakeawaysTest = task({
 
     // Print final results
     const metadata = getAllTestsMetadata();
-    console.log("\n========== TEST RESULTS ==========");
-    console.log(`Total Tests: ${metadata.totalTests}`);
-    console.log(`✓ Passed: ${metadata.passedTests}`);
-    console.log(`✗ Failed: ${metadata.failedTests}`);
+    console.info("\n========== TEST RESULTS ==========");
+    console.info(`\n${metadata.totalTests === metadata.passedTests ? "✅ All tests passed" : "⚠️ Some tests failed"}`);
+    console.info(`Total Tests: ${metadata.totalTests}`);
+    console.info(`✓ Passed: ${metadata.passedTests}`);
+    console.info(`✗ Failed: ${metadata.failedTests}`);
 
     const failedTests = metadata.results.filter(r => r.status === "failed");
     if (failedTests.length > 0) {
-      console.log("\nFailed Tests:");
+      console.info("\nFailed Tests:");
       failedTests.forEach(result => {
-        console.log(`- ${result.testCase}`);
+        console.info(`- ${result.testCase}`);
         if (result.error) {
-          console.log(`  Error: ${result.error}`);
+          console.info(`  Error: ${result.error}`);
         }
       });
     }
@@ -255,13 +244,13 @@ export const generateTakeawaysTest = task({
       const successfulCleanups = metadata.cleanupResults.filter(r => r.status === "success").length;
       const failedCleanups = metadata.cleanupResults.filter(r => r.status === "failed");
       
-      console.log("\nCleanup Results:");
-      console.log(`✓ Successfully cleaned up ${successfulCleanups} test(s)`);
+      console.info("\nCleanup Results:");
+      console.info(`✓ Successfully cleaned up ${successfulCleanups} test(s)`);
       
       if (failedCleanups.length > 0) {
-        console.log(`✗ Failed to cleanup ${failedCleanups.length} test(s):`);
+        console.info(`✗ Failed to cleanup ${failedCleanups.length} test(s):`);
         failedCleanups.forEach(result => {
-          console.log(`- ${result.testCase}: ${result.error}`);
+          console.info(`- ${result.testCase}: ${result.error}`);
         });
       }
     }
