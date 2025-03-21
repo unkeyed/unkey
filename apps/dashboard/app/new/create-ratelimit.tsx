@@ -4,13 +4,13 @@ import { getOrgId } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
 import { router } from "@/lib/trpc/routers";
 import { createCallerFactory } from "@trpc/server";
-import type { AuditLogBucket, Workspace } from "@unkey/db";
+import type { Workspace } from "@unkey/db";
 import { Button } from "@unkey/ui";
 import { GlobeLock } from "lucide-react";
 import Link from "next/link";
 
 type Props = {
-  workspace: Workspace & { auditLogBucket: AuditLogBucket };
+  workspace: Workspace;
 };
 
 export const CreateRatelimit: React.FC<Props> = async (props) => {

@@ -12,10 +12,7 @@ export type WorkspaceProps = {
     id: string;
     name: string | null;
   }[];
-  buckets: {
-    id: string;
-    name: string;
-  }[];
+  buckets: string[];
   members:
     | {
         label: string;
