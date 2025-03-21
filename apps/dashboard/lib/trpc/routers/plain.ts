@@ -1,5 +1,5 @@
 import { env } from "@/lib/env";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { clerkClient } from "@clerk/nextjs";
 import { PlainClient, uiComponent } from "@team-plain/typescript-sdk";
 import { TRPCError } from "@trpc/server";
@@ -7,7 +7,10 @@ import { z } from "zod";
 
 const issueType = z.enum(["bug", "feature", "security", "question", "payment"]);
 const severity = z.enum(["p0", "p1", "p2", "p3"]);
-export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
+export const createPlainIssue = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.create))
   .input(
     z.object({
       issueType,

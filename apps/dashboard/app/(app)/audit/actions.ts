@@ -31,15 +31,6 @@ export const getWorkspace = async (orgId: string) => {
 
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { eq, and, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-      with: {
-        auditLogBuckets: {
-          columns: {
-            id: true,
-            name: true,
-          },
-          orderBy: (table, { asc }) => asc(table.createdAt),
-        },
-      },
     });
 
     if (!workspace) {

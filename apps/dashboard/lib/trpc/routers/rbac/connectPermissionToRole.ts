@@ -2,9 +2,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const connectPermissionToRole = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       roleId: z.string(),
@@ -76,7 +77,7 @@ export const connectPermissionToRole = t.procedure
                 "We are unable to connect the permission to the role. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "authorization.connect_role_and_permission",

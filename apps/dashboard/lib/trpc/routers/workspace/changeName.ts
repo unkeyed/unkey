@@ -3,9 +3,10 @@ import { auth as authClient } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const changeWorkspaceName = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: z.string().min(3, "workspace names must contain at least 3 characters"),
@@ -28,7 +29,7 @@ export const changeWorkspaceName = t.procedure
                 "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
             });
           });
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "workspace.update",
