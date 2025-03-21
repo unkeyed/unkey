@@ -1,6 +1,6 @@
-import TeamPage from "./client";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import TeamPage from "./client";
 
 export const revalidate = 0;
 
@@ -11,12 +11,12 @@ export default async function SettingsKeysPage() {
       and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
     with: { quota: true },
   });
-  
+
   const team = ws?.quota?.team ?? false;
 
   return (
     <div>
-      <TeamPage team={team}/>
+      <TeamPage team={team} />
     </div>
   );
 }

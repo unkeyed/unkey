@@ -48,27 +48,28 @@ type Member = {
 export default function TeamPage({ team }: { team: boolean }) {
   const { user, organization } = useClerk();
 
-
-  if(organization && !team){
+  if (organization && !team) {
     return (
-        <div>
-          <Navigation href="/settings/team" name="Settings" icon={<Gear />} />
-          <PageContent>
-            <SubMenu navigation={navigation} segment="team" />
-            <div className="mb-20 flex flex-col gap-8 mt-8">
-              <Empty>
-                <Empty.Title>Invites are not available on the Free tier</Empty.Title>
-                <Empty.Description>Please upgrade your workspace to a paid plan to enable invites.</Empty.Description>
-                <Empty.Actions>
-                  <Link href="/settings/billing">
-                    <Button>Upgrade</Button>
-                  </Link>
-                </Empty.Actions>
-              </Empty>
-            </div>
-          </PageContent>
-        </div>
-      );
+      <div>
+        <Navigation href="/settings/team" name="Settings" icon={<Gear />} />
+        <PageContent>
+          <SubMenu navigation={navigation} segment="team" />
+          <div className="mb-20 flex flex-col gap-8 mt-8">
+            <Empty>
+              <Empty.Title>Invites are not available on the Free tier</Empty.Title>
+              <Empty.Description>
+                Please upgrade your workspace to a paid plan to enable invites.
+              </Empty.Description>
+              <Empty.Actions>
+                <Link href="/settings/billing">
+                  <Button>Upgrade</Button>
+                </Link>
+              </Empty.Actions>
+            </Empty>
+          </div>
+        </PageContent>
+      </div>
+    );
   }
   if (!organization) {
     return (
@@ -79,7 +80,9 @@ export default function TeamPage({ team }: { team: boolean }) {
           <div className="mb-20 flex flex-col gap-8 mt-8">
             <Empty>
               <Empty.Title>Invites are not available on the Free tier</Empty.Title>
-              <Empty.Description>Please create a workspace and upgrade to the pro tier.</Empty.Description>
+              <Empty.Description>
+                Please create a workspace and upgrade to the pro tier.
+              </Empty.Description>
               <Empty.Actions>
                 <Link href="/new">
                   <Button>Create a new workspace</Button>
