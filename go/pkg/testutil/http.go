@@ -48,7 +48,7 @@ func NewHarness(t *testing.T) *Harness {
 
 	cont := containers.New(t)
 
-	dsn := cont.RunMySQL()
+	dsn, _ := cont.RunMySQL()
 
 	db, err := db.New(db.Config{
 		Logger:      logger,

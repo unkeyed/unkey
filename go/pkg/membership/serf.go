@@ -3,7 +3,6 @@ package membership
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"strings"
 	"sync"
@@ -69,8 +68,8 @@ func New(config Config) (*serfMembership, error) {
 	serfConfig.MemberlistConfig.BindPort = config.GossipPort
 	serfConfig.Tags = self.ToMap()
 
-	serfConfig.LogOutput = io.Discard
-	serfConfig.MemberlistConfig.LogOutput = io.Discard
+	serfConfig.LogOutput = logger{config.Logger}
+	serfConfig.MemberlistConfig.LogOutput = logger{config.Logger}
 
 	// Create event handlers for Serf
 	eventCh := make(chan serf.Event, 256)

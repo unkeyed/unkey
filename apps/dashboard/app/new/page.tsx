@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
+import { freeTierQuotas } from "@/lib/quotas";
 import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
 import { Button } from "@unkey/ui";
@@ -196,13 +197,13 @@ export default async function (props: Props) {
     );
   }
   if (userId) {
-    const personalWorkspace = await db.query.workspaces.findFirst({
+    const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.tenantId, userId), isNull(table.deletedAtM)),
     });
 
     // if no personal workspace exists, we create one
-    if (!personalWorkspace) {
+    if (!workspace) {
       const workspaceId = newId("workspace");
       await db.transaction(async (tx) => {
         await tx.insert(schema.workspaces).values({
@@ -210,12 +211,18 @@ export default async function (props: Props) {
           tenantId: userId,
           name: "Personal",
           plan: "free",
+          tier: "Free",
           stripeCustomerId: null,
           stripeSubscriptionId: null,
           features: {},
           betaFeatures: {},
           subscriptions: null,
           createdAtM: Date.now(),
+        });
+
+        await tx.insert(schema.quotas).values({
+          workspaceId,
+          ...freeTierQuotas,
         });
 
         const bucketId = newId("auditLogBucket");
