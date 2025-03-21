@@ -5,14 +5,18 @@ h1: "MIME Types: Essentials & API Development"
 term: MIME types
 categories: []
 takeaways:
-  tldr: MIME Types are identifiers used to specify the nature and format of data.
+  tldr: MIME types are crucial for APIs to specify the format of data being sent and received. They ensure that clients and servers correctly interpret the content. Always use the `Content-Type` header.
   definitionAndStructure:
     - key: Definition
-      value: Data Identifier
+      value: MIME (Multipurpose Internet Mail Extensions) types are standard identifiers used to indicate the nature and format of a document, file, or assortment of bytes. They are used in HTTP headers to specify the media type of content transmitted between a server and a client.
     - key: Structure
-      value: type/subtype
-    - key: Examples
-      value: application/json, text/html
+      value: "A MIME type consists of a type and a subtype, separated by a forward slash (/). Optionally, it can include parameters. For example: `application/json; charset=utf-8`."
+    - key: Type
+      value: Represents the general category of the content (e.g., `application`, `text`, `image`, `audio`, `video`).
+    - key: Subtype
+      value: Specifies the specific format or type within the general category (e.g., `json`, `xml`, `png`, `jpeg`).
+    - key: Parameters
+      value: Provide additional information about the content, such as character set (`charset`), encoding, or version. Parameters are key-value pairs separated by semicolons (`;`).
   historicalContext:
     - key: Introduced
       value: 1990s
@@ -22,10 +26,12 @@ takeaways:
       value: Standardized MIME Types
   usageInAPIs:
     tags:
-      - consumes
-      - produces
       - Content-Type
-    description: MIME Types are used in APIs to define the data formats that can be consumed and produced. They are specified in the 'consumes' and 'produces' fields of API specifications and in the 'Content-Type' HTTP header.
+      - Accept
+      - HTTP Headers
+      - Serialization
+      - Deserialization
+    description: MIME types are used in APIs primarily within the `Content-Type` and `Accept` HTTP headers. The `Content-Type` header in a response specifies the format of the response body (e.g., `application/json`). The `Accept` header in a request indicates the media types the client can handle, allowing the server to provide the most appropriate response format.
   bestPractices:
     - Always specify MIME types in API responses to ensure correct data handling by clients.
     - Use the 'consumes' and 'produces' fields in API specifications to define the data formats the API can handle.
