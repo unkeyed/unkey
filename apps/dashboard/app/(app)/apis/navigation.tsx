@@ -13,7 +13,9 @@ export function Navigation({ isNewApi, apisLength }: NavigationProps) {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Nodes />}>
-        <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href="/apis" active>
+          APIs
+        </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
       <Navbar.Actions>
         <CreateApiButton key="createApi" defaultOpen={apisLength === 0 || isNewApi} />

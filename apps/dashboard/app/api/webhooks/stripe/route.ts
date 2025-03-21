@@ -1,6 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { type Quotas, db, eq, schema } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
+import { freeTierQuotas } from "@/lib/quotas";
 import Stripe from "stripe";
 
 export const runtime = "nodejs";
@@ -51,12 +52,6 @@ export const POST = async (req: Request): Promise<Response> => {
         })
         .where(eq(schema.workspaces.id, ws.id));
 
-      const freeTierQuotas: Omit<Quotas, "workspaceId"> = {
-        requestsPerMonth: 150_000,
-        logsRetentionDays: 7,
-        auditLogsRetentionDays: 30,
-        team: false,
-      };
       await db
         .insert(schema.quotas)
         .values({

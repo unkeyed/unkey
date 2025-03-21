@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/sim"
+	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
 type state struct {
@@ -92,7 +93,7 @@ func (e *advanceTimeEvent) Run(rng *rand.Rand, s *state) error {
 }
 
 func TestSimulation(t *testing.T) {
-	sim.CheckEnabled(t)
+	testutil.SkipUnlessSimulation(t)
 
 	for i := 0; i < 10; i++ {
 		t.Run(fmt.Sprintf("run=%d", i), func(t *testing.T) {

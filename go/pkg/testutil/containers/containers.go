@@ -5,13 +5,15 @@ import (
 
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 // Containers represents a container manager for running containerized services during tests.
 // It maintains a reference to the current test and Docker pool for launching containers.
 type Containers struct {
-	t    *testing.T
-	pool *dockertest.Pool
+	t       *testing.T
+	pool    *dockertest.Pool
+	network *dockertest.Network
 }
 
 // NewContainers creates a new container manager for the given test.
@@ -50,9 +52,17 @@ func New(t *testing.T) *Containers {
 	err = pool.Client.Ping()
 	require.NoError(t, err)
 
+	network, err := pool.CreateNetwork(uid.New("network"))
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, pool.RemoveNetwork(network))
+	})
+
 	c := &Containers{
-		t:    t,
-		pool: pool,
+		t:       t,
+		pool:    pool,
+		network: network,
 	}
 
 	return c
