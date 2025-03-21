@@ -24,7 +24,7 @@ require (
 	github.com/pb33f/libopenapi v0.21.2
 	github.com/pb33f/libopenapi-validator v0.3.0
 	github.com/prometheus/client_golang v1.20.5
-	github.com/redis/go-redis/v9 v9.6.1
+	github.com/redis/go-redis/v9 v9.6.3
 	github.com/rs/zerolog v1.33.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/cobra v1.8.1
