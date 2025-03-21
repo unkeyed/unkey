@@ -28,7 +28,9 @@ export type FieldSelection = z.infer<typeof fieldSelectionSchema>;
 
 // Helper function to build dynamic schema based on field selection
 function buildDynamicSchema(fields?: FieldSelection) {
-  if (!fields) return takeawaysSchema;
+  if (!fields) {
+    return takeawaysSchema;
+  }
 
   const schemaShape: Record<string, z.ZodTypeAny> = {};
 
