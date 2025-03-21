@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
+import { freeTierQuotas } from "@/lib/quotas";
 export const createWorkspace = t.procedure
   .use(auth)
   .input(
@@ -55,10 +56,7 @@ export const createWorkspace = t.procedure
         await tx.insert(schema.workspaces).values(workspace);
         await tx.insert(schema.quotas).values({
           workspaceId: workspace.id,
-          requestsPerMonth: 150_000,
-          auditLogsRetentionDays: 30,
-          logsRetentionDays: 7,
-          team: false,
+          ...freeTierQuotas
         });
 
         const auditLogBucketId = newId("auditLogBucket");
