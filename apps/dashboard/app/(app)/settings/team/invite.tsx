@@ -17,8 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { inviteMember } from "@/lib/auth/actions";
-import type { InvitationListResponse, Organization, User } from "@/lib/auth/types";
+import type { Organization, User } from "@/lib/auth/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
@@ -27,6 +26,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DialogContainer } from "@/components/dialog-container";
+import { trpc } from "@/lib/trpc/client";
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -36,17 +36,30 @@ const formSchema = z.object({
 interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   user: User | null;
   organization: Organization | null;
-  refetchInvitations: () => Promise<InvitationListResponse | undefined>;
 }
 
 export const InviteButton = ({
   user,
   organization,
-  refetchInvitations,
   ...rest
 }: InviteButtonProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isLoading, setLoading] = useState(false);
+  const utils = trpc.useUtils();
+
+  const createInvitation = trpc.org.invitations.create.useMutation({
+    onSuccess: () => {
+      // Invalidate the invitations list query to trigger a refetch
+      utils.org.invitations.list.invalidate();
+      
+      toast.success(
+        `We have sent an email to ${form.getValues("email")} with instructions on how to join your workspace.`,
+      );
+      setDialogOpen(false);
+    },
+    onError: (error: { message: any; }) => {
+      toast.error(`Failed to send invitation: ${error.message}`);
+    },
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -56,38 +69,16 @@ export const InviteButton = ({
   });
 
   // If user or organization isn't available yet, return null or a loading state
-  if (!user?.orgId || !organization) {
+  if (!user!.orgId || !organization) {
     return null;
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      setLoading(true);
-      inviteMember({
-        email: values.email,
-        role: values.role,
-        orgId: user!.orgId!,
-      })
-        .then(async () => {
-          await refetchInvitations();
-        })
-        .then(() => {
-          toast.success(
-            `We have sent an email to ${values.email} with instructions on how to join your workspace.`,
-          );
-          setDialogOpen(false);
-          setLoading(false);
-        })
-        .catch((error) => {
-          toast.error(`Failed to send invitation: ${error.message}`);
-        })
-        .finally(() => {});
-    } catch (err) {
-      console.error(err);
-      toast.error((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
+    await createInvitation.mutateAsync({
+      email: values.email,
+      role: values.role,
+      orgId: user!.orgId!,
+    });
   }
 
   return (
@@ -119,8 +110,8 @@ export const InviteButton = ({
             <Button
               form="invite-form"
               variant="primary"
-              disabled={!form.formState.isValid || isLoading}
-              loading={isLoading}
+              disabled={!form.formState.isValid || form.formState.isSubmitting}
+              loading={form.formState.isSubmitting}
               type="submit"
             >
               Send invitation

@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc/client";
-import { useOrganization, useUser } from "@/lib/auth/hooks";
+import { useUser } from "@/lib/auth/hooks";
 import { Loading } from "@/components/dashboard/loading";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -30,7 +30,6 @@ type Props = {
 };
 
 export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
-  const { organization: currentOrg } = useOrganization();
   const { switchOrganization } = useUser();
   const router = useRouter();
   const { isMobile, state } = useSidebar();
@@ -40,7 +39,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
 
   const { data: user } = trpc.user.getCurrentUser.useQuery();
   const { data: memberships, isLoading: isUserMembershipsLoading } = trpc.user.listMemberships.useQuery(
-    undefined,
+    user?.id as string, // make typescript happy
     { 
       enabled: !!user
     }
