@@ -97,7 +97,7 @@ export const updateTakeawaysTask = task({
     }
 
     const [, frontmatterContent, content] = frontmatterMatch;
-    
+
     // Parse the YAML frontmatter
     let parsedFrontmatter: Record<string, any>;
     try {
@@ -121,7 +121,7 @@ export const updateTakeawaysTask = task({
     } else {
       // Update all fields
       parsedFrontmatter.takeaways = takeaways;
-      Object.keys(takeaways).forEach(field => {
+      Object.keys(takeaways).forEach((field) => {
         updatedFields[field] = takeaways[field];
       });
     }
@@ -130,7 +130,7 @@ export const updateTakeawaysTask = task({
     const updatedFrontmatter = yaml.dump(parsedFrontmatter, {
       lineWidth: -1,
       noRefs: true,
-      quotingType: '"'
+      quotingType: '"',
     });
 
     // Combine the updated frontmatter with the original content
@@ -150,7 +150,9 @@ export const updateTakeawaysTask = task({
     );
 
     if (mainRefResult.error) {
-      throw new AbortTaskRunError(`Failed to get main branch reference: ${mainRefResult.error.message}`);
+      throw new AbortTaskRunError(
+        `Failed to get main branch reference: ${mainRefResult.error.message}`,
+      );
     }
 
     // Create a new branch

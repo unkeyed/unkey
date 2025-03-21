@@ -75,8 +75,12 @@ export function safeSetMetadata(key: string, value: any) {
  * Utility types for extracting task input/output types
  */
 export type TaskInput<T> = T extends { triggerAndWait: (input: infer I) => any } ? I : never;
-export type TaskOutput<T> = T extends { triggerAndWait: (...args: any[]) => Promise<infer O> } ? O : never;
-export type TaskResult<T> = T extends { triggerAndWait: (...args: any[]) => Promise<infer R> } ? R : never;
+export type TaskOutput<T> = T extends { triggerAndWait: (...args: any[]) => Promise<infer O> }
+  ? O
+  : never;
+export type TaskResult<T> = T extends { triggerAndWait: (...args: any[]) => Promise<infer R> }
+  ? R
+  : never;
 
 /**
  * Base interface for test cases with inferred types
@@ -91,7 +95,9 @@ export interface TestCase<TTask> {
 /**
  * Creates a test runner task with inferred types
  */
-export function createTestRunner<TTask extends { triggerAndWait: (input: any) => Promise<any> }>(options: {
+export function createTestRunner<
+  TTask extends { triggerAndWait: (input: any) => Promise<any> },
+>(options: {
   id: string;
   task: TTask;
   testCases: Array<TestCase<TTask>>;
@@ -206,4 +212,4 @@ export function createTestRunner<TTask extends { triggerAndWait: (input: any) =>
       return metadata;
     },
   });
-} 
+}
