@@ -22,7 +22,11 @@ function clamp(min: number, value: number, max: number): number {
   return Math.min(max, Math.max(value, min));
 }
 
-const ProgressCircle: React.FC<{ value: number; max: number }> = ({ value, max }) => {
+export const ProgressCircle: React.FC<{
+  value: number;
+  max: number;
+  color?: string;
+}> = ({ value, max, color }) => {
   const safeValue = clamp(0, value, max);
   const radius = 12;
   const strokeWidth = 3;
@@ -65,6 +69,7 @@ const ProgressCircle: React.FC<{ value: number; max: number }> = ({ value, max }
               stroke=""
               strokeLinecap="round"
               className="stroke-accent-12 transform-gpu transition-all duration-300 ease-in-out"
+              style={{ stroke: color }}
             />
           ) : null}
         </svg>

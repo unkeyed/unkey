@@ -33,7 +33,7 @@ export const createWorkspace = t.procedure
       tenantId: org.id,
       orgId: null,
       name: input.name,
-      plan: "pro",
+      plan: "free",
       tier: "Free",
       stripeCustomerId: null,
       stripeSubscriptionId: null,

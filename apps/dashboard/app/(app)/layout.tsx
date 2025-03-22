@@ -21,6 +21,7 @@ export default async function Layout({ children }: LayoutProps) {
       apis: {
         where: (table, { isNull }) => isNull(table.deletedAtM),
       },
+      quota: true,
     },
   });
 
