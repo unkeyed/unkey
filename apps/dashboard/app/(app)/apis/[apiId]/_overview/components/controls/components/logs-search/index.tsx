@@ -44,6 +44,11 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
 
   return (
     <LogsLLMSearch
+      exampleQueries={[
+        "Show rate limited outcomes",
+        "Show identity that starts with test_",
+        "Show name that starts with test_ in the last hour",
+      ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>

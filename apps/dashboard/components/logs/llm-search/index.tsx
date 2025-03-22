@@ -9,6 +9,7 @@ import { useSearchStrategy } from "./hooks/use-search-strategy";
 type SearchMode = "allowTypeDuringSearch" | "debounced" | "manual";
 
 type Props = {
+  exampleQueries?: string[];
   onSearch: (query: string) => void;
   onClear?: () => void;
   placeholder?: string;
@@ -22,6 +23,7 @@ type Props = {
 };
 
 export const LogsLLMSearch = ({
+  exampleQueries,
   onSearch,
   isLoading,
   onClear,
@@ -154,6 +156,7 @@ export const LogsLLMSearch = ({
         </div>
 
         <SearchActions
+          exampleQueries={exampleQueries}
           searchText={searchText}
           hideClear={hideClear}
           hideExplainer={hideExplainer}

@@ -3,13 +3,17 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "compon
 
 type SearchExampleTooltipProps = {
   onSelectExample: (query: string) => void;
+  exampleQueries?: string[];
 };
 
-export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({ onSelectExample }) => {
-  const examples = [
-    { id: "failed-requests", text: "Show failed requests today" },
-    { id: "auth-errors", text: "auth errors in the last 3h" },
-    { id: "api-calls", text: "API calls from a path that includes /api/v1/oz" },
+export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
+  onSelectExample,
+  exampleQueries,
+}) => {
+  const examples = exampleQueries ?? [
+    "Show failed requests today",
+    "auth errors in the last 3h",
+    "API calls from a path that includes /api/v1/oz",
   ];
 
   return (
@@ -31,15 +35,15 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({ onSe
             </div>
             <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
               {examples.map((example) => (
-                <li key={example.id} className="flex items-center gap-2">
+                <li key={example} className="flex items-center gap-2">
                   <CaretRightOutline className="text-accent-9" />
                   <button
                     type="button"
                     className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
-                    onClick={() => onSelectExample(example.text)}
-                    data-testid={`example-${example.id}`}
+                    onClick={() => onSelectExample(example)}
+                    data-testid={`example-${example}`}
                   >
-                    "{example.text}"
+                    "{example}"
                   </button>
                 </li>
               ))}
