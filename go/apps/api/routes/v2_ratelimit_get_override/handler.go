@@ -122,8 +122,8 @@ func getNamespace(ctx context.Context, svc Services, workspaceID string, req Req
 	switch {
 	case req.NamespaceId != nil:
 		{
-			res, err := db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
-			return res, err
+			return db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
+
 		}
 	case req.NamespaceName != nil:
 		{

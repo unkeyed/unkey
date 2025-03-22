@@ -1,6 +1,6 @@
 "use client";
-
 import { Loading } from "@/components/dashboard/loading";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,24 +10,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
+import { ChevronExpandY } from "@unkey/icons";
 import { Check, Plus, UserPlus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useMemo, useState } from "react";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
-
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronExpandY } from "@unkey/icons";
-import Link from "next/link";
 
 type Props = {
   workspace: {
     name: string;
   };
 };
+
 export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
   const { isLoaded, setActive, userMemberships } = useOrganizationList({
     userMemberships: {
@@ -38,6 +38,11 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
   const router = useRouter();
+  const { isMobile, state } = useSidebar();
+
+  // Only collapsed in desktop mode, not in mobile mode
+  const isCollapsed = state === "collapsed" && !isMobile;
+
   async function changeOrg(orgId: string | null) {
     if (!setActive) {
       return;
@@ -50,6 +55,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
       router.refresh();
     }
   }
+
   const [search, _setSearch] = useState("");
   const filteredOrgs = useMemo(() => {
     if (!userMemberships.data) {
@@ -65,9 +71,19 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center justify-between w-full h-10 gap-2 px-2 overflow-hidden rounded-[0.625rem] bg-background border-border border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content">
-        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-          <Avatar className="w-5 h-5">
+      <DropdownMenuTrigger
+        className={cn(
+          "flex items-center bg-base-12 overflow-hidden rounded-lg bg-background border-gray-6 border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content",
+          isCollapsed ? "justify-center w-10 h-8 p-0" : "justify-between w-full h-8 gap-2 px-2",
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center gap-2 overflow-hidden whitespace-nowrap",
+            isCollapsed ? "justify-center" : "",
+          )}
+        >
+          <Avatar className="w-5 h-5 rounded border border-grayA-6">
             {currentOrg?.imageUrl ? (
               <AvatarImage src={currentOrg.imageUrl} alt={props.workspace.name} />
             ) : user?.imageUrl ? (
@@ -82,7 +98,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
           </Avatar>
           {!isLoaded ? (
             <Loading />
-          ) : (
+          ) : !isCollapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="overflow-hidden text-sm font-medium text-ellipsis">
@@ -93,12 +109,17 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
                 <span className="text-sm font-medium">{props.workspace.name}</span>
               </TooltipContent>
             </Tooltip>
-          )}
+          ) : null}
         </div>
-
-        <ChevronExpandY className="hidden w-5 h-5 shrink-0 md:block [stroke-width:1px]" />
+        {!isCollapsed && (
+          <ChevronExpandY className="w-5 h-5 shrink-0 md:block [stroke-width:1px] text-gray-9" />
+        )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="absolute left-0 w-96 max-sm:left-0">
+
+      <DropdownMenuContent
+        className="absolute left-0 w-72 lg:w-96 max-sm:left-0 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
+        align="start"
+      >
         <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
         <DropdownMenuItem
           className="flex items-center justify-between"
@@ -110,7 +131,6 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
           {currentOrg === null ? <Check className="w-4 h-4" /> : null}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
         <DropdownMenuGroup>
           <ScrollArea className="h-96">
@@ -135,7 +155,6 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             ))}
           </ScrollArea>
           <DropdownMenuSeparator />
-
           <DropdownMenuItem>
             <Link href="/new" className="flex items-center">
               <Plus className="w-4 h-4 mr-2" />

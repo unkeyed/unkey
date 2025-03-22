@@ -128,13 +128,13 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 	}
 	return RatelimitResponse{
-		Limit:          res.Response.Limit,
-		Remaining:      res.Response.Remaining,
-		Reset:          res.Response.Reset_,
-		Success:        res.Response.Success,
-		Current:        res.Response.Current,
-		CurrentWindow:  res.Current,
-		PreviousWindow: res.Previous,
+		Limit:          res.GetResponse().GetLimit(),
+		Remaining:      res.GetResponse().GetRemaining(),
+		Reset:          res.GetResponse().GetReset_(),
+		Success:        res.GetResponse().GetSuccess(),
+		Current:        res.GetResponse().GetCurrent(),
+		CurrentWindow:  res.GetCurrent(),
+		PreviousWindow: res.GetPrevious(),
 	}, nil
 }
 func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitRequest) (RatelimitResponse, error) {
@@ -144,14 +144,14 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 	key := bucketKey{req.Identifier, req.Limit, req.Duration}
 	span.SetAttributes(attribute.String("key", key.toString()))
 
-	b, _ := r.getOrCreateBucket(ctx, key)
+	b, _ := r.getOrCreateBucket(key)
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	// Get current and previous windows
-	currentWindow := b.getCurrentWindow(ctx, now)
-	previousWindow := b.getPreviousWindow(ctx, now)
+	currentWindow := b.getCurrentWindow(now)
+	previousWindow := b.getPreviousWindow(now)
 
 	// Calculate time elapsed in current window (as a fraction)
 	windowElapsed := float64(now.UnixMilli()-currentWindow.GetStart()) / float64(req.Duration.Milliseconds())
@@ -193,11 +193,13 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 	span.SetAttributes(attribute.Bool("passed", true))
 
 	return RatelimitResponse{
-		Success:   true,
-		Remaining: remaining,
-		Reset:     currentWindow.GetStart() + currentWindow.GetDuration(),
-		Limit:     req.Limit,
-		Current:   effectiveCount,
+		Success:        true,
+		Remaining:      remaining,
+		Reset:          currentWindow.GetStart() + currentWindow.GetDuration(),
+		Limit:          req.Limit,
+		Current:        effectiveCount,
+		CurrentWindow:  currentWindow,
+		PreviousWindow: previousWindow,
 	}, nil
 }
 
@@ -216,7 +218,7 @@ func (r *service) SetWindows(ctx context.Context, requests ...setWindowRequest) 
 	defer span.End()
 	for _, req := range requests {
 		key := bucketKey{req.Identifier, req.Limit, req.Duration}
-		bucket, _ := r.getOrCreateBucket(ctx, key)
+		bucket, _ := r.getOrCreateBucket(key)
 		// Only increment the current value if the new value is greater than the current value
 		// Due to varying network latency, we may receive out of order responses and could decrement the
 		// current value, which would result in inaccurate rate limiting

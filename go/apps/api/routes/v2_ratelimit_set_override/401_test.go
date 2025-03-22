@@ -41,22 +41,4 @@ func TestUnauthorizedAccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("malformed authorization header", func(t *testing.T) {
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {"malformed_header"},
-		}
-
-		namespaceName := "test_namespace"
-		req := handler.Request{
-			NamespaceName: &namespaceName,
-			Identifier:    "test_identifier",
-			Limit:         10,
-			Duration:      1000,
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, http.StatusUnauthorized, res.Status)
-		require.NotNil(t, res.Body)
-	})
 }

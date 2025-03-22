@@ -40,7 +40,7 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
-	return r.db.PrepareContext(ctx, query)
+	return r.db.PrepareContext(ctx, query) // nolint:sqlclosecheck
 }
 
 // QueryContext executes a SQL query that returns rows.
@@ -51,8 +51,8 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...interf
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
-	rows, err := r.db.QueryContext(ctx, query, args...)
-	return rows, err
+	return r.db.QueryContext(ctx, query, args...) // nolint:sqlclosecheck
+
 }
 
 // QueryRowContext executes a SQL query that returns a single row.

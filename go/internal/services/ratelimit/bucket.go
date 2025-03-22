@@ -1,14 +1,11 @@
 package ratelimit
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 // Generally there is one bucket per identifier.
@@ -55,9 +52,7 @@ func (b bucketKey) toString() string {
 // Returns:
 //   - *bucket: the bucket for tracking rate limit state
 //   - bool: true if the bucket already existed, false if it was created
-func (s *service) getOrCreateBucket(ctx context.Context, key bucketKey) (*bucket, bool) {
-	ctx, span := tracing.Start(ctx, "getOrCreateBucket")
-	defer span.End()
+func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 
 	s.bucketsMu.RLock()
 	b, exists := s.buckets[key.toString()]
@@ -74,14 +69,11 @@ func (s *service) getOrCreateBucket(ctx context.Context, key bucketKey) (*bucket
 		s.buckets[key.toString()] = b
 		s.bucketsMu.Unlock()
 	}
-	span.SetAttributes(attribute.Bool("created", !exists))
 	return b, exists
 }
 
 // must be called while holding a lock on the bucket
-func (b *bucket) getCurrentWindow(ctx context.Context, now time.Time) *ratelimitv1.Window {
-	ctx, span := tracing.Start(ctx, "getCurrentWindow")
-	defer span.End()
+func (b *bucket) getCurrentWindow(now time.Time) *ratelimitv1.Window {
 	sequence := calculateSequence(now, b.duration)
 
 	w, exists := b.windows[sequence]
@@ -89,15 +81,11 @@ func (b *bucket) getCurrentWindow(ctx context.Context, now time.Time) *ratelimit
 		w = newWindow(sequence, now.Truncate(b.duration), b.duration)
 		b.windows[sequence] = w
 	}
-	span.SetAttributes(attribute.Bool("created", !exists))
-
 	return w
 }
 
 // must be called while holding a lock on the bucket
-func (b *bucket) getPreviousWindow(ctx context.Context, now time.Time) *ratelimitv1.Window {
-	ctx, span := tracing.Start(ctx, "getCurrentWindow")
-	defer span.End()
+func (b *bucket) getPreviousWindow(now time.Time) *ratelimitv1.Window {
 
 	sequence := calculateSequence(now, b.duration) - 1
 
@@ -106,7 +94,6 @@ func (b *bucket) getPreviousWindow(ctx context.Context, now time.Time) *ratelimi
 		w = newWindow(sequence, now.Add(-b.duration).Truncate(b.duration), b.duration)
 		b.windows[sequence] = w
 	}
-	span.SetAttributes(attribute.Bool("created", !exists))
 
 	return w
 }
