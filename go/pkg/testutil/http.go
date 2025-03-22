@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -37,6 +38,7 @@ type Harness struct {
 	Logger      logging.Logger
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
+	Auditlogs   auditlogs.AuditLogService
 	Ratelimit   ratelimit.Service
 	seeder      *seed.Seeder
 }
@@ -105,7 +107,10 @@ func NewHarness(t *testing.T) *Harness {
 		DB:          db,
 		seeder:      seeder,
 		Clock:       clk,
-
+		Auditlogs: auditlogs.New(auditlogs.Config{
+			DB:     db,
+			Logger: logger,
+		}),
 		middleware: []zen.Middleware{
 			zen.WithTracing(),
 			zen.WithLogging(logger),

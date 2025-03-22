@@ -43,7 +43,25 @@ type ApiRequestV1 struct {
 	Error string `ch:"error"`
 
 	// ServiceLatency is the time in milliseconds it took to process the request
-	ServiceLatency int64 `ch:"serviceLatency"`
+	ServiceLatency int64 `ch:"service_latency"`
+
+	// UserAgent is the HTTP user agent string sent by the client
+	UserAgent string `ch:"user_agent"`
+
+	// IPAddress is the IP of the client making the request
+	IPAddress string `ch:"ip_address"`
+
+	// Continent is the continent of the client making the request
+	Continent string `ch:"continent"`
+
+	// Country is the country of the client making the request
+	Country string `ch:"country"`
+
+	// City is the city of the client making the request
+	City string `ch:"city"`
+
+	// Colo is the data center location of the client making the request
+	Colo string `ch:"colo"`
 }
 
 // KeyVerificationRequestV1 represents a key verification operation, tracking
