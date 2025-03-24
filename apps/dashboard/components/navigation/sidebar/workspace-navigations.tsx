@@ -16,7 +16,7 @@ import { cn } from "../../../lib/utils";
 export type NavItem = {
   disabled?: boolean;
   tooltip?: string;
-  icon: React.ElementType;
+  icon: React.ElementType | null;
   href: string;
   external?: boolean;
   label: string;
@@ -79,6 +79,20 @@ export const createWorkspaceNavigation = (
       label: "Authorization",
       href: "/authorization/roles",
       active: segments.some((s) => s === "authorization"),
+      items: [
+        {
+          icon: null,
+          label: "Roles",
+          href: "/authorization/roles",
+          active: segments.some((s) => s === "roles"),
+        },
+        {
+          icon: null,
+          label: "Permissions",
+          href: "/authorization/permissions",
+          active: segments.some((s) => s === "permissions"),
+        },
+      ],
     },
 
     {
@@ -121,6 +135,38 @@ export const createWorkspaceNavigation = (
       href: "/settings/general",
       label: "Settings",
       active: segments.at(0) === "settings",
+      items: [
+        {
+          icon: null,
+          href: "/settings/team",
+          label: "Team",
+          active: segments.some((s) => s === "team"),
+        },
+        {
+          icon: null,
+          href: "/settings/root-keys",
+          label: "Root Keys",
+          active: segments.some((s) => s === "root-keys"),
+        },
+        {
+          icon: null,
+          href: "/settings/billing",
+          label: "Billing",
+          active: segments.some((s) => s === "billing"),
+        },
+        {
+          icon: null,
+          href: "/settings/vercel",
+          label: "Vercel Integration",
+          active: segments.some((s) => s === "vercel"),
+        },
+        {
+          icon: null,
+          href: "/settings/user",
+          label: "User",
+          active: segments.some((s) => s === "user"),
+        },
+      ],
     },
   ].filter((n) => !n.hidden);
 };

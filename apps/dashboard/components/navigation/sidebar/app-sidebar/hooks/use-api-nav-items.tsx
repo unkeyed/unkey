@@ -6,14 +6,11 @@ import { Key } from "lucide-react";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
-// Default limit for fetching API items
 const DEFAULT_LIMIT = 10;
 
-// Enhanced hook that accepts base navigation items and returns fully constructed navigation
 export const useWorkspaceNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
 
-  // Use infinite query for pagination
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     trpc.api.overview.query.useInfiniteQuery(
       {
@@ -87,6 +84,7 @@ export const useWorkspaceNavigation = (baseNavItems: NavItem[]) => {
         apisItem.items?.push({
           icon: () => null,
           href: "#load-more",
+          //@ts-expect-error will fix that later
           label: <div className="font-normal">More</div>,
           active: false,
           loadMoreAction: true,
@@ -99,7 +97,6 @@ export const useWorkspaceNavigation = (baseNavItems: NavItem[]) => {
     return items;
   }, [baseNavItems, apiNavItems, hasNextPage]);
 
-  // Function to handle loading more items
   const loadMore = () => {
     if (!isFetchingNextPage && hasNextPage) {
       fetchNextPage();

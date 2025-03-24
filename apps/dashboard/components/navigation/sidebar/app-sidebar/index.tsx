@@ -20,9 +20,9 @@ import { cn } from "@/lib/utils";
 import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
-import { useWorkspaceNavigation } from "../../../hooks/use-api-nav-items";
 import { NavItems } from "./components/nav-items";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
+import { useWorkspaceNavigation } from "./hooks/use-api-nav-items";
 
 export function AppSidebar({
   ...props
