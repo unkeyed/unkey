@@ -6,7 +6,6 @@ import {
   Gear,
   Grid,
   InputSearch,
-  Key,
   Layers3,
   Nodes,
   ShieldKey,
@@ -25,6 +24,8 @@ export type NavItem = {
   tag?: React.ReactNode;
   hidden?: boolean;
   items?: NavItem[];
+  loadMoreAction?: boolean;
+  showSubItems?: boolean;
 };
 
 const DiscordIcon = () => (
@@ -65,14 +66,7 @@ export const createWorkspaceNavigation = (
       href: "/apis",
       label: "APIs",
       active: segments.at(0) === "apis",
-      items: [
-        {
-          icon: Key,
-          href: "/apis/keys",
-          label: "API Keys",
-          active: segments.at(0) === "apis" && segments.at(1) === "keys",
-        },
-      ],
+      showSubItems: false,
     },
     {
       icon: Gauge,

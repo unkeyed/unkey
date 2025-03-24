@@ -1,4 +1,4 @@
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { getTenantId } from "@/lib/auth";
