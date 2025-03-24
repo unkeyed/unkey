@@ -14,7 +14,7 @@ export const apiOverview = z.object({
   keys: z.array(
     z.object({
       count: z.number(),
-    })
+    }),
   ),
   keyDetails: z.array(keyDetail).optional(),
 });

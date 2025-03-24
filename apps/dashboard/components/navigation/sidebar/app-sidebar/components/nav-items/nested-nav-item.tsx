@@ -1,19 +1,19 @@
 import {
-  SidebarMenuSubItem,
-  SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuItem,
   SidebarMenuSub,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { useDelayLoader } from "@/hooks/use-delay-loader";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@radix-ui/react-collapsible";
 import { CaretRight } from "@unkey/icons";
-import { useTransition, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import type { NavItem } from "../../../workspace-navigations";
 import { NavLink } from "../nav-link";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
 import { getButtonStyles } from "./utils";
-import { useRouter } from "next/navigation";
 
 export const NestedNavItem = ({
   item,
@@ -26,20 +26,17 @@ export const NestedNavItem = ({
   depth?: number;
   maxDepth?: number;
 }) => {
-  const [isPending, startTransition] = useTransition();
-  const showLoader = useDelayLoader(isPending);
+  const [parentIsPending, startParentTransition] = useTransition();
+  const showParentLoader = useDelayLoader(parentIsPending);
   const router = useRouter();
   const Icon = item.icon;
-  // For loading indicators in sub-items
   const [subPending, setSubPending] = useState<Record<string, boolean>>({});
 
-  // To manage the collapsible state separately from the visibility toggle
   const [isOpen, setIsOpen] = useState(item.active);
 
-  // Handler for the caret button click - now ONLY toggles the open state
   const handleChevronClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent parent click events (crucial to prevent navigation)
-    e.preventDefault(); // Prevent any default behavior
+    e.stopPropagation();
+    e.preventDefault();
     setIsOpen((prev) => !prev);
   };
 
@@ -47,8 +44,8 @@ export const NestedNavItem = ({
   const handleMenuItemClick = () => {
     if (item.href) {
       if (!item.external) {
-        // Show loading state
-        startTransition(() => {
+        // Show loading state ONLY for parent
+        startParentTransition(() => {
           router.push(item.href);
         });
       } else {
@@ -84,12 +81,15 @@ export const NestedNavItem = ({
         onLoadMore();
         return;
       }
-      if (!subItem.external) {
+      if (!subItem.external && subItem.href) {
         // Track loading state for this specific sub-item
         const updatedPending = { ...subPending };
         updatedPending[subItem.label] = true;
         setSubPending(updatedPending);
-        startTransition(() => {
+
+        // Use a separate transition for sub-items
+        // This prevents parent from showing loader
+        const subItemTransition = () => {
           router.push(subItem.href);
           // Reset loading state after transition
           setTimeout(() => {
@@ -97,7 +97,10 @@ export const NestedNavItem = ({
             resetPending[subItem.label] = false;
             setSubPending(resetPending);
           }, 300);
-        });
+        };
+
+        // Execute transition without affecting parent's isPending state
+        subItemTransition();
       }
     };
 
@@ -111,16 +114,9 @@ export const NestedNavItem = ({
         >
           <SidebarMenuButton
             isActive={subItem.active}
-            className={getButtonStyles(
-              subItem.active,
-              subPending[subItem.label]
-            )}
+            className={getButtonStyles(subItem.active, subPending[subItem.label])}
           >
-            {subPending[subItem.label] ? (
-              <AnimatedLoadingSpinner />
-            ) : SubIcon ? (
-              <SubIcon />
-            ) : null}
+            {subPending[subItem.label] ? <AnimatedLoadingSpinner /> : SubIcon ? <SubIcon /> : null}
             <span>{subItem.label}</span>
             {subItem.tag && <div className="ml-auto">{subItem.tag}</div>}
           </SidebarMenuButton>
@@ -142,13 +138,10 @@ export const NestedNavItem = ({
         <SidebarMenuButton
           tooltip={item.tooltip}
           isActive={item.active}
-          className={cn(
-            getButtonStyles(item.active, showLoader),
-            "cursor-pointer relative"
-          )}
+          className={cn(getButtonStyles(item.active, showParentLoader), "cursor-pointer relative")}
           onClick={handleMenuItemClick}
         >
-          {showLoader ? <AnimatedLoadingSpinner /> : Icon ? <Icon /> : null}
+          {showParentLoader ? <AnimatedLoadingSpinner /> : Icon ? <Icon /> : null}
           <span>{item.label}</span>
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
 
@@ -162,7 +155,7 @@ export const NestedNavItem = ({
               <CaretRight
                 className={cn(
                   "transition-transform duration-200 text-gray-9 !w-[9px] !h-[9px]",
-                  isOpen ? "rotate-90" : "rotate-0"
+                  isOpen ? "rotate-90" : "rotate-0",
                 )}
                 size="sm-bold"
               />
@@ -174,9 +167,7 @@ export const NestedNavItem = ({
         {item.items && item.items.length > 0 && (
           <CollapsibleContent>
             <SidebarMenuSub depth={depth} maxDepth={maxDepth}>
-              {item.items.map((subItem, index) =>
-                renderSubItem(subItem, index)
-              )}
+              {item.items.map((subItem, index) => renderSubItem(subItem, index))}
             </SidebarMenuSub>
           </CollapsibleContent>
         )}

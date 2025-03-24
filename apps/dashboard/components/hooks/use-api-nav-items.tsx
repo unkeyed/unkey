@@ -21,7 +21,7 @@ export const useWorkspaceNavigation = (baseNavItems: NavItem[]) => {
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
-      }
+      },
     );
 
   // Convert API data to navigation items with sub-items for settings and keys
@@ -32,8 +32,7 @@ export const useWorkspaceNavigation = (baseNavItems: NavItem[]) => {
 
     return data.pages.flatMap((page) =>
       page.apiList.map((api) => {
-        const currentApiActive =
-          segments.at(0) === "apis" && segments.at(1) === api.id;
+        const currentApiActive = segments.at(0) === "apis" && segments.at(1) === api.id;
 
         // Create settings sub-item
         const settingsItem: NavItem = {
@@ -70,7 +69,7 @@ export const useWorkspaceNavigation = (baseNavItems: NavItem[]) => {
         };
 
         return apiNavItem;
-      })
+      }),
     );
   }, [data?.pages, segments]);
 
