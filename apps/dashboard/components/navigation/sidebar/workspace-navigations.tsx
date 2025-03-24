@@ -6,6 +6,7 @@ import {
   Gear,
   Grid,
   InputSearch,
+  Key,
   Layers3,
   Nodes,
   ShieldKey,
@@ -23,6 +24,7 @@ export type NavItem = {
   active?: boolean;
   tag?: React.ReactNode;
   hidden?: boolean;
+  items?: NavItem[];
 };
 
 const DiscordIcon = () => (
@@ -42,11 +44,14 @@ const DiscordIcon = () => (
   </svg>
 );
 
-const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
+const Tag: React.FC<{ label: string; className?: string }> = ({
+  label,
+  className,
+}) => (
   <div
     className={cn(
       "border text-gray-11 border-gray-6 hover:border-gray-8 rounded text-xs px-1 py-0.5 font-mono",
-      className,
+      className
     )}
   >
     {label}
@@ -55,7 +60,7 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 
 export const createWorkspaceNavigation = (
   workspace: Pick<Workspace, "features" | "betaFeatures">,
-  segments: string[],
+  segments: string[]
 ) => {
   return [
     {
@@ -63,6 +68,14 @@ export const createWorkspaceNavigation = (
       href: "/apis",
       label: "APIs",
       active: segments.at(0) === "apis",
+      items: [
+        {
+          icon: Key,
+          href: "/apis/keys",
+          label: "API Keys",
+          active: segments.at(0) === "apis" && segments.at(1) === "keys",
+        },
+      ],
     },
     {
       icon: Gauge,

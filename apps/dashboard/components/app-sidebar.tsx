@@ -6,7 +6,11 @@ import {
   createWorkspaceNavigation,
   resourcesNavigation,
 } from "@/components/navigation/sidebar/workspace-navigations";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -24,8 +28,7 @@ import {
 import { useDelayLoader } from "@/hooks/use-delay-loader";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
-import { ChevronRight } from "lucide-react";
+import { CaretRight, SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import Link from "next/link";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { memo, useEffect, useMemo, useState, useTransition } from "react";
@@ -36,7 +39,7 @@ export function AppSidebar({
   const segments = useSelectedLayoutSegments() ?? [];
   const navItems = useMemo(
     () => createNestedNavigation(props.workspace, segments),
-    [props.workspace, segments],
+    [props.workspace, segments]
   );
 
   // Create a toggle sidebar nav item
@@ -48,7 +51,7 @@ export function AppSidebar({
       active: false,
       tooltip: "Toggle Sidebar",
     }),
-    [],
+    []
   );
 
   const { state, isMobile, toggleSidebar } = useSidebar();
@@ -59,7 +62,7 @@ export function AppSidebar({
       <div
         className={cn(
           "flex w-full",
-          isCollapsed ? "justify-center" : "items-center justify-between gap-4",
+          isCollapsed ? "justify-center" : "items-center justify-between gap-4"
         )}
       >
         <WorkspaceSwitcher workspace={props.workspace} />
@@ -70,20 +73,25 @@ export function AppSidebar({
         )}
       </div>
     ),
-    [isCollapsed, props.workspace, state, isMobile, toggleSidebar],
+    [isCollapsed, props.workspace, state, isMobile, toggleSidebar]
   );
 
   const resourceNavItems = useMemo(() => resourcesNavigation, []);
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="px-4 mb-1 items-center pt-4">{headerContent}</SidebarHeader>
+      <SidebarHeader className="px-4 mb-1 items-center pt-4">
+        {headerContent}
+      </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarGroup>
           <SidebarMenu className="gap-2">
             {/* Toggle button as NavItem */}
             {state === "collapsed" && (
-              <ToggleSidebarButton toggleNavItem={toggleNavItem} toggleSidebar={toggleSidebar} />
+              <ToggleSidebarButton
+                toggleNavItem={toggleNavItem}
+                toggleSidebar={toggleSidebar}
+              />
             )}
 
             {navItems.map((item) => (
@@ -108,13 +116,13 @@ const getButtonStyles = (isActive?: boolean, showLoader?: boolean) => {
     "rounded-lg transition-colors focus-visible:ring-1 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed outline-none",
     "focus:border-grayA-12 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
     isActive ? "bg-grayA-3 text-accent-12" : "[&_svg]:text-gray-9",
-    showLoader ? "bg-grayA-3 [&_svg]:text-accent-12" : "",
+    showLoader ? "bg-grayA-3 [&_svg]:text-accent-12" : ""
   );
 };
 
 const createNestedNavigation = (
   workspace: Pick<Workspace, "features" | "betaFeatures">,
-  segments: string[],
+  segments: string[]
 ): (NavItem & { items?: NavItem[] })[] => {
   const baseNav = createWorkspaceNavigation(workspace, segments);
   return baseNav;
@@ -142,7 +150,7 @@ const NavLink = memo(
         {children}
       </Link>
     );
-  },
+  }
 );
 
 const SEGMENTS = [
@@ -178,7 +186,8 @@ const AnimatedLoadingSpinner = memo(() => {
     >
       <g>
         {SEGMENTS.map((id, index) => {
-          const distance = (SEGMENTS.length + index - segmentIndex) % SEGMENTS.length;
+          const distance =
+            (SEGMENTS.length + index - segmentIndex) % SEGMENTS.length;
           const opacity = distance <= 4 ? 1 - distance * 0.2 : 0.1;
           return (
             <path
@@ -246,80 +255,92 @@ const FlatNavItem = memo(({ item }: { item: NavItem }) => {
   );
 });
 
-const NestedNavItem = memo(({ item }: { item: NavItem & { items?: NavItem[] } }) => {
-  const [isPending, startTransition] = useTransition();
-  const showLoader = useDelayLoader(isPending);
-  const router = useRouter();
-  const Icon = item.icon;
+const NestedNavItem = memo(
+  ({ item }: { item: NavItem & { items?: NavItem[] } }) => {
+    const [isPending, startTransition] = useTransition();
+    const showLoader = useDelayLoader(isPending);
+    const router = useRouter();
+    const Icon = item.icon;
 
-  // For loading indicators in sub-items
-  const [subPending, setSubPending] = useState<Record<string, boolean>>({});
+    // For loading indicators in sub-items
+    const [subPending, setSubPending] = useState<Record<string, boolean>>({});
 
-  return (
-    <Collapsible asChild defaultOpen={item.active} className="group/collapsible">
-      <SidebarMenuItem>
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton
-            tooltip={item.tooltip}
-            isActive={item.active}
-            className={getButtonStyles(item.active, showLoader)}
-          >
-            {showLoader ? <AnimatedLoadingSpinner /> : <Icon />}
-            <span>{item.label}</span>
-            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenuSub>
-            {item.items?.map((subItem) => {
-              const SubIcon = subItem.icon;
+    return (
+      <Collapsible
+        asChild
+        defaultOpen={item.active}
+        className="group/collapsible"
+      >
+        <SidebarMenuItem>
+          <CollapsibleTrigger asChild>
+            <SidebarMenuButton
+              tooltip={item.tooltip}
+              isActive={item.active}
+              className={getButtonStyles(item.active, showLoader)}
+            >
+              {showLoader ? <AnimatedLoadingSpinner /> : <Icon />}
+              <span>{item.label}</span>
+              <CaretRight
+                className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-gray-9 !w-3 !h-3"
+                size="sm-bold"
+              />
+            </SidebarMenuButton>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <SidebarMenuSub>
+              {item.items?.map((subItem) => {
+                const SubIcon = subItem.icon;
 
-              const handleSubItemClick = () => {
-                if (!subItem.external) {
-                  // Track loading state for this specific sub-item
-                  const updatedPending = { ...subPending };
-                  updatedPending[subItem.label] = true;
-                  setSubPending(updatedPending);
-                  startTransition(() => {
-                    router.push(subItem.href);
-                    // Reset loading state after transition
-                    setTimeout(() => {
-                      const resetPending = { ...subPending };
-                      resetPending[subItem.label] = false;
-                      setSubPending(resetPending);
-                    }, 300);
-                  });
-                }
-              };
+                const handleSubItemClick = () => {
+                  if (!subItem.external) {
+                    // Track loading state for this specific sub-item
+                    const updatedPending = { ...subPending };
+                    updatedPending[subItem.label] = true;
+                    setSubPending(updatedPending);
+                    startTransition(() => {
+                      router.push(subItem.href);
+                      // Reset loading state after transition
+                      setTimeout(() => {
+                        const resetPending = { ...subPending };
+                        resetPending[subItem.label] = false;
+                        setSubPending(resetPending);
+                      }, 300);
+                    });
+                  }
+                };
 
-              return (
-                <SidebarMenuSubItem key={subItem.label}>
-                  <NavLink
-                    href={subItem.href}
-                    external={subItem.external}
-                    onClick={handleSubItemClick}
-                  >
-                    <SidebarMenuSubButton
-                      isActive={subItem.active}
-                      className={getButtonStyles(subItem.active, subPending[subItem.label])}
+                return (
+                  <SidebarMenuSubItem key={subItem.label}>
+                    <NavLink
+                      href={subItem.href}
+                      external={subItem.external}
+                      onClick={handleSubItemClick}
                     >
-                      {subPending[subItem.label] ? (
-                        <AnimatedLoadingSpinner />
-                      ) : SubIcon ? (
-                        <SubIcon />
-                      ) : null}
-                      <span>{subItem.label}</span>
-                    </SidebarMenuSubButton>
-                  </NavLink>
-                </SidebarMenuSubItem>
-              );
-            })}
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </SidebarMenuItem>
-    </Collapsible>
-  );
-});
+                      <SidebarMenuSubButton
+                        isActive={subItem.active}
+                        className={getButtonStyles(
+                          subItem.active,
+                          subPending[subItem.label]
+                        )}
+                      >
+                        {subPending[subItem.label] ? (
+                          <AnimatedLoadingSpinner />
+                        ) : SubIcon ? (
+                          <SubIcon />
+                        ) : null}
+                        <span>{subItem.label}</span>
+                      </SidebarMenuSubButton>
+                    </NavLink>
+                  </SidebarMenuSubItem>
+                );
+              })}
+            </SidebarMenuSub>
+          </CollapsibleContent>
+        </SidebarMenuItem>
+      </Collapsible>
+    );
+  }
+);
 
 const NavItems = memo(({ item }: { item: NavItem & { items?: NavItem[] } }) => {
   if (!item.items || item.items.length === 0) {
@@ -349,7 +370,7 @@ const ToggleSidebarButton = memo(
         </SidebarMenuButton>
       </SidebarMenuItem>
     );
-  },
+  }
 );
 
 if (typeof document !== "undefined") {
