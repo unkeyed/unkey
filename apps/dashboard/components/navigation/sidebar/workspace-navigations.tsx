@@ -113,7 +113,6 @@ export const createWorkspaceNavigation = (
       href: "/logs",
       label: "Logs",
       active: segments.at(0) === "logs",
-      tag: <Tag label="Beta" />,
     },
     {
       icon: Sparkle3,
