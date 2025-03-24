@@ -44,11 +44,13 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2RatelimitLimit.New(v2RatelimitLimit.Services{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Ratelimit:   svc.Ratelimit,
-			Permissions: svc.Permissions,
+			Logger:                        svc.Logger,
+			DB:                            svc.Database,
+			Keys:                          svc.Keys,
+			Ratelimit:                     svc.Ratelimit,
+			Permissions:                   svc.Permissions,
+			RatelimitNamespaceByNameCache: svc.Caches.RatelimitNamespaceByName,
+			RatelimitOverrideMatchesCache: svc.Caches.RatelimitOverridesMatch,
 		}),
 	)
 	// v2/ratelimit.setOverride
