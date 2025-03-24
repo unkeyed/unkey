@@ -3,7 +3,7 @@ import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
 import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import TeamPageClient from "./team-client";
+import TeamPageClient from "./client";
 import { navigation } from "../constants";
 import { Gear } from "@unkey/icons";
 
