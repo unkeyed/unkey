@@ -40,7 +40,6 @@ export const NestedNavItem = ({
     setIsOpen((prev) => !prev);
   };
 
-  // Handler for clicking on the menu item (excluding the chevron)
   const handleMenuItemClick = () => {
     if (item.href) {
       if (!item.external) {
@@ -117,7 +116,7 @@ export const NestedNavItem = ({
             className={getButtonStyles(subItem.active, subPending[subItem.label])}
           >
             {subPending[subItem.label] ? <AnimatedLoadingSpinner /> : SubIcon ? <SubIcon /> : null}
-            <span>{subItem.label}</span>
+            <span className="truncate">{subItem.label}</span>
             {subItem.tag && <div className="ml-auto">{subItem.tag}</div>}
           </SidebarMenuButton>
         </NavLink>
@@ -134,7 +133,6 @@ export const NestedNavItem = ({
       className="group/collapsible"
     >
       <SidebarMenuItem>
-        {/* Use a single SidebarMenuButton with internal click handling */}
         <SidebarMenuButton
           tooltip={item.tooltip}
           isActive={item.active}
@@ -142,14 +140,14 @@ export const NestedNavItem = ({
           onClick={handleMenuItemClick}
         >
           {showParentLoader ? <AnimatedLoadingSpinner /> : Icon ? <Icon /> : null}
-          <span>{item.label}</span>
+          <span className="truncate max-w-[180px]">{item.label}</span>
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
 
           {/* Embed the chevron inside the button with its own click handler */}
           {item.items && item.items.length > 0 && (
             // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
             <div
-              className="w-5 h-5 flex items-center justify-center"
+              className="w-5 h-5 flex items-center justify-center flex-shrink-0"
               onClick={(e) => handleChevronClick(e)}
             >
               <CaretRight
@@ -163,7 +161,6 @@ export const NestedNavItem = ({
           )}
         </SidebarMenuButton>
 
-        {/* Only render CollapsibleContent if there are items */}
         {item.items && item.items.length > 0 && (
           <CollapsibleContent>
             <SidebarMenuSub depth={depth} maxDepth={maxDepth}>
