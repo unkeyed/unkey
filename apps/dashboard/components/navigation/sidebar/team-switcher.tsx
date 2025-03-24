@@ -1,4 +1,4 @@
-"use client";
+"use client"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +11,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
 import { Check, Plus, UserPlus } from "lucide-react";
@@ -22,6 +23,9 @@ import { trpc } from "@/lib/trpc/client";
 import { useUser } from "@/lib/auth/hooks";
 import { Loading } from "@/components/dashboard/loading";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { setCookie } from "@/lib/auth/cookies";
+import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
+import { revalidate } from "@/app/actions";
 
 type Props = {
   workspace: {
@@ -33,7 +37,6 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
   const { switchOrganization } = useUser();
   const router = useRouter();
   const { isMobile, state } = useSidebar();
-
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
 
@@ -44,6 +47,8 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
       enabled: !!user
     }
   );
+
+  const utils = trpc.useUtils();
   
   const userMemberships = memberships?.data;
 
@@ -52,16 +57,31 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
     (membership) => membership.organization.id === user?.orgId,
   );
 
-  async function changeWorkspace(orgId: string | null) {
-    try {
-      if (!orgId) {
-        return;
-      }
-      await switchOrganization(orgId);
-    } finally {
-      router.refresh();
+  const changeWorkspace = trpc.user.switchOrg.useMutation({
+    onSuccess(sessionData) {
+        // pass the new session data to cookie utils
+        setCookie({
+          name: UNKEY_SESSION_COOKIE,
+          value: sessionData.token!,
+          options: {
+            httpOnly: true,
+            secure: true,
+            sameSite: "lax",
+            path: "/",
+            maxAge: Math.floor((sessionData.expiresAt!.getTime() - Date.now()) / 1000),
+          },
+        }).then(() => {
+            router.refresh() // TODO: put this in a server action with the cookie setting
+            // window.location.reload();
+        }).catch(error => {
+          console.error(error)
+        });
+    },
+    onError(error) {
+      console.error("Failed to switch workspace: ", error)
+      toast.error("Failed to switch workspace. Contact support if error persists.")
     }
-  }
+  });
 
   const [search, _setSearch] = useState("");
   const filteredOrgs = useMemo(() => {
@@ -125,7 +145,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
               <DropdownMenuItem
                 key={membership.id}
                 className="flex items-center justify-between"
-                onClick={() => changeWorkspace(membership.organization.id)}
+                onClick={async () => changeWorkspace.mutateAsync(membership.organization.id)}
               >
                 <span
                   className={

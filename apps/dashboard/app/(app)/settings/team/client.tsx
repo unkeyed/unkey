@@ -21,10 +21,14 @@ import { Invitations } from "./invitations";
 
 export default function TeamPageClient({ team } : { team: boolean}) {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
-  const { data: memberships, isLoading: isUserMembershipsLoading } = trpc.user.listMemberships.useQuery(user!.id, {
+  const { data: memberships, isLoading: isUserMembershipsLoading } = trpc.user.listMemberships.useQuery(
+    user?.id as string, 
+    {
     enabled: !!user
   })
-  const { data: organization, isLoading: isOrganizationLoading } = trpc.org.getOrg.useQuery(user!.orgId!, {
+  const { data: organization, isLoading: isOrganizationLoading } = trpc.org.getOrg.useQuery(
+    user?.orgId! as string, 
+    {
     enabled: !!user
   } );
   const userMemberships = memberships?.data;

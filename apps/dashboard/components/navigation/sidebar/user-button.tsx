@@ -16,7 +16,6 @@ import Link from "next/link";
 import { signOut } from "@/lib/auth/actions";
 import type React from "react";
 import { trpc } from "@/lib/trpc/client";
-import { useRouter } from "next/router";
 
 export const UserButton: React.FC = () => {
   const { isMobile, state, openMobile } = useSidebar();
@@ -55,7 +54,7 @@ export const UserButton: React.FC = () => {
             <AvatarFallback
               className={cn("bg-gray-2 border border-grayA-6 rounded-full", "w-6 h-6")}
             >
-              {(user.fullName ?? "U").slice(0, 2).toUpperCase()}
+              {(user.fullName ?? "U").slice(0, 1).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           {/* Show username when not collapsed OR when on mobile with sidebar open */}

@@ -193,13 +193,8 @@ export async function listMemberships(userId: string): Promise<MembershipListRes
 }
 
 export async function switchOrg(orgId: string): Promise<{ success: boolean; error?: string }> {
-  const user = await requireAuth();
-  await requireOrgAccess(orgId, user.id);
-  if (!orgId) {
-    return { success: false, error: "Missing organization ID" };
-  }
-
   try {
+    
     const { newToken, expiresAt } = await auth.switchOrg(orgId);
 
     // Set the new cookie

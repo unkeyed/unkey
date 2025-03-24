@@ -19,7 +19,10 @@ import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useUser } from "@/lib/auth/hooks";
+import { switchOrg } from "@/lib/auth/actions";
+import { useRef, useTransition } from "react";
+import { setCookie } from "@/lib/auth/cookies";
+import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name is required and should be at least 3 characters").max(50),
 });
@@ -28,14 +31,41 @@ export const CreateWorkspace: React.FC = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
-  const { switchOrganization } = useUser();
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const workspaceIdRef = useRef<string | null>(null);
+  
+  const switchOrgMutation = trpc.user.switchOrg.useMutation({
+    onSuccess: (sessionData) => {
+        setCookie({
+          name: UNKEY_SESSION_COOKIE,
+          value: sessionData.token!,
+          options: {
+            httpOnly: true,
+            secure: true,
+            sameSite: "lax",
+            path: "/",
+            maxAge: Math.floor((sessionData.expiresAt!.getTime() - Date.now()) / 1000),
+          },
+        }).then(() => {
+          startTransition(()=> {
+            router.push(`/new?workspaceId=${workspaceIdRef.current}`);
+          })
+      });
+    },
+    onError: (error) => {
+      toast.error(`Failed to load new workspace: ${error.message}`);
+    }
+  });
+
+
   const createWorkspace = trpc.workspace.create.useMutation({
     onSuccess: async ({ workspace, organizationId }) => {
-      await switchOrganization(organizationId).then(() => {
-        toast.success("Your workspace has been created");
-        router.push(`/new?workspaceId=${workspace.id}`);
-      });
+        workspaceIdRef.current = workspace.id;
+        switchOrgMutation.mutate(organizationId);
+      },
+      onError: (error) => {
+        toast.error(`Failed to create workspace: ${error.message}`);
     },
   });
 
@@ -47,8 +77,7 @@ export const CreateWorkspace: React.FC = () => {
         </div>
         <h2 className="text-lg font-medium">What is a workspace?</h2>
         <p className="text-content-subtle text-sm">
-          A workspace groups all your resources and billing. You can have one personal workspace for
-          free and create more workspaces with your teammates.
+          A workspace groups all your resources and billing. You can create free workspaces for individual use, or upgrade to a paid workspace to collaborate with team members.
         </p>
       </div>
     );
@@ -79,11 +108,11 @@ export const CreateWorkspace: React.FC = () => {
             <div className="mt-8">
               <Button
                 variant="primary"
-                disabled={createWorkspace.isLoading || !form.formState.isValid}
+                disabled={createWorkspace.isLoading || isPending || !form.formState.isValid}
                 type="submit"
                 className="w-full"
               >
-                {createWorkspace.isLoading ? <Loading /> : "Create Workspace"}
+                {(createWorkspace.isLoading || isPending) ? <Loading /> : "Create Workspace"}
               </Button>
             </div>
           </form>
