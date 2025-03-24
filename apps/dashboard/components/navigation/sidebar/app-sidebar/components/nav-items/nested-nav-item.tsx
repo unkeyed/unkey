@@ -31,7 +31,6 @@ export const NestedNavItem = ({
   const router = useRouter();
   const Icon = item.icon;
   const [subPending, setSubPending] = useState<Record<string, boolean>>({});
-
   const [isOpen, setIsOpen] = useState(item.active);
 
   const handleChevronClick = (e: React.MouseEvent) => {
@@ -80,10 +79,11 @@ export const NestedNavItem = ({
         onLoadMore();
         return;
       }
+
       if (!subItem.external && subItem.href) {
         // Track loading state for this specific sub-item
         const updatedPending = { ...subPending };
-        updatedPending[subItem.label] = true;
+        updatedPending[subItem.label as string] = true;
         setSubPending(updatedPending);
 
         // Use a separate transition for sub-items
@@ -93,7 +93,7 @@ export const NestedNavItem = ({
           // Reset loading state after transition
           setTimeout(() => {
             const resetPending = { ...subPending };
-            resetPending[subItem.label] = false;
+            resetPending[subItem.label as string] = false;
             setSubPending(resetPending);
           }, 300);
         };
@@ -113,9 +113,13 @@ export const NestedNavItem = ({
         >
           <SidebarMenuButton
             isActive={subItem.active}
-            className={getButtonStyles(subItem.active, subPending[subItem.label])}
+            className={getButtonStyles(subItem.active, subPending[subItem.label as string])}
           >
-            {subPending[subItem.label] ? <AnimatedLoadingSpinner /> : SubIcon ? <SubIcon /> : null}
+            {subPending[subItem.label as string] ? (
+              <AnimatedLoadingSpinner />
+            ) : SubIcon ? (
+              <SubIcon />
+            ) : null}
             <span className="truncate">{subItem.label}</span>
             {subItem.tag && <div className="ml-auto">{subItem.tag}</div>}
           </SidebarMenuButton>
@@ -142,7 +146,6 @@ export const NestedNavItem = ({
           {showParentLoader ? <AnimatedLoadingSpinner /> : Icon ? <Icon /> : null}
           <span className="truncate max-w-[180px]">{item.label}</span>
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
-
           {/* Embed the chevron inside the button with its own click handler */}
           {item.items && item.items.length > 0 && (
             // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
@@ -160,7 +163,6 @@ export const NestedNavItem = ({
             </div>
           )}
         </SidebarMenuButton>
-
         {item.items && item.items.length > 0 && (
           <CollapsibleContent>
             <SidebarMenuSub depth={depth} maxDepth={maxDepth}>

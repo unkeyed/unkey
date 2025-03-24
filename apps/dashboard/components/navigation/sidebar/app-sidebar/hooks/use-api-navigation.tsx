@@ -8,7 +8,7 @@ import { useMemo } from "react";
 
 const DEFAULT_LIMIT = 10;
 
-export const useWorkspaceNavigation = (baseNavItems: NavItem[]) => {
+export const useApiNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
@@ -85,7 +85,7 @@ export const useWorkspaceNavigation = (baseNavItems: NavItem[]) => {
           icon: () => null,
           href: "#load-more",
           //@ts-expect-error will fix that later
-          label: <div className="font-normal">More</div>,
+          label: <div className="font-normal decoration-dotted underline ">More</div>,
           active: false,
           loadMoreAction: true,
         });
