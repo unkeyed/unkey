@@ -18,7 +18,7 @@ require (
 	github.com/panjf2000/ants v1.3.0
 	github.com/pb33f/libopenapi v0.21.8
 	github.com/pb33f/libopenapi-validator v0.3.0
-	github.com/redis/go-redis/v9 v9.7.1
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/segmentio/ksuid v1.0.4
 	github.com/sqlc-dev/sqlc v1.28.0
 	github.com/stretchr/testify v1.10.0

@@ -12,21 +12,21 @@ tasks:
     cmds:
       - docker pull mysql:latest
 
-  test:
+  test-full:
     deps:
       - pull
-    cmds:
-      - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
-
-  test-integration:
+      - otel
     env:
       INTEGRATION_TEST: true
+      SIMULATION_TEST: false
       OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-    deps:
-      - otel
     cmds:
       - go test -v -failfast -timeout=30m ./...
+
+  test-unit:
+    cmds:
+      - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
 
   otel:
     cmds:

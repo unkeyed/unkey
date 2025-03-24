@@ -6,13 +6,29 @@
   "openapi": "3.0.1",
   "servers": [
     {
-      "url": "https://api.unkey.cloud"
-    },
-    {
-      "url": "http://localhost"
+      "url": "https://api.unkey.com"
     }
   ],
+  "x-speakeasy-retries": {
+    "strategy": "backoff",
+    "backoff": {
+      "initialInterval": 50,
+      "maxInterval": 1000,
+      "maxElapsedTime": 10000,
+      "exponent": 1.5
+    },
+    "statusCodes": ["5XX"],
+    "retryConnectionErrors": true
+  },
   "components": {
+    "securitySchemes": {
+      "rootKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "root key",
+        "x-speakeasy-example": "UNKEY_ROOT_KEY"
+      }
+    },
     "schemas": {
       "BaseError": {
         "properties": {
@@ -331,7 +347,14 @@
   "paths": {
     "/v2/ratelimit.limit": {
       "post": {
+        "tags": ["ratelimit"],
         "operationId": "v1.ratelimit.limit",
+        "summary": "TODO",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -403,13 +426,18 @@
             },
             "description": "Error"
           }
-        },
-        "tags": ["ratelimit"]
+        }
       }
     },
     "/v2/ratelimit.setOverride": {
       "post": {
-        "operationId": "v2.ratelimit.setOverride",
+        "tags": ["ratelimit"],
+        "operationId": "ratelimit.setOverride",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -481,14 +509,18 @@
             },
             "description": "Error"
           }
-        },
-        "tags": ["ratelimit"]
+        }
       }
     },
     "/v2/ratelimit.getOverride": {
       "post": {
         "tags": ["ratelimit"],
-        "operationId": "v2.ratelimit.getOverride",
+        "operationId": "ratelimit.getOverride",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -566,7 +598,7 @@
     "/v2/ratelimit.deleteOverride": {
       "post": {
         "tags": ["ratelimit"],
-        "operationId": "v2.ratelimit.deleteOverride",
+        "operationId": "ratelimit.deleteOverride",
         "requestBody": {
           "content": {
             "application/json": {
@@ -643,8 +675,9 @@
     },
     "/v2/liveness": {
       "get": {
-        "description": "This endpoint checks if the service is alive.",
+        "tags": ["liveness"],
         "operationId": "liveness",
+        "description": "This endpoint checks if the service is alive.",
         "responses": {
           "200": {
             "content": {
@@ -677,8 +710,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Liveness check",
-        "tags": ["liveness"]
+        "summary": "Liveness check"
       }
     }
   }

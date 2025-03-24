@@ -38,9 +38,9 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	shutdowns := shutdown.New()
-
 	clk := clock.New()
+
+	shutdowns := shutdown.New()
 
 	if cfg.OtelEnabled {
 		grafanaErr := otel.InitGrafana(ctx, otel.Config{
@@ -136,12 +136,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.ClusterEnabled {
 
-		rpcSvc, err := rpc.New(rpc.Config{
+		rpcSvc, rpcErr := rpc.New(rpc.Config{
 			Logger:           logger,
 			RatelimitService: rlSvc,
 		})
-		if err != nil {
-			return fmt.Errorf("unable to create rpc service: %w", err)
+		if rpcErr != nil {
+			return fmt.Errorf("unable to create rpc service: %w", rpcErr)
 		}
 
 		go func() {

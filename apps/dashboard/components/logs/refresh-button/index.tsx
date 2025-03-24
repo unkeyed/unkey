@@ -50,6 +50,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
       content="Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
       position={{ side: "bottom", align: "center" }}
       disabled={isEnabled && !isLoading}
+      asChild
     >
       <div>
         <Button
@@ -63,7 +64,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
         >
           <Refresh3 className="size-4" />
           <span className="font-medium text-[13px] relative z-10">Refresh</span>
-          <KeyboardButton shortcut="r" modifierKey="CTRL" className="pointer-events-none" />
+          <KeyboardButton shortcut="r" modifierKey="CTRL" />
         </Button>
       </div>
     </RatelimitOverviewTooltip>

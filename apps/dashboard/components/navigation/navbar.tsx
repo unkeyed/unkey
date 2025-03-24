@@ -46,7 +46,7 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
     <nav
       ref={ref}
       className={cn(
-        "w-full p-4 border-b border-gray-4 bg-background justify-between flex",
+        "w-full p-4 border-b border-gray-4 bg-background justify-between flex min-h-[65px]",
         className,
       )}
       {...props}

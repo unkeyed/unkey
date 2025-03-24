@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,22 +66,30 @@ import (
 // where tests are executed. It will fail if Docker is not available.
 //
 // See also: [RunMySQL] for starting a MySQL container.
-func (c *Containers) RunRedis() (*redis.Client, string) {
+func (c *Containers) RunRedis() (client *redis.Client, hostAddr, dockerAddr string) {
 	c.t.Helper()
+	defer func(start time.Time) {
+		c.t.Logf("starting Redis took %s", time.Since(start))
+	}(time.Now())
 
-	resource, err := c.pool.Run("redis", "latest", nil)
+	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "redis",
+		Tag:        "latest",
+		Networks:   []*dockertest.Network{c.network},
+	})
 	require.NoError(c.t, err)
 
 	c.t.Cleanup(func() {
 		require.NoError(c.t, c.pool.Purge(resource))
 	})
 
-	address := fmt.Sprintf("localhost:%s", resource.GetPort("6379/tcp"))
+	hostAddr = fmt.Sprintf("localhost:%s", resource.GetPort("6379/tcp"))
+	dockerAddr = fmt.Sprintf("%s:6379", resource.GetIPInNetwork(c.network))
 
 	// Configure the Redis client
 	// nolint:exhaustruct
-	client := redis.NewClient(&redis.Options{
-		Addr:     address,
+	client = redis.NewClient(&redis.Options{
+		Addr:     hostAddr,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
@@ -97,5 +106,5 @@ func (c *Containers) RunRedis() (*redis.Client, string) {
 		require.NoError(c.t, client.Close())
 	})
 
-	return client, address
+	return client, hostAddr, dockerAddr
 }

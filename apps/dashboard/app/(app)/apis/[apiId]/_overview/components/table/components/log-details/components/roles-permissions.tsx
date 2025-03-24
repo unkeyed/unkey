@@ -85,7 +85,7 @@ type PermissionsSectionProps = {
   permissions: Permission[];
 };
 
-export const PermissionsSection: React.FC<PermissionsSectionProps> = ({ permissions }) => {
+export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => {
   const handleCopy = (permission: Permission) => {
     const content = `${permission.name}${
       permission.description ? `\n${permission.description}` : ""
