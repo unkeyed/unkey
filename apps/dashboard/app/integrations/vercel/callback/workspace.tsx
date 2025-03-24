@@ -19,9 +19,12 @@ import { trpc } from "@/lib/trpc/client";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
-  const { data: memberships, isLoading: isUserMembershipsLoading } = trpc.user.listMemberships.useQuery(undefined, {
-    enabled: !!user
-  });
+  const { data: memberships, isLoading: isUserMembershipsLoading } = trpc.user.listMemberships.useQuery(
+      user?.id as string, // make typescript happy
+      { 
+        enabled: !!user
+      }
+    );
   const { switchOrganization } = useUser();
   const { organization: currentOrg } = useOrganization();
   const [isLoading, setLoading] = useState(false);
