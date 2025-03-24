@@ -28,7 +28,7 @@ type Props = {
 
 export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const router = useRouter();
-  const { fetchUser: refetchUser } = useUser();
+  const utils = trpc.useUtils();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -42,7 +42,8 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const updateName = trpc.workspace.updateName.useMutation({
     onSuccess() {
       toast.success("Workspace name updated");
-      refetchUser();
+      // invalidate the current user so it refetches
+      utils.user.getCurrentUser.invalidate();
       router.refresh();
     },
     onError(err) {
