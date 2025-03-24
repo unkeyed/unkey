@@ -14,7 +14,7 @@ export const RootKeysFilter = ({
     <FilterCheckbox
       showScroll
       options={(rootKeys ?? []).map((rootKey, index) => ({
-        label: rootKey.name ?? "<EMPTY>",
+        label: rootKey.name ?? rootKey.id.slice(0, 10),
         value: rootKey.id,
         checked: false,
         id: index,
