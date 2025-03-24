@@ -16,13 +16,21 @@ export async function fetchApiOverview({
   const totalResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(schema.apis)
-    .where(and(eq(schema.apis.workspaceId, workspaceId), isNull(schema.apis.deletedAtM)));
+    .where(
+      and(
+        eq(schema.apis.workspaceId, workspaceId),
+        isNull(schema.apis.deletedAtM)
+      )
+    );
   const total = Number(totalResult[0]?.count || 0);
 
   // Updated query to include keyAuth and fetch actual keys
   const query = db.query.apis.findMany({
     where: (table, { and, eq, isNull, gt }) => {
-      const conditions = [eq(table.workspaceId, workspaceId), isNull(table.deletedAtM)];
+      const conditions = [
+        eq(table.workspaceId, workspaceId),
+        isNull(table.deletedAtM),
+      ];
       if (cursor) {
         conditions.push(gt(table.id, cursor.id));
       }
@@ -35,21 +43,16 @@ export async function fetchApiOverview({
           sizeApprox: true,
         },
         with: {
-          // Add relation to actual keys within the keyspace
           keys: {
-            // Limit the number of keys to avoid performance issues
             limit: 10,
-            // Only get the necessary columns
             columns: {
               id: true,
               name: true,
               createdAtM: true,
             },
-            // Optional: filter only active keys
             where: (keysTable, { isNull }) => {
               return isNull(keysTable.deletedAtM);
             },
-            // Order by most recently created first
             orderBy: (keysTable, { desc }) => [desc(keysTable.createdAtM)],
           },
         },
@@ -63,7 +66,9 @@ export async function fetchApiOverview({
   const hasMore = apis.length > limit;
   const apiItems = hasMore ? apis.slice(0, limit) : apis;
   const nextCursor =
-    hasMore && apiItems.length > 0 ? { id: apiItems[apiItems.length - 1].id } : undefined;
+    hasMore && apiItems.length > 0
+      ? { id: apiItems[apiItems.length - 1].id }
+      : undefined;
 
   // Transform the data to include key information
   const apiList = await Promise.all(
@@ -81,7 +86,6 @@ export async function fetchApiOverview({
         id: api.id,
         name: api.name,
         keyspaceId,
-        // Include keyDetails as a separate field
         keyDetails,
         // Include count for backward compatibility
         keys: [
@@ -90,7 +94,7 @@ export async function fetchApiOverview({
           },
         ],
       };
-    }),
+    })
   );
 
   return {
