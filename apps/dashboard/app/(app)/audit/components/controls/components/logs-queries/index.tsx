@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { ChartBarAxisY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
-import { formatFilterValues, getFilterFieldIcon } from "./utils";
+import { formatFilterValues, getFilterFieldIcon, shouldTruncateRow } from "./utils";
 export const LogsQueries = () => {
   const { filters, updateFilters } = useFilters();
 
@@ -14,6 +14,7 @@ export const LogsQueries = () => {
       updateFilters={updateFilters}
       formatFilterValues={formatFilterValues}
       getFilterFieldIcon={getFilterFieldIcon}
+      shouldTruncateRow={shouldTruncateRow}
     >
       <div className="group">
         <Button

@@ -9,6 +9,8 @@ export function formatFilterValues(
 ): Record<string, { operator: string; values: { value: string; color: string | null }[] }> {
   const transform = (field: string, value: string): { color: string | null; value: string } => {
     switch (field) {
+      case "events":
+        return { value: value, color: null };
       case "status":
         return {
           value:
@@ -95,6 +97,7 @@ export function getFilterFieldIcon(field: string): JSX.Element {
 }
 
 export const FieldsToTruncate = [
+  "events",
   "users",
   "workspaceId",
   "keyId",
@@ -104,5 +107,7 @@ export const FieldsToTruncate = [
 ] as const;
 
 export function shouldTruncateRow(field: string): boolean {
+  console.log("field", field);
+
   return FieldsToTruncate.includes(field as (typeof FieldsToTruncate)[number]);
 }
