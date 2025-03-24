@@ -20,12 +20,11 @@ type service struct {
 	logger logging.Logger
 	db     db.Database
 	// hash -> key
-	keyCache cache.Cache[string, db.Key]
+	keyCache cache.Cache[string, db.FindKeyByHashRow]
 }
 
 func New(config Config) (*service, error) {
-
-	keyCache, err := cache.New[string, db.Key](cache.Config[string, db.Key]{
+	keyCache, err := cache.New(cache.Config[string, db.FindKeyByHashRow]{
 		Fresh:   10 * time.Second,
 		Stale:   60 * time.Second,
 		Logger:  config.Logger,
@@ -41,6 +40,6 @@ func New(config Config) (*service, error) {
 	return &service{
 		logger:   config.Logger,
 		db:       config.DB,
-		keyCache: cacheMiddleware.WithTracing(cache.Cache[string, db.Key](keyCache)),
+		keyCache: cacheMiddleware.WithTracing(cache.Cache[string, db.FindKeyByHashRow](keyCache)),
 	}, nil
 }

@@ -23,7 +23,16 @@
           "output_db_file_name": "delete_me",
           "rename": {
             "Quotum": "Quotas"
-          }
+          },
+          "overrides": [
+            {
+              "db_type": "json",
+              "go_type": {
+                "type": "[]byte"
+              },
+              "nullable": true
+            }
+          ]
         }
       }
     }

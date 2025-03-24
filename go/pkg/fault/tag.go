@@ -20,6 +20,9 @@ const (
 	// An object was not found in the system.
 	NOT_FOUND Tag = "NOT_FOUND"
 
+	// Object already exists
+	CONFLICT Tag = "CONFLICT"
+
 	UNAUTHORIZED             Tag = "UNAUTHORIZED"
 	FORBIDDEN                Tag = "FORBIDDEN"
 	INSUFFICIENT_PERMISSIONS Tag = "INSUFFICIENT_PERMISSIONS"
