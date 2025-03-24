@@ -44,14 +44,11 @@ const DiscordIcon = () => (
   </svg>
 );
 
-const Tag: React.FC<{ label: string; className?: string }> = ({
-  label,
-  className,
-}) => (
+const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
   <div
     className={cn(
       "border text-gray-11 border-gray-6 hover:border-gray-8 rounded text-xs px-1 py-0.5 font-mono",
-      className
+      className,
     )}
   >
     {label}
@@ -60,7 +57,7 @@ const Tag: React.FC<{ label: string; className?: string }> = ({
 
 export const createWorkspaceNavigation = (
   workspace: Pick<Workspace, "features" | "betaFeatures">,
-  segments: string[]
+  segments: string[],
 ) => {
   return [
     {
