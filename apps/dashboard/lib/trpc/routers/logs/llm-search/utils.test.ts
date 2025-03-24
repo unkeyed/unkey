@@ -27,9 +27,14 @@ describe("getStructuredSearchFromLLM", () => {
     },
   };
 
-  it("should return null if openai is not configured", async () => {
+  it("should return TRPCError if openai is not configured", async () => {
     const result = await getStructuredSearchFromLLM(null as any, "test query", 1706024400000);
-    expect(result).toBeNull();
+    expect(result).rejects.toThrowError(
+      new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "OpenAI isn't configured correctly, please check your API key",
+      }),
+    );
   });
 
   it("should handle successful LLM response", async () => {

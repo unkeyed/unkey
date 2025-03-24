@@ -13,8 +13,12 @@ export async function getStructuredAuditSearchFromLLM(
   usersReferenceMS: number,
 ) {
   try {
+    // Skip LLM processing in development environment when OpenAI API key is not configured
     if (!openai) {
-      return null; // Skip LLM processing in development environment when OpenAI API key is not configured
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "OpenAI isn't configured correctly, please check your API key",
+      });
     }
 
     const completion = await openai.beta.chat.completions.parse({
