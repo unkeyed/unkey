@@ -19,5 +19,5 @@ export const db: Database = drizzle(
   }),
   {
     schema,
-  }
+  },
 );
