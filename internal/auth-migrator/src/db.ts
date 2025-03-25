@@ -1,5 +1,5 @@
 import { Client } from "@planetscale/database";
-import {  drizzle,schema } from "@unkey/db";
+import { drizzle, schema } from "@unkey/db";
 
 export const db = drizzle(
   new Client({
