@@ -191,10 +191,11 @@ func (m *serfMembership) Start(discover discovery.Discoverer) error {
 	}
 
 	// Format addresses to include port - convert ips to ip:port
-	joinAddrs := make([]string, 0, len(addrs))
+	joinAddrs := []string{}
 	for _, addr := range addrs {
 		// Skip empty addresses
-		if addr == "" {
+		if addr == "" || addr == fmt.Sprintf("%s:%d", m.self.Host, m.self.GossipPort) {
+			m.logger.Info("skipping self")
 			continue
 		}
 
