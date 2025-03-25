@@ -31,7 +31,14 @@ export const NestedNavItem = ({
   const router = useRouter();
   const Icon = item.icon;
   const [subPending, setSubPending] = useState<Record<string, boolean>>({});
-  const [isOpen, setIsOpen] = useState(item.active);
+  const [isOpen, setIsOpen] = useState(hasActiveChild(item));
+
+  function hasActiveChild(navItem: NavItem): boolean {
+    if (!navItem.items) {
+      return false;
+    }
+    return navItem.items.some((child) => child.active || hasActiveChild(child));
+  }
 
   const handleChevronClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -113,7 +120,10 @@ export const NestedNavItem = ({
         >
           <SidebarMenuButton
             isActive={subItem.active}
-            className={getButtonStyles(subItem.active, subPending[subItem.label as string])}
+            className={getButtonStyles(
+              subItem.active,
+              subPending[subItem.label as string]
+            )}
           >
             {subPending[subItem.label as string] ? (
               <AnimatedLoadingSpinner />
@@ -133,17 +143,30 @@ export const NestedNavItem = ({
       asChild
       open={isOpen}
       onOpenChange={setIsOpen}
-      defaultOpen={item.active}
+      // Use hasActiveChild instead of item.active here
+      defaultOpen={hasActiveChild(item)}
       className="group/collapsible"
     >
       <SidebarMenuItem>
         <SidebarMenuButton
           tooltip={item.tooltip}
-          isActive={item.active}
-          className={cn(getButtonStyles(item.active, showParentLoader), "cursor-pointer relative")}
+          // Only highlight if this item itself is active, not if its children are active
+          isActive={item.active && !hasActiveChild(item)}
+          className={cn(
+            // Only highlight if this item itself is active, not if its children are active
+            getButtonStyles(
+              item.active && !hasActiveChild(item),
+              showParentLoader
+            ),
+            "cursor-pointer relative"
+          )}
           onClick={handleMenuItemClick}
         >
-          {showParentLoader ? <AnimatedLoadingSpinner /> : Icon ? <Icon /> : null}
+          {showParentLoader && Icon ? (
+            <AnimatedLoadingSpinner />
+          ) : Icon ? (
+            <Icon />
+          ) : null}
           <span className="truncate max-w-[180px]">{item.label}</span>
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
           {/* Embed the chevron inside the button with its own click handler */}
@@ -156,7 +179,7 @@ export const NestedNavItem = ({
               <CaretRight
                 className={cn(
                   "transition-transform duration-200 text-gray-9 !w-[9px] !h-[9px]",
-                  isOpen ? "rotate-90" : "rotate-0",
+                  isOpen ? "rotate-90" : "rotate-0"
                 )}
                 size="sm-bold"
               />
@@ -166,7 +189,9 @@ export const NestedNavItem = ({
         {item.items && item.items.length > 0 && (
           <CollapsibleContent>
             <SidebarMenuSub depth={depth} maxDepth={maxDepth}>
-              {item.items.map((subItem, index) => renderSubItem(subItem, index))}
+              {item.items.map((subItem, index) =>
+                renderSubItem(subItem, index)
+              )}
             </SidebarMenuSub>
           </CollapsibleContent>
         )}

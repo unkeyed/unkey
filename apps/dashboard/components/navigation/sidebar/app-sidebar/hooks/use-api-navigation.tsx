@@ -18,7 +18,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
-      },
+      }
     );
 
   // Convert API data to navigation items with sub-items for settings and keys
@@ -29,7 +29,8 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
 
     return data.pages.flatMap((page) =>
       page.apiList.map((api) => {
-        const currentApiActive = segments.at(0) === "apis" && segments.at(1) === api.id;
+        const currentApiActive =
+          segments.at(0) === "apis" && segments.at(1) === api.id;
 
         // Create settings sub-item
         const settingsItem: NavItem = {
@@ -55,7 +56,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         // Create the main API nav item with proper icon setup
         const apiNavItem: NavItem = {
           // This is critical - must provide some icon to ensure chevron renders
-          icon: () => null, // Use a function that returns null to ensure the icon prop exists
+          icon: null,
           href: `/apis/${api.id}`,
           label: api.name,
           active: currentApiActive,
@@ -66,7 +67,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         };
 
         return apiNavItem;
-      }),
+      })
     );
   }, [data?.pages, segments]);
 
@@ -85,7 +86,9 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
           icon: () => null,
           href: "#load-more",
           //@ts-expect-error will fix that later
-          label: <div className="font-normal decoration-dotted underline ">More</div>,
+          label: (
+            <div className="font-normal decoration-dotted underline ">More</div>
+          ),
           active: false,
           loadMoreAction: true,
         });

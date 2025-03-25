@@ -33,14 +33,16 @@ export function AppSidebar({
   // Create base navigation items
   const baseNavItems = useMemo(
     () => createWorkspaceNavigation(props.workspace, segments),
-    [props.workspace, segments],
+    [props.workspace, segments]
   );
 
   const { enhancedNavItems: apiAddedNavItems, loadMore: loadMoreApis } =
     useApiNavigation(baseNavItems);
 
-  const { enhancedNavItems: ratelimitAddedNavItems, loadMore: loadMoreRatelimits } =
-    useRatelimitNavigation(apiAddedNavItems);
+  const {
+    enhancedNavItems: ratelimitAddedNavItems,
+    loadMore: loadMoreRatelimits,
+  } = useRatelimitNavigation(apiAddedNavItems);
 
   const handleLoadMore = useCallback(
     (item: NavItem & { loadMoreAction?: boolean }) => {
@@ -52,7 +54,7 @@ export function AppSidebar({
         loadMoreApis();
       }
     },
-    [loadMoreApis, loadMoreRatelimits],
+    [loadMoreApis, loadMoreRatelimits]
   );
 
   const toggleNavItem: NavItem = useMemo(
@@ -63,7 +65,7 @@ export function AppSidebar({
       active: false,
       tooltip: "Toggle Sidebar",
     }),
-    [],
+    []
   );
 
   const { state, isMobile, toggleSidebar } = useSidebar();
@@ -74,7 +76,7 @@ export function AppSidebar({
       <div
         className={cn(
           "flex w-full",
-          isCollapsed ? "justify-center" : "items-center justify-between gap-4",
+          isCollapsed ? "justify-center" : "items-center justify-between gap-4"
         )}
       >
         <WorkspaceSwitcher workspace={props.workspace} />
@@ -85,20 +87,25 @@ export function AppSidebar({
         )}
       </div>
     ),
-    [isCollapsed, props.workspace, state, isMobile, toggleSidebar],
+    [isCollapsed, props.workspace, state, isMobile, toggleSidebar]
   );
 
   const resourceNavItems = useMemo(() => resourcesNavigation, []);
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="px-4 mb-1 items-center pt-4">{headerContent}</SidebarHeader>
+      <SidebarHeader className="px-4 items-center pt-4">
+        {headerContent}
+      </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarGroup>
           <SidebarMenu className="gap-2">
             {/* Toggle button as NavItem */}
             {state === "collapsed" && (
-              <ToggleSidebarButton toggleNavItem={toggleNavItem} toggleSidebar={toggleSidebar} />
+              <ToggleSidebarButton
+                toggleNavItem={toggleNavItem}
+                toggleSidebar={toggleSidebar}
+              />
             )}
             {ratelimitAddedNavItems.map((item) => (
               <NavItems
