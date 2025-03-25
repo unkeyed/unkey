@@ -74,15 +74,31 @@ export function useSignIn() {
     try {
       setEmail(email);
       setError(null);
-      await signInViaEmail(email);
-      setIsVerifying(true);
-    } catch (err: any) {
-      if (err.code === AuthErrorCode.ACCOUNT_NOT_FOUND) {
-        setAccountNotFound(true);
-        setEmail(email);
+      const result = await signInViaEmail(email);
+  
+      // Check if the operation was successful
+      if (result.success) {
+        setIsVerifying(true);
+        return;
+      }
+  
+      // Handle error case - only set error message if we have an error response
+      if (isAuthErrorResponse(result)) {
+        console.log("result", result);
+        if (result.code === AuthErrorCode.ACCOUNT_NOT_FOUND) {
+          setAccountNotFound(true);
+          setEmail(email);
+        } else {
+          setError(result.message);
+        }
       } else {
         setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       }
+    } catch (error) {
+      // This catches any unexpected errors that weren't handled by the API
+      console.error("Unexpected error during sign in:", error);
+      setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
+      throw error;
     }
   };
 

@@ -82,8 +82,8 @@ export abstract class BaseAuthProvider {
 
     if (error instanceof Error) {
       // Handle provider-specific errors
-      if ("code" in error && typeof error.code === "string") {
-        const errorCode = error.code as AuthErrorCode;
+      if ("message" in error && typeof error.message === "string") {
+        const errorCode = error.message as AuthErrorCode;
         if (errorCode in AuthErrorCode) {
           return {
             success: false,

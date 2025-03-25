@@ -564,7 +564,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       }
 
       await this.provider.userManagement.createMagicAuth({ email });
-      return { success: true };
+      return { success: true }
     } catch (error) {
       return this.handleError(error);
     }
@@ -619,17 +619,17 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       };
     } catch (error: any) {
       // Handle organization selection required case
-      if (error.code === "organization_selection_required") {
+      if (error.rawData.code === "organization_selection_required") {
         return {
           success: false,
           code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
-          message: error.message,
-          user: this.transformUserData(error.user),
-          organizations: error.organizations.map(this.transformOrganizationData),
+          message: error.rawData.message,
+          user: this.transformUserData(error.rawData.user),
+          organizations: error.rawData.organizations.map(this.transformOrganizationData),
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
-              value: error.pending_authentication_token,
+              value: error.rawData.pending_authentication_token,
               options: {
                 secure: true,
                 httpOnly: true,
@@ -679,17 +679,18 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       };
     } catch (error: any) {
       // Handle organization selection required case
-      if (error.code === "organization_selection_required") {
+      console.error("verify email: ", error)
+      if (error.rawData.code === "organization_selection_required") {
         return {
           success: false,
           code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
-          message: error.message,
-          user: this.transformUserData(error.user),
-          organizations: error.organizations.map(this.transformOrganizationData),
+          message: error.rawData.message,
+          user: this.transformUserData(error.rawData.user),
+          organizations: error.rawData.organizations.map(this.transformOrganizationData),
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
-              value: error.pending_authentication_token,
+              value: error.rawData.pending_authentication_token,
               options: {
                 secure: true,
                 httpOnly: true,
@@ -824,7 +825,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         return {
           success: false,
           code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
-          message: error.message,
+          message: error.rawData.message,
           user: this.transformUserData(error.rawData.user),
           organizations: error.rawData.organizations.map(this.transformOrganizationData),
           cookies: [
