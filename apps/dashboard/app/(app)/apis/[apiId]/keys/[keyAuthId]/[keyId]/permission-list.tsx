@@ -22,10 +22,12 @@ export function PermissionList({ roles, keyId }: PermissionTreeProps) {
       toast.loading("Connecting role to key");
     },
     onSuccess: () => {
+      toast.dismiss();
       toast.success("Role connected to key");
       router.refresh();
     },
     onError: (error) => {
+      toast.dismiss();
       toast.error(error.message);
     },
   });
@@ -35,10 +37,12 @@ export function PermissionList({ roles, keyId }: PermissionTreeProps) {
       toast.loading("Disconnecting role from key");
     },
     onSuccess: () => {
+      toast.dismiss();
       toast.success("Role disconnected from key");
       router.refresh();
     },
     onError: (error) => {
+      toast.dismiss();
       toast.error(error.message);
     },
   });
