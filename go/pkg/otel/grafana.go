@@ -44,6 +44,13 @@ type Config struct {
 	// behavior changes with specific releases.
 	Version string
 
+	// TraceSampleRate controls what percentage of traces are sampled.
+	// Values range from 0.0 to 1.0, where:
+	// - 1.0 means all traces are sampled (100%)
+	// - 0.25 means 25% of traces are sampled (the default if not specified)
+	// - 0.0 means no traces are sampled (0%)
+	//
+	// As long as the sampling rate is greater than 0.0, all errors will be sampled.
 	TraceSampleRate float64
 }
 
