@@ -18,7 +18,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
-      }
+      },
     );
 
   // Convert ratelimit namespaces data to navigation items with sub-items
@@ -65,22 +65,17 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
         };
 
         return namespaceNavItem;
-      })
+      }),
     );
   }, [data?.pages, segments]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const ratelimitsItemIndex = items.findIndex(
-      (item) => item.href === "/ratelimits"
-    );
+    const ratelimitsItemIndex = items.findIndex((item) => item.href === "/ratelimits");
 
     if (ratelimitsItemIndex !== -1) {
       const ratelimitsItem = { ...items[ratelimitsItemIndex] };
-      ratelimitsItem.items = [
-        ...(ratelimitsItem.items || []),
-        ...ratelimitNavItems,
-      ];
+      ratelimitsItem.items = [...(ratelimitsItem.items || []), ...ratelimitNavItems];
 
       if (hasNextPage) {
         ratelimitsItem.items?.push({
