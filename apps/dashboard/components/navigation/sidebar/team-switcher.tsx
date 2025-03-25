@@ -16,16 +16,16 @@ import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
 import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { startTransition, useMemo, useState, useTransition } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { useUser } from "@/lib/auth/hooks";
 import { Loading } from "@/components/dashboard/loading";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
-import { revalidate } from "@/app/actions";
+import { SetCookieAndReload } from "@/lib/auth/actions";
 
 type Props = {
   workspace: {
@@ -34,8 +34,9 @@ type Props = {
 };
 
 export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
-  const { switchOrganization } = useUser();
   const router = useRouter();
+  const pathName = usePathname();
+  const [_isTransitionStarted, startTransition] = useTransition();
   const { isMobile, state } = useSidebar();
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
@@ -47,35 +48,27 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
       enabled: !!user
     }
   );
-
-  const utils = trpc.useUtils();
   
   const userMemberships = memberships?.data;
-
 
   const currentOrgMembership = userMemberships?.find(
     (membership) => membership.organization.id === user?.orgId,
   );
 
   const changeWorkspace = trpc.user.switchOrg.useMutation({
-    onSuccess(sessionData) {
-        // pass the new session data to cookie utils
-        setCookie({
-          name: UNKEY_SESSION_COOKIE,
-          value: sessionData.token!,
-          options: {
-            httpOnly: true,
-            secure: true,
-            sameSite: "lax",
-            path: "/",
-            maxAge: Math.floor((sessionData.expiresAt!.getTime() - Date.now()) / 1000),
+    async onSuccess(sessionData) {
+      const { token, expiresAt } = sessionData;
+        await SetCookieAndReload({
+          cookieOptions: {
+            token: token!,
+            expiresAt: expiresAt!
           },
-        }).then(() => {
-            router.refresh() // TODO: put this in a server action with the cookie setting
-            // window.location.reload();
-        }).catch(error => {
-          console.error(error)
-        });
+          redirectTo: pathName!
+        })
+
+        // router.refresh();
+        window.location.reload();
+
     },
     onError(error) {
       console.error("Failed to switch workspace: ", error)

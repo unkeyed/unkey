@@ -220,6 +220,29 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
   }
 }
 
+export async function SetCookieAndReload(params: {cookieOptions: {
+  token: string;
+  expiresAt: Date;
+}, 
+redirectTo: string}): Promise<void> {
+
+  const { token, expiresAt } = params.cookieOptions;
+
+  await setCookie({
+    name: UNKEY_SESSION_COOKIE,
+      value: token,
+      options: {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+      },
+  });
+
+  //redirect(`${params.redirectTo}?1`);
+}
+
 // OAuth
 export async function signInViaOAuth(options: SignInViaOAuthOptions): Promise<string> {
   return await auth.signInViaOAuth(options);
