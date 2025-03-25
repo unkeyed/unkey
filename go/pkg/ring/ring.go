@@ -12,6 +12,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ring/consistency"
 )
 
 // Node represents an individual entity in the ring, usually a service instance
@@ -88,9 +89,10 @@ type Ring[T any] struct {
 
 	tokensPerNode int
 	// instanceIDs
-	nodes  map[string]Node[T]
-	tokens []token
-	logger logging.Logger
+	nodes       map[string]Node[T]
+	tokens      []token
+	logger      logging.Logger
+	consistency *consistency.Consistency
 }
 
 // New creates a new consistent hash ring with the specified configuration.
@@ -115,6 +117,7 @@ func New[T any](config Config) (*Ring[T], error) {
 		logger:        config.Logger,
 		nodes:         make(map[string]Node[T]),
 		tokens:        make([]token, 0),
+		consistency:   consistency.New(config.Logger),
 	}
 
 	return r, nil
