@@ -1,0 +1,28 @@
+{
+  "name": "@unkey/auth-migrator",
+  "version": "1.0.0",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@unkey/tsconfig": "workspace:^",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@clerk/clerk-sdk-node": "^5.1.6",
+    "@planetscale/database": "^1.19.0",
+    "@unkey/db": "workspace:^",
+    "@workos-inc/node": "^7.43.0",
+    "drizzle-orm": "^0.41.0",
+    "p-limit": "^6.2.0",
+    "tsup": "^8.0.2",
+    "zod": "^3.24.2"
+  }
+}
