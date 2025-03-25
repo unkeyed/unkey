@@ -1,7 +1,7 @@
 import { Client } from "@planetscale/database";
-import { drizzle, schema } from "@unkey/db";
+import { drizzle, schema, type Database } from "@unkey/db";
 
-export const db = drizzle(
+export const db: Database = drizzle(
   new Client({
     host: process.env.DATABASE_HOST,
     username: process.env.DATABASE_USERNAME,
@@ -19,7 +19,5 @@ export const db = drizzle(
   }),
   {
     schema,
-  },
+  }
 );
-
-export * from "@unkey/db";

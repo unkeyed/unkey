@@ -1,12 +1,11 @@
 {
   "name": "@unkey/auth-migrator",
   "version": "1.0.0",
-  "main": "index.js",
   "keywords": [],
   "author": "",
   "license": "MIT",
   "scripts": {
-    "build": "tsc"
+    "migrate": "dotenv -e .env npx tsx ./src/index.ts"
   },
   "description": "",
   "devDependencies": {
@@ -21,8 +20,9 @@
     "@unkey/db": "workspace:^",
     "@workos-inc/node": "^7.43.0",
     "drizzle-orm": "^0.41.0",
+    "dotenv-cli": "^7.4.1",
+    "tsx": "^4.19.1",
     "p-limit": "^6.2.0",
-    "tsup": "^8.0.2",
     "zod": "^3.24.2"
   }
 }

@@ -1,16 +1,40 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { WorkOS, RateLimitExceededException, User as WorkOSUser } from "@workos-inc/node";
+import {
+  WorkOS,
+  RateLimitExceededException,
+  User as WorkOSUser,
+} from "@workos-inc/node";
 import pLimit from "p-limit";
 import { createClerkClient, User } from "@clerk/clerk-sdk-node";
-import { eq } from "@unkey/db";
-import { db, schema } from "./db";
+import { eq,drizzle, schema, type Database } from "@unkey/db";
+import { Client } from "@planetscale/database";
+
+export const db: Database = drizzle(
+  new Client({
+    host: process.env.DATABASE_HOST,
+    username: process.env.DATABASE_USERNAME,
+    password: process.env.DATABASE_PASSWORD,
+
+    fetch: (url: string, init: any) => {
+      (init as any).cache = undefined; // Remove cache header
+      const u = new URL(url);
+      // set protocol to http if localhost for CI testing
+      if (u.host.includes("localhost")) {
+        u.protocol = "http";
+      }
+      return fetch(u, init);
+    },
+  }),
+  {
+    schema,
+  }
+);
+
 const workos = new WorkOS(process.env.WORKOS_API_KEY!);
 
 const clerk = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY!,
 });
+
 
 const limit = pLimit(10); // 10 operations per second
 
@@ -25,7 +49,7 @@ const getUsers = async () => {
       clerk.users.getUserList({
         limit: PAGE_SIZE,
         offset: offset,
-      }),
+      })
     );
 
     allUsers.push(...response.data);
@@ -49,11 +73,12 @@ const createOrganizationForUser = async (user: WorkOSUser) => {
     throw new Error(`Failed to create organization for user ${user.id}`);
   }
   const orgId = org.id;
-  const createOrgMember = await workos.userManagement.createOrganizationMembership({
-    organizationId: orgId,
-    userId: user.id,
-    roleSlug: "admin",
-  });
+  const createOrgMember =
+    await workos.userManagement.createOrganizationMembership({
+      organizationId: orgId,
+      userId: user.id,
+      roleSlug: "admin",
+    });
   if (!createOrgMember) {
     throw new Error(`Failed to create organization member for user ${user.id}`);
   }
@@ -74,14 +99,14 @@ const importUser = async (user: User) => {
 
       if (matchingUsers.data.length === 1) {
         console.log(
-          `User ${user.primaryEmailAddress!.emailAddress.toLowerCase()} already exists, skipping`,
+          `User ${user.primaryEmailAddress!.emailAddress.toLowerCase()} already exists, skipping`
         );
         return matchingUsers.data[0];
       }
     } catch (lookupError) {
       console.error(
         `Error looking up existing user ${user.primaryEmailAddress!.emailAddress.toLowerCase()}:`,
-        lookupError,
+        lookupError
       );
     }
 
@@ -114,13 +139,13 @@ const importUser = async (user: User) => {
     }
 
     console.log(
-      `Successfully imported user: ${user.primaryEmailAddress.emailAddress.toLowerCase()}`,
+      `Successfully imported user: ${user.primaryEmailAddress.emailAddress.toLowerCase()}`
     );
     return result;
   } catch (error) {
     if (error instanceof RateLimitExceededException) {
       console.warn(
-        `Rate limit hit, retrying user: ${user.primaryEmailAddress!.emailAddress.toLowerCase()}`,
+        `Rate limit hit, retrying user: ${user.primaryEmailAddress!.emailAddress.toLowerCase()}`
       );
       // Re-throw to trigger retry
       throw error;
@@ -130,12 +155,12 @@ const importUser = async (user: User) => {
       console.error(
         `Error importing user ${user.primaryEmailAddress!.emailAddress.toLowerCase()}: ${
           error.message
-        }`,
+        }`
       );
     } else {
       console.error(
         `Error importing user ${user.primaryEmailAddress!.emailAddress.toLowerCase()}: Unknown error type`,
-        error,
+        error
       );
     }
 
@@ -155,11 +180,13 @@ export const importUsers = async () => {
     try {
       const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults.filter((r) => r !== null));
-      console.log(`Completed batch ${i / 10 + 1} of ${Math.ceil(users.length / 10)}`);
+      console.log(
+        `Completed batch ${i / 10 + 1} of ${Math.ceil(users.length / 10)}`
+      );
 
       // Add a small delay between batches to prevent overwhelming the API
       if (i + 10 < users.length) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     } catch (error) {
       console.error(`Error processing batch ${i / 10 + 1}:`, error);
@@ -167,7 +194,7 @@ export const importUsers = async () => {
   }
 
   console.log(
-    `Import completed. Successfully imported ${results.length} out of ${users.length} users`,
+    `Import completed. Successfully imported ${results.length} out of ${users.length} users`
   );
   return results;
 };
