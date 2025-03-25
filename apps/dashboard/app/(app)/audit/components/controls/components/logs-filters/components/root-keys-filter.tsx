@@ -14,7 +14,7 @@ export const RootKeysFilter = ({
     <FilterCheckbox
       showScroll
       options={(rootKeys ?? []).map((rootKey, index) => ({
-        label: rootKey.name ?? rootKey.id.slice(0, 10),
+        label: getRootKeyLabel(rootKey),
         value: rootKey.id,
         checked: false,
         id: index,
@@ -31,4 +31,14 @@ export const RootKeysFilter = ({
       updateFilters={updateFilters}
     />
   );
+};
+
+const getRootKeyLabel = (rootKey: { id: string; name: string | null }) => {
+  const id = rootKey.id;
+  const prefix = id.substring(0, id.indexOf("_") + 1);
+  const obfuscatedMiddle =
+    id.substring(id.indexOf("_") + 1, id.indexOf("_") + 5).length > 0 ? "..." : "";
+  const nextFour = id.substring(id.indexOf("_") + 1, id.indexOf("_") + 5);
+  const lastFour = id.substring(id.length - 4);
+  return rootKey.name ?? prefix + nextFour + obfuscatedMiddle + lastFour;
 };
