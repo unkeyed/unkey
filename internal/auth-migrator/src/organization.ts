@@ -139,7 +139,7 @@ const migrateOrg = async (org: Organization) => {
   }
 };
 
-export async function migrateOrganizations() {
+const migrateOrganizations = async () => {
   const organizations = await getClerkOrganizations();
   const limit = pLimit(5); // Limit concurrent operations
   const results = [];
@@ -165,3 +165,5 @@ export async function migrateOrganizations() {
   );
   return results;
 }
+
+migrateOrganizations().then(() => process.exit(0));

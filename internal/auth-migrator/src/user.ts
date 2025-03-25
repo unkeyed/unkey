@@ -162,7 +162,7 @@ const importUser = async (user: User) => {
   }
 };
 
-export const importUsers = async () => {
+const importUsers = async () => {
   const users = await getUsers();
   console.log(`Found ${users.length} users to import`);
 
@@ -190,3 +190,5 @@ export const importUsers = async () => {
   );
   return results;
 };
+
+importUsers().then(() => process.exit(0));

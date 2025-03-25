@@ -5,7 +5,8 @@
   "author": "",
   "license": "MIT",
   "scripts": {
-    "migrate": "dotenv -e .env npx tsx ./src/index.ts"
+    "migrate:users": "dotenv -e .env npx tsx ./src/user.ts",
+    "migrate:organizations": "dotenv -e .env npx tsx ./src/organization.ts"
   },
   "description": "",
   "devDependencies": {
