@@ -9,12 +9,12 @@ import { redirect } from "next/navigation";
 export async function getOrgId(): Promise<string> {
   const user = await auth.getCurrentUser();
   if (!user) {
-    return redirect("/auth/sign-in");
+    redirect("/auth/sign-in");
   }
 
   const { orgId } = user;
   if (!orgId) {
-    return redirect("/new");
+    redirect("/new");
   }
 
   return orgId;

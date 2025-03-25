@@ -18,14 +18,11 @@ import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import type React from "react";
-import { startTransition, useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc/client";
-import { useUser } from "@/lib/auth/hooks";
 import { Loading } from "@/components/dashboard/loading";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { setCookie } from "@/lib/auth/cookies";
-import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
-import { SetCookieAndReload } from "@/lib/auth/actions";
+import { SetSessionCookie } from "@/lib/auth/actions";
 
 type Props = {
   workspace: {
@@ -36,7 +33,7 @@ type Props = {
 export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
   const router = useRouter();
   const pathName = usePathname();
-  const [_isTransitionStarted, startTransition] = useTransition();
+  const utils = trpc.useUtils();
   const { isMobile, state } = useSidebar();
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
@@ -57,8 +54,9 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
 
   const changeWorkspace = trpc.user.switchOrg.useMutation({
     async onSuccess(sessionData) {
+      
       const { token, expiresAt } = sessionData;
-        await SetCookieAndReload({
+        await SetSessionCookie({
           cookieOptions: {
             token: token!,
             expiresAt: expiresAt!
@@ -66,8 +64,10 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
           redirectTo: pathName!
         })
 
-        // router.refresh();
-        window.location.reload();
+        // refresh the check mark by invalidating the current user's org data
+        utils.user.getCurrentUser.invalidate();
+
+        router.replace('/');
 
     },
     onError(error) {

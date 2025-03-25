@@ -196,6 +196,7 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
   try {
     
     const { newToken, expiresAt } = await auth.switchOrg(orgId);
+    console.log("switch org ", expiresAt);
 
     // Set the new cookie
     await setCookie({
@@ -220,7 +221,7 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
   }
 }
 
-export async function SetCookieAndReload(params: {cookieOptions: {
+export async function SetSessionCookie(params: {cookieOptions: {
   token: string;
   expiresAt: Date;
 }, 
@@ -239,8 +240,6 @@ redirectTo: string}): Promise<void> {
         maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
       },
   });
-
-  //redirect(`${params.redirectTo}?1`);
 }
 
 // OAuth
