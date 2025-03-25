@@ -146,6 +146,18 @@ var (
 		//     return nil
 		//   })
 		Capacity Int64Observable
+
+		// Revalidations tracks the number of times the cache has been revalidated.
+		// Use this to monitor cache refresh frequency and performance.
+		//
+		// Attributes:
+		//   - resource (string): The type of resource being cached (e.g., "user_profile")
+		//
+		// Example:
+		//   metrics.Caches.Revalidations.Add(ctx, 1, metric.WithAttributes(
+		//     attribute.String("resource", "keys"),
+		//   ))
+		Revalidations Int64Counter
 	}
 
 	// Cluster contains metrics related to cluster operations and status
@@ -254,6 +266,10 @@ func Init(m metric.Meter) error {
 		opts: []metric.Int64ObservableGaugeOption{
 			metric.WithDescription("Maximum number of items the cache can hold."),
 		},
+	}
+	Cache.Revalidations, err = m.Int64Counter("cache_revalidations", metric.WithDescription("how many times the cache does background revalidation"))
+	if err != nil {
+		return err
 	}
 
 	Cluster.Size = &int64ObservableGauge{
