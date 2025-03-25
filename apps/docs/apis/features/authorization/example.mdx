@@ -76,28 +76,33 @@ Now that we have permissions and roles in place, we can connect them to keys.
 <Tab title="Dashboard">
 
 1. In the sidebar, click on one of your APIs
-2. Then click on `Keys` in the tabs
+2. In the breakcrumb navigation on the top click Reqests and then keys 
+    <Frame>
+      <img src="/apis/features/authorization/api-keys-navigation.png" alt="Breadcrumb Navigation"/>
+    </Frame>
+  
 3. Select one of your existing keys by clicking on it
-4. Go to the `Permissions` tab
+4. Scroll down to the `Roles` section if not visible 
 
-You should now be on `/app/keys/key_auth_???/key_???/permissions`
+You should now be on `/app/keys/key_auth_???/key_???`
 
 <Frame>
-  <img src="/apis/features/authorization/connections.png" alt="Unconnected roles and permissions"/>
+  <img src="/apis/features/authorization/api-key-screen.png" alt="Unconnected roles and permissions"/>
   </Frame>
 
 
-  You can connect a role to your key by clicking on the checkbox in the graph.
+  You can connect a role to your key by clicking on the checkbox.
 
   Let's give this key the `dns.manager` and `read-only` roles.
+  A toast message should come up in the lower corner when the action has been completed.
 
 
 <Frame>
-  <img src="/apis/features/authorization/connections-connected.png" alt="Connected roles and permissions"/>
+  <img src="/apis/features/authorization/role-add-example.png" alt="Unconnected roles and permissions"/>
   </Frame>
 
-As you can see, now the key is connected to the following permissions:
-`domain.dns.create_record`, `domain.dns.read_record`, `domain.dns.update_record`, `domain.dns.delete_record`, `domain.create_domain`, `domain.read_domain`
+As you can see, now the key now contains 2 `roles` and 5 `permissions` shown just above the Roles section:
+
 
 
 </Tab>
