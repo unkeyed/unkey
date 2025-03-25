@@ -40,13 +40,14 @@ export const NestedNavItem = ({
     return navItem.items.some((child) => child.active || hasActiveChild(child));
   }
 
-  const handleChevronClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setIsOpen((prev) => !prev);
-  };
+  const handleMenuItemClick = (e: React.MouseEvent) => {
+    // If the item has children, toggle the open state
+    if (item.items && item.items.length > 0) {
+      e.preventDefault();
+      setIsOpen((prev) => !prev);
+    }
 
-  const handleMenuItemClick = () => {
+    // If the item has a href, also navigate to it
     if (item.href) {
       if (!item.external) {
         // Show loading state ONLY for parent
@@ -54,7 +55,7 @@ export const NestedNavItem = ({
           router.push(item.href);
         });
       } else {
-        // For external links, let the NavLink handle it
+        // For external links, open in new tab
         window.open(item.href, "_blank");
       }
     }
@@ -159,13 +160,9 @@ export const NestedNavItem = ({
           {showParentLoader && Icon ? <AnimatedLoadingSpinner /> : Icon ? <Icon /> : null}
           <span className="truncate max-w-[180px]">{item.label}</span>
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
-          {/* Embed the chevron inside the button with its own click handler */}
+          {/* Chevron icon to indicate there are children */}
           {item.items && item.items.length > 0 && (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
-            <div
-              className="w-5 h-5 flex items-center justify-center flex-shrink-0"
-              onClick={(e) => handleChevronClick(e)}
-            >
+            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
               <CaretRight
                 className={cn(
                   "transition-transform duration-200 text-gray-9 !w-[9px] !h-[9px]",
