@@ -1,83 +1,80 @@
 "use client";
-import { Tree } from "@/app/(app)/authorization/roles/[roleId]/tree";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { Button } from "@unkey/ui";
-import { useEffect, useState } from "react";
-
-export type NestedPermission = {
-  id: string;
-  checked: boolean;
-  description: string | null;
-  name: string;
-  part: string;
-  path: string;
-  permissions: NestedPermissions;
-};
-export type NestedPermissions = Record<string, NestedPermission>;
+import { Checkbox } from "@/components/ui/checkbox";
+import { trpc } from "@/lib/trpc/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 export type Role = {
   id: string;
   name: string;
-  keyId: string;
-  active: boolean;
-  description: string | null;
-  nestedPermissions: NestedPermissions;
+  isActive: boolean;
 };
+
 type PermissionTreeProps = {
   roles: Role[];
+  keyId: string;
 };
 
-export function PermissionList({ roles }: PermissionTreeProps) {
-  const [activeRoleId, setActiveRoleId] = useState<string | null>(
-    roles.length > 0 ? roles[0].id : null,
-  );
-  const [key, setKey] = useState(0);
+export function PermissionList({ roles, keyId }: PermissionTreeProps) {
+  const router = useRouter();
+  const connectRole = trpc.rbac.connectRoleToKey.useMutation({
+    onMutate: () => {
+      toast.loading("Connecting role to key");
+    },
+    onSuccess: () => {
+      toast.success("Role connected to key");
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Force rerender on role change
-  useEffect(() => {
-    // Update the key when activeRoleId changes to force a complete re-render
-    setKey((prev) => prev + 1);
-  }, [activeRoleId]);
-
-  const activeRole = roles.find((r) => r.id === activeRoleId);
+  const disconnectRole = trpc.rbac.disconnectRoleFromKey.useMutation({
+    onMutate: () => {
+      toast.loading("Disconnecting role from key");
+    },
+    onSuccess: () => {
+      toast.success("Role disconnected from key");
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   return (
     <Card>
       <CardHeader className="pb-0">
         <div className="mb-2">
-          <CardTitle>Permissions & Roles</CardTitle>
-          <CardDescription>Connect roles with permissions to control access</CardDescription>
-        </div>
-        <div className="border-b border-gray-6">
-          <div className="flex flex-wrap -mb-px">
-            {roles.map((role) => (
-              <Button
-                variant="ghost"
-                key={role.id}
-                onClick={() => setActiveRoleId(role.id)}
-                className={cn(
-                  "rounded-none rounded-t inline-flex items-center px-4 py-2 text-sm font-medium border-b-2 transition-colors outline-none focus:ring-0",
-                  activeRoleId === role.id
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-11 hover:text-gray-12 hover:border-gray-7",
-                )}
-              >
-                {role.name}
-                {role.active && <span className="ml-2 h-2 w-2 rounded-full bg-success-9" />}
-              </Button>
-            ))}
-          </div>
+          <CardTitle>Roles</CardTitle>
+          <CardDescription>Manage roles for this key</CardDescription>
         </div>
       </CardHeader>
 
       <CardContent className="pt-6">
-        {activeRole && activeRoleId && (
-          <Tree
-            key={`tree-${key}-${activeRoleId}`}
-            nestedPermissions={activeRole.nestedPermissions}
-            role={{ id: activeRoleId }}
-          />
-        )}
+        <div className="space-y-1">
+          {roles.map((role) => (
+            <div
+              key={role.id}
+              className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-2"
+            >
+              <Checkbox
+                checked={role.isActive}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    connectRole.mutate({ keyId: keyId, roleId: role.id });
+                  } else {
+                    disconnectRole.mutate({ keyId: keyId, roleId: role.id });
+                  }
+                }}
+              />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{role.name}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
