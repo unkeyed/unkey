@@ -44,10 +44,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.OtelEnabled {
 		grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			Application: "api",
-			Version:     version.Version,
-			InstanceID:  cfg.ClusterInstanceID,
-			CloudRegion: cfg.Region,
+			Application:     "api",
+			Version:         version.Version,
+			InstanceID:      cfg.ClusterInstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
 		},
 			shutdowns,
 		)

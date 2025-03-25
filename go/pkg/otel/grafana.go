@@ -43,6 +43,8 @@ type Config struct {
 	// Version is the current version of your application, allowing you to correlate
 	// behavior changes with specific releases.
 	Version string
+
+	TraceSampleRate float64
 }
 
 // InitGrafana initializes the global tracer and metric providers for OpenTelemetry,
@@ -81,6 +83,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	// Create a resource with common attributes
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
+			semconv.ServiceNamespace(config.Application),
 			semconv.ServiceName(config.Application),
 			semconv.ServiceVersion(config.Version),
 			semconv.ServiceInstanceID(config.InstanceID),
@@ -125,6 +128,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	// Initialize trace exporter with configuration matching the old implementation
 	traceExporter, err := otlptracehttp.New(ctx,
 		otlptracehttp.WithCompression(otlptracehttp.GzipCompression),
+
 	//	otlptracehttp.WithInsecure(), // For local development
 	)
 	if err != nil {
@@ -134,10 +138,28 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	// Register shutdown function for trace exporter
 	shutdowns.RegisterCtx(traceExporter.Shutdown)
 
+	var sampler trace.Sampler
+
+	// Configure the sampler
+	if config.TraceSampleRate >= 1.0 {
+		sampler = trace.AlwaysSample()
+	} else if config.TraceSampleRate <= 0.0 {
+		sampler = trace.NeverSample()
+	} else {
+		sampler = trace.ParentBased(
+			trace.TraceIDRatioBased(config.TraceSampleRate),
+			trace.WithRemoteParentSampled(trace.AlwaysSample()),
+			trace.WithRemoteParentNotSampled(trace.TraceIDRatioBased(config.TraceSampleRate)),
+			trace.WithLocalParentSampled(trace.AlwaysSample()),
+			trace.WithLocalParentNotSampled(trace.TraceIDRatioBased(config.TraceSampleRate)),
+		)
+	}
+
 	// Create and register trace provider with the same batch settings as the old code
 	traceProvider := trace.NewTracerProvider(
 		trace.WithBatcher(traceExporter),
 		trace.WithResource(res),
+		trace.WithSampler(sampler),
 	)
 
 	// Register shutdown function for trace provider
