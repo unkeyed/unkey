@@ -14,7 +14,7 @@ export const RootKeysFilter = ({
     <FilterCheckbox
       showScroll
       options={(rootKeys ?? []).map((rootKey, index) => ({
-        label: getRootKeyLabel(rootKey),
+        label: getRootKeyLabel(rootKey), // Format the root key label when empty and contains no name.
         value: rootKey.id,
         checked: false,
         id: index,
@@ -33,6 +33,8 @@ export const RootKeysFilter = ({
   );
 };
 
+// Format the root key label when rootkey contains no name. Splits and formats into 'unkey_1234...5678'
+// This is to avoid displaying the full id in the filter.
 const getRootKeyLabel = (rootKey: { id: string; name: string | null }) => {
   const id = rootKey.id;
   const prefix = id.substring(0, id.indexOf("_") + 1);
