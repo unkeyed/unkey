@@ -84,7 +84,6 @@ export function useSignIn() {
   
       // Handle error case - only set error message if we have an error response
       if (isAuthErrorResponse(result)) {
-        console.log("result", result);
         if (result.code === AuthErrorCode.ACCOUNT_NOT_FOUND) {
           setAccountNotFound(true);
           setEmail(email);
