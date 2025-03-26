@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -65,10 +66,9 @@ func New(config Config) (*Clickhouse, error) {
 	opts.Debugf = func(format string, v ...any) {
 		config.Logger.Debug(fmt.Sprintf(format, v...))
 	}
-	//	if opts.TLS == nil {
-	//
-	//		opts.TLS = new(tls.Config)
-	//	}
+	if opts.TLS == nil {
+		opts.TLS = new(tls.Config)
+	}
 
 	config.Logger.Info("connecting to clickhouse")
 	conn, err := ch.Open(opts)
