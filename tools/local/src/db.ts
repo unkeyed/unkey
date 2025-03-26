@@ -65,6 +65,14 @@ export async function prepareDatabase(url?: string): Promise<{
       })
       .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
 
+    await db.insert(schema.quotas).values({
+      workspaceId: ROW_IDS.rootWorkspace,
+      requestsPerMonth: 150_000,
+      auditLogsRetentionDays: 30,
+      logsRetentionDays: 7,
+      team: false,
+    });
+
     s.message("Created root workspace");
 
     await db
