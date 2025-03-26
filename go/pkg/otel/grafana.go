@@ -125,7 +125,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	)
 	shutdowns.RegisterCtx(logProvider.Shutdown)
 
-	logging.SetHandler(otelslog.NewHandler(
+	logging.AddHandler(otelslog.NewHandler(
 		config.Application,
 		otelslog.WithLoggerProvider(logProvider),
 		otelslog.WithVersion(version.Version),

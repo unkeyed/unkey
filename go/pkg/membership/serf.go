@@ -47,14 +47,13 @@ var _ Membership = (*serfMembership)(nil)
 func New(config Config) (*serfMembership, error) {
 
 	host, err := parseHost(config.AdvertiseHost)
-
 	if err != nil {
 		return nil, err
 	}
-	// Create self member with metadata
+
 	self := Member{
 		InstanceID: config.InstanceID,
-		Host:       host,
+		Host:       config.AdvertiseHost,
 		GossipPort: config.GossipPort,
 		RpcPort:    config.RpcPort,
 	}
@@ -190,12 +189,18 @@ func (m *serfMembership) Start(discover discovery.Discoverer) error {
 		return fault.Wrap(err)
 	}
 
+	m.logger.Info("trying to join cluster",
+		"addrs", strings.Join(addrs, ","),
+		"self", m.self,
+	)
+
 	// Format addresses to include port - convert ips to ip:port
 	joinAddrs := []string{}
 	for _, addr := range addrs {
+
 		// Skip empty addresses
-		if addr == "" || addr == fmt.Sprintf("%s:%d", m.self.Host, m.self.GossipPort) {
-			m.logger.Info("skipping self")
+		if addr == "" {
+			m.logger.Info("skipping empty address")
 			continue
 		}
 
@@ -206,34 +211,33 @@ func (m *serfMembership) Start(discover discovery.Discoverer) error {
 		m.logger.Info("Joining cluster",
 			"addrs", strings.Join(joinAddrs, ","),
 		)
-
-		err := retry.New(
-			retry.Attempts(10),
-			retry.Backoff(func(n int) time.Duration { return time.Duration(n) * 100 * time.Millisecond }),
-		).Do(
-			func() error {
-				successfullyContacted, joinErr := m.serf.Join(joinAddrs, true)
-				if joinErr != nil {
-					m.logger.Warn("failed to join",
-						"error", joinErr.Error(),
-						"successfullyContacted", successfullyContacted,
-						"addrs", strings.Join(joinAddrs, ","),
-					)
-					return joinErr
-				}
-
-				m.logger.Info("Successfully joined cluster",
+	} else {
+		m.logger.Info("No peers to join, starting new cluster")
+	}
+	err = retry.New(
+		retry.Attempts(10),
+		retry.Backoff(func(n int) time.Duration { return time.Duration(n) * 100 * time.Millisecond }),
+	).Do(
+		func() error {
+			successfullyContacted, joinErr := m.serf.Join(joinAddrs, true)
+			if joinErr != nil {
+				m.logger.Warn("failed to join",
+					"error", joinErr.Error(),
 					"successfullyContacted", successfullyContacted,
 					"addrs", strings.Join(joinAddrs, ","),
 				)
-				return nil
-			})
+				return joinErr
+			}
 
-		if err != nil {
-			return fault.Wrap(err, fault.WithDesc("Failed to join", ""))
-		}
-	} else {
-		m.logger.Info("No peers to join, starting new cluster")
+			m.logger.Info("Successfully joined cluster",
+				"successfullyContacted", successfullyContacted,
+				"addrs", strings.Join(joinAddrs, ","),
+			)
+			return nil
+		})
+
+	if err != nil {
+		return err
 	}
 
 	return nil

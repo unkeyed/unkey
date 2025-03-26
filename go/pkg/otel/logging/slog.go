@@ -22,9 +22,14 @@ func init() {
 		Level:       level,
 		ReplaceAttr: nil,
 		TimeFormat:  time.StampMilli,
-		NoColor:     false,
+		NoColor:     true,
 	})
 }
+
+func AddHandler(h slog.Handler) {
+	handler = &MultiHandler{[]slog.Handler{handler, h}}
+}
+
 func SetHandler(h slog.Handler) {
 	handler = h
 }

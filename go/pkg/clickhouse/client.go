@@ -2,7 +2,6 @@ package clickhouse
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -66,9 +65,6 @@ func New(config Config) (*Clickhouse, error) {
 	opts.Debugf = func(format string, v ...any) {
 		config.Logger.Debug(fmt.Sprintf(format, v...))
 	}
-	if opts.TLS == nil {
-		opts.TLS = new(tls.Config)
-	}
 
 	config.Logger.Info("connecting to clickhouse")
 	conn, err := ch.Open(opts)
@@ -94,7 +90,7 @@ func New(config Config) (*Clickhouse, error) {
 		logger: config.Logger,
 
 		requests: batch.New[schema.ApiRequestV1](batch.Config[schema.ApiRequestV1]{
-			Name:          "api reqeusts",
+			Name:          "api requests",
 			Drop:          true,
 			BatchSize:     1000,
 			BufferSize:    100000,
