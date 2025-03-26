@@ -31,7 +31,7 @@ jobs:
           DATABASE_DSN: ${{ secrets.DATABASE_DSN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          go run . quotacheck --parallel=16
+          go run . quotacheck
 
       - name: Send Heartbeat
         run: curl ${{ secrets.QUOTA_CHECK_HEARTBEAT_URL }}
