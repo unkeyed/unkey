@@ -17,15 +17,10 @@ runs:
         go-version-file: ./apps/agent/go.mod
         cache-dependency-path: ./apps/agent/go.sum
 
-    - run: go mod download in /apps/agent
+    - run: go mod download
       if: ${{ inputs.go == 'true' }}
       shell: bash
       working-directory: ./apps/agent
-
-    - run: go mod download in /go
-      if: ${{ inputs.go == 'true' }}
-      shell: bash
-      working-directory: ./go
 
     - name: Install tparse
       run: go install github.com/mfridman/tparse@latest
