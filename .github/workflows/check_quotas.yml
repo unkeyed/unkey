@@ -32,3 +32,6 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           go run . quotacheck --parallel=16
+
+      - name: Send Heartbeat
+        run: curl ${{ secrets.QUOTA_CHECK_HEARTBEAT_URL }}
