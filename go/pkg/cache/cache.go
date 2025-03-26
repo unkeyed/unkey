@@ -309,7 +309,9 @@ func (c *cache[K, V]) SWR(
 			// but return the current value
 
 			c.revalidateC <- func() {
-				c.revalidate(ctx, key, refreshFromOrigin, op)
+				// If we don't uncancel the context, the revalidation will get canceled when
+				// the api response is returned
+				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
 
 			}
 			return e.Value, nil
