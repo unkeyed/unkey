@@ -317,6 +317,29 @@ Examples:
 			Sources:  cli.EnvVars("UNKEY_OTEL"),
 			Required: false,
 		},
+		&cli.FloatFlag{
+			Name: "otel-trace-sampling-rate",
+			Usage: `Sets the sampling rate for OpenTelemetry traces as a value between 0.0 and 1.0.
+This controls what percentage of traces will be collected and exported, helping to balance
+observability needs with performance and cost considerations.
+
+- 0.0 means no traces are sampled (0%)
+- 0.25 means 25% of traces are sampled (default)
+- 1.0 means all traces are sampled (100%)
+
+Lower sampling rates reduce overhead and storage costs but provide less visibility.
+Higher rates give more comprehensive data but increase resource usage and costs.
+
+This setting only takes effect when OpenTelemetry is enabled with --otel=true.
+
+Examples:
+  --otel-trace-sampling-rate=0.1   # Sample 10% of traces
+  --otel-trace-sampling-rate=0.25  # Sample 25% of traces (default)
+  --otel-trace-sampling-rate=1.0   # Sample all traces`,
+			Sources:  cli.EnvVars("UNKEY_OTEL_TRACE_SAMPLING_RATE"),
+			Value:    0.25,
+			Required: false,
+		},
 	},
 
 	Action: action,
@@ -342,7 +365,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		ClickhouseURL: cmd.String("clickhouse-url"),
 
 		// OpenTelemetry configuration
-		OtelEnabled: cmd.Bool("otel"),
+		OtelEnabled:           cmd.Bool("otel"),
+		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 
 		// Cluster
 		ClusterEnabled:                     cmd.Bool("cluster"),
