@@ -31,7 +31,6 @@ new HeartbeatCheck("workflows-count-keys", {
   graceUnit: "minutes",
 });
 
-
 new HeartbeatCheck("quota-checks", {
   alertChannels: [slack],
   name: "Github Actions: Quota Checks",
