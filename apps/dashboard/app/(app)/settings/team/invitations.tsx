@@ -25,7 +25,7 @@ type InvitationsProps = {
 
 export const Invitations = memo<InvitationsProps>(({ user, organization }) => {
   const { data: invitationsList, isLoading } = trpc.org.invitations.list.useQuery(organization!.id);
-  const invitations = invitationsList!.data;
+  const invitations = invitationsList?.data;
   const utils = trpc.useUtils();
   const revokeInvitation = trpc.org.invitations.remove.useMutation({
     onSuccess: () => {
