@@ -88,6 +88,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		go func() {
 			for e := range queue {
 				if !e.Workspace.Enabled {
+					wg.Done()
 					continue
 				}
 

@@ -61,7 +61,7 @@ services:
       # UNKEY_CLUSTER_ADVERTISE_ADDR_STATIC: "${HOSTNAME}"
       UNKEY_CLUSTER_DISCOVERY_REDIS_URL: "redis://redis:6379"
       UNKEY_DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey?parseTime=true"
-      UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
+      UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false"
       UNKEY_OTEL: true
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4318"
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
