@@ -13,6 +13,13 @@ export const EmailVerify: React.FC = () => {
   const { handleEmailVerification } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
   const [_timeLeft, _setTimeLeft] = React.useState(0);
+  const [clientReady, setClientReady] = React.useState(false);
+  const [otp, setOtp] = React.useState("");
+
+  // Set clientReady to true after hydration is complete
+  React.useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   const verifyEmail = async (otp: string) => {
     if (typeof otp !== "string") {
@@ -25,8 +32,6 @@ export const EmailVerify: React.FC = () => {
       toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
     });
   };
-
-  const [otp, setOtp] = React.useState("");
 
   return (
     <div className="flex flex-col max-w-sm mx-auto text-left">
@@ -60,7 +65,7 @@ export const EmailVerify: React.FC = () => {
           disabled={isLoading}
           onClick={() => verifyEmail(otp)}
         >
-          {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
+          {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
           Continue
         </button>
       </form>

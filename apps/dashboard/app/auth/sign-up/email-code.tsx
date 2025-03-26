@@ -12,7 +12,28 @@ import { OTPInput, type SlotProps } from "input-otp";
 export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   const { handleCodeVerification, handleResendCode } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
-  const [_timeLeft, _setTimeLeft] = React.useState(0);
+  const [timeLeft, setTimeLeft] = React.useState(10); // Start with 10 seconds
+  const [clientReady, setClientReady] = React.useState(false);
+  const [otp, setOtp] = React.useState("");
+
+  // Set clientReady and start countdown after hydration is complete
+  React.useEffect(() => {
+    setClientReady(true);
+    
+    // Start countdown timer only on client side
+    const timer = setInterval(() => {
+      setTimeLeft((prevTime) => {
+        if (prevTime <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+
+    // Clean up timer when component unmounts
+    return () => clearInterval(timer);
+  }, []);
 
   const verifyCode = async (otp: string) => {
     if (typeof otp !== "string") {
@@ -28,6 +49,9 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
 
   const resendCode = async () => {
     try {
+      // Reset the timer when resending code
+      setTimeLeft(10);
+      
       const p = handleResendCode();
       toast.promise(p, {
         loading: "Sending new code ...",
@@ -40,8 +64,6 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
     }
   };
 
-  const [otp, setOtp] = React.useState("");
-
   return (
     <div className="flex flex-col max-w-sm mx-auto text-left">
       <h1 className="text-4xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/30">
@@ -51,12 +73,16 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
         To continue, please enter the 6 digit verification code sent to the provided email.
       </p>
 
-      <p className="mt-2 text-sm text-white/40">
-        Didn't receive the code?{" "}
-        <button type="button" className="text-white" onClick={resendCode}>
-          Resend
-        </button>
-      </p>
+      {/* Only show resend option after countdown reaches zero */}
+      {timeLeft === 0 && (
+        <p className="mt-2 text-sm text-white/40">
+          Didn't receive the code?{" "}
+          <button type="button" className="text-white" onClick={resendCode}>
+            Resend
+          </button>
+        </p>
+      )}
+
       <form className="flex flex-col gap-12 mt-10" onSubmit={() => verifyCode(otp)}>
         <OTPInput
           data-1p-ignore
@@ -80,7 +106,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
           disabled={isLoading}
           onClick={() => verifyCode(otp)}
         >
-          {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
+          {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
           Continue
         </button>
       </form>

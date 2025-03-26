@@ -18,7 +18,7 @@ import { completeOrgSelection } from "../actions";
 import type { Organization } from "@/lib/auth/types";
 import { Button } from "@unkey/ui";
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface OrgSelectorProps {
   organizations: Organization[];
@@ -26,7 +26,15 @@ interface OrgSelectorProps {
 
 export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
   const [selected, setSelected] = useState<string>();
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+  const [clientReady, setClientReady] = useState(false);
+
+  // Set client ready after hydration
+  useEffect(() => {
+    setClientReady(true);
+    // Only open the dialog after hydration to prevent hydration mismatch
+    setIsOpen(true);
+  }, []);
 
   const handleContinue = async () => {
     if (!selected) {
@@ -38,7 +46,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
 
   return (
     <Dialog
-      open={isOpen}
+      open={clientReady && isOpen}
       onOpenChange={(open) => {
         setIsOpen(open);
       }}

@@ -16,17 +16,29 @@ import { useEffect, useRef, useState } from "react";
 import { Loading } from "@/components/dashboard/loading";
 
 function SignInContent() {
-  const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs, handleSignInViaEmail } =
-    useSignIn();
+  const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs, handleSignInViaEmail } = useSignIn();
   const searchParams = useSearchParams();
   const verifyParam = searchParams?.get("verify");
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
+  
+  // Initialize isLoading as false
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Add clientReady state to handle hydration
+  const [clientReady, setClientReady] = useState(false);
   const hasAttemptedSignIn = useRef(false);
+
+  // Set clientReady to true after hydration
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   // Handle auto sign-in with invitation token and email
   useEffect(() => {
+    // Only run this effect on the client side after hydration
+    if (!clientReady) return;
+    
     const attemptAutoSignIn = async () => {
       // Only proceed if we have required data, aren't in other auth states, and haven't attempted sign-in yet
       if (
@@ -55,15 +67,16 @@ function SignInContent() {
     };
 
     attemptAutoSignIn();
-  }, [invitationToken, invitationEmail, isVerifying, hasPendingAuth, handleSignInViaEmail]);
+  }, [clientReady, invitationToken, invitationEmail, isVerifying, hasPendingAuth, handleSignInViaEmail]);
 
-  if (isLoading) {
+  // Show a loading indicator only when isLoading is true AND client has hydrated
+  if (clientReady && isLoading) {
     return <Loading />;
   }
 
   return (
     <div className="flex flex-col gap-10">
-      {isLoading && <Loading />}
+
       {hasPendingAuth && <OrgSelector organizations={orgs} />}
 
       {accountNotFound && (

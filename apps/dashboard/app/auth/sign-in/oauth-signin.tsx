@@ -13,8 +13,14 @@ import { LastUsed, useLastUsed } from "./last_used";
 export const OAuthSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
   const [lastUsed, setLastUsed] = useLastUsed();
+  const [clientReady, setClientReady] = React.useState(false);
   const searchParams = useSearchParams();
   const redirectUrlComplete = searchParams?.get("redirect") ?? "/apis";
+
+  // Set clientReady to true after hydration is complete
+  React.useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   const oauthSignIn = async (provider: OAuthStrategy) => {
     try {
@@ -42,12 +48,20 @@ export const OAuthSignIn: React.FC = () => {
   return (
     <div className="flex flex-col gap-2">
       <OAuthButton onClick={() => oauthSignIn("github")}>
-        {isLoading === "github" ? <Loading className="w-6 h-6" /> : <GitHub className="w-6 h-6" />}
-        GitHub {lastUsed === "github" ? <LastUsed /> : null}
+        {clientReady && isLoading === "github" ? (
+          <Loading className="w-6 h-6" />
+        ) : (
+          <GitHub className="w-6 h-6" />
+        )}
+        GitHub {clientReady && lastUsed === "github" ? <LastUsed /> : null}
       </OAuthButton>
       <OAuthButton onClick={() => oauthSignIn("google")}>
-        {isLoading === "google" ? <Loading className="w-6 h-6" /> : <Google className="w-6 h-6" />}
-        Google {lastUsed === "google" ? <LastUsed /> : null}
+        {clientReady && isLoading === "google" ? (
+          <Loading className="w-6 h-6" />
+        ) : (
+          <Google className="w-6 h-6" />
+        )}
+        Google {clientReady && lastUsed === "google" ? <LastUsed /> : null}
       </OAuthButton>
     </div>
   );
