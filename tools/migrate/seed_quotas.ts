@@ -18,7 +18,6 @@ async function main() {
       limit: 1000,
       orderBy: (table, { asc }) => asc(table.id),
     });
-
     cursor = workspaces.at(-1)?.id ?? "";
 
     for (const workspace of workspaces) {

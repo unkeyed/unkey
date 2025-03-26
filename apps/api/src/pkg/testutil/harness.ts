@@ -357,10 +357,24 @@ export abstract class Harness {
 
   protected async seed(): Promise<void> {
     await this.db.primary.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
+    await this.db.primary.insert(schema.quotas).values({
+      workspaceId: this.resources.unkeyWorkspace.id,
+      requestsPerMonth: 150_000,
+      auditLogsRetentionDays: 30,
+      logsRetentionDays: 7,
+      team: false,
+    });
     await this.db.primary.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);
     await this.db.primary.insert(schema.apis).values(this.resources.unkeyApi);
 
     await this.db.primary.insert(schema.workspaces).values(this.resources.userWorkspace);
+    await this.db.primary.insert(schema.quotas).values({
+      workspaceId: this.resources.userWorkspace.id,
+      requestsPerMonth: 150_000,
+      auditLogsRetentionDays: 30,
+      logsRetentionDays: 7,
+      team: false,
+    });
     await this.db.primary.insert(schema.keyAuth).values(this.resources.userKeyAuth);
     await this.db.primary.insert(schema.apis).values(this.resources.userApi);
   }
