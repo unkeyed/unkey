@@ -26,7 +26,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
     const [role, setRole] = useState(member.role);
     const isAdmin = userMembership?.role === "admin";
     const utils = trpc.useUtils();
-    
+
     const updateMember = trpc.org.members.update.useMutation({
       onSuccess: () => {
         utils.org.members.list.invalidate();
@@ -34,14 +34,14 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
       },
       onError: (error) => {
         toast.error(error.message || "Failed to update role");
-      }
+      },
     });
 
     async function handleRoleUpdate(newRole: string) {
       if (!organization) {
         return;
       }
-      
+
       try {
         await updateMember.mutateAsync({
           orgId: organization.id,
@@ -59,7 +59,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
       return (
         <Select
           value={role}
-          disabled={Boolean(user) && member.id === user?.id || updateMember.isLoading}
+          disabled={(Boolean(user) && member.id === user?.id) || updateMember.isLoading}
           onValueChange={handleRoleUpdate}
         >
           <SelectTrigger className="w-[180px] max-sm:w-36">
@@ -76,7 +76,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
     }
 
     return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
-  }
+  },
 );
 
 RoleSwitcher.displayName = "RoleSwitcher";

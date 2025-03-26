@@ -7,15 +7,15 @@ export const listMemberships = t.procedure
   .use(requireUser)
   .use(requireSelf)
   .input(z.string())
-  .query(async ({input: userId}) => {
+  .query(async ({ input: userId }) => {
     try {
-        return await authProvider.listMemberships(userId);
-      } catch (error) {
-        console.error("Error listing memberships:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch memberships",
-          cause: error
-        });
-      }
+      return await authProvider.listMemberships(userId);
+    } catch (error) {
+      console.error("Error listing memberships:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch memberships",
+        cause: error,
+      });
+    }
   });

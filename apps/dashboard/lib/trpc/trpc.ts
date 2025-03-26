@@ -35,8 +35,8 @@ export const requireWorkspace = t.middleware(({ next, ctx }) => {
 export const requireSelf = t.middleware(({ next, ctx, rawInput: userId }) => {
   if (ctx.user!.id !== userId) {
     throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'You can only access your own data',
+      code: "FORBIDDEN",
+      message: "You can only access your own data",
     });
   }
   return next();
@@ -45,65 +45,63 @@ export const requireSelf = t.middleware(({ next, ctx, rawInput: userId }) => {
 export const requireOrgAccess = t.middleware(async ({ next, ctx, rawInput: orgId }) => {
   if (!orgId) {
     throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'Organization ID is required',
+      code: "BAD_REQUEST",
+      message: "Organization ID is required",
     });
   }
   try {
     const memberships = await auth.listMemberships(ctx.user!.id);
     const hasAccess = memberships.data.some((m) => m.organization.id === orgId);
-    
+
     if (!hasAccess) {
       throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'You do not have access to this organization',
+        code: "FORBIDDEN",
+        message: "You do not have access to this organization",
       });
     }
 
     return next();
-
   } catch (error) {
     throw new TRPCError({
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Failed to verify organization access',
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to verify organization access",
       cause: error,
     });
   }
 });
 
-export const requireOrgAdmin = t.middleware(async ({next, ctx, rawInput }) => {
+export const requireOrgAdmin = t.middleware(async ({ next, ctx, rawInput }) => {
   let orgId: string | undefined;
-  
+
   // rawInput can be a string with just the orgId, or an object containing the orgId when it passed with other parameters
-  if (typeof rawInput === 'string') {
+  if (typeof rawInput === "string") {
     orgId = rawInput;
-  } else if (rawInput && typeof rawInput === 'object' && 'orgId' in rawInput) {
+  } else if (rawInput && typeof rawInput === "object" && "orgId" in rawInput) {
     orgId = rawInput.orgId as string;
   }
 
   if (!orgId) {
     throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'Organization ID is required',
+      code: "BAD_REQUEST",
+      message: "Organization ID is required",
     });
   }
   try {
     const memberships = await auth.listMemberships(ctx.user!.id);
     const isAdmin = memberships.data.some((m) => m.organization.id === orgId && m.role === "admin");
-    
+
     if (!isAdmin) {
       throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'This action requires admin privileges.',
+        code: "FORBIDDEN",
+        message: "This action requires admin privileges.",
       });
     }
 
     return next();
-
   } catch (error) {
     throw new TRPCError({
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Failed to verify admin privilege.',
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to verify admin privilege.",
       cause: error,
     });
   }

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "./server";
-import {UNKEY_SESSION_COOKIE, type User} from "./types";
+import { UNKEY_SESSION_COOKIE, type User } from "./types";
 import { deleteCookie, SetSessionCookie } from "./cookies";
 
 // Helper function for ensuring a signed-in user

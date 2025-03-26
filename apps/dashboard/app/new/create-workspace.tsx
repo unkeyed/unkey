@@ -19,7 +19,6 @@ import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { switchOrg } from "@/lib/auth/utils";
 import { useRef, useTransition } from "react";
 import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
@@ -34,38 +33,37 @@ export const CreateWorkspace: React.FC = () => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const workspaceIdRef = useRef<string | null>(null);
-  
+
   const switchOrgMutation = trpc.user.switchOrg.useMutation({
     onSuccess: (sessionData) => {
-        setCookie({
-          name: UNKEY_SESSION_COOKIE,
-          value: sessionData.token!,
-          options: {
-            httpOnly: true,
-            secure: true,
-            sameSite: "lax",
-            path: "/",
-            maxAge: Math.floor((sessionData.expiresAt!.getTime() - Date.now()) / 1000),
-          },
-        }).then(() => {
-          startTransition(()=> {
-            router.push(`/new?workspaceId=${workspaceIdRef.current}`);
-          })
+      setCookie({
+        name: UNKEY_SESSION_COOKIE,
+        value: sessionData.token!,
+        options: {
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: Math.floor((sessionData.expiresAt!.getTime() - Date.now()) / 1000),
+        },
+      }).then(() => {
+        startTransition(() => {
+          router.push(`/new?workspaceId=${workspaceIdRef.current}`);
+        });
       });
     },
     onError: (error) => {
       toast.error(`Failed to load new workspace: ${error.message}`);
-    }
+    },
   });
-
 
   const createWorkspace = trpc.workspace.create.useMutation({
     onSuccess: async ({ workspace, organizationId }) => {
-        workspaceIdRef.current = workspace.id;
-        switchOrgMutation.mutate(organizationId);
-      },
-      onError: (error) => {
-        toast.error(`Failed to create workspace: ${error.message}`);
+      workspaceIdRef.current = workspace.id;
+      switchOrgMutation.mutate(organizationId);
+    },
+    onError: (error) => {
+      toast.error(`Failed to create workspace: ${error.message}`);
     },
   });
 
@@ -77,7 +75,8 @@ export const CreateWorkspace: React.FC = () => {
         </div>
         <h2 className="text-lg font-medium">What is a workspace?</h2>
         <p className="text-content-subtle text-sm">
-          A workspace groups all your resources and billing. You can create free workspaces for individual use, or upgrade to a paid workspace to collaborate with team members.
+          A workspace groups all your resources and billing. You can create free workspaces for
+          individual use, or upgrade to a paid workspace to collaborate with team members.
         </p>
       </div>
     );
@@ -112,7 +111,7 @@ export const CreateWorkspace: React.FC = () => {
                 type="submit"
                 className="w-full"
               >
-                {(createWorkspace.isLoading || isPending) ? <Loading /> : "Create Workspace"}
+                {createWorkspace.isLoading || isPending ? <Loading /> : "Create Workspace"}
               </Button>
             </div>
           </form>

@@ -98,24 +98,23 @@ export async function setCookiesOnResponse(
 
 /**
  * Encapsulates the logic for the primary session cookie required for auth functionality
- * @param params 
+ * @param params
  */
 export async function SetSessionCookie(params: {
   token: string;
   expiresAt: Date;
 }): Promise<void> {
-
   const { token, expiresAt } = params;
 
   await setCookie({
     name: UNKEY_SESSION_COOKIE,
-      value: token,
-      options: {
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: "/",
-        maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
-      },
+    value: token,
+    options: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+    },
   });
 }

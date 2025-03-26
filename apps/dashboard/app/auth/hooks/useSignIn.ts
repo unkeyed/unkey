@@ -2,7 +2,7 @@ import { useSearchParams } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { resendAuthCode, signInViaEmail, verifyAuthCode } from "../actions";
 import { SignInContext } from "../context/signin-context";
-import { getCookie } from "@/lib/auth/cookies"
+import { getCookie } from "@/lib/auth/cookies";
 import {
   AuthErrorCode,
   type AuthErrorResponse,
@@ -75,13 +75,13 @@ export function useSignIn() {
       setEmail(email);
       setError(null);
       const result = await signInViaEmail(email);
-  
+
       // Check if the operation was successful
       if (result.success) {
         setIsVerifying(true);
         return;
       }
-  
+
       // Handle error case - only set error message if we have an error response
       if (isAuthErrorResponse(result)) {
         if (result.code === AuthErrorCode.ACCOUNT_NOT_FOUND) {

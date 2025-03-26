@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,13 +39,14 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
   const isCollapsed = state === "collapsed" && !isMobile;
 
   const { data: user } = trpc.user.getCurrentUser.useQuery();
-  const { data: memberships, isLoading: isUserMembershipsLoading } = trpc.user.listMemberships.useQuery(
-    user?.id as string, // make typescript happy
-    { 
-      enabled: !!user
-    }
-  );
-  
+  const { data: memberships, isLoading: isUserMembershipsLoading } =
+    trpc.user.listMemberships.useQuery(
+      user?.id as string, // make typescript happy
+      {
+        enabled: !!user,
+      },
+    );
+
   const userMemberships = memberships?.data;
 
   const currentOrgMembership = userMemberships?.find(
@@ -54,24 +55,22 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
 
   const changeWorkspace = trpc.user.switchOrg.useMutation({
     async onSuccess(sessionData) {
-      
       const { token, expiresAt } = sessionData;
-        await SetSessionCookie({
-            token: token!,
-            expiresAt: expiresAt!
-        }); 
+      await SetSessionCookie({
+        token: token!,
+        expiresAt: expiresAt!,
+      });
 
-        // refresh the check mark by invalidating the current user's org data
-        utils.user.getCurrentUser.invalidate();
+      // refresh the check mark by invalidating the current user's org data
+      utils.user.getCurrentUser.invalidate();
 
-        // reload data
-        router.replace('/');
-
+      // reload data
+      router.replace("/");
     },
     onError(error) {
-      console.error("Failed to switch workspace: ", error)
-      toast.error("Failed to switch workspace. Contact support if error persists.")
-    }
+      console.error("Failed to switch workspace: ", error);
+      toast.error("Failed to switch workspace. Contact support if error persists.");
+    },
   });
 
   const [search, _setSearch] = useState("");
@@ -100,11 +99,12 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             "flex items-center gap-2 overflow-hidden whitespace-nowrap",
             isCollapsed ? "justify-center" : "",
           )}
-        ><Avatar className="w-5 h-5 rounded border border-grayA-6">
-        <AvatarFallback className="text-gray-700 bg-gray-100 border border-gray-500 rounded">
-          {props.workspace.name.slice(0, 1).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
+        >
+          <Avatar className="w-5 h-5 rounded border border-grayA-6">
+            <AvatarFallback className="text-gray-700 bg-gray-100 border border-gray-500 rounded">
+              {props.workspace.name.slice(0, 1).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
           {isUserMembershipsLoading ? (
             <Loading />
           ) : !isCollapsed ? (

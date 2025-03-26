@@ -16,28 +16,28 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Function to start or restart the countdown timer
-    const startCountdown = useCallback(() => {
-      // Clear any existing timer first
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-      
-      // Set initial time
-      setTimeLeft(10);
-      
-      // Start a new timer
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-            }
-            return 0;
+  const startCountdown = useCallback(() => {
+    // Clear any existing timer first
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    // Set initial time
+    setTimeLeft(10);
+
+    // Start a new timer
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prevTime) => {
+        if (prevTime <= 1) {
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
           }
-          return prevTime - 1;
-        });
-      }, 1000);
-    }, []);
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+  }, []);
 
   // Set clientReady to true after hydration is complete
   useEffect(() => {
@@ -80,21 +80,21 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   };
 
   const resendCode = async () => {
-      try {
-        // Reset the timer when resending code
-        startCountdown();
-        
-        const p = handleResendCode();
-        toast.promise(p, {
-          loading: "Sending new code ...",
-          success: "A new code has been sent to your email",
-        });
-        await p;
-      } catch (error) {
-        setIsLoading(false);
-        console.error(error);
-      }
-    };
+    try {
+      // Reset the timer when resending code
+      startCountdown();
+
+      const p = handleResendCode();
+      toast.promise(p, {
+        loading: "Sending new code ...",
+        success: "A new code has been sent to your email",
+      });
+      await p;
+    } catch (error) {
+      setIsLoading(false);
+      console.error(error);
+    }
+  };
 
   return (
     <div className="flex flex-col max-w-sm mx-auto text-left">

@@ -307,9 +307,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   async listMemberships(userId: string): Promise<MembershipListResponse> {
     try {
       const user = await this.getUser(userId);
-      
+
       if (!user) {
-        return {data: [], metadata: {}};
+        return { data: [], metadata: {} };
       }
 
       const memberships = await this.provider.userManagement.listOrganizationMemberships({
@@ -564,7 +564,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       }
 
       await this.provider.userManagement.createMagicAuth({ email });
-      return { success: true }
+      return { success: true };
     } catch (error) {
       return this.handleError(error);
     }
@@ -679,7 +679,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       };
     } catch (error: any) {
       // Handle organization selection required case
-      console.error("verify email: ", error)
+      console.error("verify email: ", error);
       if (error.rawData.code === "organization_selection_required") {
         return {
           success: false,

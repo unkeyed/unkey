@@ -27,7 +27,6 @@ export const UserButton: React.FC = () => {
   // When mobile sidebar is open, we want to show the full component
   const isCollapsed = (state === "collapsed" || isMobile) && !(isMobile && openMobile);
 
-
   // Get user display name
   const displayName = user.fullName ?? user.email;
 

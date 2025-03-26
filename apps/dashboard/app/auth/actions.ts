@@ -2,7 +2,19 @@
 
 import { setCookies, getCookie, deleteCookie, SetSessionCookie } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
-import { AuthErrorCode, AuthErrorResponse, EmailAuthResult, errorMessages, NavigationResponse, OAuthResult, PENDING_SESSION_COOKIE, SignInViaOAuthOptions, UNKEY_SESSION_COOKIE, UserData, VerificationResult } from "@/lib/auth/types";
+import {
+  AuthErrorCode,
+  AuthErrorResponse,
+  EmailAuthResult,
+  errorMessages,
+  NavigationResponse,
+  OAuthResult,
+  PENDING_SESSION_COOKIE,
+  SignInViaOAuthOptions,
+  UNKEY_SESSION_COOKIE,
+  UserData,
+  VerificationResult,
+} from "@/lib/auth/types";
 import { requireEmailMatch, requireAuth } from "@/lib/auth/utils";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -167,9 +179,8 @@ export async function completeOrgSelection(
 }
 
 // Server-accessible switch org function vs client-side trpc
-// Used in route handlers, like join  
+// Used in route handlers, like join
 export async function switchOrg(orgId: string): Promise<{ success: boolean; error?: string }> {
-
   try {
     const { newToken, expiresAt } = await auth.switchOrg(orgId);
 

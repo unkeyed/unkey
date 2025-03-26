@@ -8,8 +8,8 @@ export const switchOrg = t.procedure
   .mutation(async ({ input: orgId }) => {
     try {
       const { newToken, expiresAt } = await authProvider.switchOrg(orgId);
-      return { 
-        success: true, 
+      return {
+        success: true,
         token: newToken,
         expiresAt,
       };

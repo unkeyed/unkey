@@ -38,11 +38,7 @@ interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
   organization: Organization | null;
 }
 
-export const InviteButton = ({
-  user,
-  organization,
-  ...rest
-}: InviteButtonProps) => {
+export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const utils = trpc.useUtils();
 
@@ -50,13 +46,13 @@ export const InviteButton = ({
     onSuccess: () => {
       // Invalidate the invitations list query to trigger a refetch
       utils.org.invitations.list.invalidate();
-      
+
       toast.success(
         `We have sent an email to ${form.getValues("email")} with instructions on how to join your workspace.`,
       );
       setDialogOpen(false);
     },
-    onError: (error: { message: any; }) => {
+    onError: (error: { message: any }) => {
       toast.error(`Failed to send invitation: ${error.message}`);
     },
   });

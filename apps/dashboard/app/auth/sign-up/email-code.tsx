@@ -23,10 +23,10 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-    
+
     // Set initial time
     setTimeLeft(10);
-    
+
     // Start a new timer
     timerRef.current = setInterval(() => {
       setTimeLeft((prevTime) => {
@@ -44,7 +44,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   React.useEffect(() => {
     setClientReady(true);
     startCountdown();
-    
+
     // Clean up timer when component unmounts
     return () => {
       if (timerRef.current) {
@@ -69,7 +69,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
     try {
       // Reset the timer when resending code
       setTimeLeft(10);
-      
+
       const p = handleResendCode();
       toast.promise(p, {
         loading: "Sending new code ...",

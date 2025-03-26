@@ -48,7 +48,11 @@ export function EmailSignIn() {
         className="relative flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
         disabled={isLoading}
       >
-        {clientReady && isLoading ? <Loading className="w-4 h-4 animate-spin" /> : "Sign In with Email"}
+        {clientReady && isLoading ? (
+          <Loading className="w-4 h-4 animate-spin" />
+        ) : (
+          "Sign In with Email"
+        )}
         {clientReady && lastUsed === "email" && <LastUsed />}
       </button>
     </form>
