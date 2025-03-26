@@ -2,7 +2,7 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
-import { useSignIn } from "@/lib/auth/hooks";
+import { useSignIn } from "../hooks";
 import { cn } from "@/lib/utils";
 import { OTPInput, type SlotProps } from "input-otp";
 import { useState } from "react";

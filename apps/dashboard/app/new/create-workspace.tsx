@@ -19,7 +19,7 @@ import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { switchOrg } from "@/lib/auth/actions";
+import { switchOrg } from "@/lib/auth/utils";
 import { useRef, useTransition } from "react";
 import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";

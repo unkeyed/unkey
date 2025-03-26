@@ -22,7 +22,7 @@ import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { Loading } from "@/components/dashboard/loading";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { SetSessionCookie } from "@/lib/auth/actions";
+import { SetSessionCookie } from "@/lib/auth/cookies";
 
 type Props = {
   workspace: {
@@ -32,9 +32,9 @@ type Props = {
 
 export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
   const router = useRouter();
-  const pathName = usePathname();
   const utils = trpc.useUtils();
   const { isMobile, state } = useSidebar();
+
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
 
@@ -57,16 +57,14 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
       
       const { token, expiresAt } = sessionData;
         await SetSessionCookie({
-          cookieOptions: {
             token: token!,
             expiresAt: expiresAt!
-          },
-          redirectTo: pathName!
-        })
+        }); 
 
         // refresh the check mark by invalidating the current user's org data
         utils.user.getCurrentUser.invalidate();
 
+        // reload data
         router.replace('/');
 
     },

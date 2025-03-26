@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 
-import { signOut } from "@/lib/auth/actions";
+import { signOut } from "@/lib/auth/utils";
 import type React from "react";
 import { trpc } from "@/lib/trpc/client";
 

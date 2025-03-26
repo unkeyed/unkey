@@ -14,21 +14,49 @@ import type React from "react";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useOrganization, useUser } from "@/lib/auth/hooks";
+// import { useOrganization, useUser } from "@/lib/auth/hooks";
 import { trpc } from "@/lib/trpc/client";
+import { SetSessionCookie } from "@/lib/auth/cookies";
+import { toast } from "@/components/ui/toaster";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
   const { data: memberships, isLoading: isUserMembershipsLoading } = trpc.user.listMemberships.useQuery(
-      user?.id as string, // make typescript happy
-      { 
-        enabled: !!user
-      }
-    );
-  const { switchOrganization } = useUser();
-  const { organization: currentOrg } = useOrganization();
+    user?.id as string, // make typescript happy
+    { 
+      enabled: !!user
+    }
+  );
+  const utils = trpc.useUtils();
+  // const { switchOrganization } = useUser();
+  // const { organization: currentOrg } = useOrganization();
   const [isLoading, setLoading] = useState(false);
-  const userMemberships = memberships?.data;
+  const userMemberships = memberships!.data;
+
+  const currentOrg = userMemberships.find(
+    (membership) => membership.organization.id === user?.orgId,
+  );
+
+  const changeWorkspace = trpc.user.switchOrg.useMutation({
+    async onSuccess(sessionData) {
+      
+      const { token, expiresAt } = sessionData;
+        await SetSessionCookie({
+            token: token!,
+            expiresAt: expiresAt!
+        }); 
+
+        // refresh the check mark by invalidating the current user's org data
+        utils.user.getCurrentUser.invalidate();
+
+        //router.replace('/');
+
+    },
+    onError(error) {
+      console.error("Failed to switch workspace: ", error)
+      toast.error("Failed to switch workspace. Contact support if error persists.")
+    }
+  });
 
 
   async function changeOrg(orgId: string | null) {
@@ -37,7 +65,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
     }
     try {
       setLoading(true);
-      await switchOrganization(orgId);
+      changeWorkspace.mutateAsync(orgId);
     } finally {
       setLoading(false);
     }
@@ -58,7 +86,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
             <Loading />
           ) : (
             <span className="text-sm font-semibold">
-              {currentOrg?.name ?? "Free Workspace"}
+              {currentOrg?.organization.name ?? "Free Workspace"}
             </span>
           )}
         </div>
@@ -75,13 +103,13 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
             >
               <span
                 className={
-                  membership.organization.id === currentOrg?.id ? "font-semibold" : undefined
+                  membership.organization.id === currentOrg?.organization.id ? "font-semibold" : undefined
                 }
               >
                 {" "}
                 {membership.organization.name}
               </span>
-              {membership.organization.id === currentOrg?.id ? <Check className="w-4 h-4" /> : null}
+              {membership.organization.id === currentOrg?.organization.id ? <Check className="w-4 h-4" /> : null}
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>

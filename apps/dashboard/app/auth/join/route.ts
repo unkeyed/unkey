@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
-import { switchOrg } from "@/lib/auth/actions";
+import { switchOrg } from "../actions";
 
 export async function GET(request: NextRequest) {
   const DASHBOARD_URL = new URL("/apis", request.url);

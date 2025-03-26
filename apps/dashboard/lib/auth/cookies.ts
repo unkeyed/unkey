@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
+import { UNKEY_SESSION_COOKIE } from "./types";
 
 export interface CookieOptions {
   secure: boolean;
@@ -93,4 +94,28 @@ export async function setCookiesOnResponse(
     response.cookies.set(cookie.name, cookie.value, cookie.options);
   }
   return response;
+}
+
+/**
+ * Encapsulates the logic for the primary session cookie required for auth functionality
+ * @param params 
+ */
+export async function SetSessionCookie(params: {
+  token: string;
+  expiresAt: Date;
+}): Promise<void> {
+
+  const { token, expiresAt } = params;
+
+  await setCookie({
+    name: UNKEY_SESSION_COOKIE,
+      value: token,
+      options: {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+      },
+  });
 }

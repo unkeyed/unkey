@@ -1,8 +1,8 @@
 "use client";
 
 import { FadeIn } from "@/components/landing/fade-in";
-import { SignInProvider } from "@/lib/auth/context/signin-context";
-import { useSignIn } from "@/lib/auth/hooks";
+import { SignInProvider } from "../../context/signin-context";
+import { useSignIn } from "../../hooks";
 import { MoveRight } from "lucide-react";
 import Link from "next/link";
 import { ErrorBanner, WarnBanner } from "../../banners";

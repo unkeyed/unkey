@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { completeOrgSelection } from "@/lib/auth/actions";
+import { completeOrgSelection } from "../actions";
 import type { Organization } from "@/lib/auth/types";
 import { Button } from "@unkey/ui";
 import type React from "react";
