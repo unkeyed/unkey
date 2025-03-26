@@ -24,6 +24,11 @@ jobs:
         with:
           go: true
 
+      - name: Build CLI
+        working-directory: ./go
+        run: |
+          go build -o unkey .
+
       - name: Run quota check
         working-directory: ./go
         env:
@@ -31,7 +36,7 @@ jobs:
           DATABASE_DSN: ${{ secrets.DATABASE_DSN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          go run . quotacheck
+          ./unkey quotacheck
 
       - name: Send Heartbeat
         run: curl ${{ secrets.QUOTA_CHECK_HEARTBEAT_URL }}
