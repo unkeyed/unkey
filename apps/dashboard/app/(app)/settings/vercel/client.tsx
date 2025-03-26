@@ -1,3 +1,9 @@
+/**
+ * Deprecated with new auth
+ * Hiding for now until we decide if we want to fix it up or toss it
+ */
+
+
 "use client";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
