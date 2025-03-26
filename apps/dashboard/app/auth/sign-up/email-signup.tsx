@@ -6,8 +6,9 @@ import { Loading } from "@/components/dashboard/loading";
 import { FadeInStagger } from "@/components/landing/fade-in";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { useSignUp } from "@/lib/auth/hooks/useSignUp";
+import { useSignUp } from "../hooks/useSignUp";
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
+import { useSearchParams } from "next/navigation";
 
 interface Props {
   setVerification: (value: boolean) => void;
@@ -16,6 +17,15 @@ interface Props {
 export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
   const { handleSignUpViaEmail } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
+  const searchParams = useSearchParams();
+  const emailFromParams = searchParams?.get("email") || "";
+
+  //fix hydration error with the loading state
+  const [clientLoaded, setClientLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    setClientLoaded(true);
+  }, []);
 
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -85,6 +95,7 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
             </label>
             <Input
               name="email"
+              defaultValue={emailFromParams}
               placeholder="name@example.com"
               type="email"
               autoCapitalize="none"
@@ -100,7 +111,7 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
           className="flex items-center justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
           disabled={isLoading}
         >
-          {isLoading ? <Loading className="w-4 h-4 animate-spin" /> : "Sign Up with Email"}
+          {!clientLoaded ? "Sign Up with Email" : isLoading ? <Loading className="w-4 h-4 animate-spin" /> : "Sign Up with Email"}
         </button>
       </form>
     </FadeInStagger>

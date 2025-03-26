@@ -3,12 +3,12 @@ import { FadeIn } from "@/components/landing/fade-in";
 import { EmailCode } from "../email-code";
 import { EmailSignUp } from "../email-signup";
 import { OAuthSignUp } from "../oauth-signup";
-import { SignUpProvider } from "@/lib/auth/context/signup-context";
+import { SignUpProvider } from "../../context/signup-context";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loading } from "@/components/dashboard/loading";
-import { useSignUp } from "@/lib/auth/hooks";
+import { useSignUp } from "../../hooks";
 
 export default function AuthenticationPage() {
   const [verify, setVerify] = useState(false);
