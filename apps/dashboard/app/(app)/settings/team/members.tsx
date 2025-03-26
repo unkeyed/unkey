@@ -77,7 +77,7 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
               <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <Avatar>
                   <AvatarImage src={member.avatarUrl ?? undefined} />
-                  <AvatarFallback>{member.fullName ?? member.email.slice(0, 1)}</AvatarFallback>
+                  <AvatarFallback>{member.fullName?.slice(0, 1) ?? member.email.slice(0, 1)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
                   <span className="text-content font-medium">
