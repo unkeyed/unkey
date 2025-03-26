@@ -5,7 +5,7 @@ import { toast } from "@/components/ui/toaster";
 import { useSignIn } from "../hooks";
 import { cn } from "@/lib/utils";
 import { OTPInput, type SlotProps } from "input-otp";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   const { handleVerification, handleResendCode, setError } = useSignIn();
@@ -13,10 +13,36 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const [otp, setOtp] = useState("");
   const [clientReady, setClientReady] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to start or restart the countdown timer
+    const startCountdown = useCallback(() => {
+      // Clear any existing timer first
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      // Set initial time
+      setTimeLeft(10);
+      
+      // Start a new timer
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+            }
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+    }, []);
 
   // Set clientReady to true after hydration is complete
   useEffect(() => {
     setClientReady(true);
+    startCountdown();
 
     // Start countdown timer only on client side
     const timer = setInterval(() => {
@@ -30,8 +56,12 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
     }, 1000);
 
     // Clean up timer when component unmounts
-    return () => clearInterval(timer);
-  }, []);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [startCountdown]);
 
   const verifyCode = async (code: string) => {
     if (!code) {
@@ -52,7 +82,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   const resendCode = async () => {
       try {
         // Reset the timer when resending code
-        setTimeLeft(10);
+        startCountdown();
         
         const p = handleResendCode();
         toast.promise(p, {
@@ -84,7 +114,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
           </button>
         </p>
       )}
-      
+
       <form className="flex flex-col gap-12 mt-10" onSubmit={() => verifyCode(otp)}>
         <OTPInput
           data-1p-ignore

@@ -15,25 +15,43 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   const [timeLeft, setTimeLeft] = React.useState(10); // Start with 10 seconds
   const [clientReady, setClientReady] = React.useState(false);
   const [otp, setOtp] = React.useState("");
+  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  // Set clientReady and start countdown after hydration is complete
-  React.useEffect(() => {
-    setClientReady(true);
+  // Function to start or restart the countdown timer
+  const startCountdown = React.useCallback(() => {
+    // Clear any existing timer first
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
     
-    // Start countdown timer only on client side
-    const timer = setInterval(() => {
+    // Set initial time
+    setTimeLeft(10);
+    
+    // Start a new timer
+    timerRef.current = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
-          clearInterval(timer);
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
           return 0;
         }
         return prevTime - 1;
       });
     }, 1000);
-
-    // Clean up timer when component unmounts
-    return () => clearInterval(timer);
   }, []);
+
+  React.useEffect(() => {
+    setClientReady(true);
+    startCountdown();
+    
+    // Clean up timer when component unmounts
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [startCountdown]);
 
   const verifyCode = async (otp: string) => {
     if (typeof otp !== "string") {
