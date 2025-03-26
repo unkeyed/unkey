@@ -122,12 +122,12 @@ func TestAccuracy(t *testing.T) {
 							upperLimit := int(maxAllowed * 1.2)
 							lowerLimit := int(math.Min(maxAllowed*0.95, float64(total)))
 
-							t.Logf("total: %d, passed: %d, acceptable: [%d - %d]", total, passed, lowerLimit, upperLimit)
+							t.Logf("windows: %d, total: %d, passed: %d, acceptable: [%d - %d]", int(windows), total, passed, lowerLimit, upperLimit)
 							// Verify results
 							require.GreaterOrEqual(t, passed, lowerLimit,
-								"Success count should be >= lower limit")
+								"Passed count should be >= lower limit")
 							require.LessOrEqual(t, passed, upperLimit,
-								"Success count should be <= upper limit")
+								"Passed count should be <= upper limit")
 
 							t.Logf("balance: %+v", lb.GetMetrics())
 

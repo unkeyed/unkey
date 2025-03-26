@@ -10,6 +10,7 @@
 
 import { getTenantId } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
+import { freeTierQuotas } from "@/lib/quotas";
 import { newId } from "@unkey/id";
 import { redirect } from "next/navigation";
 
@@ -22,12 +23,18 @@ export default async function Page() {
   });
 
   if (!ws) {
+    const id = newId("workspace");
     await db.insert(schema.workspaces).values({
-      id: newId("workspace"),
+      id,
       name: "Personal Workspace",
       tenantId,
       betaFeatures: {},
       features: {},
+    });
+
+    await db.insert(schema.quotas).values({
+      workspaceId: id,
+      ...freeTierQuotas,
     });
   }
 

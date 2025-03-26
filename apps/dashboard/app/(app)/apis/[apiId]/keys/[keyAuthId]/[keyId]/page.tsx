@@ -1,5 +1,4 @@
 import { type Interval, IntervalSelect } from "@/app/(app)/apis/[apiId]/select";
-import type { NestedPermissions } from "@/app/(app)/authorization/roles/[roleId]/tree";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
@@ -226,36 +225,12 @@ export default async function APIKeyDetailPage(props: {
     }
   });
 
-  const roleTee = key.workspace.roles.map((role) => {
-    const nested: NestedPermissions = {};
-    for (const permission of key.workspace.permissions) {
-      let n = nested;
-      const parts = permission.name.split(".");
-      for (let i = 0; i < parts.length; i++) {
-        const p = parts[i];
-        if (!(p in n)) {
-          n[p] = {
-            id: permission.id,
-            name: permission.name,
-            description: permission.description,
-            checked: role.permissions.some((p) => p.permissionId === permission.id),
-            part: p,
-            permissions: {},
-            path: parts.slice(0, i).join("."),
-          };
-        }
-        n = n[p].permissions;
-      }
-    }
-    const data = {
+  const rolesList = key.workspace.roles.map((role) => {
+    return {
       id: role.id,
       name: role.name,
-      description: role.description,
-      keyId: key.id,
-      active: key.roles.some((keyRole) => keyRole.roleId === role.id),
-      nestedPermissions: nested,
+      isActive: key.roles.some((keyRole) => keyRole.roleId === role.id),
     };
-    return data;
   });
 
   return (
@@ -372,7 +347,7 @@ export default async function APIKeyDetailPage(props: {
               </div>
               <RBACButtons permissions={key.workspace.permissions} />
             </div>
-            <PermissionList roles={roleTee} />
+            <PermissionList roles={rolesList} keyId={key.id} />
           </div>
         </div>
       </PageContent>

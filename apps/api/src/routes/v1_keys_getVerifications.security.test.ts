@@ -83,6 +83,14 @@ test("cannot read keys from a different workspace", async (t) => {
     betaFeatures: {},
   });
 
+  await h.db.primary.insert(schema.quotas).values({
+    workspaceId,
+    requestsPerMonth: 150_000,
+    auditLogsRetentionDays: 30,
+    logsRetentionDays: 7,
+    team: false,
+  });
+
   const keyAuthId = newId("test");
   await h.db.primary.insert(schema.keyAuth).values({
     id: keyAuthId,

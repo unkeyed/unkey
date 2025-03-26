@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/routes"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -44,10 +45,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.OtelEnabled {
 		grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			Application: "api",
-			Version:     version.Version,
-			InstanceID:  cfg.ClusterInstanceID,
-			CloudRegion: cfg.Region,
+			Application:     "api",
+			Version:         version.Version,
+			InstanceID:      cfg.ClusterInstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
 		},
 			shutdowns,
 		)
@@ -101,6 +103,14 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
+	caches, err := caches.New(caches.Config{
+		Logger: logger,
+		Clock:  clk,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create caches: %w", err)
+	}
+
 	srv, err := zen.New(zen.Config{
 		InstanceID: cfg.ClusterInstanceID,
 		Logger:     logger,
@@ -117,9 +127,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		Logger: logger,
-		DB:     db,
-		Clock:  clk,
+		Logger:   logger,
+		DB:       db,
+		Clock:    clk,
+		KeyCache: caches.KeyByHash,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -156,6 +167,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:     db,
 		Logger: logger,
 		Clock:  clk,
+		Cache:  caches.PermissionsByKeyId,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create permissions service: %w", err)
@@ -169,6 +181,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Validator:   validator,
 		Ratelimit:   rlSvc,
 		Permissions: p,
+		Caches:      caches,
 	})
 
 	go func() {
