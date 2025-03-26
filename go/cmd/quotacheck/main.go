@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"context"
@@ -24,12 +23,7 @@ var Cmd = &cli.Command{
 	Name:        "quotacheck",
 	Description: "Check for exceeded quotas",
 	Flags: []cli.Flag{
-		&cli.IntFlag{
-			Name:    "parallel",
-			Value:   16,
-			Usage:   "Number of parallel workers to process workspace quota checks",
-			Aliases: []string{"p"},
-		},
+
 		&cli.StringFlag{
 			Name:     "clickhouse-url",
 			Usage:    "URL for the ClickHouse database",
@@ -78,48 +72,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	queue := make(chan db.ListWorkspacesRow, 1)
-
-	wg := sync.WaitGroup{}
-
-	workers := cmd.Int("parallel")
-	logger.Info("Creating workers", "goroutines", workers)
-	for range workers {
-		go func() {
-			for e := range queue {
-				if !e.Workspace.Enabled {
-					wg.Done()
-					continue
-				}
-
-				usedVerifications, err := ch.GetBillableVerifications(ctx, e.Workspace.ID, year, int(month))
-				if err != nil {
-					panic(err)
-				}
-
-				usedRatelimits, err := ch.GetBillableRatelimits(ctx, e.Workspace.ID, year, int(month))
-				if err != nil {
-					panic(err)
-				}
-
-				usage := usedVerifications + usedRatelimits
-
-				if usage > e.Quotas.RequestsPerMonth {
-					logger.Warn("workspace has exceeded request quota",
-						"id", e.Workspace.ID,
-					)
-					if slackWebhookURL != "" {
-						err = sendSlackNotification(slackWebhookURL, e, usage)
-						if err != nil {
-							panic(err)
-						}
-					}
-				}
-				wg.Done()
-			}
-
-		}()
-	}
 
 	logger.Info("Checking workspaces")
 	counter := 0
@@ -139,15 +91,40 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		for _, e := range list {
 			counter++
 			if counter%100 == 0 {
-				logger.Info("progress", "n", counter)
+				logger.Info("progress", "count", counter)
 			}
-			wg.Add(1)
-			queue <- e
+			if !e.Workspace.Enabled {
+				continue
+			}
+
+			usedVerifications, err := ch.GetBillableVerifications(ctx, e.Workspace.ID, year, int(month))
+			if err != nil {
+				panic(err)
+			}
+
+			usedRatelimits, err := ch.GetBillableRatelimits(ctx, e.Workspace.ID, year, int(month))
+			if err != nil {
+				panic(err)
+			}
+
+			usage := usedVerifications + usedRatelimits
+
+			if usage > e.Quotas.RequestsPerMonth {
+				logger.Warn("workspace has exceeded request quota",
+					"id", e.Workspace.ID,
+				)
+				if slackWebhookURL != "" {
+					err = sendSlackNotification(slackWebhookURL, e, usage)
+					if err != nil {
+						panic(err)
+					}
+				}
+			}
+
 		}
 
 	}
 
-	wg.Wait()
 	return nil
 }
 
