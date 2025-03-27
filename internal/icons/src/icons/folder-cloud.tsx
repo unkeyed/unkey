@@ -13,40 +13,37 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const Plus: React.FC<IconProps> = ({ size, filled, ...props }) => {
+export const FolderCloud: React.FC<IconProps> = ({ size, filled, ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
+
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
+      {...props}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g fill="currentColor">
-        <line
+      <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
+        <path
+          d="M6 15h-3a1.5 1.5 0 0 1-1.5-1.5v-9.75a1.5 1.5 0 0 1 1.5-1.5h4.5l2.25 2.25h5.25a1.5 1.5 0 0 1 1.5 1.5v0.38"
           fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          strokeLinecap="square"
+          strokeMiterlimit="10"
           strokeWidth={strokeWidth}
-          x1="9"
-          x2="9"
-          y1="3.25"
-          y2="14.75"
         />
-        <line
+        <path
+          d="M13.95 9c-1.62 0-2.99 1.2-3.26 2.83-1.06 0.13-1.81 1.12-1.68 2.19 0.12 0.98 0.93 1.72 1.91 1.73h3.03c1.82 0 3.3-1.51 3.3-3.38s-1.48-3.38-3.3-3.37z"
           fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          strokeLinecap="square"
+          strokeMiterlimit="10"
           strokeWidth={strokeWidth}
-          x1="3.25"
-          x2="14.75"
-          y1="9"
-          y2="9"
         />
       </g>
     </svg>
   );
 };
+
+export default FolderCloud;

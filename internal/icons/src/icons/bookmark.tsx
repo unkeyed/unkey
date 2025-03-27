@@ -9,24 +9,24 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-
 import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const CaretDown: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size];
+export const Bookmark: React.FC<IconProps> = ({ size, filled, ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
     <svg
       {...props}
       height={pixelSize}
       width={pixelSize}
-      viewBox="0 0 18 18"
+      viewBox="0 0 20 20"
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="currentColor">
         <path
-          d="M9.845,14.209l5.025-7.923c.422-.666-.056-1.536-.845-1.536H3.975c-.788,0-1.267,.87-.845,1.536l5.025,7.923c.393,.619,1.296,.619,1.689,0Z"
-          fill="currentColor"
+          d="m16,18l-6-4-6,4V6c0-1.657,1.343-3,3-3h6c1.657,0,3,1.343,3,3v11Z"
+          fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"

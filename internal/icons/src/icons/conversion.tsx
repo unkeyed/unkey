@@ -9,24 +9,32 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-
 import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const CaretDown: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size];
+export const Conversion: React.FC<IconProps> = ({ size, filled, ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
+      {...props}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="currentColor">
-        <path
-          d="M9.845,14.209l5.025-7.923c.422-.666-.056-1.536-.845-1.536H3.975c-.788,0-1.267,.87-.845,1.536l5.025,7.923c.393,.619,1.296,.619,1.689,0Z"
-          fill="currentColor"
+        <polyline
+          fill={filled ? "currentColor" : "none"}
+          points="17 12 3 12 7 16"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+        />
+        <polyline
+          fill={filled ? "currentColor" : "none"}
+          points="3 8 17 8 13 4"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
