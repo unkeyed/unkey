@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { CaretDown, CaretExpandY, CaretUp, CircleCarretRight } from "@unkey/icons";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
+import { LoadingIndicator } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
@@ -349,12 +350,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
             </tbody>
           </table>
-          <LoadMoreFooter
-            onLoadMore={onLoadMore}
-            isFetchingNextPage={isFetchingNextPage}
-            totalVisible={virtualizer.getVirtualItems().length}
-            totalCount={tableData.getTotalLength()}
-          />
+          {isFetchingNextPage && <LoadingIndicator />}
         </div>
       </div>
     );
