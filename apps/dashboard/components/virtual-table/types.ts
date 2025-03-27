@@ -25,7 +25,6 @@ export type TableConfig = {
   rowHeight: number;
   loadingRows: number;
   overscan: number;
-  tableBorder: number;
   throttleDelay: number;
   headerHeight: number;
 };

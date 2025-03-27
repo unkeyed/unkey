@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { CaretDown, CaretExpandY, CaretUp, CircleCarretRight } from "@unkey/icons";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
-import { LoadingIndicator } from "./components/loading-indicator";
+import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
@@ -55,7 +55,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const parentRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const fixedHeight = useTableHeight(containerRef, config.headerHeight, config.tableBorder);
+    const fixedHeight = useTableHeight(containerRef);
     const tableData = useTableData<TTableData>(realtimeData, historicData);
 
     const virtualizer = useVirtualData({
@@ -276,7 +276,34 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
             </tbody>
           </table>
-          {isFetchingNextPage && <LoadingIndicator />}
+          <LoadMoreFooter
+            onLoadMore={onLoadMore}
+            isFetchingNextPage={isFetchingNextPage}
+            totalVisible={virtualizer.getVirtualItems().length}
+            totalCount={tableData.getTotalLength()}
+          />
+          {/* <div className="sticky bottom-0 left-0 right-0 w-full items-center justify-center flex"> */}
+          {/*   <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 h-[60px] flex items-center justify-center p-[18px] rounded-[10px] drop-shadow-lg shadow-sm mb-5"> */}
+          {/*     <div className="flex w-full justify-between items-center text-[13px] text-accent-9"> */}
+          {/*       <div className="flex gap-2"> */}
+          {/*         <span>Viewing</span>{" "} */}
+          {/*         <span className="text-accent-12">50</span> */}
+          {/*         <span>of</span> */}
+          {/*         <span className="text-grayA-12">500 </span> */}
+          {/*         <span>keys</span> */}
+          {/*       </div> */}
+          {/*       <Button */}
+          {/*         variant="outline" */}
+          {/*         size="sm" */}
+          {/*         onClick={onLoadMore} */}
+          {/*         loading={isFetchingNextPage} */}
+          {/*         disabled={isFetchingNextPage} */}
+          {/*       > */}
+          {/*         Load more */}
+          {/*       </Button> */}
+          {/*     </div> */}
+          {/*   </div> */}
+          {/* </div> */}
         </div>
       </div>
     );
