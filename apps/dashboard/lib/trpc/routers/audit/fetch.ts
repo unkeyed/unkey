@@ -35,6 +35,11 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.read)
     }
 
     const { slicedItems, hasMore } = omitLastItemForPagination(result.logs, params.limit);
+
+    // logs are sorted by id, to make our pagination work
+    // here we need to resort them by time for displaying the table in the correct order
+    slicedItems.sort((a, b) => b.time - a.time);
+
     const uniqueUsers = await fetchUsersFromLogs(slicedItems);
 
     const items: AuditLogsResponse["auditLogs"] = slicedItems.map((l) => {
