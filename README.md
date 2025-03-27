@@ -11,7 +11,7 @@
 
 ## Contributing
 
-We welcome contributions! To ensure your work doesn't conflcit with ongoing work, please:
+We welcome contributions! To ensure your work doesn't conflict with ongoing work, please:
 
 1. Read our [contributing guide](https://engineering.unkey.com/contributing)
 2. **Discuss your ideas with us in public channels (GitHub/Discord) BEFORE starting development** (No private DMs)
