@@ -1,22 +1,16 @@
 "use client";
+import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toaster";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import {
-  BookBookmark,
-  ChartActivity2,
-  CircleHalfDottedClock,
-  CircleLock,
-  Key,
-} from "@unkey/icons";
+import { BookBookmark, ChartActivity2, CircleHalfDottedClock, CircleLock, Key } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 import { useKeysListQuery } from "./hooks/use-logs-query";
-import { getRowClassName, STATUS_STYLES } from "./utils/get-row-class";
-import { TimestampInfo } from "@/components/timestamp-info";
-import { cn } from "@unkey/ui/src/lib/utils";
+import { STATUS_STYLES, getRowClassName } from "./utils/get-row-class";
 
 type Props = {
   keyspaceId: string;
@@ -46,9 +40,7 @@ export const KeysList: React.FC<Props> = ({ keyspaceId }) => {
                   {key.id.substring(0, 8)}...
                   {key.id.substring(key.id.length - 4)}
                 </div>
-                {key.name && (
-                  <span className="font-sans text-accent-9">{key.name}</span>
-                )}
+                {key.name && <span className="font-sans text-accent-9">{key.name}</span>}
               </div>
               {!key.enabled && (
                 <Badge className="px-1.5 rounded-md bg-warningA-3 text-warning-11 text-xs">
@@ -63,9 +55,7 @@ export const KeysList: React.FC<Props> = ({ keyspaceId }) => {
         key: "identitiy",
         header: "Identity",
         width: "10%",
-        render: (key) => (
-          <div>{key.identity?.external_id ?? key.owner_id ?? "—"}</div>
-        ),
+        render: (key) => <div>{key.identity?.external_id ?? key.owner_id ?? "—"}</div>,
       },
       {
         key: "value",
@@ -90,7 +80,7 @@ export const KeysList: React.FC<Props> = ({ keyspaceId }) => {
                 "px-1.5 rounded-md bg-grayA-3 text-grayA-11 flex gap-2 items-center w-24",
                 selectedKey?.id === key.id
                   ? STATUS_STYLES.badge.selected
-                  : STATUS_STYLES.badge.default
+                  : STATUS_STYLES.badge.default,
               )}
             >
               <div>
@@ -135,10 +125,9 @@ export const KeysList: React.FC<Props> = ({ keyspaceId }) => {
                 "px-1.5 rounded-md flex gap-2 items-center w-[135px] border",
                 selectedKey?.id === key.id
                   ? STATUS_STYLES.badge.selected
-                  : expiryStatus === "expired" ||
-                    expiryStatus === "expiring-soon"
-                  ? "bg-orange-3 text-orange-11 group-hover:bg-orange-4"
-                  : STATUS_STYLES.badge.default
+                  : expiryStatus === "expired" || expiryStatus === "expiring-soon"
+                    ? "bg-orange-3 text-orange-11 group-hover:bg-orange-4"
+                    : STATUS_STYLES.badge.default,
               )}
             >
               <div>
@@ -176,9 +165,8 @@ export const KeysList: React.FC<Props> = ({ keyspaceId }) => {
               <Empty.Icon className="w-auto" />
               <Empty.Title>Key Verification Logs</Empty.Title>
               <Empty.Description className="text-left">
-                No key verification data to show. Once requests are made with
-                API keys, you'll see a summary of successful and failed
-                verification attempts.
+                No key verification data to show. Once requests are made with API keys, you'll see a
+                summary of successful and failed verification attempts.
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-start">
                 <a
@@ -279,19 +267,9 @@ const SimpleBarChart = () => {
   return (
     <div className="flex items-end h-[28px] bg-gray-1 w-fit border border-transparent hover:border-grayA-3  group-hover:border-grayA-3 rounded-[6px_6px_5px_5px] border-inside px-1 py-0">
       {bars.map((bar) => (
-        <div
-          key={bar.id}
-          className="flex flex-col"
-          style={{ marginRight: "2px" }}
-        >
-          <div
-            className="w-[3px] bg-error-9"
-            style={{ height: `${bar.topHeight}px` }}
-          />
-          <div
-            className="w-[3px] bg-grayA-5"
-            style={{ height: `${bar.bottomHeight}px` }}
-          />
+        <div key={bar.id} className="flex flex-col" style={{ marginRight: "2px" }}>
+          <div className="w-[3px] bg-error-9" style={{ height: `${bar.topHeight}px` }} />
+          <div className="w-[3px] bg-grayA-5" style={{ height: `${bar.bottomHeight}px` }} />
         </div>
       ))}
     </div>

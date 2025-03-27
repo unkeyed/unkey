@@ -7,7 +7,7 @@ export const keysListParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   identities: z
@@ -15,7 +15,7 @@ export const keysListParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   keyIds: z
@@ -23,7 +23,7 @@ export const keysListParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   cursorKeyId: z.string().nullable(),
