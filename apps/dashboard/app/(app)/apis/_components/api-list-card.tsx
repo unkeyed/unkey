@@ -12,7 +12,7 @@ type Props = {
 };
 
 export const ApiListCard = ({ api }: Props) => {
-  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(api.keyspaceId);
+  const { timeseries, isError } = useFetchVerificationTimeseries(api.keyspaceId);
 
   const passed = timeseries?.reduce((acc, crr) => acc + crr.success, 0) ?? 0;
   const blocked = timeseries?.reduce((acc, crr) => acc + crr.error, 0) ?? 0;
@@ -26,7 +26,8 @@ export const ApiListCard = ({ api }: Props) => {
       chart={
         <StatsTimeseriesBarChart
           data={timeseries}
-          isLoading={isLoading}
+          // INFO: Causing too much lag when there are too many Charts. We'll try to optimize this in the future.
+          isLoading={false}
           isError={isError}
           config={{
             success: {
