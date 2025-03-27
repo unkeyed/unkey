@@ -34,20 +34,6 @@ export async function fetchApiOverview({
           id: true, // Include the keyspace ID
           sizeApprox: true,
         },
-        with: {
-          keys: {
-            limit: 10,
-            columns: {
-              id: true,
-              name: true,
-              createdAtM: true,
-            },
-            where: (keysTable, { isNull }) => {
-              return isNull(keysTable.deletedAtM);
-            },
-            orderBy: (keysTable, { desc }) => [desc(keysTable.createdAtM)],
-          },
-        },
       },
     },
     orderBy: (table, { asc }) => [asc(table.id)],
@@ -65,19 +51,10 @@ export async function fetchApiOverview({
     apiItems.map(async (api) => {
       const keyspaceId = api.keyAuth?.id || null;
 
-      // Transform the keys data for the new keyDetails field
-      const keyDetails =
-        api.keyAuth?.keys?.map((key) => ({
-          id: key.id,
-          name: key.name,
-        })) || [];
-
       return {
         id: api.id,
         name: api.name,
         keyspaceId,
-        keyDetails,
-        // Include count for backward compatibility
         keys: [
           {
             count: api.keyAuth?.sizeApprox || 0,
