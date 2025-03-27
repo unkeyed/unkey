@@ -36,7 +36,7 @@ export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   workspace: Workspace & {
-    quotas?: Quotas;
+    quota?: Quotas;
   };
 }) {
   const usageQuery = useFetchUsage();
@@ -108,7 +108,7 @@ export function AppSidebar({
             isLoading={usageQuery.isLoading || props.workspace === null}
             tier={props.workspace.tier ?? "Free"}
             current={usageQuery.data?.billableTotal ?? 0}
-            max={props.workspace.quotas?.requestsPerMonth ?? 150_000}
+            max={props.workspace.quota?.requestsPerMonth ?? 150_000}
           >
             <UsageInsight.Details>
               <UsageInsight.Item title="Request limit" description="requests" />
