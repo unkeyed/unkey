@@ -6,7 +6,6 @@ import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { UsageBanner } from "./banner";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -30,7 +29,6 @@ export default async function Layout({ children }: LayoutProps) {
 
   return (
     <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-base-12 lg:flex-row">
-      <UsageBanner workspace={workspace} />
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}
