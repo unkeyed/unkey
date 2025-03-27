@@ -291,5 +291,7 @@ func (r *Ring[T]) FindNode(key string) (Node[T], error) {
 
 	}
 
+	r.consistency.Record(key, node.ID)
+
 	return node, nil
 }
