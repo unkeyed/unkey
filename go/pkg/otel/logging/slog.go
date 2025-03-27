@@ -22,9 +22,14 @@ func init() {
 		Level:       level,
 		ReplaceAttr: nil,
 		TimeFormat:  time.StampMilli,
-		NoColor:     false,
+		NoColor:     true,
 	})
 }
+
+func AddHandler(h slog.Handler) {
+	handler = &MultiHandler{[]slog.Handler{handler, h}}
+}
+
 func SetHandler(h slog.Handler) {
 	handler = h
 }
@@ -83,22 +88,22 @@ func (l *logger) WithAttrs(attrs ...slog.Attr) Logger {
 
 // Debug logs a message at debug level with key-value pairs.
 func (l *logger) Debug(msg string, args ...any) {
-	l.logger.Debug(msg, args...)
+	l.logger.Debug(msg, withSource(args)...)
 }
 
 // Info logs a message at info level with key-value pairs.
 func (l *logger) Info(msg string, args ...any) {
-	l.logger.Info(msg, args...)
+	l.logger.Info(msg, withSource(args)...)
 }
 
 // Warn logs a message at warn level with key-value pairs.
 func (l *logger) Warn(msg string, args ...any) {
-	l.logger.Warn(msg, args...)
+	l.logger.Warn(msg, withSource(args)...)
 }
 
 // Error logs a message at error level with key-value pairs.
 func (l *logger) Error(msg string, args ...any) {
-	l.logger.Error(msg, args...)
+	l.logger.Error(msg, withSource(args)...)
 }
 
 // ---- Context-aware logging methods ----

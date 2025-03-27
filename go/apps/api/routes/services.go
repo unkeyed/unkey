@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -22,4 +23,5 @@ type Services struct {
 	Permissions permissions.PermissionService
 	Validator   *validation.Validator
 	Ratelimit   ratelimit.Service
+	Caches      caches.Caches
 }
