@@ -1,12 +1,8 @@
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
-
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { PageContent } from "@/components/page-content";
-import { navigation } from "../../constants";
-import { Keys } from "./keys";
 import { Navigation } from "./navigation";
+import { VirtualKeys } from "./virtual-keys";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -18,7 +14,6 @@ export default async function APIKeysPage(props: {
   };
 }) {
   const tenantId = getTenantId();
-
   const keyAuth = await db.query.keyAuth.findFirst({
     where: (table, { eq, and, isNull }) =>
       and(eq(table.id, props.params.keyAuthId), isNull(table.deletedAtM)),
@@ -27,21 +22,65 @@ export default async function APIKeysPage(props: {
       api: true,
     },
   });
+
   if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
     return notFound();
   }
 
+  // Fetch keys data
+  const keys = await db.query.keys.findMany({
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.keyAuthId, props.params.keyAuthId), isNull(table.deletedAtM)),
+    limit: 100,
+    with: {
+      identity: {
+        columns: {
+          externalId: true,
+        },
+      },
+      roles: {
+        with: {
+          role: {
+            with: {
+              permissions: true,
+            },
+          },
+        },
+      },
+      permissions: true,
+    },
+  });
+
+  // Transform the data for the client component
+  const transformedKeys = keys.map((key) => {
+    const permissions = new Set(key.permissions.map((p) => p.permissionId));
+    for (const role of key.roles) {
+      for (const permission of role.role.permissions) {
+        permissions.add(permission.permissionId);
+      }
+    }
+
+    return {
+      id: key.id,
+      keyAuthId: key.keyAuthId,
+      name: key.name,
+      start: key.start,
+      roles: key.roles.length,
+      enabled: key.enabled,
+      permissions: permissions.size,
+      environment: key.environment,
+      externalId: key.identity?.externalId ?? key.ownerId ?? null,
+    };
+  });
+
   return (
     <div>
       <Navigation apiId={props.params.apiId} keyA={keyAuth} />
-
-      <PageContent>
-        <SubMenu navigation={navigation(keyAuth.api.id, keyAuth.id!)} segment="keys" />
-
-        <div className="flex flex-col gap-8 mt-8 mb-20">
-          <Keys keyAuthId={keyAuth.id} apiId={props.params.apiId} />
-        </div>
-      </PageContent>
+      <VirtualKeys
+        keys={transformedKeys}
+        apiId={props.params.apiId}
+        keyAuthId={props.params.keyAuthId}
+      />
     </div>
   );
 }
