@@ -1,4 +1,6 @@
 "use client";
+import { UsageInsight } from "@/app/(app)/settings/billing/components/usage-insights";
+import { useFetchUsage } from "@/app/(app)/settings/billing/hooks/use-fetch-usage";
 import { WorkspaceSwitcher } from "@/components/navigation/sidebar/team-switcher";
 import { UserButton } from "@/components/navigation/sidebar/user-button";
 import {
@@ -22,7 +24,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useDelayLoader } from "@/hooks/use-delay-loader";
-import type { Workspace } from "@/lib/db";
+import type { Quotas, Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { ChevronRight } from "lucide-react";
@@ -32,7 +34,12 @@ import { memo, useEffect, useMemo, useState, useTransition } from "react";
 
 export function AppSidebar({
   ...props
-}: React.ComponentProps<typeof Sidebar> & { workspace: Workspace }) {
+}: React.ComponentProps<typeof Sidebar> & {
+  workspace: Workspace & {
+    quota?: Quotas;
+  };
+}) {
+  const usageQuery = useFetchUsage();
   const segments = useSelectedLayoutSegments() ?? [];
   const navItems = useMemo(
     () => createNestedNavigation(props.workspace, segments),
@@ -96,6 +103,18 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className={cn("px-4", !isMobile && "items-center")}>
+        {state === "expanded" && (
+          <UsageInsight.Root
+            isLoading={usageQuery.isLoading || props.workspace === null}
+            tier={props.workspace.tier ?? "Free"}
+            current={usageQuery.data?.billableTotal ?? 0}
+            max={props.workspace.quota?.requestsPerMonth ?? 150_000}
+          >
+            <UsageInsight.Details>
+              <UsageInsight.Item title="Request limit" description="requests" />
+            </UsageInsight.Details>
+          </UsageInsight.Root>
+        )}
         <UserButton />
       </SidebarFooter>
     </Sidebar>
