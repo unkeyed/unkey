@@ -21,19 +21,28 @@ export const UsageBanner: React.FC<{
   const year = t.getUTCFullYear();
   const month = t.getUTCMonth() + 1;
 
-  if (workspace.plan === "free") {
-    const billableVerifications = await clickhouse.billing.billableVerifications({
-      workspaceId: workspace.id,
-      year,
-      month,
-    });
+  if (workspace.plan === "free" && workspace.tier === "Free") {
+    const [billableRatelimits, billableVerifications] = await Promise.all([
+      clickhouse.billing.billableRatelimits({
+        workspaceId: workspace.id,
+        year,
+        month,
+      }),
+      clickhouse.billing.billableVerifications({
+        workspaceId: workspace.id,
+        year,
+        month,
+      }),
+    ]);
 
-    if (billableVerifications >= QUOTA.free.maxVerifications) {
+    const billableTotal = billableRatelimits + billableVerifications;
+
+    if (billableTotal >= QUOTA.free.maxVerifications) {
       return (
         <Banner variant="alert">
           <p className="text-xs text-center">
             You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
-            <strong>{fmt(billableVerifications)}</strong> /{" "}
+            <strong>{fmt(billableTotal)}</strong> /{" "}
             <strong>{fmt(QUOTA.free.maxVerifications)}</strong>.{" "}
             <Link href="/settings/billing" className="underline">
               Upgrade your plan
