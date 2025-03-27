@@ -6,7 +6,9 @@
   "license": "MIT",
   "scripts": {
     "migrate:users": "dotenv -e .env npx tsx ./src/user.ts",
-    "migrate:organizations": "dotenv -e .env npx tsx ./src/organization.ts"
+    "migrate:organizations": "dotenv -e .env npx tsx ./src/organization.ts",
+    "migrate:delete-users": "dotenv -e .env npx tsx ./src/deleteUser.ts",
+    "migrate:delete-organizations": "dotenv -e .env npx tsx ./src/deleteOrgs.ts"
   },
   "description": "",
   "devDependencies": {

@@ -1,10 +1,31 @@
 import { RateLimitExceededException, WorkOS } from "@workos-inc/node";
 import pLimit from "p-limit";
 import { createClerkClient, Organization } from "@clerk/clerk-sdk-node";
-import { eq, schema } from "@unkey/db";
-import { db } from "./db";
+import { eq, drizzle, schema, type Database } from "@unkey/db";
+import { Client } from "@planetscale/database";
 
 const workos = new WorkOS(process.env.WORKOS_API_KEY!);
+
+export const db: Database = drizzle(
+  new Client({
+    host: process.env.DATABASE_HOST,
+    username: process.env.DATABASE_USERNAME,
+    password: process.env.DATABASE_PASSWORD,
+
+    fetch: (url: string, init: any) => {
+      (init as any).cache = undefined; // Remove cache header
+      const u = new URL(url);
+      // set protocol to http if localhost for CI testing
+      if (u.host.includes("localhost")) {
+        u.protocol = "http";
+      }
+      return fetch(u, init);
+    },
+  }),
+  {
+    schema,
+  }
+);
 
 const clerk = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY!,
@@ -22,7 +43,7 @@ async function getClerkOrganizations() {
       clerk.organizations.getOrganizationList({
         limit: PAGE_SIZE,
         offset: offset,
-      }),
+      })
     );
 
     allOrgs.push(...response.data);
@@ -46,7 +67,7 @@ async function getClerkMemberships(organizationId: string) {
         organizationId,
         limit: PAGE_SIZE,
         offset: offset,
-      }),
+      })
     );
     orgMemberShip.push(...response.data);
     if (response.data.length < PAGE_SIZE) {
@@ -65,7 +86,23 @@ async function findWorkOSUserByClerkId(userId: string) {
 
 const migrateOrg = async (org: Organization) => {
   try {
-    // Create WorkOS organization
+    const orgExists = await workos.organizations
+      .getOrganizationByExternalId(org.id)
+      .catch(() => {});
+    if (orgExists) {
+      console.log(`Organization ${org.name} already exists, skipping`);
+      return orgExists;
+    }
+
+    const workspaceCheck = await db
+      .select()
+      .from(schema.workspaces)
+      .where(eq(schema.workspaces.clerkTenantId, org.id));
+
+    if (workspaceCheck.length === 0) {
+      console.log(`No workspaces found for organization ${org.name}, skipping`);
+      return null;
+    }
     const workosOrg = await workos.organizations.createOrganization({
       name: org.name,
       externalId: org.id, // Store Clerk org ID as external_id
@@ -84,7 +121,7 @@ const migrateOrg = async (org: Organization) => {
       .where(eq(schema.workspaces.clerkTenantId, org.id));
 
     if (!updateDB.rowsAffected || updateDB.rowsAffected === 0) {
-      throw new Error(`Failed to update database for org ${org.id}`);
+      throw new Error(`Failed to update database for Clerk Org ${org.id}`);
     }
 
     // Get all memberships for this organization
@@ -101,17 +138,22 @@ const migrateOrg = async (org: Organization) => {
           const workosUser = await findWorkOSUserByClerkId(externalId);
 
           if (workosUser) {
-            const result = await workos.userManagement.createOrganizationMembership({
-              organizationId: workosOrg.id,
-              userId: workosUser.id,
-              roleSlug: membership.role.toLowerCase(),
-            });
+            const result =
+              await workos.userManagement.createOrganizationMembership({
+                organizationId: workosOrg.id,
+                userId: workosUser.id,
+                roleSlug: membership.role.toLowerCase(),
+              });
 
             if (!result) {
-              console.error(`Failed to add user ${workosUser.email} to organization ${org.name}`);
+              console.error(
+                `Failed to add user ${workosUser.email} to organization ${org.name}`
+              );
               return null;
             }
-            console.log(`Added user ${workosUser.email} to organization ${org.name}`);
+            console.log(
+              `Added user ${workosUser.email} to organization ${org.name}`
+            );
             return result;
           } else {
             console.log(`User not found in WorkOS: ${externalId}`);
@@ -121,7 +163,7 @@ const migrateOrg = async (org: Organization) => {
           console.error(`Error adding member to organization: ${error}`);
           return null;
         }
-      }),
+      })
     );
     return results;
   } catch (error) {
@@ -150,7 +192,11 @@ const migrateOrganizations = async () => {
     try {
       const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults.filter((r) => r !== null));
-      console.log(`Completed batch ${i / 10 + 1} of ${Math.ceil(organizations.length / 10)}`);
+      console.log(
+        `Completed batch ${i / 10 + 1} of ${Math.ceil(
+          organizations.length / 10
+        )}`
+      );
 
       if (i + 10 < organizations.length) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -161,9 +207,9 @@ const migrateOrganizations = async () => {
   }
 
   console.log(
-    `Import completed. Successfully imported ${results.length} out of ${organizations.length} organizations`,
+    `Import completed. Successfully imported ${results.length} out of ${organizations.length} organizations`
   );
   return results;
-}
+};
 
 migrateOrganizations().then(() => process.exit(0));
