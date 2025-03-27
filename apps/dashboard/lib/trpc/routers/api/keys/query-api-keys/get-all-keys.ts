@@ -58,7 +58,10 @@ export async function getAllKeys({
 
     // Helper function to build the filter conditions (without cursor)
     const buildFilterConditions = (key: any, { and, isNull, eq, sql }: any) => {
-      const conditions = [eq(key.keyAuthId, keyspaceId), isNull(key.deletedAtM)];
+      const conditions = [
+        eq(key.keyAuthId, keyspaceId),
+        isNull(key.deletedAtM),
+      ];
 
       // Apply name filters
       if (names && names.length > 0) {
