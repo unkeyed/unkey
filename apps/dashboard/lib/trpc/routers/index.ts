@@ -5,6 +5,7 @@ import { keysLlmSearch } from "./api/keys/llm-search";
 import { activeKeysTimeseries } from "./api/keys/query-active-keys-timeseries";
 import { queryKeysList } from "./api/keys/query-api-keys";
 import { keyUsageTimeseries } from "./api/keys/query-key-usage-timeseries";
+import { keyLastVerificationTime } from "./api/keys/query-latest-verification";
 import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
 import { overviewApiSearch } from "./api/overview-api-search";
@@ -102,6 +103,7 @@ export const router = t.router({
       llmSearch: keysLlmSearch,
       list: queryKeysList,
       usageTimeseries: keyUsageTimeseries,
+      latestVerification: keyLastVerificationTime,
     }),
     overview: t.router({
       timeseries: queryVerificationTimeseries,

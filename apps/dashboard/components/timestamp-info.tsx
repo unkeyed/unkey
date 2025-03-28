@@ -1,6 +1,4 @@
-//https://github.com/supabase/supabase/blob/master/packages/ui-patterns/TimestampInfo/index.tsx
 "use client";
-
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format, fromUnixTime } from "date-fns";
@@ -32,15 +30,23 @@ const timestampUtcFormatter = (value: string | number) => {
 const timestampRelativeFormatter = (value: string | number) => {
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
   const diffMs = Date.now() - date.getTime();
-  return `${ms(diffMs)} ago`;
+  const absDiffMs = Math.abs(diffMs);
+  const formattedTime = ms(absDiffMs);
+
+  // If diffMs is negative, the date is in the future
+  return diffMs > 0 ? `${formattedTime} ago` : `in ${formattedTime}`;
 };
+
+type DisplayType = "local" | "utc" | "relative";
 
 export const TimestampInfo = ({
   value,
   className,
+  displayType = "local",
 }: {
   className?: string;
   value: string | number;
+  displayType?: DisplayType;
 }) => {
   const local = timestampLocalFormatter(value);
   const utc = timestampUtcFormatter(value);
@@ -66,9 +72,21 @@ export const TimestampInfo = ({
     };
   }, []);
 
+  const getDisplayValue = () => {
+    switch (displayType) {
+      case "local":
+        return timestampLocalFormatter(value);
+      case "utc":
+        return utc;
+      case "relative":
+        return relative;
+      default:
+        return timestampLocalFormatter(value);
+    }
+  };
+
   const TooltipRow = ({ label, value }: { label: string; value: string }) => {
     const [copied, setCopied] = useState(false);
-
     return (
       //biome-ignore lint/a11y/useKeyWithClickEvents: no need
       <span
@@ -91,7 +109,7 @@ export const TimestampInfo = ({
   return (
     <Tooltip>
       <TooltipTrigger ref={triggerRef} className={cn("text-xs", className)}>
-        <span className="uppercase">{timestampLocalFormatter(value)}</span>
+        <span>{getDisplayValue()}</span>
       </TooltipTrigger>
       <TooltipContent
         align={align}

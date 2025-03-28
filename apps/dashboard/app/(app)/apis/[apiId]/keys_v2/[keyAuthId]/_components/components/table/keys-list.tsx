@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toaster";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, ChartActivity2, CircleHalfDottedClock, CircleLock, Key } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -52,12 +53,7 @@ export const KeysList = ({ keyspaceId }: Props) => {
           </div>
         ),
       },
-      {
-        key: "identitiy",
-        header: "Identity",
-        width: "10%",
-        render: (key) => <div>{key.identity?.external_id ?? key.owner_id ?? "—"}</div>,
-      },
+
       {
         key: "value",
         header: "Value",
@@ -76,22 +72,16 @@ export const KeysList = ({ keyspaceId }: Props) => {
         width: "15%",
         render: (key) => {
           return (
-            <Badge
-              className={cn(
-                "px-1.5 rounded-md bg-grayA-3 text-grayA-11 flex gap-2 items-center w-24",
-                selectedKey?.id === key.id
-                  ? STATUS_STYLES.badge.selected
-                  : STATUS_STYLES.badge.default,
-              )}
-            >
-              <div>
-                <ChartActivity2 size="sm-regular" />
-              </div>
-              <div className="truncate">5 days ago</div>
-            </Badge>
+            <LastUsedCell
+              keyId={key.id}
+              keyAuthId={keyspaceId}
+              isSelected={selectedKey?.id === key.id}
+            />
           );
         },
       },
+      // Inside your columns definition in KeysList component
+
       {
         key: "expires",
         header: "Expires In",
@@ -137,7 +127,11 @@ export const KeysList = ({ keyspaceId }: Props) => {
               {expiryStatus === "expired" ? (
                 "Expired"
               ) : key.expires ? (
-                <TimestampInfo value={key.expires} className="truncate" />
+                <TimestampInfo
+                  value={key.expires}
+                  className="truncate capitalize"
+                  displayType="relative"
+                />
               ) : (
                 <div>—</div>
               )}
@@ -405,3 +399,50 @@ const MemoizedVerificationBarChart = memo(VerificationBarChart, (prevProps, next
   // Only re-render if keyId changes
   return prevProps.keyId === nextProps.keyId && prevProps.keyAuthId === nextProps.keyAuthId;
 });
+
+export const LastUsedCell = ({
+  keyAuthId,
+  keyId,
+  isSelected,
+}: {
+  keyAuthId: string;
+  keyId: string;
+  isSelected: boolean;
+}) => {
+  const { data, isLoading, isError } = trpc.api.keys.latestVerification.useQuery({
+    keyAuthId,
+    keyId,
+  });
+
+  return (
+    <Badge
+      className={cn(
+        "px-1.5 rounded-md flex gap-2 items-center w-[140px]",
+        isError
+          ? "bg-error-3 text-error-11 border border-error-5"
+          : isSelected
+            ? STATUS_STYLES.badge.selected
+            : STATUS_STYLES.badge.default,
+      )}
+    >
+      <div>
+        <ChartActivity2 size="sm-regular" />
+      </div>
+      <div className="truncate">
+        {isLoading ? (
+          <div className="flex items-center w-full space-x-1">
+            <div className="h-2 w-2 bg-grayA-5 rounded-full animate-pulse" />
+            <div className="h-2 w-12 bg-grayA-5 rounded animate-pulse" />
+            <div className="h-2 w-12 bg-grayA-5 rounded animate-pulse" />
+          </div>
+        ) : isError ? (
+          "Failed to load"
+        ) : data?.lastVerificationTime ? (
+          <TimestampInfo value={data.lastVerificationTime} className="truncate" />
+        ) : (
+          "Never used"
+        )}
+      </div>
+    </Badge>
+  );
+};
