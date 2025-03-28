@@ -6,8 +6,8 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useRouter } from "next/navigation";
-import { type PropsWithChildren, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 
 export type QuickNavItem = {
   id: string;
@@ -41,6 +41,7 @@ export const QuickNavPopover = ({
   onItemSelect,
   virtualizationThreshold = 10,
 }: PropsWithChildren<QuickNavPopoverProps>) => {
+  const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -111,6 +112,17 @@ export const QuickNavPopover = ({
     }
   };
 
+  // Find the active item index for initial focus
+  const findActiveItemIndex = useCallback(() => {
+    if (!pathname) {
+      return 0;
+    }
+
+    const activeIndex = items.findIndex((item) => item.href && checkIsActive(item.href, pathname));
+
+    return activeIndex >= 0 ? activeIndex : 0;
+  }, [items, pathname]);
+
   // Scroll to focused item when using virtualization
   useEffect(() => {
     if (focusedIndex !== null && rowVirtualizer) {
@@ -121,11 +133,11 @@ export const QuickNavPopover = ({
   // Set initial focus when opening popover
   useEffect(() => {
     if (open) {
-      setFocusedIndex(0);
+      setFocusedIndex(findActiveItemIndex());
     } else {
       setFocusedIndex(null);
     }
-  }, [open]);
+  }, [open, findActiveItemIndex]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -161,6 +173,8 @@ export const QuickNavPopover = ({
               >
                 {rowVirtualizer!.getVirtualItems().map((virtualRow) => {
                   const item = items[virtualRow.index];
+                  const isActive = Boolean(item.href && checkIsActive(item.href, pathname));
+
                   return (
                     <div
                       key={virtualRow.index}
@@ -173,6 +187,7 @@ export const QuickNavPopover = ({
                     >
                       <PopoverItem
                         {...item}
+                        isActive={isActive}
                         isFocused={focusedIndex === virtualRow.index}
                         onSelect={() => handleItemSelect(item)}
                       />
@@ -181,15 +196,19 @@ export const QuickNavPopover = ({
                 })}
               </div>
             ) : (
-              // Simple list rendering for few items
-              items.map((item, index) => (
-                <PopoverItem
-                  key={item.id}
-                  {...item}
-                  isFocused={focusedIndex === index}
-                  onSelect={() => handleItemSelect(item)}
-                />
-              ))
+              items.map((item, index) => {
+                const isActive = Boolean(item.href && checkIsActive(item.href, pathname));
+
+                return (
+                  <PopoverItem
+                    isActive={isActive}
+                    key={item.id}
+                    {...item}
+                    isFocused={focusedIndex === index}
+                    onSelect={() => handleItemSelect(item)}
+                  />
+                );
+              })
             )}
           </div>
         </div>
@@ -220,6 +239,7 @@ type PopoverItemProps = QuickNavItem & {
 const PopoverItem = ({
   label,
   isFocused,
+  isActive,
   onSelect,
   className,
   itemClassName,
@@ -232,7 +252,6 @@ const PopoverItem = ({
       itemRef.current.focus();
     }
   }, [isFocused]);
-
   const labelText = typeof label === "string" ? label : "";
   return (
     <button
@@ -241,7 +260,7 @@ const PopoverItem = ({
       className={cn(
         "flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer",
         "hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none",
-        isFocused && "bg-gray-3",
+        (isFocused || isActive) && "bg-gray-3",
         itemClassName,
       )}
       tabIndex={0}
@@ -249,7 +268,7 @@ const PopoverItem = ({
     >
       <div className={cn("flex gap-2 items-center", className)}>
         <span
-          className="text-[13px] text-accent-12 font-medium truncate max-w-[160px]"
+          className={"text-[13px] font-medium truncate max-w-[160px] text-accent-12"}
           title={labelText}
         >
           {label}
@@ -258,10 +277,29 @@ const PopoverItem = ({
       {!hideRightIcon && (
         <div className="flex items-center gap-1.5">
           <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
-            <CaretRight className="text-gray-7 group-hover:text-gray-10" />
+            <CaretRight
+              className={cn(isActive ? "text-gray-12" : "text-gray-7 group-hover:text-gray-10")}
+            />
           </Button>
         </div>
       )}
     </button>
   );
+};
+
+const checkIsActive = (itemPath: string, currentPath: string | null) => {
+  if (!itemPath) {
+    return false;
+  }
+
+  // Normalize paths by removing trailing slashes
+  const normalizedItemPath = itemPath.endsWith("/") ? itemPath.slice(0, -1) : itemPath;
+  const normalizedCurrentPath = currentPath?.endsWith("/") ? currentPath.slice(0, -1) : currentPath;
+
+  // Exact match check
+  if (normalizedItemPath === normalizedCurrentPath) {
+    return true;
+  }
+
+  return false;
 };
