@@ -1,67 +1,125 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
-import { useMemo } from "react";
+import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-export const useFetchVerificationTimeseries = (
-  keyAuthId: string,
-  keyId: string
-) => {
-  const dateNow = useMemo(() => Date.now(), []);
+type ProcessedTimeseriesDataPoint = {
+  valid: number;
+  total: number;
+  success: number;
+  error: number;
+  rate_limited?: number;
+  insufficient_permissions?: number;
+  forbidden?: number;
+  disabled?: number;
+  expired?: number;
+  usage_exceeded?: number;
+};
 
-  const queryParams = {
-    startTime: dateNow - HISTORICAL_DATA_WINDOW * 3,
-    endTime: dateNow,
-    keyAuthId,
-    keyId,
-  };
+type CacheEntry = {
+  data: { timeseries: VerificationTimeseriesDataPoint[] };
+  timestamp: number;
+};
 
-  const { data, isLoading, isError } = trpc.api.keys.usageTimeseries.useQuery(
-    queryParams,
-    {
-      refetchInterval: queryParams.endTime === dateNow ? 10_000 : false,
-    }
+const timeseriesCache = new Map<string, CacheEntry>();
+
+export const useFetchVerificationTimeseries = (keyAuthId: string, keyId: string) => {
+  // Use a ref for the initial timestamp to keep it stable
+  const initialTimeRef = useRef(Date.now());
+  const cacheKey = `${keyAuthId}-${keyId}`;
+
+  // Check if we have cached data
+  const cachedData = timeseriesCache.get(cacheKey);
+
+  // State to force updates when cache changes
+  const [_, setCacheVersion] = useState(0);
+
+  // Determine if we should run the query
+  const shouldFetch = !cachedData || Date.now() - cachedData.timestamp > 60000;
+
+  // Set up query parameters - stable between renders
+  const queryParams = useMemo(
+    () => ({
+      startTime: initialTimeRef.current - HISTORICAL_DATA_WINDOW * 3,
+      endTime: initialTimeRef.current,
+      keyAuthId,
+      keyId,
+    }),
+    [keyAuthId, keyId],
   );
 
+  // Use TRPC's useQuery with critical settings
+  const {
+    data,
+    isLoading: trpcIsLoading,
+    isError,
+  } = trpc.api.keys.usageTimeseries.useQuery(queryParams, {
+    // CRITICAL: Only enable the query if we should fetch
+    enabled: shouldFetch,
+    // Prevent automatic refetching
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchInterval: shouldFetch && queryParams.endTime >= Date.now() - 60_000 ? 10_000 : false,
+  });
+
+  // Process the timeseries data - using cached or fresh data
+  const effectiveData = data || (cachedData ? cachedData.data : undefined);
+
+  // Process the timeseries from the effective data
   const timeseries = useMemo(() => {
-    if (!data?.timeseries) {
-      return [];
+    if (!effectiveData?.timeseries) {
+      return [] as ProcessedTimeseriesDataPoint[];
     }
-    return data.timeseries.map((ts) => {
-      const result = {
+
+    return effectiveData.timeseries.map((ts): ProcessedTimeseriesDataPoint => {
+      const result: ProcessedTimeseriesDataPoint = {
         valid: ts.y.valid,
         total: ts.y.total,
         success: ts.y.valid,
         error: ts.y.total - ts.y.valid,
       };
-      const outcomeFields: Record<string, number> = {};
+
+      // Add optional fields if they exist
       if (ts.y.rate_limited_count !== undefined) {
-        outcomeFields.rate_limited = ts.y.rate_limited_count;
+        result.rate_limited = ts.y.rate_limited_count;
       }
       if (ts.y.insufficient_permissions_count !== undefined) {
-        outcomeFields.insufficient_permissions =
-          ts.y.insufficient_permissions_count;
+        result.insufficient_permissions = ts.y.insufficient_permissions_count;
       }
       if (ts.y.forbidden_count !== undefined) {
-        outcomeFields.forbidden = ts.y.forbidden_count;
+        result.forbidden = ts.y.forbidden_count;
       }
       if (ts.y.disabled_count !== undefined) {
-        outcomeFields.disabled = ts.y.disabled_count;
+        result.disabled = ts.y.disabled_count;
       }
       if (ts.y.expired_count !== undefined) {
-        outcomeFields.expired = ts.y.expired_count;
+        result.expired = ts.y.expired_count;
       }
       if (ts.y.usage_exceeded_count !== undefined) {
-        outcomeFields.usage_exceeded = ts.y.usage_exceeded_count;
+        result.usage_exceeded = ts.y.usage_exceeded_count;
       }
-      return {
-        ...result,
-        ...outcomeFields,
-      };
+
+      return result;
     });
-  }, [data]);
+  }, [effectiveData]);
+
+  // Update cache when we get new data
+  useEffect(() => {
+    if (data) {
+      timeseriesCache.set(cacheKey, {
+        data,
+        timestamp: Date.now(),
+      });
+      // Force a re-render to use cached data
+      setCacheVersion((prev) => prev + 1);
+    }
+  }, [data, cacheKey]);
+
+  const isLoading = trpcIsLoading && !cachedData;
 
   return {
-    timeseries: timeseries || [],
+    timeseries,
     isLoading,
     isError,
   };

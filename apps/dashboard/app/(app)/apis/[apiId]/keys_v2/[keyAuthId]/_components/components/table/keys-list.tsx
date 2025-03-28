@@ -5,16 +5,10 @@ import { toast } from "@/components/ui/toaster";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import {
-  BookBookmark,
-  ChartActivity2,
-  CircleHalfDottedClock,
-  CircleLock,
-  Key,
-} from "@unkey/icons";
+import { BookBookmark, ChartActivity2, CircleHalfDottedClock, CircleLock, Key } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { useFetchVerificationTimeseries } from "./components/bar-chart/hooks/use-fetch-timeseries";
 import { useKeysListQuery } from "./hooks/use-logs-query";
 import { STATUS_STYLES, getRowClassName } from "./utils/get-row-class";
@@ -29,8 +23,8 @@ export const KeysList = ({ keyspaceId }: Props) => {
   });
   const [selectedKey, setSelectedKey] = useState<KeyDetails | null>(null);
 
-  const columns = (): Column<KeyDetails>[] => {
-    return [
+  const columns: Column<KeyDetails>[] = useMemo(
+    () => [
       {
         key: "key",
         header: "Key",
@@ -47,9 +41,7 @@ export const KeysList = ({ keyspaceId }: Props) => {
                   {key.id.substring(0, 8)}...
                   {key.id.substring(key.id.length - 4)}
                 </div>
-                {key.name && (
-                  <span className="font-sans text-accent-9">{key.name}</span>
-                )}
+                {key.name && <span className="font-sans text-accent-9">{key.name}</span>}
               </div>
               {!key.enabled && (
                 <Badge className="px-1.5 rounded-md bg-warningA-3 text-warning-11 text-xs">
@@ -64,9 +56,7 @@ export const KeysList = ({ keyspaceId }: Props) => {
         key: "identitiy",
         header: "Identity",
         width: "10%",
-        render: (key) => (
-          <div>{key.identity?.external_id ?? key.owner_id ?? "—"}</div>
-        ),
+        render: (key) => <div>{key.identity?.external_id ?? key.owner_id ?? "—"}</div>,
       },
       {
         key: "value",
@@ -78,9 +68,7 @@ export const KeysList = ({ keyspaceId }: Props) => {
         key: "usage",
         header: "Usage",
         width: "15%",
-        render: (key) => (
-          <VerificationBarChart keyAuthId={keyspaceId} keyId={key.id} />
-        ),
+        render: (key) => <MemoizedVerificationBarChart keyAuthId={keyspaceId} keyId={key.id} />,
       },
       {
         key: "last_used",
@@ -93,7 +81,7 @@ export const KeysList = ({ keyspaceId }: Props) => {
                 "px-1.5 rounded-md bg-grayA-3 text-grayA-11 flex gap-2 items-center w-24",
                 selectedKey?.id === key.id
                   ? STATUS_STYLES.badge.selected
-                  : STATUS_STYLES.badge.default
+                  : STATUS_STYLES.badge.default,
               )}
             >
               <div>
@@ -138,10 +126,9 @@ export const KeysList = ({ keyspaceId }: Props) => {
                 "px-1.5 rounded-md flex gap-2 items-center w-[135px] border",
                 selectedKey?.id === key.id
                   ? STATUS_STYLES.badge.selected
-                  : expiryStatus === "expired" ||
-                    expiryStatus === "expiring-soon"
-                  ? "bg-orange-3 text-orange-11 group-hover:bg-orange-4"
-                  : STATUS_STYLES.badge.default
+                  : expiryStatus === "expired" || expiryStatus === "expiring-soon"
+                    ? "bg-orange-3 text-orange-11 group-hover:bg-orange-4"
+                    : STATUS_STYLES.badge.default,
               )}
             >
               <div>
@@ -158,8 +145,9 @@ export const KeysList = ({ keyspaceId }: Props) => {
           );
         },
       },
-    ];
-  };
+    ],
+    [keyspaceId, selectedKey?.id],
+  );
 
   return (
     <div className="flex flex-col gap-8 mb-20">
@@ -168,7 +156,7 @@ export const KeysList = ({ keyspaceId }: Props) => {
         isLoading={isLoading}
         isFetchingNextPage={isLoadingMore}
         onLoadMore={loadMore}
-        columns={columns()}
+        columns={columns}
         onRowClick={setSelectedKey}
         selectedItem={selectedKey}
         keyExtractor={(log) => log.id}
@@ -179,9 +167,8 @@ export const KeysList = ({ keyspaceId }: Props) => {
               <Empty.Icon className="w-auto" />
               <Empty.Title>Key Verification Logs</Empty.Title>
               <Empty.Description className="text-left">
-                No key verification data to show. Once requests are made with
-                API keys, you'll see a summary of successful and failed
-                verification attempts.
+                No key verification data to show. Once requests are made with API keys, you'll see a
+                summary of successful and failed verification attempts.
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-start">
                 <a
@@ -268,17 +255,15 @@ type VerificationBarChartProps = {
   maxBars?: number;
 };
 
-const VerificationBarChart = ({
-  keyAuthId,
-  keyId,
-  maxBars = 30,
-}: VerificationBarChartProps) => {
-  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(
-    keyAuthId,
-    keyId
-  );
+const MAX_HEIGHT_BUFFER_FACTOR = 1.3;
+const MAX_BAR_HEIGHT = 28;
+const VerificationBarChart = ({ keyAuthId, keyId, maxBars = 30 }: VerificationBarChartProps) => {
+  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(keyAuthId, keyId);
 
-  const isEmpty = timeseries.reduce((acc, crr) => acc + crr.total, 0) === 0;
+  const isEmpty = useMemo(
+    () => timeseries.reduce((acc, crr) => acc + crr.total, 0) === 0,
+    [timeseries],
+  );
 
   const bars = useMemo((): BarData[] => {
     if (isLoading || isError || timeseries.length === 0) {
@@ -293,13 +278,14 @@ const VerificationBarChart = ({
     // Get the most recent data points (or all if less than maxBars)
     const recentData = timeseries.slice(-maxBars);
     // Calculate the maximum total value to normalize heights
-    const maxTotal = Math.max(...recentData.map((item) => item.total), 1);
+    const maxTotal =
+      Math.max(...recentData.map((item) => item.total), 1) * MAX_HEIGHT_BUFFER_FACTOR;
     // Generate bars from the data
     return recentData.map((item, index): BarData => {
       // Scale to fit within max height of 28px
       const totalHeight = Math.min(
-        Math.round((item.total / maxTotal) * 28),
-        28
+        Math.round((item.total / maxTotal) * MAX_BAR_HEIGHT),
+        MAX_BAR_HEIGHT,
       );
       // Calculate heights proportionally
       const topHeight = item.error
@@ -333,7 +319,8 @@ const VerificationBarChart = ({
   if (isLoading) {
     return (
       <div
-        className="grid h-[28px] bg-gray-1 w-[150px] border border-transparent rounded-[6px_6px_5px_5px] border-inside px-1 py-0 items-end"
+        // We need 156px when you calculate the gaps and height but we need some breathing space so its "158px" now
+        className="grid h-[28px] bg-gray-1 w-[158px] border border-transparent rounded-lg border-inside px-1 py-0 items-end"
         style={{
           gridTemplateColumns: `repeat(${maxBars}, 3px)`,
           gap: "2px",
@@ -367,7 +354,7 @@ const VerificationBarChart = ({
   if (isError) {
     return (
       <div
-        className="grid h-[28px] bg-gray-1 w-[150px] border border-error-5 rounded-lg border-inside px-1 py-0"
+        className="grid h-[28px] bg-gray-1 w-[158px] border border-error-5 rounded-lg border-inside px-1 py-0"
         style={{
           gridTemplateColumns: "1fr",
         }}
@@ -383,7 +370,7 @@ const VerificationBarChart = ({
   if (isEmpty) {
     return (
       <div
-        className="grid h-[28px] bg-gray-1 w-[150px] border border-grayA-3 rounded-lg border-inside px-1 py-0"
+        className="grid h-[28px] bg-gray-1 w-[158px] border border-grayA-3 rounded-lg border-inside px-1 py-0"
         style={{
           gridTemplateColumns: "1fr",
         }}
@@ -398,7 +385,7 @@ const VerificationBarChart = ({
   // Data display with grid layout
   return (
     <div
-      className="grid items-end h-[28px] bg-gray-1 w-[150px] border border-transparent hover:border-grayA-3 group-hover:border-grayA-3 rounded-lg border-inside px-1 py-0"
+      className="grid items-end h-[28px] bg-gray-1 w-[158px] border border-transparent hover:border-grayA-3 group-hover:border-grayA-3 rounded-lg border-inside px-1 py-0 overflow-hidden"
       style={{
         gridTemplateColumns: `repeat(${maxBars}, 3px)`,
         gap: "2px",
@@ -406,16 +393,15 @@ const VerificationBarChart = ({
     >
       {displayBars.map((bar) => (
         <div key={bar.id} className="flex flex-col">
-          <div
-            className="w-[3px] bg-error-9"
-            style={{ height: `${bar.topHeight}px` }}
-          />
-          <div
-            className="w-[3px] bg-grayA-5"
-            style={{ height: `${bar.bottomHeight}px` }}
-          />
+          <div className="w-[3px] bg-error-9" style={{ height: `${bar.topHeight}px` }} />
+          <div className="w-[3px] bg-grayA-5" style={{ height: `${bar.bottomHeight}px` }} />
         </div>
       ))}
     </div>
   );
 };
+
+const MemoizedVerificationBarChart = memo(VerificationBarChart, (prevProps, nextProps) => {
+  // Only re-render if keyId changes
+  return prevProps.keyId === nextProps.keyId && prevProps.keyAuthId === nextProps.keyAuthId;
+});

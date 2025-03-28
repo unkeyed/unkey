@@ -9,8 +9,8 @@ export const keyUsageTimeseries = rateLimitedProcedure(ratelimit.read)
       workspaceId: ctx.workspace.id,
       endTime: input.endTime,
       startTime: input.startTime,
-      keyId: input.keyId,
       keyspaceId: input.keyAuthId,
+      keyId: input.keyId,
       identities: null,
       keyIds: null,
       names: null,
@@ -18,6 +18,6 @@ export const keyUsageTimeseries = rateLimitedProcedure(ratelimit.read)
     });
 
     return {
-      timeseries: result,
+      timeseries: result || [],
     };
   });

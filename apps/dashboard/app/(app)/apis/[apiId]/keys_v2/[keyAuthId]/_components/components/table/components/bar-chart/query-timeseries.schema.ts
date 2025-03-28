@@ -7,6 +7,4 @@ export const keysListQueryTimeseriesPayload = z.object({
   keyAuthId: z.string(),
 });
 
-export type KeysListQueryTimeseriesPayload = z.infer<
-  typeof keysListQueryTimeseriesPayload
->;
+export type KeysListQueryTimeseriesPayload = z.infer<typeof keysListQueryTimeseriesPayload>;
