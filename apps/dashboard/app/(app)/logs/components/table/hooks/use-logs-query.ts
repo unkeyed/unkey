@@ -22,7 +22,7 @@ export function useLogsQuery({
 }: UseLogsQueryParams = {}) {
   const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, Log>());
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, Log>());
-  const [totalCount, setTotalCount] = useState<number>(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();

@@ -338,7 +338,8 @@ export function getRatelimitLogs(ch: Querier) {
 
     const extendedParamsSchema = ratelimitLogsParams.extend(paramSchemaExtension);
 
-    const query = ch.query({
+    // First, execute the main query to get the paginated results
+    const logsQuery = ch.query({
       query: `
 WITH filtered_ratelimits AS (
     SELECT
@@ -401,11 +402,31 @@ LIMIT {limit: Int}`,
       schema: ratelimitLogs,
     });
 
-    return query(parameters);
+    // Now, execute a separate count query to get the total
+    const countQuery = ch.query({
+      query: `
+SELECT
+    count(*) as total_count
+FROM ratelimits.raw_ratelimits_v1 r
+WHERE workspace_id = {workspaceId: String}
+    AND namespace_id = {namespaceId: String}
+    AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+    ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
+    AND (${identifierConditions})
+    AND (${statusCondition})`,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.number().int(),
+      }),
+    });
+
+    return {
+      logsQuery: logsQuery(parameters),
+      countQuery: countQuery(parameters),
+    };
   };
 }
 
-// ## OVERVIEWS
 export const ratelimitOverviewLogsParams = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
