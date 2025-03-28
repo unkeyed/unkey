@@ -338,7 +338,6 @@ export function getRatelimitLogs(ch: Querier) {
 
     const extendedParamsSchema = ratelimitLogsParams.extend(paramSchemaExtension);
 
-    // First, execute the main query to get the paginated results
     const logsQuery = ch.query({
       query: `
 WITH filtered_ratelimits AS (
@@ -402,7 +401,6 @@ LIMIT {limit: Int}`,
       schema: ratelimitLogs,
     });
 
-    // Now, execute a separate count query to get the total
     const countQuery = ch.query({
       query: `
 SELECT
@@ -650,7 +648,6 @@ LIMIT {limit: Int}`,
       schema: ratelimitOverviewLogs,
     });
 
-    // Count query to get total unique identifiers
     const countQuery = ch.query({
       query: `
 SELECT

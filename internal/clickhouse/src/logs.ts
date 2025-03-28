@@ -72,7 +72,6 @@ export function getLogs(ch: Querier) {
 
     const extendedParamsSchema = getLogsClickhousePayload.extend(paramSchemaExtension);
 
-    // Define the base filter conditions
     const filterConditions = `
       workspace_id = {workspaceId: String}
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
