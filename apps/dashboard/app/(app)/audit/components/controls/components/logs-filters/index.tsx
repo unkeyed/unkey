@@ -36,7 +36,7 @@ export const LogsFilters = (props: WorkspaceProps) => {
           id: "bucket",
           label: "Bucket",
           shortcut: "b",
-          component: <BucketFilter bucketFilter={props.buckets} />,
+          component: <BucketFilter buckets={props.buckets} />,
         },
       ]}
       activeFilters={filters}

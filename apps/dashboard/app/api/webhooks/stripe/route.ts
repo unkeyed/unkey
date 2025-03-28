@@ -36,11 +36,6 @@ export const POST = async (req: Request): Promise<Response> => {
       const ws = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
           and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
-        with: {
-          auditLogBuckets: {
-            where: (table, { eq }) => eq(table.name, "unkey_mutations"),
-          },
-        },
       });
       if (!ws) {
         return new Response("workspace does not exist", { status: 500 });
@@ -62,7 +57,7 @@ export const POST = async (req: Request): Promise<Response> => {
           set: freeTierQuotas,
         });
 
-      await insertAuditLogs(db, ws.auditLogBuckets[0].id, {
+      await insertAuditLogs(db, {
         workspaceId: ws.id,
         actor: {
           type: "system",

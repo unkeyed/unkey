@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
@@ -31,7 +31,7 @@ export default async function APIKeyDetailPage(props: {
     interval?: Interval;
   };
 }) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const key = await db.query.keys.findFirst({
     where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAtM)),
@@ -68,7 +68,7 @@ export default async function APIKeyDetailPage(props: {
     },
   });
 
-  if (!key || key.workspace.tenantId !== tenantId) {
+  if (!key || key.workspace.orgId !== orgId) {
     return notFound();
   }
 

@@ -20,11 +20,6 @@ export const navigation = [
     segment: "billing",
   },
   {
-    label: "Vercel Integration",
-    href: "/settings/vercel",
-    segment: "vercel",
-  },
-  {
     label: "User",
     href: "/settings/user",
     segment: "user",

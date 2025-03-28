@@ -2,10 +2,11 @@ import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const deleteKeys = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       keyIds: z.array(z.string()),
@@ -15,7 +16,7 @@ export const deleteKeys = t.procedure
     const workspace = await db.query.workspaces
       .findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           keys: {
             where: (table, { and, inArray, isNull }) =>
@@ -57,7 +58,6 @@ export const deleteKeys = t.procedure
           );
         insertAuditLogs(
           tx,
-          ctx.workspace.auditLogBucket.id,
           workspace.keys.map((key) => ({
             workspaceId: workspace.id,
             actor: { type: "user", id: ctx.user.id },

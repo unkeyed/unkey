@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import OpenAI from "openai";
 import { z } from "zod";
@@ -12,7 +12,10 @@ const openai = env().OPENAI_API_KEY
     })
   : null;
 
-export const keysLlmSearch = rateLimitedProcedure(ratelimit.update)
+export const keysLlmSearch = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
       query: z.string(),

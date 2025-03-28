@@ -1,7 +1,12 @@
+/**
+ * Deprecated with new auth
+ * Hiding for now until we decide if we want to fix it up or toss it
+ */
+
 "use client";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,7 +55,7 @@ type Props = {
             updatedBy: {
               id: string;
               name: string;
-              image: string;
+              image: string | null;
             };
           })
         | null
@@ -192,7 +197,7 @@ const ConnectedResource: React.FC<{
         updatedBy: {
           id: string;
           name: string;
-          image: string;
+          image: string | null;
         };
       })
     | null;
@@ -297,10 +302,19 @@ const ConnectedResource: React.FC<{
                   ago by {props.binding?.updatedBy.name}
                 </span>
                 <Avatar className="w-6 h-6 ">
-                  <AvatarImage
+                  {/* <AvatarImage
                     src={props.binding?.updatedBy.image}
                     alt={props.binding?.updatedBy.name}
-                  />
+                  /> */}
+                  {props.binding?.updatedBy.image && (
+                    <AvatarImage
+                      src={props.binding?.updatedBy.image}
+                      alt={props.binding?.updatedBy.name}
+                    />
+                  )}
+                  <AvatarFallback className="w-6 h-6 lg:w-5 lg:h-5 bg-gray-100 border border-gray-500 rounded-md">
+                    {(props.binding?.updatedBy.name ?? "U").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

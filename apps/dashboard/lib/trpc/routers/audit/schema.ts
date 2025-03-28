@@ -1,4 +1,4 @@
-import { DEFAULT_BUCKET_NAME } from "@/app/(app)/audit/components/table/query-logs.schema";
+import { AUDIT_LOG_BUCKET } from "@/lib/audit";
 import { z } from "zod";
 
 export const auditLog = z.object({
@@ -38,8 +38,8 @@ export type AuditLog = z.infer<typeof auditLog>;
 
 export type AuditLogWithTargets = {
   workspaceId: string;
-  bucketId: string;
   id: string;
+  bucket: string;
   createdAt: number;
   updatedAt: number | null;
   time: number;
@@ -54,7 +54,7 @@ export type AuditLogWithTargets = {
 } & {
   targets: Array<{
     workspaceId: string;
-    bucketId: string;
+    bucket: string;
     auditLogId: string;
     displayName: string;
     type: string;
@@ -68,7 +68,7 @@ export type AuditLogWithTargets = {
 
 export const auditQueryLogsParamsSchema = z.object({
   workspaceId: z.string(),
-  bucket: z.string().default(DEFAULT_BUCKET_NAME),
+  bucket: z.string().default(AUDIT_LOG_BUCKET),
   limit: z.number().int(),
   startTime: z.number().int(),
   endTime: z.number().int(),

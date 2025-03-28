@@ -1,5 +1,5 @@
 import { PageContent } from "@/components/page-content";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { CreateKey } from "./client";
@@ -11,7 +11,7 @@ export default async function CreateKeypage(props: {
     keyAuthId: string;
   };
 }) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const keyAuth = await db.query.keyAuth.findFirst({
     where: (table, { eq, and, isNull }) =>
@@ -21,13 +21,13 @@ export default async function CreateKeypage(props: {
       api: true,
     },
   });
-  if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
+  if (!keyAuth || keyAuth.workspace.orgId !== orgId) {
     return notFound();
   }
 
   return (
     <div>
-      <Navigation apiId={props.params.apiId} keyA={keyAuth} />
+      <Navigation apiId={props.params.apiId} keyAuth={keyAuth} />
 
       <PageContent>
         <CreateKey

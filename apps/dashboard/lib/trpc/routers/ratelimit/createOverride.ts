@@ -4,9 +4,10 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema, sql } from "@/lib/db";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const createOverride = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       namespaceId: z.string(),
@@ -72,7 +73,7 @@ export const createOverride = t.procedure
             createdAtM: Date.now(),
           });
         }
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
             type: "user",

@@ -5,7 +5,7 @@ toc:
     href: #sql-injections---clickhouse
   - text: SQL Performance - ClickHouse
     href: #sql-performance---clickhouse
-  - text: Leaking Data From Client to Server 
+  - text: Leaking Data From Client to Server
     href: #leaking-data-from-client-to-server
 ---
 import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
@@ -73,7 +73,7 @@ export function getLogs(ch: Querier) {
             ---------- Apply path filter using pre-generated conditions
             AND (${pathConditions})
                   )
-        
+
         SELECT
           request_id,
           time,
@@ -155,31 +155,31 @@ To improve query performance:
 
 ```sql
       WITH filtered_requests AS (
-          SELECT 
+          SELECT
             r.request_id,
             r.time,
-            r.workspace_id,   
-            r.namespace_id,  
+            r.workspace_id,
+            r.namespace_id,
             r.identifier,
             r.passed,
             m.host,
           FROM ratelimits.raw_ratelimits_v1 r
-          LEFT JOIN metrics.raw_api_requests_v1 m ON 
+          LEFT JOIN metrics.raw_api_requests_v1 m ON
             r.request_id = m.request_id
           WHERE r.workspace_id = {workspaceId: String}
             AND r.namespace_id = {namespaceId: String}
             AND r.time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
         )
         -- * used for the sake brevity
-        SELECT * 
+        SELECT *
         FROM filtered_requests
         ORDER BY time DESC, request_id DESC
         LIMIT {limit: Int}
 ````
 
-Imagine this query: we are trying to get ratelimit details by joining with raw_api_requests_v1. 
-Since raw_api_requests_v1 might be huge, the query can take a long time to execute or consume too much memory. 
-To optimize this, we should first filter as much as possible, with time and workspace_id being the most important factors. 
+Imagine this query: we are trying to get ratelimit details by joining with raw_api_requests_v1.
+Since raw_api_requests_v1 might be huge, the query can take a long time to execute or consume too much memory.
+To optimize this, we should first filter as much as possible, with time and workspace_id being the most important factors.
 We can make the query much faster by eliminating unrelated workspaceId's and irrelevant time ranges.
 
 
@@ -199,14 +199,14 @@ WITH filtered_ratelimits AS (
         ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
         AND (${identifierConditions})
         AND (${statusCondition})
-        AND (({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL) 
+        AND (({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
              OR (time, request_id) < ({cursorTime: Nullable(UInt64)}, {cursorRequestId: Nullable(String)}))
 )
-SELECT 
+SELECT
     fr.request_id,
     fr.time,
-    fr.workspace_id,   
-    fr.namespace_id,  
+    fr.workspace_id,
+    fr.namespace_id,
     fr.identifier,
     fr.passed,
     m.host,
@@ -271,7 +271,7 @@ export const queryLogs = rateLimitedProcedure(ratelimit.update)
   .query(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+        and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
     });
     if (!workspace) {
       throw new TRPCError({
