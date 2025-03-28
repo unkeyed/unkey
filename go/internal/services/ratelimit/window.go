@@ -5,9 +5,11 @@ import (
 	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 )
 
 func newWindow(sequence int64, t time.Time, duration time.Duration) *ratelimitv1.Window {
+	metrics.Ratelimit.CreatedWindows.Add(context.Background(), 1)
 	return &ratelimitv1.Window{
 		Sequence: sequence,
 		Start:    t.Truncate(duration).UnixMilli(),
@@ -41,12 +43,6 @@ func (r *service) SetWindows(ctx context.Context, requests ...setWindowRequest) 
 		// Due to varying network latency, we may receive out of order responses and could decrement the
 		// current value, which would result in inaccurate rate limiting
 		if req.Counter > window.GetCounter() {
-			r.logger.Info("updating window",
-				"key", key.toString(),
-				"current", window.GetCounter(),
-				"new", req.Counter,
-			)
-
 			window.Counter = req.Counter
 		}
 		bucket.mu.Unlock()

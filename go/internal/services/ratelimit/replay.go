@@ -6,6 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -22,6 +23,10 @@ func (s *service) replayRequests() {
 
 // TODO: document this may return nil, nil
 func (s *service) syncWithOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest) (*ratelimitv1.ReplayResponse, error) {
+	defer func(start time.Time) {
+		metrics.Ratelimit.OriginSyncLatency.Record(ctx, time.Since(start).Milliseconds())
+	}(time.Now())
+
 	ctx, span := tracing.Start(ctx, "syncWithOrigin")
 	defer span.End()
 
@@ -94,7 +99,7 @@ func (s *service) Replay(ctx context.Context, req *connect.Request[ratelimitv1.R
 	defer span.End()
 	t := time.UnixMilli(req.Msg.GetTime())
 
-	res, _, err := s.ratelimit(ctx, t, RatelimitRequest{
+	res, _, err := s.localRatelimit(ctx, t, RatelimitRequest{
 		Identifier: req.Msg.GetRequest().GetIdentifier(),
 		Limit:      req.Msg.GetRequest().GetLimit(),
 		Duration:   time.Duration(req.Msg.GetRequest().GetDuration()) * time.Millisecond,

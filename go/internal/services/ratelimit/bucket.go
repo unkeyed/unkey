@@ -1,11 +1,13 @@
 package ratelimit
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 )
 
 // Generally there is one bucket per identifier.
@@ -60,7 +62,7 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 	b, exists := s.buckets[key.toString()]
 	s.bucketsMu.RUnlock()
 	if !exists {
-
+		metrics.Ratelimit.CreatedWindows.Add(context.Background(), 1)
 		b = &bucket{
 			mu:          sync.RWMutex{},
 			limit:       key.limit,

@@ -194,6 +194,16 @@ var (
 
 	Ratelimit struct {
 		Origin Int64Counter
+
+		Buckets           metric.Int64Gauge
+		Windows           metric.Int64Gauge
+		CreatedBuckets    Int64Counter
+		EvictedBuckets    Int64Counter
+		CreatedWindows    Int64Counter
+		EvictedWindows    Int64Counter
+		LocalDecisions    Int64Counter
+		OriginDecisions   Int64Counter
+		OriginSyncLatency metric.Int64Histogram
 	}
 )
 
@@ -307,5 +317,70 @@ func Init(m metric.Meter) error {
 	if err != nil {
 		return err
 	}
+
+	Ratelimit.CreatedBuckets, err = m.Int64Counter("ratelimit_bucket_created",
+		metric.WithDescription("Tracks how many buckets were created"),
+	)
+	if err != nil {
+		return err
+	}
+
+	Ratelimit.EvictedBuckets, err = m.Int64Counter("ratelimit_bucket_evicted",
+		metric.WithDescription("Tracks how many buckets were evicted"),
+	)
+	if err != nil {
+		return err
+	}
+
+	Ratelimit.CreatedWindows, err = m.Int64Counter("ratelimit_window_created",
+		metric.WithDescription("Tracks how many windows were created"),
+	)
+	if err != nil {
+		return err
+	}
+
+	Ratelimit.EvictedWindows, err = m.Int64Counter("ratelimit_window_evicted",
+		metric.WithDescription("Tracks how many windows were evicted"),
+	)
+	if err != nil {
+		return err
+	}
+
+	Ratelimit.Buckets, err = m.Int64Gauge("ratelimit_bucket_count",
+		metric.WithDescription("Tracks how many buckets are currently active"),
+	)
+	if err != nil {
+		return err
+	}
+
+	Ratelimit.Windows, err = m.Int64Gauge("ratelimit_window_count",
+		metric.WithDescription("Tracks how many windows are currently active"),
+	)
+	if err != nil {
+		return err
+	}
+
+	Ratelimit.OriginSyncLatency, err = m.Int64Histogram("ratelimit_origin_sync_latency",
+		metric.WithDescription("Tracks the latency of origin sync"),
+		metric.WithUnit("ms"),
+	)
+	if err != nil {
+		return err
+	}
+
+	Ratelimit.LocalDecisions, err = m.Int64Counter("ratelimit_local_decision",
+		metric.WithDescription("Tracks how often we resolved a decision locally"),
+	)
+	if err != nil {
+		return err
+	}
+
+	Ratelimit.OriginDecisions, err = m.Int64Counter("ratelimit_origin_decision",
+		metric.WithDescription("Tracks how often we delegated a decision to an origin"),
+	)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

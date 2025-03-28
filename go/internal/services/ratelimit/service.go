@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -76,6 +77,7 @@ func New(config Config) (*service, error) {
 	}
 
 	go s.syncPeers()
+	s.expireWindowsAndBuckets()
 
 	// start multiple goroutines to do replays
 	for range 8 {
@@ -101,7 +103,7 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 	now := r.clock.Now()
 
-	localRes, goToOrigin, err := r.ratelimit(ctx, now, req)
+	localRes, goToOrigin, err := r.localRatelimit(ctx, now, req)
 	if err != nil {
 		return RatelimitResponse{}, err
 	}
@@ -118,9 +120,7 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	}
 
 	if goToOrigin {
-		r.logger.Info("windows are new. syncing with origin",
-			"identifier", req.Identifier,
-		)
+		metrics.Ratelimit.OriginDecisions.Add(ctx, 1)
 		originRes, err := r.syncWithOrigin(ctx, replayRequest)
 		if err != nil {
 			r.logger.Error("unable to ask the origin",
@@ -140,13 +140,14 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		}
 	} else {
 		r.replayBuffer.Buffer(replayRequest)
+		metrics.Ratelimit.LocalDecisions.Add(ctx, 1)
 
 	}
 
 	return localRes, nil
 }
-func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitRequest) (RatelimitResponse, bool, error) {
-	_, span := tracing.Start(ctx, "ratelimit")
+func (r *service) localRatelimit(ctx context.Context, now time.Time, req RatelimitRequest) (RatelimitResponse, bool, error) {
+	_, span := tracing.Start(ctx, "localRatelimit")
 	defer span.End()
 
 	key := bucketKey{req.Identifier, req.Limit, req.Duration}
@@ -174,8 +175,10 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 	// - We count a decreasing portion of previous window based on how far we are into current window
 	effectiveCount := currentWindow.GetCounter() + int64(float64(previousWindow.GetCounter())*(1.0-windowElapsed))
 
+	effectiveCount += req.Cost
+
 	// Check if this request would exceed the limit
-	if effectiveCount+req.Cost > req.Limit {
+	if effectiveCount > req.Limit {
 		remaining := req.Limit - effectiveCount
 		if remaining < 0 {
 			remaining = 0
@@ -198,9 +201,6 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 	// Increment current window counter
 	currentWindow.Counter += req.Cost
 
-	// Recalculate effective count with updated current window
-	effectiveCount = currentWindow.GetCounter() + int64(float64(previousWindow.GetCounter())*(1.0-windowElapsed))
-
 	remaining := req.Limit - effectiveCount
 	if remaining < 0 {
 		remaining = 0
@@ -212,7 +212,7 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 		Remaining:      remaining,
 		Reset:          currentWindow.GetStart() + currentWindow.GetDuration(),
 		Limit:          req.Limit,
-		Current:        effectiveCount,
+		Current:        currentWindow.Counter,
 		CurrentWindow:  currentWindow,
 		PreviousWindow: previousWindow,
 	}, goToOrigin, nil

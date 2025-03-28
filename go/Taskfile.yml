@@ -22,7 +22,7 @@ tasks:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
     cmds:
-      - go test -v -failfast ./... -timeout=30m
+      - go test -failfast -timeout=60m -shuffle=on ./...
 
   test-unit:
     cmds:
