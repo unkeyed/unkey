@@ -1,12 +1,8 @@
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { KeysClient } from "./_components/keys-client";
 import { Navigation } from "./navigation";
-
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { PageContent } from "@/components/page-content";
-import { navigation } from "../../constants";
-import { Keys } from "./keys";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -34,14 +30,7 @@ export default async function APIKeysPage(props: {
   return (
     <div>
       <Navigation apiId={props.params.apiId} keyA={keyAuth} />
-
-      <PageContent>
-        <SubMenu navigation={navigation(keyAuth.api.id, keyAuth.id!)} segment="keys" />
-
-        <div className="flex flex-col gap-8 mt-8 mb-20">
-          <Keys keyAuthId={keyAuth.id} apiId={props.params.apiId} />
-        </div>
-      </PageContent>
+      <KeysClient keyspaceId={keyAuth.id} />
     </div>
   );
 }

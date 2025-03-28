@@ -21,14 +21,22 @@ export type Column<T> = {
   };
 };
 
-export type TableConfig = {
+export type TableLayoutMode = "classic" | "grid";
+
+export interface TableConfig {
   rowHeight: number;
   loadingRows: number;
   overscan: number;
   tableBorder: number;
   throttleDelay: number;
   headerHeight: number;
-};
+
+  // Layout options
+  layoutMode?: TableLayoutMode; // 'classic' or 'grid'
+  rowBorders?: boolean; // Add borders between rows
+  containerPadding?: string; // Custom padding for container (e.g., 'px-0', 'px-4', 'p-2')
+  rowSpacing?: number; // Space between rows in pixels (for classic mode)
+}
 
 export type VirtualTableProps<T> = {
   data: T[];

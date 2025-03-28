@@ -53,3 +53,6 @@ export * from "./icons/chevron-down";
 export * from "./icons/circle-question";
 export * from "./icons/sidebar-left-show";
 export * from "./icons/sidebar-left-hide";
+export * from "./icons/circle-lock";
+export * from "./icons/chart-activity-2";
+export * from "./icons/circle-half-dotted-clock";

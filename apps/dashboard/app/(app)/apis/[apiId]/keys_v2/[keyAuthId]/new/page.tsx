@@ -1,23 +1,18 @@
+import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { CreateKey } from "./client";
 import { Navigation } from "./navigation";
 
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { PageContent } from "@/components/page-content";
-import { navigation } from "../../constants";
-import { Keys } from "./keys";
-
-export const dynamic = "force-dynamic";
-export const runtime = "edge";
-
-export default async function APIKeysPage(props: {
+export default async function CreateKeypage(props: {
   params: {
     apiId: string;
     keyAuthId: string;
   };
 }) {
   const tenantId = getTenantId();
+
   const keyAuth = await db.query.keyAuth.findFirst({
     where: (table, { eq, and, isNull }) =>
       and(eq(table.id, props.params.keyAuthId), isNull(table.deletedAtM)),
@@ -26,7 +21,6 @@ export default async function APIKeysPage(props: {
       api: true,
     },
   });
-
   if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
     return notFound();
   }
@@ -36,11 +30,12 @@ export default async function APIKeysPage(props: {
       <Navigation apiId={props.params.apiId} keyA={keyAuth} />
 
       <PageContent>
-        <SubMenu navigation={navigation(keyAuth.api.id, keyAuth.id!)} segment="keys" />
-
-        <div className="flex flex-col gap-8 mt-8 mb-20">
-          <Keys keyAuthId={keyAuth.id} apiId={props.params.apiId} />
-        </div>
+        <CreateKey
+          keyAuthId={keyAuth.id}
+          apiId={props.params.apiId}
+          defaultBytes={keyAuth.defaultBytes}
+          defaultPrefix={keyAuth.defaultPrefix}
+        />
       </PageContent>
     </div>
   );
