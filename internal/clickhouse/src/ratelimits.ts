@@ -650,7 +650,27 @@ LIMIT {limit: Int}`,
       schema: ratelimitOverviewLogs,
     });
 
-    return query(parameters);
+    // Count query to get total unique identifiers
+    const countQuery = ch.query({
+      query: `
+SELECT
+    count(DISTINCT identifier) as total_count
+FROM ratelimits.raw_ratelimits_v1
+WHERE workspace_id = {workspaceId: String}
+    AND namespace_id = {namespaceId: String}
+    AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+    AND (${identifierConditions})
+    AND (${statusCondition})`,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.number().int(),
+      }),
+    });
+
+    return {
+      logsQuery: query(parameters),
+      countQuery: countQuery(parameters),
+    };
   };
 }
 

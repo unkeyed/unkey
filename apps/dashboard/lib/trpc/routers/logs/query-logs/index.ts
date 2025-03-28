@@ -54,7 +54,6 @@ export const queryLogs = rateLimitedProcedure(ratelimit.read)
       workspaceId: workspace.id,
     });
 
-    // Execute both queries and combine results
     const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);
 
     if (countResult.err || logsResult.err) {

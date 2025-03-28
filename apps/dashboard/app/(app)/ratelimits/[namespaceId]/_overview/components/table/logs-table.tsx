@@ -26,7 +26,7 @@ export const RatelimitOverviewLogsTable = ({
 }) => {
   const [selectedLog, setSelectedLog] = useState<RatelimitOverviewLog>();
   const { getSortDirection, toggleSort } = useSort<SortFields>();
-  const { historicalLogs, isLoading, isLoadingMore, loadMore, hasMore } =
+  const { historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, totalCount } =
     useRatelimitOverviewLogsQuery({
       namespaceId,
     });
@@ -222,6 +222,7 @@ export const RatelimitOverviewLogsTable = ({
         countInfoText: (
           <div className="flex gap-2">
             <span>Showing</span> <span className="text-accent-12">{historicalLogs.length}</span>
+            <span>of {totalCount}</span>
             <span>rate limit identifiers</span>
           </div>
         ),

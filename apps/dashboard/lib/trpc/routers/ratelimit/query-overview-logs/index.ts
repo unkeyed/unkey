@@ -10,6 +10,7 @@ import { transformFilters } from "./utils";
 const RatelimitOverviewLogsResponse = z.object({
   ratelimitOverviewLogs: z.array(ratelimitOverviewLogs),
   hasMore: z.boolean(),
+  total: z.number(),
   nextCursor: z
     .object({
       time: z.number().int(),
@@ -55,7 +56,7 @@ export const queryRatelimitOverviewLogs = rateLimitedProcedure(ratelimit.read)
     }
 
     const transformedInputs = transformFilters(input);
-    const result = await clickhouse.ratelimits.overview.logs({
+    const { countQuery, logsQuery } = await clickhouse.ratelimits.overview.logs({
       ...transformedInputs,
       cursorRequestId: input.cursor?.requestId ?? null,
       cursorTime: input.cursor?.time ?? null,
@@ -63,17 +64,20 @@ export const queryRatelimitOverviewLogs = rateLimitedProcedure(ratelimit.read)
       namespaceId: ratelimitNamespaces[0].id,
     });
 
-    if (result.err) {
+    const [countResult, logsResult] = await Promise.all([countQuery, logsQuery]);
+
+    if (countResult.err || logsResult.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
       });
     }
 
-    const logsWithOverrides = await checkIfIdentifierHasOverride(result.val);
+    const logsWithOverrides = await checkIfIdentifierHasOverride(logsResult.val);
 
     const response: RatelimitOverviewLogsResponse = {
       ratelimitOverviewLogs: logsWithOverrides,
+      total: countResult.val[0].total_count,
       hasMore: logsWithOverrides.length === input.limit,
       nextCursor:
         logsWithOverrides.length === input.limit
