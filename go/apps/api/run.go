@@ -92,7 +92,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create cluster: %w", err)
 	}
 
-	var ch clickhouse.Bufferer = clickhouse.NewNoop()
+	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
 		ch, err = clickhouse.New(clickhouse.Config{
 			URL:    cfg.ClickhouseURL,
@@ -176,7 +176,7 @@ func Run(ctx context.Context, cfg Config) error {
 	routes.Register(srv, &routes.Services{
 		Logger:      logger,
 		Database:    db,
-		EventBuffer: ch,
+		ClickHouse:  ch,
 		Keys:        keySvc,
 		Validator:   validator,
 		Ratelimit:   rlSvc,

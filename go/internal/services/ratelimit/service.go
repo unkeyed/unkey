@@ -101,13 +101,12 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 	now := r.clock.Now()
 
-	//	res, err := r.ratelimit(ctx, now, req)
-	//	if err != nil {
-	//		return RatelimitResponse{}, err
-	//	}
-	//	return res, nil
-	//
-	res, err := r.askOrigin(ctx, &ratelimitv1.ReplayRequest{
+	localRes, goToOrigin, err := r.ratelimit(ctx, now, req)
+	if err != nil {
+		return RatelimitResponse{}, err
+	}
+
+	replayRequest := &ratelimitv1.ReplayRequest{
 		Request: &ratelimitv1.RatelimitRequest{
 			Identifier: req.Identifier,
 			Limit:      req.Limit,
@@ -115,30 +114,39 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 			Cost:       req.Cost,
 		},
 		Time:   now.UnixMilli(),
-		Denied: false,
-	})
-
-	if err != nil {
-		return RatelimitResponse{}, err
+		Denied: !localRes.Success,
 	}
 
-	if res == nil {
-		// we are the origin
-		return r.ratelimit(ctx, now, req)
+	if goToOrigin {
+		r.logger.Info("windows are new. syncing with origin",
+			"identifier", req.Identifier,
+		)
+		originRes, err := r.syncWithOrigin(ctx, replayRequest)
+		if err != nil {
+			r.logger.Error("unable to ask the origin",
+				"error", err.Error(),
+				"identifier", req.Identifier,
+			)
+		} else if originRes != nil {
+			return RatelimitResponse{
+				Limit:          originRes.GetResponse().GetLimit(),
+				Remaining:      originRes.GetResponse().GetRemaining(),
+				Reset:          originRes.GetResponse().GetReset_(),
+				Success:        originRes.GetResponse().GetSuccess(),
+				Current:        originRes.GetResponse().GetCurrent(),
+				CurrentWindow:  originRes.GetCurrent(),
+				PreviousWindow: originRes.GetPrevious(),
+			}, nil
+		}
+	} else {
+		r.replayBuffer.Buffer(replayRequest)
 
 	}
-	return RatelimitResponse{
-		Limit:          res.GetResponse().GetLimit(),
-		Remaining:      res.GetResponse().GetRemaining(),
-		Reset:          res.GetResponse().GetReset_(),
-		Success:        res.GetResponse().GetSuccess(),
-		Current:        res.GetResponse().GetCurrent(),
-		CurrentWindow:  res.GetCurrent(),
-		PreviousWindow: res.GetPrevious(),
-	}, nil
+
+	return localRes, nil
 }
-func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitRequest) (RatelimitResponse, error) {
-	_, span := tracing.Start(ctx, "slidingWindow.ratelimit")
+func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitRequest) (RatelimitResponse, bool, error) {
+	_, span := tracing.Start(ctx, "ratelimit")
 	defer span.End()
 
 	key := bucketKey{req.Identifier, req.Limit, req.Duration}
@@ -149,9 +157,14 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	goToOrigin := now.UnixMilli() < b.strictUntil.UnixMilli()
 	// Get current and previous windows
-	currentWindow := b.getCurrentWindow(now)
-	previousWindow := b.getPreviousWindow(now)
+	currentWindow, currentWindowExisted := b.getCurrentWindow(now)
+	previousWindow, _ := b.getPreviousWindow(now)
+
+	if !currentWindowExisted {
+		goToOrigin = true
+	}
 
 	// Calculate time elapsed in current window (as a fraction)
 	windowElapsed := float64(now.UnixMilli()-currentWindow.GetStart()) / float64(req.Duration.Milliseconds())
@@ -168,6 +181,8 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 			remaining = 0
 		}
 
+		b.strictUntil = now.Add(req.Duration)
+
 		span.SetAttributes(attribute.Bool("passed", false))
 		return RatelimitResponse{
 			Success:        false,
@@ -177,7 +192,7 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 			Current:        effectiveCount,
 			CurrentWindow:  currentWindow,
 			PreviousWindow: previousWindow,
-		}, nil
+		}, goToOrigin, nil
 	}
 
 	// Increment current window counter
@@ -200,39 +215,5 @@ func (r *service) ratelimit(ctx context.Context, now time.Time, req RatelimitReq
 		Current:        effectiveCount,
 		CurrentWindow:  currentWindow,
 		PreviousWindow: previousWindow,
-	}, nil
-}
-
-type setWindowRequest struct {
-	Identifier string
-	Limit      int64
-	Duration   time.Duration
-	Sequence   int64
-	// any time within the window
-	Time    time.Time
-	Counter int64
-}
-
-func (r *service) SetWindows(ctx context.Context, requests ...setWindowRequest) error {
-	_, span := tracing.Start(ctx, "slidingWindow.SetWindows")
-	defer span.End()
-	for _, req := range requests {
-		key := bucketKey{req.Identifier, req.Limit, req.Duration}
-		bucket, _ := r.getOrCreateBucket(key)
-		// Only increment the current value if the new value is greater than the current value
-		// Due to varying network latency, we may receive out of order responses and could decrement the
-		// current value, which would result in inaccurate rate limiting
-		bucket.mu.Lock()
-		window, ok := bucket.windows[req.Sequence]
-		if !ok {
-			window = newWindow(req.Sequence, req.Time, req.Duration)
-			bucket.windows[req.Sequence] = window
-		}
-		if req.Counter > window.GetCounter() {
-			window.Counter = req.Counter
-		}
-		bucket.mu.Unlock()
-
-	}
-	return nil
+	}, goToOrigin, nil
 }

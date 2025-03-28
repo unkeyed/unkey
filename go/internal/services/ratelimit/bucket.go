@@ -24,6 +24,8 @@ type bucket struct {
 	duration time.Duration
 	// sequence -> window
 	windows map[int64]*ratelimitv1.Window
+
+	strictUntil time.Time
 }
 
 // bucketKey returns a unique key for an identifier and duration config
@@ -60,10 +62,11 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 	if !exists {
 
 		b = &bucket{
-			mu:       sync.RWMutex{},
-			limit:    key.limit,
-			duration: key.duration,
-			windows:  make(map[int64]*ratelimitv1.Window),
+			mu:          sync.RWMutex{},
+			limit:       key.limit,
+			duration:    key.duration,
+			windows:     make(map[int64]*ratelimitv1.Window),
+			strictUntil: time.Time{},
 		}
 		s.bucketsMu.Lock()
 		s.buckets[key.toString()] = b
@@ -73,7 +76,9 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 }
 
 // must be called while holding a lock on the bucket
-func (b *bucket) getCurrentWindow(now time.Time) *ratelimitv1.Window {
+// returns true if the window already existed
+func (b *bucket) getCurrentWindow(now time.Time) (*ratelimitv1.Window, bool) {
+
 	sequence := calculateSequence(now, b.duration)
 
 	w, exists := b.windows[sequence]
@@ -81,11 +86,12 @@ func (b *bucket) getCurrentWindow(now time.Time) *ratelimitv1.Window {
 		w = newWindow(sequence, now.Truncate(b.duration), b.duration)
 		b.windows[sequence] = w
 	}
-	return w
+	return w, exists
 }
 
 // must be called while holding a lock on the bucket
-func (b *bucket) getPreviousWindow(now time.Time) *ratelimitv1.Window {
+// returns true if the window already existed
+func (b *bucket) getPreviousWindow(now time.Time) (*ratelimitv1.Window, bool) {
 
 	sequence := calculateSequence(now, b.duration) - 1
 
@@ -95,5 +101,5 @@ func (b *bucket) getPreviousWindow(now time.Time) *ratelimitv1.Window {
 		b.windows[sequence] = w
 	}
 
-	return w
+	return w, exists
 }

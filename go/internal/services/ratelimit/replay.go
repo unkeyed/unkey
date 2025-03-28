@@ -15,60 +15,14 @@ import (
 // This is blocking and should be called in a goroutine
 func (s *service) replayRequests() {
 	for req := range s.replayBuffer.Consume() {
-		s.replayToOrigin(context.Background(), req)
+		s.syncWithOrigin(context.Background(), req)
 	}
 
 }
 
-func (s *service) replayToOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest) {
-	ctx, span := tracing.Start(ctx, "replayToOrigin")
-	defer span.End()
-
-	now := s.clock.Now()
-
-	res, err := s.askOrigin(ctx, req)
-	if err != nil {
-		tracing.RecordError(span, err)
-
-		s.logger.Error("unable to ask origin",
-			"error", err.Error(),
-		)
-		return
-	}
-
-	err = s.SetWindows(ctx,
-		setWindowRequest{
-			Identifier: req.GetRequest().GetIdentifier(),
-			Limit:      req.GetRequest().GetLimit(),
-			Counter:    res.GetCurrent().GetCounter(),
-			Sequence:   res.GetCurrent().GetSequence(),
-			Duration:   time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
-			Time:       now,
-		},
-		setWindowRequest{
-			Identifier: req.GetRequest().GetIdentifier(),
-			Limit:      req.GetRequest().GetLimit(),
-			Counter:    res.GetPrevious().GetCounter(),
-			Sequence:   res.GetPrevious().GetSequence(),
-			Duration:   time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
-			Time:       now,
-		},
-	)
-
-	if err != nil {
-		tracing.RecordError(span, err)
-
-		s.logger.Error("unable to set windows",
-			"error", err.Error(),
-		)
-		return
-	}
-	// if we got this far, we pushpulled successfully with a peer and don't need to try the rest
-
-}
-
-func (s *service) askOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest) (*ratelimitv1.ReplayResponse, error) {
-	ctx, span := tracing.Start(ctx, "askOrigin")
+// TODO: document this may return nil, nil
+func (s *service) syncWithOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest) (*ratelimitv1.ReplayResponse, error) {
+	ctx, span := tracing.Start(ctx, "syncWithOrigin")
 	defer span.End()
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -99,7 +53,7 @@ func (s *service) askOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest)
 	}
 
 	res, err := s.replayCircuitBreaker.Do(ctx, func(innerCtx context.Context) (*connect.Response[ratelimitv1.ReplayResponse], error) {
-		innerCtx, cancel = context.WithTimeout(innerCtx, 10*time.Second)
+		innerCtx, cancel = context.WithTimeout(innerCtx, 2*time.Second)
 		defer cancel()
 		return p.client.Replay(innerCtx, connect.NewRequest(req))
 	})
@@ -113,7 +67,7 @@ func (s *service) askOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest)
 		return nil, err
 	}
 
-	err = s.SetWindows(ctx,
+	s.SetWindows(ctx,
 		setWindowRequest{
 			Identifier: req.GetRequest().GetIdentifier(),
 			Limit:      req.GetRequest().GetLimit(),
@@ -132,16 +86,6 @@ func (s *service) askOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest)
 		},
 	)
 
-	if err != nil {
-		tracing.RecordError(span, err)
-
-		s.logger.Error("unable to set windows",
-			"error", err.Error(),
-			"key", key,
-		)
-		return nil, err
-	}
-	// if we got this far, we pushpulled successfully with a peer and don't need to try the rest
 	return res.Msg, nil
 }
 
@@ -150,7 +94,7 @@ func (s *service) Replay(ctx context.Context, req *connect.Request[ratelimitv1.R
 	defer span.End()
 	t := time.UnixMilli(req.Msg.GetTime())
 
-	res, err := s.ratelimit(ctx, t, RatelimitRequest{
+	res, _, err := s.ratelimit(ctx, t, RatelimitRequest{
 		Identifier: req.Msg.GetRequest().GetIdentifier(),
 		Limit:      req.Msg.GetRequest().GetLimit(),
 		Duration:   time.Duration(req.Msg.GetRequest().GetDuration()) * time.Millisecond,
