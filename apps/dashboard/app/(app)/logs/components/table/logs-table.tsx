@@ -248,6 +248,7 @@ export const LogsTable = () => {
       rowClassName={getRowClassName}
       selectedClassName={getSelectedClassName}
       loadMoreFooterProps={{
+        hide: isLoading,
         buttonText: "Load more logs",
         hasMore,
         countInfoText: (

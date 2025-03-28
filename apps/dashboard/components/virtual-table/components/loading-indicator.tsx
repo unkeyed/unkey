@@ -8,8 +8,8 @@ type LoadMoreFooterProps = {
   className?: string;
   itemLabel?: string;
   buttonText?: string;
-  hideCountInfo?: boolean;
   hasMore?: boolean;
+  hide?: boolean;
   countInfoText?: React.ReactNode;
 };
 
@@ -20,11 +20,15 @@ export const LoadMoreFooter = ({
   totalCount,
   itemLabel = "items",
   buttonText = "Load more",
-  hideCountInfo = false,
   hasMore = true,
   countInfoText,
+  hide,
 }: LoadMoreFooterProps) => {
   const shouldShow = !!onLoadMore;
+
+  if (hide) {
+    return;
+  }
 
   return (
     <div
@@ -36,8 +40,8 @@ export const LoadMoreFooter = ({
     >
       <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 h-[60px] flex items-center justify-center p-[18px] rounded-[10px] drop-shadow-lg shadow-sm mb-5">
         <div className="flex w-full justify-between items-center text-[13px] text-accent-9">
-          {!hideCountInfo && countInfoText && <div>{countInfoText}</div>}
-          {!hideCountInfo && !countInfoText && (
+          {countInfoText && <div>{countInfoText}</div>}
+          {!countInfoText && (
             <div className="flex gap-2">
               <span>Viewing</span> <span className="text-accent-12">{totalVisible}</span>
               <span>of</span>
@@ -45,7 +49,6 @@ export const LoadMoreFooter = ({
               <span>{itemLabel}</span>
             </div>
           )}
-          {hideCountInfo && <div />}
 
           <Button
             variant="outline"

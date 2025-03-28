@@ -44,13 +44,12 @@ export type VirtualTableProps<T> = {
   selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
   isFetchingNextPage?: boolean;
-
   loadMoreFooterProps?: {
     itemLabel?: string;
     buttonText?: string;
-    hideCountInfo?: boolean;
     countInfoText?: React.ReactNode;
     hasMore?: boolean;
+    hide?: boolean;
   };
 };
 

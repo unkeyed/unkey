@@ -219,6 +219,7 @@ export const RatelimitOverviewLogsTable = ({
         itemLabel: "identifiers",
         buttonText: "Load more logs",
         hasMore,
+        hide: isLoading,
         countInfoText: (
           <div className="flex gap-2">
             <span>Showing</span> <span className="text-accent-12">{historicalLogs.length}</span>
