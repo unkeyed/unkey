@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type ProcessedTimeseriesDataPoint = {
+export type ProcessedTimeseriesDataPoint = {
   valid: number;
   total: number;
   success: number;

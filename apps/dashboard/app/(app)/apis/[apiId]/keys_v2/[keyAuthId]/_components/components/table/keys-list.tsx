@@ -4,13 +4,17 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toaster";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, ChartActivity2, CircleHalfDottedClock, CircleLock, Key } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { Button, Empty, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { memo, useMemo, useState } from "react";
-import { useFetchVerificationTimeseries } from "./components/bar-chart/hooks/use-fetch-timeseries";
+import { useMemo, useState } from "react";
+import {
+  type ProcessedTimeseriesDataPoint,
+  useFetchVerificationTimeseries,
+} from "./components/bar-chart/hooks/use-fetch-timeseries";
 import { useKeysListQuery } from "./hooks/use-logs-query";
 import { STATUS_STYLES, getRowClassName } from "./utils/get-row-class";
 
@@ -58,13 +62,21 @@ export const KeysList = ({ keyspaceId }: Props) => {
         key: "value",
         header: "Value",
         width: "15%",
-        render: (key) => <HiddenValueCell value={key.start} title="Value" />,
+        render: (key) => (
+          <HiddenValueCell value={key.start} title="Value" selected={selectedKey?.id === key.id} />
+        ),
       },
       {
         key: "usage",
         header: "Usage",
         width: "15%",
-        render: (key) => <MemoizedVerificationBarChart keyAuthId={keyspaceId} keyId={key.id} />,
+        render: (key) => (
+          <VerificationBarChart
+            keyAuthId={keyspaceId}
+            keyId={key.id}
+            selected={key.id === selectedKey?.id}
+          />
+        ),
       },
       {
         key: "last_used",
@@ -80,8 +92,6 @@ export const KeysList = ({ keyspaceId }: Props) => {
           );
         },
       },
-      // Inside your columns definition in KeysList component
-
       {
         key: "expires",
         header: "Expires In",
@@ -116,9 +126,9 @@ export const KeysList = ({ keyspaceId }: Props) => {
                 "px-1.5 rounded-md flex gap-2 items-center w-[135px] border",
                 selectedKey?.id === key.id
                   ? STATUS_STYLES.badge.selected
-                  : expiryStatus === "expired" || expiryStatus === "expiring-soon"
-                    ? "bg-orange-3 text-orange-11 group-hover:bg-orange-4"
-                    : STATUS_STYLES.badge.default,
+                  : STATUS_STYLES.badge.default,
+                (expiryStatus === "expired" || expiryStatus === "expiring-soon") &&
+                  "bg-orange-4 text-orange-11 group-hover:bg-orange-4",
               )}
             >
               <div>
@@ -193,9 +203,11 @@ export const KeysList = ({ keyspaceId }: Props) => {
 const HiddenValueCell = ({
   value,
   title = "Value",
+  selected,
 }: {
   value: string;
   title: string;
+  selected: boolean;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   // Show only first 4 characters, then dots
@@ -222,7 +234,10 @@ const HiddenValueCell = ({
     <>
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
       <div
-        className="rounded-lg border bg-grayA-1 border-accent-4 text-grayA-11 w-[150px] px-2 py-1 flex gap-2 items-center cursor-pointer h-[28px]"
+        className={cn(
+          "rounded-lg border bg-grayA-1 border-accent-4 text-grayA-11 w-[150px] px-2 py-1 flex gap-2 items-center cursor-pointer h-[28px] group-hover:border-grayA-3",
+          selected && "border-grayA-3",
+        )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={(e) => handleClick(e)}
@@ -247,11 +262,17 @@ type VerificationBarChartProps = {
   keyAuthId: string;
   keyId: string;
   maxBars?: number;
+  selected: boolean;
 };
 
 const MAX_HEIGHT_BUFFER_FACTOR = 1.3;
 const MAX_BAR_HEIGHT = 28;
-const VerificationBarChart = ({ keyAuthId, keyId, maxBars = 30 }: VerificationBarChartProps) => {
+const VerificationBarChart = ({
+  keyAuthId,
+  keyId,
+  selected,
+  maxBars = 30,
+}: VerificationBarChartProps) => {
   const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(keyAuthId, keyId);
 
   const isEmpty = useMemo(
@@ -314,7 +335,10 @@ const VerificationBarChart = ({ keyAuthId, keyId, maxBars = 30 }: VerificationBa
     return (
       <div
         // We need 156px when you calculate the gaps and height but we need some breathing space so its "158px" now
-        className="grid h-[28px] bg-gray-1 w-[158px] border border-transparent rounded-lg border-inside px-1 py-0 items-end"
+        className={cn(
+          "grid items-end h-[28px] bg-gray-1 w-[158px] border border-transparent hover:border-grayA-3 group-hover:border-grayA-3 rounded-lg border-inside px-1 py-0 overflow-hidden",
+          selected ? "border-grayA-3" : "border-transparent",
+        )}
         style={{
           gridTemplateColumns: `repeat(${maxBars}, 3px)`,
           gap: "2px",
@@ -348,7 +372,10 @@ const VerificationBarChart = ({ keyAuthId, keyId, maxBars = 30 }: VerificationBa
   if (isError) {
     return (
       <div
-        className="grid h-[28px] bg-gray-1 w-[158px] border border-error-5 rounded-lg border-inside px-1 py-0"
+        className={cn(
+          "grid items-end h-[28px] bg-gray-1 w-[158px] border border-transparent hover:border-grayA-3 group-hover:border-grayA-3 rounded-lg border-inside px-1 py-0 overflow-hidden",
+          selected ? "border-grayA-3" : "border-transparent",
+        )}
         style={{
           gridTemplateColumns: "1fr",
         }}
@@ -364,7 +391,10 @@ const VerificationBarChart = ({ keyAuthId, keyId, maxBars = 30 }: VerificationBa
   if (isEmpty) {
     return (
       <div
-        className="grid h-[28px] bg-gray-1 w-[158px] border border-grayA-3 rounded-lg border-inside px-1 py-0"
+        className={cn(
+          "grid items-end h-[28px] bg-gray-1 w-[158px] border border-transparent hover:border-grayA-3 group-hover:border-grayA-3 rounded-lg border-inside px-1 py-0 overflow-hidden",
+          selected ? "border-grayA-3" : "border-transparent",
+        )}
         style={{
           gridTemplateColumns: "1fr",
         }}
@@ -378,27 +408,27 @@ const VerificationBarChart = ({ keyAuthId, keyId, maxBars = 30 }: VerificationBa
 
   // Data display with grid layout
   return (
-    <div
-      className="grid items-end h-[28px] bg-gray-1 w-[158px] border border-transparent hover:border-grayA-3 group-hover:border-grayA-3 rounded-lg border-inside px-1 py-0 overflow-hidden"
-      style={{
-        gridTemplateColumns: `repeat(${maxBars}, 3px)`,
-        gap: "2px",
-      }}
-    >
-      {displayBars.map((bar) => (
-        <div key={bar.id} className="flex flex-col">
-          <div className="w-[3px] bg-error-9" style={{ height: `${bar.topHeight}px` }} />
-          <div className="w-[3px] bg-grayA-5" style={{ height: `${bar.bottomHeight}px` }} />
-        </div>
-      ))}
-    </div>
+    <PopoverDemo timeseries={timeseries}>
+      <div
+        className={cn(
+          "grid items-end h-[28px] bg-gray-1 w-[158px] border border-transparent hover:border-grayA-3 group-hover:border-grayA-3 rounded-lg border-inside px-1 py-0 overflow-hidden",
+          selected ? "border-grayA-3" : "border-transparent",
+        )}
+        style={{
+          gridTemplateColumns: `repeat(${maxBars}, 3px)`,
+          gap: "2px",
+        }}
+      >
+        {displayBars.map((bar) => (
+          <div key={bar.id} className="flex flex-col">
+            <div className="w-[3px] bg-error-9" style={{ height: `${bar.topHeight}px` }} />
+            <div className="w-[3px] bg-grayA-5" style={{ height: `${bar.bottomHeight}px` }} />
+          </div>
+        ))}
+      </div>
+    </PopoverDemo>
   );
 };
-
-const MemoizedVerificationBarChart = memo(VerificationBarChart, (prevProps, nextProps) => {
-  // Only re-render if keyId changes
-  return prevProps.keyId === nextProps.keyId && prevProps.keyAuthId === nextProps.keyAuthId;
-});
 
 export const LastUsedCell = ({
   keyAuthId,
@@ -446,3 +476,142 @@ export const LastUsedCell = ({
     </Badge>
   );
 };
+
+interface PopoverDemoProps {
+  children: React.ReactNode;
+  timeseries: ProcessedTimeseriesDataPoint[];
+}
+
+type ErrorType = {
+  type: string;
+  value: number;
+  color: string;
+};
+
+export function PopoverDemo({ children, timeseries }: PopoverDemoProps): JSX.Element {
+  // Aggregate all timeseries data for the tooltip
+  const aggregatedData = useMemo(() => {
+    if (!timeseries || timeseries.length === 0) {
+      return {
+        valid: 0,
+        rate_limited: 0,
+        insufficient_permissions: 0,
+        forbidden: 0,
+        disabled: 0,
+        expired: 0,
+        usage_exceeded: 0,
+        total: 0,
+      };
+    }
+
+    return timeseries.reduce(
+      (acc, dataPoint) => {
+        acc.valid += dataPoint.valid || 0;
+        acc.rate_limited += dataPoint.rate_limited || 0;
+        acc.insufficient_permissions += dataPoint.insufficient_permissions || 0;
+        acc.forbidden += dataPoint.forbidden || 0;
+        acc.disabled += dataPoint.disabled || 0;
+        acc.expired += dataPoint.expired || 0;
+        acc.usage_exceeded += dataPoint.usage_exceeded || 0;
+        acc.total += dataPoint.total || 0;
+        return acc;
+      },
+      {
+        valid: 0,
+        rate_limited: 0,
+        insufficient_permissions: 0,
+        forbidden: 0,
+        disabled: 0,
+        expired: 0,
+        usage_exceeded: 0,
+        total: 0,
+      },
+    );
+  }, [timeseries]);
+
+  const errorTypes = useMemo(() => {
+    return [
+      {
+        type: "Insufficient Permissions",
+        value: formatNumber(aggregatedData.insufficient_permissions) || 0,
+        color: "bg-error-9",
+      },
+      {
+        type: "Rate Limited",
+        value: formatNumber(aggregatedData.rate_limited) || 0,
+        color: "bg-error-9",
+      },
+      {
+        type: "Forbidden",
+        value: formatNumber(aggregatedData.forbidden) || 0,
+        color: "bg-error-9",
+      },
+      {
+        type: "Disabled",
+        value: formatNumber(aggregatedData.disabled) || 0,
+        color: "bg-error-9",
+      },
+      {
+        type: "Expired",
+        value: formatNumber(aggregatedData.expired) || 0,
+        color: "bg-error-9",
+      },
+      {
+        type: "Usage Exceeded",
+        value: formatNumber(aggregatedData.usage_exceeded) || 0,
+        color: "bg-error-9",
+      },
+    ].filter((error) => Number(error.value) > 0) as ErrorType[];
+  }, [aggregatedData]);
+
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          <div>{children}</div>
+        </TooltipTrigger>
+        <TooltipContent
+          className="min-w-64 bg-gray-1 dark:bg-black shadow-2xl p-0 border border-grayA-2 rounded-lg overflow-hidden flex justify-start px-4 pt-2 pb-1 flex-col gap-1"
+          side="bottom"
+        >
+          <div className="text-gray-12 font-medium text-[13px] pr-2">API Key Activity</div>
+          <div className="text-xs text-grayA-9 pr-2 font-normal">Last 36 hours</div>
+
+          {/* Valid count */}
+          <div className="flex justify-between w-full items-center mt-3">
+            <div className="flex gap-3 items-center">
+              <div className="bg-gray-7 h-6 w-0.5 rounded-t rounded-b" />
+              <div className="text-gray-12 font-medium text-[13px]">Valid</div>
+            </div>
+            <div className="text-gray-9 font-medium text-[13px]">
+              {formatNumber(aggregatedData.valid)}
+            </div>
+          </div>
+
+          <div className="mt-1" />
+
+          {/* Error types */}
+          <div className="flex flex-col">
+            {errorTypes.map((error, index) => (
+              <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                key={index}
+                className="flex justify-between w-full items-center"
+              >
+                <div className="flex gap-3 items-center">
+                  <div className={`${error.color} h-6 w-0.5 rounded-t rounded-b`} />
+                  <div className="text-gray-12 font-medium text-[13px]">{error.type}</div>
+                </div>
+                <div className="text-gray-9 font-medium text-[13px]">{error.value}</div>
+              </div>
+            ))}
+
+            {errorTypes.length === 0 && aggregatedData.valid === 0 && (
+              <div className="text-gray-9 text-[13px] py-1">No verification activity</div>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}

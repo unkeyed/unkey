@@ -17,8 +17,8 @@ export const STATUS_STYLES = {
   hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
   selected: "text-accent-12 bg-grayA-3 hover:text-accent-12",
   badge: {
-    default: "bg-gray-3 text-grayA-11 group-hover:bg-gray-5",
-    selected: "bg-gray-5 text-grayA-12 hover:bg-gray-5",
+    default: "bg-gray-3 text-grayA-11 group-hover:bg-gray-5 border-transparent",
+    selected: "bg-gray-5 text-grayA-12 hover:bg-gray-5 border-grayA-3",
   },
   focusRing: "focus:ring-accent-7",
 };
