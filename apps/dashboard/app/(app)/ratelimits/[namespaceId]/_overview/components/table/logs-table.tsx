@@ -26,9 +26,10 @@ export const RatelimitOverviewLogsTable = ({
 }) => {
   const [selectedLog, setSelectedLog] = useState<RatelimitOverviewLog>();
   const { getSortDirection, toggleSort } = useSort<SortFields>();
-  const { historicalLogs, isLoading, isLoadingMore, loadMore } = useRatelimitOverviewLogsQuery({
-    namespaceId,
-  });
+  const { historicalLogs, isLoading, isLoadingMore, loadMore, hasMore } =
+    useRatelimitOverviewLogsQuery({
+      namespaceId,
+    });
 
   const columns = (namespaceId: string): Column<RatelimitOverviewLog>[] => {
     return [
@@ -214,6 +215,17 @@ export const RatelimitOverviewLogsTable = ({
       columns={columns(namespaceId)}
       keyExtractor={(log) => log.identifier}
       rowClassName={(rowLog) => getRowClassName(rowLog, selectedLog as RatelimitOverviewLog)}
+      loadMoreFooterProps={{
+        itemLabel: "identifiers",
+        buttonText: "Load more logs",
+        hasMore,
+        countInfoText: (
+          <div className="flex gap-2">
+            <span>Showing</span> <span className="text-accent-12">{historicalLogs.length}</span>
+            <span>rate limit identifiers</span>
+          </div>
+        ),
+      }}
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">
