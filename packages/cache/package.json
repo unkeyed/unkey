@@ -26,12 +26,22 @@
   "publishConfig": {
     "access": "public"
   },
-  "keywords": ["unkey", "cache", "cloudflare", "tiered", "swr", "memory", "latency"],
+  "keywords": [
+    "unkey",
+    "cache",
+    "cloudflare",
+    "tiered",
+    "swr",
+    "memory",
+    "latency"
+  ],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
   "homepage": "https://github.com/unkeyed/unkey#readme",
-  "files": ["./dist/**"],
+  "files": [
+    "./dist/**"
+  ],
   "author": "Andreas Thomas <andreas@unkey.dev>",
   "scripts": {
     "build": "tsup",
@@ -39,11 +49,11 @@
   },
   "devDependencies": {
     "@libsql/client": "^0.7.0",
-    "@types/node": "^20.14.9",
+    "@types/node": "20.14.9",
     "@upstash/redis": "^1.34.3",
     "next": "14.2.15",
     "tsup": "^8.0.2",
-    "typescript": "^5.5.3",
+    "typescript": "5.5.3",
     "vitest": "^1.6.1"
   },
   "dependencies": {
