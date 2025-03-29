@@ -54,7 +54,9 @@ func New(config Config) (*Server, error) {
 	}
 
 	interceptor, err := otelconnect.NewInterceptor(
-		otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()), otelconnect.WithTrustRemote(),
+		otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()),
+		otelconnect.WithTrustRemote(),
+		otelconnect.WithoutServerPeerAttributes(),
 	)
 	if err != nil {
 		return nil, err
