@@ -397,7 +397,7 @@ async function replayToAws(
     headers: {
       "Content-Type": "application/json",
       Authorization: c.req.header("authorization") ?? "",
-      "X-Unkey-No-Metrics": "true",
+      "X-Unkey-Metrics": "disabled",
     },
     body: JSON.stringify({
       namespace: req.namespace,

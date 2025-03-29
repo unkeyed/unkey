@@ -13,7 +13,7 @@ import (
 // this function runs during startup.
 func Register(srv *zen.Server, svc *Services) {
 	withTracing := zen.WithTracing()
-	withMetrics := zen.WithMetrics(svc.EventBuffer)
+	withMetrics := zen.WithMetrics(svc.ClickHouse)
 
 	withLogging := zen.WithLogging(svc.Logger)
 	withErrorHandling := zen.WithErrorHandling(svc.Logger)
@@ -47,6 +47,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Logger:                        svc.Logger,
 			DB:                            svc.Database,
 			Keys:                          svc.Keys,
+			ClickHouse:                    svc.ClickHouse,
 			Ratelimit:                     svc.Ratelimit,
 			Permissions:                   svc.Permissions,
 			RatelimitNamespaceByNameCache: svc.Caches.RatelimitNamespaceByName,

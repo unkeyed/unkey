@@ -16,7 +16,7 @@ import (
 //	    return fmt.Errorf("failed to get billable ratelimits: %w", err)
 //	}
 //	fmt.Printf("Billable ratelimits: %d\n", count)
-func (c *Clickhouse) GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error) {
+func (c *clickhouse) GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error) {
 	var count int64
 
 	query := `

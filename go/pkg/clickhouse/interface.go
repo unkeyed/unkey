@@ -20,9 +20,18 @@ type Bufferer interface {
 	// BufferKeyVerification adds a key verification event to the buffer.
 	// These represent API key validation operations with their outcomes.
 	BufferKeyVerification(schema.KeyVerificationRequestV1)
+
+	// BufferRatelimit adds a ratelimit event to the buffer.
+	// These represent API ratelimit operations with their outcome.
+	BufferRatelimit(schema.RatelimitRequestV1)
 }
 
 type Querier interface {
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
+}
+
+type ClickHouse interface {
+	Bufferer
+	Querier
 }

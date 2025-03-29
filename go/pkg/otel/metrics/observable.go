@@ -29,7 +29,6 @@ var _ Int64Observable = (*int64ObservableGauge)(nil)
 // on the same gauge instance. It should typically be called during initialization.
 func (g *int64ObservableGauge) RegisterCallback(callback metric.Int64Callback) error {
 	_, err := g.m.Int64ObservableGauge(g.name, append(g.opts, metric.WithInt64Callback(callback))...)
-
 	return err
 }
 

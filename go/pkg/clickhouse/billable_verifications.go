@@ -16,7 +16,7 @@ import (
 //	    return fmt.Errorf("failed to get billable verifications: %w", err)
 //	}
 //	fmt.Printf("Billable verifications: %d\n", count)
-func (c *Clickhouse) GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error) {
+func (c *clickhouse) GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error) {
 	var count int64
 
 	query := `

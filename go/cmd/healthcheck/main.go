@@ -23,7 +23,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 	url := cmd.Args().First()
 	if url == "" {
-		return fmt.Errorf("You must provide a url like so: 'unkey healthcheck <url>'")
+		return fmt.Errorf("you must provide a url like so: 'unkey healthcheck <url>'")
 	}
 
 	// nolint:gosec
