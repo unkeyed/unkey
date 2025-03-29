@@ -19,33 +19,81 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-// service implements the ratelimit.Service interface using a sliding window algorithm.
+// service implements the ratelimit.Service interface using a sliding window algorithm
+// with distributed state management across a cluster of nodes.
 //
-// The implementation distributes rate limit state across the cluster using consistent
-// hashing to determine an "origin node" for each client identifier. This approach
-// balances the need for accuracy with performance by:
+// Architecture:
+//   - Uses consistent hashing to assign rate limit buckets to origin nodes
+//   - Makes fast local decisions when possible to minimize latency
+//   - Propagates state changes asynchronously to maintain eventual consistency
+//   - Handles cluster topology changes automatically
 //
-// 1. Making local decisions at each node to minimize latency
-// 2. Asynchronously propagating state to the origin node to maintain consistency
-// 3. Broadcasting limit exceeded events to all nodes to prevent over-admission
+// Thread Safety:
+//   - All public methods are safe for concurrent use
+//   - Internal state is protected by appropriate mutex locks
+//   - Cluster state updates are handled atomically
 //
-// The service handles node joins/leaves automatically by rebalancing the consistent
-// hash ring, ensuring smooth operation during cluster changes.
+// Performance Characteristics:
+//   - O(1) time complexity for rate limit checks
+//   - Local decisions avoid network round trips
+//   - Asynchronous state propagation minimizes overhead
+//   - Automatic cleanup of expired windows reduces memory usage
+//
+// Limitations:
+//   - Brief periods of over-admission possible during node failures
+//   - State propagation adds some eventual consistency delay
+//   - Memory usage scales with number of active rate limit buckets
+//
+// Example Usage:
+//
+//	svc, err := ratelimit.New(ratelimit.Config{
+//	    Logger:  logger,
+//	    Cluster: cluster,
+//	    Clock:   clock,
+//	})
+//	if err != nil {
+//	    return err
+//	}
+//	defer svc.Close()
+//
+//	resp, err := svc.Ratelimit(ctx, RatelimitRequest{
+//	    Identifier: "user-123",
+//	    Limit:      100,
+//	    Duration:   time.Minute,
+//	})
 type service struct {
+	// clock provides time-related functionality, can be mocked for testing
 	clock clock.Clock
 
-	logger  logging.Logger
+	// logger handles structured logging output
+	logger logging.Logger
+
+	// cluster manages node discovery and state distribution
 	cluster cluster.Cluster
 
+	// shutdownCh signals service shutdown
 	shutdownCh chan struct{}
 
+	// bucketsMu protects access to the buckets map
 	bucketsMu sync.RWMutex
-	// identifier+sequence -> bucket
+
+	// buckets maps identifier+sequence to rate limit buckets
+	// Protected by bucketsMu
 	buckets map[string]*bucket
 
-	peerMu               sync.RWMutex
-	peers                map[string]peer
-	replayBuffer         *buffer.Buffer[*ratelimitv1.ReplayRequest]
+	// peerMu protects access to peer-related fields
+	peerMu sync.RWMutex
+
+	// peers maps node IDs to peer connections
+	// Protected by peerMu
+	peers map[string]peer
+
+	// replayBuffer holds rate limit events for async propagation
+	// Thread-safe internally
+	replayBuffer *buffer.Buffer[*ratelimitv1.ReplayRequest]
+
+	// replayCircuitBreaker prevents cascading failures during peer communication
+	// Thread-safe internally
 	replayCircuitBreaker circuitbreaker.CircuitBreaker[*connect.Response[ratelimitv1.ReplayResponse]]
 }
 
@@ -57,8 +105,37 @@ type Config struct {
 	Clock   clock.Clock
 }
 
+// New creates a new rate limiting service with the given configuration.
+//
+// The service starts background goroutines for:
+//   - Synchronizing state with peer nodes
+//   - Cleaning up expired rate limit windows
+//   - Processing replay buffer events
+//
+// These goroutines run until the service is shut down.
+//
+// Parameters:
+//   - config: Required configuration including logger and cluster info
+//
+// Returns:
+//   - *service: The initialized rate limiting service
+//   - error: Configuration validation or initialization errors
+//
+// Thread Safety:
+//   - Safe to call from any goroutine
+//   - Returned service is safe for concurrent use
+//
+// Example Usage:
+//
+//	svc, err := ratelimit.New(ratelimit.Config{
+//	    Logger:  logger,
+//	    Cluster: cluster,
+//	})
+//	if err != nil {
+//	    return fmt.Errorf("failed to create rate limiter: %w", err)
+//	}
+//	defer svc.Close()
 func New(config Config) (*service, error) {
-
 	if config.Clock == nil {
 		config.Clock = clock.New()
 	}
@@ -87,6 +164,50 @@ func New(config Config) (*service, error) {
 	return s, nil
 }
 
+// Ratelimit checks if a request should be allowed under current rate limit constraints.
+// It implements a sliding window algorithm that considers both the current and previous
+// time windows to provide accurate rate limiting across a cluster of nodes.
+//
+// The method follows these steps:
+// 1. Validates request parameters
+// 2. Makes a local rate limit decision
+// 3. Synchronizes with origin node if needed
+// 4. Updates local state based on response
+//
+// Parameters:
+//   - ctx: Context for cancellation and tracing
+//   - req: The rate limit request parameters
+//
+// Returns:
+//   - RatelimitResponse: Contains success/failure and current limit state
+//   - error: Validation or system errors
+//
+// Errors:
+//   - Returns validation errors for invalid parameters
+//   - May return errors from cluster communication
+//
+// Performance:
+//   - O(1) time complexity for local decisions
+//   - Network round trip only when syncing with origin
+//
+// Thread Safety:
+//   - Safe for concurrent use
+//   - State updates are atomic
+//
+// Example:
+//
+//	resp, err := svc.Ratelimit(ctx, RatelimitRequest{
+//	    Identifier: "user-123",
+//	    Limit:      100,
+//	    Duration:   time.Minute,
+//	})
+//	if err != nil {
+//	    return err
+//	}
+//	if !resp.Success {
+//	    return fmt.Errorf("rate limit exceeded, retry after %v",
+//	        time.UnixMilli(resp.Reset))
+//	}
 func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
 	_, span := tracing.Start(ctx, "Ratelimit")
 	defer span.End()
@@ -146,6 +267,32 @@ func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 	return localRes, nil
 }
+
+// localRatelimit performs a rate limit check using only local state.
+// It implements the core sliding window algorithm and determines if
+// synchronization with the origin node is needed.
+//
+// Parameters:
+//   - ctx: Context for cancellation and tracing
+//   - now: Current time (from service clock)
+//   - req: The rate limit request
+//
+// Returns:
+//   - RatelimitResponse: The local rate limit decision
+//   - bool: True if sync with origin is needed
+//   - error: Any errors during processing
+//
+// Algorithm:
+//  1. Gets or creates local rate limit bucket
+//  2. Calculates effective count using sliding window
+//  3. Updates local state if request is allowed
+//  4. Determines if origin sync is needed
+//
+// Thread Safety:
+//   - Protected by bucket mutex
+//   - Safe for concurrent calls
+//
+// Performance: O(1) time complexity
 func (r *service) localRatelimit(ctx context.Context, now time.Time, req RatelimitRequest) (RatelimitResponse, bool, error) {
 	_, span := tracing.Start(ctx, "localRatelimit")
 	defer span.End()
@@ -212,7 +359,7 @@ func (r *service) localRatelimit(ctx context.Context, now time.Time, req Ratelim
 		Remaining:      remaining,
 		Reset:          currentWindow.GetStart() + currentWindow.GetDuration(),
 		Limit:          req.Limit,
-		Current:        currentWindow.Counter,
+		Current:        currentWindow.GetCounter(),
 		CurrentWindow:  currentWindow,
 		PreviousWindow: previousWindow,
 	}, goToOrigin, nil

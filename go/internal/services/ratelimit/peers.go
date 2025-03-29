@@ -16,14 +16,45 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+// peer represents a node in the rate limiting cluster that can handle
+// rate limit requests. It maintains a connection to the remote node
+// and provides methods for state synchronization.
+//
+// Thread Safety:
+//   - Immutable after creation
+//   - Safe for concurrent use
+//
+// Performance:
+//   - Connection pooling handled by HTTP client
+//   - Minimal memory footprint per peer
 type peer struct {
+	// instance contains cluster metadata about the peer
 	instance cluster.Instance
-	client   ratelimitv1connect.RatelimitServiceClient
+
+	// client is the RPC client for communicating with the peer
+	// Thread-safe for concurrent use
+	client ratelimitv1connect.RatelimitServiceClient
 }
 
-// syncs peers removes old peers based on the cluster's event listeners
+// syncPeers maintains the service's peer list by listening for cluster membership
+// changes and removing peers that have left the cluster. This ensures the rate
+// limiter only attempts to communicate with active cluster nodes.
 //
-// call this in a go routine
+// This method should be run in a separate goroutine as it blocks while listening
+// for cluster events.
+//
+// Thread Safety:
+//   - Safe for concurrent access with other peer operations
+//   - Uses peerMu to protect peer list modifications
+//
+// Performance:
+//   - O(1) per peer removal
+//   - Minimal memory usage
+//   - Non-blocking for rate limit operations
+//
+// Example Usage:
+//
+//	go service.syncPeers() // Start peer synchronization
 func (s *service) syncPeers() {
 	for leave := range s.cluster.SubscribeLeave() {
 
@@ -35,6 +66,38 @@ func (s *service) syncPeers() {
 
 }
 
+// getPeer retrieves or creates a peer connection for the given key.
+// The key is used with consistent hashing to determine which node
+// should be the origin for a particular rate limit identifier.
+//
+// Parameters:
+//   - ctx: Context for cancellation and tracing
+//   - key: Consistent hash key to identify the peer
+//
+// Returns:
+//   - peer: The peer connection, either existing or newly created
+//   - error: Any errors during peer lookup or connection
+//
+// Thread Safety:
+//   - Safe for concurrent use
+//   - Uses read-write mutex for peer map access
+//
+// Performance:
+//   - O(1) for existing peers
+//   - Network round trip for new peer connections
+//   - Connection pooling reduces overhead
+//
+// Errors:
+//   - Returns error if peer instance cannot be found
+//   - Returns error if connection cannot be established
+//
+// Example:
+//
+//	p, err := svc.getPeer(ctx, "user-123")
+//	if err != nil {
+//	    return fmt.Errorf("failed to get peer: %w", err)
+//	}
+//	resp, err := p.client.Ratelimit(ctx, req)
 func (s *service) getPeer(ctx context.Context, key string) (peer, error) {
 	ctx, span := tracing.Start(ctx, "getPeer")
 	defer span.End()
@@ -66,6 +129,40 @@ func (s *service) getPeer(ctx context.Context, key string) (peer, error) {
 
 }
 
+// newPeer creates a new peer connection to a cluster node.
+// It establishes the RPC client connection and configures tracing.
+//
+// Parameters:
+//   - ctx: Context for cancellation and tracing
+//   - key: Consistent hash key to identify the peer
+//
+// Returns:
+//   - peer: Newly created peer connection
+//   - error: Any errors during peer creation
+//
+// Thread Safety:
+//   - Caller must hold peerMu lock
+//   - Resulting peer is safe for concurrent use
+//
+// Performance:
+//   - Network round trip for initial connection
+//   - Creates new HTTP client and interceptors
+//
+// Errors:
+//   - Returns error if instance lookup fails
+//   - Returns error if interceptor creation fails
+//   - Returns error if RPC client creation fails
+//
+// Example:
+//
+//	s.peerMu.Lock()
+//	p, err := s.newPeer(ctx, "user-123")
+//	if err != nil {
+//	    s.peerMu.Unlock()
+//	    return fmt.Errorf("failed to create peer: %w", err)
+//	}
+//	s.peers[key] = p
+//	s.peerMu.Unlock()
 func (s *service) newPeer(ctx context.Context, key string) (peer, error) {
 	ctx, span := tracing.Start(ctx, "ratelimit.newPeer")
 	defer span.End()

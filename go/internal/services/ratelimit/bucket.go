@@ -10,33 +10,71 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 )
 
-// Generally there is one bucket per identifier.
-// However if the same identifier is used with different config, such as limit
-// or duration, there will be multiple buckets for the same identifier.
+// bucket maintains rate limit state for a specific identifier+limit+duration combination.
+// It stores a sliding window of request counts and manages the lifecycle of these windows.
 //
-// A bucket is always uniquely identified by this triplet: identifier, limit, duration.
-// See `bucketKey` for more details.
+// Each bucket is uniquely identified by a triplet of:
+//   - identifier: The rate limit subject (user ID, API key, etc)
+//   - limit: Maximum requests allowed in the duration
+//   - duration: Time window for the rate limit
 //
-// A bucket reaches its lifetime when the last window has expired at least 1 * duration ago.
-// In other words, we can remove a bucket when it is no longer relevant for
-// ratelimit decisions.
+// Example Usage:
+//
+//	b := &bucket{
+//	    limit:    100,
+//	    duration: time.Minute,
+//	    windows:  make(map[int64]*ratelimitv1.Window),
+//	}
+//
+//	b.mu.Lock()
+//	window, _ := b.getCurrentWindow(time.Now())
+//	b.mu.Unlock()
 type bucket struct {
-	mu       sync.RWMutex
-	limit    int64
+	// mu protects all bucket operations
+	mu sync.RWMutex
+
+	// limit is the maximum number of requests allowed per duration
+	limit int64
+
+	// duration is the time window for this rate limit
 	duration time.Duration
-	// sequence -> window
+
+	// windows maps sequence numbers to time windows
+	// Protected by mu
+	// Key: sequence number (calculated from time)
+	// Value: window containing request counts
 	windows map[int64]*ratelimitv1.Window
 
+	// strictUntil is when this bucket must sync with origin
+	// Used after rate limit exceeded to ensure consistency
 	strictUntil time.Time
 }
 
-// bucketKey returns a unique key for an identifier and duration config
-// the duration is required to ensure a change in ratelimit config will not
-// reuse the same bucket and mess up the sequence numbers
+// bucketKey uniquely identifies a rate limit bucket by combining the
+// identifier, limit, and duration. This ensures separate tracking when
+// the same identifier has different rate limit configurations.
+//
+// Thread Safety:
+//   - Immutable after creation
+//   - Safe for concurrent use
+//
+// Example:
+//
+//	key := bucketKey{
+//	    identifier: "user-123",
+//	    limit:      100,
+//	    duration:   time.Minute,
+//	}
+//	bucketID := key.toString()
 type bucketKey struct {
+	// identifier is the rate limit subject (user ID, API key, etc)
 	identifier string
-	limit      int64
-	duration   time.Duration
+
+	// limit is the maximum requests allowed in the duration
+	limit int64
+
+	// duration is the time window for the rate limit
+	duration time.Duration
 }
 
 func (b bucketKey) toString() string {
@@ -77,8 +115,22 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 	return b, exists
 }
 
-// must be called while holding a lock on the bucket
-// returns true if the window already existed
+// getCurrentWindow returns the window for the current time, creating it if needed.
+//
+// The window's start time is aligned to duration boundaries (e.g., on the minute
+// for minute-based limits) to ensure consistent behavior across nodes.
+//
+// Parameters:
+//   - now: Current time to determine the window
+//
+// Returns:
+//   - *ratelimitv1.Window: The current window
+//   - bool: True if window existed, false if created
+//
+// Thread Safety:
+//   - Caller MUST hold bucket.mu lock
+//
+// Performance: O(1) time and space complexity
 func (b *bucket) getCurrentWindow(now time.Time) (*ratelimitv1.Window, bool) {
 
 	sequence := calculateSequence(now, b.duration)
@@ -91,8 +143,20 @@ func (b *bucket) getCurrentWindow(now time.Time) (*ratelimitv1.Window, bool) {
 	return w, exists
 }
 
-// must be called while holding a lock on the bucket
-// returns true if the window already existed
+// getPreviousWindow returns the window immediately before the current one,
+// creating it if needed. Used for sliding window calculations.
+//
+// Parameters:
+//   - now: Current time to determine the previous window
+//
+// Returns:
+//   - *ratelimitv1.Window: The previous window
+//   - bool: True if window existed, false if created
+//
+// Thread Safety:
+//   - Caller MUST hold bucket.mu lock
+//
+// Performance: O(1) time and space complexity
 func (b *bucket) getPreviousWindow(now time.Time) (*ratelimitv1.Window, bool) {
 
 	sequence := calculateSequence(now, b.duration) - 1

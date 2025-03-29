@@ -68,7 +68,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Hits Int64Observable
+		Hits metric.Int64Gauge
 
 		// Misses tracks the number of cache read operations that did not find the requested item.
 		// Use this to monitor cache efficiency and identify opportunities for improvement.
@@ -83,7 +83,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Misses Int64Observable
+		Misses metric.Int64Gauge
 
 		// Writes tracks the number of cache write operations.
 		// Use this to monitor write pressure on the cache.
@@ -98,7 +98,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Writes Int64Observable
+		Writes metric.Int64Gauge
 
 		// Evicted tracks the number of items removed from the cache due to space constraints
 		// or explicit deletion. Use this to monitor cache churn and capacity issues.
@@ -115,7 +115,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Evicted Int64Observable
+		Evicted metric.Int64Gauge
 
 		// ReadLatency measures the duration of cache read operations in milliseconds.
 		// This histogram helps track cache performance and identify slowdowns.
@@ -144,7 +144,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Size Int64Observable
+		Size metric.Int64Gauge
 
 		// Capacity tracks the current maximum number of items in the cache
 		// Use this to monitor cache utilization and growth patterns.
@@ -159,7 +159,7 @@ var (
 		//     ))
 		//     return nil
 		//   })
-		Capacity Int64Observable
+		Capacity metric.Int64Gauge
 
 		// Revalidations tracks the number of times the cache has been revalidated.
 		// Use this to monitor cache refresh frequency and performance.
@@ -244,36 +244,32 @@ func Init(m metric.Meter) error {
 	}
 
 	// Initialize Cache metrics
-	Cache.Hits = &int64ObservableCounter{
-		m:    m,
-		name: "cache_hit",
-		opts: []metric.Int64ObservableCounterOption{
-			metric.WithDescription("How many cache hits we encountered."),
-		},
+	Cache.Hits, err = m.Int64Gauge("cache_hit",
+		metric.WithDescription("How many cache hits we encountered."),
+	)
+	if err != nil {
+		return err
 	}
 
-	Cache.Misses = &int64ObservableCounter{
-		m:    m,
-		name: "cache_miss",
-		opts: []metric.Int64ObservableCounterOption{
-			metric.WithDescription("How many cache misses we encountered."),
-		},
+	Cache.Writes, err = m.Int64Gauge("cache_writes",
+		metric.WithDescription("How many cache writes we did."),
+	)
+	if err != nil {
+		return err
 	}
 
-	Cache.Writes = &int64ObservableCounter{
-		m:    m,
-		name: "cache_writes",
-		opts: []metric.Int64ObservableCounterOption{
-			metric.WithDescription("How many cache writes we did."),
-		},
+	Cache.Misses, err = m.Int64Gauge("cache_misses",
+		metric.WithDescription("How many cache misses we encountered."),
+	)
+	if err != nil {
+		return err
 	}
 
-	Cache.Evicted = &int64ObservableCounter{
-		m:    m,
-		name: "cache_evicted",
-		opts: []metric.Int64ObservableCounterOption{
-			metric.WithDescription("How many cache evictions we did."),
-		},
+	Cache.Evicted, err = m.Int64Gauge("cache_evicted",
+		metric.WithDescription("How many cache evictions we did."),
+	)
+	if err != nil {
+		return err
 	}
 
 	Cache.ReadLatency, err = m.Int64Histogram("cache_read_latency",
@@ -284,19 +280,17 @@ func Init(m metric.Meter) error {
 		return err
 	}
 
-	Cache.Size = &int64ObservableGauge{
-		m:    m,
-		name: "cache_size",
-		opts: []metric.Int64ObservableGaugeOption{
-			metric.WithDescription("How many entries are stored in the cache."),
-		},
+	Cache.Size, err = m.Int64Gauge("cache_size",
+		metric.WithDescription("How many entries are stored in the cache."),
+	)
+	if err != nil {
+		return err
 	}
-	Cache.Capacity = &int64ObservableGauge{
-		m:    m,
-		name: "cache_capacity",
-		opts: []metric.Int64ObservableGaugeOption{
-			metric.WithDescription("Maximum number of items the cache can hold."),
-		},
+	Cache.Capacity, err = m.Int64Gauge("cache_capacity",
+		metric.WithDescription("Maximum number of items the cache can hold."),
+	)
+	if err != nil {
+		return err
 	}
 	Cache.Revalidations, err = m.Int64Counter("cache_revalidations", metric.WithDescription("how many times the cache does background revalidation"))
 	if err != nil {
