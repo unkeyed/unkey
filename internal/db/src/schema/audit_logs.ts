@@ -102,7 +102,7 @@ export const auditLogTarget = mysqlTable(
 
     // bucket is the name of the bucket that the target belongs to
     bucket: varchar("bucket", { length: 256 }).notNull().default("unkey_mutations"),
-    auditLogId: varchar("audit_log_id", { length: 256 }),
+    auditLogId: varchar("audit_log_id", { length: 256 }).notNull(),
 
     // A human readable name to display in the UI
     displayName: varchar("display_name", { length: 256 }).notNull(),
