@@ -13,9 +13,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
         return res.status(400).json({ Error: "Missing environment variables" });
     }
 
-        console.info("payload",payload);
-        console.info(req.headers);
-
         if (!payload || !sigHeader) {
             return res.status(400).json({ Error: "Nope" });
         }
