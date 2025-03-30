@@ -256,7 +256,7 @@ const NestedNavItem = memo(({ item }: { item: NavItem & { items?: NavItem[] } })
   const [subPending, setSubPending] = useState<Record<string, boolean>>({});
 
   return (
-    <Collapsible asChild defaultOpen={item.active} className="group/collapsible">
+    <Collapsible defaultOpen={item.active} className="group/collapsible">
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton

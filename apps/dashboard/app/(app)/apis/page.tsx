@@ -1,4 +1,4 @@
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ApiListClient } from "./_components/api-list-client";
@@ -7,18 +7,15 @@ import { fetchApiOverview } from "./actions";
 import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   searchParams: { new?: boolean };
 };
 
 export default async function ApisOverviewPage(props: Props) {
-  const tenantId = getTenantId();
-
+  const orgId = await getOrgId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
 
   if (!workspace) {

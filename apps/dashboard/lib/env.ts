@@ -38,6 +38,15 @@ export const env = () =>
 
       CLICKHOUSE_URL: z.string().optional(),
       OPENAI_API_KEY: z.string().optional(),
+
+      AUTH_PROVIDER: z.enum(["workos", "local"]),
+
+      WORKOS_API_KEY: z.string().optional(),
+      WORKOS_CLIENT_ID: z.string().optional(),
+      NEXT_PUBLIC_WORKOS_REDIRECT_URI: z
+        .string()
+        .default("http://localhost:3000/auth/sso-callback"),
+      WORKOS_COOKIE_PASSWORD: z.string().optional(),
     })
     .parse(process.env);
 

@@ -4,12 +4,21 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import type { Context } from "../../context";
 
-export async function upsertPermission(ctx: Context, name: string): Promise<Permission> {
+export async function upsertPermission(
+  ctx: Context,
+  workspaceId: string,
+  name: string,
+): Promise<Permission> {
   return await db.transaction(async (tx) => {
     const existingPermission = await tx.query.permissions
       .findFirst({
-        where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, ctx.workspace!.id), eq(table.name, name)),
+        where: (table, { eq, and }) =>
+          and(eq(table.name, name), eq(table.workspaceId, workspaceId)),
+        with: {
+          workspace: {
+            columns: { id: true },
+          },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -18,13 +27,14 @@ export async function upsertPermission(ctx: Context, name: string): Promise<Perm
             "We are unable to upsert the permission. Please try again or contact support@unkey.dev",
         });
       });
+
     if (existingPermission) {
       return existingPermission;
     }
 
     const permission: Permission = {
       id: newId("permission"),
-      workspaceId: ctx.workspace!.id,
+      workspaceId,
       name,
       description: null,
       createdAtM: Date.now(),
@@ -41,8 +51,8 @@ export async function upsertPermission(ctx: Context, name: string): Promise<Perm
             "We are unable to upsert the permission. Please try again or contact support@unkey.dev.",
         });
       });
-    await insertAuditLogs(tx, ctx.workspace!.auditLogBucket.id, {
-      workspaceId: ctx.workspace!.id,
+    await insertAuditLogs(tx, {
+      workspaceId,
       actor: { type: "user", id: ctx.user!.id },
       event: "permission.create",
       description: `Created ${permission.id}`,
