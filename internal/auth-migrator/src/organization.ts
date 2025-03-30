@@ -24,7 +24,7 @@ export const db: Database = drizzle(
   }),
   {
     schema,
-  }
+  },
 );
 
 const clerk = createClerkClient({
@@ -43,7 +43,7 @@ async function getClerkOrganizations() {
       clerk.organizations.getOrganizationList({
         limit: PAGE_SIZE,
         offset: offset,
-      })
+      }),
     );
 
     allOrgs.push(...response.data);
@@ -67,7 +67,7 @@ async function getClerkMemberships(organizationId: string) {
         organizationId,
         limit: PAGE_SIZE,
         offset: offset,
-      })
+      }),
     );
     orgMemberShip.push(...response.data);
     if (response.data.length < PAGE_SIZE) {
@@ -138,22 +138,17 @@ const migrateOrg = async (org: Organization) => {
           const workosUser = await findWorkOSUserByClerkId(externalId);
 
           if (workosUser) {
-            const result =
-              await workos.userManagement.createOrganizationMembership({
-                organizationId: workosOrg.id,
-                userId: workosUser.id,
-                roleSlug: membership.role.toLowerCase(),
-              });
+            const result = await workos.userManagement.createOrganizationMembership({
+              organizationId: workosOrg.id,
+              userId: workosUser.id,
+              roleSlug: membership.role.toLowerCase(),
+            });
 
             if (!result) {
-              console.error(
-                `Failed to add user ${workosUser.email} to organization ${org.name}`
-              );
+              console.error(`Failed to add user ${workosUser.email} to organization ${org.name}`);
               return null;
             }
-            console.log(
-              `Added user ${workosUser.email} to organization ${org.name}`
-            );
+            console.log(`Added user ${workosUser.email} to organization ${org.name}`);
             return result;
           } else {
             console.log(`User not found in WorkOS: ${externalId}`);
@@ -163,7 +158,7 @@ const migrateOrg = async (org: Organization) => {
           console.error(`Error adding member to organization: ${error}`);
           return null;
         }
-      })
+      }),
     );
     return results;
   } catch (error) {
@@ -192,11 +187,7 @@ const migrateOrganizations = async () => {
     try {
       const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults.filter((r) => r !== null));
-      console.log(
-        `Completed batch ${i / 10 + 1} of ${Math.ceil(
-          organizations.length / 10
-        )}`
-      );
+      console.log(`Completed batch ${i / 10 + 1} of ${Math.ceil(organizations.length / 10)}`);
 
       if (i + 10 < organizations.length) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -207,7 +198,7 @@ const migrateOrganizations = async () => {
   }
 
   console.log(
-    `Import completed. Successfully imported ${results.length} out of ${organizations.length} organizations`
+    `Import completed. Successfully imported ${results.length} out of ${organizations.length} organizations`,
   );
   return results;
 };

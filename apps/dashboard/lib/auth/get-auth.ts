@@ -1,11 +1,10 @@
 import { getCookie } from "./cookies";
 import { auth } from "./server";
-import { type Membership, UNKEY_SESSION_COOKIE } from "./types";
+import { UNKEY_SESSION_COOKIE } from "./types";
 
 type GetAuthResult = {
   userId: string | null;
   orgId: string | null;
-  orgRole: string | null;
 };
 
 export async function getAuth(_req?: Request): Promise<GetAuthResult> {
@@ -16,7 +15,6 @@ export async function getAuth(_req?: Request): Promise<GetAuthResult> {
       return {
         userId: null,
         orgId: null,
-        orgRole: null,
       };
     }
 
@@ -31,16 +29,16 @@ export async function getAuth(_req?: Request): Promise<GetAuthResult> {
         try {
           const refreshedData = await auth.refreshSession(sessionToken);
           if (!refreshedData.session) {
-            return { userId: null, orgId: null, orgRole: null };
+            return { userId: null, orgId: null };
           }
           userId = refreshedData.session.userId;
           orgId = refreshedData.session.orgId;
         } catch (error) {
           console.error(error);
-          return { userId: null, orgId: null, orgRole: null };
+          return { userId: null, orgId: null };
         }
       } else {
-        return { userId: null, orgId: null, orgRole: null };
+        return { userId: null, orgId: null };
       }
     } else {
       userId = validationResult.userId;
@@ -49,32 +47,26 @@ export async function getAuth(_req?: Request): Promise<GetAuthResult> {
 
     // we should have user data from either validation or refresh
     if (!userId) {
-      return { userId: null, orgId: null, orgRole: null };
+      return { userId: null, orgId: null };
     }
 
     // fetch org from memberships if we have an org
     if (orgId) {
-      const memberships = await auth.getOrganizationMemberList(orgId);
-      const userMembership = memberships.data.find((m: Membership) => m.user.id === userId);
-
       return {
         userId,
         orgId,
-        orgRole: userMembership?.role ?? null,
       };
     }
 
     return {
       userId,
       orgId: orgId ?? null,
-      orgRole: null,
     };
   } catch (error) {
     console.error("Auth validation error:", error);
     return {
       userId: null,
       orgId: null,
-      orgRole: null,
     };
   }
 }
