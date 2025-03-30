@@ -1,7 +1,7 @@
 import { PageContent } from "@/components/page-content";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogTrigger } from "@/components/ui/dialog";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -18,15 +18,14 @@ import { Workspace } from "./permissions/workspace";
 import { UpdateRootKeyName } from "./update-root-key-name";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function RootKeyPage(props: {
   params: { keyId: string };
 }) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: eq(schema.workspaces.orgId, orgId),
     with: {
       apis: {
         where: (table, { isNull }) => isNull(table.deletedAtM),

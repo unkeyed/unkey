@@ -6,13 +6,14 @@ import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { upsertPermissions } from "../rbac";
 
 export const createRootKey = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: z.string().optional(),
@@ -169,7 +170,7 @@ export const createRootKey = t.procedure
             workspaceId: env().UNKEY_WORKSPACE_ID,
           })),
         );
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, auditLogs);
+        await insertAuditLogs(tx, auditLogs);
       });
     } catch (_err) {
       throw new TRPCError({
