@@ -53,10 +53,12 @@ func (b bucketKey) toString() string {
 //   - *bucket: the bucket for tracking rate limit state
 //   - bool: true if the bucket already existed, false if it was created
 func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
+
 	s.bucketsMu.RLock()
-	b, ok := s.buckets[key.toString()]
+	b, exists := s.buckets[key.toString()]
 	s.bucketsMu.RUnlock()
-	if !ok {
+	if !exists {
+
 		b = &bucket{
 			mu:       sync.RWMutex{},
 			limit:    key.limit,
@@ -67,28 +69,28 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 		s.buckets[key.toString()] = b
 		s.bucketsMu.Unlock()
 	}
-	return b, ok
+	return b, exists
 }
 
 // must be called while holding a lock on the bucket
 func (b *bucket) getCurrentWindow(now time.Time) *ratelimitv1.Window {
 	sequence := calculateSequence(now, b.duration)
 
-	w, ok := b.windows[sequence]
-	if !ok {
+	w, exists := b.windows[sequence]
+	if !exists {
 		w = newWindow(sequence, now.Truncate(b.duration), b.duration)
 		b.windows[sequence] = w
 	}
-
 	return w
 }
 
 // must be called while holding a lock on the bucket
 func (b *bucket) getPreviousWindow(now time.Time) *ratelimitv1.Window {
+
 	sequence := calculateSequence(now, b.duration) - 1
 
-	w, ok := b.windows[sequence]
-	if !ok {
+	w, exists := b.windows[sequence]
+	if !exists {
 		w = newWindow(sequence, now.Add(-b.duration).Truncate(b.duration), b.duration)
 		b.windows[sequence] = w
 	}

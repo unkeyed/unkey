@@ -1,6 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { type Quotas, db, eq, schema } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
+import { freeTierQuotas } from "@/lib/quotas";
 import Stripe from "stripe";
 
 export const runtime = "nodejs";
@@ -35,11 +36,6 @@ export const POST = async (req: Request): Promise<Response> => {
       const ws = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
           and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
-        with: {
-          auditLogBuckets: {
-            where: (table, { eq }) => eq(table.name, "unkey_mutations"),
-          },
-        },
       });
       if (!ws) {
         return new Response("workspace does not exist", { status: 500 });
@@ -51,12 +47,6 @@ export const POST = async (req: Request): Promise<Response> => {
         })
         .where(eq(schema.workspaces.id, ws.id));
 
-      const freeTierQuotas: Omit<Quotas, "workspaceId"> = {
-        requestsPerMonth: 150_000,
-        logsRetentionDays: 7,
-        auditLogsRetentionDays: 30,
-        team: false,
-      };
       await db
         .insert(schema.quotas)
         .values({
@@ -67,7 +57,7 @@ export const POST = async (req: Request): Promise<Response> => {
           set: freeTierQuotas,
         });
 
-      await insertAuditLogs(db, ws.auditLogBuckets[0].id, {
+      await insertAuditLogs(db, {
         workspaceId: ws.id,
         actor: {
           type: "system",

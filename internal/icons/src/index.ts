@@ -50,3 +50,6 @@ export * from "./icons/caret-expand-y";
 export * from "./icons/key";
 export * from "./icons/chevron-up";
 export * from "./icons/chevron-down";
+export * from "./icons/circle-question";
+export * from "./icons/sidebar-left-show";
+export * from "./icons/sidebar-left-hide";

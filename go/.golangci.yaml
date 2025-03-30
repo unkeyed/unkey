@@ -56,6 +56,7 @@ linters-settings:
       - "^github.com/prometheus/client_golang/.+Opts$"
       - "^github.com/testcontainers/testcontainers-go.+Request$"
       - "^github.com/testcontainers/testcontainers-go.FromDockerfile$"
+      - "^github.com/ory/dockertest/v3.*$"
       - "^golang.org/x/tools/go/analysis.Analyzer$"
       - "^google.golang.org/protobuf/.+Options$"
       - "^gopkg.in/yaml.v3.Node$"

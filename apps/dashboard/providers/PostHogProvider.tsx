@@ -1,6 +1,6 @@
 // app/providers.tsx
 "use client";
-import type { UserResource } from "@clerk/types";
+import type { User } from "@/lib/auth/types";
 import { usePathname, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";
@@ -33,13 +33,11 @@ export function PostHogPageview(): JSX.Element {
   return <></>;
 }
 
-export const PostHogIdentify = ({ user }: { user: UserResource }) => {
+export const PostHogIdentify = ({ user }: { user: User }) => {
   posthog.identify(user.id, {
-    email: user.primaryEmailAddress?.emailAddress,
-    userName: user.username,
+    email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    createdAt: user.createdAt?.toISOString(),
   });
 };
 

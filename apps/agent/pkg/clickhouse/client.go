@@ -38,7 +38,6 @@ func New(config Config) (*Clickhouse, error) {
 	opts.Debugf = func(format string, v ...any) {
 		config.Logger.Debug().Msgf(format, v...)
 	}
-	config.Logger.Info().Interface("opts", opts.Addr).Msg("connecting to clickhouse")
 	conn, err := ch.Open(opts)
 	if err != nil {
 		return nil, fault.Wrap(err, fmsg.With("opening clickhouse failed"))

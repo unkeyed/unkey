@@ -12,17 +12,25 @@ tasks:
     cmds:
       - docker pull mysql:latest
 
-  test:
+  test-full:
     deps:
       - pull
+      - otel
+    env:
+      INTEGRATION_TEST: true
+      SIMULATION_TEST: false
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    cmds:
+      - go test -failfast ./... -timeout=30m
+
+  test-unit:
     cmds:
       - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
 
-  test-e2e:
-    env:
-      SIMULATON_TEST: true
+  otel:
     cmds:
-      - task: test
+      - docker compose -f ../deployment/docker-compose.yaml up otel -d
 
   build:
     cmds:

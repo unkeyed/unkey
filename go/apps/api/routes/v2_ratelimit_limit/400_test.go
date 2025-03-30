@@ -17,175 +17,184 @@ import (
 )
 
 func TestBadRequests(t *testing.T) {
-	testCases := []struct {
-		name          string
-		req           openapi.V2RatelimitLimitRequestBody
-		expectedError openapi.BadRequestError
-	}{
-		//	{
-		//		name: "missing namespace",
-		//		req: openapi.V2RatelimitLimitRequestBody{
-		//			Identifier: "user_123",
-		//			Limit:      100,
-		//			Duration:   60000,
-		//		},
-		//		expectedError: openapi.BadRequestError{
-		//			Title:     "Bad Request",
-		//			Detail:    "One or more fields failed validation",
-		//			Status:    http.StatusBadRequest,
-		//			Type:      "https://unkey.com/docs/errors/bad_request",
-		//			Errors:    []openapi.ValidationError{},
-		//			RequestId: "test",
-		//			Instance:  nil,
-		//		},
-		//	},
-		// {
-		// 	name: "missing identifier",
-		// 	req: openapi.V2RatelimitLimitRequestBody{
-		// 		Namespace: "test_namespace",
-		// 		Limit:     100,
-		// 		Duration:  60000,
-		// 	},
-		// 	expectedError: openapi.BadRequestError{
-		// 		Title:     "Bad Request",
-		// 		Detail:    "One or more fields failed validation",
-		// 		Status:    http.StatusBadRequest,
-		// 		Type:      "https://unkey.com/docs/errors/bad_request",
-		// 		Errors:    []openapi.ValidationError{},
-		// 		RequestId: "test",
-		// 		Instance:  nil,
-		// 	},
-		// },
-		// {
-		// 	name: "missing limit",
-		// 	req: openapi.V2RatelimitLimitRequestBody{
-		// 		Namespace:  "test_namespace",
-		// 		Identifier: "user_123",
-		// 		Duration:   60000,
-		// 	},
-		// 	expectedError: openapi.BadRequestError{
-		// 		Title:     "Bad Request",
-		// 		Detail:    "One or more fields failed validation",
-		// 		Status:    http.StatusBadRequest,
-		// 		Type:      "https://unkey.com/docs/errors/bad_request",
-		// 		Errors:    []openapi.ValidationError{},
-		// 		RequestId: "test",
-		// 		Instance:  nil,
-		// 	},
-		// },
-		// {
-		// 	name: "missing duration",
-		// 	req: openapi.V2RatelimitLimitRequestBody{
-		// 		Namespace:  "test_namespace",
-		// 		Identifier: "user_123",
-		// 		Limit:      100,
-		// 	},
-		// 	expectedError: openapi.BadRequestError{
-		// 		Title:     "Bad Request",
-		// 		Detail:    "One or more fields failed validation",
-		// 		Status:    http.StatusBadRequest,
-		// 		Type:      "https://unkey.com/docs/errors/bad_request",
-		// 		Errors:    []openapi.ValidationError{},
-		// 		RequestId: "test",
-		// 		Instance:  nil,
-		// 	},
-		// },
-		// {
-		// 	name: "negative limit",
-		// 	req: openapi.V2RatelimitLimitRequestBody{
-		// 		Namespace:  "test_namespace",
-		// 		Identifier: "user_123",
-		// 		Limit:      -1,
-		// 		Duration:   60000,
-		// 	},
-		// 	expectedError: openapi.BadRequestError{
-		// 		Title:     "Bad Request",
-		// 		Detail:    "One or more fields failed validation",
-		// 		Status:    http.StatusBadRequest,
-		// 		Type:      "https://unkey.com/docs/errors/bad_request",
-		// 		Errors:    []openapi.ValidationError{},
-		// 		RequestId: "test",
-		// 		Instance:  nil,
-		// 	},
-		// },
-		// {
-		// 	name: "negative duration",
-		// 	req: openapi.V2RatelimitLimitRequestBody{
-		// 		Namespace:  "test_namespace",
-		// 		Identifier: "user_123",
-		// 		Limit:      100,
-		// 		Duration:   -1,
-		// 	},
-		// 	expectedError: openapi.BadRequestError{
-		// 		Title:     "Bad Request",
-		// 		Detail:    "One or more fields failed validation",
-		// 		Status:    http.StatusBadRequest,
-		// 		Type:      "https://unkey.com/docs/errors/bad_request",
-		// 		Errors:    []openapi.ValidationError{},
-		// 		RequestId: "test",
-		// 		Instance:  nil,
-		// 	},
-		// },
-		{
-			name: "negative cost",
-			req: openapi.V2RatelimitLimitRequestBody{
-				Namespace:  "test_namespace",
+	h := testutil.NewHarness(t)
+
+	route := handler.New(handler.Services{
+		DB:                            h.DB,
+		Keys:                          h.Keys,
+		Logger:                        h.Logger,
+		Permissions:                   h.Permissions,
+		Ratelimit:                     h.Ratelimit,
+		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+		RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
+	})
+
+	h.Register(route)
+
+	t.Run("negative cost", func(t *testing.T) {
+		req := openapi.V2RatelimitLimitRequestBody{
+			Namespace:  "test_namespace",
+			Identifier: "user_123",
+			Limit:      100,
+			Duration:   60000,
+			Cost:       ptr.P[int64](-5),
+		}
+
+		namespace := db.InsertRatelimitNamespaceParams{
+			ID:          uid.New(uid.TestPrefix),
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Name:        req.Namespace,
+			CreatedAt:   time.Now().UnixMilli(),
+		}
+
+		if namespace.Name != "" {
+			err := db.Query.InsertRatelimitNamespace(context.Background(), h.DB.RW(), namespace)
+			require.NoError(t, err)
+		}
+
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespace.ID))
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+
+		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.limit' failed to validate schema", res.Body.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Status)
+		require.Equal(t, "Bad Request", res.Body.Title)
+		require.NotEmpty(t, res.Body.RequestId)
+		require.Greater(t, len(res.Body.Errors), 0)
+		require.Nil(t, res.Body.Instance)
+	})
+
+	// Uncomment and adapt these tests if needed
+	/*
+		t.Run("missing namespace", func(t *testing.T) {
+			req := openapi.V2RatelimitLimitRequestBody{
 				Identifier: "user_123",
 				Limit:      100,
 				Duration:   60000,
-				Cost:       ptr.P[int64](-5),
-			},
-			expectedError: openapi.BadRequestError{
-				Title:     "Bad Request",
-				Detail:    "One or more fields failed validation",
-				Status:    http.StatusBadRequest,
-				Type:      "https://unkey.com/docs/errors/bad_request",
-				Errors:    []openapi.ValidationError{},
-				RequestId: "test",
-				Instance:  nil,
-			},
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-
-			h := testutil.NewHarness(t)
-
-			route := handler.New(handler.Services{
-				DB:          h.DB,
-				Keys:        h.Keys,
-				Logger:      h.Logger,
-				Permissions: h.Permissions,
-				Ratelimit:   h.Ratelimit,
-			})
-
-			h.Register(route)
-
-			namespace := db.InsertRatelimitNamespaceParams{
-				ID:          uid.New(uid.TestPrefix),
-				WorkspaceID: h.Resources.UserWorkspace.ID,
-				Name:        tc.req.Namespace,
-				CreatedAt:   time.Now().UnixMilli(),
 			}
-			if namespace.Name != "" {
-
-				err := db.Query.InsertRatelimitNamespace(context.Background(), h.DB.RW(), namespace)
-				require.NoError(t, err)
-			}
-			rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespace.ID))
 
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
-				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+				"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.limit"))},
 			}
 
-			res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, tc.req)
-			require.Equal(t, 400, res.Status, "expected 400, received: %s", res.RawBody)
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+
+			require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 			require.NotNil(t, res.Body)
-			require.Equal(t, tc.expectedError.Type, res.Body.Type)
-			require.Equal(t, tc.expectedError.Status, res.Body.Status)
-			require.Equal(t, tc.expectedError.Title, res.Body.Title)
+
+			require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
+			require.Equal(t, "POST request body for '/v2/ratelimit.limit' failed to validate schema", res.Body.Detail)
+			require.Equal(t, http.StatusBadRequest, res.Body.Status)
+			require.Equal(t, "Bad Request", res.Body.Title)
 			require.NotEmpty(t, res.Body.RequestId)
+			require.Greater(t, len(res.Body.Errors), 0)
+			require.Nil(t, res.Body.Instance)
 		})
-	}
+	*/
+}
+
+func TestMissingAuthorizationHeader(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := handler.New(handler.Services{
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Logger:      h.Logger,
+		Permissions: h.Permissions,
+		Ratelimit:   h.Ratelimit,
+	})
+
+	h.Register(route)
+
+	t.Run("missing authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type": {"application/json"},
+			// No Authorization header
+		}
+
+		req := handler.Request{
+			Namespace:  "test_namespace",
+			Identifier: "user_123",
+			Limit:      100,
+			Duration:   60000,
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
+		require.Equal(t, "Bad Request", res.Body.Title)
+		require.NotEmpty(t, res.Body.RequestId)
+		require.Nil(t, res.Body.Instance)
+	})
+
+	t.Run("malformed authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"malformed_header"},
+		}
+
+		req := handler.Request{
+			Namespace:  "test_namespace",
+			Identifier: "user_123",
+			Limit:      100,
+			Duration:   60000,
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
+		require.Equal(t, "Bad Request", res.Body.Title)
+		require.NotEmpty(t, res.Body.RequestId)
+		require.Nil(t, res.Body.Instance)
+	})
+
+	t.Run("missing authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type": {"application/json"},
+			// No Authorization header
+		}
+
+		req := handler.Request{
+			Namespace:  "test_namespace",
+			Identifier: "user_123",
+			Limit:      100,
+			Duration:   60000,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status, "Got %s", res.RawBody)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("malformed authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"malformed_header"},
+		}
+
+		req := handler.Request{
+			Namespace:  "test_namespace",
+			Identifier: "user_123",
+			Limit:      100,
+			Duration:   60000,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+	})
 }

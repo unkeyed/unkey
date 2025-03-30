@@ -57,3 +57,8 @@ jobs:
           UNKEY_WEBHOOK_KEYS_API_ID: "not-empty"
           AGENT_URL: "http://localhost:8080"
           AGENT_TOKEN: "not-empty"
+          AUTH_PROVIDER: "workos"
+          WORKOS_CLIENT_ID: "client_"
+          WORKOS_API_KEY: "sk_test_"
+          WORKOS_COOKIE_PASSWORD: "IAMACOOKIEPASSWORD"
+          NEXT_PUBLIC_WORKOS_REDIRECT_URI: "http://localhost:3000/auth/sso-callback"

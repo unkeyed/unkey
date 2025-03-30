@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/pb33f/libopenapi"
@@ -8,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/pkg/ctxutil"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 )
 
 type OpenAPIValidator interface {
@@ -52,14 +54,17 @@ func New() (*Validator, error) {
 	}, nil
 }
 
-func (v *Validator) Validate(r *http.Request) (openapi.BadRequestError, bool) {
+func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestError, bool) {
+	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
+	defer validationSpan.End()
 
 	valid, errors := v.validator.ValidateHttpRequest(r)
+
 	if valid {
 		// nolint:exhaustruct
 		return openapi.BadRequestError{}, true
 	}
-	valErr := openapi.BadRequestError{
+	res := openapi.BadRequestError{
 		Title:     "Bad Request",
 		Detail:    "One or more fields failed validation",
 		Instance:  nil,
@@ -69,18 +74,26 @@ func (v *Validator) Validate(r *http.Request) (openapi.BadRequestError, bool) {
 		Errors:    []openapi.ValidationError{},
 	}
 
-	for _, err := range errors {
+	if len(errors) > 0 {
+		err := errors[0]
+		res.Detail = err.Message
 
-		for _, e := range err.SchemaValidationErrors {
-
-			valErr.Errors = append(valErr.Errors, openapi.ValidationError{
-				Message:  e.Reason,
-				Location: e.AbsoluteLocation,
+		for _, verr := range err.SchemaValidationErrors {
+			res.Errors = append(res.Errors, openapi.ValidationError{
+				Message:  verr.Reason,
+				Location: verr.Location,
+				Fix:      nil,
+			})
+		}
+		if len(res.Errors) == 0 {
+			res.Errors = append(res.Errors, openapi.ValidationError{
+				Message:  err.Reason,
+				Location: err.ValidationType,
 				Fix:      &err.HowToFix,
 			})
 		}
-
 	}
-	return valErr, false
+
+	return res, false
 
 }

@@ -11,13 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/testflags"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestRateLimitAccuracy(t *testing.T) {
-	testflags.SkipUnlessIntegration(t)
+	testutil.SkipUnlessIntegration(t)
 
 	// Define test matrices for each dimension
 	limits := []int64{
@@ -59,11 +58,13 @@ func TestRateLimitAccuracy(t *testing.T) {
 									h := testutil.NewHarness(t)
 
 									route := handler.New(handler.Services{
-										DB:          h.DB,
-										Keys:        h.Keys,
-										Logger:      h.Logger,
-										Permissions: h.Permissions,
-										Ratelimit:   h.Ratelimit,
+										DB:                            h.DB,
+										Keys:                          h.Keys,
+										Logger:                        h.Logger,
+										Permissions:                   h.Permissions,
+										Ratelimit:                     h.Ratelimit,
+										RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+										RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
 									})
 									h.Register(route)
 									ctx := context.Background()
@@ -73,13 +74,13 @@ func TestRateLimitAccuracy(t *testing.T) {
 									namespaceName := uid.New("test")
 									err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 										ID:          namespaceID,
-										WorkspaceID: h.Resources.UserWorkspace.ID,
+										WorkspaceID: h.Resources().UserWorkspace.ID,
 										Name:        namespaceName,
 										CreatedAt:   time.Now().UnixMilli(),
 									})
 									require.NoError(t, err)
 
-									rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+									rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
 
 									headers := http.Header{
 										"Content-Type":  {"application/json"},

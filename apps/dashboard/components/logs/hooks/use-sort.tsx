@@ -27,7 +27,7 @@ export function useSort<TSortFields extends string>(paramName = "sorts") {
   );
 
   const toggleSort = useCallback(
-    (columnKey: TSortFields, multiSort = false) => {
+    (columnKey: TSortFields, multiSort = false, order: "asc" | "desc" = "desc") => {
       const currentSort = sortParams?.find((sort) => sort.column === columnKey);
       const otherSorts = sortParams?.filter((sort) => sort.column !== columnKey) ?? [];
       let newSorts: SortUrlValue<TSortFields>[];
@@ -35,8 +35,8 @@ export function useSort<TSortFields extends string>(paramName = "sorts") {
       if (!currentSort) {
         // Add new sort
         newSorts = multiSort
-          ? [...(sortParams ?? []), { column: columnKey, direction: "asc" }]
-          : [{ column: columnKey, direction: "asc" }];
+          ? [...(sortParams ?? []), { column: columnKey, direction: order }]
+          : [{ column: columnKey, direction: order }];
       } else if (currentSort.direction === "asc") {
         // Toggle to desc
         newSorts = multiSort

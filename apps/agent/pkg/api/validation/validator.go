@@ -3,7 +3,6 @@ package validation
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -68,6 +67,7 @@ func (v *Validator) Body(r *http.Request, dest any) (openapi.ValidationError, bo
 	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
 	valid, errors := v.validator.ValidateHttpRequest(r)
+
 	if !valid {
 		valErr := openapi.ValidationError{
 			Title:     "Bad Request",
@@ -79,7 +79,6 @@ func (v *Validator) Body(r *http.Request, dest any) (openapi.ValidationError, bo
 			Errors:    []openapi.ValidationErrorDetail{},
 		}
 		for _, e := range errors {
-			fmt.Printf("valerr: %+v\n", e)
 
 			for _, schemaValidationError := range e.SchemaValidationErrors {
 				valErr.Errors = append(valErr.Errors, openapi.ValidationErrorDetail{

@@ -37,6 +37,20 @@ var (
 		//     attribute.Int("status", 200),
 		//   ))
 		Requests Int64Counter
+
+		// Latency measures the time taken to process an API request.
+		// Use this histogram to monitor response times and identify performance bottlenecks.
+		//
+		// Attributes:
+		//   - path (string): The HTTP path of the request (e.g., "/api/v1/users")
+		//   - status (int): The HTTP status code of the response (e.g., 200, 404, 500)
+		//
+		// Example:
+		//   metrics.Http.Latency.Record(ctx, time.Since(start), metric.WithAttributes(
+		//     attribute.String("path", "/api/v1/users"),
+		//     attribute.Int("status", 200),
+		//   ))
+		Latency metric.Int64Histogram
 	}
 
 	// Cache contains metrics related to cache operations
@@ -146,6 +160,18 @@ var (
 		//     return nil
 		//   })
 		Capacity Int64Observable
+
+		// Revalidations tracks the number of times the cache has been revalidated.
+		// Use this to monitor cache refresh frequency and performance.
+		//
+		// Attributes:
+		//   - resource (string): The type of resource being cached (e.g., "user_profile")
+		//
+		// Example:
+		//   metrics.Caches.Revalidations.Add(ctx, 1, metric.WithAttributes(
+		//     attribute.String("resource", "keys"),
+		//   ))
+		Revalidations Int64Counter
 	}
 
 	// Cluster contains metrics related to cluster operations and status
@@ -154,16 +180,20 @@ var (
 		// Use this to monitor cluster health, scaling events, and load distribution.
 		//
 		// Attributes:
-		//   - nodeID (string): The unique identifier of the node (e.g., "node-1", "node-abc123")
+		//   - instanceID (string): The unique identifier of the node (e.g., "node-1", "node-abc123")
 		//
 		// Example:
 		//   metrics.Cluster.Size.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
 		//     o.Observe(nodeCount, metric.WithAttributes(
-		//       attribute.String("nodeID", "node-abc123"),
+		//       attribute.String("instanceID", "node-abc123"),
 		//     ))
 		//     return nil
 		//   })
 		Size Int64Observable
+	}
+
+	Ratelimit struct {
+		Origin Int64Counter
 	}
 )
 
@@ -191,6 +221,13 @@ func Init(m metric.Meter) error {
 	// Initialize HTTP metrics
 	Http.Requests, err = m.Int64Counter("http_request",
 		metric.WithDescription("How many api requests we handle."),
+	)
+	if err != nil {
+		return err
+	}
+
+	Http.Latency, err = m.Int64Histogram("http_latency",
+		metric.WithDescription("How long it takes to process an api request."),
 	)
 	if err != nil {
 		return err
@@ -251,6 +288,10 @@ func Init(m metric.Meter) error {
 			metric.WithDescription("Maximum number of items the cache can hold."),
 		},
 	}
+	Cache.Revalidations, err = m.Int64Counter("cache_revalidations", metric.WithDescription("how many times the cache does background revalidation"))
+	if err != nil {
+		return err
+	}
 
 	Cluster.Size = &int64ObservableGauge{
 		m:    m,
@@ -258,6 +299,13 @@ func Init(m metric.Meter) error {
 		opts: []metric.Int64ObservableGaugeOption{
 			metric.WithDescription("How many nodes are in the cluster."),
 		},
+	}
+
+	Ratelimit.Origin, err = m.Int64Counter("ratelimit_origin",
+		metric.WithDescription("Tracks how often a specific node (by tag) is declared the origin"),
+	)
+	if err != nil {
+		return err
 	}
 	return nil
 }

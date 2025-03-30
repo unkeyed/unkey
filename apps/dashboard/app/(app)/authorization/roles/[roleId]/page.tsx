@@ -1,6 +1,6 @@
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Navigation } from "./navigation";
 import { RoleClient } from "./settings-client";
 import type { NestedPermissions } from "./settings-client";
@@ -42,60 +42,45 @@ function sortNestedPermissions(nested: NestedPermissions) {
 }
 
 export default async function RolePage(props: Props) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
-  // Get workspace with active permissions only
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq, isNull }) => eq(table.tenantId, tenantId) && isNull(table.deletedAtM),
+  const role = await db.query.roles.findFirst({
+    where: (table, { eq }) => eq(table.id, props.params.roleId),
     with: {
-      roles: {
-        where: (table, { eq }) => eq(table.id, props.params.roleId),
-        with: {
-          permissions: true,
-          keys: {
-            with: {
-              key: {
-                columns: {
-                  deletedAtM: true,
-                },
-              },
-            },
-          },
-        },
-      },
       permissions: {
         with: {
-          roles: true,
+          permission: true,
         },
-        orderBy: (table, { asc }) => [asc(table.name)],
+      },
+      workspace: {
+        with: {
+          permissions: true,
+        },
+      },
+      keys: {
+        with: {
+          key: true,
+        },
       },
     },
   });
-
-  if (!workspace) {
-    return redirect("/new");
+  if (!role || !role.workspace) {
+    return notFound();
   }
-
-  const role = workspace.roles.at(0);
-
-  if (!role) {
+  if (role.workspace.orgId !== orgId) {
     return notFound();
   }
 
-  // Filter out soft-deleted keys
-  const activeKeys = role.keys?.filter(({ key }) => key.deletedAtM === null) || [];
-
-  // Get all active permissions in the workspace
-  const activePermissions = workspace.permissions;
+  const permissions = role.workspace.permissions;
 
   // Filter role's permissions to only include active ones
   const activeRolePermissionIds = new Set(
     role.permissions
-      .filter((rp) => activePermissions.some((p) => p.id === rp.permissionId))
+      .filter((rp) => permissions.some((p) => p.id === rp.permissionId))
       .map((rp) => rp.permissionId),
   );
 
-  const sortedPermissions = activePermissions.sort((a, b) => {
+  const sortedPermissions = permissions.sort((a, b) => {
     const aParts = a.name.split(".");
     const bParts = b.name.split(".");
     if (aParts.length !== bParts.length) {
@@ -139,7 +124,7 @@ export default async function RolePage(props: Props) {
           ...role,
           permissions: role.permissions.filter((p) => activeRolePermissionIds.has(p.permissionId)),
         }}
-        activeKeys={activeKeys}
+        activeKeys={role.keys.filter(({ key }) => key.deletedAtM === null)}
         sortedNestedPermissions={sortedNestedPermissions}
       />
     </div>

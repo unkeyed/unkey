@@ -24,18 +24,20 @@ func TestWorkspacePermissions(t *testing.T) {
 	namespaceName := "test_namespace"
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
-		WorkspaceID: h.Resources.UserWorkspace.ID, // Use the default workspace
+		WorkspaceID: h.Resources().UserWorkspace.ID, // Use the default workspace
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	route := handler.New(handler.Services{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Ratelimit:   h.Ratelimit,
+		DB:                            h.DB,
+		Keys:                          h.Keys,
+		Logger:                        h.Logger,
+		Permissions:                   h.Permissions,
+		Ratelimit:                     h.Ratelimit,
+		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+		RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
 	})
 
 	h.Register(route)

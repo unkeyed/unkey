@@ -76,6 +76,7 @@ function generateRadixColors() {
     "errorA", // Added tomatoA
     "feature",
     "accent",
+    "base",
   ];
 
   const colors = {};

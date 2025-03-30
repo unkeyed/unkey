@@ -2,6 +2,7 @@ import { XMark } from "@unkey/icons";
 import { SearchExampleTooltip } from "./search-example-tooltip";
 
 type SearchActionsProps = {
+  exampleQueries?: string[];
   searchText: string;
   hideClear: boolean;
   hideExplainer: boolean;
@@ -15,6 +16,7 @@ type SearchActionsProps = {
  * SearchActions component renders the right-side actions (clear button or examples tooltip)
  */
 export const SearchActions: React.FC<SearchActionsProps> = ({
+  exampleQueries,
   searchText,
   hideClear,
   hideExplainer,
@@ -43,7 +45,9 @@ export const SearchActions: React.FC<SearchActionsProps> = ({
   }
 
   if (searchText.length === 0 && !hideExplainer) {
-    return <SearchExampleTooltip onSelectExample={onSelectExample} />;
+    return (
+      <SearchExampleTooltip onSelectExample={onSelectExample} exampleQueries={exampleQueries} />
+    );
   }
 
   return null;

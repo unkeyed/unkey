@@ -23,23 +23,25 @@ func TestLimitSuccessfully(t *testing.T) {
 	namespaceName := "test_namespace"
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	route := handler.New(handler.Services{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Ratelimit:   h.Ratelimit,
+		DB:                            h.DB,
+		Keys:                          h.Keys,
+		Logger:                        h.Logger,
+		Permissions:                   h.Permissions,
+		Ratelimit:                     h.Ratelimit,
+		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+		RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
 	})
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -96,7 +98,7 @@ func TestLimitSuccessfully(t *testing.T) {
 
 		err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
-			WorkspaceID: h.Resources.UserWorkspace.ID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			NamespaceID: namespaceID,
 			Identifier:  identifier,
 			Limit:       limit,
@@ -156,7 +158,7 @@ func TestLimitSuccessfully(t *testing.T) {
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
 		err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
-			WorkspaceID: h.Resources.UserWorkspace.ID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			NamespaceID: namespaceID,
 			Identifier:  identifier,
 			Limit:       overrideLimit,

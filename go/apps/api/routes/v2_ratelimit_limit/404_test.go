@@ -20,16 +20,18 @@ func TestNamespaceNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Ratelimit:   h.Ratelimit,
+		DB:                            h.DB,
+		Keys:                          h.Keys,
+		Logger:                        h.Logger,
+		Permissions:                   h.Permissions,
+		Ratelimit:                     h.Ratelimit,
+		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+		RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
 	})
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -64,7 +66,7 @@ func TestNamespaceNotFound(t *testing.T) {
 		namespaceID := uid.New(uid.RatelimitNamespacePrefix)
 		err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 			ID:          namespaceID,
-			WorkspaceID: h.Resources.UserWorkspace.ID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Name:        deletedNamespace,
 			CreatedAt:   time.Now().UnixMilli(),
 		})

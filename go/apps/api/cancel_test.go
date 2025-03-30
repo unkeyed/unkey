@@ -19,8 +19,7 @@ func TestContextCancellation(t *testing.T) {
 
 	// Create a containers instance for database
 	containers := containers.New(t)
-	dbDsn := containers.RunMySQL()
-	t.Log("dbDsn", dbDsn)
+	dbDsn, _ := containers.RunMySQL()
 	// Get free ports for the node
 	portAllocator := port.New()
 	httpPort := portAllocator.Get()
@@ -36,7 +35,7 @@ func TestContextCancellation(t *testing.T) {
 		Region:                  "test-region",
 		Clock:                   nil,   // Will use real clock
 		ClusterEnabled:          false, // Disable clustering for simpler test
-		ClusterNodeID:           uid.New("node"),
+		ClusterInstanceID:       uid.New(uid.InstancePrefix),
 		LogsColor:               false,
 		ClickhouseURL:           "",
 		DatabasePrimary:         dbDsn,

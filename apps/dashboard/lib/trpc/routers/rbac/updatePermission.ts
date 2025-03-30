@@ -2,7 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -12,7 +12,8 @@ const nameSchema = z
   });
 
 export const updatePermission = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       id: z.string(),
@@ -44,7 +45,7 @@ export const updatePermission = t.procedure
             updatedAtM: Date.now(),
           })
           .where(eq(schema.permissions.id, permission.id));
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "permission.update",
