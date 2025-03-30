@@ -129,7 +129,7 @@ async function alertSlack(product: string, price: string, email: string, name?: 
     		"type": "section",
     		"text": {
     			"type": "mrkdwn",
-    			"text": `A new trial for ${product} with ${price} price has been signed up by ${email} :moneybag: `
+    			"text": `A new trial for the ${product} tier has started at a price of ${price} by ${email} :moneybag: `
     		}
     	},
     ]
