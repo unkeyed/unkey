@@ -9,7 +9,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     const payload = req.body;
     const sigHeader = req.headers["workos-signature"] as string | undefined;
     const { RESEND_API_KEY, RESEND_AUDIENCE_ID, WORKOS_API_KEY, WORKOS_WEBHOOK_SECRET } = env();
-    if (!WORKOS_API_KEY || !WORKOS_WEBHOOK_SECRET) {
+    if (!WORKOS_API_KEY || !WORKOS_WEBHOOK_SECRET || !RESEND_API_KEY || !RESEND_AUDIENCE_ID) {
       return res.status(400).json({ Error: "Missing environment variables" });
     }
 
@@ -31,7 +31,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     if (webhook.event === "user.created") {
       const webhookData = webhook.data;
 
-      const resend = new Resend({ apiKey: RESEND_API_KEY! });
+      const resend = new Resend({ apiKey: RESEND_API_KEY });
 
       if (!webhookData.email) {
         return res.status(400).json({ Error: "No email address found" });
@@ -39,7 +39,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       try {
         await alertSlack(webhookData.email);
         await resend.client.contacts.create({
-          audienceId: RESEND_AUDIENCE_ID!,
+          audienceId: RESEND_AUDIENCE_ID,
           email: webhookData.email,
         });
         await resend.sendWelcomeEmail({
