@@ -60,11 +60,6 @@
       "name": "GitHub",
       "icon": "github",
       "url": "https://github.com/unkeyed"
-    },
-    {
-      "name": "Contributing",
-      "url": "contributing",
-      "icon": "terminal"
     }
   ],
   "navigation": [
@@ -410,31 +405,6 @@
             "libraries/springboot-java/functions/revoke",
             "libraries/springboot-java/functions/update",
             "libraries/springboot-java/functions/verify"
-          ]
-        }
-      ]
-    },
-    {
-      "group": "Contributing",
-      "icon": "github",
-      "pages": [
-        "contributing/getting-started",
-        "contributing/versions",
-        "contributing/editor-setup",
-        "contributing/testing",
-        "contributing/sdk-development",
-        {
-          "group": "Services",
-          "pages": [
-            {
-              "group": "Agent",
-              "pages": [
-                "contributing/services/agent/architecture",
-                "contributing/services/agent/configuration",
-                "contributing/services/agent/cluster",
-                "contributing/services/agent/profiling"
-              ]
-            }
           ]
         }
       ]

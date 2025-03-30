@@ -1,9 +1,12 @@
 import { apiItemsWithApproxKeyCounts } from "@/app/(app)/apis/actions";
 import { db, sql } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { z } from "zod";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "../../trpc";
 
-export const overviewApiSearch = rateLimitedProcedure(ratelimit.read)
+export const overviewApiSearch = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
       query: z.string().trim().max(100),

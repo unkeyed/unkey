@@ -38,7 +38,7 @@ type Consistency struct {
 	buffer chan pair // Channel for buffering key-origin pairs
 
 	// counters maps keys to peer IDs and access counts
-	// The structure is: key -> peerId -> count
+	// The structure is: key -> instanceID -> count
 	counters map[string]map[string]int
 
 	logger logging.Logger // Logger for reporting inconsistencies
@@ -53,19 +53,9 @@ type Consistency struct {
 // Parameters:
 //   - logger: A logging.Logger implementation used to report inconsistencies
 //
-// Returns:
-//   - A pointer to a new, ready-to-use Consistency instance
-//
-// Thread-safety:
-//   - This function is thread-safe and the returned Consistency instance is safe for concurrent use.
-//
-// Performance characteristics:
-//   - Creates a buffered channel with capacity for 1000 events to handle bursts of activity
-//   - The background goroutine wakes up either when new events arrive or once per minute for analysis
-//
 // Example:
 //
-//	logger := yourLoggerImplementation
+//	logger := logging.New()
 //	checker := consistency.New(logger)
 //	defer checker.Close() // Ensure proper cleanup
 func New(logger logging.Logger) *Consistency {
@@ -83,12 +73,14 @@ func New(logger logging.Logger) *Consistency {
 
 			case <-t.C:
 				{
-					c.logger.Debug("checking for consistency")
+					c.logger.Debug("checking for consistency",
+						"counters", c.counters,
+					)
 					for key, peers := range c.counters {
 						if len(peers) > 1 {
 							// Our hashring ensures that a single key is only ever sent to a single node for pushpull
 							// In theory at least..
-							c.logger.Warn("multiple origins detected",
+							c.logger.Error("multiple origins detected",
 								"key", key,
 								"origins", peers,
 							)
@@ -101,6 +93,7 @@ func New(logger logging.Logger) *Consistency {
 			case p, ok := <-c.buffer:
 				{
 					if !ok {
+						t.Stop()
 						return
 					}
 
@@ -128,7 +121,7 @@ func New(logger logging.Logger) *Consistency {
 //
 // Parameters:
 //   - key: The identifier of the key being accessed/processed
-//   - peerId: The identifier of the peer node handling the key
+//   - instanceID: The identifier of the peer node handling the key
 //
 // Thread-safety:
 //   - This method is safe for concurrent use from multiple goroutines
@@ -152,8 +145,8 @@ func New(logger logging.Logger) *Consistency {
 //
 // Note: Always ensure Record() is not called after Close().
 // [Reference: Close]
-func (c *Consistency) Record(key, peerId string) {
-	c.buffer <- pair{key: key, originID: peerId}
+func (c *Consistency) Record(key, instanceID string) {
+	c.buffer <- pair{key: key, originID: instanceID}
 }
 
 // Close shuts down the consistency checker by closing the internal buffer

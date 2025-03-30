@@ -1,7 +1,7 @@
 import { ratelimitQueryOverviewLogsPayload } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { type RatelimitOverviewLog, ratelimitOverviewLogs } from "@unkey/clickhouse/src/ratelimits";
 import { z } from "zod";
@@ -21,7 +21,10 @@ const RatelimitOverviewLogsResponse = z.object({
 
 type RatelimitOverviewLogsResponse = z.infer<typeof RatelimitOverviewLogsResponse>;
 
-export const queryRatelimitOverviewLogs = rateLimitedProcedure(ratelimit.read)
+export const queryRatelimitOverviewLogs = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
   .input(ratelimitQueryOverviewLogsPayload)
   .output(RatelimitOverviewLogsResponse)
   .query(async ({ ctx, input }) => {

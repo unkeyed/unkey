@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -62,12 +63,14 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 				responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
 			}
 
-			metrics.Http.Requests.Add(ctx, 1, metric.WithAttributeSet(attribute.NewSet(
+			attributes := attribute.NewSet(
 				attribute.String("host", s.r.Host),
 				attribute.String("method", s.r.Method),
 				attribute.String("path", s.r.URL.Path),
 				attribute.Int("status", s.responseStatus),
-			)))
+			)
+			metrics.Http.Requests.Add(ctx, 1, metric.WithAttributeSet(attributes))
+			metrics.Http.Latency.Record(ctx, serviceLatency.Milliseconds(), metric.WithAttributeSet(attributes))
 
 			eventBuffer.BufferApiRequest(schema.ApiRequestV1{
 				WorkspaceID:     s.workspaceID,
@@ -81,7 +84,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 				ResponseStatus:  s.responseStatus,
 				ResponseHeaders: responseHeaders,
 				ResponseBody:    string(redact(s.responseBody)),
-				Error:           "",
+				Error:           fault.UserFacingMessage(nextErr),
 				ServiceLatency:  serviceLatency.Milliseconds(),
 			})
 			return nextErr
