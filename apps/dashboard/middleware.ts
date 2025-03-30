@@ -23,6 +23,9 @@ export default async function (req: NextRequest, _evt: NextFetchEvent) {
         "/auth/oauth-sign-in",
         "/auth/join",
         "/favicon.ico",
+        "/api/webhooks/stripe",
+        "/api/v1/workos/webhooks",
+        "/api/v1/github/verify",
         "/_next",
       ],
     })(req);
