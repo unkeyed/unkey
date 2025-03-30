@@ -75,22 +75,21 @@ export const POST = async (req: Request): Promise<Response> => {
     }
     case "customer.subscription.created": {
       const sub = event.data.object as Stripe.Subscription;
-      
+
       // Only handle trial subscriptions
       if (!sub.trial_end) {
-      return new Response("OK");
+        return new Response("OK");
       }
 
       // Get product and price information
       const price = await stripe.prices.retrieve(sub.items.data[0].price.id);
       const product = await stripe.products.retrieve(price.product as string);
-      const customer = await stripe.customers.retrieve(sub.customer as string) as Stripe.Customer;
+      const customer = (await stripe.customers.retrieve(sub.customer as string)) as Stripe.Customer;
 
       const formattedPrice = new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
       }).format(price.unit_amount! / 100);
-
 
       await alertSlack(product.name, formattedPrice, customer.email!, customer.name!);
       break;
@@ -103,13 +102,16 @@ export const POST = async (req: Request): Promise<Response> => {
   return new Response("OK");
 };
 
-
-async function alertSlack(product: string, price: string, email: string, name?: string): Promise<void> {
+async function alertSlack(
+  product: string,
+  price: string,
+  email: string,
+  name?: string,
+): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
   if (!url) {
     return;
   }
-  
 
   await fetch(url, {
     method: "POST",
@@ -117,22 +119,22 @@ async function alertSlack(product: string, price: string, email: string, name?: 
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      "blocks": [
+      blocks: [
         {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": `:bugeyes: New customer ${name} signed up for a two week trial`
-          }
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `:bugeyes: New customer ${name} signed up for a two week trial`,
+          },
         },
-    	{
-    		"type": "section",
-    		"text": {
-    			"type": "mrkdwn",
-    			"text": `A new trial for the ${product} tier has started at a price of ${price} by ${email} :moneybag: `
-    		}
-    	},
-    ]
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `A new trial for the ${product} tier has started at a price of ${price} by ${email} :moneybag: `,
+          },
+        },
+      ],
     }),
   }).catch((err: Error) => {
     console.error(err);
