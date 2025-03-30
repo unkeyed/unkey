@@ -1,10 +1,12 @@
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
+
+export const dynamic = "force-dynamic";
 
 type Props = {
   searchParams: {
@@ -13,14 +15,13 @@ type Props = {
 };
 
 export default async function StripeRedirect(props: Props) {
-  const tenantId = getTenantId();
-  if (!tenantId) {
+  const orgId = await getOrgId();
+  if (!orgId) {
     return redirect("/auth/sign-in");
   }
 
   const ws = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
   if (!ws) {
     return redirect("/new");

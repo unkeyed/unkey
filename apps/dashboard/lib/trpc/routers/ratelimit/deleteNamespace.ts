@@ -3,9 +3,10 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const deleteNamespace = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       namespaceId: z.string(),
@@ -42,7 +43,7 @@ export const deleteNamespace = t.procedure
         .set({ deletedAtM: Date.now() })
         .where(eq(schema.ratelimitNamespaces.id, input.namespaceId));
 
-      await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+      await insertAuditLogs(tx, {
         workspaceId: namespace.workspaceId,
         actor: {
           type: "user",
@@ -81,7 +82,7 @@ export const deleteNamespace = t.procedure
           });
         await insertAuditLogs(
           tx,
-          ctx.workspace.auditLogBucket.id,
+
           overrides.map(({ id }) => ({
             workspaceId: ctx.workspace.id,
             actor: {
