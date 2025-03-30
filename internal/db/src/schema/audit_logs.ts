@@ -1,9 +1,39 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, json, mysqlTable, primaryKey, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, int, json, mysqlTable, primaryKey, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { newId } from "@unkey/id";
+import { deleteProtection } from "./util/delete_protection";
+
+
+
+export const auditLogBucket = mysqlTable(
+  "audit_log_bucket",
+  {
+    id: varchar("id", { length: 256 })
+      .primaryKey()
+      .$defaultFn(() => newId("auditLogBucket")),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    /**
+     * Buckets are used as namespaces for different logs belonging to a single workspace
+     */
+    name: varchar("name", { length: 256 }).notNull(),
+    /**
+     * null means we don't automatically remove logs
+     */
+    retentionDays: int("retention_days"),
+    ...lifecycleDates,
+    ...deleteProtection,
+  },
+  (table) => ({
+    uniqueNamePerWorkspace: uniqueIndex("unique_name_per_workspace_idx").on(
+      table.workspaceId,
+      table.name,
+    ),
+  }),
+);
+
 
 export const auditLog = mysqlTable(
   "audit_log",
@@ -66,7 +96,7 @@ export const auditLogTarget = mysqlTable(
 
     // bucket is the name of the bucket that the target belongs to
     bucket: varchar("bucket", { length: 256 }).notNull().default("unkey_mutations"),
-    auditLogId: varchar("audit_log_id", { length: 256 }).notNull(),
+    auditLogId: varchar("audit_log_id", { length: 256 }),
 
     // A human readable name to display in the UI
     displayName: varchar("display_name", { length: 256 }).notNull(),
@@ -83,6 +113,7 @@ export const auditLogTarget = mysqlTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.auditLogId, table.id] }),
+    bucket: index("bucket").on(table.bucket),
     auditLog: index("audit_log_id").on(table.auditLogId),
     id: index("id_idx").on(table.id),
   }),
