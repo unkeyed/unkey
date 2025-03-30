@@ -85,7 +85,14 @@ export const POST = async (req: Request): Promise<Response> => {
       const price = await stripe.prices.retrieve(sub.items.data[0].price.id);
       const product = await stripe.products.retrieve(price.product as string);
       const customer = await stripe.customers.retrieve(sub.customer as string) as Stripe.Customer;
-      await alertSlack(product.name, price.unit_amount!.toString(), customer.email!, customer.name!);
+
+      const formattedPrice = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(price.unit_amount! / 100);
+
+
+      await alertSlack(product.name, formattedPrice, customer.email!, customer.name!);
       break;
     }
 
