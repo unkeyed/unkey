@@ -1,12 +1,19 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, int, json, mysqlTable, primaryKey, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  index,
+  int,
+  json,
+  mysqlTable,
+  primaryKey,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { newId } from "@unkey/id";
 import { deleteProtection } from "./util/delete_protection";
-
-
 
 export const auditLogBucket = mysqlTable(
   "audit_log_bucket",
@@ -33,7 +40,6 @@ export const auditLogBucket = mysqlTable(
     ),
   }),
 );
-
 
 export const auditLog = mysqlTable(
   "audit_log",
