@@ -1,7 +1,3 @@
-import { useSearchParams } from "next/navigation";
-import { useContext, useEffect, useState } from "react";
-import { resendAuthCode, signInViaEmail, verifyAuthCode } from "../actions";
-import { SignInContext } from "../context/signin-context";
 import { getCookie } from "@/lib/auth/cookies";
 import {
   AuthErrorCode,
@@ -13,6 +9,10 @@ import {
   type VerificationResult,
   errorMessages,
 } from "@/lib/auth/types";
+import { useSearchParams } from "next/navigation";
+import { useContext, useEffect, useState } from "react";
+import { resendAuthCode, signInViaEmail, verifyAuthCode } from "../actions";
+import { SignInContext } from "../context/signin-context";
 
 function isAuthErrorResponse(result: VerificationResult): result is AuthErrorResponse {
   return !result.success && "message" in result;

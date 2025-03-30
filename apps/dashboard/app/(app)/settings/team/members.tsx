@@ -1,14 +1,8 @@
 "use client";
 
-import { memo } from "react";
-import { trpc } from "@/lib/trpc/client";
-import { Loading } from "@/components/dashboard/loading";
-import { Empty } from "@unkey/ui";
-import { toast } from "@/components/ui/toaster";
 import Confirm from "@/components/dashboard/confirm";
-import { Button } from "@unkey/ui";
-import { InviteButton } from "./invite";
-import { RoleSwitcher } from "./role-switcher";
+import { Loading } from "@/components/dashboard/loading";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
   TableBody,
@@ -17,8 +11,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "@/components/ui/toaster";
 import type { Membership, Organization, User } from "@/lib/auth/types";
+import { trpc } from "@/lib/trpc/client";
+import { Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
+import { memo } from "react";
+import { InviteButton } from "./invite";
+import { RoleSwitcher } from "./role-switcher";
 
 type MembersProps = {
   organization: Organization | null;

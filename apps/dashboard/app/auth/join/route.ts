@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { switchOrg } from "../actions";
 
 export async function GET(request: NextRequest) {
@@ -12,8 +12,6 @@ export async function GET(request: NextRequest) {
   if (!invitationToken) {
     return NextResponse.redirect(DASHBOARD_URL); // middleware will pickup if they are not authenticated and redirect to login
   }
-
-  console.log("join page");
 
   const user = await auth.getCurrentUser();
   // exchange token for invitation
@@ -45,19 +43,17 @@ export async function GET(request: NextRequest) {
   }
 
   // if they are not authenticated
-  else {
-    const existingUser = await auth.findUser(invitationEmail);
 
-    if (existingUser) {
-      SIGN_IN_URL.searchParams.set("invitation_token", invitationToken);
-      SIGN_IN_URL.searchParams.set("email", invitationEmail);
+  const existingUser = await auth.findUser(invitationEmail);
 
-      return NextResponse.redirect(SIGN_IN_URL);
-    } else {
-      SIGN_UP_URL.searchParams.set("invitation_token", invitationToken);
-      SIGN_UP_URL.searchParams.set("email", invitationEmail);
+  if (existingUser) {
+    SIGN_IN_URL.searchParams.set("invitation_token", invitationToken);
+    SIGN_IN_URL.searchParams.set("email", invitationEmail);
 
-      return NextResponse.redirect(SIGN_UP_URL);
-    }
+    return NextResponse.redirect(SIGN_IN_URL);
   }
+  SIGN_UP_URL.searchParams.set("invitation_token", invitationToken);
+  SIGN_UP_URL.searchParams.set("email", invitationEmail);
+
+  return NextResponse.redirect(SIGN_UP_URL);
 }

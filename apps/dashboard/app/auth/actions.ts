@@ -1,21 +1,20 @@
 "use server";
 
-import { setCookies, getCookie, deleteCookie, SetSessionCookie } from "@/lib/auth/cookies";
+import { SetSessionCookie, deleteCookie, getCookie, setCookies } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import {
   AuthErrorCode,
-  AuthErrorResponse,
-  EmailAuthResult,
-  errorMessages,
-  NavigationResponse,
-  OAuthResult,
+  type AuthErrorResponse,
+  type EmailAuthResult,
+  type NavigationResponse,
+  type OAuthResult,
   PENDING_SESSION_COOKIE,
-  SignInViaOAuthOptions,
-  UNKEY_SESSION_COOKIE,
-  UserData,
-  VerificationResult,
+  type SignInViaOAuthOptions,
+  type UserData,
+  type VerificationResult,
+  errorMessages,
 } from "@/lib/auth/types";
-import { requireEmailMatch, requireAuth } from "@/lib/auth/utils";
+import { requireEmailMatch } from "@/lib/auth/utils";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 

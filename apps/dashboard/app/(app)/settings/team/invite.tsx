@@ -1,4 +1,5 @@
 "use client";
+import { DialogContainer } from "@/components/dialog-container";
 import {
   Form,
   FormControl,
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import type { Organization, User } from "@/lib/auth/types";
+import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
@@ -25,8 +27,6 @@ import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { DialogContainer } from "@/components/dialog-container";
-import { trpc } from "@/lib/trpc/client";
 
 const formSchema = z.object({
   email: z.string().email(),
