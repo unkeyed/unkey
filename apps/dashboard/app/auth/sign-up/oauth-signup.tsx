@@ -4,10 +4,10 @@ import { Loading } from "@/components/dashboard/loading";
 import { GitHub, Google } from "@/components/ui/icons";
 import { toast } from "@/components/ui/toaster";
 import type { OAuthStrategy } from "@/lib/auth/types";
+import { getBaseUrl } from "@/lib/utils";
 import * as React from "react";
 import { signInViaOAuth } from "../actions";
 import { OAuthButton } from "../oauth-button";
-import { getBaseUrl } from "@/lib/utils";
 
 export function OAuthSignUp() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
@@ -24,7 +24,6 @@ export function OAuthSignUp() {
     try {
       setIsLoading(provider);
       const url = await signInViaOAuth({
-        redirectUrl: baseUrl,
         provider,
         redirectUrlComplete,
       });
