@@ -20,8 +20,8 @@ type ListGroupProps = {
     bookmarked: boolean;
   };
   user?: {
-    fullName: string
-    imageUrl?: string
+    fullName: string;
+    imageUrl?: string;
   };
   index: number;
   total: number;

@@ -33,7 +33,7 @@ export async function requireEmailMatch(params: {
 // Sign Out
 export async function signOut(): Promise<void> {
   await requireAuth();
-  const signOutUrl = await auth.getSignOutUrl();
+  //const signOutUrl = await auth.getSignOutUrl();
   await deleteCookie(UNKEY_SESSION_COOKIE);
   redirect("/auth/sign-in");
 }
