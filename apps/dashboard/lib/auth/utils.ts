@@ -35,5 +35,5 @@ export async function signOut(): Promise<void> {
   await requireAuth();
   const signOutUrl = await auth.getSignOutUrl();
   await deleteCookie(UNKEY_SESSION_COOKIE);
-  redirect(signOutUrl || "/auth/sign-in");
+  redirect("/auth/sign-in");
 }
