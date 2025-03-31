@@ -1,6 +1,5 @@
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
-import type { UserResource } from "@clerk/types";
 import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { useEffect, useState } from "react";
@@ -20,7 +19,10 @@ type ListGroupProps = {
     createdAt: number;
     bookmarked: boolean;
   };
-  user: UserResource | null | undefined;
+  user: {
+    username: string
+    imageUrl?: string
+  };
   index: number;
   total: number;
   selectedIndex: number;
