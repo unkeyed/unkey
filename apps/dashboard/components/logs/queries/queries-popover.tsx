@@ -31,7 +31,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
   getFilterFieldIcon,
   shouldTruncateRow,
 }: QueriesPopoverProps<T, U>) {
-  const user = trpc.user.getCurrentUser.useQuery();
+  const { data: user } = trpc.user.getCurrentUser.useQuery();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [focusedTabIndex, setFocusedTabIndex] = useState(0);
