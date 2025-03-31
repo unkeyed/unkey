@@ -13,38 +13,26 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const Plus: React.FC<IconProps> = ({ size, filled, ...props }) => {
+export const CircleCheck: React.FC<IconProps> = ({ size, filled, ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
-    <svg
-      {...props}
-      height={pixelSize}
-      width={pixelSize}
-      viewBox="0 0 18 18"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <g fill="currentColor">
-        <line
+    <svg width={pixelSize} height={pixelSize} {...props} viewBox="0 0 18 18">
+      <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
+        <path
+          d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"
           fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          strokeLinecap="square"
+          strokeMiterlimit="10"
           strokeWidth={strokeWidth}
-          x1="9"
-          x2="9"
-          y1="3.25"
-          y2="14.75"
         />
-        <line
+        <path
+          d="M5.25 9.75l2.25 2.25 5.25-6"
           fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          strokeLinecap="square"
+          strokeMiterlimit="10"
           strokeWidth={strokeWidth}
-          x1="3.25"
-          x2="14.75"
-          y1="9"
-          y2="9"
         />
       </g>
     </svg>
