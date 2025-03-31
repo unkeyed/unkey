@@ -26,7 +26,6 @@ export const OAuthSignIn: React.FC = () => {
     try {
       setIsLoading(provider);
       setLastUsed(provider);
-
       const url = await signInViaOAuth({
         provider,
         redirectUrlComplete,
