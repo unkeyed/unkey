@@ -4,43 +4,26 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const createApi = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: z
         .string()
-        .min(3, "workspace names must contain at least 3 characters")
-        .max(50, "workspace names must contain at most 50 characters"),
+        .min(3, "API names must contain at least 3 characters")
+        .max(50, "API names must contain at most 50 characters"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const ws = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create an API. Please try again or contact support@unkey.dev",
-        });
-      });
-    if (!ws) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "The workspace does not exist.",
-      });
-    }
-
     const keyAuthId = newId("keyAuth");
     try {
       await db.insert(schema.keyAuth).values({
         id: keyAuthId,
-        workspaceId: ws.id,
-        createdAt: new Date(),
+        workspaceId: ctx.workspace.id,
+        createdAtM: Date.now(),
       });
     } catch (_err) {
       throw new TRPCError({
@@ -58,11 +41,11 @@ export const createApi = t.procedure
           .values({
             id: apiId,
             name: input.name,
-            workspaceId: ws.id,
+            workspaceId: ctx.workspace.id,
             keyAuthId,
             authType: "key",
             ipWhitelist: null,
-            createdAt: new Date(),
+            createdAtM: Date.now(),
           })
           .catch((_err) => {
             throw new TRPCError({
@@ -73,7 +56,7 @@ export const createApi = t.procedure
           });
 
         await insertAuditLogs(tx, {
-          workspaceId: ws.id,
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,

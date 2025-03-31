@@ -1,5 +1,10 @@
 "use client";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+
+/**
+ * TODO: Remove or re-work this
+ * WorkOS doesn't allow users to update their email
+ */
+
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +39,7 @@ import { toast } from "@/components/ui/toaster";
 import type { ClerkError } from "@/lib/clerk";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ChevronsUp, MoreHorizontal, ShieldCheck, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -73,9 +79,9 @@ export const UpdateUserEmail: React.FC = () => {
 
   if (!user) {
     return (
-      <EmptyPlaceholder className="min-h-[200px]">
+      <Empty>
         <Loading />
-      </EmptyPlaceholder>
+      </Empty>
     );
   }
   const isDisabled = emailForm.formState.isLoading || !emailForm.formState.isValid;

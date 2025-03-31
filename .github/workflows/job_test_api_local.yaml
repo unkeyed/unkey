@@ -5,7 +5,7 @@ on:
 jobs:
   test:
     name: API Test Local
-    timeout-minutes: 30
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,11 +13,8 @@ jobs:
       - name: Delete huge unnecessary tools folder
         run: rm -rf /opt/hostedtoolcache
 
-
       - name: Run containers
         run: docker compose -f ./deployment/docker-compose.yaml up -d
-
-
 
       - name: Install
         uses: ./.github/actions/install
@@ -27,7 +24,6 @@ jobs:
 
       - name: Build
         run: pnpm turbo run build --filter=./apps/api...
-
 
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
@@ -50,7 +46,7 @@ jobs:
           DATABASE_HOST: localhost:3900
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
-          CLICKHOUSE_URL:  http://default:password@localhost:8123
+          CLICKHOUSE_URL: http://default:password@localhost:8123
           TEST_LOCAL: true
 
       - name: Dump logs

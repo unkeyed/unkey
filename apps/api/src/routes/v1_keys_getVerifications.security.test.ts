@@ -19,7 +19,7 @@ runCommonRouteTests({
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: rh.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
     return {
       method: "GET",
@@ -54,7 +54,7 @@ describe("correct roles", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       });
       const root = await h.createRootKey(
         roles.map((role) => (typeof role === "string" ? role : role(h.resources.userApi.id))),
@@ -77,10 +77,19 @@ test("cannot read keys from a different workspace", async (t) => {
   const workspaceId = newId("workspace");
   await h.db.primary.insert(schema.workspaces).values({
     id: workspaceId,
-    tenantId: randomUUID(),
+    orgId: randomUUID(),
+    clerkTenantId: randomUUID(),
     name: randomUUID(),
     features: {},
     betaFeatures: {},
+  });
+
+  await h.db.primary.insert(schema.quotas).values({
+    workspaceId,
+    requestsPerMonth: 150_000,
+    auditLogsRetentionDays: 30,
+    logsRetentionDays: 7,
+    team: false,
   });
 
   const keyAuthId = newId("test");
@@ -106,7 +115,7 @@ test("cannot read keys from a different workspace", async (t) => {
     hash: await sha256(key),
     start: key.slice(0, 8),
     workspaceId,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
 
   const keyId2 = newId("test");
@@ -117,7 +126,7 @@ test("cannot read keys from a different workspace", async (t) => {
     hash: await sha256(key2),
     start: key2.slice(0, 8),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
 
   const root = await h.createRootKey([`api.${apiId}.read_key`]);

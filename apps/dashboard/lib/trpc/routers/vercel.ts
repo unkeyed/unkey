@@ -6,10 +6,10 @@ import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { Vercel } from "@unkey/vercel";
 import { z } from "zod";
-import { auth, t } from "../trpc";
+import { requireUser, t } from "../trpc";
 export const vercelRouter = t.router({
   setupProject: t.procedure
-    .use(auth)
+    .use(requireUser)
     .input(
       z.object({
         projectId: z.string(),
@@ -44,7 +44,7 @@ export const vercelRouter = t.router({
       if (!integration) {
         throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
       }
-      if (!integration.workspace || integration.workspace.tenantId !== ctx.tenant.id) {
+      if (!integration.workspace || integration.workspace.orgId !== ctx.tenant.id) {
         throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
       }
       const vercel = new Vercel({
@@ -69,9 +69,9 @@ export const vercelRouter = t.router({
             workspaceId: env().UNKEY_WORKSPACE_ID,
             forWorkspaceId: integration.workspace.id,
             expires: null,
-            createdAt: new Date(),
+            createdAtM: Date.now(),
             remaining: null,
-            deletedAt: null,
+            deletedAtM: null,
           });
           await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
@@ -112,8 +112,8 @@ export const vercelRouter = t.router({
           const vercelBindingId = newId("vercelBinding");
           await tx.insert(schema.vercelBindings).values({
             id: vercelBindingId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAtM: Date.now(),
+            updatedAtM: Date.now(),
             resourceId: keyId,
             resourceType: "rootKey",
             vercelEnvId: setRootKeyRes.val.created.id,
@@ -163,8 +163,9 @@ export const vercelRouter = t.router({
           const vercelBindingId = newId("vercelBinding");
           await tx.insert(schema.vercelBindings).values({
             id: vercelBindingId,
-            createdAt: new Date(Date.now()),
-            updatedAt: new Date(Date.now()),
+            createdAtM: Date.now(),
+            updatedAtM: null,
+            deletedAtM: null,
             resourceType: "apiId",
             resourceId: apiId,
             vercelEnvId: setApiIdRes.val.created.id,
@@ -198,7 +199,7 @@ export const vercelRouter = t.router({
       }
     }),
   upsertApiId: t.procedure
-    .use(auth)
+    .use(requireUser)
     .input(
       z.object({
         projectId: z.string(),
@@ -219,7 +220,7 @@ export const vercelRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
       }
 
-      if (integration.workspace.tenantId !== ctx.tenant.id) {
+      if (integration.workspace.orgId !== ctx.tenant.id) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
@@ -250,7 +251,7 @@ export const vercelRouter = t.router({
             .set({
               resourceId: input.apiId,
               vercelEnvId: res.val.created.id,
-              updatedAt: new Date(),
+              updatedAtM: Date.now(),
               lastEditedBy: ctx.user.id,
             })
             .where(eq(schema.vercelBindings.id, existingBinding.id));
@@ -283,8 +284,8 @@ export const vercelRouter = t.router({
           const vercelBindingId = newId("vercelBinding");
           await tx.insert(schema.vercelBindings).values({
             id: vercelBindingId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAtM: Date.now(),
+            updatedAtM: Date.now(),
             resourceType: "apiId",
             resourceId: input.apiId,
             vercelEnvId: res.val.created.id,
@@ -318,7 +319,7 @@ export const vercelRouter = t.router({
       }
     }),
   upsertNewRootKey: t.procedure
-    .use(auth)
+    .use(requireUser)
     .input(
       z.object({
         projectId: z.string(),
@@ -338,7 +339,7 @@ export const vercelRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
       }
 
-      if (integration.workspace.tenantId !== ctx.tenant.id) {
+      if (integration.workspace.orgId !== ctx.tenant.id) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       // It's stupid to have to do this, we should just read `UNKEY_KEY_AUTH_ID` from the env instead
@@ -370,9 +371,9 @@ export const vercelRouter = t.router({
           workspaceId: env().UNKEY_WORKSPACE_ID,
           forWorkspaceId: integration.workspace.id,
           expires: null,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
           remaining: null,
-          deletedAt: null,
+          deletedAtM: null,
         });
         await insertAuditLogs(tx, {
           workspaceId: integration.workspace.id,
@@ -415,7 +416,7 @@ export const vercelRouter = t.router({
             .set({
               resourceId: keyId,
               vercelEnvId: res.val.created.id,
-              updatedAt: new Date(),
+              updatedAtM: Date.now(),
               lastEditedBy: ctx.user.id,
             })
             .where(eq(schema.vercelBindings.id, existingBinding.id));
@@ -448,8 +449,8 @@ export const vercelRouter = t.router({
           const vercelBindingId = newId("vercelBinding");
           await tx.insert(schema.vercelBindings).values({
             id: vercelBindingId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAtM: Date.now(),
+            updatedAtM: Date.now(),
             resourceType: "rootKey",
             resourceId: keyId,
             vercelEnvId: res.val.created.id,
@@ -492,7 +493,7 @@ export const vercelRouter = t.router({
       }
     }),
   unbind: t.procedure
-    .use(auth)
+    .use(requireUser)
     .input(
       z.object({
         bindingId: z.string(),
@@ -513,7 +514,7 @@ export const vercelRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
       }
 
-      if (binding.vercelIntegrations.workspace.tenantId !== ctx.tenant.id) {
+      if (binding.vercelIntegrations.workspace.orgId !== ctx.tenant.id) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       const vercel = new Vercel({
@@ -525,7 +526,7 @@ export const vercelRouter = t.router({
       await db.transaction(async (tx) => {
         await tx
           .update(schema.vercelBindings)
-          .set({ deletedAt: new Date() })
+          .set({ deletedAtM: Date.now() })
           .where(eq(schema.vercelBindings.id, binding.id));
         await insertAuditLogs(tx, {
           workspaceId: binding.vercelIntegrations.workspace.id,
@@ -546,7 +547,7 @@ export const vercelRouter = t.router({
       });
     }),
   disconnectProject: t.procedure
-    .use(auth)
+    .use(requireUser)
     .input(
       z.object({
         projectId: z.string(),
@@ -565,7 +566,7 @@ export const vercelRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
       }
 
-      if (integration.workspace.tenantId !== ctx.tenant.id) {
+      if (integration.workspace.orgId !== ctx.tenant.id) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       const vercel = new Vercel({
@@ -582,7 +583,7 @@ export const vercelRouter = t.router({
         await db.transaction(async (tx) => {
           await tx
             .update(schema.vercelBindings)
-            .set({ deletedAt: new Date() })
+            .set({ deletedAtM: Date.now() })
             .where(eq(schema.vercelBindings.id, binding.id));
           await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,

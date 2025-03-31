@@ -1,5 +1,26 @@
 # @unkey/hono
 
+## 1.4.15
+
+### Patch Changes
+
+- Updated dependencies [10120e0]
+  - @unkey/api@0.33.1
+
+## 1.4.14
+
+### Patch Changes
+
+- Updated dependencies [98bbb16]
+  - @unkey/api@0.33.0
+
+## 1.4.13
+
+### Patch Changes
+
+- Updated dependencies [a2f16f0]
+  - @unkey/api@0.32.0
+
 ## 1.4.12
 
 ### Patch Changes

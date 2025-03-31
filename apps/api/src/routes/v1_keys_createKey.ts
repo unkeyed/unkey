@@ -272,13 +272,14 @@ export const registerV1KeysCreateKey = (app: App) =>
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>
-            and(eq(table.id, req.apiId), isNull(table.deletedAt)),
+            and(eq(table.id, req.apiId), isNull(table.deletedAtM)),
           with: {
             keyAuth: true,
           },
         })) ?? null
       );
     });
+
     if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
@@ -350,10 +351,12 @@ export const registerV1KeysCreateKey = (app: App) =>
           apiId: api.id,
         });
       }
+
       const secret = new KeyV1({
-        byteLength: req.byteLength ?? 16,
-        prefix: req.prefix,
+        byteLength: req.byteLength ?? api.keyAuth?.defaultBytes ?? 16,
+        prefix: req.prefix ?? (api.keyAuth?.defaultPrefix as string | undefined),
       }).toString();
+
       const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
       const kId = newId("key");
       const hash = await sha256(secret.toString());
@@ -368,15 +371,15 @@ export const registerV1KeysCreateKey = (app: App) =>
         workspaceId: authorizedWorkspaceId,
         forWorkspaceId: null,
         expires: req.expires ? new Date(req.expires) : null,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
+        updatedAtM: null,
         ratelimitAsync: req.ratelimit?.async ?? req.ratelimit?.type === "fast",
         ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
-        refillDay: req.refill?.interval === "daily" ? null : req?.refill?.refillDay ?? 1,
+        refillDay: req.refill?.interval === "daily" ? null : (req?.refill?.refillDay ?? 1),
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
-        deletedAt: null,
         enabled: req.enabled,
         environment: req.environment ?? null,
         identityId: identity?.id,
@@ -606,10 +609,11 @@ export async function upsertIdentity(
     .values({
       id: newId("identity"),
       createdAt: Date.now(),
+      updatedAt: null,
+
       environment: "default",
       meta: {},
       externalId,
-      updatedAt: null,
       workspaceId,
     })
     .onDuplicateKeyUpdate({

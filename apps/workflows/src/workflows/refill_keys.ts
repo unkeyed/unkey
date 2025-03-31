@@ -11,13 +11,15 @@ type Params = {};
 // <docs-tag name="workflow-entrypoint">
 export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
   async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
+    let now = new Date();
+    try {
+      // cf stopped sending valid `Date` objects for some reason, so we fall back to Date.now()
+      now = event.timestamp;
+    } catch {}
+
     // Set up last day of month so if refillDay is after last day of month, Key will be refilled today.
-    const lastDayOfMonth = new Date(
-      event.timestamp.getFullYear(),
-      event.timestamp.getMonth() + 1,
-      0,
-    ).getDate();
-    const today = event.timestamp.getUTCDate();
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const today = now.getUTCDate();
     const db = createConnection({
       host: this.env.DATABASE_HOST,
       username: this.env.DATABASE_USERNAME,
@@ -32,7 +34,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
         await db.query.keys.findMany({
           where: (table, { isNotNull, isNull, and, gt, or, eq }) => {
             const baseConditions = and(
-              isNull(table.deletedAt),
+              isNull(table.deletedAtM),
               isNotNull(table.refillAmount),
               gt(table.refillAmount, table.remaining),
               or(isNull(table.refillDay), eq(table.refillDay, today)),
@@ -44,35 +46,25 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
 
             return baseConditions;
           },
+          with: {
+            workspace: {
+              with: {
+                auditLogBuckets: {
+                  where: (table, { eq }) => eq(table.name, BUCKET_NAME),
+                },
+              },
+            },
+          },
         }),
     );
 
     console.info(`found ${keys.length} keys with refill set for today`);
 
     for (const key of keys) {
-      const bucketId = await step.do(
-        `fetch bucketId for ${key.workspaceId}::${BUCKET_NAME}`,
-        async () => {
-          const found = await db.query.auditLogBucket.findFirst({
-            where: (table, { eq, and }) =>
-              and(eq(table.workspaceId, key.workspaceId), eq(table.name, BUCKET_NAME)),
-            columns: {
-              id: true,
-            },
-          });
-
-          if (found) {
-            return found.id;
-          }
-          const id = newId("auditLogBucket");
-          await db.insert(schema.auditLogBucket).values({
-            id,
-            workspaceId: key.workspaceId,
-            name: BUCKET_NAME,
-          });
-          return id;
-        },
-      );
+      const bucket = key.workspace.auditLogBuckets.at(0);
+      if (!bucket) {
+        throw new Error(`workspace ${key.workspace.id} has no audit log bucket ${BUCKET_NAME}`);
+      }
 
       await step.do(`refilling ${key.id}`, async () => {
         await db.transaction(async (tx) => {
@@ -80,7 +72,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
             .update(schema.keys)
             .set({
               remaining: key.refillAmount,
-              lastRefillAt: event.timestamp,
+              lastRefillAt: now,
             })
             .where(eq(schema.keys.id, key.id));
 
@@ -88,8 +80,8 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
           await tx.insert(schema.auditLog).values({
             id: auditLogId,
             workspaceId: key.workspaceId,
-            bucketId: bucketId,
-            time: event.timestamp.getTime(),
+            bucketId: bucket.id,
+            time: now.getTime(),
             event: "key.update",
             actorId: "trigger",
             actorType: "system",
@@ -100,7 +92,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
               type: "workspace",
               id: key.workspaceId,
               workspaceId: key.workspaceId,
-              bucketId: bucketId,
+              bucketId: bucket.id,
               auditLogId,
               displayName: `workspace ${key.workspaceId}`,
             },
@@ -108,7 +100,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
               type: "key",
               id: key.id,
               workspaceId: key.workspaceId,
-              bucketId: bucketId,
+              bucketId: bucket.id,
               auditLogId,
               displayName: `key ${key.id}`,
             },

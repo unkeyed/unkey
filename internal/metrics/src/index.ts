@@ -132,6 +132,12 @@ export const metricSchema = z.discriminatedUnion("metric", [
     latency: z.number(),
     attempts: z.number().optional(),
   }),
+  z.object({
+    metric: z.literal("metric.ratelimit.aws"),
+    awsLatency: z.number(),
+    cfPassed: z.boolean(),
+    awsPassed: z.boolean(),
+  }),
 ]);
 
 export type Metric = z.infer<typeof metricSchema>;

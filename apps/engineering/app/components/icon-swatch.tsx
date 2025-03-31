@@ -9,7 +9,7 @@ export const Icon: React.FC<PropsWithChildren<Props>> = (props) => {
       <div className="size-12 flex items-center  justify-center aspect-square border border-gray-5 rounded-lg bg-gray-3 ">
         {props.children}
       </div>
-      <span className="text-sm font-mono">
+      <span className="text-sm">
         {"<"}
         {props.name}
         {"/>"}

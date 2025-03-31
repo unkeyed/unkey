@@ -1,5 +1,6 @@
+import { sha256 } from "@unkey/hash";
 import type { Metric } from "@unkey/metrics";
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import type { HonoEnv } from "../hono/env";
 
 type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
@@ -103,14 +104,17 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
         '"plaintext": "<REDACTED>"',
       );
 
+      const url = new URL(c.req.url);
       c.executionCtx.waitUntil(
         analytics.insertApiRequest({
           request_id: c.get("requestId"),
           time: c.get("requestStartedAt"),
-          workspace_id: c.get("workspaceId") ?? "",
-          host: new URL(c.req.url).host,
+          workspace_id: await getWorkspaceId(c),
+          host: url.host,
           method: c.req.method,
-          path: c.req.path,
+          path: `${url.pathname}${
+            url.searchParams.size > 0 ? "?" : ""
+          }${url.searchParams.toString()}`,
           request_headers: Object.entries(c.req.header()).map(([k, v]) => {
             if (k.toLowerCase() === "authorization") {
               return `${k}: <REDACTED>`;
@@ -137,4 +141,34 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       );
     }
   };
+}
+
+async function getWorkspaceId(c: Context<HonoEnv>): Promise<string> {
+  const workspaceId = c.get("workspaceId");
+  if (workspaceId) {
+    return workspaceId;
+  }
+  const rootKey = c.req.header("authorization")?.replace("Bearer ", "");
+  if (!rootKey) {
+    return "";
+  }
+  const hash = await sha256(rootKey);
+  const { cache, db, logger } = c.get("services");
+  const { val, err } = await cache.workspaceIdByRootKeyHash.swr(hash, async () => {
+    const key = await db.readonly.query.keys.findFirst({
+      where: (table, { eq, and, isNull }) => and(isNull(table.deletedAtM), eq(table.hash, hash)),
+    });
+    if (!key) {
+      return null;
+    }
+    return key.forWorkspaceId!;
+  });
+
+  if (err) {
+    logger.error("unable to get root key from hash", {
+      error: err.message,
+    });
+    return "";
+  }
+  return val ?? "";
 }

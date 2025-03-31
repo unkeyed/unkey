@@ -1,69 +1,49 @@
+import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { parseAsArrayOf, parseAsInteger, parseAsString } from "nuqs/server";
 
-export const getWorkspace = async (tenantId: string) => {
+export const getWorkspace = async (orgId: string) => {
   try {
+    let members = null;
+
+    try {
+      const membersOfOrg = await auth.getOrganizationMemberList(orgId);
+      members = membersOfOrg.data.map((m) => ({
+        label: m.user.fullName ?? m.user.email,
+        value: m.user.id,
+      }));
+    } catch (memberError) {
+      console.error(
+        `Failed to fetch organization members for tenant ID ${orgId}: ${
+          memberError instanceof Error ? memberError.message : "Unknown error"
+        }`,
+      );
+    }
+
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
-      with: {
-        auditLogBuckets: {
-          columns: {
-            id: true,
-            name: true,
-          },
-          orderBy: (table, { asc }) => asc(table.createdAt),
-        },
-      },
+      where: (table, { eq, and, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     });
 
     if (!workspace) {
-      return redirect("/auth/signin");
+      return redirect("/auth/sign-in");
     }
-    return workspace;
+
+    const rootKeys = await db.query.keys.findMany({
+      where: (table, { eq }) => eq(table.forWorkspaceId, workspace?.id),
+
+      columns: {
+        id: true,
+        name: true,
+      },
+    });
+
+    return { workspace: { ...workspace, keys: rootKeys }, members };
   } catch (error) {
     console.error(
-      `Failed to fetch workspace for tenant ID ${tenantId}: ${
+      `Failed to fetch workspace for tenant ID ${orgId}: ${
         error instanceof Error ? error.message : "Unknown error"
       }`,
     );
     throw error;
   }
-};
-
-export type SearchParams = {
-  events?: string | string[];
-  users?: string | string[];
-  rootKeys?: string | string[];
-  startTime?: string | string[];
-  endTime?: string | string[];
-  cursor?: string | string[];
-  bucketName?: string;
-};
-
-export type ParsedParams = {
-  selectedEvents: string[];
-  selectedUsers: string[];
-  selectedRootKeys: string[];
-  startTime: number | null;
-  endTime: number | null;
-  bucketName: string;
-  cursor: string | null;
-};
-
-export const parseFilterParams = (params: SearchParams): ParsedParams => {
-  const filterParser = parseAsArrayOf(parseAsString).withDefault([]);
-  const timeParser = parseAsInteger;
-  const bucketParser = parseAsString;
-
-  return {
-    selectedEvents: filterParser.parseServerSide(params.events),
-    selectedUsers: filterParser.parseServerSide(params.users),
-    selectedRootKeys: filterParser.parseServerSide(params.rootKeys),
-    startTime: timeParser.parseServerSide(params.startTime),
-    endTime: timeParser.parseServerSide(params.endTime),
-    bucketName: bucketParser.withDefault("unkey_mutations").parseServerSide(params.bucketName),
-    cursor: bucketParser.parseServerSide(params.cursor),
-  };
 };

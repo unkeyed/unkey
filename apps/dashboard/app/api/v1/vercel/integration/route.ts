@@ -34,18 +34,18 @@ export async function POST(request: Request) {
     case "project.removed": {
       await db
         .update(schema.vercelBindings)
-        .set({ deletedAt: new Date() })
+        .set({ deletedAtM: Date.now() })
         .where(eq(schema.vercelBindings.projectId, p.data.payload.project.id));
       break;
     }
     case "integration-configuration.removed": {
       await db
         .update(schema.vercelBindings)
-        .set({ deletedAt: new Date() })
+        .set({ deletedAtM: Date.now() })
         .where(eq(schema.vercelBindings.integrationId, p.data.payload.configuration.id));
       await db
         .update(schema.vercelIntegrations)
-        .set({ deletedAt: new Date() })
+        .set({ deletedAtM: Date.now() })
         .where(eq(schema.vercelIntegrations.id, p.data.payload.configuration.id));
       break;
     }

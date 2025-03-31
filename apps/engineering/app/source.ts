@@ -1,4 +1,13 @@
-import { components, docs, meta, rfcs } from "@/.source";
+import {
+  architecture,
+  company,
+  components,
+  contributing,
+  docs,
+  infrastructure,
+  meta,
+  rfcs,
+} from "@/.source";
 import { loader } from "fumadocs-core/source";
 import { createMDXSource } from "fumadocs-mdx";
 
@@ -12,7 +21,26 @@ export const rfcSource = loader({
   source: createMDXSource(rfcs, []),
 });
 
+export const companySource = loader({
+  baseUrl: "/company",
+  source: createMDXSource(company, []),
+});
+
 export const componentSource = loader({
   baseUrl: "/design",
   source: createMDXSource(components, []),
+});
+
+export const contributingSource = loader({
+  baseUrl: "/contributing",
+  source: createMDXSource(contributing, []),
+});
+export const architectureSource = loader({
+  baseUrl: "/architecture",
+  source: createMDXSource(architecture, []),
+});
+
+export const infrastructureSource = loader({
+  baseUrl: "/infrastructure",
+  source: createMDXSource(infrastructure, []),
 });

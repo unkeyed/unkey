@@ -35,7 +35,7 @@ const route = createRoute({
                 "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
               example: "user_123",
             }),
-            limit: z.number().int().positive().openapi({
+            limit: z.number().int().nonnegative().openapi({
               description: "How many requests may pass in a given window.",
               example: 10,
             }),
@@ -125,7 +125,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
             limit: req.limit,
             duration: req.duration,
             async: req.async,
-            updatedAt: new Date(),
+            updatedAtM: Date.now(),
           })
           .where(eq(schema.ratelimitOverrides.id, override.id));
 
@@ -150,7 +150,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
         await tx.insert(schema.ratelimitOverrides).values({
           id: overrideId,
           workspaceId: auth.authorizedWorkspaceId,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
           namespaceId: namespace.id,
           identifier: req.identifier,
           limit: req.limit,

@@ -49,7 +49,7 @@ const changelog = defineCollection({
   include: "*.mdx",
   schema: (z) => ({
     title: z.string(),
-    description: z.string(),
+    description: z.string().optional(),
     date: z.string(),
     tags: z.array(z.string()),
     image: z.string().optional(),

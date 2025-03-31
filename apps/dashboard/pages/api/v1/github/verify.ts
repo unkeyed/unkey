@@ -1,9 +1,9 @@
 import { Buffer } from "node:buffer";
 import crypto from "node:crypto";
 import type { Readable } from "node:stream";
+import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { clerkClient } from "@clerk/nextjs";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -91,7 +91,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
     const keyFound = await db.query.keys.findFirst({
       columns: { id: true, forWorkspaceId: true },
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.hash, hashedToken), isNull(table.deletedAt)),
+        and(eq(table.hash, hashedToken), isNull(table.deletedAtM)),
     });
     if (!keyFound) {
       foundKeys.push({
@@ -107,14 +107,14 @@ export default async function handler(request: NextApiRequest, response: NextApi
       where: (table, { and, eq, isNull }) =>
         and(
           eq(table.id, keyFound?.forWorkspaceId ? keyFound?.forWorkspaceId : ""),
-          isNull(table.deletedAt),
+          isNull(table.deletedAtM),
         ),
     });
     if (!ws) {
       console.error("Workspace not found");
       return response.status(201).json({});
     }
-    const users = await getUsers(ws.tenantId);
+    const users = await getUsers(ws.orgId!);
     const date = new Date().toDateString();
     foundKeys.push({ token, source: item.source, url: item.url, type: item.type, isFound: true });
     for await (const user of users) {
@@ -132,7 +132,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
       date,
       keyId: keyFound.id,
       wsName: ws.name,
-      tenantId: ws.tenantId,
+      orgId: ws.orgId!,
       email: users[0].email,
     });
   }
@@ -159,7 +159,7 @@ type SlackProps = {
   date: string;
   keyId: string;
   wsName: string;
-  tenantId: string;
+  orgId: string;
   email: string;
 };
 
@@ -170,7 +170,7 @@ async function alertSlack({
   date,
   keyId,
   wsName,
-  tenantId,
+  orgId,
   email,
 }: SlackProps): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_URL_LEAKED_KEY;
@@ -195,7 +195,7 @@ async function alertSlack({
             },
             {
               type: "mrkdwn",
-              text: `Key: ${keyId} \n Workspace: ${wsName} \n Tenant: ${tenantId} \n User: ${email}`,
+              text: `Key: ${keyId} \n Workspace: ${wsName} \n Tenant: ${orgId} \n User: ${email}`,
             },
           ],
         },
@@ -206,27 +206,21 @@ async function alertSlack({
   });
 }
 
-async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
+async function getUsers(orgId: string): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];
-  if (tenantId.startsWith("org_")) {
-    const members = await clerkClient.organizations.getOrganizationMembershipList({
-      organizationId: tenantId,
-    });
-    for (const m of members) {
-      userIds.push(m.publicUserData!.userId);
-    }
-  } else {
-    userIds.push(tenantId);
+  const members = await auth.getOrganizationMemberList(orgId);
+  for (const m of members.data) {
+    userIds.push(m.user.id);
   }
 
   return await Promise.all(
     userIds.map(async (userId) => {
-      const user = await clerkClient.users.getUser(userId);
-      const email = user.emailAddresses.at(0)?.emailAddress;
+      const user = await auth.getUser(userId);
+      const email = user!.email;
 
       return {
-        id: user.id,
-        name: user.firstName ?? user.username ?? "",
+        id: user!.id,
+        name: user!.firstName ?? "",
         email: email ?? "",
       };
     }),

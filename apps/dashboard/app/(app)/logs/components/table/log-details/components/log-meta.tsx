@@ -17,11 +17,11 @@ export const LogMetaSection = ({ content }: { content: string }) => {
   };
 
   return (
-    <div className="flex justify-between pt-2.5 px-3">
-      <div className="text-sm text-content/65 font-sans">Meta</div>
-      <Card className="rounded-[5px] flex">
-        <CardContent className="text-[12px] w-[300px] flex-2 bg-background-subtle p-3 rounded-[5px] relative group">
-          <pre>{content}</pre>
+    <div className="flex justify-between pt-2.5">
+      <div className="text-[13px] text-accent-9 font-sans">Meta</div>
+      <Card className="bg-gray-2 border-gray-4 rounded-lg">
+        <CardContent className="py-2 px-3 text-xs relative group min-w-[300px]">
+          <pre className="text-accent-12">{content}</pre>
           <Button
             shape="square"
             onClick={handleClick}

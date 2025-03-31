@@ -1,4 +1,4 @@
-import type { App } from "@/pkg/hono/app";
+import type { App, Context } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { insertGenericAuditLogs, insertUnkeyAuditLog } from "@/pkg/audit";
@@ -6,7 +6,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { match } from "@/pkg/util/wildcard";
 import { DatabaseError } from "@planetscale/database";
-import { type RatelimitNamespace, schema } from "@unkey/db";
+import { type InsertRatelimitNamespace, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -156,10 +156,11 @@ export const registerV1RatelimitLimit = (app: App) =>
       [rootKey.authorizedWorkspaceId, req.namespace, req.identifier].join("::"),
       async () => {
         const dbRes = await db.readonly.query.ratelimitNamespaces.findFirst({
-          where: (table, { eq, and }) =>
+          where: (table, { eq, and, isNull }) =>
             and(
               eq(table.workspaceId, rootKey.authorizedWorkspaceId),
               eq(table.name, req.namespace),
+              isNull(table.deletedAtM),
             ),
           columns: {
             id: true,
@@ -185,12 +186,12 @@ export const registerV1RatelimitLimit = (app: App) =>
           if (canCreateNamespace.err || !canCreateNamespace.val.valid) {
             return null;
           }
-          let namespace: RatelimitNamespace = {
+          let namespace: InsertRatelimitNamespace = {
             id: newId("ratelimitNamespace"),
-            createdAt: new Date(),
+            createdAtM: Date.now(),
             name: req.namespace,
-            deletedAt: null,
-            updatedAt: null,
+            deletedAtM: null,
+            updatedAtM: null,
             workspaceId: rootKey.authorizedWorkspaceId,
           };
           try {
@@ -371,10 +372,54 @@ export const registerV1RatelimitLimit = (app: App) =>
       );
     }
 
-    return c.json({
+    const res = {
       limit,
       remaining,
       reset: ratelimitResponse.reset,
       success: ratelimitResponse.passed,
-    });
+    };
+
+    c.executionCtx.waitUntil(replayToAws(c, req, res).catch(() => {}));
+    return c.json(res);
   });
+
+async function replayToAws(
+  c: Context,
+  req: V1RatelimitLimitRequest,
+  res: V1RatelimitLimitResponse,
+): Promise<void> {
+  const { metrics, logger } = c.get("services");
+
+  logger.info("replaying to aws");
+  const t0 = performance.now();
+  const resp = await fetch("https://api.unkey.com/v2/ratelimit.limit", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: c.req.header("authorization") ?? "",
+      "X-Unkey-No-Metrics": "true",
+    },
+    body: JSON.stringify({
+      namespace: req.namespace,
+      identifier: req.identifier,
+      limit: req.limit,
+      duration: req.duration,
+      cost: req.cost,
+    }),
+  });
+  const awsLatency = performance.now() - t0;
+
+  const body = await resp.json<{ success: boolean }>();
+
+  logger.info("aws response", {
+    status: resp.status,
+    body: body,
+  });
+
+  metrics.emit({
+    metric: "metric.ratelimit.aws",
+    awsLatency,
+    awsPassed: body.success,
+    cfPassed: res.success,
+  });
+}

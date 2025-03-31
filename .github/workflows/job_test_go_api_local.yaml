@@ -1,0 +1,27 @@
+name: Test Go API Local
+on:
+  workflow_call:
+
+jobs:
+  tests:
+    name: Test (Shard ${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        shard: ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"]
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          go: true
+
+      - name: Test
+        run: go test -v -race -timeout=60m $(go run ./scripts/shard-test ${{ matrix.shard }})
+        working-directory: go
+        env:
+          INTEGRATION_TEST: true
+          SIMULATION_TEST: false

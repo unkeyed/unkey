@@ -2,45 +2,64 @@
 title: Icons
 description: Available icons for Unkey's apps.
 ---
-
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { Row } from "@/app/components/row";
-
 import { Icon } from "@/app/components/icon-swatch";
 import { Icon as XXX } from "@unkey/icons";
 import { TypeTable } from "fumadocs-ui/components/type-table";
 import { Step, Steps } from "fumadocs-ui/components/steps";
-
 import {
+  ArrowDotAntiClockwise,
+  Ban,
+  BarsFilter,
   Bolt,
   BookBookmark,
+  Calendar,
+  CaretDown,
+  CaretExpandY,
+  CaretRight,
+  CaretRightOutline,
+  CaretUp,
   Check,
+  ChevronDown,
   ChevronExpandY,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  CircleCarretRight,
+  CircleInfo,
+  CircleInfoSparkle,
+  Clipboard,
+  ClipboardCheck,
+  Clone,
+  Clock,
+  Dots,
   Fingerprint,
+  Focus,
   Gauge,
   Gear,
+  Grid,
   InputSearch,
+  Key,
   Layers3,
+  Magnifier,
   Nodes,
+  PenWriting3,
   Plus,
+  ProgressBar,
+  Refresh3,
   ShieldCheck,
   ShieldKey,
+  Sliders,
   Sparkle3,
   TaskChecked,
   TaskUnchecked,
+  TimeClock,
   Trash,
   TriangleWarning,
-  Ufo,
-  BarsFilter,
-  Calendar,
-  CircleCarretRight,
-  Magnifier,
-  Refresh3,
-  Sliders,
   TriangleWarning2,
+  Ufo,
   XMark,
-  Grid,
-  CaretRight,
 } from "@unkey/icons";
 
 <TypeTable
@@ -55,7 +74,6 @@ import {
 />
 
 ## Customize
-
 As a rule of thumb, you should only customize the color, but there's always an edge case.
 
 <RenderComponentWithSnippet
@@ -71,29 +89,94 @@ As a rule of thumb, you should only customize the color, but there's always an e
     <TaskUnchecked className="size-[12px]" />
   </Row>
 </RenderComponentWithSnippet>
+
 ## Icons
-
 These are all the icons available to import.
-
 ```tsx
 import { IconName } from "@unkey/icons";
 ```
 
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+  <Icon name="ArrowDotAntiClockwise">
+    <ArrowDotAntiClockwise />
+  </Icon>
+  <Icon name="Ban">
+    <Ban />
+  </Icon>
+  <Icon name="BarsFilter">
+    <BarsFilter />
+  </Icon>
   <Icon name="Bolt">
     <Bolt />
   </Icon>
   <Icon name="BookBookmark">
     <BookBookmark />
   </Icon>
+  <Icon name="Calendar">
+    <Calendar />
+  </Icon>
+  <Icon name="CaretDown">
+    <CaretDown />
+  </Icon>
+  <Icon name="CaretExpandY">
+    <CaretExpandY />
+  </Icon>
+  <Icon name="CaretRight">
+    <CaretRight />
+  </Icon>
+  <Icon name="CaretRightOutline">
+    <CaretRightOutline />
+  </Icon>
+  <Icon name="CaretUp">
+    <CaretUp />
+  </Icon>
   <Icon name="Check">
     <Check />
+  </Icon>
+  <Icon name="ChevronDown">
+    <ChevronDown />
   </Icon>
   <Icon name="ChevronExpandY">
     <ChevronExpandY />
   </Icon>
+  <Icon name="ChevronLeft">
+    <ChevronLeft />
+  </Icon>
+  <Icon name="ChevronRight">
+    <ChevronRight />
+  </Icon>
+  <Icon name="ChevronUp">
+    <ChevronUp />
+  </Icon>
+  <Icon name="CircleCarretRight">
+    <CircleCarretRight />
+  </Icon>
+  <Icon name="CircleInfo">
+    <CircleInfo />
+  </Icon>
+  <Icon name="CircleInfoSparkle">
+    <CircleInfoSparkle />
+  </Icon>
+  <Icon name="Clipboard">
+    <Clipboard />
+  </Icon>
+  <Icon name="ClipboardCheck">
+    <ClipboardCheck />
+  </Icon>
+  <Icon name="Clone">
+    <Clone />
+  </Icon>
+  <Icon name="Clock">
+    <Clock />
+  </Icon>
+  <Icon name="Dots">
+    <Dots />
+  </Icon>
   <Icon name="Fingerprint">
     <Fingerprint />
+  </Icon>
+  <Icon name="Focus">
+    <Focus />
   </Icon>
   <Icon name="Gauge">
     <Gauge />
@@ -101,23 +184,44 @@ import { IconName } from "@unkey/icons";
   <Icon name="Gear">
     <Gear />
   </Icon>
+  <Icon name="Grid">
+    <Grid />
+  </Icon>
   <Icon name="InputSearch">
     <InputSearch />
+  </Icon>
+  <Icon name="Key">
+    <Key />
   </Icon>
   <Icon name="Layers3">
     <Layers3 />
   </Icon>
+  <Icon name="Magnifier">
+    <Magnifier />
+  </Icon>
   <Icon name="Nodes">
     <Nodes />
   </Icon>
+  <Icon name="PenWriting3">
+    <PenWriting3 />
+  </Icon>
   <Icon name="Plus">
     <Plus />
+  </Icon>
+  <Icon name="ProgressBar">
+    <ProgressBar />
+  </Icon>
+  <Icon name="Refresh3">
+    <Refresh3 />
   </Icon>
   <Icon name="ShieldCheck">
     <ShieldCheck />
   </Icon>
   <Icon name="ShieldKey">
     <ShieldKey />
+  </Icon>
+  <Icon name="Sliders">
+    <Sliders />
   </Icon>
   <Icon name="Sparkle3">
     <Sparkle3 />
@@ -128,53 +232,29 @@ import { IconName } from "@unkey/icons";
   <Icon name="TaskUnchecked">
     <TaskUnchecked />
   </Icon>
+  <Icon name="TimeClock">
+    <TimeClock />
+  </Icon>
   <Icon name="Trash">
     <Trash />
   </Icon>
   <Icon name="TriangleWarning">
     <TriangleWarning />
   </Icon>
-  <Icon name="Ufo">
-    <Ufo />
-  </Icon>
-  <Icon name="BarsFilter">
-    <BarsFilter />
-  </Icon>
-  <Icon name="Calendar">
-    <Calendar />
-  </Icon>
-  <Icon name="CircleCarretRight">
-    <CircleCarretRight />
-  </Icon>
-  <Icon name="Magnifier">
-    <Magnifier />
-  </Icon>
-  <Icon name="Refresh3">
-    <Refresh3 />
-  </Icon>
-  <Icon name="Sliders">
-    <Sliders />
-  </Icon>
   <Icon name="TriangleWarning2">
     <TriangleWarning2 />
+  </Icon>
+  <Icon name="Ufo">
+    <Ufo />
   </Icon>
   <Icon name="XMark">
     <XMark />
   </Icon>
-  <Icon name="Grid">
-    <Grid />
-  </Icon>
-  <Icon name="CaretRight">
-    <CaretRight />
-  </Icon>
 </div>
 
 ## Adding new icons
-
 Importing icons is a manual process.
-
 <Steps>
-
 <Step>
   Open the icon in the `Nucleo UI Essential` collection and select the icon(s)
   you want to export.
@@ -183,10 +263,8 @@ Importing icons is a manual process.
   Export it as `jsx`, and remove the title. ![Nucleo Export
   Settings](./icons-export-settings.png)
 </Step>
-
 <Step>
   Update the code to match our guidelines.
-
 <Steps>
   <Step>
     Rename the file to `.tsx`
@@ -226,7 +304,5 @@ Importing icons is a manual process.
     Import and add it in in this file under [#icons](/design/icons#icons) in alphabetic order.
   </Step>
 </Steps>
-
 </Step>
-
 </Steps>

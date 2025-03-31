@@ -67,7 +67,10 @@ describe.each([10, 100, 1_000, 10_000, 100_000])("with %i requests", (n) => {
       // For per minute granularity
       const minutely = await ch.api.timeseries.perMinute({
         workspaceId,
-        responseStatus: [],
+        statusCodes: [],
+        paths: [],
+        hosts: [],
+        methods: [],
         startTime: new Date(Date.now() - 24 * 60 * 60 * 1000).getTime(), // 24 hours ago
         endTime: Date.now(),
       });
@@ -77,7 +80,10 @@ describe.each([10, 100, 1_000, 10_000, 100_000])("with %i requests", (n) => {
       // For per hour granularity
       const hourly = await ch.api.timeseries.perHour({
         workspaceId,
-        responseStatus: [],
+        statusCodes: [],
+        paths: [],
+        hosts: [],
+        methods: [],
         startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).getTime(), // 7 days ago
         endTime: Date.now(),
       });
@@ -87,7 +93,10 @@ describe.each([10, 100, 1_000, 10_000, 100_000])("with %i requests", (n) => {
       // For per day granularity
       const daily = await ch.api.timeseries.perDay({
         workspaceId,
-        responseStatus: [],
+        statusCodes: [],
+        paths: [],
+        hosts: [],
+        methods: [],
         startTime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).getTime(), // 30 days ago
         endTime: Date.now(),
       });

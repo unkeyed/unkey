@@ -44,9 +44,9 @@ export const POST = withUnkey(async (req) => {
   // Process the request here
   // You have access to the verification response using `req.unkey`
   console.log(req.unkey);
-  
+
   return new Response('Your API key is valid!');
-});
+},{ apiId: process.env.UNKEY_API_ID! });
 ```
 
 That's it! Since this is just handling key verification, there's no need to specify a root key as an environment variable.
@@ -83,7 +83,7 @@ export const GET = withUnkey(async (req) => {
 
 ### `handleInvalidKey`
 
-Specify what to do if Unkey reports that your key is invalid. 
+Specify what to do if Unkey reports that your key is invalid.
 
 ```ts
 export const GET = withUnkey(async (req) => {

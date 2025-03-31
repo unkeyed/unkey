@@ -1,7 +1,0 @@
-{
-  "title": "Contributing",
-  "description": "oss/acc",
-  "icon": "GitPullRequest",
-  "root": true,
-  "pages": ["index", "sdk-development", "testing", "versions", "client-structure"]
-}

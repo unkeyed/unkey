@@ -1,31 +1,26 @@
-import { ArrowLeft, Settings2 } from "lucide-react";
-import Link from "next/link";
-
 import { type Interval, IntervalSelect } from "@/app/(app)/apis/[apiId]/select";
-import { CreateNewPermission } from "@/app/(app)/authorization/permissions/create-new-permission";
-import type { NestedPermissions } from "@/app/(app)/authorization/roles/[roleId]/tree";
-import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { Nodes } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { BarChart, Minus } from "lucide-react";
+import { ArrowLeft, Settings2 } from "lucide-react";
+import { Minus } from "lucide-react";
 import ms from "ms";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import PermissionTree from "./permission-list";
+import { RBACButtons } from "./_components/rbac-buttons";
+import { Navigation } from "./navigation";
+import { PermissionList } from "./permission-list";
 import { VerificationTable } from "./verification-table";
+
 export default async function APIKeyDetailPage(props: {
   params: {
     apiId: string;
@@ -36,10 +31,10 @@ export default async function APIKeyDetailPage(props: {
     interval?: Interval;
   };
 }) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const key = await db.query.keys.findFirst({
-    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAtM)),
     with: {
       keyAuth: true,
       roles: {
@@ -73,13 +68,13 @@ export default async function APIKeyDetailPage(props: {
     },
   });
 
-  if (!key || key.workspace.tenantId !== tenantId) {
+  if (!key || key.workspace.orgId !== orgId) {
     return notFound();
   }
 
   const api = await db.query.apis.findFirst({
     where: (table, { eq, and, isNull }) =>
-      and(eq(table.keyAuthId, key.keyAuthId), isNull(table.deletedAt)),
+      and(eq(table.keyAuthId, key.keyAuthId), isNull(table.deletedAtM)),
   });
   if (!api) {
     return notFound();
@@ -230,67 +225,17 @@ export default async function APIKeyDetailPage(props: {
     }
   });
 
-  const roleTee = key.workspace.roles.map((role) => {
-    const nested: NestedPermissions = {};
-    for (const permission of key.workspace.permissions) {
-      let n = nested;
-      const parts = permission.name.split(".");
-      for (let i = 0; i < parts.length; i++) {
-        const p = parts[i];
-        if (!(p in n)) {
-          n[p] = {
-            id: permission.id,
-            name: permission.name,
-            description: permission.description,
-            checked: role.permissions.some((p) => p.permissionId === permission.id),
-            part: p,
-            permissions: {},
-            path: parts.slice(0, i).join("."),
-          };
-        }
-        n = n[p].permissions;
-      }
-    }
-    const data = {
+  const rolesList = key.workspace.roles.map((role) => {
+    return {
       id: role.id,
       name: role.name,
-      description: role.description,
-      keyId: key.id,
-      active: key.roles.some((keyRole) => keyRole.roleId === role.id),
-      nestedPermissions: nested,
+      isActive: key.roles.some((keyRole) => keyRole.roleId === role.id),
     };
-    return data;
   });
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
-            {api.name}
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Ellipsis />
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}/${key.id}`}
-            isIdentifier
-            active
-          >
-            {key.id}
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Badge
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {key.id}
-            <CopyButton value={key.id} />
-          </Badge>
-
-          <CreateKeyButton apiId={api.id} keyAuthId={key.keyAuthId} />
-        </Navbar.Actions>
-      </Navbar>
+      <Navigation api={api} apiKey={key} />
 
       <PageContent>
         <div className="flex flex-col">
@@ -373,15 +318,11 @@ export default async function APIKeyDetailPage(props: {
                 </CardContent>
               </Card>
             ) : (
-              <EmptyPlaceholder>
-                <EmptyPlaceholder.Icon>
-                  <BarChart />
-                </EmptyPlaceholder.Icon>
-                <EmptyPlaceholder.Title>Not used</EmptyPlaceholder.Title>
-                <EmptyPlaceholder.Description>
-                  This key was not used in the last {interval}
-                </EmptyPlaceholder.Description>
-              </EmptyPlaceholder>
+              <Empty>
+                <Empty.Icon />
+                <Empty.Title>Not used</Empty.Title>
+                <Empty.Description>This key was not used in the last {interval}</Empty.Description>
+              </Empty>
             )}
 
             {latestVerifications.val && latestVerifications.val.length > 0 ? (
@@ -398,22 +339,15 @@ export default async function APIKeyDetailPage(props: {
             <div className="flex w-full flex-1 items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="h-8">
-                  {Intl.NumberFormat().format(key.roles.length)} Roles{" "}
+                  {formatNumber(key.roles.length)} Roles{" "}
                 </Badge>
                 <Badge variant="secondary" className="h-8">
-                  {Intl.NumberFormat().format(transientPermissionIds.size)} Permissions
+                  {formatNumber(transientPermissionIds.size)} Permissions
                 </Badge>
               </div>
-              <div className="flex items-center gap-2 border-border">
-                <CreateNewRole
-                  trigger={<Button>Create New Role</Button>}
-                  permissions={key.workspace.permissions}
-                />
-                <CreateNewPermission trigger={<Button>Create New Permission</Button>} />
-              </div>
+              <RBACButtons permissions={key.workspace.permissions} />
             </div>
-
-            <PermissionTree roles={roleTee} />
+            <PermissionList roles={rolesList} keyId={key.id} />
           </div>
         </div>
       </PageContent>

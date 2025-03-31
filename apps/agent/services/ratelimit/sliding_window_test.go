@@ -41,9 +41,9 @@ func TestTakeCreatesWindows(t *testing.T) {
 	require.Equal(t, int64(0), res.previousWindow.Counter)
 	require.Equal(t, int64(1), res.currentWindow.Counter)
 
-	rl.bucketsLock.RLock()
+	rl.bucketsMu.RLock()
 	bucket, ok := rl.buckets[bucketKey{identifier, limit, duration}.toString()]
-	rl.bucketsLock.RUnlock()
+	rl.bucketsMu.RUnlock()
 	require.True(t, ok)
 
 	bucket.Lock()

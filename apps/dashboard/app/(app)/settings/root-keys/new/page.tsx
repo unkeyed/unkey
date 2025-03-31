@@ -1,10 +1,9 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Gear } from "@unkey/icons";
 import { redirect } from "next/navigation";
+import { Navigation } from "../navigation";
 import { Client } from "./client";
 
 export const revalidate = 0;
@@ -12,14 +11,13 @@ export const revalidate = 0;
 export default async function SettingsKeysPage(_props: {
   params: { apiId: string };
 }) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       apis: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        where: (table, { isNull }) => isNull(table.deletedAtM),
       },
     },
   });
@@ -30,14 +28,7 @@ export default async function SettingsKeysPage(_props: {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/root-keys">Root Keys</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link active href="/settings/root-keys/new">
-            Create new key
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation />
       <PageContent>
         <PageHeader
           title="Create a new Root Key"

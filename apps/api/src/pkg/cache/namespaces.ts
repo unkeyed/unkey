@@ -68,6 +68,7 @@ export type CacheNamespaces = {
   auditLogBucketByWorkspaceIdAndName: {
     id: string;
   };
+  workspaceIdByRootKeyHash: string | null;
 };
 
 export type CacheNamespace = keyof CacheNamespaces;

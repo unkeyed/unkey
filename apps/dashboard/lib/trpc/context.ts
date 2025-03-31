@@ -1,10 +1,18 @@
 import type { inferAsyncReturnType } from "@trpc/server";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 
-import { getAuth } from "@clerk/nextjs/server";
+import { getAuth } from "@/lib/auth/get-auth";
+import { db } from "../db";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
-  const { userId, orgId, orgRole } = getAuth(req as any);
+  const { userId, orgId } = await getAuth(req as any);
+
+  const ws = orgId
+    ? await db.query.workspaces.findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+      })
+    : undefined;
 
   return {
     req,
@@ -13,18 +21,12 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
       location: req.headers.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
     },
     user: userId ? { id: userId } : null,
-    tenant:
-      orgId && orgRole
-        ? {
-            id: orgId,
-            role: orgRole,
-          }
-        : userId
-          ? {
-              id: userId,
-              role: "owner",
-            }
-          : null,
+    workspace: ws,
+    tenant: orgId
+      ? {
+          id: orgId,
+        }
+      : null,
   };
 }
 

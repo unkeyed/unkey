@@ -1,44 +1,44 @@
 import { throttle } from "@/lib/utils";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useEffect } from "react";
+import { type Virtualizer, useVirtualizer } from "@tanstack/react-virtual";
+import { useCallback, useEffect, useMemo } from "react";
 import type { TableConfig } from "../types";
 
-export const useVirtualData = <T>({
-  data,
+export const useVirtualData = ({
+  totalDataLength,
   isLoading,
   config,
   onLoadMore,
   isFetchingNextPage,
   parentRef,
 }: {
-  data: T[];
+  totalDataLength: number;
   isLoading: boolean;
   config: TableConfig;
   onLoadMore?: () => void;
   isFetchingNextPage?: boolean;
   parentRef: React.RefObject<HTMLDivElement>;
 }) => {
-  // biome-ignore lint/correctness/useExhaustiveDependencies: fine to use config.throttleDelay
-  const throttledLoadMore = useCallback(
-    throttle(onLoadMore ?? (() => {}), config.throttleDelay, {
-      leading: true,
-      trailing: false,
-    }),
-    [onLoadMore, config.throttleDelay],
+  const throttledFn = useMemo(
+    () =>
+      throttle((cb?: () => void) => cb?.(), config.throttleDelay, {
+        leading: true,
+        trailing: false,
+      }),
+    [config.throttleDelay],
   );
+
+  const throttledLoadMore = useCallback(() => {
+    throttledFn(onLoadMore);
+  }, [throttledFn, onLoadMore]);
 
   useEffect(() => {
     return () => {
-      throttledLoadMore.cancel();
+      throttledFn.cancel();
     };
-  }, [throttledLoadMore]);
+  }, [throttledFn]);
 
-  return useVirtualizer({
-    count: isLoading ? config.loadingRows : data.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => config.rowHeight,
-    overscan: config.overscan,
-    onChange: (instance) => {
+  const handleChange = useCallback(
+    (instance: Virtualizer<HTMLDivElement, Element>) => {
       const lastItem = instance.getVirtualItems().at(-1);
       if (!lastItem || !onLoadMore) {
         return;
@@ -55,11 +55,28 @@ export const useVirtualData = <T>({
       if (
         !isLoading &&
         !isFetchingNextPage &&
-        lastItem.index >= data.length - 1 - instance.options.overscan &&
+        lastItem.index >= totalDataLength - 1 - instance.options.overscan &&
         scrollOffset >= scrollThreshold
       ) {
         throttledLoadMore();
       }
     },
+    [
+      isLoading,
+      isFetchingNextPage,
+      totalDataLength,
+      config.rowHeight,
+      throttledLoadMore,
+      onLoadMore,
+    ],
+  );
+
+  return useVirtualizer({
+    count: isLoading ? config.loadingRows : totalDataLength,
+    getScrollElement: useCallback(() => parentRef.current, [parentRef]),
+    estimateSize: useCallback(() => config.rowHeight, [config.rowHeight]),
+    overscan: config.overscan,
+    onChange: handleChange,
+    gap: 4, // Add this line
   });
 };

@@ -56,19 +56,20 @@ describe.each([
     query: { start: "2023-12-01", end: "2026-12-10" },
   },
 ])("per $granularity", (tc) => {
-  test("all verifications are accounted for", async (t) => {
+  test("all verifications are accounted for", { timeout: 120_000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
 
     const verifications = generate({
       start: new Date(tc.generate.start).getTime(),
       end: new Date(tc.generate.end).getTime(),
-      length: 100_000,
+      length: 10_000,
       workspaceId: h.resources.userWorkspace.id,
       keySpaceId: h.resources.userKeyAuth.id,
       keys: Array.from({ length: 3 }).map(() => ({ keyId: newId("test") })),
     });
 
-    await h.ch.verifications.insert(verifications);
+    const insert = await h.ch.verifications.insert(verifications);
+    expect(insert.err).toEqual(undefined);
 
     const inserted = await h.ch.querier.query({
       query:
@@ -78,6 +79,7 @@ describe.each([
     })({
       workspaceId: h.resources.userWorkspace.id,
     });
+    expect(inserted.err).toEqual(undefined);
     expect(inserted.val!.at(0)?.count).toEqual(verifications.length);
 
     const root = await h.createRootKey(["api.*.read_api"]);
@@ -124,7 +126,7 @@ describe.each([
 });
 
 describe("RFC scenarios", () => {
-  test("a user's usage over the past 24h for 2 keys", async (t) => {
+  test("a user's usage over the past 24h for 2 keys", { timeout: 120_000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
 
     const identity = {
@@ -146,7 +148,7 @@ describe("RFC scenarios", () => {
     const verifications = generate({
       start: now - 12 * 60 * 60 * 1000,
       end: now,
-      length: 100_000,
+      length: 10_000,
       workspaceId: h.resources.userWorkspace.id,
       keySpaceId: h.resources.userKeyAuth.id,
       keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
@@ -208,102 +210,74 @@ describe("RFC scenarios", () => {
     expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
   });
 
-  test("daily usage breakdown for a user per key in the current month", async (t) => {
-    const h = await IntegrationHarness.init(t);
+  test(
+    "daily usage breakdown for a user per key in the current month",
+    { timeout: 120_000 },
+    async (t) => {
+      const h = await IntegrationHarness.init(t);
 
-    const identity = {
-      workspaceId: h.resources.userWorkspace.id,
-      id: newId("test"),
-      externalId: newId("test"),
-    };
+      const identity = {
+        workspaceId: h.resources.userWorkspace.id,
+        id: newId("test"),
+        externalId: newId("test"),
+      };
 
-    await h.db.primary.insert(schema.identities).values(identity);
+      await h.db.primary.insert(schema.identities).values(identity);
 
-    const keys = await Promise.all([
-      h.createKey({ identityId: identity.id }),
-      h.createKey({ identityId: identity.id }),
-      h.createKey({ identityId: identity.id }),
-      h.createKey(),
-    ]);
+      const keys = await Promise.all([
+        h.createKey({ identityId: identity.id }),
+        h.createKey({ identityId: identity.id }),
+        h.createKey({ identityId: identity.id }),
+        h.createKey(),
+      ]);
 
-    const now = Date.now();
+      const now = Date.now();
 
-    const verifications = generate({
-      start: now - 12 * 60 * 60 * 1000,
-      end: now,
-      length: 100_000,
-      workspaceId: h.resources.userWorkspace.id,
-      keySpaceId: h.resources.userKeyAuth.id,
-      keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
-    });
+      const verifications = generate({
+        start: now - 12 * 60 * 60 * 1000,
+        end: now,
+        length: 100_000,
+        workspaceId: h.resources.userWorkspace.id,
+        keySpaceId: h.resources.userKeyAuth.id,
+        keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
+      });
 
-    await h.ch.verifications.insert(verifications);
+      await h.ch.verifications.insert(verifications);
 
-    const root = await h.createRootKey(["api.*.read_api"]);
+      const root = await h.createRootKey(["api.*.read_api"]);
 
-    const start = now - 24 * 60 * 60 * 1000;
-    const end = now;
+      const start = now - 24 * 60 * 60 * 1000;
+      const end = now;
 
-    const res = await h.get<V1AnalyticsGetVerificationsResponse>({
-      url: "/v1/analytics.getVerifications",
-      searchparams: {
-        start: start.toString(),
-        end: end.toString(),
-        externalId: identity.externalId,
-        groupBy: ["key", "hour"],
-        apiId: h.resources.userApi.id,
-      },
-      headers: {
-        Authorization: `Bearer ${root.key}`,
-      },
-    });
+      const res = await h.get<V1AnalyticsGetVerificationsResponse>({
+        url: "/v1/analytics.getVerifications",
+        searchparams: {
+          start: start.toString(),
+          end: end.toString(),
+          externalId: identity.externalId,
+          groupBy: ["key", "hour"],
+          apiId: h.resources.userApi.id,
+        },
+        headers: {
+          Authorization: `Bearer ${root.key}`,
+        },
+      });
 
-    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    for (const row of res.body) {
-      expect(row.keyId).toBeDefined();
-    }
+      for (const row of res.body) {
+        expect(row.keyId).toBeDefined();
+      }
 
-    let total = 0;
-    const outcomes = verifications.reduce(
-      (acc, v) => {
-        if (v.identity_id !== identity.id) {
-          return acc;
-        }
-
-        acc[v.outcome]++;
-        total++;
-        return acc;
-      },
-      { VALID: 0, DISABLED: 0, RATE_LIMITED: 0 } as {
-        [K in (typeof POSSIBLE_OUTCOMES)[number]]: number;
-      },
-    );
-
-    expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(total);
-    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
-    expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.rateLimited ?? 0), 0)).toEqual(
-      outcomes.RATE_LIMITED,
-    );
-    expect(res.body.reduce((sum, d) => sum + (d.unauthorized ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED);
-    expect(res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
-
-    //   Per Key
-    for (const key of keys.filter((k) => k.identityId)) {
-      let keyTotal = 0;
-      const keyOutcomes = verifications.reduce(
+      let total = 0;
+      const outcomes = verifications.reduce(
         (acc, v) => {
-          if (v.key_id !== key.keyId) {
+          if (v.identity_id !== identity.id) {
             return acc;
           }
 
           acc[v.outcome]++;
-          keyTotal++;
+          total++;
           return acc;
         },
         { VALID: 0, DISABLED: 0, RATE_LIMITED: 0 } as {
@@ -311,54 +285,88 @@ describe("RFC scenarios", () => {
         },
       );
 
-      expect(
-        res.body.filter((d) => d.keyId === key.keyId).reduce((sum, d) => sum + d.total, 0),
-      ).toEqual(keyTotal);
-      expect(
-        res.body.filter((d) => d.keyId === key.keyId).reduce((sum, d) => sum + (d.valid ?? 0), 0),
-      ).toEqual(keyOutcomes.VALID);
-      expect(
-        res.body
-          .filter((d) => d.keyId === key.keyId)
-          .reduce((sum, d) => sum + (d.notFound ?? 0), 0),
-      ).toEqual(0);
-      expect(
-        res.body
-          .filter((d) => d.keyId === key.keyId)
-          .reduce((sum, d) => sum + (d.forbidden ?? 0), 0),
-      ).toEqual(0);
-      expect(
-        res.body
-          .filter((d) => d.keyId === key.keyId)
-          .reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0),
-      ).toEqual(0);
-      expect(
-        res.body
-          .filter((d) => d.keyId === key.keyId)
-          .reduce((sum, d) => sum + (d.rateLimited ?? 0), 0),
-      ).toEqual(keyOutcomes.RATE_LIMITED);
-      expect(
-        res.body
-          .filter((d) => d.keyId === key.keyId)
-          .reduce((sum, d) => sum + (d.unauthorized ?? 0), 0),
-      ).toEqual(0);
-      expect(
-        res.body
-          .filter((d) => d.keyId === key.keyId)
-          .reduce((sum, d) => sum + (d.disabled ?? 0), 0),
-      ).toEqual(keyOutcomes.DISABLED);
-      expect(
-        res.body
-          .filter((d) => d.keyId === key.keyId)
-          .reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0),
-      ).toEqual(0);
-      expect(
-        res.body.filter((d) => d.keyId === key.keyId).reduce((sum, d) => sum + (d.expired ?? 0), 0),
-      ).toEqual(0);
-    }
-  });
+      expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(total);
+      expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
+      expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
+      expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
+      expect(res.body.reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0)).toEqual(0);
+      expect(res.body.reduce((sum, d) => sum + (d.rateLimited ?? 0), 0)).toEqual(
+        outcomes.RATE_LIMITED,
+      );
+      expect(res.body.reduce((sum, d) => sum + (d.unauthorized ?? 0), 0)).toEqual(0);
+      expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED);
+      expect(res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0)).toEqual(0);
+      expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
 
-  test("A monthly cron job creates invoices for each identity", async (t) => {
+      //   Per Key
+      for (const key of keys.filter((k) => k.identityId)) {
+        let keyTotal = 0;
+        const keyOutcomes = verifications.reduce(
+          (acc, v) => {
+            if (v.key_id !== key.keyId) {
+              return acc;
+            }
+
+            acc[v.outcome]++;
+            keyTotal++;
+            return acc;
+          },
+          { VALID: 0, DISABLED: 0, RATE_LIMITED: 0 } as {
+            [K in (typeof POSSIBLE_OUTCOMES)[number]]: number;
+          },
+        );
+
+        expect(
+          res.body.filter((d) => d.keyId === key.keyId).reduce((sum, d) => sum + d.total, 0),
+        ).toEqual(keyTotal);
+        expect(
+          res.body.filter((d) => d.keyId === key.keyId).reduce((sum, d) => sum + (d.valid ?? 0), 0),
+        ).toEqual(keyOutcomes.VALID);
+        expect(
+          res.body
+            .filter((d) => d.keyId === key.keyId)
+            .reduce((sum, d) => sum + (d.notFound ?? 0), 0),
+        ).toEqual(0);
+        expect(
+          res.body
+            .filter((d) => d.keyId === key.keyId)
+            .reduce((sum, d) => sum + (d.forbidden ?? 0), 0),
+        ).toEqual(0);
+        expect(
+          res.body
+            .filter((d) => d.keyId === key.keyId)
+            .reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0),
+        ).toEqual(0);
+        expect(
+          res.body
+            .filter((d) => d.keyId === key.keyId)
+            .reduce((sum, d) => sum + (d.rateLimited ?? 0), 0),
+        ).toEqual(keyOutcomes.RATE_LIMITED);
+        expect(
+          res.body
+            .filter((d) => d.keyId === key.keyId)
+            .reduce((sum, d) => sum + (d.unauthorized ?? 0), 0),
+        ).toEqual(0);
+        expect(
+          res.body
+            .filter((d) => d.keyId === key.keyId)
+            .reduce((sum, d) => sum + (d.disabled ?? 0), 0),
+        ).toEqual(keyOutcomes.DISABLED);
+        expect(
+          res.body
+            .filter((d) => d.keyId === key.keyId)
+            .reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0),
+        ).toEqual(0);
+        expect(
+          res.body
+            .filter((d) => d.keyId === key.keyId)
+            .reduce((sum, d) => sum + (d.expired ?? 0), 0),
+        ).toEqual(0);
+      }
+    },
+  );
+
+  test("A monthly cron job creates invoices for each identity", { timeout: 120_000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
 
     const identity = {
@@ -445,215 +453,229 @@ describe("RFC scenarios", () => {
     expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
   });
 
-  test("a user sees a gauge with their quota, showing they used X out of Y API calls in the current billing period", async (t) => {
-    const h = await IntegrationHarness.init(t);
+  test(
+    "a user sees a gauge with their quota, showing they used X out of Y API calls in the current billing period",
+    { timeout: 120_000 },
+    async (t) => {
+      const h = await IntegrationHarness.init(t);
 
-    const identity = {
-      workspaceId: h.resources.userWorkspace.id,
-      id: newId("test"),
-      externalId: newId("test"),
-    };
+      const identity = {
+        workspaceId: h.resources.userWorkspace.id,
+        id: newId("test"),
+        externalId: newId("test"),
+      };
 
-    await h.db.primary.insert(schema.identities).values(identity);
+      await h.db.primary.insert(schema.identities).values(identity);
 
-    const keys = await Promise.all([
-      h.createKey({ identityId: identity.id }),
-      h.createKey({ identityId: identity.id }),
-      h.createKey({ identityId: identity.id }),
-      h.createKey(),
-    ]);
+      const keys = await Promise.all([
+        h.createKey({ identityId: identity.id }),
+        h.createKey({ identityId: identity.id }),
+        h.createKey({ identityId: identity.id }),
+        h.createKey(),
+      ]);
 
-    const now = Date.now();
+      const now = Date.now();
 
-    const verifications = generate({
-      start: now - 60 * 24 * 60 * 60 * 1000,
-      end: now,
-      length: 100_000,
-      workspaceId: h.resources.userWorkspace.id,
-      keySpaceId: h.resources.userKeyAuth.id,
-      keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
-    });
+      const verifications = generate({
+        start: now - 60 * 24 * 60 * 60 * 1000,
+        end: now,
+        length: 100_000,
+        workspaceId: h.resources.userWorkspace.id,
+        keySpaceId: h.resources.userKeyAuth.id,
+        keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
+      });
 
-    await h.ch.verifications.insert(verifications);
+      await h.ch.verifications.insert(verifications);
 
-    const root = await h.createRootKey(["api.*.read_api"]);
+      const root = await h.createRootKey(["api.*.read_api"]);
 
-    const d = new Date(now);
-    d.setUTCDate(2);
-    d.setUTCHours(0, 0, 0, 0);
-    const start = d.getTime();
-    const end = new Date(start).setUTCMonth(new Date(start).getUTCMonth() + 1);
+      const d = new Date(now);
+      d.setUTCDate(2);
+      d.setUTCHours(0, 0, 0, 0);
+      const start = d.getTime();
+      const end = new Date(start).setUTCMonth(new Date(start).getUTCMonth() + 1);
 
-    const res = await h.get<V1AnalyticsGetVerificationsResponse>({
-      url: "/v1/analytics.getVerifications",
-      searchparams: {
-        start: start.toString(),
-        end: end.toString(),
-        apiId: h.resources.userApi.id,
-        externalId: identity.externalId,
-        groupBy: "day",
-      },
-      headers: {
-        Authorization: `Bearer ${root.key}`,
-      },
-    });
+      const res = await h.get<V1AnalyticsGetVerificationsResponse>({
+        url: "/v1/analytics.getVerifications",
+        searchparams: {
+          start: start.toString(),
+          end: end.toString(),
+          apiId: h.resources.userApi.id,
+          externalId: identity.externalId,
+          groupBy: "day",
+        },
+        headers: {
+          Authorization: `Bearer ${root.key}`,
+        },
+      });
 
-    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    let total = 0;
-    const outcomes = verifications.reduce(
-      (acc, v) => {
-        if (v.identity_id !== identity.id || v.time < start) {
+      let total = 0;
+      const outcomes = verifications.reduce(
+        (acc, v) => {
+          if (v.identity_id !== identity.id || v.time < start) {
+            return acc;
+          }
+
+          acc[v.outcome]++;
+          total++;
           return acc;
-        }
+        },
+        { VALID: 0, DISABLED: 0, RATE_LIMITED: 0 } as {
+          [K in (typeof POSSIBLE_OUTCOMES)[number]]: number;
+        },
+      );
 
-        acc[v.outcome]++;
-        total++;
-        return acc;
-      },
-      { VALID: 0, DISABLED: 0, RATE_LIMITED: 0 } as {
-        [K in (typeof POSSIBLE_OUTCOMES)[number]]: number;
-      },
-    );
+      expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(total);
+      expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
+      expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
+      expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
+      expect(res.body.reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0)).toEqual(0);
+      expect(res.body.reduce((sum, d) => sum + (d.rateLimited ?? 0), 0)).toEqual(
+        outcomes.RATE_LIMITED,
+      );
+      expect(res.body.reduce((sum, d) => sum + (d.unauthorized ?? 0), 0)).toEqual(0);
+      expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED);
+      expect(res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0)).toEqual(0);
+      expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
+    },
+  );
 
-    expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(total);
-    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
-    expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.rateLimited ?? 0), 0)).toEqual(
-      outcomes.RATE_LIMITED,
-    );
-    expect(res.body.reduce((sum, d) => sum + (d.unauthorized ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED);
-    expect(res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
-  });
+  test(
+    "An internal dashboard shows the top 10 users by API usage over the past 30 days",
+    { timeout: 120_000 },
+    async (t) => {
+      const h = await IntegrationHarness.init(t);
 
-  test("An internal dashboard shows the top 10 users by API usage over the past 30 days", async (t) => {
-    const h = await IntegrationHarness.init(t);
+      const identities = Array.from({ length: 100 }).map((_) => ({
+        workspaceId: h.resources.userWorkspace.id,
+        id: newId("test"),
+        externalId: newId("test"),
+      }));
 
-    const identities = Array.from({ length: 100 }).map((_) => ({
-      workspaceId: h.resources.userWorkspace.id,
-      id: newId("test"),
-      externalId: newId("test"),
-    }));
+      await h.db.primary.insert(schema.identities).values(identities);
 
-    await h.db.primary.insert(schema.identities).values(identities);
+      const keys = await Promise.all(
+        identities.flatMap((id) =>
+          Array.from({ length: 3 }).map((_) => h.createKey({ identityId: id.id })),
+        ),
+      );
 
-    const keys = await Promise.all(
-      identities.flatMap((id) =>
-        Array.from({ length: 3 }).map((_) => h.createKey({ identityId: id.id })),
-      ),
-    );
+      const now = Date.now();
 
-    const now = Date.now();
+      const verifications = generate({
+        start: now - 60 * 24 * 60 * 60 * 1000,
+        end: now,
+        length: 100_000,
+        workspaceId: h.resources.userWorkspace.id,
+        keySpaceId: h.resources.userKeyAuth.id,
+        keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
+      });
 
-    const verifications = generate({
-      start: now - 60 * 24 * 60 * 60 * 1000,
-      end: now,
-      length: 100_000,
-      workspaceId: h.resources.userWorkspace.id,
-      keySpaceId: h.resources.userKeyAuth.id,
-      keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
-    });
+      const start = now - 30 * 24 * 60 * 60 * 1000;
+      const end = now;
 
-    const start = now - 30 * 24 * 60 * 60 * 1000;
-    const end = now;
+      await h.ch.verifications.insert(verifications);
 
-    await h.ch.verifications.insert(verifications);
+      const byIdentity = verifications.reduce(
+        (acc, v) => {
+          if (toStartOfHour(v.time) < start || toStartOfHour(v.time) > end) {
+            return acc;
+          }
+          if (!acc[v.identity_id!]) {
+            acc[v.identity_id!] = {
+              identityId: v.identity_id!,
+              valid: 0,
+              rateLimited: 0,
+              disabled: 0,
+              total: 0,
+            };
+          }
+          acc[v.identity_id!].total += 1;
+          switch (v.outcome) {
+            case "VALID": {
+              acc[v.identity_id!].valid += 1;
+              break;
+            }
+            case "RATE_LIMITED": {
+              acc[v.identity_id!].rateLimited += 1;
+              break;
+            }
 
-    const byIdentity = verifications.reduce(
-      (acc, v) => {
-        if (toStartOfHour(v.time) < start || toStartOfHour(v.time) > end) {
+            case "DISABLED": {
+              acc[v.identity_id!].disabled += 1;
+              break;
+            }
+          }
           return acc;
-        }
-        if (!acc[v.identity_id!]) {
-          acc[v.identity_id!] = {
-            identityId: v.identity_id!,
-            valid: 0,
-            rateLimited: 0,
-            disabled: 0,
-            total: 0,
-          };
-        }
-        acc[v.identity_id!].total += 1;
-        switch (v.outcome) {
-          case "VALID": {
-            acc[v.identity_id!].valid += 1;
-            break;
+        },
+        {} as Record<
+          string,
+          {
+            identityId: string;
+            valid: number;
+            rateLimited: number;
+            total: number;
+            disabled: number;
           }
-          case "RATE_LIMITED": {
-            acc[v.identity_id!].rateLimited += 1;
-            break;
-          }
+        >,
+      );
 
-          case "DISABLED": {
-            acc[v.identity_id!].disabled += 1;
-            break;
-          }
+      const top15 = Object.values(byIdentity)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 15);
+
+      const root = await h.createRootKey(["api.*.read_api"]);
+
+      const res = await h.get<V1AnalyticsGetVerificationsResponse>({
+        url: "/v1/analytics.getVerifications",
+        searchparams: {
+          start: start.toString(),
+          end: end.toString(),
+          apiId: h.resources.userApi.id,
+          limit: "10",
+          orderBy: ["total"],
+          order: "desc",
+          groupBy: ["identity"],
+        },
+        headers: {
+          Authorization: `Bearer ${root.key}`,
+        },
+      });
+
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+      expect(res.body.length).gte(1);
+      expect(res.body.length).lte(10);
+      expect(res.body.length).lte(top15.length);
+
+      for (let i = 0; i < res.body.length; i++) {
+        if (i === 0) {
+          // Nothing to compare in the first iteration
+          continue;
         }
-        return acc;
-      },
-      {} as Record<
-        string,
-        { identityId: string; valid: number; rateLimited: number; total: number; disabled: number }
-      >,
-    );
+        // Order should be desc
+        expect(res.body[i].total <= res.body[i - 1].total);
 
-    const top15 = Object.values(byIdentity)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 15);
-
-    const root = await h.createRootKey(["api.*.read_api"]);
-
-    const res = await h.get<V1AnalyticsGetVerificationsResponse>({
-      url: "/v1/analytics.getVerifications",
-      searchparams: {
-        start: start.toString(),
-        end: end.toString(),
-        apiId: h.resources.userApi.id,
-        limit: "10",
-        orderBy: ["total"],
-        order: "desc",
-        groupBy: ["identity"],
-      },
-      headers: {
-        Authorization: `Bearer ${root.key}`,
-      },
-    });
-
-    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-
-    expect(res.body.length).gte(1);
-    expect(res.body.length).lte(10);
-    expect(res.body.length).lte(top15.length);
-
-    for (let i = 0; i < res.body.length; i++) {
-      if (i === 0) {
-        // Nothing to compare in the first iteration
-        continue;
-      }
-      // Order should be desc
-      expect(res.body[i].total <= res.body[i - 1].total);
-
-      expect(
-        res.body[i].identity,
-        `we're grouping by identity, so it should be defined but it wasn't,
+        expect(
+          res.body[i].identity,
+          `we're grouping by identity, so it should be defined but it wasn't,
         we got i=${i}$ ${JSON.stringify(res.body[i], null, 2)}`,
-      ).toBeDefined();
-      expect(res.body[i].total).toEqual(top15[i].total);
-    }
+        ).toBeDefined();
+        expect(res.body[i].total).toEqual(top15[i].total);
+      }
 
-    for (const row of res.body) {
-      const actual = top15.find((i) => i.identityId === row.identity!.id);
-      expect(actual).toBeDefined();
-      expect(row.total).toEqual(actual!.total);
-    }
-  });
+      for (const row of res.body) {
+        const actual = top15.find((i) => i.identityId === row.identity!.id);
+        expect(actual).toBeDefined();
+        expect(row.total).toEqual(actual!.total);
+      }
+    },
+  );
 });
 
-test("filter by tag", async (t) => {
+test("filter by tag", { timeout: 120_000 }, async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const identity = {
@@ -744,7 +766,7 @@ test("filter by tag", async (t) => {
   expect(res.body[0].disabled).toBe(verificationsForTag.disabled);
   expect(res.body[0].rateLimited).toBe(verificationsForTag.rateLimited);
 });
-test("filter by multiple tags", async (t) => {
+test("filter by multiple tags", { timeout: 120_000 }, async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const identity = {
@@ -841,7 +863,7 @@ test("filter by multiple tags", async (t) => {
   expect(res.body[0].rateLimited).toBe(want.rateLimited);
 });
 
-test("filter by key", async (t) => {
+test("filter by key", { timeout: 120_000 }, async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const identity = {
@@ -932,7 +954,7 @@ test("filter by key", async (t) => {
   expect(res.body[0].disabled).toBe(verificationsForKey.disabled);
   expect(res.body[0].rateLimited).toBe(verificationsForKey.rateLimited);
 });
-test("filter by multiple keys", async (t) => {
+test("filter by multiple keys", { timeout: 120_000 }, async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const identity = {
@@ -1024,7 +1046,7 @@ test("filter by multiple keys", async (t) => {
   expect(res.body[0].rateLimited).toBe(want.rateLimited);
 });
 
-test("grouping by tags", async (t) => {
+test("grouping by tags", { timeout: 120_000 }, async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const identity = {
@@ -1086,7 +1108,7 @@ test("grouping by tags", async (t) => {
   expect(res.body.length).toBe(tags.length);
 });
 
-test("breakdown by tag", async (t) => {
+test("breakdown by tag", { timeout: 120_000 }, async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const identity = {

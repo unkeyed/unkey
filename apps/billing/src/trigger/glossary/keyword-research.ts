@@ -82,12 +82,12 @@ export const keywordResearchTask = task({
           inputTerm: searchQuery.inputTerm,
           keyword: search.query.toLowerCase(),
           source: "related_searches",
-          updatedAt: sql`now()`,
+          updatedAt: sql`CURRENT_TIMESTAMP(3)`,
         })),
       )
       .onDuplicateKeyUpdate({
         set: {
-          updatedAt: sql`now()`,
+          updatedAt: sql`CURRENT_TIMESTAMP(3)`,
         },
       });
     const insertedRelatedSearches = await db.query.keywords.findMany({

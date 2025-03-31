@@ -4,10 +4,11 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const updateApiName = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: z.string().min(3, "API names must contain at least 3 characters"),
@@ -19,10 +20,11 @@ export const updateApiName = t.procedure
     const api = await db.query.apis
       .findFirst({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.apiId), isNull(table.deletedAt)),
-        with: {
-          workspace: true,
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.apiId),
+            isNull(table.deletedAtM),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -31,7 +33,7 @@ export const updateApiName = t.procedure
             "We were unable to update the API name. Please try again or contact support@unkey.dev.",
         });
       });
-    if (!api || api.workspace.tenantId !== ctx.tenant.id) {
+    if (!api) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -54,7 +56,7 @@ export const updateApiName = t.procedure
             });
           });
         await insertAuditLogs(tx, {
-          workspaceId: api.workspace.id,
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,

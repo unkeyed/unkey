@@ -2,7 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -12,7 +12,8 @@ const nameSchema = z
   });
 
 export const updateRole = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       id: z.string(),
@@ -21,33 +22,12 @@ export const updateRole = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-        with: {
-          roles: {
-            where: (table, { eq }) => eq(table.id, input.id),
-          },
-        },
-      })
-      .catch((err) => {
-        console.error(err);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to update the role. Please try again or contact support@unkey.dev",
-        });
-      });
+    const role = await db.query.roles.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.id)),
+    });
 
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
-    if (workspace.roles.length === 0) {
+    if (!role) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -56,9 +36,9 @@ export const updateRole = t.procedure
     }
     await db
       .transaction(async (tx) => {
-        await tx.update(schema.roles).set(input).where(eq(schema.roles.id, input.id));
+        await tx.update(schema.roles).set(input).where(eq(schema.roles.id, role.id));
         await insertAuditLogs(tx, {
-          workspaceId: workspace.id,
+          workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "role.update",
           description: `Updated role ${input.id}`,

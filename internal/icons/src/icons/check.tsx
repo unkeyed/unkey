@@ -9,8 +9,8 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-
-import type React from "react";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import React from "react";
 import type { IconProps } from "../props";
 export const Check: React.FC<IconProps> = (props) => {
   return (

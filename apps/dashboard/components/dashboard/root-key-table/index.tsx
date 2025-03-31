@@ -32,7 +32,7 @@ import { DataTable } from "./table";
 type Column = {
   id: string;
   start: string;
-  createdAt: Date;
+  createdAtM: number;
   expires: Date | null;
   ownerId: string | null;
   name: string | null;
@@ -113,7 +113,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </Button>
       ),
-      cell: ({ row }) => row.original.createdAt.toUTCString(),
+      cell: ({ row }) => new Date(row.original.createdAtM).toUTCString(),
     },
     {
       accessorKey: "expires",
@@ -154,7 +154,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       cell: ({ row }) => (
         <div>
           <Dialog>
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger>
                 <Button variant="ghost" className="w-8 h-8 p-0">
                   <span className="sr-only">Open menu</span>

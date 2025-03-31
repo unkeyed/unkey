@@ -1,5 +1,26 @@
 # @unkey/ratelimit
 
+## 0.5.5
+
+### Patch Changes
+
+- Updated dependencies [10120e0]
+  - @unkey/api@0.33.1
+
+## 0.5.4
+
+### Patch Changes
+
+- Updated dependencies [98bbb16]
+  - @unkey/api@0.33.0
+
+## 0.5.3
+
+### Patch Changes
+
+- Updated dependencies [a2f16f0]
+  - @unkey/api@0.32.0
+
 ## 0.5.2
 
 ### Patch Changes

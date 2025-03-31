@@ -177,19 +177,21 @@ export class Unkey {
         err = e;
         return null; // set `res` to `null`
       });
-      if (res?.ok) {
+      // 200-299 -> success
+      if (res && res.status >= 200 && res.status <= 299) {
         return { result: (await res.json()) as TResult };
+      }
+      // 400-499 -> client error, retries are futile
+      if (res && res.status >= 400 && res.status <= 499) {
+        return (await res.json()) as ErrorResponse;
       }
       const backoff = this.retry.backoff(i);
       console.debug(
-        "attempt %d of %d to reach %s failed, retrying in %d ms: %s | %s",
-        i + 1,
-        this.retry.attempts + 1,
-        url,
-        backoff,
-        // @ts-ignore I don't understand why `err` is `never`
-        err?.message ?? `status=${res?.status}`,
-        res?.headers.get("unkey-request-id"),
+        `attempt ${i + 1} of ${
+          this.retry.attempts + 1
+        } to reach ${url} failed, retrying in ${backoff} ms: status=${
+          res?.status
+        } | ${res?.headers.get("unkey-request-id")}`,
       );
       await new Promise((r) => setTimeout(r, backoff));
     }

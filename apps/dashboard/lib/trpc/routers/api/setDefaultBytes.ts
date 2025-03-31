@@ -3,15 +3,16 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const setDefaultApiBytes = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       defaultBytes: z
         .number()
-        .min(8, "Byte size needs to be at least 8")
+        .min(16, "Byte size needs to be at least 16")
         .max(255, "Byte size cannot exceed 255")
         .optional(),
       keyAuthId: z.string(),
@@ -21,10 +22,11 @@ export const setDefaultApiBytes = t.procedure
     const keyAuth = await db.query.keyAuth
       .findFirst({
         where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.keyAuthId), isNull(table.deletedAt)),
-        with: {
-          workspace: true,
-        },
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.keyAuthId),
+            isNull(table.deletedAtM),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -33,7 +35,7 @@ export const setDefaultApiBytes = t.procedure
             "We were unable to update the key auth. Please try again or contact support@unkey.dev",
         });
       });
-    if (!keyAuth || keyAuth.workspace.tenantId !== ctx.tenant.id) {
+    if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -56,7 +58,7 @@ export const setDefaultApiBytes = t.procedure
             });
           });
         await insertAuditLogs(tx, {
-          workspaceId: keyAuth.workspace.id,
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,

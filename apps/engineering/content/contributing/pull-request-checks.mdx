@@ -1,0 +1,300 @@
+---
+title: Pull Request Checklist
+toc:
+  - text: SQL Injections - ClickHouse
+    href: #sql-injections---clickhouse
+  - text: SQL Performance - ClickHouse
+    href: #sql-performance---clickhouse
+  - text: Leaking Data From Client to Server
+    href: #leaking-data-from-client-to-server
+---
+import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
+
+<InlineTOC items={toc} />
+When opening pull requests for Unkey, there are some things we have to be careful about in terms of security and speed.
+
+
+### SQL Injections - ClickHouse
+
+When making changes to ClickHouse queries, we must be careful about passing values from tRPC or any other place. The way ClickHouse is utilized in Unkey doesn't let you pass values without sanitization first through zod schemas, but in some cases, you can bypass that and inject custom values into the query.
+By default, the ClickHouse client forces you to pass parameters with types to sanitize them, but in the end, it's still SQL, so if you slip, malicious people can still attack you.
+SQL injection can happen not just through direct string interpolation but also through dynamic SQL construction in general. To prevent this:
+
+- Always use ClickHouse's parameterized queries with typed parameters
+- Validate input with strict zod schemas before query construction
+- Avoid dynamic SQL generation where possible
+
+#### Example:
+
+```ts
+export const getLogsClickhousePayload = z.object({
+  workspaceId: z.string(),
+  paths: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "startsWith", "endsWith", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+});
+
+export type GetLogsClickhousePayload = z.infer<typeof getLogsClickhousePayload>;
+
+export function getLogs(ch: Querier) {
+  return async (args: GetLogsClickhousePayload) => {
+    // Generate dynamic path conditions
+    const pathConditions =
+      args.paths
+        ?.map((p) => {
+          switch (p.operator) {
+            case "is":
+              return `path = '${p.value}'`;
+            case "startsWith":
+              return `startsWith(path, '${p.value}')`;
+            case "endsWith":
+              return `endsWith(path, '${p.value}')`;
+            case "contains":
+              return `like(path, '%${p.value}%')`;
+            default:
+              return null;
+          }
+        })
+        .filter(Boolean)
+        .join(" OR ") || "TRUE";
+
+    const query = ch.query({
+      query: `
+        WITH filtered_requests AS (
+          SELECT *
+          FROM metrics.raw_api_requests_v1
+          WHERE workspace_id = {workspaceId: String}
+            AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+            ---------- Apply path filter using pre-generated conditions
+            AND (${pathConditions})
+                  )
+
+        SELECT
+          request_id,
+          time,
+          workspace_id,
+          host,
+          method,
+          path,
+          request_headers,
+          request_body,
+          response_status,
+          response_headers,
+          response_body,
+          error,
+          service_latency
+        FROM filtered_requests
+        ORDER BY time DESC, request_id DESC
+        LIMIT {limit: Int}`,
+      params: getLogsClickhousePayload,
+      schema: log,
+    });
+
+    return query(args);
+  };
+}
+```
+
+The issue is in the dynamic path conditions where values are directly interpolated into the SQL string without proper escaping:
+
+```ts
+`path = '${p.value}'`
+```
+
+An attacker could input a value like: `' OR '1'='1` which would create:
+```sql
+path = '' OR '1'='1'
+```
+
+To fix this:
+
+1. Use ClickHouse's parameter binding:
+```ts
+ // Generate dynamic path conditions with parameterization
+    const pathConditions =
+      args.paths
+        ?.map((p, index) => {
+          const paramName = `pathValue_${index}`;
+          paramSchemaExtension[paramName] = z.string();
+          parameters[paramName] = p.value;
+          switch (p.operator) {
+            case "is":
+              return `path = {${paramName}: String}`;
+            case "startsWith":
+              return `startsWith(path, {${paramName}: String})`;
+            case "endsWith":
+              return `endsWith(path, {${paramName}: String})`;
+            case "contains":
+              return `like(path, CONCAT('%', {${paramName}: String}, '%'))`;
+            default:
+              return null;
+          }
+        })
+        .filter(Boolean)
+        .join(" OR ") || "TRUE";
+```
+
+This ensures all values are properly escaped by ClickHouse's query engine.
+
+
+### SQL Performance - ClickHouse
+
+When querying ClickHouse, we have to be careful about what we are joining or querying since that particular data might be huge. For example, not handling queries to metrics.raw_api_requests_v1 properly can be quite problematic.
+
+To improve query performance:
+- Filter data as early as possible in the query
+- Apply indexes on frequently filtered columns
+
+
+#### Example:
+
+```sql
+      WITH filtered_requests AS (
+          SELECT
+            r.request_id,
+            r.time,
+            r.workspace_id,
+            r.namespace_id,
+            r.identifier,
+            r.passed,
+            m.host,
+          FROM ratelimits.raw_ratelimits_v1 r
+          LEFT JOIN metrics.raw_api_requests_v1 m ON
+            r.request_id = m.request_id
+          WHERE r.workspace_id = {workspaceId: String}
+            AND r.namespace_id = {namespaceId: String}
+            AND r.time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+        )
+        -- * used for the sake brevity
+        SELECT *
+        FROM filtered_requests
+        ORDER BY time DESC, request_id DESC
+        LIMIT {limit: Int}
+````
+
+Imagine this query: we are trying to get ratelimit details by joining with raw_api_requests_v1.
+Since raw_api_requests_v1 might be huge, the query can take a long time to execute or consume too much memory.
+To optimize this, we should first filter as much as possible, with time and workspace_id being the most important factors.
+We can make the query much faster by eliminating unrelated workspaceId's and irrelevant time ranges.
+
+
+```sql
+WITH filtered_ratelimits AS (
+    SELECT
+        request_id,
+        time,
+        workspace_id,
+        namespace_id,
+        identifier,
+        toUInt8(passed) as status
+    FROM ratelimits.raw_ratelimits_v1 r
+    WHERE workspace_id = {workspaceId: String}
+        AND namespace_id = {namespaceId: String}
+        AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+        ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
+        AND (${identifierConditions})
+        AND (${statusCondition})
+        AND (({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
+             OR (time, request_id) < ({cursorTime: Nullable(UInt64)}, {cursorRequestId: Nullable(String)}))
+)
+SELECT
+    fr.request_id,
+    fr.time,
+    fr.workspace_id,
+    fr.namespace_id,
+    fr.identifier,
+    fr.passed,
+    m.host,
+FROM filtered_ratelimits fr
+LEFT JOIN (
+    SELECT * FROM metrics.raw_api_requests_v1
+    -- Those two filters are doing the heavy lifting now
+    WHERE workspace_id = {workspaceId: String}
+    AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+    -------------------------------------------------------
+) m ON fr.request_id = m.request_id
+ORDER BY fr.time DESC, fr.request_id DESC
+LIMIT {limit: Int}
+```
+
+Finally, don't forget about adding indexes for our filters. While this step is optional, it can greatly improve query performance:
+
+```sql
+-- Composite index for workspace + time filtering
+-- Most effective when filtering workspace_id first, then time
+-- MINMAX type creates a sparse index with min/max values
+ALTER TABLE ratelimits.raw_ratelimits_v1
+    ADD INDEX idx_workspace_time (workspace_id, time) TYPE minmax GRANULARITY 1;
+
+-- Single-column index for JOIN operations
+-- Speeds up request_id matching between tables
+-- GRANULARITY 1 means finest possible index precision
+ALTER TABLE ratelimits.raw_ratelimits_v1
+    ADD INDEX idx_request_id (request_id) TYPE minmax GRANULARITY 1;
+
+-- Same indexes on metrics table to optimize both sides of JOIN
+ALTER TABLE metrics.raw_api_requests_v1
+    ADD INDEX idx_workspace_time (workspace_id, time) TYPE minmax GRANULARITY 1;
+ALTER TABLE metrics.raw_api_requests_v1
+    ADD INDEX idx_request_id (request_id) TYPE minmax GRANULARITY 1;
+```
+
+
+### Leaking Data From Client to Server
+
+When handling data access in tRPC, we must validate that users can only access data they're authorized to see. Failing to check permissions can lead to data leaks.
+
+#### Example:
+```ts
+// UNSAFE: Using client-provided workspaceId
+export const queryLogs = rateLimitedProcedure(ratelimit.update)
+  .input(queryLogsPayload)
+  .output(LogsResponse)
+  .query(async ({ input }) => {
+    const result = await clickhouse.api.logs({
+      ...transformedInputs,
+      workspaceId: input.workspaceId, // Security vulnerability
+      cursorRequestId: input.cursor?.requestId ?? null,
+      cursorTime: input.cursor?.time ?? null,
+    });
+  });
+
+// SAFE: Check workspace ownership via context
+export const queryLogs = rateLimitedProcedure(ratelimit.update)
+  .input(queryLogsPayload)
+  .output(LogsResponse)
+  .query(async ({ ctx, input }) => {
+    const workspace = await db.query.workspaces.findFirst({
+      where: (table, { and, eq, isNull }) =>
+        and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+    });
+    if (!workspace) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Workspace not found",
+      });
+    }
+    const result = await clickhouse.api.logs({
+      ...transformedInputs,
+      workspaceId: workspace.id, // Safe: verified ownership
+      cursorRequestId: input.cursor?.requestId ?? null,
+      cursorTime: input.cursor?.time ?? null,
+    });
+  });
+```
+
+The unsafe version lets any authenticated user view logs from any workspace by passing different workspaceIds. Always verify resource ownership through the server context instead of trusting client input.
+
+
+## Pull Request Security Checklist
+- [ ] SQL queries use parameterized values, not string interpolation
+- [ ] Input is validated through zod schemas
+- [ ] Database queries filter data early for performance
+- [ ] Indexes are added for frequently filtered columns
+- [ ] Resource access is verified through server context
+- [ ] Client-provided IDs are never trusted for data access

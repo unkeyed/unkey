@@ -1,12 +1,20 @@
 import { t } from "../trpc";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
+import { keysLlmSearch } from "./api/keys/llm-search";
+import { activeKeysTimeseries } from "./api/keys/query-active-keys-timeseries";
+import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
+import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
+import { overviewApiSearch } from "./api/overview-api-search";
+import { queryApisOverview } from "./api/overview/query-overview";
+import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
 import { setDefaultApiBytes } from "./api/setDefaultBytes";
 import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
 import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
 import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
+import { auditLogsSearch } from "./audit/llm-search";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -19,14 +27,20 @@ import { updateKeyOwnerId } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
-import { deleteLlmGateway } from "./llmGateway/delete";
-import { queryLogs } from "./logs/query-log";
+import { llmSearch } from "./logs/llm-search";
+import { queryLogs } from "./logs/query-logs";
 import { queryTimeseries } from "./logs/query-timeseries";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
+import { ratelimitLlmSearch } from "./ratelimit/llm-search";
+import { searchNamespace } from "./ratelimit/namespace-search";
+import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
+import { queryRatelimitLogs } from "./ratelimit/query-logs";
+import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
+import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
 import { addPermissionToRootKey } from "./rbac/addPermissionToRootKey";
@@ -41,11 +55,24 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { cancelSubscription } from "./stripe/cancelSubscription";
+import { createSubscription } from "./stripe/createSubscription";
+import { uncancelSubscription } from "./stripe/uncancelSubscription";
+import { updateSubscription } from "./stripe/updateSubscription";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
-import { changeWorkspacePlan } from "./workspace/changePlan";
 import { createWorkspace } from "./workspace/create";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
+import { getCurrentUser, listMemberships, switchOrg } from "./user";
+import {
+  getInvitationList,
+  getOrg,
+  getOrganizationMemberList,
+  inviteMember,
+  removeMembership,
+  revokeInvitation,
+  updateMembership,
+} from "./org";
 
 export const router = t.router({
   key: t.router({
@@ -60,9 +87,6 @@ export const router = t.router({
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
     }),
-  }),
-  llmGateway: t.router({
-    delete: deleteLlmGateway,
   }),
   rootKey: t.router({
     create: createRootKey,
@@ -79,12 +103,28 @@ export const router = t.router({
     setDefaultBytes: setDefaultApiBytes,
     updateIpWhitelist: updateApiIpWhitelist,
     updateDeleteProtection: updateAPIDeleteProtection,
+    keys: t.router({
+      timeseries: keyVerificationsTimeseries,
+      activeKeysTimeseries: activeKeysTimeseries,
+      query: queryKeysOverviewLogs,
+      llmSearch: keysLlmSearch,
+    }),
+    overview: t.router({
+      timeseries: queryVerificationTimeseries,
+      query: queryApisOverview,
+      search: overviewApiSearch,
+    }),
   }),
   workspace: t.router({
     create: createWorkspace,
     updateName: changeWorkspaceName,
-    updatePlan: changeWorkspacePlan,
     optIntoBeta: optWorkspaceIntoBeta,
+  }),
+  stripe: t.router({
+    createSubscription,
+    updateSubscription,
+    cancelSubscription,
+    uncancelSubscription,
   }),
   vercel: vercelRouter,
   plain: t.router({
@@ -105,7 +145,19 @@ export const router = t.router({
     updateRole: updateRole,
   }),
   ratelimit: t.router({
+    logs: t.router({
+      query: queryRatelimitLogs,
+      ratelimitLlmSearch,
+      queryRatelimitTimeseries,
+    }),
+    overview: t.router({
+      logs: t.router({
+        query: queryRatelimitOverviewLogs,
+        queryRatelimitLatencyTimeseries,
+      }),
+    }),
     namespace: t.router({
+      search: searchNamespace,
       create: createNamespace,
       update: t.router({
         name: updateNamespaceName,
@@ -121,9 +173,29 @@ export const router = t.router({
   logs: t.router({
     queryLogs,
     queryTimeseries,
+    llmSearch,
   }),
   audit: t.router({
-    fetch: fetchAuditLog,
+    logs: fetchAuditLog,
+    llmSearch: auditLogsSearch,
+  }),
+  user: t.router({
+    getCurrentUser,
+    listMemberships,
+    switchOrg,
+  }),
+  org: t.router({
+    getOrg,
+    members: t.router({
+      list: getOrganizationMemberList,
+      remove: removeMembership,
+      update: updateMembership,
+    }),
+    invitations: t.router({
+      list: getInvitationList,
+      create: inviteMember,
+      remove: revokeInvitation,
+    }),
   }),
 });
 

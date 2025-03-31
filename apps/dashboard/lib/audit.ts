@@ -5,6 +5,8 @@ import type { MaybeArray } from "@/lib/types";
 import { type Database, type Transaction, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 
+export const AUDIT_LOG_BUCKET = "unkey_mutations";
+
 export const auditLogsDataSchema = z
   .object({
     workspaceId: z.string(),
@@ -57,7 +59,7 @@ export type UnkeyAuditLog = {
   event: z.infer<typeof unkeyAuditLogEvents>;
   description: string;
   actor: {
-    type: "user" | "key";
+    type: "user" | "key" | "system";
     name?: string;
     id: string;
     meta?: Record<string, string | number | boolean | null>;
@@ -91,12 +93,6 @@ export type UnkeyAuditLog = {
   };
 };
 
-const BUCKET_NAME = "unkey_mutations";
-
-type Key = `${string}::${string}`;
-type BucketId = string;
-const bucketCache = new Map<Key, BucketId>();
-
 export async function insertAuditLogs(
   db: Transaction | Database,
   logOrLogs: MaybeArray<UnkeyAuditLog>,
@@ -108,40 +104,12 @@ export async function insertAuditLogs(
   }
 
   for (const log of logs) {
-    // 1. Get the bucketId or create one if necessary
-    const key: Key = `${log.workspaceId}::${BUCKET_NAME}`;
-    let bucketId = "";
-    const cachedBucketId = bucketCache.get(key);
-    if (cachedBucketId) {
-      bucketId = cachedBucketId;
-    } else {
-      const bucket = await db.query.auditLogBucket.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, log.workspaceId), eq(table.name, BUCKET_NAME)),
-        columns: {
-          id: true,
-        },
-      });
-      if (bucket) {
-        bucketId = bucket.id;
-      } else {
-        bucketId = newId("auditLogBucket");
-        await db.insert(schema.auditLogBucket).values({
-          id: bucketId,
-          workspaceId: log.workspaceId,
-          name: BUCKET_NAME,
-        });
-      }
-    }
-    bucketCache.set(key, bucketId);
-
-    // 2. Insert the log
-
     const auditLogId = newId("auditLog");
     await db.insert(schema.auditLog).values({
       id: auditLogId,
       workspaceId: log.workspaceId,
-      bucketId,
+      bucketId: "DEPRECATED",
+      bucket: AUDIT_LOG_BUCKET,
       event: log.event,
       time: Date.now(),
       display: log.description,
@@ -157,7 +125,8 @@ export async function insertAuditLogs(
         log.resources.map((r) => ({
           workspaceId: log.workspaceId,
           auditLogId,
-          bucketId,
+          bucketId: "DEPRECATED",
+          bucket: AUDIT_LOG_BUCKET,
           displayName: "",
           type: r.type,
           id: r.id,

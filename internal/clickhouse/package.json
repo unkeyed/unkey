@@ -15,7 +15,7 @@
     "testcontainers": "^10.14.0",
     "typescript": "^5.5.3",
     "execa": "^9.3.0",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.1"
   },
   "dependencies": {
     "@clickhouse/client-web": "^1.6.0",

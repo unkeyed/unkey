@@ -4,14 +4,26 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const createKey = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
-      prefix: z.string().optional(),
-      bytes: z.number().int().gte(1).default(16),
+      prefix: z
+        .string()
+        .max(8, { message: "Prefixes cannot be longer than 8 characters" })
+        .refine((prefix) => !prefix.includes(" "), {
+          message: "Prefixes cannot contain spaces.",
+        })
+        .optional(),
+      bytes: z
+        .number()
+        .int()
+        .min(8, { message: "Key must be between 8 and 255 bytes long" })
+        .max(255, { message: "Key must be between 8 and 255 bytes long" })
+        .default(16),
       keyAuthId: z.string(),
       ownerId: z.string().nullish(),
       meta: z.record(z.unknown()).optional(),
@@ -36,29 +48,10 @@ export const createKey = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to create a key for this API. Please try again or contact support@unkey.dev.",
-        });
-      });
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
-
     const keyAuth = await db.query.keyAuth
       .findFirst({
-        where: (table, { eq }) => eq(table.id, input.keyAuthId),
+        where: (table, { and, eq }) =>
+          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
         with: {
           api: true,
         },
@@ -70,7 +63,7 @@ export const createKey = t.procedure
             "We were unable to create a key for this API. Please try again or contact support@unkey.dev.",
         });
       });
-    if (!keyAuth || keyAuth.workspaceId !== workspace.id) {
+    if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -93,10 +86,11 @@ export const createKey = t.procedure
           start,
           ownerId: input.ownerId,
           meta: JSON.stringify(input.meta ?? {}),
-          workspaceId: workspace.id,
+          workspaceId: ctx.workspace.id,
           forWorkspaceId: null,
           expires: input.expires ? new Date(input.expires) : null,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
+          updatedAtM: null,
           ratelimitAsync: input.ratelimit?.async,
           ratelimitLimit: input.ratelimit?.limit,
           ratelimitDuration: input.ratelimit?.duration,
@@ -104,13 +98,12 @@ export const createKey = t.procedure
           refillDay: input.refill?.refillDay ?? null,
           refillAmount: input.refill?.amount ?? null,
           lastRefillAt: input.refill ? new Date() : null,
-          deletedAt: null,
           enabled: input.enabled,
           environment: input.environment,
         });
 
         await insertAuditLogs(tx, {
-          workspaceId: workspace.id,
+          workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "key.create",
           description: `Created ${keyId}`,

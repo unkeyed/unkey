@@ -43,7 +43,7 @@ export async function getOrCreateFirecrawlResponse(args: {
           set: {
             error: firecrawlResult.error || "Unknown error occurred",
             success: false,
-            updatedAt: new Date(),
+            updatedAtM: Date.now(),
           },
         })
         .$returningId();
@@ -78,7 +78,7 @@ export async function getOrCreateFirecrawlResponse(args: {
       .onDuplicateKeyUpdate({
         set: {
           markdown: firecrawlResult.markdown ?? null,
-          updatedAt: new Date(),
+          updatedAtM: Date.now(),
         },
       });
 
@@ -101,7 +101,7 @@ export async function getOrCreateFirecrawlResponse(args: {
         set: {
           error: error instanceof Error ? error.message : String(error),
           success: false,
-          updatedAt: new Date(),
+          updatedAtM: Date.now(),
         },
       });
 

@@ -1,0 +1,93 @@
+---
+title: Textarea
+description: A multi-line text input component with different states, validations, and icon support.
+---
+import { RenderComponentWithSnippet } from "@/app/components/render"
+import {
+  TextareaDefaultVariant,
+  TextareaSuccessVariant,
+  TextareaWarningVariant,
+  TextareaErrorVariant,
+  TextareaDisabledVariant,
+  TextareaWithDefaultValue,
+  TextareaWithCharacterCount,
+  TextareaWithBothIcons
+} from "./textarea/textarea.variants.tsx"
+
+# Textarea
+
+A versatile multi-line text input component that supports various states, validations, and icon placements. Use it to collect longer user input with appropriate visual feedback and enhanced usability through icons.
+
+## Default
+
+The default textarea style with neutral colors. Can include optional icons for better visual context.
+
+<TextareaDefaultVariant />
+
+## States
+
+Textarea components can reflect different states through visual styling:
+
+### Success State
+
+Use the success state to indicate valid input or successful validation. The checkmark icon provides immediate visual feedback.
+
+<TextareaSuccessVariant />
+
+### Warning State
+
+The warning state can be used to show potential issues that don't prevent form submission. The alert icon draws attention to the warning state.
+
+<TextareaWarningVariant />
+
+### Error State
+
+Use the error state to indicate invalid input that needs correction. The alert icon emphasizes the error state.
+
+<TextareaErrorVariant />
+
+### Disabled State
+
+Use the disabled state when user interaction should be prevented, such as during form submission or when the input depends on other conditions.
+
+<TextareaDisabledVariant />
+
+### With Default Value State
+
+Textarea pre-populated with an initial value that users can modify or build upon.
+
+<TextareaWithDefaultValue />
+
+## Interactive Elements
+
+### Character Count
+
+Example of a textarea with character count functionality to help users stay within length limits.
+
+<TextareaWithCharacterCount />
+
+### Textarea with Icons
+
+Example of a textarea with both leading and trailing icons for enhanced functionality.
+
+<TextareaWithBothIcons />
+
+## Props
+
+The Textarea component accepts all standard HTML textarea attributes plus the following:
+
+<AutoTypeTable
+    name="DocumentedTextareaProps"
+    path="../../internal/ui/src/components/textarea.tsx"
+/>
+
+## Icon Guidelines
+
+When using icons with the Textarea component:
+
+- Icons should be sized appropriately (recommended: 16x16px using `h-4 w-4` classes)
+- Icons inherit colors based on the textarea's variant state
+- Interactive icons should be wrapped in buttons
+- Avoid using too many icons which might clutter the interface
+- Left icons are typically used for input type indication (notes, description, etc.)
+- Right icons are commonly used for interactive elements (expand/collapse, character count toggle, etc.)

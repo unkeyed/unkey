@@ -75,6 +75,10 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
     auditLogBucketByWorkspaceIdAndName: new Namespace<
       CacheNamespaces["auditLogBucketByWorkspaceIdAndName"]
     >(c.executionCtx, defaultOpts),
+    workspaceIdByRootKeyHash: new Namespace<CacheNamespaces["workspaceIdByRootKeyHash"]>(
+      c.executionCtx,
+      defaultOpts,
+    ),
   });
 }
 

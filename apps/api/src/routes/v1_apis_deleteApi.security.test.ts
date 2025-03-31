@@ -68,7 +68,7 @@ describe("correct roles", () => {
         where: (table, { eq }) => eq(table.id, apiId),
       });
       expect(found).toBeDefined();
-      expect(found!.deletedAt).not.toBeNull();
+      expect(found!.deletedAtM).not.toBeNull();
     });
   });
 });

@@ -24,6 +24,10 @@ const route = createRoute({
               description: "The id of the key to revoke",
               example: "key_1234",
             }),
+            permanent: z.boolean().default(false).optional().openapi({
+              description:
+                "By default Unkey soft deletes keys, so they may be recovered later. If you want to permanently delete it, set permanent=true. This might be necessary if you run into CONFLICT errors during key migration.",
+            }),
           }),
         },
       },
@@ -53,12 +57,12 @@ export type V1KeysDeleteKeyResponse = z.infer<
 
 export const registerV1KeysDeleteKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { keyId } = c.req.valid("json");
+    const { keyId, permanent } = c.req.valid("json");
     const { cache, db } = c.get("services");
 
     const data = await cache.keyById.swr(keyId, async () => {
       const dbRes = await db.readonly.query.keys.findFirst({
-        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
+        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAtM)),
         with: {
           identity: true,
           encrypted: true,
@@ -124,7 +128,14 @@ export const registerV1KeysDeleteKey = (app: App) =>
     const rootKeyId = auth.key.id;
 
     await db.primary.transaction(async (tx) => {
-      await tx.update(schema.keys).set({ deletedAt: new Date() }).where(eq(schema.keys.id, key.id));
+      if (permanent) {
+        await tx.delete(schema.keys).where(eq(schema.keys.id, key.id));
+      } else {
+        await tx
+          .update(schema.keys)
+          .set({ deletedAtM: Date.now() })
+          .where(eq(schema.keys.id, key.id));
+      }
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: authorizedWorkspaceId,
@@ -133,7 +144,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
           type: "key",
           id: rootKeyId,
         },
-        description: `Deleted ${key.id}`,
+        description: `${permanent ? "Permanently deleted" : "Deleted"} ${key.id}`,
         resources: [
           {
             type: "key",

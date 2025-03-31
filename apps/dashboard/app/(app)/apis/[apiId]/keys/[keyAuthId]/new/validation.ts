@@ -5,16 +5,18 @@ export const formSchema = z.object({
     .number({
       errorMap: (issue, { defaultError }) => ({
         message:
-          issue.code === "invalid_type"
-            ? "Amount must be a number and greater than 0"
-            : defaultError,
+          issue.code === "invalid_type" ? "Key must be between 8 and 255 bytes long" : defaultError,
       }),
     })
+    .min(8, { message: "Key must be between 8 and 255 bytes long" })
+    .max(255, { message: "Key must be between 8 and 255 bytes long" })
     .default(16),
   prefix: z
     .string()
-    .trim()
-    .max(8, { message: "Please limit the prefix to under 8 characters." })
+    .max(8, { message: "Prefixes cannot be longer than 8 characters" })
+    .refine((prefix) => !prefix.includes(" "), {
+      message: "Prefixes cannot contain spaces.",
+    })
     .optional(),
   ownerId: z.string().trim().optional(),
   name: z.string().trim().optional(),
@@ -77,7 +79,7 @@ export const formSchema = z.object({
             .int()
             .min(1)
             .max(31)
-            .default(1),
+            .optional(),
         })
         .optional(),
     })

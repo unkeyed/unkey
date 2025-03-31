@@ -43,7 +43,7 @@ test("deletes the keys", async (t) => {
   expect(apiBeforeHardDelete).toBeDefined();
   expect(apiBeforeHardDelete!.keyAuth!.keys.length).toEqual(n);
   for (const k of apiBeforeHardDelete!.keyAuth!.keys) {
-    expect(k.deletedAt).not.toBeNull();
+    expect(k.deletedAtM).not.toBeNull();
   }
 
   await h.createKey();

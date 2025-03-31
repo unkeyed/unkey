@@ -3,9 +3,10 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const deleteOverride = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       id: z.string(),
@@ -14,19 +15,16 @@ export const deleteOverride = t.procedure
   .mutation(async ({ ctx, input }) => {
     const override = await db.query.ratelimitOverrides
       .findFirst({
-        where: (table, { and, eq, isNull }) => and(eq(table.id, input.id), isNull(table.deletedAt)),
+        where: (table, { and, eq, isNull }) =>
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.id),
+            isNull(table.deletedAtM),
+          ),
         with: {
           namespace: {
             columns: {
               id: true,
-            },
-            with: {
-              workspace: {
-                columns: {
-                  id: true,
-                  tenantId: true,
-                },
-              },
             },
           },
         },
@@ -39,7 +37,7 @@ export const deleteOverride = t.procedure
         });
       });
 
-    if (!override || override.namespace.workspace.tenantId !== ctx.tenant.id) {
+    if (!override) {
       throw new TRPCError({
         message:
           "We are unable to find the correct override. Please try again or contact support@unkey.dev.",
@@ -50,7 +48,7 @@ export const deleteOverride = t.procedure
     await db.transaction(async (tx) => {
       await tx
         .update(schema.ratelimitOverrides)
-        .set({ deletedAt: new Date() })
+        .set({ deletedAtM: Date.now() })
         .where(eq(schema.ratelimitOverrides.id, override.id))
         .catch((_err) => {
           throw new TRPCError({
@@ -60,7 +58,7 @@ export const deleteOverride = t.procedure
           });
         });
       await insertAuditLogs(tx, {
-        workspaceId: override.namespace.workspace.id,
+        workspaceId: ctx.workspace.id,
         actor: {
           type: "user",
           id: ctx.user.id,

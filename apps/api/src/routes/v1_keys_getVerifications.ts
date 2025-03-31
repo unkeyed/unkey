@@ -7,9 +7,10 @@ import { buildUnkeyQuery, type unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["keys"],
-  operationId: "getVerifications",
+  operationId: "keys.getVerifications",
   method: "get",
   path: "/v1/keys.getVerifications",
+  "x-speakeasy-name-override": "getVerifications",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
@@ -92,7 +93,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
     if (keyId) {
       const data = await cache.keyById.swr(keyId, async (keyId) => {
         const dbRes = await db.readonly.query.keys.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAtM)),
           with: {
             identity: true,
             encrypted: true,
@@ -154,7 +155,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
       const keys = await cache.keysByOwnerId.swr(ownerId, async () => {
         const dbRes = await db.readonly.query.keys.findMany({
           where: (table, { eq, and, isNull }) =>
-            and(eq(table.ownerId, ownerId), isNull(table.deletedAt)),
+            and(eq(table.ownerId, ownerId), isNull(table.deletedAtM)),
           with: {
             encrypted: true,
             keyAuth: {

@@ -11,7 +11,13 @@
 
 ## Contributing
 
-Please read through our [contributing guide](.github/CONTRIBUTING.md) before starting any work.
+We welcome contributions! To ensure your work doesn't conflict with ongoing work, please:
+
+1. Read our [contributing guide](https://engineering.unkey.com/contributing)
+2. **Discuss your ideas with us in public channels (GitHub/Discord) BEFORE starting development** (No private DMs)
+3. Get approval from a core team member
+
+This helps us align efforts and prevents duplicated or conflicting work.
 
 
 ## Let's talk

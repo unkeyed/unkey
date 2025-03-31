@@ -1,0 +1,76 @@
+---
+title: 0009 Pricing refresh for 2025
+description: We need to update our pricing for 2025
+date: 2025-02-19
+authors:
+  - James Perkins
+---
+
+## Summary
+
+Our pricing has been the same for the past 12 months, while we want stability we also want to ensure we are competitive in the market. We are proposing a refresh of our pricing and free tier to ensure we are competitive and can continue to grow our business.
+
+## Motivation
+
+Our whole ethos has always been "Making developers lives easier" and we want to continue to do that.
+We want to ensure that we are competitive in the market and that we are providing value to our customers, and currently our pricing has two main issues:
+
+1. Unexpected bills due to the way we charge for requests, can be scary.
+2. Confusing pricing structure that is only getting more confusing as we add more features
+    a. Ratelimiting
+    b. API key verification
+    c. What consisitutes a valid request?
+
+We have seen a lot of growth in the past 12 months and we want to ensure that we can continue to grow by making it easier for developers to adopt, and scale with us.
+
+## Details of the pricing refresh
+
+Firstly we are moving away from "verifications" and moving towards using the "requests", this will make it easier to transition into our new features we rely directly on requests.
+
+#### For reference our current pricing is:
+
+| Free | Pro | Enterprise
+| --- | --- | --- |
+| 2.5k Valid Verifications | 150k Valid Verifications  | XM Valid Verifications |
+| 100k Valid Ratelimits | 2.5M Valid Ratelimits | XM Valid Ratelimits |
+| 7 days Logs | 90 Days Logs | X Days Logs |
+| 30 days Audit | 90 Days Audit | X Days Audit |
+| 1k API keys | 1M API Keys | 1M API Keys |
+| Unlimited APIs| Unlimited APIs | Unlimited APIs |
+| $0 | $25 | $? |
+
+#### Charge for additional requests:
+
+- $1 per 10k
+- $1 per 100k (Ratelimits)
+
+### Proposal for 2025
+When we met in October 2024, we discussed moving to buckets of requests, where a developer can have a certain number of requests per month. This is similar to other SaaS products like `Resend` or `Dub`.
+
+| Free | Pro Tier 1 | Pro Tier 2 | Pro Tier 3 | Pro Tier 4 | Pro Tier 5 | Pro Tier 6 | Pro Tier 7 | Enterprise  |
+| --- | --- | --- | --- | --- | --- | --- | ---| --- |
+| 150k Requests | Up To 250,000 Requests | Up To 500,000 Requests | UP To 1M Requests | Up To 2,000,000 Requests | Up to 10M Requests | Up to 50M Requests | Up 100M Requests | XM requests |
+| 7 Days Logs | 90 Days Logs | 90 Days Logs | 90 Days Logs | 90 Days Logs | 90 Days Logs | 90 Days Logs | 90 Days Logs | X Days Logs |
+| 30 days Audit | 90 Days Audit | 90 Days Audit | 90 Days Audit | 90 Days Audit | 90 Days Audit | 90 Days Audit | 90 Days Audit | X Days Audit |
+| 1k API keys | 1M API Keys | 1M API Keys | 1M API Keys | 1M API Keys | 1M API Keys | 1M API Keys | 1M API Keys | 1M API Keys |
+| Unlimited APIs | Unlimited APIs | Unlimited APIs | Unlimited APIs | Unlimited APIs | Unlimited APIs | Unlimited APIs | Unlimited APIs | Unlimited APIs |
+| $0 | $25 | $50 | $75 | $100 | $250 | $500 | $1000 | $? |
+
+To provide context 100M API Key verifications on the old pricing would cost $10,010.00 but on the new pricing would cost $1,000.00.
+
+#### What is counted as a successful request?
+A successful request means everything is fine and you should grant access to the user. Requests may be unsuccessful due to exceeding limits, keys being expired or disabled, or other factors.
+To protect your business from abuse, we do not charge for unsuccessful requests.
+
+#### What happens if I exceed my tier?
+If you exceed your tier, we will continue to allow traffic to flow and won’t charge you for the additional usage. If you API continues to exceed the tier we will advise you to upgrade to the next tier up.
+
+## Drawbacks
+
+Standalone ratelimiting becomes more expensive as a SaaS scales however adding more requests to the free tier will help offset this. This seems like a win for scaling into the product, and getting more eyes on it, rather than a negative.
+
+## Alternatives
+
+The only alternative considered so far:
+
+1. Keeping the pro tier as Pay as you go, while also adding bucket pricing. This could cause additional confusion, or even more support requests as they realize bucketing is much cheaper.

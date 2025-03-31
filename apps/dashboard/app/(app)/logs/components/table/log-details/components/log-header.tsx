@@ -1,37 +1,42 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
+import { XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { X } from "lucide-react";
 
 type Props = {
   log: Log;
   onClose: () => void;
 };
+
 export const LogHeader = ({ onClose, log }: Props) => {
   return (
-    <div className="border-b-[1px] px-3 py-4 flex justify-between border-border items-center">
-      <div className="flex gap-2">
-        <Badge variant="secondary" className="bg-transparent">
+    <div className="border-b-[1px] flex justify-between items-center border-gray-4 pb-3">
+      <div className="flex gap-2 items-center flex-1 min-w-0">
+        <Badge className="uppercase px-[6px] rounded-md font-mono bg-accent-3 text-accent-11 hover:bg-accent-4">
           {log.method}
         </Badge>
-        <p className="text-[13px] text-content/65">{log.path}</p>
+        <p className="text-xs text-accent-12 truncate flex-1 mr-4">{log.path} </p>
       </div>
 
-      <div className="flex gap-1 items-center">
-        <Badge
-          className={cn(
-            "bg-background border border-solid border-border text-current hover:bg-transparent",
-            log.response_status >= 400 && "border-red-6 text-red-11",
-          )}
-        >
-          {log.response_status}
-        </Badge>
-
-        <span className="text-content/65">|</span>
-        <Button shape="square" variant="ghost" onClick={onClose}>
-          <X size="22" strokeWidth="1.5" className="text-content/65 cursor-pointer" />
-        </Button>
+      <div className="flex gap-1 items-center shrink-0">
+        <div className="flex gap-3">
+          <Badge
+            className={cn("px-[6px] rounded-md font-mono text-xs", {
+              "bg-success-3 text-success-11 hover:bg-success-4":
+                log.response_status >= 200 && log.response_status < 300,
+              "bg-warning-3 text-warning-11 hover:bg-warning-4":
+                log.response_status >= 400 && log.response_status < 500,
+              "bg-error-3 text-error-11 hover:bg-error-4": log.response_status >= 500,
+            })}
+          >
+            {log.response_status}
+          </Badge>
+          <span className="text-gray-5">|</span>
+          <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
+            <XMark className="text-gray-12 stroke-2" />
+          </Button>
+        </div>
       </div>
     </div>
   );

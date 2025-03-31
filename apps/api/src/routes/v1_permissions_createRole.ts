@@ -3,7 +3,8 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { openApiErrorResponses } from "@/pkg/errors";
+import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { DatabaseError } from "@planetscale/database";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -72,7 +73,7 @@ export const registerV1PermissionsCreateRole = (app: App) =>
     const { db } = c.get("services");
 
     const role = {
-      id: newId("test"),
+      id: newId("role"),
       workspaceId: auth.authorizedWorkspaceId,
       name: req.name,
       description: req.description,
@@ -82,12 +83,17 @@ export const registerV1PermissionsCreateRole = (app: App) =>
       await tx
         .insert(schema.roles)
         .values(role)
-        .onDuplicateKeyUpdate({
-          set: {
-            name: req.name,
-            description: req.description,
-          },
+        .catch((e) => {
+          if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
+            throw new UnkeyApiError({
+              code: "CONFLICT",
+              message: `Role with name "${role.name}" already exists in this workspace`,
+            });
+          }
+
+          throw e;
         });
+
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
         event: "role.create",
@@ -106,7 +112,6 @@ export const registerV1PermissionsCreateRole = (app: App) =>
             },
           },
         ],
-
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
     });

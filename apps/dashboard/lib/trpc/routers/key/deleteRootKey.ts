@@ -3,43 +3,23 @@ import { db, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const deleteRootKeys = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       keyIds: z.array(z.string()),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to delete this root key. Please try again or contact support@unkey.dev.",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
-
     const rootKeys = await db.query.keys.findMany({
       where: (table, { eq, inArray, isNull, and }) =>
         and(
           eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
-          eq(table.forWorkspaceId, workspace.id),
+          eq(table.forWorkspaceId, ctx.workspace.id),
           inArray(table.id, input.keyIds),
-          isNull(table.deletedAt),
+          isNull(table.deletedAtM),
         ),
       columns: {
         id: true,
@@ -49,7 +29,7 @@ export const deleteRootKeys = t.procedure
       .transaction(async (tx) => {
         await tx
           .update(schema.keys)
-          .set({ deletedAt: new Date() })
+          .set({ deletedAtM: Date.now() })
           .where(
             inArray(
               schema.keys.id,
@@ -59,7 +39,7 @@ export const deleteRootKeys = t.procedure
         await insertAuditLogs(
           tx,
           rootKeys.map((key) => ({
-            workspaceId: workspace.id,
+            workspaceId: ctx.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "key.delete",
             description: `Deleted ${key.id}`,

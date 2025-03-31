@@ -20,6 +20,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -36,10 +43,12 @@ const formSchema = z.object({
   remaining: z.coerce.number().positive({ message: "Please enter a positive number" }).optional(),
   refill: z
     .object({
+      interval: z.enum(["none", "daily", "monthly"]).optional(),
       amount: z
         .literal("")
         .transform(() => undefined)
-        .or(z.coerce.number().int().positive()),
+        .or(z.coerce.number().int().positive())
+        .optional(),
       refillDay: z
         .literal("")
         .transform(() => undefined)
@@ -70,6 +79,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
       limitEnabled: Boolean(apiKey.remaining) || Boolean(apiKey.refillAmount),
       remaining: apiKey.remaining ? apiKey.remaining : undefined,
       refill: {
+        interval: apiKey.refillDay ? "monthly" : apiKey.refillAmount ? "daily" : "none",
         amount: apiKey.refillAmount ? apiKey.refillAmount : undefined,
         refillDay: apiKey.refillDay ?? undefined,
       },
@@ -94,21 +104,44 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!values.refill?.amount && values.refill?.refillDay) {
+    if (values.refill?.interval === "none") {
+      delete values.refill;
+    }
+    // make sure they aren't sent to the server if they are disabled.
+    if (
+      values.refill?.interval !== undefined &&
+      values.refill?.interval !== "none" &&
+      !values.refill?.amount
+    ) {
+      form.setError("refill.amount", {
+        type: "manual",
+        message: "Please enter a value if interval is selected",
+      });
+      return;
+    }
+    if (!values.refill?.amount && values.refill?.refillDay && values.limitEnabled) {
       form.setError("refill.amount", {
         message: "Please enter the number of uses per interval or remove the refill day",
       });
       return;
     }
-    if (values.remaining === undefined) {
+    if (values.remaining === undefined && values.limitEnabled) {
       form.setError("remaining", { message: "Please enter a value" });
       return;
     }
-    if (values.limitEnabled === false) {
+    if (!values.limitEnabled) {
       delete values.refill;
       delete values.remaining;
     }
-    await updateRemaining.mutateAsync(values);
+    if (values.refill?.interval === "monthly" && !values.refill?.refillDay) {
+      values.refill.refillDay = 1;
+    }
+    await updateRemaining.mutateAsync({
+      keyId: values.keyId,
+      limitEnabled: values.limitEnabled,
+      remaining: values.remaining,
+      refill: values.refill,
+    });
   }
 
   return (
@@ -153,10 +186,36 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
               />
               <FormField
                 control={form.control}
+                name="refill.interval"
+                disabled={
+                  !form.watch("limitEnabled") ||
+                  form.watch("remaining") === undefined ||
+                  form.watch("remaining") === null
+                }
+                render={({ field }) => (
+                  <FormItem className="">
+                    <FormLabel>Refill Rate</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || "none"}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>Interval key will be refilled.</FormDescription>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 disabled={
                   form.watch("remaining") === undefined ||
                   form.watch("remaining") === null ||
-                  !form.watch("limitEnabled") === true
+                  !form.watch("limitEnabled") === true ||
+                  form.watch("refill.interval") === "none"
                 }
                 name="refill.amount"
                 render={({ field }) => (
@@ -183,7 +242,9 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
                 disabled={
                   form.watch("remaining") === undefined ||
                   form.watch("remaining") === null ||
-                  !form.watch("limitEnabled") === true
+                  !form.watch("limitEnabled") === true ||
+                  form.watch("refill.interval") === "none" ||
+                  form.watch("refill.interval") === "daily"
                 }
                 name="refill.refillDay"
                 render={({ field }) => (
@@ -191,11 +252,16 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
                     <FormLabel>Day of the month to refill uses.</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="day of the month"
+                        placeholder="1"
                         className="w-full"
                         type="number"
                         {...field}
-                        value={form.getValues("limitEnabled") ? field.value : undefined}
+                        value={
+                          form.getValues("limitEnabled") &&
+                          form.getValues("refill.interval") === "monthly"
+                            ? field.value
+                            : undefined
+                        }
                       />
                     </FormControl>
                     <FormDescription>

@@ -56,13 +56,7 @@ async function main() {
       break;
     }
     case "dashboard": {
-      await startContainers([
-        "planetscale",
-        "clickhouse",
-        "agent",
-        "agent_lb",
-        "clickhouse_migrator",
-      ]);
+      await startContainers(["planetscale", "clickhouse", "agent", "clickhouse_migrator"]);
 
       const resources = await prepareDatabase();
       !skipEnv && (await bootstrapDashboard(resources));
@@ -70,13 +64,7 @@ async function main() {
     }
 
     case "api": {
-      await startContainers([
-        "planetscale",
-        "clickhouse",
-        "agent",
-        "agent_lb",
-        "clickhouse_migrator",
-      ]);
+      await startContainers(["planetscale", "clickhouse", "agent", "clickhouse_migrator"]);
 
       const resources = await prepareDatabase();
       !skipEnv && (await bootstrapApi(resources));
@@ -94,17 +82,7 @@ async function main() {
     s.stop("build complete");
   });
 
-  const runDev = await clack.confirm({
-    message: "Run now?",
-    active: "Yes",
-    inactive: "No",
-    initialValue: true,
-  });
-  if (runDev) {
-    execSync(`pnpm --dir=apps/${app} dev`, { cwd: "../..", stdio: "inherit" });
-  } else {
-    clack.note(`pnpm --dir=apps/${app} dev`, `Run the ${app} later with the following command`);
-  }
+  execSync(`pnpm --dir=apps/${app} dev`, { cwd: "../..", stdio: "inherit" });
 
   clack.outro("Done");
   process.exit(0);

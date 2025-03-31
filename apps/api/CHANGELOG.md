@@ -1,5 +1,17 @@
 # api
 
+## 0.3.0
+
+### Minor Changes
+
+- 8b69b15: feat: return requestId
+
+## 0.2.0
+
+### Minor Changes
+
+- 18c12c2: feat: permanently delete keys & identity migration
+
 ## 0.1.0
 
 ### Minor Changes

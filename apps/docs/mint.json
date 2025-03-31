@@ -60,11 +60,6 @@
       "name": "GitHub",
       "icon": "github",
       "url": "https://github.com/unkeyed"
-    },
-    {
-      "name": "Contributing",
-      "url": "contributing",
-      "icon": "terminal"
     }
   ],
   "navigation": [
@@ -207,6 +202,7 @@
             "api-reference/errors/code/BAD_REQUEST",
             "api-reference/errors/code/UNAUTHORIZED",
             "api-reference/errors/code/FORBIDDEN",
+            "api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
             "api-reference/errors/code/NOT_FOUND",
             "api-reference/errors/code/DELETE_PROTECTED",
             "api-reference/errors/code/EXPIRED",
@@ -409,31 +405,6 @@
             "libraries/springboot-java/functions/revoke",
             "libraries/springboot-java/functions/update",
             "libraries/springboot-java/functions/verify"
-          ]
-        }
-      ]
-    },
-    {
-      "group": "Contributing",
-      "icon": "github",
-      "pages": [
-        "contributing/getting-started",
-        "contributing/versions",
-        "contributing/editor-setup",
-        "contributing/testing",
-        "contributing/sdk-development",
-        {
-          "group": "Services",
-          "pages": [
-            {
-              "group": "Agent",
-              "pages": [
-                "contributing/services/agent/architecture",
-                "contributing/services/agent/configuration",
-                "contributing/services/agent/cluster",
-                "contributing/services/agent/profiling"
-              ]
-            }
           ]
         }
       ]

@@ -5,47 +5,28 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const createNamespace = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: z.string().min(1).max(50),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const ws = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to create a new namespace. Please try again or contact support@unkey.dev",
-        });
-      });
-    if (!ws) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
-
     const namespaceId = newId("ratelimitNamespace");
     await db
       .transaction(async (tx) => {
         await tx.insert(schema.ratelimitNamespaces).values({
           id: namespaceId,
           name: input.name,
-          workspaceId: ws.id,
+          workspaceId: ctx.workspace.id,
 
-          createdAt: new Date(),
+          createdAtM: Date.now(),
         });
         await insertAuditLogs(tx, {
-          workspaceId: ws.id,
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,
@@ -67,14 +48,14 @@ export const createNamespace = t.procedure
       .catch((e) => {
         if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
           throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message: "duplicate namespace name. Please use a unique name for each namespace.",
+            code: "CONFLICT",
+            message: `A namespace with name "${input.name}" already exists in this workspace. Please choose a different name.`,
           });
         }
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create namspace. Please try again or contact support@unkey.dev",
+            "We are unable to create namespace. Please try again or contact support@unkey.dev",
         });
       });
 

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { randomUUID } from "node:crypto";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import type {
@@ -37,5 +38,48 @@ describe.each([
         message: "name: String must contain at least 3 character(s)",
       },
     });
+  });
+});
+
+test("creating the same permission twice returns conflict", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const root = await h.createRootKey(["rbac.*.create_permission"]);
+
+  const createPermissionRequest = {
+    url: "/v1/permissions.createPermission",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      name: randomUUID(),
+    },
+  };
+
+  const successResponse = await h.post<
+    V1PermissionsCreatePermissionRequest,
+    V1PermissionsCreatePermissionResponse
+  >(createPermissionRequest);
+
+  expect(
+    successResponse.status,
+    `expected 200, received: ${JSON.stringify(successResponse, null, 2)}`,
+  ).toBe(200);
+
+  const errorResponse = await h.post<
+    V1PermissionsCreatePermissionRequest,
+    V1PermissionsCreatePermissionResponse
+  >(createPermissionRequest);
+
+  expect(
+    errorResponse.status,
+    `expected 409, received: ${JSON.stringify(errorResponse, null, 2)}`,
+  ).toBe(409);
+  expect(errorResponse.body).toMatchObject({
+    error: {
+      code: "CONFLICT",
+      docs: "https://unkey.dev/docs/api-reference/errors/code/CONFLICT",
+      message: `Permission with name "${createPermissionRequest.body.name}" already exists in this workspace`,
+    },
   });
 });
