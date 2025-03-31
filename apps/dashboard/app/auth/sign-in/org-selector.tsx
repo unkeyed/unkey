@@ -44,18 +44,6 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
     setIsOpen(false);
   };
 
-  // Add global style to force dark theme temporarily
-  useEffect(() => {
-    if (clientReady && isOpen) {
-      const originalStyles = document.documentElement.style.cssText;
-      document.documentElement.classList.add("dark");
-      
-      return () => {
-        document.documentElement.classList.remove("dark");
-        document.documentElement.style.cssText = originalStyles;
-      };
-    }
-  }, [clientReady, isOpen]);
 
   return (
     <Dialog
@@ -64,16 +52,16 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
         setIsOpen(open);
       }}
     >
-      <DialogContent className="border-border w-11/12">
-        <DialogHeader>
-          <DialogTitle>Workspace Selection</DialogTitle>
-          <DialogDescription>Select a workspace to continue authentication:</DialogDescription>
+      <DialogContent className="dark border-border w-11/12">
+        <DialogHeader className="dark">
+          <DialogTitle className="text-white">Workspace Selection</DialogTitle>
+          <DialogDescription className="dark">Select a workspace to continue authentication:</DialogDescription>
         </DialogHeader>
         <Select onValueChange={(orgId) => setSelected(orgId)} value={selected}>
-          <SelectTrigger>
+          <SelectTrigger className="dark">
             <SelectValue placeholder="Select a Workspace" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="dark">
             {organizations.map((org) => (
               <SelectItem key={org.id} value={org.id}>
                 {org.name}
@@ -81,7 +69,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="primary" onClick={handleContinue} disabled={!selected}>
+        <Button className="dark" variant="primary" onClick={handleContinue} disabled={!selected}>
           Continue with Sign-In
         </Button>
       </DialogContent>
