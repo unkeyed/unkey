@@ -10,12 +10,7 @@ import { transformFilters } from "./utils";
 const AuditLogsResponse = z.object({
   auditLogs: z.array(auditLog),
   hasMore: z.boolean(),
-  nextCursor: z
-    .object({
-      time: z.number().int(),
-      auditId: z.string(),
-    })
-    .optional(),
+  nextCursor: z.number().optional(),
 });
 
 type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
@@ -70,13 +65,7 @@ export const fetchAuditLog = t.procedure
     return {
       auditLogs: items,
       hasMore,
-      nextCursor:
-        hasMore && items.length > 0
-          ? {
-              time: items[items.length - 1].auditLog.time,
-              auditId: items[items.length - 1].auditLog.id,
-            }
-          : undefined,
+      nextCursor: hasMore && items.length > 0 ? items[items.length - 1].auditLog.time : undefined,
     };
   });
 
@@ -89,10 +78,7 @@ export const queryAuditLogs = async (
   const rootKeyValues = (params.rootKeys ?? []).map((r) => r.value);
   const users = [...userValues, ...rootKeyValues];
 
-  const cursor =
-    params.cursorTime !== null && params.cursorAuditId !== null
-      ? { time: params.cursorTime, auditId: params.cursorAuditId }
-      : null;
+  const cursor = params.cursorTime !== null ? { time: params.cursorTime } : null;
 
   const retentionDays =
     (workspace.features.auditLogRetentionDays ?? workspace.plan === "free") ? 30 : 90;
@@ -110,17 +96,12 @@ export const queryAuditLogs = async (
           params.endTime ?? Date.now(),
         ),
         users.length > 0 ? inArray(table.actorId, users) : undefined,
-        cursor
-          ? or(
-              lt(table.time, cursor.time),
-              and(eq(table.time, cursor.time), lt(table.id, cursor.auditId)),
-            )
-          : undefined,
+        cursor ? or(lt(table.time, cursor.time)) : undefined,
       ),
     with: {
       targets: true,
     },
-    orderBy: (table, { desc }) => desc(table.id),
+    orderBy: (table, { desc }) => desc(table.time),
     limit: params.limit + 1,
   });
 
