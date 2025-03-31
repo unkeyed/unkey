@@ -82,7 +82,9 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             <div className="flex flex-col space-y-2">
               <input type="hidden" name="workspaceId" value={api.workspaceId} />
               <input type="hidden" name="apiId" value={api.id} />
-              <label className="hidden sr-only">Name</label>
+              <label htmlFor="ipWhitelist" className="hidden sr-only">
+                IP Whitelist
+              </label>
               <FormField
                 control={form.control}
                 name="ipWhitelist"

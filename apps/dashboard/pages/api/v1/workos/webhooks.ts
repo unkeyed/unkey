@@ -1,6 +1,6 @@
-import { WorkOS } from "@workos-inc/node";
 import { env } from "@/lib/env";
 import { Resend } from "@unkey/resend";
+import { WorkOS } from "@workos-inc/node";
 import freeDomains from "free-email-domains";
 import type { NextApiRequest, NextApiResponse } from "next";
 

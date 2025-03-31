@@ -234,7 +234,7 @@ li > p {
 
 .ratelimits-key-icon {
   fill: linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.15) 100%), #3ceeae;
-  strokeWidth: 0.75px;
+  stroke-width: 0.75px;
   stroke: rgba(255, 255, 255, 0.1);
   filter: drop-shadow(0px 0px 30px #3ceeae);
   height: 100%;

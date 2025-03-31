@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
 import type { UserData } from "@/lib/auth/types";
+import { createContext, useContext, useState } from "react";
 
 interface SignUpContextType {
   userData: UserData;

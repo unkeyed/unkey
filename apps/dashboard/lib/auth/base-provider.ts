@@ -14,7 +14,7 @@ import {
   type OAuthResult,
   type OrgInviteParams,
   type Organization,
-  SessionRefreshResult,
+  type SessionRefreshResult,
   type SessionValidationResult,
   type SignInViaOAuthOptions,
   type StateChangeResponse,

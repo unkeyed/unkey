@@ -60,7 +60,7 @@ export function YoutubeEmbed({ className }: { className?: string }) {
       <FsLightbox
         toggler={toggler}
         sources={[
-          <div className="h-[600px] w-[1200px]">
+          <div key="youtube-embed" className="h-[600px] w-[1200px]">
             <iframe
               width="100%"
               height="100%"

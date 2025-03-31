@@ -17,7 +17,7 @@ import {
   type OrgInviteParams,
   type Organization,
   PENDING_SESSION_COOKIE,
-  SessionRefreshResult,
+  type SessionRefreshResult,
   type SessionValidationResult,
   type SignInViaOAuthOptions,
   UNKEY_SESSION_COOKIE,
@@ -279,7 +279,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       if (!refreshResult.authenticated || !refreshResult.session) {
         const errMsg = !refreshResult.authenticated ? refreshResult.reason : "";
-        throw new Error("Organization switch failed " + errMsg);
+        throw new Error(`Organization switch failed ${errMsg}`);
       }
 
       // Set expiration to 7 days from now

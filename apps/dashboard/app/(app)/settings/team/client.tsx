@@ -1,12 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import Link from "next/link";
-import { trpc } from "@/lib/trpc/client";
-import { PageHeader } from "@/components/dashboard/page-header";
 import { Loading } from "@/components/dashboard/loading";
-import { Empty } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import { PageHeader } from "@/components/dashboard/page-header";
 import {
   Select,
   SelectContent,
@@ -15,9 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { trpc } from "@/lib/trpc/client";
+import { Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { Invitations } from "./invitations";
 import { InviteButton } from "./invite";
 import { Members } from "./members";
-import { Invitations } from "./invitations";
 
 export default function TeamPageClient({ team }: { team: boolean }) {
   const { data: user } = trpc.user.getCurrentUser.useQuery();

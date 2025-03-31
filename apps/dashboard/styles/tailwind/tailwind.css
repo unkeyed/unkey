@@ -84,12 +84,6 @@
   }
 }
 
-@-moz-document url-prefix() {
-  #root-key-alert-title {
-    padding-left: 1.25rem;
-  }
-}
-
 code {
   counter-reset: step;
   counter-increment: step 0;

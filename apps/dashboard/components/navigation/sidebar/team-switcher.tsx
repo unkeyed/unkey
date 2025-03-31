@@ -1,4 +1,6 @@
 "use client";
+import { Loading } from "@/components/dashboard/loading";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,19 +12,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toaster";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { SetSessionCookie } from "@/lib/auth/cookies";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
 import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type React from "react";
 import { useMemo, useState } from "react";
-import { trpc } from "@/lib/trpc/client";
-import { Loading } from "@/components/dashboard/loading";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { SetSessionCookie } from "@/lib/auth/cookies";
 
 type Props = {
   workspace: {

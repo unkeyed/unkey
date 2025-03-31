@@ -1,13 +1,9 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
-import { insertAuditLogs } from "@/lib/audit";
 import { auth } from "@/lib/auth/server";
-import { db, schema } from "@/lib/db";
-import { freeTierQuotas } from "@/lib/quotas";
-import { newId } from "@unkey/id";
+import { db } from "@/lib/db";
 import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CreateApi } from "./create-api";
@@ -26,7 +22,8 @@ type Props = {
   };
 };
 
-function getBaseUrl() {
+// Currently unused in this page.
+/* function getBaseUrl() {
   if (typeof window !== "undefined") {
     // browser should use relative path
     return "";
@@ -39,7 +36,7 @@ function getBaseUrl() {
 
   // assume localhost
   return `http://localhost:${process.env.PORT ?? 3000}`;
-}
+} */
 
 export default async function (props: Props) {
   const user = await auth.getCurrentUser();
