@@ -1,0 +1,52 @@
+---
+title: Empty
+---
+import { Empty } from "@unkey/ui"
+import { RenderComponentWithSnippet } from "@/app/components/render"
+import { Row } from "@/app/components/row"
+import { BookBookmark, ShieldCheck } from "@unkey/icons";
+import { Button } from "@unkey/ui";
+
+
+## Overview
+
+The `<Empty />` component should be used when data is missing, replacing the normal component.
+
+
+## Empty.Icon
+
+The `<Empty.Icon />` is a default `<Ufo />` icon with styling. 
+
+
+## Empty.Title
+
+The `<Empty.Title />` is used to display a title within the `<Empty />` component. It can be utilized to emphasize text or provide a warning. 
+
+
+## Empty.Description
+
+The `<Empty.Description />` explains why the `<Empty />` component is displayed instead of data.
+
+
+## Empty.Actions
+
+The `<Empty.Actions />` offers the user one or multiple actions to resolve the lack of data. For instance, if there are too many filters on a table, a button can be added to remove those filters.
+
+
+## Full Example
+
+<RenderComponentWithSnippet>
+  <Row>
+    <Empty>
+      <Empty.Icon />
+      <Empty.Title>Example Title Text</Empty.Title>
+      <Empty.Description>Example of Description Text.</Empty.Description>
+      <Empty.Actions>
+        <Button>
+            <BookBookmark /> 
+            Submit
+        </Button>
+      </Empty.Actions>
+    </Empty>
+  </Row>
+</RenderComponentWithSnippet>

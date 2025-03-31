@@ -1,4 +1,5 @@
 import { Client } from "@planetscale/database";
+import { ClickHouse } from "@unkey/clickhouse";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
@@ -6,6 +7,7 @@ import type { TaskContext } from "vitest";
 import {
   type Api,
   type Database,
+  type InsertPermission,
   type KeyAuth,
   type Permission,
   type Role,
@@ -27,10 +29,12 @@ export type Resources = {
 
 export abstract class Harness {
   public readonly db: { primary: Database; readonly: Database };
+  public readonly ch: ClickHouse;
   public resources: Resources;
 
   constructor(t: TaskContext) {
-    const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME } = databaseEnv.parse(process.env);
+    const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME, CLICKHOUSE_URL } =
+      databaseEnv.parse(process.env);
 
     const db = drizzle(
       new Client({
@@ -51,6 +55,7 @@ export abstract class Harness {
     );
 
     this.db = { primary: db, readonly: db };
+    this.ch = new ClickHouse({ url: CLICKHOUSE_URL });
     this.resources = this.createResources();
 
     t.onTestFinished(async () => {
@@ -97,17 +102,18 @@ export abstract class Harness {
       start,
       workspaceId: this.resources.unkeyWorkspace.id,
       forWorkspaceId: this.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
     if (permissions && permissions.length > 0) {
-      const create: Permission[] = permissions.map((name) => ({
+      const create: InsertPermission[] = permissions.map((name) => ({
         id: newId("test"),
         name,
         key: name,
         description: null,
         workspaceId: this.resources.unkeyWorkspace.id,
-        createdAt: new Date(),
-        updatedAt: null,
+        updatedAtM: null,
+        createdAtM: Date.now(),
+        deletedAtM: null,
       }));
 
       await this.db.primary.insert(schema.permissions).values(create);
@@ -131,7 +137,11 @@ export abstract class Harness {
       name: string;
       permissions?: string[];
     }[];
-  }): Promise<{ keyId: string; key: string }> {
+  }): Promise<{
+    keyId: string;
+    key: string;
+    identityId?: string;
+  }> {
     /**
      * Prepare the key we'll use
      */
@@ -145,7 +155,7 @@ export abstract class Harness {
       hash,
       start: key.slice(0, 8),
       workspaceId: this.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     for (const role of opts?.roles ?? []) {
@@ -173,7 +183,7 @@ export abstract class Harness {
           })
           .onDuplicateKeyUpdate({
             set: {
-              updatedAt: new Date(),
+              updatedAtM: Date.now(),
             },
           })
           .catch((err) => {
@@ -186,6 +196,7 @@ export abstract class Harness {
     return {
       keyId,
       key,
+      identityId: opts?.identityId,
     };
   }
 
@@ -194,8 +205,8 @@ export abstract class Harness {
       id: newId("test"),
       name,
       workspaceId,
-      createdAt: new Date(),
-      updatedAt: null,
+      createdAtM: Date.now(),
+      updatedAtM: null,
       description: null,
     };
 
@@ -219,8 +230,8 @@ export abstract class Harness {
       id: newId("test"),
       name,
       workspaceId,
-      createdAt: new Date(),
-      updatedAt: null,
+      createdAtM: Date.now(),
+      updatedAtM: null,
       description: null,
     };
     return this.db.primary.transaction(async (tx) => {
@@ -242,8 +253,10 @@ export abstract class Harness {
     const unkeyWorkspace: Workspace = {
       id: newId("test"),
       name: "unkey",
-      tenantId: newId("test"),
+      clerkTenantId: newId("test"),
+      orgId: newId("test"),
       plan: "enterprise",
+      tier: "Enterprise",
       features: {},
       betaFeatures: {},
       stripeCustomerId: null,
@@ -252,17 +265,20 @@ export abstract class Harness {
       subscriptions: null,
       planLockedUntil: null,
       planChanged: null,
-      createdAt: new Date(),
-      deletedAt: null,
+      createdAtM: Date.now(),
       planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
+      updatedAtM: null,
+      deletedAtM: null,
     };
     const userWorkspace: Workspace = {
       id: newId("test"),
       name: "user",
-      tenantId: newId("test"),
+      orgId: newId("test"),
+      clerkTenantId: newId("test"),
       plan: "pro",
+      tier: "Pro Max",
       features: {},
       betaFeatures: {},
       stripeCustomerId: null,
@@ -271,20 +287,19 @@ export abstract class Harness {
       subscriptions: null,
       planLockedUntil: null,
       planChanged: null,
-      createdAt: new Date(),
-      deletedAt: null,
+      createdAtM: Date.now(),
       planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
+      updatedAtM: null,
+      deletedAtM: null,
     };
 
     const unkeyKeyAuth: KeyAuth = {
       id: newId("test"),
       workspaceId: unkeyWorkspace.id,
-      createdAt: new Date(),
-      deletedAt: null,
-      storeEncryptedKeys: false,
       createdAtM: Date.now(),
+      storeEncryptedKeys: false,
       updatedAtM: null,
       deletedAtM: null,
       defaultPrefix: null,
@@ -295,10 +310,8 @@ export abstract class Harness {
     const userKeyAuth: KeyAuth = {
       id: newId("test"),
       workspaceId: userWorkspace.id,
-      createdAt: new Date(),
-      deletedAt: null,
-      storeEncryptedKeys: false,
       createdAtM: Date.now(),
+      storeEncryptedKeys: false,
       updatedAtM: null,
       deletedAtM: null,
       defaultPrefix: null,
@@ -314,9 +327,10 @@ export abstract class Harness {
       authType: "key",
       keyAuthId: unkeyKeyAuth.id,
       ipWhitelist: null,
-      createdAt: new Date(),
-      deletedAt: null,
+      createdAtM: Date.now(),
       deleteProtection: true,
+      updatedAtM: null,
+      deletedAtM: null,
     };
     const userApi: Api = {
       id: newId("test"),
@@ -325,9 +339,10 @@ export abstract class Harness {
       authType: "key",
       keyAuthId: userKeyAuth.id,
       ipWhitelist: null,
-      createdAt: new Date(),
-      deletedAt: null,
+      createdAtM: Date.now(),
       deleteProtection: true,
+      updatedAtM: null,
+      deletedAtM: null,
     };
 
     return {
@@ -342,10 +357,24 @@ export abstract class Harness {
 
   protected async seed(): Promise<void> {
     await this.db.primary.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
+    await this.db.primary.insert(schema.quotas).values({
+      workspaceId: this.resources.unkeyWorkspace.id,
+      requestsPerMonth: 150_000,
+      auditLogsRetentionDays: 30,
+      logsRetentionDays: 7,
+      team: false,
+    });
     await this.db.primary.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);
     await this.db.primary.insert(schema.apis).values(this.resources.unkeyApi);
 
     await this.db.primary.insert(schema.workspaces).values(this.resources.userWorkspace);
+    await this.db.primary.insert(schema.quotas).values({
+      workspaceId: this.resources.userWorkspace.id,
+      requestsPerMonth: 150_000,
+      auditLogsRetentionDays: 30,
+      logsRetentionDays: 7,
+      team: false,
+    });
     await this.db.primary.insert(schema.keyAuth).values(this.resources.userKeyAuth);
     await this.db.primary.insert(schema.apis).values(this.resources.userApi);
   }

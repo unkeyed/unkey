@@ -13,7 +13,7 @@ const ErrorCode = z.enum([
   "USAGE_EXCEEDED",
   "DISABLED",
   "NOT_FOUND",
-  "NOT_UNIQUE",
+  "CONFLICT",
   "RATE_LIMITED",
   "UNAUTHORIZED",
   "PRECONDITION_FAILED",
@@ -80,7 +80,7 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): StatusCode {
       return 404;
     case "METHOD_NOT_ALLOWED":
       return 405;
-    case "NOT_UNIQUE":
+    case "CONFLICT":
       return 409;
     case "DELETE_PROTECTED":
     case "PRECONDITION_FAILED":

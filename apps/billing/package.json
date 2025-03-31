@@ -6,6 +6,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "pnpm dlx trigger.dev@latest dev",
+    "trigger:deploy": "pnpm dlx trigger.dev@latest deploy",
     "db:push": "dotenv -e .env drizzle-kit push",
     "db:studio": "dotenv -e .env drizzle-kit studio --verbose",
     "db:generate": "dotenv -e .env drizzle-kit generate",
@@ -22,12 +23,10 @@
     "@mendable/firecrawl-js": "^1.5.2",
     "@octokit/rest": "^21.0.2",
     "@planetscale/database": "^1.16.0",
-    "@trigger.dev/nextjs": "3.2.0",
-    "@trigger.dev/sdk": "3.2.0",
-    "@trigger.dev/slack": "3.2.0",
-    "@unkey/billing": "workspace:^",
-    "@unkey/clickhouse": "workspace:^",
-    "@unkey/db": "workspace:^",
+    "@trigger.dev/nextjs": "3.3.1",
+    "@trigger.dev/sdk": "3.3.1",
+    "@trigger.dev/slack": "3.3.1",
+    "@types/js-yaml": "^4.0.9",
     "@unkey/error": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/resend": "workspace:^",
@@ -38,7 +37,6 @@
     "github-slugger": "^2.0.0",
     "js-yaml": "^4.1.0",
     "react-dom": "^18",
-    "stripe": "^14.23.0",
     "zod": "^3.23.5"
   },
   "devDependencies": {

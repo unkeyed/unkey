@@ -15,8 +15,6 @@ export class Client implements Querier, Inserter {
       url: config.url,
 
       clickhouse_settings: {
-        async_insert: 1,
-        wait_for_async_insert: 1,
         output_format_json_quote_64bit_integers: 0,
         output_format_json_quote_64bit_floats: 0,
       },
@@ -40,17 +38,21 @@ export class Client implements Querier, Inserter {
       if (validParams?.error) {
         return Err(new QueryError(`Bad params: ${validParams.error.message}`, { query: "" }));
       }
-      const res = await this.client
-        .query({
+      let unparsedRows: Array<TOut> = [];
+      try {
+        const res = await this.client.query({
           query: req.query,
           query_params: validParams?.data,
           format: "JSONEachRow",
-        })
-        .catch((err) => {
-          throw new Error(`${err.message} ${req.query}, params: ${JSON.stringify(params)}`);
         });
-      const rows = await res.json();
-      const parsed = z.array(req.schema).safeParse(rows);
+        unparsedRows = await res.json();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : JSON.stringify(err);
+        console.error(err);
+
+        return Err(new QueryError(`Unable to query clickhouse: ${message}`, { query: req.query }));
+      }
+      const parsed = z.array(req.schema).safeParse(unparsedRows);
       if (parsed.error) {
         return Err(new QueryError(`Malformed data: ${parsed.error.message}`, { query: req.query }));
       }

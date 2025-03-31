@@ -1,10 +1,9 @@
-import { Button } from "@/components/ui/button";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { notFound, redirect } from "next/navigation";
-import { DeleteRole } from "./delete-role";
-import { type NestedPermissions, Tree } from "./tree";
-import { UpdateRole } from "./update-role";
+import { notFound } from "next/navigation";
+import { Navigation } from "./navigation";
+import { RoleClient } from "./settings-client";
+import type { NestedPermissions } from "./settings-client";
 
 export const revalidate = 0;
 
@@ -42,63 +41,75 @@ function sortNestedPermissions(nested: NestedPermissions) {
   return sortedObject;
 }
 
-export default async function RolesPage(props: Props) {
-  const tenantId = getTenantId();
+export default async function RolePage(props: Props) {
+  const orgId = await getOrgId();
 
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.tenantId, tenantId),
+  const role = await db.query.roles.findFirst({
+    where: (table, { eq }) => eq(table.id, props.params.roleId),
     with: {
-      roles: {
-        where: (table, { eq }) => eq(table.id, props.params.roleId),
+      permissions: {
+        with: {
+          permission: true,
+        },
+      },
+      workspace: {
         with: {
           permissions: true,
         },
       },
-      permissions: {
+      keys: {
         with: {
-          roles: true,
+          key: true,
         },
-        orderBy: (table, { asc }) => [asc(table.name)],
       },
     },
   });
-  if (!workspace) {
-    return redirect("/new");
+  if (!role || !role.workspace) {
+    return notFound();
   }
-
-  const role = workspace.roles.at(0);
-  if (!role) {
+  if (role.workspace.orgId !== orgId) {
     return notFound();
   }
 
-  const sortedPermissions = workspace.permissions.sort((a, b) => {
+  const permissions = role.workspace.permissions;
+
+  // Filter role's permissions to only include active ones
+  const activeRolePermissionIds = new Set(
+    role.permissions
+      .filter((rp) => permissions.some((p) => p.id === rp.permissionId))
+      .map((rp) => rp.permissionId),
+  );
+
+  const sortedPermissions = permissions.sort((a, b) => {
     const aParts = a.name.split(".");
     const bParts = b.name.split(".");
-
     if (aParts.length !== bParts.length) {
       return aParts.length - bParts.length;
     }
-
     return a.name.localeCompare(b.name);
   });
 
   const nested: NestedPermissions = {};
+
   for (const permission of sortedPermissions) {
     let n = nested;
     const parts = permission.name.split(".");
+
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
+
       if (!(p in n)) {
         n[p] = {
           id: permission.id,
           name: permission.name,
           description: permission.description,
-          checked: role.permissions.some((p) => p.permissionId === permission.id),
+          checked: activeRolePermissionIds.has(permission.id),
           part: p,
           permissions: {},
           path: parts.slice(0, i).join("."),
         };
       }
+
       n = n[p].permissions;
     }
   }
@@ -106,23 +117,16 @@ export default async function RolesPage(props: Props) {
   const sortedNestedPermissions = sortNestedPermissions(nested);
 
   return (
-    <div className="flex flex-col min-h-screen gap-8">
-      <div className="flex items-center justify-between">
-        <div className="grow min-w-2">
-          <div className="flex items-center gap-2">
-            <h2 className="font-mono text-2xl font-semibold tracking-tight truncate">
-              {role.name}
-            </h2>
-          </div>
-          <p className="text-xs text-content-subtle truncate">{role.description}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <UpdateRole role={role} trigger={<Button variant="secondary">Update Role</Button>} />
-          <DeleteRole role={role} trigger={<Button variant="alert">Delete Role</Button>} />
-        </div>
-      </div>
-
-      <Tree nestedPermissions={sortedNestedPermissions} role={{ id: role.id }} />
+    <div>
+      <Navigation role={role} />
+      <RoleClient
+        role={{
+          ...role,
+          permissions: role.permissions.filter((p) => activeRolePermissionIds.has(p.permissionId)),
+        }}
+        activeKeys={role.keys.filter(({ key }) => key.deletedAtM === null)}
+        sortedNestedPermissions={sortedNestedPermissions}
+      />
     </div>
   );
 }

@@ -152,8 +152,8 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       for (const { name } of req.ratelimits) {
         if (uniqueNames.has(name)) {
           throw new UnkeyApiError({
-            code: "PRECONDITION_FAILED",
-            message: "ratelimit names must be unique",
+            code: "CONFLICT",
+            message: `Ratelimit with name "${name}" is already defined in the request`,
           });
         }
         uniqueNames.add(name);
@@ -183,7 +183,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         with: {
           ratelimits: true,
           keys: {
-            where: (table, { isNull }) => isNull(table.deletedAt),
+            where: (table, { isNull }) => isNull(table.deletedAtM),
             columns: {
               id: true,
               hash: true,

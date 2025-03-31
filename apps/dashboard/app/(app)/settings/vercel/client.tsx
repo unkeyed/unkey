@@ -1,9 +1,12 @@
+/**
+ * Deprecated with new auth
+ * Hiding for now until we decide if we want to fix it up or toss it
+ */
+
 "use client";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +29,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
+import { Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -50,7 +55,7 @@ type Props = {
             updatedBy: {
               id: string;
               name: string;
-              image: string;
+              image: string | null;
             };
           })
         | null
@@ -64,22 +69,16 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
 
   if (projects.length === 0) {
     return (
-      <EmptyPlaceholder>
-        <svg
-          width="76"
-          height="65"
-          viewBox="0 0 76 65"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" fill="#000000" />
-        </svg>
-        <EmptyPlaceholder.Title>No connected projects found</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>Connect a Vercel project now</EmptyPlaceholder.Description>
-        <Link href="https://vercel.com/integrations/unkey" target="_blank">
-          <Button variant="link">Vercel Integration</Button>
-        </Link>
-      </EmptyPlaceholder>
+      <Empty>
+        <Empty.Icon />
+        <Empty.Title>No connected projects found</Empty.Title>
+        <Empty.Description>Connect a Vercel project now</Empty.Description>
+        <Empty.Actions>
+          <Link href="https://vercel.com/integrations/unkey" target="_blank">
+            <Button variant="ghost">Vercel Integration</Button>
+          </Link>
+        </Empty.Actions>
+      </Empty>
     );
   }
 
@@ -100,7 +99,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
             href={`https://vercel.com/dashboard/integrations/${integration.id}`}
             target="_blank"
           >
-            <Button variant="secondary">Configure Vercel</Button>
+            <Button>Configure Vercel</Button>
           </Link>,
         ]}
       />
@@ -122,7 +121,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                     <span className="font-semibold">{project.name}</span>
                   </h3>
 
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" shape="square">
                     <MoreHorizontal className="w-4 h-4" />
                   </Button>
                 </div>
@@ -198,7 +197,7 @@ const ConnectedResource: React.FC<{
         updatedBy: {
           id: string;
           name: string;
-          image: string;
+          image: string | null;
         };
       })
     | null;
@@ -287,7 +286,7 @@ const ConnectedResource: React.FC<{
 
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" shape="square">
             {isLoading ? <Loading className="w-4 h-4" /> : <MoreHorizontal className="w-4 h-4" />}
           </Button>
         </DropdownMenuTrigger>
@@ -297,16 +296,25 @@ const ConnectedResource: React.FC<{
               <DropdownMenuLabel className="flex items-center justify-between w-full gap-2">
                 <span className="text-sm text-content">
                   Edited{" "}
-                  {ms(Date.now() - props.binding?.updatedAt.getTime(), {
+                  {ms(Date.now() - props.binding!.updatedAtM!, {
                     long: true,
                   })}{" "}
                   ago by {props.binding?.updatedBy.name}
                 </span>
                 <Avatar className="w-6 h-6 ">
-                  <AvatarImage
+                  {/* <AvatarImage
                     src={props.binding?.updatedBy.image}
                     alt={props.binding?.updatedBy.name}
-                  />
+                  /> */}
+                  {props.binding?.updatedBy.image && (
+                    <AvatarImage
+                      src={props.binding?.updatedBy.image}
+                      alt={props.binding?.updatedBy.name}
+                    />
+                  )}
+                  <AvatarFallback className="w-6 h-6 lg:w-5 lg:h-5 bg-gray-100 border border-gray-500 rounded-md">
+                    {(props.binding?.updatedBy.name ?? "U").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

@@ -1,7 +1,6 @@
 "use client";
 
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -15,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
-import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { Code2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -36,10 +35,10 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
-  const { user, isLoaded } = useUser();
+  const { data: user, isLoading } = trpc.user.getCurrentUser.useQuery();
   const router = useRouter();
 
-  if (isLoaded && user) {
+  if (!isLoading && user) {
     PostHogIdentify({ user });
   }
   const createApi = trpc.api.create.useMutation({
@@ -104,7 +103,7 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
 
               <div className="mt-8">
                 <Button
-                  variant={form.formState.isValid ? "primary" : "disabled"}
+                  variant="primary"
                   disabled={createApi.isLoading || !form.formState.isValid}
                   type="submit"
                   className="w-full"

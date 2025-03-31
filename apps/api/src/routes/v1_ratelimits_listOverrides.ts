@@ -100,7 +100,10 @@ export const registerV1RatelimitListOverrides = (app: App) =>
         ),
     });
     if (!namespace) {
-      throw new Error(`Namespace ${namespaceId ? namespaceId : namespaceName} not found`);
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `Namespace ${namespaceId ? namespaceId : namespaceName} not found`,
+      });
     }
 
     const [overrides, total] = await Promise.all([
@@ -108,7 +111,7 @@ export const registerV1RatelimitListOverrides = (app: App) =>
         where: (table, { and, eq }) =>
           and(
             ...[
-              isNull(schema.ratelimitOverrides.deletedAt),
+              isNull(schema.ratelimitOverrides.deletedAtM),
               eq(table.workspaceId, authorizedWorkspaceId),
               eq(table.namespaceId, namespace.id),
               cursor ? gt(schema.ratelimitOverrides.id, cursor) : undefined,
@@ -124,7 +127,7 @@ export const registerV1RatelimitListOverrides = (app: App) =>
         .where(
           and(
             eq(schema.ratelimitOverrides.namespaceId, namespace?.id),
-            isNull(schema.ratelimitOverrides.deletedAt),
+            isNull(schema.ratelimitOverrides.deletedAtM),
           ),
         ),
     ]);

@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
-const defaultTheme = require("tailwindcss/defaultTheme");
-const _plugin = require("tailwindcss/plugin");
+
+import defaultTheme from "@unkey/ui/tailwind.config";
+import "tailwindcss/plugin";
 
 module.exports = {
   darkMode: ["class"],
@@ -9,8 +10,14 @@ module.exports = {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    "../../internal/ui/src/**/*.tsx",
+    "../../internal/icons/src/**/*.tsx",
   ],
-  theme: {
+  theme: merge(defaultTheme.theme, {
+    /**
+     * We need to remove almost all of these and move them into `@unkey/ui`.
+     * Especially colors and font sizes need to go
+     */
     fontSize: {
       xxs: ["10px", "16px"],
       xs: ["0.75rem", { lineHeight: "1rem" }],
@@ -127,14 +134,11 @@ module.exports = {
         "accordion-up": "accordion-up 0.2s ease-out",
       },
       fontFamily: {
-        sans: ["Cal Sans", ...defaultTheme.fontFamily.sans],
-        display: [
-          ["Cal Sans", ...defaultTheme.fontFamily.sans],
-          { fontVariationSettings: '"wdth" 125' },
-        ],
+        sans: ["var(--font-geist-sans)"],
+        mono: ["var(--font-geist-mono)"],
       },
     },
-  },
+  }),
   plugins: [
     require("tailwindcss-animate"),
     require("@tailwindcss/typography"),
@@ -142,3 +146,20 @@ module.exports = {
     require("@tailwindcss/container-queries"),
   ],
 };
+
+export function merge(obj1, obj2) {
+  for (const key in obj2) {
+    // biome-ignore lint/suspicious/noPrototypeBuiltins: don't tell me what to do
+    if (obj2.hasOwnProperty(key)) {
+      if (typeof obj2[key] === "object" && !Array.isArray(obj2[key])) {
+        if (!obj1[key]) {
+          obj1[key] = {};
+        }
+        obj1[key] = merge(obj1[key], obj2[key]);
+      } else {
+        obj1[key] = obj2[key];
+      }
+    }
+  }
+  return obj1;
+}

@@ -49,7 +49,7 @@ export const registerV1KeysGetKey = (app: App) =>
 
     const { val: data, err } = await cache.keyById.swr(keyId, async () => {
       const dbRes = await db.readonly.query.keys.findFirst({
-        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
+        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAtM)),
         with: {
           encrypted: true,
           permissions: { with: { permission: true } },
@@ -146,19 +146,18 @@ export const registerV1KeysGetKey = (app: App) =>
       name: key.name ?? undefined,
       ownerId: key.ownerId ?? undefined,
       meta: key.meta ? JSON.parse(key.meta) : undefined,
-      createdAt: key.createdAt.getTime(),
+      createdAt: key.createdAtM,
       updatedAt: key.updatedAtM ?? undefined,
       expires: key.expires?.getTime() ?? undefined,
       remaining: key.remaining ?? undefined,
-      refill:
-        key.refillInterval && key.refillAmount
-          ? {
-              interval: key.refillInterval,
-              amount: key.refillAmount,
-              refillDay: key.refillInterval === "monthly" ? key.refillDay : null,
-              lastRefillAt: key.lastRefillAt?.getTime(),
-            }
-          : undefined,
+      refill: key.refillAmount
+        ? {
+            interval: key.refillDay ? ("monthly" as const) : ("daily" as const),
+            amount: key.refillAmount,
+            refillDay: key.refillDay,
+            lastRefillAt: key.lastRefillAt?.getTime(),
+          }
+        : undefined,
       ratelimit:
         key.ratelimitAsync !== null && key.ratelimitLimit !== null && key.ratelimitDuration !== null
           ? {

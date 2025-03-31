@@ -20,7 +20,7 @@ test("returns 200", async (t) => {
     hash: await sha256(key),
     start: key.slice(0, 8),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   });
 
   const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -38,6 +38,34 @@ test("returns 200", async (t) => {
   expect(res.body.valid).toBe(true);
 });
 
+test("returns a requestId", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+  await h.db.primary.insert(schema.keys).values({
+    id: newId("test"),
+    keyAuthId: h.resources.userKeyAuth.id,
+    hash: await sha256(key),
+    start: key.slice(0, 8),
+    workspaceId: h.resources.userWorkspace.id,
+    createdAtM: Date.now(),
+  });
+
+  const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+    url: "/v1/keys.verifyKey",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: {
+      key,
+      apiId: h.resources.userApi.id,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+  expect(res.body.requestId).toBeDefined();
+});
+
 describe("bad request", () => {
   test("returns 400", async (t) => {
     const h = await IntegrationHarness.init(t);
@@ -48,7 +76,7 @@ describe("bad request", () => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     const res = await h.post<any, ErrorResponse>({
@@ -77,7 +105,7 @@ describe("with temporary key", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         expires: new Date(Date.now() + 2000),
       });
 
@@ -185,7 +213,7 @@ describe("with metadata", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         meta: JSON.stringify({
           disabledReason: "cause I can",
         }),
@@ -231,7 +259,7 @@ describe("with identity", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         enabled: true,
       });
 
@@ -277,7 +305,7 @@ describe("with identity", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         enabled: true,
       });
 
@@ -324,7 +352,7 @@ describe("when ratelimited", () => {
       ownerId: externalId,
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       ratelimitAsync: false,
       ratelimitLimit: 0,
       ratelimitDuration: 60_000,
@@ -360,7 +388,7 @@ describe("with ratelimit override", () => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       ratelimitLimit: 10,
       ratelimitDuration: 60_000,
       ratelimitAsync: false,
@@ -395,7 +423,7 @@ describe("with default ratelimit", () => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       ratelimitLimit: 10,
       ratelimitDuration: 60_000,
       ratelimitAsync: false,
@@ -423,6 +451,66 @@ describe("with default ratelimit", () => {
   });
 });
 
+describe("with remaining", () => {
+  test("custom cost works", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+      remaining: 10,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+        remaining: { cost: 2 },
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.remaining).toEqual(8);
+  });
+
+  test("cost=0 works even when remaining=0", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+      remaining: 0,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+        remaining: { cost: 0 },
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.remaining).toEqual(0);
+  });
+});
+
 describe("with ratelimit", () => {
   describe("with valid key", () => {
     test.skip(
@@ -436,7 +524,7 @@ describe("with ratelimit", () => {
           hash: await sha256(key),
           start: key.slice(0, 8),
           workspaceId: h.resources.userWorkspace.id,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
           ratelimitLimit: 10,
           ratelimitDuration: 60_000,
           ratelimitAsync: false,
@@ -474,7 +562,7 @@ describe("with ratelimit", () => {
           hash: await sha256(key),
           start: key.slice(0, 8),
           workspaceId: h.resources.userWorkspace.id,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
           remaining: 0,
           ratelimitLimit: 10,
           ratelimitDuration: 60_000,
@@ -508,7 +596,7 @@ describe("with ip whitelist", () => {
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       });
 
       const apiId = newId("api");
@@ -519,7 +607,7 @@ describe("with ip whitelist", () => {
         authType: "key",
         keyAuthId: keyAuthId,
         ipWhitelist: ["100.100.100.100"].join(","),
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -529,7 +617,7 @@ describe("with ip whitelist", () => {
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       });
 
       const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -556,7 +644,7 @@ describe("with ip whitelist", () => {
         await h.db.primary.insert(schema.keyAuth).values({
           id: keyAuthid,
           workspaceId: h.resources.userWorkspace.id,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
         });
 
         const apiId = newId("api");
@@ -567,7 +655,7 @@ describe("with ip whitelist", () => {
           authType: "key",
           keyAuthId: keyAuthid,
           ipWhitelist: ["100.100.100.100"].join(","),
-          createdAt: new Date(),
+          createdAtM: Date.now(),
         });
 
         const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -577,7 +665,7 @@ describe("with ip whitelist", () => {
           hash: await sha256(key),
           start: key.slice(0, 8),
           workspaceId: h.resources.userWorkspace.id,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
         });
 
         const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -607,7 +695,7 @@ describe("with enabled key", () => {
     await h.db.primary.insert(schema.keyAuth).values({
       id: keyAuthId,
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     const apiId = newId("api");
@@ -617,7 +705,7 @@ describe("with enabled key", () => {
       name: "test",
       authType: "key",
       keyAuthId: keyAuthId,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -627,7 +715,7 @@ describe("with enabled key", () => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       enabled: true,
     });
 
@@ -653,7 +741,7 @@ describe("with disabled key", () => {
     await h.db.primary.insert(schema.keyAuth).values({
       id: keyAuthid,
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     const apiId = newId("api");
@@ -663,7 +751,7 @@ describe("with disabled key", () => {
       name: "test",
       authType: "key",
       keyAuthId: keyAuthid,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
 
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -673,7 +761,7 @@ describe("with disabled key", () => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
       enabled: false,
     });
 
@@ -704,7 +792,7 @@ test("returns the environment of a key", async (t) => {
     hash: await sha256(key),
     start: key.slice(0, 8),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
     environment,
   });
 
@@ -738,7 +826,7 @@ describe("disabled workspace", () => {
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
+      createdAtM: Date.now(),
     });
     const res = await h.post<V1KeysVerifyKeyRequest, ErrorResponse>({
       url: "/v1/keys.verifyKey",
@@ -767,7 +855,7 @@ describe("key is soft deleted", () => {
     const key = await h.createKey();
     await h.db.primary
       .update(schema.keys)
-      .set({ deletedAt: new Date() })
+      .set({ deletedAtM: Date.now() })
       .where(eq(schema.keys.id, key.keyId));
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -793,7 +881,7 @@ describe("key exists but keyspace is soft deleted", () => {
 
     await h.db.primary
       .update(schema.keyAuth)
-      .set({ deletedAt: new Date() })
+      .set({ deletedAtM: Date.now() })
       .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -819,7 +907,7 @@ describe("key exists but api is soft deleted", () => {
 
     await h.db.primary
       .update(schema.apis)
-      .set({ deletedAt: new Date() })
+      .set({ deletedAtM: Date.now() })
       .where(eq(schema.apis.id, h.resources.userApi.id));
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({

@@ -29,25 +29,3 @@ test("creates new role", async (t) => {
   });
   expect(found).toBeDefined();
 });
-
-test("creating the same role twice does not error", async (t) => {
-  const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["rbac.*.create_role"]);
-
-  const name = randomUUID();
-
-  for (let i = 0; i < 2; i++) {
-    const res = await h.post<V1PermissionsCreateRoleRequest, V1PermissionsCreateRoleResponse>({
-      url: "/v1/permissions.createRole",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${root.key}`,
-      },
-      body: {
-        name,
-      },
-    });
-
-    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-  }
-});

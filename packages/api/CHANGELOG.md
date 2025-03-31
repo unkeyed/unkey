@@ -1,5 +1,53 @@
 # @unkey/api
 
+## 0.34.0
+
+### Minor Changes
+
+- 8b69b15: feat: return requestId
+
+## 0.33.1
+
+### Patch Changes
+
+- 10120e0: don't retry on 4XX
+
+## 0.33.0
+
+### Minor Changes
+
+- 98bbb16: Add all options to verifyKey
+
+## 0.32.0
+
+### Minor Changes
+
+- a2f16f0: Add all options to verifyKey
+
+## 0.31.0
+
+### Minor Changes
+
+- 56ae5f6: feat: add analytics
+
+## 0.30.0
+
+### Minor Changes
+
+- 0746b33: Add the types for error codes
+
+## 0.29.0
+
+### Minor Changes
+
+- 3f8d078: Adding ratelimit override API to SDK
+
+## 0.28.0
+
+### Minor Changes
+
+- 25fd102: feat: tags
+
 ## 0.27.0
 
 ### Minor Changes

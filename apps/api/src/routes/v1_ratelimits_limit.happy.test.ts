@@ -10,7 +10,7 @@ test("setting cost=0 returns the limit without modifying", async (t) => {
   const namespace = {
     id: newId("test"),
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
     name: "namespace",
   };
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);

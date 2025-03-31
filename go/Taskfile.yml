@@ -1,0 +1,46 @@
+version: "3"
+
+tasks:
+  install:
+    cmd: go mod tidy
+  fmt:
+    cmds:
+      - go fmt ./...
+      - task: lint
+
+  pull:
+    cmds:
+      - docker pull mysql:latest
+
+  test-full:
+    deps:
+      - pull
+      - otel
+    env:
+      INTEGRATION_TEST: true
+      SIMULATION_TEST: false
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    cmds:
+      - go test -failfast ./... -timeout=30m
+
+  test-unit:
+    cmds:
+      - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
+
+  otel:
+    cmds:
+      - docker compose -f ../deployment/docker-compose.yaml up otel -d
+
+  build:
+    cmds:
+      - go build -o unkey ./main.go
+
+  generate:
+    cmds:
+      - go generate ./...
+      - buf generate
+
+  lint:
+    cmds:
+      - golangci-lint run

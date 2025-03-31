@@ -8,31 +8,50 @@ import { cn } from "@/lib/utils";
 import { useRouter, useSelectedLayoutSegment } from "next/navigation";
 
 type Props = {
-  navigation: { label: string; href: string; segment: string | null; tag?: string }[];
+  navigation: {
+    label: string;
+    href: string;
+    segment: string | null;
+    tag?: string;
+    isActive?: boolean;
+  }[];
+  segment?: string;
   className?: string;
 };
 
-export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({ navigation, className }) => {
+export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({
+  navigation,
+  className,
+  segment,
+}) => {
   return (
     <nav className={cn("sticky top-0 bg-background", className)}>
-      <div className="flex items-center w-full pl-1 overflow-x-auto">
+      <div className="flex items-center w-full pl-2 overflow-x-auto">
         <ul className="flex flex-row gap-4">
-          {navigation.map(({ label, href, segment, tag }) => (
-            <NavItem key={label} label={label} href={href} segment={segment} tag={tag} />
+          {navigation.map(({ label, href, segment: _segment, tag }) => (
+            <NavItem
+              key={label}
+              label={label}
+              href={href}
+              segment={_segment}
+              tag={tag}
+              isActive={segment === _segment}
+            />
           ))}
         </ul>
       </div>
-      <Separator />
+      <Separator className="bg-gray-4" />
     </nav>
   );
 };
 
-const NavItem: React.FC<Props["navigation"][0]> = ({ label, href, segment, tag }) => {
+const NavItem: React.FC<Props["navigation"][0]> = ({ label, href, segment, tag, isActive }) => {
   const selectedSegment = useSelectedLayoutSegment();
   const [isPending, startTransition] = React.useTransition();
   const router = useRouter();
 
-  const active = segment === selectedSegment;
+  const active = segment === selectedSegment || isActive;
+
   return (
     <li
       className={cn("flex shrink-0 list-none border-b-2 border-transparent p-2", {
@@ -49,7 +68,7 @@ const NavItem: React.FC<Props["navigation"][0]> = ({ label, href, segment, tag }
           })
         }
         className={cn(
-          "text-sm flex items-center gap-1 font-medium py-2 px-3 -mx-3 text-content-subtle  hover:bg-background-subtle rounded-md hover:text-primary",
+          "text-sm flex items-center gap-1 font-medium px-3 -mx-3 text-content-subtle  hover:bg-background-subtle rounded-md hover:text-primary",
           {
             "text-primary": active,
           },

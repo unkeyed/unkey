@@ -1,85 +1,60 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { Scan } from "lucide-react";
-import { notFound } from "next/navigation";
-import { CreateNewOverride } from "./create-new-override";
-import { Overrides } from "./table";
+import { clickhouse } from "@/lib/clickhouse";
+import { NamespaceNavbar } from "../namespace-navbar";
+import { getWorkspaceDetailsWithOverrides } from "../namespace.actions";
+import { OverridesTable } from "./overrides-table";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
-type Props = {
-  params: {
-    namespaceId: string;
-  };
-};
+export default async function OverridePage({
+  params: { namespaceId },
+}: {
+  params: { namespaceId: string };
+}) {
+  const { namespace, workspace } = await getWorkspaceDetailsWithOverrides(namespaceId);
 
-export default async function OverridePage(props: Props) {
-  const tenantId = getTenantId();
-
-  const namespace = await db.query.ratelimitNamespaces.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.namespaceId), isNull(table.deletedAt)),
-    with: {
-      overrides: {
-        columns: {
-          id: true,
-          identifier: true,
-          limit: true,
-          duration: true,
-          async: true,
-        },
-        where: (table, { isNull }) => isNull(table.deletedAt),
-      },
-      workspace: {
-        columns: {
-          id: true,
-          tenantId: true,
-          features: true,
-        },
-      },
-    },
-  });
-  if (!namespace || namespace.workspace.tenantId !== tenantId) {
-    return notFound();
-  }
+  const lastUsedTimes = namespace.overrides?.length
+    ? await getLastUsedTimes(
+        namespace.workspaceId,
+        namespace.id,
+        namespace.overrides.map((o) => o.identifier),
+      )
+    : {};
 
   return (
-    <>
-      <PageHeader
-        title="Overridden identifiers"
-        actions={[
-          <Badge variant="secondary" className="h-8">
-            {Intl.NumberFormat().format(namespace.overrides.length)} /{" "}
-            {Intl.NumberFormat().format(namespace.workspace.features.ratelimitOverrides ?? 5)} used{" "}
-          </Badge>,
-        ]}
+    <div>
+      <NamespaceNavbar
+        activePage={{
+          href: `/ratelimits/${namespace.id}/overrides`,
+          text: "Overrides",
+        }}
+        namespace={namespace}
+        ratelimitNamespaces={workspace.ratelimitNamespaces}
       />
-      <CreateNewOverride namespaceId={namespace.id} />
 
-      <Separator className="my-8" />
-
-      {namespace.overrides.length === 0 ? (
-        <EmptyPlaceholder>
-          <EmptyPlaceholder.Icon>
-            <Scan />
-          </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No custom ratelimits found</EmptyPlaceholder.Title>
-          <EmptyPlaceholder.Description>
-            Create your first override below
-          </EmptyPlaceholder.Description>
-        </EmptyPlaceholder>
-      ) : (
-        <Overrides
-          workspaceId={namespace.workspace.id}
-          namespaceId={namespace.id}
-          ratelimits={namespace.overrides}
-        />
-      )}
-    </>
+      <OverridesTable
+        namespaceId={namespace.id}
+        ratelimits={namespace.overrides}
+        lastUsedTimes={lastUsedTimes}
+      />
+    </div>
   );
+}
+
+async function getLastUsedTimes(workspaceId: string, namespaceId: string, identifiers: string[]) {
+  const results = await Promise.all(
+    identifiers.map(async (identifier) => {
+      const lastUsed = await clickhouse.ratelimits.latest({
+        workspaceId,
+        namespaceId,
+        identifier: [identifier],
+        limit: 1,
+      });
+      return {
+        identifier,
+        lastUsed: lastUsed.val?.at(0)?.time ?? null,
+      };
+    }),
+  );
+
+  return Object.fromEntries(results.map(({ identifier, lastUsed }) => [identifier, lastUsed]));
 }

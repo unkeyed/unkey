@@ -64,13 +64,14 @@ export const registerV1ApisGetApi = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAtM)),
           with: {
             keyAuth: true,
           },
         })) ?? null
       );
     });
+
     if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",

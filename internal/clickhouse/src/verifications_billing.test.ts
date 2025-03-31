@@ -39,10 +39,12 @@ test(
           time: Math.floor(startTime + Math.random() * (endTime - startTime)),
           region: "test",
           request_id: randomUUID(),
+          tags: Array.from({ length: Math.floor(Math.random() * 10) }).map((i) => `tag_${i}`),
         };
       });
 
-      await ch.verifications.insert(verifications);
+      const { err } = await ch.verifications.insert(verifications);
+      expect(err).toBeUndefined();
     }
     // give clickhouse time to process all writes and update the materialized views
     await new Promise((r) => setTimeout(r, 10_000));

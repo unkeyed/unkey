@@ -1,4 +1,6 @@
+import type { PermissionQuery } from "@unkey/rbac";
 import { Unkey } from "./client";
+import type { paths } from "./openapi";
 
 /**
  * Verify a key
@@ -21,7 +23,14 @@ import { Unkey } from "./client";
  * console.log(result)
  * ```
  */
-export function verifyKey(req: string | { key: string; apiId: string }) {
+export function verifyKey<TPermission extends string = string>(
+  req:
+    | string
+    | (Omit<
+        paths["/v1/keys.verifyKey"]["post"]["requestBody"]["content"]["application/json"],
+        "authorization"
+      > & { authorization?: { permissions: PermissionQuery<TPermission> } }),
+) {
   // yes this is empty to make typescript happy but we don't need a token for verifying keys
   // it's not the cleanest but it works for now :)
   const unkey = new Unkey({ rootKey: "public" });

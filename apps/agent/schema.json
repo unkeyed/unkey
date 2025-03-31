@@ -207,41 +207,6 @@
     "services": {
       "type": "object",
       "properties": {
-        "eventRouter": {
-          "type": "object",
-          "description": "Route events",
-          "properties": {
-            "tinybird": {
-              "type": "object",
-              "description": "Send events to tinybird",
-              "properties": {
-                "batchSize": {
-                  "type": "integer",
-                  "description": "Size of the batch",
-                  "format": "int32"
-                },
-                "bufferSize": {
-                  "type": "integer",
-                  "description": "Size of the buffer",
-                  "format": "int32"
-                },
-                "flushInterval": {
-                  "type": "integer",
-                  "description": "Interval in seconds to flush events",
-                  "format": "int32"
-                },
-                "token": {
-                  "type": "string",
-                  "description": "The token to use for tinybird authentication",
-                  "minLength": 1
-                }
-              },
-              "additionalProperties": false,
-              "required": ["token", "flushInterval", "bufferSize", "batchSize"]
-            }
-          },
-          "additionalProperties": false
-        },
         "vault": {
           "type": "object",
           "description": "Store secrets",

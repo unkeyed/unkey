@@ -6,6 +6,7 @@ import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
+import { KeyV1 } from "@unkey/keys";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
 
 test("creates key", async (t) => {
@@ -31,6 +32,50 @@ test("creates key", async (t) => {
     where: (table, { eq }) => eq(table.id, res.body.keyId),
   });
   expect(found).toBeDefined();
+  expect(found!.hash).toEqual(await sha256(res.body.key));
+});
+
+test("creates key with default prefix and bytes from keyAuth", async (t) => {
+  const expectedPrefix = "_prefix";
+  const expectedBytes = 66;
+
+  const h = await IntegrationHarness.init(t);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+  await h.db.primary
+    .update(schema.keyAuth)
+    .set({
+      defaultPrefix: expectedPrefix,
+      defaultBytes: expectedBytes,
+    })
+    .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
+
+  // Make the request without specifying prefix or byteLength
+  const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+      enabled: true,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  const found = await h.db.primary.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, res.body.keyId),
+  });
+
+  const referenceKey = new KeyV1({
+    byteLength: expectedBytes,
+    prefix: expectedPrefix,
+  }).toString();
+
+  expect(found).toBeDefined();
+  expect(found!.start).toEqual(referenceKey.slice(0, 5));
   expect(found!.hash).toEqual(await sha256(res.body.key));
 });
 

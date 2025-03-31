@@ -12,12 +12,11 @@ runs:
 
   steps:
     - name: Setup Go
-      if: ${{ inputs.go == 'true' }}
       uses: actions/setup-go@v5
       with:
         go-version-file: ./apps/agent/go.mod
         cache-dependency-path: ./apps/agent/go.sum
-    
+
     - run: go mod download
       if: ${{ inputs.go == 'true' }}
       shell: bash
@@ -29,10 +28,14 @@ runs:
       shell: bash
       working-directory: ./apps/agent
 
+    - name: Install goose
+      run: go install github.com/pressly/goose/v3/cmd/goose@latest
+      shell: bash
+
     - name: Install Task
       uses: arduino/setup-task@v2
       if: ${{ inputs.go == 'true' }}
-      
+
     - name: Setup Node
       if: ${{ inputs.ts == 'true' }}
       uses: actions/setup-node@v4
@@ -69,4 +72,4 @@ runs:
       shell: bash
       run: |
         pnpm install --recursive
-        npm i -g wrangler
+        npm i -g wrangler@latest

@@ -1,9 +1,12 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { validation } from "@unkey/validation";
+
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { openApiErrorResponses } from "@/pkg/errors";
+import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { DatabaseError } from "@planetscale/database";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -20,18 +23,11 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            name: z
-              .string()
-              .min(3)
-              .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
-                message:
-                  "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
-              })
-              .openapi({
-                description: "The unique name of your permission.",
-                example: "record.write",
-              }),
-            description: z.string().optional().openapi({
+            name: validation.identifier.openapi({
+              description: "The unique name of your permission.",
+              example: "record.write",
+            }),
+            description: validation.description.optional().openapi({
               description:
                 "Explain what this permission does. This is just for your team, your users will not see this.",
               example: "record.write can create new dns records for our domains.",
@@ -83,15 +79,20 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
       name: req.name,
       description: req.description,
     };
+
     await db.primary.transaction(async (tx) => {
       await tx
         .insert(schema.permissions)
         .values(permission)
-        .onDuplicateKeyUpdate({
-          set: {
-            name: req.name,
-            description: req.description,
-          },
+        .catch((e) => {
+          if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
+            throw new UnkeyApiError({
+              code: "CONFLICT",
+              message: `Permission with name "${permission.name}" already exists in this workspace`,
+            });
+          }
+
+          throw e;
         });
 
       await insertUnkeyAuditLog(c, tx, {
@@ -116,6 +117,7 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
     });
+
     return c.json({
       permissionId: permission.id,
     });

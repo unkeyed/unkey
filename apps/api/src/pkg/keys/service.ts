@@ -10,6 +10,18 @@ import type { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Logger } from "@unkey/worker-logging";
 import { retry } from "../util/retry";
 
+/*
+ * Unless specified by the user, we deduct this from the current `remaining`
+ * value of the key.
+ */
+const DEFAULT_REMAINING_COST = 1;
+
+/**
+ * Unless specified by the user, we deduct this from the current ratelimit
+ * tokens of the key.
+ */
+const DEFAULT_RATELIMIT_COST = 1;
+
 export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
   public readonly retry = false;
   public readonly name = DisabledWorkspaceError.name;
@@ -74,7 +86,7 @@ type InvalidResponse = {
 };
 
 type ValidResponse = {
-  code?: never;
+  code: "VALID";
   valid: true;
   key: Key;
   identity: {
@@ -142,6 +154,7 @@ export class KeyService {
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
       ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
+      remaining?: { cost: number };
     },
   ): Promise<
     Result<
@@ -193,7 +206,7 @@ export class KeyService {
   private async getData(hash: string) {
     const dbStart = performance.now();
     const query = this.db.readonly.query.keys.findFirst({
-      where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
+      where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAtM)),
       with: {
         encrypted: true,
         workspace: {
@@ -250,10 +263,10 @@ export class KeyService {
     if (!dbRes?.keyAuth?.api) {
       return null;
     }
-    if (dbRes.keyAuth.deletedAt) {
+    if (dbRes.keyAuth.deletedAtM) {
       return null;
     }
-    if (dbRes.keyAuth.api.deletedAt) {
+    if (dbRes.keyAuth.api.deletedAtM) {
       return null;
     }
 
@@ -322,6 +335,7 @@ export class KeyService {
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
       ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
+      remaining?: { cost: number };
     },
     opts?: {
       skipCache?: boolean;
@@ -531,11 +545,11 @@ export class KeyService {
     const ratelimits: {
       [name: string | "default"]: Required<RatelimitRequest>;
     } = {};
-    if ("default" in data.ratelimits && typeof req.ratelimits === "undefined") {
+    if (data.ratelimits && "default" in data.ratelimits && typeof req.ratelimits === "undefined") {
       ratelimits.default = {
         identity: data.key.id,
         name: data.ratelimits.default.name,
-        cost: req.ratelimit?.cost ?? 1,
+        cost: req.ratelimit?.cost ?? DEFAULT_RATELIMIT_COST,
         limit: data.ratelimits.default.limit,
         duration: data.ratelimits.default.duration,
       };
@@ -546,7 +560,7 @@ export class KeyService {
         ratelimits[r.name] = {
           identity: data.identity?.id ?? data.key.id,
           name: r.name,
-          cost: r.cost ?? 1,
+          cost: r.cost ?? DEFAULT_RATELIMIT_COST,
           limit: r.limit,
           duration: r.duration,
         };
@@ -558,7 +572,7 @@ export class KeyService {
         ratelimits[configured.name] = {
           identity: data.identity?.id ?? data.key.id,
           name: configured.name,
-          cost: r.cost ?? 1,
+          cost: r.cost ?? DEFAULT_RATELIMIT_COST,
           limit: configured.limit,
           duration: configured.duration,
         };
@@ -591,7 +605,10 @@ export class KeyService {
 
     let remaining: number | undefined = undefined;
     if (data.key.remaining !== null) {
-      const limited = await this.usageLimiter.limit({ keyId: data.key.id });
+      const limited = await this.usageLimiter.limit({
+        keyId: data.key.id,
+        cost: req.remaining?.cost ?? DEFAULT_REMAINING_COST,
+      });
       remaining = limited.remaining;
       if (!limited.valid) {
         return Ok({
@@ -614,6 +631,7 @@ export class KeyService {
     }
 
     return Ok({
+      code: "VALID",
       workspaceId: data.key.workspaceId,
       key: data.key,
       identity: data.identity,

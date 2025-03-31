@@ -38,7 +38,7 @@ export interface paths {
     post: operations["updateRemaining"];
   };
   "/v1/keys.getVerifications": {
-    get: operations["getVerifications"];
+    get: operations["keys.getVerifications"];
   };
   "/v1/keys.addPermissions": {
     post: operations["addPermissions"];
@@ -77,7 +77,7 @@ export interface paths {
     post: operations["limit"];
   };
   "/v1/ratelimits.setOverride": {
-    post: operations["ratelimit.setOverride"];
+    post: operations["setOverride"];
   };
   "/v1/ratelimits.listOverrides": {
     get: operations["listOverrides"];
@@ -132,6 +132,9 @@ export interface paths {
   };
   "/v1/identities.deleteIdentity": {
     post: operations["deleteIdentity"];
+  };
+  "/v1/analytics.getVerifications": {
+    get: operations["getVerifications"];
   };
   "/v1/keys": {
     post: operations["deprecated.createKey"];
@@ -248,6 +251,28 @@ export interface components {
         /**
          * @description A link to our documentation with more details about this error code
          * @example https://unkey.dev/docs/api-reference/errors/code/CONFLICT
+         */
+        docs: string;
+        /** @description A human readable explanation of what went wrong */
+        message: string;
+        /**
+         * @description Please always include the requestId in your error report
+         * @example req_1234
+         */
+        requestId: string;
+      };
+    };
+    ErrPreconditionFailed: {
+      error: {
+        /**
+         * @description A machine readable error code.
+         * @example PRECONDITION_FAILED
+         * @enum {string}
+         */
+        code: "PRECONDITION_FAILED";
+        /**
+         * @description A link to our documentation with more details about this error code
+         * @example https://unkey.dev/docs/api-reference/errors/code/PRECONDITION_FAILED
          */
         docs: string;
         /** @description A human readable explanation of what went wrong */
@@ -578,6 +603,8 @@ export interface components {
           [key: string]: unknown;
         };
       };
+      /** @description A unique id for this request, please provide it to Unkey support to help us debug your issue. */
+      requestId: string;
     };
     /** @description A query for which permissions you require */
     PermissionQuery: OneOf<
@@ -604,9 +631,30 @@ export interface components {
        * @example sk_1234
        */
       key: string;
+      /**
+       * @description Tags do not influence the outcome of a verification.
+       *                 They can be added to filter or aggregate historical verification data for your analytics needs.
+       *                 To unkey, a tag is simply a string, we don't enforce any schema but leave that up to you.
+       *                 The only exception is that each tag must be between 1 and 128 characters long.
+       *                 A typical setup would be to add key-value pairs of resources or locations, that you need later when querying.
+       *
+       * @example [
+       *   "path=/v1/users/123",
+       *   "region=us-east-1"
+       * ]
+       */
+      tags?: string[];
       /** @description Perform RBAC checks */
       authorization?: {
         permissions?: components["schemas"]["PermissionQuery"];
+      };
+      /** @description Customize the behaviour of deducting remaining uses. When some of your endpoints are more expensive than others, you can set a custom `cost` for each. */
+      remaining?: {
+        /**
+         * @description How many tokens should be deducted from the current `remaining` value. Set it to 0, to make it free.
+         * @default 1
+         */
+        cost?: number;
       };
       /**
        * @deprecated
@@ -744,6 +792,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -800,6 +854,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -919,6 +979,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -942,6 +1008,11 @@ export interface operations {
            * @example key_1234
            */
           keyId: string;
+          /**
+           * @description By default Unkey soft deletes keys, so they may be recovered later. If you want to permanently delete it, set permanent=true. This might be necessary if you run into CONFLICT errors during key migration.
+           * @default false
+           */
+          permanent?: boolean;
         };
       };
     };
@@ -980,6 +1051,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -1209,6 +1286,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -1264,6 +1347,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -1490,6 +1579,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -1569,6 +1664,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -1583,7 +1684,7 @@ export interface operations {
       };
     };
   };
-  getVerifications: {
+  "keys.getVerifications": {
     parameters: {
       query?: {
         keyId?: string;
@@ -1651,6 +1752,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -1736,6 +1843,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -1811,6 +1924,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -1911,6 +2030,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -2009,6 +2134,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -2084,6 +2215,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -2184,6 +2321,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -2257,6 +2400,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -2326,6 +2475,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -2363,7 +2518,7 @@ export interface operations {
              * @example eyJrZXkiOiJrZXlfMTIzNCJ9
              */
             cursor?: string;
-            /** @description The total number of keys for this api */
+            /** @description The total number of keys for this api. This is an approximation and may lag behind up to 5 minutes. */
             total: number;
           };
         };
@@ -2396,6 +2551,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -2459,6 +2620,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The api is protected from deletions */
@@ -2530,6 +2697,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -2680,6 +2853,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -2694,7 +2873,7 @@ export interface operations {
       };
     };
   };
-  "ratelimit.setOverride": {
+  setOverride: {
     requestBody: {
       content: {
         "application/json": {
@@ -2774,6 +2953,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -2849,6 +3034,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -2922,6 +3113,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -2987,6 +3184,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -3041,11 +3244,17 @@ export interface operations {
            */
           start?: string;
           /**
-           * @description Your user’s Id. This will provide a link between Unkey and your customer record.
-           * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+           * @deprecated
+           * @description Deprecated, use `externalId`
            * @example team_123
            */
           ownerId?: string;
+          /**
+           * @description Your user’s Id. This will provide a link between Unkey and your customer record.
+           * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+           * @example user_123
+           */
+          externalId?: string;
           /**
            * @description This is a place for dynamic meta data, anything that feels useful for you should go here
            * @example {
@@ -3199,6 +3408,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -3411,6 +3626,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -3438,7 +3659,7 @@ export interface operations {
            * @description Explain what this permission does. This is just for your team, your users will not see this.
            * @example record.write can create new dns records for our domains.
            */
-          description?: string;
+          description?: string | "";
         };
       };
     };
@@ -3483,6 +3704,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -3546,6 +3773,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -3621,6 +3854,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -3689,6 +3928,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -3716,7 +3961,7 @@ export interface operations {
            * @description Explain what this role does. This is just for your team, your users will not see this.
            * @example dns.records.manager can read and write dns records for our domains.
            */
-          description?: string;
+          description?: string | "";
         };
       };
     };
@@ -3761,6 +4006,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -3824,6 +4075,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -3899,6 +4156,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -3967,6 +4230,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -3991,7 +4260,7 @@ export interface operations {
            * This usually comes from your authentication provider and could be a userId, organisationId or even an email.
            * It does not matter what you use, as long as it uniquely identifies something in your application.
            *
-           * `externalId`s are unique across your workspace and therefore a `PRECONDITION_FAILED` error is returned when you try to create duplicates.
+           * `externalId`s are unique across your workspace and therefore a `CONFLICT` error is returned when you try to create duplicates.
            *
            * @example user_123
            */
@@ -4070,6 +4339,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -4155,6 +4430,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -4247,6 +4528,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -4394,6 +4681,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -4455,6 +4748,128 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
+  getVerifications: {
+    parameters: {
+      query: {
+        apiId: string;
+        externalId?: string;
+        keyId?: string | string[];
+        tag?: string | string[];
+        start?: number | null;
+        end?: number | null;
+        groupBy?:
+          | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")
+          | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")[];
+        limit?: number;
+        orderBy?:
+          | "time"
+          | "valid"
+          | "notFound"
+          | "forbidden"
+          | "usageExceeded"
+          | "rateLimited"
+          | "unauthorized"
+          | "disabled"
+          | "insufficientPermissions"
+          | "expired"
+          | "total";
+        order?: "asc" | "desc";
+      };
+    };
+    responses: {
+      /** @description Retrieve all required data to build end-user facing dashboards and drive your usage-based billing. */
+      200: {
+        content: {
+          "application/json": {
+            /** @description Unix timestamp in milliseconds of the start of the current time slice. */
+            time?: number;
+            valid?: number;
+            notFound?: number;
+            forbidden?: number;
+            usageExceeded?: number;
+            rateLimited?: number;
+            unauthorized?: number;
+            disabled?: number;
+            insufficientPermissions?: number;
+            expired?: number;
+            /** @description Total number of verifications in the current time slice, regardless of outcome. */
+            total: number;
+            /** @description Only available when grouping by tag. */
+            tag?: string;
+            /** @description Filter by one or multiple tags. If multiple tags are provided */
+            tags?: string[];
+            /**
+             * @description Only available when specifying groupBy=key in the query.
+             * In this case there would be one datapoint per time and groupBy target.
+             */
+            keyId?: string;
+            /**
+             * @description Only available when specifying groupBy=identity in the query.
+             * In this case there would be one datapoint per time and groupBy target.
+             */
+            identity?: {
+              id: string;
+              externalId: string;
+            };
+          }[];
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -4596,6 +5011,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
@@ -4764,6 +5185,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
+        };
+      };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
       429: {
         content: {
@@ -4828,6 +5255,12 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The requested operation cannot be completed because certain conditions were not met. This typically occurs when a required resource state or version check fails. */
+      412: {
+        content: {
+          "application/json": components["schemas"]["ErrPreconditionFailed"];
         };
       };
       /** @description The user has sent too many requests in a given amount of time ("rate limiting") */

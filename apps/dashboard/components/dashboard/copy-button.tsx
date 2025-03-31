@@ -1,9 +1,7 @@
 "use client";
-
-import * as React from "react";
-
 import { cn } from "@/lib/utils";
-import { Copy, CopyCheck } from "lucide-react";
+import { TaskChecked, TaskUnchecked } from "@unkey/icons";
+import * as React from "react";
 
 interface CopyButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
   value: string;
@@ -14,33 +12,43 @@ async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unk
   navigator.clipboard.writeText(value);
 }
 
-export function CopyButton({ value, className, src, ...props }: CopyButtonProps) {
-  const [copied, setCopied] = React.useState(false);
+export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
+  ({ value, className, src, ...props }, ref) => {
+    const [copied, setCopied] = React.useState(false);
 
-  React.useEffect(() => {
-    if (!copied) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCopied(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [copied]);
+    React.useEffect(() => {
+      if (!copied) {
+        return;
+      }
+      const timer = setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }, [copied]);
 
-  return (
-    <button
-      type="button"
-      className={cn("relative p-1 focus:outline-none h-6 w-6 ", className)}
-      onClick={() => {
-        copyToClipboardWithMeta(value, {
-          component: src,
-        });
-        setCopied(true);
-      }}
-      {...props}
-    >
-      <span className="sr-only">Copy</span>
-      {copied ? <CopyCheck className="w-full h-full" /> : <Copy className="w-full h-full" />}
-    </button>
-  );
-}
+    return (
+      <button
+        type="button"
+        ref={ref}
+        className={cn("relative p-1 focus:outline-none h-6 w-6 ", className)}
+        onClick={(e) => {
+          e.stopPropagation(); // Prevent triggering parent button click
+          copyToClipboardWithMeta(value, {
+            component: src,
+          });
+          setCopied(true);
+        }}
+        {...props}
+      >
+        <span className="sr-only">Copy</span>
+        {copied ? (
+          <TaskChecked className="w-full h-full" />
+        ) : (
+          <TaskUnchecked className="w-full h-full" />
+        )}
+      </button>
+    );
+  },
+);
+
+CopyButton.displayName = "CopyButton";

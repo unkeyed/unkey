@@ -37,6 +37,17 @@ export const env = () =>
       UNKEY_ROOT_KEY: z.string().optional(),
 
       CLICKHOUSE_URL: z.string().optional(),
+      OPENAI_API_KEY: z.string().optional(),
+
+      AUTH_PROVIDER: z.enum(["workos", "local"]),
+
+      WORKOS_API_KEY: z.string().optional(),
+      WORKOS_CLIENT_ID: z.string().optional(),
+      WORKOS_WEBHOOK_SECRET: z.string().optional(),
+      NEXT_PUBLIC_WORKOS_REDIRECT_URI: z
+        .string()
+        .default("http://localhost:3000/auth/sso-callback"),
+      WORKOS_COOKIE_PASSWORD: z.string().optional(),
     })
     .parse(process.env);
 
@@ -60,10 +71,9 @@ export const vercelIntegrationEnv = () =>
 
 const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),
+  // The product ids, comma separated, from lowest to highest pro plan
+  STRIPE_PRODUCT_IDS_PRO: z.string().transform((s) => s.split(",")),
   STRIPE_WEBHOOK_SECRET: z.string(),
-  STRIPE_PRODUCT_ID_KEY_VERIFICATIONS: z.string(),
-  STRIPE_PRODUCT_ID_PRO_PLAN: z.string(),
-  STRIPE_PRODUCT_ID_SUPPORT: z.string(),
 });
 
 const stripeParsed = stripeSchema.safeParse(process.env);

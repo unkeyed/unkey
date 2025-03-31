@@ -1,0 +1,875 @@
+---
+title: "Button"
+description: "A versatile button component with multiple variants, states, and sizes"
+---
+
+import { RenderComponentWithSnippet } from "@/app/components/render";
+import { Button } from "@unkey/ui";
+import { ButtonWithKeyboardShortcut} from "./button";
+import { PlusIcon, SearchIcon, TrashIcon } from "lucide-react";
+
+# Button
+
+A versatile button component that supports various styles, states, and interactive features. Button is built with accessibility in mind and provides consistent interaction patterns across all variants.
+
+Each button can be customized with different variants, colors, and sizes, making it adaptable to any UI context. All buttons include proper focus states, loading indicators, and keyboard interactions.
+
+## Basic Variants
+
+Button comes in three basic variants that serve different UI purposes:
+
+### Primary
+
+The default button style with a solid background. Use for primary actions and main call-to-actions.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button>Default</Button>
+        <Button className="!bg-accent-12/90">Hover</Button>
+        <Button className="!ring-4 !ring-gray-7">Focus</Button>
+        <Button loading>Loading</Button>
+        <Button disabled>Disabled</Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button>Default</Button>
+        <Button className="!bg-accent-12/90">Hover</Button>
+        <Button className="!ring-4 !ring-gray-7">Focus</Button>
+        <Button loading>Loading</Button>
+        <Button disabled>Disabled</Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### Outline
+
+Button with transparent background and visible border. Ideal for secondary actions that don't require as much visual emphasis.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="outline">Default</Button>
+        <Button variant="outline" className="!bg-grayA-2">
+          Hover
+        </Button>
+        <Button
+          variant="outline"
+          className="!ring-4 !ring-gray-7 !border-grayA-12"
+        >
+          Focus
+        </Button>
+        <Button variant="outline" loading>
+          Loading
+        </Button>
+        <Button variant="outline" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="outline">Default</Button>
+        <Button variant="outline" className="!bg-grayA-2">
+          Hover
+        </Button>
+        <Button
+          variant="outline"
+          className="!ring-4 !ring-gray-7 !border-grayA-12"
+        >
+          Focus
+        </Button>
+        <Button variant="outline" loading>
+          Loading
+        </Button>
+        <Button variant="outline" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### Ghost
+
+Button with no background or border until interacted with. Perfect for tertiary actions or when space is limited.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="ghost">Default</Button>
+        <Button variant="ghost" className="!bg-grayA-4">
+          Hover
+        </Button>
+        <Button
+          variant="ghost"
+          className="!ring-4 !ring-gray-7 !border-grayA-12"
+        >
+          Focus
+        </Button>
+        <Button variant="ghost" loading>
+          Loading
+        </Button>
+        <Button variant="ghost" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="ghost">Default</Button>
+        <Button variant="ghost" className="!bg-grayA-4">
+          Hover
+        </Button>
+        <Button
+          variant="ghost"
+          className="!ring-4 !ring-gray-7 !border-grayA-12"
+        >
+          Focus
+        </Button>
+        <Button variant="ghost" loading>
+          Loading
+        </Button>
+        <Button variant="ghost" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+## Color Variants
+
+Each button variant can be combined with different color schemes to convey the nature of the action:
+
+### Danger - Primary
+
+Solid background danger variant for destructive actions that should be clearly highlighted.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="primary" color="danger">
+          Default
+        </Button>
+        <Button variant="primary" color="danger" className="!bg-error-10">
+          Hover
+        </Button>
+        <Button
+          variant="primary"
+          color="danger"
+          className="!ring-4 !ring-error-7 !border-error-11"
+        >
+          Focus
+        </Button>
+        <Button variant="primary" color="danger" loading>
+          Loading
+        </Button>
+        <Button variant="primary" color="danger" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="primary" color="danger">
+          Default
+        </Button>
+        <Button variant="primary" color="danger" className="!bg-error-10">
+          Hover
+        </Button>
+        <Button
+          variant="primary"
+          color="danger"
+          className="!ring-4 !ring-error-7 !border-error-11"
+        >
+          Focus
+        </Button>
+        <Button variant="primary" color="danger" loading>
+          Loading
+        </Button>
+        <Button variant="primary" color="danger" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### Danger - Outline
+
+Danger variant with outline style. Use for destructive actions that require less visual prominence.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="outline" color="danger">
+          Default
+        </Button>
+        <Button variant="outline" color="danger" className="!bg-grayA-2">
+          Hover
+        </Button>
+        <Button
+          variant="outline"
+          color="danger"
+          className="!ring-4 !ring-error-7 !border-error-11"
+        >
+          Focus
+        </Button>
+        <Button variant="outline" color="danger" loading>
+          Loading
+        </Button>
+        <Button variant="outline" color="danger" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="outline" color="danger">
+          Default
+        </Button>
+        <Button variant="outline" color="danger" className="!bg-grayA-2">
+          Hover
+        </Button>
+        <Button
+          variant="outline"
+          color="danger"
+          className="!ring-4 !ring-error-7 !border-error-11"
+        >
+          Focus
+        </Button>
+        <Button variant="outline" color="danger" loading>
+          Loading
+        </Button>
+        <Button variant="outline" color="danger" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### Danger - Ghost
+
+Minimal danger variant. Suitable for destructive actions in tight UI spaces or alongside other content.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="ghost" color="danger">
+          Default
+        </Button>
+        <Button variant="ghost" color="danger" className="!bg-error-3">
+          Hover
+        </Button>
+        <Button
+          variant="ghost"
+          color="danger"
+          className="!ring-4 !ring-error-7 !border-error-11"
+        >
+          Focus
+        </Button>
+        <Button variant="ghost" color="danger" loading>
+          Loading
+        </Button>
+        <Button variant="ghost" color="danger" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="ghost" color="danger">
+          Default
+        </Button>
+        <Button variant="ghost" color="danger" className="!bg-error-3">
+          Hover
+        </Button>
+        <Button
+          variant="ghost"
+          color="danger"
+          className="!ring-4 !ring-error-7 !border-error-11"
+        >
+          Focus
+        </Button>
+        <Button variant="ghost" color="danger" loading>
+          Loading
+        </Button>
+        <Button variant="ghost" color="danger" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### Warning - Primary
+
+Warning variant with solid background for actions that require caution but aren't destructive.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="primary" color="warning">
+          Default
+        </Button>
+        <Button
+          variant="primary"
+          color="warning"
+          className="!bg-warning-8/90"
+        >
+          Hover
+        </Button>
+        <Button
+          variant="primary"
+          color="warning"
+          className="!ring-4 !ring-warning-6 !border-warning-11"
+        >
+          Focus
+        </Button>
+        <Button variant="primary" color="warning" loading>
+          Loading
+        </Button>
+        <Button variant="primary" color="warning" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="primary" color="warning">
+          Default
+        </Button>
+        <Button
+          variant="primary"
+          color="warning"
+          className="!bg-warning-8/90"
+        >
+          Hover
+        </Button>
+        <Button
+          variant="primary"
+          color="warning"
+          className="!ring-4 !ring-warning-6 !border-warning-11"
+        >
+          Focus
+        </Button>
+        <Button variant="primary" color="warning" loading>
+          Loading
+        </Button>
+        <Button variant="primary" color="warning" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### Warning - Outline
+
+Warning variant with outline style for secondary cautionary actions.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="outline" color="warning">
+          Default
+        </Button>
+        <Button variant="outline" color="warning" className="!bg-grayA-2">
+          Hover
+        </Button>
+        <Button
+          variant="outline"
+          color="warning"
+          className="!ring-4 !ring-warning-6 !border-warning-11"
+        >
+          Focus
+        </Button>
+        <Button variant="outline" color="warning" loading>
+          Loading
+        </Button>
+        <Button variant="outline" color="warning" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="outline" color="warning">
+          Default
+        </Button>
+        <Button variant="outline" color="warning" className="!bg-grayA-2">
+          Hover
+        </Button>
+        <Button
+          variant="outline"
+          color="warning"
+          className="!ring-4 !ring-warning-6 !border-warning-11"
+        >
+          Focus
+        </Button>
+        <Button variant="outline" color="warning" loading>
+          Loading
+        </Button>
+        <Button variant="outline" color="warning" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### Warning - Ghost
+
+Warning variant with ghost style for tertiary cautionary actions.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="ghost" color="warning">
+          Default
+        </Button>
+        <Button variant="ghost" color="warning" className="!bg-warning-3">
+          Hover
+        </Button>
+        <Button
+          variant="ghost"
+          color="warning"
+          className="!ring-4 !ring-warning-6 !border-warning-11"
+        >
+          Focus
+        </Button>
+        <Button variant="ghost" color="warning" loading>
+          Loading
+        </Button>
+        <Button variant="ghost" color="warning" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="ghost" color="warning">
+          Default
+        </Button>
+        <Button variant="ghost" color="warning" className="!bg-warning-3">
+          Hover
+        </Button>
+        <Button
+          variant="ghost"
+          color="warning"
+          className="!ring-4 !ring-warning-6 !border-warning-11"
+        >
+          Focus
+        </Button>
+        <Button variant="ghost" color="warning" loading>
+          Loading
+        </Button>
+        <Button variant="ghost" color="warning" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### Success - Primary
+
+Success variant with solid background for positive or confirming actions.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="primary" color="success">
+          Default
+        </Button>
+        <Button
+          variant="primary"
+          color="success"
+          className="!bg-success-9/90"
+        >
+          Hover
+        </Button>
+        <Button
+          variant="primary"
+          color="success"
+          className="!ring-4 !ring-success-6 !border-success-11"
+        >
+          Focus
+        </Button>
+        <Button variant="primary" color="success" loading>
+          Loading
+        </Button>
+        <Button variant="primary" color="success" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="primary" color="success">
+          Default
+        </Button>
+        <Button
+          variant="primary"
+          color="success"
+          className="!bg-success-9/90"
+        >
+          Hover
+        </Button>
+        <Button
+          variant="primary"
+          color="success"
+          className="!ring-4 !ring-success-6 !border-success-11"
+        >
+          Focus
+        </Button>
+        <Button variant="primary" color="success" loading>
+          Loading
+        </Button>
+        <Button variant="primary" color="success" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### Success - Outline
+
+Success variant with outline style for secondary positive actions.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="outline" color="success">
+          Default
+        </Button>
+        <Button variant="outline" color="success" className="!bg-grayA-2">
+          Hover
+        </Button>
+        <Button
+          variant="outline"
+          color="success"
+          className="!ring-4 !ring-success-6 !border-success-11"
+        >
+          Focus
+        </Button>
+        <Button variant="outline" color="success" loading>
+          Loading
+        </Button>
+        <Button variant="outline" color="success" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="outline" color="success">
+          Default
+        </Button>
+        <Button variant="outline" color="success" className="!bg-grayA-2">
+          Hover
+        </Button>
+        <Button
+          variant="outline"
+          color="success"
+          className="!ring-4 !ring-success-6 !border-success-11"
+        >
+          Focus
+        </Button>
+        <Button variant="outline" color="success" loading>
+          Loading
+        </Button>
+        <Button variant="outline" color="success" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### Success - Ghost
+
+Success variant with ghost style for subtle positive actions.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button variant="ghost" color="success">
+          Default
+        </Button>
+        <Button variant="ghost" color="success" className="!bg-success-3">
+          Hover
+        </Button>
+        <Button
+          variant="ghost"
+          color="success"
+          className="!ring-4 !ring-success-6 !border-success-11"
+        >
+          Focus
+        </Button>
+        <Button variant="ghost" color="success" loading>
+          Loading
+        </Button>
+        <Button variant="ghost" color="success" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button variant="ghost" color="success">
+          Default
+        </Button>
+        <Button variant="ghost" color="success" className="!bg-success-3">
+          Hover
+        </Button>
+        <Button
+          variant="ghost"
+          color="success"
+          className="!ring-4 !ring-success-6 !border-success-11"
+        >
+          Focus
+        </Button>
+        <Button variant="ghost" color="success" loading>
+          Loading
+        </Button>
+        <Button variant="ghost" color="success" disabled>
+          Disabled
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+## Size Variants
+
+All button variants and color schemes can be combined with different sizes to fit various UI contexts.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button size="sm">Small</Button>
+        <Button size="md">Medium</Button>
+        <Button size="lg">Large</Button>
+        <Button size="xlg">Extra Large</Button>
+        <Button size="2xlg">2X Large</Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button size="sm">Small</Button>
+        <Button size="md">Medium</Button>
+        <Button size="lg">Large</Button>
+        <Button size="xlg">Extra Large</Button>
+        <Button size="2xlg">2X Large</Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+
+
+## Special Features
+
+Button includes additional features that enhance usability and interaction:
+
+### With Icons
+
+Buttons can include icons from the Lucide library for enhanced visual meaning. Icons can be placed before or after text.
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button>
+          <span>Create</span>
+          <PlusIcon />
+        </Button>
+        <Button variant="outline">
+          <SearchIcon />
+          <span>Search</span>
+        </Button>
+        <Button variant="ghost" color="danger">
+          <TrashIcon />
+          <span>Delete</span>
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Button>
+          <span>Create</span>
+          <PlusIcon />
+        </Button>
+        <Button variant="outline">
+          <SearchIcon />
+          <span>Search</span>
+        </Button>
+        <Button variant="ghost" color="danger">
+          <TrashIcon />
+          <span>Delete</span>
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+### With Keyboard Shortcuts
+
+Buttons can display and respond to keyboard shortcuts for improved accessibility and power-user workflows.
+
+    <ButtonWithKeyboardShortcut />
+
+
+
+## Additional Features
+
+The Button component includes some additional features not shown in the examples above:
+
+### Legacy Variant Support
+
+For backward compatibility, the component supports legacy variants:
+- `default` will be mapped to `primary` variant
+- `destructive` will be mapped to `primary` variant with `danger` color
+
+### Shape Variants
+
+For special layouts, buttons can use the `shape` prop:
+
+<RenderComponentWithSnippet>
+  <div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex items-center gap-4">
+        <Button shape="square">
+          <PlusIcon />
+        </Button>
+        <Button shape="square" variant="outline">
+          <SearchIcon />
+        </Button>
+        <Button shape="square" variant="ghost" color="danger">
+          <TrashIcon />
+        </Button>
+      </div>
+    </div>
+    
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex items-center gap-4 dark">
+        <Button shape="square">
+          <PlusIcon />
+        </Button>
+        <Button shape="square" variant="outline">
+          <SearchIcon />
+        </Button>
+        <Button shape="square" variant="ghost" color="danger">
+          <TrashIcon />
+        </Button>
+      </div>
+    </div>
+  </div>
+</RenderComponentWithSnippet>
+
+
+
+## Props
+
+The Button component accepts all standard HTML button attributes plus the following:
+
+<AutoTypeTable
+  name="ButtonProps"
+  path="../../internal/ui/src/components/button.tsx"
+/>
+
+## Usage Guidelines
+
+When using the Button component:
+
+- **Hierarchy**: Maintain a clear visual hierarchy with your button choices
+  - Use **primary** buttons for main actions and primary call-to-actions
+  - Use **outline** buttons for secondary actions
+  - Use **ghost** buttons for tertiary actions or in dense UIs
+- **Color semantics**: Apply color variants based on the action's impact:
+  - **Default** for neutral or standard actions
+  - **Success** for positive, confirming, or creative actions
+  - **Warning** for cautionary actions that require attention
+  - **Danger** for destructive or irreversible actions
+- **Interaction states**:
+  - Ensure **loading** state is shown during asynchronous operations to prevent multiple submissions
+  - Use **disabled** state appropriately for actions that are currently unavailable
+  - Test that focus states are clearly visible for keyboard navigation
+- **Sizing and spacing**:
+  - Use appropriate **size** based on the button's importance and the available space
+  - Maintain consistent spacing between buttons in a group (recommend 16px/1rem)
+  - For button groups, maintain consistent sizing within the group
+- **Content guidelines**:
+  - Use concise, action-oriented text (e.g., "Save changes" instead of "Submit")
+  - Add icons to enhance meaning, but avoid overloading buttons with too many elements
+  - For destructive actions, consider using explicit verbs ("Delete" instead of "Remove")
+- **Accessibility**:
+  - Consider adding keyboard shortcuts for frequently used actions
+  - Ensure sufficient color contrast between text and background (WCAG AA minimum)
+  - Add appropriate aria attributes for complex button behaviors
+- **Responsive behavior**:
+  - On mobile, ensure buttons are at least 44×44px (touch target size)
+  - Consider stacking buttons vertically on very small screens

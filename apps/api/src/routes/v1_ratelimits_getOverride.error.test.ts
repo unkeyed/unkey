@@ -17,7 +17,7 @@ test("Missing Namespace", async (t) => {
     id: namespaceId,
     name: namespaceName,
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 

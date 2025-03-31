@@ -23,7 +23,9 @@ export function useTooltip<T extends Datum>({
   snapToX = true,
 }: TooltipOptions<T>): ChartTooltipContext {
   const { series, data, xScale, yScale, margin } = chartContext;
-
+  if (data.length === 0) {
+    return {} as ChartTooltipContext;
+  }
   const visxTooltipInPortal = useTooltipInPortal({
     scroll: true,
     detectBounds: true,

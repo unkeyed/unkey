@@ -195,12 +195,12 @@ const cache = createCache({
     stores: [memory, cloudflare],
     fresh: 60_000, // Data is fresh for 60 seconds
     stale: 300_000, // Data is stale for 300 seconds
-  });
+  }),
   apiKey:new Namespace<ApiKey>(ctx, {
     stores: [memory],
     fresh: 10_000, // Data is fresh for 10 seconds
     stale: 60_000, // Data is stale for 60 seconds
-  });
+  }),
 });
 
 async function main() {
@@ -879,7 +879,7 @@ openssl rand -base64 32
 
 
 ```ts Example
-import { withEncryption } from "@unkey/cache";
+import { withEncryption } from "@unkey/cache/middleware";
 
 const encryptionKey = "<BASE64_KEY>"
 const encryptionMiddleware = await withEncryption(encryptionKey)

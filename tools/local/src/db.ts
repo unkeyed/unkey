@@ -1,7 +1,6 @@
 import { exec } from "node:child_process";
 import path from "node:path";
 import { mysqlDrizzle, schema } from "@unkey/db";
-import { newId } from "@unkey/id";
 import mysql from "mysql2/promise";
 import { task } from "./util";
 
@@ -23,16 +22,25 @@ export async function prepareDatabase(url?: string): Promise<{
     const cwd = path.join(__dirname, "../../../internal/db");
 
     await new Promise((resolve, reject) => {
+      let stdoutData = "";
       const p = exec("pnpm drizzle-kit push", {
         env: {
           DRIZZLE_DATABASE_URL: url ?? "mysql://unkey:password@localhost:3306/unkey",
           ...process.env,
         },
-
         cwd,
       });
+
+      p.stdout?.on("data", (data) => {
+        stdoutData += data;
+      });
+
       p.on("exit", (code) => {
         if (code === 0) {
+          if (stdoutData.includes("Error")) {
+            reject(new Error(`Migration failed with MySQL error:\n${stdoutData}`));
+          }
+
           resolve(code);
         } else {
           reject(code);
@@ -48,26 +56,24 @@ export async function prepareDatabase(url?: string): Promise<{
       .insert(schema.workspaces)
       .values({
         id: ROW_IDS.rootWorkspace,
-        tenantId: "user_REPLACE_ME",
+        orgId: "user_REPLACE_ME",
+        clerkTenantId: "tenant_REPLACE_ME",
         name: "Unkey",
-        createdAt: new Date(),
+        createdAtM: Date.now(),
         betaFeatures: {},
         features: {},
       })
-      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+      .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
+
+    await db.insert(schema.quotas).values({
+      workspaceId: ROW_IDS.rootWorkspace,
+      requestsPerMonth: 150_000,
+      auditLogsRetentionDays: 30,
+      logsRetentionDays: 7,
+      team: false,
+    });
 
     s.message("Created root workspace");
-
-    await db
-      .insert(schema.auditLogBucket)
-      .values({
-        id: newId("auditLogBucket"),
-        workspaceId: ROW_IDS.rootWorkspace,
-        name: "unkey_mutations",
-        deleteProtection: true,
-      })
-      .onDuplicateKeyUpdate({ set: { createdAt: Date.now() } });
-    s.message("Created audit log bucket");
 
     await db
       .insert(schema.keyAuth)
@@ -75,7 +81,7 @@ export async function prepareDatabase(url?: string): Promise<{
         id: ROW_IDS.rootKeySpace,
         workspaceId: ROW_IDS.rootWorkspace,
       })
-      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+      .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
     s.message("Created root keyspace");
 
     /**
@@ -89,9 +95,9 @@ export async function prepareDatabase(url?: string): Promise<{
         workspaceId: ROW_IDS.rootWorkspace,
         authType: "key",
         keyAuthId: ROW_IDS.rootKeySpace,
-        createdAt: new Date(),
+        createdAtM: Date.now(),
       })
-      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+      .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
     s.message("Created root api");
 
     s.stop("seed done");

@@ -13,9 +13,7 @@ export const identities = mysqlTable(
      * They likely have an organization or user id at hand
      */
     externalId: varchar("external_id", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     environment: varchar("environment", { length: 256 }).notNull().default("default"),
     ...lifecycleDates,
     meta: json("meta").$type<Record<string, unknown>>(),
@@ -67,6 +65,8 @@ export const ratelimits = mysqlTable(
   (table) => ({
     nameIdx: index("name_idx").on(table.name),
     uniqueName: uniqueIndex("unique_name_idx").on(table.name, table.keyId, table.identityId),
+    identityId: index("identity_id_idx").on(table.identityId),
+    keyId: index("key_id_idx").on(table.keyId),
   }),
 );
 

@@ -1,13 +1,12 @@
-import { type Permission, and, db, eq, schema } from "@/lib/db";
+import { type InsertPermission, type Permission, and, db, eq, schema } from "@/lib/db";
 
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import type { Context } from "../context";
-import { t } from "../trpc";
 
 const nameSchema = z
   .string()
@@ -18,7 +17,10 @@ const nameSchema = z
   });
 
 export const rbacRouter = t.router({
-  addPermissionToRootKey: rateLimitedProcedure(ratelimit.update)
+  addPermissionToRootKey: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
         rootKeyId: z.string(),
@@ -36,7 +38,7 @@ export const rbacRouter = t.router({
 
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
       if (!workspace) {
         throw new TRPCError({
@@ -78,7 +80,10 @@ export const rbacRouter = t.router({
         await insertAuditLogs(tx, auditLogs);
       });
     }),
-  removePermissionFromRootKey: rateLimitedProcedure(ratelimit.update)
+  removePermissionFromRootKey: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
         rootKeyId: z.string(),
@@ -88,7 +93,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
 
       if (!workspace) {
@@ -157,7 +162,10 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  connectPermissionToRole: rateLimitedProcedure(ratelimit.update)
+  connectPermissionToRole: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
         roleId: z.string(),
@@ -167,7 +175,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
@@ -206,9 +214,9 @@ export const rbacRouter = t.router({
       await db.transaction(async (tx) => {
         await tx
           .insert(schema.rolesPermissions)
-          .values({ ...tuple, createdAt: new Date() })
+          .values({ ...tuple, createdAtM: Date.now() })
           .onDuplicateKeyUpdate({
-            set: { ...tuple, updatedAt: new Date() },
+            set: { ...tuple, updatedAtM: Date.now() },
           });
         await insertAuditLogs(tx, {
           workspaceId: tuple.workspaceId,
@@ -232,7 +240,10 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  disconnectPermissionToRole: rateLimitedProcedure(ratelimit.update)
+  disconnectPermissionToRole: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
         roleId: z.string(),
@@ -242,7 +253,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
       if (!workspace) {
         throw new TRPCError({
@@ -282,7 +293,10 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  connectRoleToKey: rateLimitedProcedure(ratelimit.update)
+  connectRoleToKey: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
         roleId: z.string(),
@@ -292,7 +306,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
@@ -331,9 +345,9 @@ export const rbacRouter = t.router({
       await db.transaction(async (tx) => {
         await tx
           .insert(schema.keysRoles)
-          .values({ ...tuple, createdAt: new Date() })
+          .values({ ...tuple, createdAtM: Date.now() })
           .onDuplicateKeyUpdate({
-            set: { ...tuple, updatedAt: new Date() },
+            set: { ...tuple, updatedAtM: Date.now() },
           });
         await insertAuditLogs(tx, {
           workspaceId: tuple.workspaceId,
@@ -357,7 +371,10 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  disconnectRoleFromKey: rateLimitedProcedure(ratelimit.update)
+  disconnectRoleFromKey: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
         roleId: z.string(),
@@ -367,7 +384,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
       if (!workspace) {
         throw new TRPCError({
@@ -385,7 +402,10 @@ export const rbacRouter = t.router({
           ),
         );
     }),
-  createRole: rateLimitedProcedure(ratelimit.create)
+  createRole: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.create))
     .input(
       z.object({
         name: nameSchema,
@@ -396,7 +416,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
 
       if (!workspace) {
@@ -444,6 +464,7 @@ export const rbacRouter = t.router({
           );
           await insertAuditLogs(
             tx,
+
             input.permissionIds.map((permissionId) => ({
               workspaceId: workspace.id,
               event: "authorization.connect_role_and_permission",
@@ -470,7 +491,10 @@ export const rbacRouter = t.router({
       });
       return { roleId };
     }),
-  updateRole: rateLimitedProcedure(ratelimit.update)
+  updateRole: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
         id: z.string(),
@@ -481,7 +505,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.id),
@@ -520,7 +544,10 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  deleteRole: rateLimitedProcedure(ratelimit.delete)
+  deleteRole: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.delete))
     .input(
       z.object({
         roleId: z.string(),
@@ -529,7 +556,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
@@ -572,7 +599,10 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  createPermission: rateLimitedProcedure(ratelimit.create)
+  createPermission: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.create))
     .input(
       z.object({
         name: nameSchema,
@@ -582,7 +612,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       });
 
       if (!workspace) {
@@ -623,7 +653,10 @@ export const rbacRouter = t.router({
 
       return { permissionId };
     }),
-  updatePermission: rateLimitedProcedure(ratelimit.update)
+  updatePermission: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
         id: z.string(),
@@ -634,7 +667,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           permissions: {
             where: (table, { eq }) => eq(table.id, input.id),
@@ -660,7 +693,7 @@ export const rbacRouter = t.router({
           .set({
             name: input.name,
             description: input.description,
-            updatedAt: new Date(),
+            updatedAtM: Date.now(),
           })
           .where(eq(schema.permissions.id, input.id));
         await insertAuditLogs(tx, {
@@ -685,7 +718,10 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  deletePermission: rateLimitedProcedure(ratelimit.delete)
+  deletePermission: t.procedure
+    .use(requireUser)
+    .use(requireWorkspace)
+    .use(withRatelimit(ratelimit.delete))
     .input(
       z.object({
         permissionId: z.string(),
@@ -694,7 +730,7 @@ export const rbacRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
           permissions: {
             where: (table, { eq }) => eq(table.id, input.permissionId),
@@ -761,7 +797,7 @@ export async function upsertPermissions(
         and(eq(table.workspaceId, workspaceId), inArray(table.name, names)),
     });
 
-    const newPermissions: Permission[] = [];
+    const newPermissions: InsertPermission[] = [];
     const auditLogs: UnkeyAuditLog[] = [];
 
     const permissions = names.map((name) => {
@@ -771,13 +807,13 @@ export async function upsertPermissions(
         return existingPermission;
       }
 
-      const permission = {
+      const permission: Permission = {
         id: newId("permission"),
         workspaceId,
         name,
         description: null,
-        createdAt: new Date(),
-        updatedAt: null,
+        updatedAtM: null,
+        createdAtM: Date.now(),
       };
 
       newPermissions.push(permission);

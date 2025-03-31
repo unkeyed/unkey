@@ -1,0 +1,98 @@
+---
+title: Google as an Identity Provider for AWS
+description: Step-by-step guide for configuring Google Workspace as a SAML 2.0 Identity Provider (IdP) for AWS Single Sign-On
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## Create custom attributes in Google
+<Callout>
+    You need `Super Admin` privileges in Google Workspace for this step.
+</Callout>
+
+<Steps>
+    <Step>Navigate to `Directory -> Users` in the UI</Step>
+
+    <Step>
+    In the `More options` menu item, navigate to `Manage custom attributes` and then click `ADD CUSTOM ATTRIBUTE`
+    Configure the custom attribute as follows:
+    ![Google Workspace custom attributes configuration showing Amazon Role attribute settings](./gw-custom-attributes.png)
+    </Step>
+
+    <Step>
+    Click save in the modal.
+    </Step>
+</Steps>
+
+## Set up AWS as a SAML 2.0 Service Provider
+
+<Callout>You need to have AWS IAM Identity Center enabled at this point</Callout>
+
+<Steps>
+    <Step>Navigate to IAM Identity Center settings in your AWS Console (typically at `https://{region}.console.aws.amazon.com/singlesignon`)</Step>
+
+    <Step>In `Identity Source` click the `Change Identity Source` button and select `External Identity Provider` and then `Next`.</Step>
+
+    <Step>The information for the AWS SAML 2.0 SP are in the 1password entry `AWS SAML 2.0 SP`.</Step>
+
+    <Step>Download the metadata XML file from the 1password entry `Google IdP`, and upload that to the `IdP SAML metadata` field in the `Identity provider metadata` section.</Step>
+</Steps>
+
+Next we'll configure the AWS SAML app in Google Workspace
+
+## Configuring AWS App in Google Workspace
+
+<Steps>
+    <Step>Navigate to [Apps -> Web and mobile apps](https://admin.google.com/ac/apps/unified)</Step>
+
+    <Step>Click `Add app` and then `Search for apps`</Step>
+
+    <Step>Type in `Amazon Web` into the search field and select the `Amazon Web Services` app</Step>
+
+    <Step>Click continue as we have this information already...</Step>
+
+    <Step>From the 1password entry `AWS SAML 2.0 SP` copy the respective fields into the appropriate fields. (e.g. `IAM ACS URL` to the `ACS URL` etc)</Step>
+
+    <Step>In the `Name ID` section, change `Name ID format` from `UNSPECIFIED` to `EMAIL`</Step>
+
+    <Step>For `Name ID` leave it at `Basic Information > Primary email` then click continue...</Step>
+
+    <Step>In the `Attributes` section, for the `Google Directory attributes` map our previously created custom attribute `Amazon > Role` to `https://aws.amazon.com/SAML/Attributes/Role` and `Basic Information > Primary email` to `https://aws.amazon.com/SAML/Attributes/RoleSessionName`.</Step>
+
+    <Step>Click `Save` then in the `User access` section, turn the `Service status` to `ON for everyone`.</Step>
+
+    <Step>Verify the configuration by clicking the `Test SAML login` link in the Google Workspace admin console to ensure the setup is working correctly.</Step>
+</Steps>
+
+## Enable automatic user provisioning in IAM Identity Center
+
+<Steps>
+    <Step>In the IAM Identity Center page, you should see an "Automatic provisioning" callout box with an enable button.. click `Enable`</Step>
+
+    <Step>This will present you with a modal containing a SCIM endpoint URL and an access token. These values are in the `1password` entry `AWS SCIM Provisioning`.</Step>
+
+    <Step>Navigate to the AWS app in the Google Workspace and in the `Autoprovisioning` section, configure the access token on the first page with the value from the previously mentioned 1password entry then click continue. On the following page, enter the SCIM Endpoint url using the value from the 1password entry for `SCIM Endpoint URL`. Click continue for the rest of the screens until you're back at the AWS App page.</Step>
+
+    <Step>Toggle the `Autoprovisioning` from `Inactive` to `Active`. You should soon see there are a number of users created in the last 30 days (7 at time of writing)</Step>
+</Steps>
+
+## Creating and assigning AWS permission sets
+
+<Steps>
+    <Step>Navigate to the AWS Permission sets page in the IAM Identity Center console</Step>
+
+    <Step>Create a predefined permission set for AdministratorAccess using the predefined permission set and click `Next`</Step>
+
+    <Step>In the `Multi-account permissions > AWS Accounts` section, select the accounts you want to apply the permission sets to and then click the `Assign users or groups` button. This will present a page with a `Groups` tab selected.. select the `Users` tab and select all the users you'd like to assign and then click `Next`.</Step>
+
+    <Step>On the following page select the `AdministratorAccess` permission and choose `Next`. In the following review and submit page, validate the users are who you expect and then choose `Submit`.</Step>
+
+    <Step>AWS will thenconfigure/provision the access for the users.</Step>
+</Steps>
+
+## Test authentication
+
+Navigate to your AWS start URL (found in the IAM Identity Center settings under "Dashboard") and sign in with Google Workspace. You will be presented with a list of accounts and the roles you may assume. Celebrate your success!
+
+## Next steps
+
+There's no automatic provisioning for groups in Google Workspace to AWS IAM Identity Center so enabling `ssosync` is the next step. Docs forthcoming...

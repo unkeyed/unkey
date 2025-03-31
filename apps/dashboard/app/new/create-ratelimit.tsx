@@ -1,37 +1,38 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 import { router } from "@/lib/trpc/routers";
-import { auth } from "@clerk/nextjs";
 import { createCallerFactory } from "@trpc/server";
+import type { Workspace } from "@unkey/db";
+import { Button } from "@unkey/ui";
 import { GlobeLock } from "lucide-react";
 import Link from "next/link";
 
-export const CreateRatelimit: React.FC = async () => {
-  const { sessionClaims, userId } = auth();
-  if (!userId) {
+type Props = {
+  workspace: Workspace;
+};
+
+export const CreateRatelimit: React.FC<Props> = async (props) => {
+  const user = await auth.getCurrentUser();
+  if (!user) {
     return null;
   }
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const trpc = createCallerFactory()(router)({
     req: {} as any,
     user: {
-      id: userId,
+      id: user.id,
     },
+    workspace: props.workspace,
     tenant: {
-      id: tenantId,
-      role: "",
+      id: orgId,
     },
     audit: {
       location: "",
       userAgent: "",
     },
-  });
-
-  await trpc.workspace.optIntoBeta({
-    feature: "ratelimit",
   });
 
   const rootKey = await trpc.rootKey.create({
@@ -44,9 +45,7 @@ export const CreateRatelimit: React.FC = async () => {
   -H 'Authorization: Bearer ${rootKey.key}' \\
   -d '{
       "namespace": "hello-ratelimit",
-      "identifier": "${
-        sessionClaims?.userName ?? sessionClaims?.email ?? sessionClaims?.sub ?? "hello"
-      }",
+      "identifier": "${user?.email ?? "hello"}",
       "limit": 10,
       "duration": 10000
   }'`;

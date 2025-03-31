@@ -1,8 +1,12 @@
 "use client";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+
+/**
+ * TODO: Remove or re-work this
+ * WorkOS doesn't allow users to update their email
+ */
+
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -35,6 +39,8 @@ import { toast } from "@/components/ui/toaster";
 import type { ClerkError } from "@/lib/clerk";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { ChevronsUp, MoreHorizontal, ShieldCheck, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -73,9 +79,9 @@ export const UpdateUserEmail: React.FC = () => {
 
   if (!user) {
     return (
-      <EmptyPlaceholder className="min-h-[200px]">
+      <Empty>
         <Loading />
-      </EmptyPlaceholder>
+      </Empty>
     );
   }
   const isDisabled = emailForm.formState.isLoading || !emailForm.formState.isValid;
@@ -123,7 +129,7 @@ export const UpdateUserEmail: React.FC = () => {
 
                     <TableCell align="right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger>
                           <Button variant="ghost">
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
@@ -161,7 +167,7 @@ export const UpdateUserEmail: React.FC = () => {
                                 <DialogFooter>
                                   <Button
                                     type="submit"
-                                    variant="alert"
+                                    variant="destructive"
                                     onClick={() => {
                                       destroy()
                                         .then(() => {
@@ -274,11 +280,7 @@ export const UpdateUserEmail: React.FC = () => {
                 )}
               />
 
-              <Button
-                type="submit"
-                variant={isDisabled || sendingVerification ? "disabled" : "primary"}
-                disabled={isDisabled || sendingVerification}
-              >
+              <Button type="submit" variant="primary" disabled={isDisabled || sendingVerification}>
                 {emailForm.formState.isLoading || sendingVerification ? <Loading /> : "Save"}
               </Button>
             </form>
@@ -367,11 +369,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ email, onSuccess })
               )}
             />
           </div>
-          <Button
-            type="submit"
-            variant={verificationForm.formState.isLoading ? "disabled" : "primary"}
-            disabled={verificationForm.formState.isLoading}
-          >
+          <Button type="submit" variant="primary" disabled={verificationForm.formState.isLoading}>
             {verificationForm.formState.isLoading ? <Loading /> : "Verify"}
           </Button>
         </div>

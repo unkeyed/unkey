@@ -3,6 +3,7 @@ Copyright (c) 2023-present Unkeyed, Inc.
 Portions of this software are licensed as follows:
 
 * All content that resides under https://github.com/unkeyed/unkey/tree/main/packages directory of this repository is licensed under the license defined in each package.
+* All content that resides under https://github.com/unkeyed/unkey/tree/main/internal/icons directory of this repository is licensed under the license defined in the package.
 * All third party components incorporated into the Unkeyed,Inc Software are licensed under the original license provided by the owner of the applicable component.
 * Content outside of the above mentioned directories or restrictions above is available under the "AGPLv3" license as defined below.
 

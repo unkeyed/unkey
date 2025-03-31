@@ -1,0 +1,77 @@
+---
+title: ClickHouse Proxy
+---
+import {GithubIcon} from "lucide-react"
+import {Property} from "fumadocs-openapi/ui"
+
+Our ClickHouse Proxy is a go app runnng on AWS Apprunner. It's only purpose is to receive small batches - or even just single rows - to batch them before sending them in bulk to ClickHouse.
+It does this by implementing the same HTTP interface as ClickHouse and buffering rows in memory, flushing periodically either every few seconds or when the buffer is full.
+
+It's available at `clickhouse.unkey.cloud`.
+
+
+Using the proxy is optional in development, but it can be enabled by providing the `CLICKHOUSE_INSERT_URL` environment variable in our API.
+
+## IaC
+
+Our ClickHouse proxy is fully managed in [unkeyed/infra](https://github.com/unkeyed/infra).
+
+
+## Quickstart
+
+The service is entirely configured via environment variables.
+
+### Environment Variables
+
+<Property
+ name="PORT"
+ type="integer"
+ required={false}
+ >
+  The port to listen on.
+
+  Default: `7123`
+</Property>
+
+
+<Property
+ name="BASIC_AUTH"
+ type="string"
+ required={true}
+ >
+  Username and password in the form `<username>:<password>` (username and password separated by a colon), which will be used to authorize incoming requests.
+
+  Basic auth was chosen because that's what ClickHouse uses and allows to reuse their SDKs.
+  In your sdk, you can specify the url as `https://proxyUser:proxyPassword@host:port` and it will just work.
+
+</Property>
+
+
+<Property
+ name="CLICKHOUSE_URL"
+ type="string"
+ required={true}
+ >
+  The HTTP URL of your clickhouse cluster. Ensure this includes the username and password
+
+  Example: `https://username:password@abc.us-east-1.aws.clickhouse.cloud:8123`
+</Property>
+
+### Running the service
+
+You can run the service either by compiling the go binary via:
+```bash
+cd /apps/chproxy
+go build -o chproxy .
+./chproxy
+```
+
+Or using the included [Dockerfile](https://github.com/unkeyed/unkey/blob/main/apps/chproxy/Dockerfile)
+
+See the [docker compose](https://github.com/unkeyed/unkey/blob/main/deployment/docker-compose.yaml) reference for more.
+
+## References
+
+<Callout title="Code" icon={<GithubIcon/>}>
+[https://github.com/unkeyed/unkey/tree/main/apps/chproxy](https://github.com/unkeyed/unkey/tree/main/apps/chproxy)
+</Callout>

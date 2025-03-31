@@ -1,0 +1,275 @@
+---
+title: 0005 Analytics API
+description: Unkey exposes APIs to retrieve all required data to build end-user facing dashboards and drive our customer's usage-based billing.
+
+date: 2024-11-25
+authors:
+  - Andreas Thomas
+---
+
+
+## Motivation
+
+Consumption based billing for APIs is getting more and more popular, but it's tedious to build in house.
+For low frequency events, it's quite possible to emit usage events directly to Stripe or similar, but this becomes very noisy quickly.
+Furthermore if you want to build end-user facing or internal analytics, you need to be able to query the events from Stripe, which often does not provide the granularity required.
+
+Most teams end up without end-user facing analytics, or build their own system to store and query usage metrics.
+
+Since Unkey already stores and aggregates verification events by time, outcome and identity, we can offer this data via an API.
+
+## Detailed design
+
+In order to charge for usage, our users need information of **who** used their API **when** and **how often**.
+
+For end-user facing analytics dashboards, it would also be relevant to differentiate between different outcomes (`VALID`, `RATE_LIMITED`, `USAGE_EXCEEDED`, `INSUFFICIENT_PERMiSSIONS` etc.)
+
+### Available data
+
+We already store events for every verification in ClickHouse and have materialized views for aggregations.
+
+```sql
+`request_id`    String,
+`time`          Int64,
+`workspace_id`  String,
+`key_space_id`  String,
+`key_id`        String,
+`region`        LowCardinality(String),
+`outcome`       LowCardinality(String),
+`identity_id`   String
+```
+
+
+
+We can return this data in different granularities:
+- hourly
+- daily
+- monthly
+
+
+In order be scalable, we will not expose individual events in the beginning, nor allow you to filter by exact timestamps. If we can't query a materialized view, it would be too compute-intensive to query.
+If needed, a per-minute granularity materialized view could be created, but is not currently planned.
+
+
+And filtered by:
+- identity_id
+- key_space_id (which we can derive from the api_id)
+- key_id
+- outcome
+- start and end time
+
+
+### Request
+
+
+We will create a new endpoint `GET /v1/analytics.getVerifications`, protected by a root key in the `Authorization` header.
+The root key will require specific permissions tbd.
+
+Calling the endpoint will return an array of verification counts, aggregated by time and provided filters.
+
+All required and optional arguments are passed via query parameters. Some parameters may be specified multiple times, either as You may specify multiple ids such as `?param=value_1,value_2` or `?param=value_1&param=value_2`
+
+#### start
+(integer, required)
+
+Unix timestamp in milliseconds to specify the start of the interval to retrieve.
+
+We will return all datapoints with a timestamp greater or equal to `start`.
+
+There may be restrictions depending on the granularity chosen and the retention quota of the customer
+
+#### end
+(integer, required)
+
+Unix timestamp in milliseconds to specify the end of the interval to retrieve.
+
+We will return all datapoints with a timestamp less than or equal to `end`.
+
+There may be restrictions depending on the granularity chosen and the retention quota of the customer
+
+#### granularity
+(enum ["hour", "day", "month"], required)
+
+Selects the granularity of data. For example selecting `hour` will return one datapoint per hour.
+
+#### apiId
+(string, optional, may be provided multiple times)
+
+Select the API for which to return data.
+
+When you are providing zero or more than one API ids, all usage counts are aggregated and summed up.
+Send multiple requests with one apiId each if you need counts per API.
+
+#### externalId
+(string, optional, may be provided multiple times)
+
+Filtering by externalId allows you to narrow down the search to a specific user or organisation.
+
+
+When you are providing zero or more than one external ids, all usage counts are aggregated and summed up.
+Send multiple requests with one externalId each if you need counts per identity.
+
+#### keyId
+(string, optional, may be provided multiple times)
+
+Only include data for a speciifc key or keys.
+
+When you are providing zero or more than one key ids, all usage counts are aggregated and summed up.
+Send multiple requests with one keyId each if you need counts per key.
+
+#### groupBy
+(enum ["key", "identity"], optional)
+
+By default, all datapoints are aggregated by time alone, summing up all verifications across identities and keys.
+However in certain scenarios you want to get a breakdown per key. For example finding out the usage spread across all keys for a specific user.
+
+
+### limit
+(integer, optional)
+Limit the number of returned datapoints. This may become useful for querying the top 10 identities based on usage.
+
+#### orderBy
+(enum ["total", "valid", ..], optional)
+
+<Callout type="warn" title="WIP">
+This is a rough idea.
+
+We're leaning towards `?orderBy=valid&order=asc`, but have not decided what this API should look like.
+
+</Callout>
+
+
+
+#### order
+(enum ["asc", "desc"], optional, default="asc", only allowed in combination with `orderBy`)
+
+See above.
+
+### Example Access Patterns
+
+> A chart of an enduser's usage over the past 24h, showing the outcomes
+
+```bash
+?start={timestamp_24h_ago}&end={timestamp_now}&externalId=user_123&granularity=hour
+
+[
+  // 24 elements, one per hour
+  { time: 123, valid: 10, ratelimited: 2, ..., total: 30 },
+]
+```
+
+> A daily usage breakdown for a user per key in the current month
+
+```bash
+?start={timestamp_start_of_month}&end={timestamp_now}&granularity=day&externalId={user_123}&groupBy=key
+
+[
+  // One row per keyId and time
+  { keyId: "key_1", time: 123, valid: 10, ..., total: 30 },
+  { keyId: "key_1", time: 456, valid: 20, ..., total: 52 },
+  ...
+
+  { keyId: "key_2", time: 123, valid: 0, ..., total: 10 },
+  { keyId: "key_2", time: 456, valid: 1, ..., total: 2 },
+  ...
+]
+
+```
+
+> A monthly cron job creates invoices for each identity:
+
+```bash
+?start={timestamp_start_of_month}&end={timestamp_end_of_month}&granularity=month&externalId={user_123}
+
+[
+  // one element for the single month
+  { time: 123, valid: 10, ..., total: 30 }
+]
+```
+
+
+> A user sees a gauge with their quota, showing they used X out of Y API calls in the current billing period:
+
+
+```bash
+?start={timestamp_start_of_billing_cycle}&end={timestamp_end_of_billing_cycle}&granularity=day&externalId={user_123}
+
+[
+  { time: 123, valid: 10, ..., total: 30 }
+]
+```
+Sum up the `valid` or `total`, however you want to count, and display it to the user.
+
+
+> An internal dashboard shows the top 10 users by API usage over the past 30 days
+
+```bash
+?start={timestamp_30_days_ago}&end={timestamp_now}&granularity=day&groupBy=identity&limit=10&orderBy=total&order=desc
+```
+
+### Response
+
+Successful responses will always return an array of datapoints. One datapoint per granular slice, ie: hourly granularity means you receive one element per hour within the queried interval.
+
+```json title="200 OK Body"
+[
+  Datapoint,
+  Datapoint,
+  Datapoint
+]
+```
+
+```ts title="Datapoint"
+type Datapoint = {
+  /**
+  * Unix timestamp in milliseconds of the start of the current time slice.
+  */
+  time: number
+
+
+  /**
+   * For brevity, I will not explain every outcome here.
+   * There will be one key and count for every possible outcome, so you may
+   * choose what to display or not.
+   */
+  valid: number
+  rateLimited: number
+  usageExceeded: number
+  // ...
+
+  /**
+   * Total number of verifications in the current time slice, regardless of outcome.
+   */
+  total: number
+
+  /**
+   * Only available when specifying groupBy in the query.
+   * In this case there would be one datapoint per time and groupBy target.
+   */
+  keyId?: string
+  apiId?: string
+  identity?: {
+    id: string
+    externalId: string
+  }
+}
+```
+
+
+## Drawbacks
+
+Our current serverless architecture costs money per invocation. Our customer's users could generate a decent amount of requests.
+
+## Alternatives
+
+Offering a prometheus `/metrics` endpoint would be interesting, however I believe most of our users don't have the infra in place to adopt this easily.
+
+___
+
+Instead of aggregating multiple keyIds together, we could disallow specifying them multiple times and instead ask the user to create one request per id and then merge them together on their side.
+
+## Unresolved questions
+
+- What cache times are acceptable? We probably don't want to hit ClickHouse for every single query, especially for fetching monthly aggregations.
+- When we return keyIds as part of groupBy queries, the user needs to make another call to our API in order to fetch details such as the name for each key. That doesn't feel great.
+- What are the retention quotas tier and granularity?

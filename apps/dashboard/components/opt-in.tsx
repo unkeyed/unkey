@@ -1,13 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
-import { Power } from "lucide-react";
+import { Button } from "@unkey/ui";
+import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { EmptyPlaceholder } from "./dashboard/empty-placeholder";
 
 import { toast } from "@/components/ui/toaster";
 import { PostHogEvent } from "@/providers/PostHogProvider";
@@ -40,22 +39,20 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
     },
   });
   return (
-    <EmptyPlaceholder className="h-full">
-      <EmptyPlaceholder.Icon>
-        <Power />
-      </EmptyPlaceholder.Icon>
-      <EmptyPlaceholder.Title>{title}</EmptyPlaceholder.Title>
-      <EmptyPlaceholder.Description>{description}</EmptyPlaceholder.Description>
+    <Empty>
+      <Empty.Icon />
+      <Empty.Title>{title}</Empty.Title>
+      <Empty.Description>{description}</Empty.Description>
 
       <div className="flex items-center gap-4">
         <Link href={`mailto:support@unkey.dev?subject=Beta Access: ${feature}`}>
-          <Button variant="secondary">Get in touch</Button>
+          <Button>Get in touch</Button>
         </Link>
 
         <Button variant="primary" onClick={() => optIn.mutate({ feature })}>
           {optIn.isLoading ? <Loading /> : "Opt In"}
         </Button>
       </div>
-    </EmptyPlaceholder>
+    </Empty>
   );
 };

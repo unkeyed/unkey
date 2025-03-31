@@ -1,8 +1,13 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+/**
+ * Deprecated with new auth
+ * Hiding for now until we decide if we want to fix it up or toss it
+ */
+
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
+import { Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import { Client } from "./client";
 import { exchangeCode } from "./exchange-code";
@@ -25,11 +30,11 @@ export default async function Page(props: Props) {
     return <div>no code</div>;
   }
 
+  const orgId = await getOrgId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, getTenantId()), isNull(table.deletedAt)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
-      apis: { where: (table, { isNull }) => isNull(table.deletedAt) },
+      apis: { where: (table, { isNull }) => isNull(table.deletedAtM) },
     },
   });
 
@@ -52,8 +57,9 @@ export default async function Page(props: Props) {
       workspaceId: workspace.id,
       vercelTeamId: val.teamId,
       accessToken: val.accessToken,
-      createdAt: new Date(),
-      deletedAt: null,
+      createdAtM: Date.now(),
+      updatedAtM: null,
+      deletedAtM: null,
     };
     await db.insert(schema.vercelIntegrations).values(integration).execute();
   }
@@ -66,11 +72,11 @@ export default async function Page(props: Props) {
   }).listProjects();
   if (projects.err) {
     return (
-      <EmptyPlaceholder className="m-8">
-        <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
+      <Empty>
+        <Empty.Title>Error</Empty.Title>
+        <Empty.Description>
           We couldn't load your projects from Vercel. Please try again or contact support.
-        </EmptyPlaceholder.Description>
+        </Empty.Description>
         <Code className="text-left">
           {JSON.stringify(
             {
@@ -81,19 +87,19 @@ export default async function Page(props: Props) {
             2,
           )}
         </Code>
-      </EmptyPlaceholder>
+      </Empty>
     );
   }
 
   if (projects.val.length === 0) {
     return (
-      <EmptyPlaceholder className="m-8">
-        <EmptyPlaceholder.Title>No Projects Found</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
+      <Empty>
+        <Empty.Title>No Projects Found</Empty.Title>
+        <Empty.Description>
           You did not authorize any projects to be connected. Please go to your Vercel dashboard and
           add a project to this integration.
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
+        </Empty.Description>
+      </Empty>
     );
   }
   return (

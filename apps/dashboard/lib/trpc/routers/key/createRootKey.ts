@@ -6,13 +6,14 @@ import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { upsertPermissions } from "../rbac";
 
 export const createRootKey = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: z.string().optional(),
@@ -22,32 +23,13 @@ export const createRootKey = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to create a root key for this workspace. Please try again or contact support@unkey.dev.",
-        });
-      });
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
-
     const unkeyApi = await db.query.apis
       .findFirst({
-        where: eq(schema.apis.id, env().UNKEY_API_ID),
-        with: {
-          workspace: true,
-        },
+        where: (table, { and, eq }) =>
+          and(
+            eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
+            eq(schema.apis.id, env().UNKEY_API_ID),
+          ),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -87,20 +69,19 @@ export const createRootKey = t.procedure
           start,
           ownerId: ctx.user.id,
           workspaceId: env().UNKEY_WORKSPACE_ID,
-          forWorkspaceId: workspace.id,
+          forWorkspaceId: ctx.workspace.id,
           expires: null,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
           remaining: null,
-          refillInterval: null,
           refillAmount: null,
           refillDay: null,
           lastRefillAt: null,
-          deletedAt: null,
           enabled: true,
+          deletedAtM: null,
         });
 
         auditLogs.push({
-          workspaceId: workspace.id,
+          workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "key.create",
           description: `Created ${keyId}`,
@@ -130,11 +111,11 @@ export const createRootKey = t.procedure
           identityId = newId("identity");
           await tx.insert(schema.identities).values({
             id: identityId,
-            workspaceId: workspace.id,
+            workspaceId: ctx.workspace.id,
             externalId: ctx.user.id,
           });
           auditLogs.push({
-            workspaceId: workspace.id,
+            workspaceId: ctx.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "identity.create",
             description: `Created ${identityId}`,
@@ -161,7 +142,7 @@ export const createRootKey = t.procedure
 
         auditLogs.push(
           ...permissions.map((p) => ({
-            workspaceId: workspace.id,
+            workspaceId: ctx.workspace.id,
             actor: { type: "user" as const, id: ctx.user.id },
             event: "authorization.connect_permission_and_key" as const,
             description: `Connected ${p.id} and ${keyId}`,

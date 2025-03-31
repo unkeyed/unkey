@@ -3,7 +3,7 @@ import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -13,7 +13,8 @@ const nameSchema = z
   });
 
 export const createPermission = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: nameSchema,
@@ -21,37 +22,29 @@ export const createPermission = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to create permission. Please try again or contact support@unkey.dev",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
-      });
-    }
     const permissionId = newId("permission");
     await db
       .transaction(async (tx) => {
+        const existing = await tx.query.permissions.findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
+        });
+        if (existing) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Permission with the same name already exists. To update it, go to 'Authorization' in the sidebar.",
+          });
+        }
+
         await tx.insert(schema.permissions).values({
           id: permissionId,
           name: input.name,
           description: input.description,
-          workspaceId: workspace.id,
+          workspaceId: ctx.workspace.id,
         });
         await insertAuditLogs(tx, {
-          workspaceId: workspace.id,
+          workspaceId: ctx.workspace.id,
           event: "permission.create",
           actor: {
             type: "user",

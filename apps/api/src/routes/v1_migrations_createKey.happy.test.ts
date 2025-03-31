@@ -187,6 +187,97 @@ describe("with prefix", () => {
   });
 });
 
+describe("with externalId", () => {
+  describe("when identity does not exist", () => {
+    test("should create an identity", async (t) => {
+      const h = await IntegrationHarness.init(t);
+      const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+      const hash = await sha256(randomUUID());
+
+      const externalId = newId("test");
+
+      const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
+        url: "/v1/migrations.createKeys",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${root.key}`,
+        },
+        body: [
+          {
+            hash: {
+              value: hash,
+              variant: "sha256_base64",
+            },
+            apiId: h.resources.userApi.id,
+            enabled: true,
+            externalId: externalId,
+          },
+        ],
+      });
+
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+      const key = await h.db.primary.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
+        with: {
+          identity: true,
+        },
+      });
+      expect(key).toBeDefined();
+
+      expect(key!.identity).toBeDefined();
+      expect(key!.identity!.externalId).toEqual(externalId);
+    });
+  });
+  describe("when identity does exist", () => {
+    test("should link the identity", async (t) => {
+      const h = await IntegrationHarness.init(t);
+      const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+      const hash = await sha256(randomUUID());
+
+      const externalId = newId("test");
+      const identity = {
+        id: newId("test"),
+        workspaceId: h.resources.userWorkspace.id,
+        externalId,
+      };
+      await h.db.primary.insert(schema.identities).values(identity);
+
+      const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
+        url: "/v1/migrations.createKeys",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${root.key}`,
+        },
+        body: [
+          {
+            hash: {
+              value: hash,
+              variant: "sha256_base64",
+            },
+            apiId: h.resources.userApi.id,
+            enabled: true,
+            externalId: externalId,
+          },
+        ],
+      });
+
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+      const key = await h.db.primary.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
+        with: {
+          identity: true,
+        },
+      });
+      expect(key).toBeDefined();
+
+      expect(key!.identity).toBeDefined();
+      expect(key!.identity!.id).toEqual(identity.id);
+    });
+  });
+});
+
 describe("roles", () => {
   test("connects the specified roles", async (t) => {
     const h = await IntegrationHarness.init(t);
@@ -201,6 +292,8 @@ describe("roles", () => {
 
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
+    const plaintext = crypto.randomUUID();
+
     const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
       url: "/v1/migrations.createKeys",
       headers: {
@@ -210,7 +303,7 @@ describe("roles", () => {
       body: [
         {
           start: "start_",
-          plaintext: "plaintext",
+          plaintext,
           apiId: h.resources.userApi.id,
           permissions,
         },
@@ -397,7 +490,7 @@ test("an error rolls back and does not create any keys", async (t) => {
   });
 
   expect(res.status).toEqual(409);
-  expect(res.body.error.code).toEqual("NOT_UNIQUE");
+  expect(res.body.error.code).toEqual("CONFLICT");
 
   for (let i = 0; i < req.length; i++) {
     const key = await h.db.primary.query.keys.findFirst({
@@ -536,7 +629,6 @@ describe("Should default to first day of month if none provided", () => {
     expect(found).toBeDefined();
     expect(found?.remaining).toEqual(10);
     expect(found?.refillAmount).toEqual(100);
-    expect(found?.refillInterval).toEqual("monthly");
     expect(found?.refillDay).toEqual(1);
     expect(found?.hash).toEqual(hash);
   });

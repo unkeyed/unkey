@@ -1,28 +1,27 @@
-import { PageHeader } from "@/components/dashboard/page-header";
-import { getTenantId } from "@/lib/auth";
-import { clickhouse } from "@/lib/clickhouse";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Layers3 } from "@unkey/icons";
+import { notFound } from "next/navigation";
+import { LogsClient } from "./components/logs-client";
 
-export const revalidate = 0;
+import { Navigation } from "@/components/navigation/navigation";
+export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
-  if (!workspace) {
-    return <div>Workspace with tenantId: {tenantId} not found</div>;
-  }
 
-  const logs = await clickhouse.api.logs({ workspaceId: workspace.id, limit: 10 });
+  if (!workspace) {
+    return notFound();
+  }
 
   return (
     <div>
-      <PageHeader title="Logs" />
-
-      <pre>{JSON.stringify(logs, null, 2)}</pre>
+      <Navigation href="/logs" name="Logs" icon={<Layers3 />} />
+      <LogsClient />
     </div>
   );
 }

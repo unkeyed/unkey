@@ -1,0 +1,30 @@
+name: ClickHouse Migration Preview
+on:
+  workflow_call:
+    secrets:
+      CLICKHOUSE_URL:
+        required: true
+  workflow_dispatch:
+
+
+
+
+jobs:
+  deploy:
+    environment: Preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          go: true
+
+      - name: Install gooes
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
+
+      - name: Migrate
+        run: goose clickhouse "${{ secrets.CLICKHOUSE_URL }}" up
+        working-directory: internal/clickhouse/schema

@@ -60,11 +60,6 @@
       "name": "GitHub",
       "icon": "github",
       "url": "https://github.com/unkeyed"
-    },
-    {
-      "name": "Contributing",
-      "url": "contributing",
-      "icon": "terminal"
     }
   ],
   "navigation": [
@@ -99,10 +94,6 @@
                 "quickstart/ratelimiting/express",
                 "quickstart/ratelimiting/hono"
               ]
-            },
-            {
-              "group": "LLMs",
-              "pages": ["quickstart/llms/index"]
             },
             {
               "group": "Identities",
@@ -181,6 +172,10 @@
         {
           "group": "Audit logs",
           "pages": ["audit-log/introduction", "audit-log/types"]
+        },
+        {
+          "group": "Analytics",
+          "pages": ["analytics/overview", "analytics/quickstarts"]
         }
       ]
     },
@@ -207,6 +202,7 @@
             "api-reference/errors/code/BAD_REQUEST",
             "api-reference/errors/code/UNAUTHORIZED",
             "api-reference/errors/code/FORBIDDEN",
+            "api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
             "api-reference/errors/code/NOT_FOUND",
             "api-reference/errors/code/DELETE_PROTECTED",
             "api-reference/errors/code/EXPIRED",
@@ -279,6 +275,10 @@
           ]
         },
         {
+          "group": "Analytics",
+          "pages": ["api-reference/analytics/get_verifications"]
+        },
+        {
           "group": "Migrations",
           "pages": ["api-reference/migrations/create-keys"]
         }
@@ -315,11 +315,37 @@
             },
             {
               "group": "Ratelimits",
-              "pages": ["libraries/ts/sdk/ratelimits/limit"]
+              "pages": [
+                "libraries/ts/sdk/ratelimits/limit",
+                {
+                  "group": "Overrides",
+                  "pages": [
+                    "libraries/ts/sdk/ratelimits/overrides/set-override",
+                    "libraries/ts/sdk/ratelimits/overrides/get-override",
+                    "libraries/ts/sdk/ratelimits/overrides/list-overrides",
+                    "libraries/ts/sdk/ratelimits/overrides/delete-override"
+                  ]
+                }
+              ]
             }
           ]
         },
-        "libraries/ts/ratelimit",
+        {
+          "group": "@unkey/ratelimit",
+          "pages": [
+            "libraries/ts/ratelimit/ratelimit",
+            {
+              "group": "Overrides",
+              "pages": [
+                "libraries/ts/ratelimit/override/overview",
+                "libraries/ts/ratelimit/override/set-override",
+                "libraries/ts/ratelimit/override/get-override",
+                "libraries/ts/ratelimit/override/list-overrides",
+                "libraries/ts/ratelimit/override/delete-override"
+              ]
+            }
+          ]
+        },
         "libraries/ts/nextjs",
         "libraries/ts/hono",
         "libraries/ts/cache/overview",
@@ -382,31 +408,6 @@
           ]
         }
       ]
-    },
-    {
-      "group": "Contributing",
-      "icon": "github",
-      "pages": [
-        "contributing/getting-started",
-        "contributing/versions",
-        "contributing/editor-setup",
-        "contributing/testing",
-        "contributing/sdk-development",
-        {
-          "group": "Services",
-          "pages": [
-            {
-              "group": "Agent",
-              "pages": [
-                "contributing/services/agent/architecture",
-                "contributing/services/agent/configuration",
-                "contributing/services/agent/cluster",
-                "contributing/services/agent/profiling"
-              ]
-            }
-          ]
-        }
-      ]
     }
   ],
   "footerSocials": {
@@ -416,6 +417,9 @@
   "openapi": "https://api.unkey.dev/openapi.json",
   "api": {
     "baseUrl": "https://api.unkey.dev"
+  },
+  "codeBlock": {
+    "mode": "auto"
   },
   "redirects": [
     {

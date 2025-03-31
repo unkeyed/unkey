@@ -5,7 +5,7 @@ on:
 jobs:
   test:
     name: API Test Local
-    timeout-minutes: 30
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,26 +13,30 @@ jobs:
       - name: Delete huge unnecessary tools folder
         run: rm -rf /opt/hostedtoolcache
 
-
       - name: Run containers
         run: docker compose -f ./deployment/docker-compose.yaml up -d
-
-
 
       - name: Install
         uses: ./.github/actions/install
         with:
           ts: true
+          go: true
 
       - name: Build
         run: pnpm turbo run build --filter=./apps/api...
-
 
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
         working-directory: internal/db
         env:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
+
+      - name: Migrate ClickHouse
+        run: goose up
+        env:
+          GOOSE_DRIVER: clickhouse
+          GOOSE_DBSTRING: "tcp://default:password@127.0.0.1:9000"
+          GOOSE_MIGRATION_DIR: ./internal/clickhouse/schema
 
       - name: Test
         run: pnpm vitest run -c vitest.integration.ts
@@ -42,6 +46,7 @@ jobs:
           DATABASE_HOST: localhost:3900
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
+          CLICKHOUSE_URL: http://default:password@localhost:8123
           TEST_LOCAL: true
 
       - name: Dump logs

@@ -6,6 +6,7 @@ import { MeteorLines } from "@/components/ui/meteorLines";
 import { ChangelogGridItem } from "@/components/changelog/changelog-grid-item";
 import { SideList } from "@/components/changelog/side-list";
 import { allChangelogs } from "content-collections";
+import { formatDate } from "date-fns";
 import { ArrowRight } from "lucide-react";
 type Props = {
   searchParams?: {
@@ -91,7 +92,12 @@ export default async function Changelogs(_props: Props) {
           <div className="flex flex-row mt-[5.5rem] gap-20 mb-20 w-full mx-auto">
             <div className="relative hidden w-72 lg:block">
               <div className="top-20 sticky">
-                <SideList logs={changelogs} className="" />
+                <SideList
+                  list={changelogs.map((c) => ({
+                    href: `/changelog#${c.slug}`,
+                    label: formatDate(c.date, "MMMM dd, yyyy"),
+                  }))}
+                />
               </div>
             </div>
             <div className="flex flex-col w-full sm:overflow-hidden">
@@ -117,7 +123,7 @@ export const metadata = {
     siteName: "unkey.com",
     images: [
       {
-        url: "https://unkey.com/og/changelog",
+        url: "https://unkey.com/og",
         width: 1200,
         height: 675,
       },

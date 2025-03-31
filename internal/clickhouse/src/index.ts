@@ -1,24 +1,71 @@
-import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from "./active_keys";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
-import { getLatestVerifications } from "./latest_verifications";
-import { getLogs } from "./logs";
 import {
+  getDailyActiveKeysTimeseries,
+  getFourHourlyActiveKeysTimeseries,
+  getHourlyActiveKeysTimeseries,
+  getMonthlyActiveKeysTimeseries,
+  getSixHourlyActiveKeysTimeseries,
+  getThreeDayActiveKeysTimeseries,
+  getTwelveHourlyActiveKeysTimeseries,
+  getTwoHourlyActiveKeysTimeseries,
+  getWeeklyActiveKeysTimeseries,
+} from "./keys/active_keys";
+import { getKeysOverviewLogs } from "./keys/keys";
+import { getLatestVerifications } from "./latest_verifications";
+import {
+  getDailyLogsTimeseries,
+  getFifteenMinuteLogsTimeseries,
+  getFiveMinuteLogsTimeseries,
+  getFourHourlyLogsTimeseries,
+  getHourlyLogsTimeseries,
+  getLogs,
+  getMinutelyLogsTimeseries,
+  getSixHourlyLogsTimeseries,
+  getThirtyMinuteLogsTimeseries,
+  getTwoHourlyLogsTimeseries,
+} from "./logs";
+import {
+  getDailyLatencyTimeseries,
+  getDailyRatelimitTimeseries,
+  getFifteenMinuteLatencyTimeseries,
+  getFifteenMinuteRatelimitTimeseries,
+  getFiveMinuteLatencyTimeseries,
+  getFiveMinuteRatelimitTimeseries,
+  getFourHourlyLatencyTimeseries,
+  getFourHourlyRatelimitTimeseries,
+  getHourlyLatencyTimeseries,
+  getHourlyRatelimitTimeseries,
+  getMinutelyLatencyTimeseries,
+  getMinutelyRatelimitTimeseries,
+  getMonthlyRatelimitTimeseries,
   getRatelimitLastUsed,
   getRatelimitLogs,
-  getRatelimitsPerDay,
-  getRatelimitsPerHour,
-  getRatelimitsPerMinute,
-  getRatelimitsPerMonth,
+  getRatelimitOverviewLogs,
+  getSixHourlyLatencyTimeseries,
+  getSixHourlyRatelimitTimeseries,
+  getThirtyMinuteLatencyTimeseries,
+  getThirtyMinuteRatelimitTimeseries,
+  getTwoHourlyLatencyTimeseries,
+  getTwoHourlyRatelimitTimeseries,
   insertRatelimit,
 } from "./ratelimits";
 import { insertApiRequest } from "./requests";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
+  getDailyVerificationTimeseries,
+  getFourHourlyVerificationTimeseries,
+  getHourlyVerificationTimeseries,
+  getMonthlyVerificationTimeseries,
+  getSixHourlyVerificationTimeseries,
+  getThreeDayVerificationTimeseries,
+  getTwelveHourlyVerificationTimeseries,
+  getTwoHourlyVerificationTimeseries,
   getVerificationsPerDay,
   getVerificationsPerHour,
   getVerificationsPerMonth,
+  getWeeklyVerificationTimeseries,
   insertVerification,
 } from "./verifications";
 
@@ -64,13 +111,28 @@ export class ClickHouse {
       perDay: getVerificationsPerDay(this.querier),
       perMonth: getVerificationsPerMonth(this.querier),
       latest: getLatestVerifications(this.querier),
-    };
-  }
-  public get activeKeys() {
-    return {
-      perHour: getActiveKeysPerHour(this.querier),
-      perDay: getActiveKeysPerDay(this.querier),
-      perMonth: getActiveKeysPerMonth(this.querier),
+      timeseries: {
+        perHour: getHourlyVerificationTimeseries(this.querier),
+        per2Hours: getTwoHourlyVerificationTimeseries(this.querier),
+        per4Hours: getFourHourlyVerificationTimeseries(this.querier),
+        per6Hours: getSixHourlyVerificationTimeseries(this.querier),
+        per12Hours: getTwelveHourlyVerificationTimeseries(this.querier),
+        perDay: getDailyVerificationTimeseries(this.querier),
+        per3Days: getThreeDayVerificationTimeseries(this.querier),
+        perWeek: getWeeklyVerificationTimeseries(this.querier),
+        perMonth: getMonthlyVerificationTimeseries(this.querier),
+      },
+      activeKeysTimeseries: {
+        perHour: getHourlyActiveKeysTimeseries(this.querier),
+        per2Hours: getTwoHourlyActiveKeysTimeseries(this.querier),
+        per4Hours: getFourHourlyActiveKeysTimeseries(this.querier),
+        per6Hours: getSixHourlyActiveKeysTimeseries(this.querier),
+        per12Hours: getTwelveHourlyActiveKeysTimeseries(this.querier),
+        perDay: getDailyActiveKeysTimeseries(this.querier),
+        per3Days: getThreeDayActiveKeysTimeseries(this.querier),
+        perWeek: getWeeklyActiveKeysTimeseries(this.querier),
+        perMonth: getMonthlyActiveKeysTimeseries(this.querier),
+      },
     };
   }
   public get ratelimits() {
@@ -78,10 +140,32 @@ export class ClickHouse {
       insert: insertRatelimit(this.inserter),
       logs: getRatelimitLogs(this.querier),
       latest: getRatelimitLastUsed(this.querier),
-      perMinute: getRatelimitsPerMinute(this.querier),
-      perHour: getRatelimitsPerHour(this.querier),
-      perDay: getRatelimitsPerDay(this.querier),
-      perMonth: getRatelimitsPerMonth(this.querier),
+      timeseries: {
+        perMinute: getMinutelyRatelimitTimeseries(this.querier),
+        per5Minutes: getFiveMinuteRatelimitTimeseries(this.querier),
+        per15Minutes: getFifteenMinuteRatelimitTimeseries(this.querier),
+        per30Minutes: getThirtyMinuteRatelimitTimeseries(this.querier),
+        perHour: getHourlyRatelimitTimeseries(this.querier),
+        per2Hours: getTwoHourlyRatelimitTimeseries(this.querier),
+        per4Hours: getFourHourlyRatelimitTimeseries(this.querier),
+        per6Hours: getSixHourlyRatelimitTimeseries(this.querier),
+        perDay: getDailyRatelimitTimeseries(this.querier),
+        perMonth: getMonthlyRatelimitTimeseries(this.querier),
+        latency: {
+          perMinute: getMinutelyLatencyTimeseries(this.querier),
+          per5Minutes: getFiveMinuteLatencyTimeseries(this.querier),
+          per15Minutes: getFifteenMinuteLatencyTimeseries(this.querier),
+          per30Minutes: getThirtyMinuteLatencyTimeseries(this.querier),
+          perHour: getHourlyLatencyTimeseries(this.querier),
+          per2Hours: getTwoHourlyLatencyTimeseries(this.querier),
+          per4Hours: getFourHourlyLatencyTimeseries(this.querier),
+          per6Hours: getSixHourlyLatencyTimeseries(this.querier),
+          perDay: getDailyLatencyTimeseries(this.querier),
+        },
+      },
+      overview: {
+        logs: getRatelimitOverviewLogs(this.querier),
+      },
     };
   }
   public get billing() {
@@ -94,6 +178,20 @@ export class ClickHouse {
     return {
       insert: insertApiRequest(this.inserter),
       logs: getLogs(this.querier),
+      keys: {
+        logs: getKeysOverviewLogs(this.querier),
+      },
+      timeseries: {
+        perMinute: getMinutelyLogsTimeseries(this.querier),
+        per5Minutes: getFiveMinuteLogsTimeseries(this.querier),
+        per15Minutes: getFifteenMinuteLogsTimeseries(this.querier),
+        per30Minutes: getThirtyMinuteLogsTimeseries(this.querier),
+        perHour: getHourlyLogsTimeseries(this.querier),
+        per2Hours: getTwoHourlyLogsTimeseries(this.querier),
+        per4Hours: getFourHourlyLogsTimeseries(this.querier),
+        per6Hours: getSixHourlyLogsTimeseries(this.querier),
+        perDay: getDailyLogsTimeseries(this.querier),
+      },
     };
   }
   public get business() {

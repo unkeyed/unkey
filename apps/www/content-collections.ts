@@ -49,10 +49,32 @@ const changelog = defineCollection({
   include: "*.mdx",
   schema: (z) => ({
     title: z.string(),
-    description: z.string(),
+    description: z.string().optional(),
     date: z.string(),
     tags: z.array(z.string()),
     image: z.string().optional(),
+  }),
+  transform: async (document, context) => {
+    const mdx = await compileMDX(context, document, {
+      remarkPlugins: [remarkGfm, remarkHeading, remarkStructure],
+    });
+    return {
+      ...document,
+      mdx,
+      slug: document._meta.path,
+    };
+  },
+});
+const careers = defineCollection({
+  name: "careers",
+  directory: "content/careers",
+  include: "*.mdx",
+  schema: (z) => ({
+    title: z.string(),
+    description: z.string(),
+    visible: z.boolean(),
+    // use a range
+    salary: z.string(),
   }),
   transform: async (document, context) => {
     const mdx = await compileMDX(context, document, {
@@ -72,28 +94,6 @@ const policy = defineCollection({
   include: "*.mdx",
   schema: (z) => ({
     title: z.string(),
-  }),
-  transform: async (document, context) => {
-    const mdx = await compileMDX(context, document, {
-      remarkPlugins: [remarkGfm, remarkHeading, remarkStructure],
-    });
-    return {
-      ...document,
-      mdx,
-      slug: document._meta.path,
-    };
-  },
-});
-
-const job = defineCollection({
-  name: "job",
-  directory: "content/jobs",
-  include: "*.mdx",
-  schema: (z) => ({
-    title: z.string(),
-    description: z.string(),
-    visible: z.boolean(),
-    salary: z.string(),
   }),
   transform: async (document, context) => {
     const mdx = await compileMDX(context, document, {
@@ -156,5 +156,5 @@ const glossary = defineCollection({
 });
 
 export default defineConfig({
-  collections: [posts, changelog, policy, job, glossary],
+  collections: [posts, changelog, policy, careers, glossary],
 });

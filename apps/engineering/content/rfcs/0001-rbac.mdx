@@ -1,0 +1,86 @@
+---
+title: 0001 RBAC
+authors:
+  - Andreas Thomas
+date: 2023-12-12
+---
+
+
+To reduce the scope and time to implementation, we will be reducing our initial permission model to RBAC instead of ReBAC. This has fewer moving parts and can be implemented with just 1 new table.
+
+There are many ways to store this data. Initially I had a 2 table setup, one for roles and one for an M:N relation between roles and keys, but there are some operational issues with that, mainly around planetscale’s foreignkeys and the lack of an easy “upsert” method. This requires us to query all roles of a workspace, then figuring out which ones are missing and creating them. For every key creation… That’s not amazing.
+
+Here’s a much simpler proposal using a single table:
+
+### Table Schema
+
+- `id`
+
+  unique id for this row
+
+- `workspaceId`
+
+    Every role is scoped to a workspace, no role sharing between tenants
+
+- `keyId`
+
+    The key holding this role
+
+- `role: string`
+
+    the actual name of a role, ie: `finance` (or more elaborate, see below)
+    This is completely up to the user, the only limitation is a length ≤ 512chars
+
+    for our own roles, we’ll likely do some schema for roles, like `api::{id}::create_key`
+
+
+This single table design is the simplest form of doing roles. By adding indices for these queries, it should scale far enough:
+
+- roles by key
+- roles by workspace
+- keys by role
+
+### Unkey internal role schema
+
+`*` denotes either an id or a wildcard
+
+```tsx
+root_key::*::read_root_key
+root_key::*::create_root_key // a root key MUST NOT be allowed to create another key with more permissions than itself
+root_key::*::delete_root_key
+root_key::*::update_root_key
+api::*::create_api
+api::*::delete_api // either wildcard or a specific id -> api::api_123::delete_api
+api::*::read_api
+api::*::update_api
+api::*::read_key
+api::*::create_key
+api::*::update_key
+api::*::delete_key
+```
+
+Some of these internal roles (`api::*::create_api`) seem overly complicated, because the wildcard will always be present, since it’s impossible to write this role in advance without knowing the api_id that will get generated later, but by sticking with this schema, we stay consistent and can build our types and tooling more easily.
+
+We could go deeper like `api::*::keys::*::read_key` but I’m not convinced anyone needs this and it just adds complexity for now. It’s trivial to add more roles later, let’s wait it out.
+
+### Examples
+
+1. A key should be allowed to create new apis, modify them and be able to perform all actions on keys.
+
+```tsx
+api::*::create_api
+api::*::update_api
+api::*::read_key
+api::*::create_key
+api::*::update_key
+api::*::delete_key
+```
+
+2. Update access to one api and its keys, read access to all apis and their keys
+
+```tsx
+api::api_123::update
+api::api_123::update_key
+api::*::read_api
+api::*::read_key
+```

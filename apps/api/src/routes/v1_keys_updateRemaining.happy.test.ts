@@ -22,7 +22,7 @@ test("increment", async (t) => {
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     remaining: 100,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(key);
 
@@ -55,7 +55,7 @@ test("decrement", async (t) => {
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     remaining: 100,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(key);
   const root = await h.createRootKey(["api.*.update_key"]);
@@ -88,7 +88,7 @@ test("set", async (t) => {
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     remaining: 100,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(key);
   const root = await h.createRootKey(["api.*.update_key"]);
@@ -121,7 +121,7 @@ test("invalid operation", async (t) => {
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     remaining: 100,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(key);
   const root = await h.createRootKey(["api.*.update_key"]);

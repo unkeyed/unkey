@@ -1,7 +1,5 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -21,9 +19,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
@@ -60,9 +60,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const deleteApi = trpc.api.delete.useMutation({
     async onSuccess() {
       toast.message("API Deleted", {
-        description: `Your API and ${Intl.NumberFormat(undefined).format(
-          keys,
-        )} keys have been deleted.`,
+        description: `Your API and ${formatNumber(keys)} keys have been deleted.`,
       });
 
       await revalidate();
@@ -107,7 +105,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
             type="button"
             disabled={!!api.deleteProtection}
             onClick={() => setOpen(!open)}
-            variant="alert"
+            variant="destructive"
           >
             Delete API
           </Button>
@@ -123,8 +121,8 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           <DialogHeader>
             <DialogTitle>Delete API</DialogTitle>
             <DialogDescription>
-              This API will be deleted, along with ${Intl.NumberFormat(undefined).format(keys)}{" "}
-              keys. This action cannot be undone.
+              This API will be deleted, along with ${formatNumber(keys)} keys. This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -173,20 +171,16 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
               />
 
               <DialogFooter className="justify-end gap-4">
-                <Button
-                  type="button"
-                  disabled={deleteApi.isLoading}
-                  onClick={() => setOpen(!open)}
-                  variant="secondary"
-                >
+                <Button type="button" disabled={deleteApi.isLoading} onClick={() => setOpen(!open)}>
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  variant={isValid ? "alert" : "disabled"}
+                  variant="destructive"
+                  loading={deleteApi.isLoading}
                   disabled={!isValid || deleteApi.isLoading}
                 >
-                  {deleteApi.isLoading ? <Loading /> : "Delete API"}
+                  Delete API
                 </Button>
               </DialogFooter>
             </form>

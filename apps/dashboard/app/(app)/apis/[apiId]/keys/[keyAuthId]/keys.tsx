@@ -1,10 +1,11 @@
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import BackButton from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
-import { ChevronRight, Scan, User, VenetianMask } from "lucide-react";
+import { formatNumber } from "@/lib/fmt";
+import { Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
+import { ChevronRight, User, VenetianMask } from "lucide-react";
 import Link from "next/link";
 
 type Props = {
@@ -17,17 +18,30 @@ export const dynamic = "force-dynamic";
 export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
   const keys = await db.query.keys.findMany({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.keyAuthId, keyAuthId), isNull(table.deletedAt)),
+      and(eq(table.keyAuthId, keyAuthId), isNull(table.deletedAtM)),
     limit: 100,
     with: {
-      roles: true,
+      identity: {
+        columns: {
+          externalId: true,
+        },
+      },
+      roles: {
+        with: {
+          role: {
+            with: {
+              permissions: true,
+            },
+          },
+        },
+      },
       permissions: true,
     },
   });
 
-  const nullOwnerId = "UNKEY_NULL_OWNER_ID";
+  const nullExternalId = "UNKEY_NULL_OWNER_ID";
   type KeysByOwnerId = {
-    [ownerId: string]: {
+    [externalId: string]: {
       id: string;
       keyAuthId: string;
       name: string | null;
@@ -38,19 +52,25 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
       environment: string | null;
     }[];
   };
-  const keysByOwnerId = keys.reduce((acc, curr) => {
-    const ownerId = curr.ownerId ?? nullOwnerId;
-    if (!acc[ownerId]) {
-      acc[ownerId] = [];
+  const keysByExternalId = keys.reduce((acc, curr) => {
+    const externalId = curr.identity?.externalId ?? curr.ownerId ?? nullExternalId;
+    if (!acc[externalId]) {
+      acc[externalId] = [];
     }
-    acc[ownerId].push({
+    const permissions = new Set(curr.permissions.map((p) => p.permissionId));
+    for (const role of curr.roles) {
+      for (const permission of role.role.permissions) {
+        permissions.add(permission.permissionId);
+      }
+    }
+    acc[externalId].push({
       id: curr.id,
       keyAuthId: curr.keyAuthId,
       name: curr.name,
       start: curr.start,
       roles: curr.roles.length,
       enabled: curr.enabled,
-      permissions: curr.permissions.length,
+      permissions: permissions.size,
       environment: curr.environment,
     });
     return acc;
@@ -59,24 +79,22 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
   return (
     <div className="flex flex-col gap-8 mb-20 ">
       {keys.length === 0 ? (
-        <EmptyPlaceholder>
-          <EmptyPlaceholder.Icon>
-            <Scan />
-          </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No keys found</EmptyPlaceholder.Title>
-          <EmptyPlaceholder.Description>Create your first key</EmptyPlaceholder.Description>
-          <div className="flex flex-row">
+        <Empty>
+          <Empty.Icon />
+          <Empty.Title>No keys found</Empty.Title>
+          <Empty.Description>Create your first key</Empty.Description>
+          <Empty.Actions>
             <CreateKeyButton apiId={apiId} keyAuthId={keyAuthId!} />
             <BackButton className="ml-4">Go Back</BackButton>
-          </div>
+          </Empty.Actions>
 
           {/* <CreateNewRole trigger={<Button variant="primary">Create New Role</Button>} /> */}
-        </EmptyPlaceholder>
+        </Empty>
       ) : (
-        Object.entries(keysByOwnerId).map(([ownerId, ks]) => (
+        Object.entries(keysByExternalId).map(([externalId, ks]) => (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1">
-              {ownerId === nullOwnerId ? (
+              {externalId === nullExternalId ? (
                 <div className="flex items-center justify-between gap-2 text-xs font-medium ph-no-capture">
                   <VenetianMask className="w-4 h-4 text-content" />
                   Without OwnerID
@@ -91,7 +109,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
                   className="flex items-center justify-between gap-2 text-xs font-medium ph-no-capture"
                 >
                   <User className="w-4 h-4 text-content" />
-                  {ownerId}
+                  {externalId}
                 </div>
               )}
             </div>
@@ -113,13 +131,12 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
 
                   <div className="flex items-center col-span-3 gap-2">
                     <Badge variant="secondary">
-                      {Intl.NumberFormat(undefined, { notation: "compact" }).format(k.permissions)}{" "}
-                      Permission
+                      {formatNumber(k.permissions)} Permission
                       {k.permissions !== 1 ? "s" : ""}
                     </Badge>
 
                     <Badge variant="secondary">
-                      {Intl.NumberFormat(undefined, { notation: "compact" }).format(k.roles)} Role
+                      {formatNumber(k.roles)} Role
                       {k.roles !== 1 ? "s" : ""}
                     </Badge>
 

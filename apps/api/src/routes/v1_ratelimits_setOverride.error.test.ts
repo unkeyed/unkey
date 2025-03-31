@@ -41,7 +41,7 @@ test("Missing Namespace", async (t) => {
     error: {
       code: "NOT_FOUND",
       docs: "https://unkey.dev/docs/api-reference/errors/code/NOT_FOUND",
-      message: "Namespace not found",
+      message: `Namespace ${namespaceId} not found`,
     },
   });
 });
@@ -60,7 +60,7 @@ test("Empty Identifier string", async (t) => {
     id: namespaceId,
     workspaceId: h.resources.userWorkspace.id,
     name: randomUUID(),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
 
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);

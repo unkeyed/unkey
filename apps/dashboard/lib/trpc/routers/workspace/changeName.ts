@@ -1,11 +1,12 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { auth as authClient } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
-import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const changeWorkspaceName = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: z.string().min(3, "workspace names must contain at least 3 characters"),
@@ -13,21 +14,6 @@ export const changeWorkspaceName = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const ws = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
-        });
-      });
-    if (!ws || ws.tenantId !== ctx.tenant.id) {
-      throw new Error("Workspace not found, Please sign back in and try again");
-    }
     await db
       .transaction(async (tx) => {
         await tx
@@ -44,14 +30,14 @@ export const changeWorkspaceName = t.procedure
             });
           });
         await insertAuditLogs(tx, {
-          workspaceId: ws.id,
+          workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "workspace.update",
-          description: `Changed name from ${ws.name} to ${input.name}`,
+          description: `Changed name from ${ctx.workspace.name} to ${input.name}`,
           resources: [
             {
               type: "workspace",
-              id: ws.id,
+              id: ctx.workspace.id,
             },
           ],
           context: {
@@ -60,11 +46,10 @@ export const changeWorkspaceName = t.procedure
           },
         });
 
-        if (ctx.tenant.id.startsWith("org_")) {
-          await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
-            name: input.name,
-          });
-        }
+        await authClient.updateOrg({
+          id: ctx.tenant.id,
+          name: input.name,
+        });
       })
       .catch((_err) => {
         throw new TRPCError({

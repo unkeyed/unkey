@@ -9,7 +9,6 @@ import (
 	"runtime/debug"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
@@ -22,11 +21,9 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/profiling"
 	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 	"github.com/unkeyed/unkey/apps/agent/pkg/version"
-	"github.com/unkeyed/unkey/apps/agent/services/eventrouter"
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
@@ -242,25 +239,6 @@ func run(c *cli.Context) error {
 	})
 	if err != nil {
 		return err
-	}
-
-	if cfg.Services.EventRouter != nil {
-		var er *eventrouter.Service
-		er, err = eventrouter.New(eventrouter.Config{
-			Logger:        logger,
-			Metrics:       m,
-			BatchSize:     cfg.Services.EventRouter.Tinybird.BatchSize,
-			BufferSize:    cfg.Services.EventRouter.Tinybird.BufferSize,
-			FlushInterval: time.Duration(cfg.Services.EventRouter.Tinybird.FlushInterval) * time.Second,
-			Tinybird:      tinybird.New("https://api.tinybird.co", cfg.Services.EventRouter.Tinybird.Token),
-			Clickhouse:    ch,
-			AuthToken:     cfg.AuthToken,
-		})
-		if err != nil {
-			return err
-		}
-		srv.WithEventRouter(er)
-
 	}
 
 	connectSrv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image, Metrics: m})

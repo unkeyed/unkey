@@ -1,6 +1,6 @@
 {
   "name": "@unkey/nextjs",
-  "version": "0.18.1",
+  "version": "0.18.8",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "MIT",
@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
-    "next": "^14.2.10",
+    "next": "14.2.15",
     "tsup": "^8.0.2",
     "typescript": "^5.5.3"
   },

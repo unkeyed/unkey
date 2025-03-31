@@ -44,7 +44,7 @@ export class DurableObjectUsagelimiter implements DurableObject {
 
         this.key = await this.db.query.keys.findFirst({
           where: (table, { and, eq, isNull }) =>
-            and(eq(table.id, req.keyId), isNull(table.deletedAt)),
+            and(eq(table.id, req.keyId), isNull(table.deletedAtM)),
         });
         this.lastRevalidate = Date.now();
         return Response.json({});
@@ -54,7 +54,7 @@ export class DurableObjectUsagelimiter implements DurableObject {
         if (!this.key) {
           this.key = await this.db.query.keys.findFirst({
             where: (table, { and, eq, isNull }) =>
-              and(eq(table.id, req.keyId), isNull(table.deletedAt)),
+              and(eq(table.id, req.keyId), isNull(table.deletedAtM)),
           });
           this.lastRevalidate = Date.now();
         }
@@ -75,19 +75,19 @@ export class DurableObjectUsagelimiter implements DurableObject {
           });
         }
 
-        if (this.key.remaining <= 0) {
+        if (this.key.remaining <= 0 && req.cost !== 0) {
           return Response.json({
             valid: false,
             remaining: 0,
           });
         }
 
-        this.key.remaining = Math.max(0, this.key.remaining - 1);
+        this.key.remaining = Math.max(0, this.key.remaining - req.cost);
 
         this.state.waitUntil(
           this.db
             .update(schema.keys)
-            .set({ remaining: sql`${schema.keys.remaining}-1` })
+            .set({ remaining: sql`${schema.keys.remaining}-${req.cost}` })
             .where(
               and(
                 eq(schema.keys.id, this.key.id),
@@ -103,7 +103,7 @@ export class DurableObjectUsagelimiter implements DurableObject {
             this.db.query.keys
               .findFirst({
                 where: (table, { and, eq, isNull }) =>
-                  and(eq(table.id, req.keyId), isNull(table.deletedAt)),
+                  and(eq(table.id, req.keyId), isNull(table.deletedAtM)),
               })
               .execute()
               .then((key) => {

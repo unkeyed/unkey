@@ -19,7 +19,7 @@ test("deletes override", async (t) => {
   const namespace = {
     id: namespaceId,
     workspaceId: h.resources.userWorkspace.id,
-    createdAt: new Date(),
+    createdAtM: Date.now(),
     name: newId("test"),
   };
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
@@ -50,7 +50,7 @@ test("deletes override", async (t) => {
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.primary.query.ratelimitOverrides.findFirst({
-    where: (table, { eq, and }) => and(eq(table.id, overrideId), isNull(table.deletedAt)),
+    where: (table, { eq, and }) => and(eq(table.id, overrideId), isNull(table.deletedAtM)),
   });
   expect(found).toBeUndefined();
 });

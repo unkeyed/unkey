@@ -18,7 +18,7 @@ test("returns 200", async (t) => {
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
-    createdAt: new Date(),
+    createdAtM: Date.now(),
   };
   await h.db.primary.insert(schema.keys).values(key);
 
@@ -35,7 +35,7 @@ test("returns 200", async (t) => {
   expect(res.body.workspaceId).toEqual(key.workspaceId);
   expect(res.body.name).toEqual(key.name);
   expect(res.body.start).toEqual(key.start);
-  expect(res.body.createdAt).toEqual(key.createdAt.getTime());
+  expect(res.body.createdAt).toEqual(key.createdAtM);
 });
 
 test("returns identity", async (t) => {

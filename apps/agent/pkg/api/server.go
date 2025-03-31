@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/validation"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
-	"github.com/unkeyed/unkey/apps/agent/services/eventrouter"
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
 )
@@ -92,15 +91,6 @@ func New(config Config) (*Server, error) {
 	s.srv.Handler = withMetrics(withTracing(withRequestId(s.mux)))
 
 	return s, nil
-}
-
-func (s *Server) WithEventRouter(svc *eventrouter.Service) {
-	s.Lock()
-	defer s.Unlock()
-
-	pattern, handlerFunc := svc.CreateHandler()
-
-	s.mux.HandleFunc(pattern, handlerFunc)
 }
 
 // Calling this function multiple times will have no effect.

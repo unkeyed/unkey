@@ -1,0 +1,299 @@
+---
+title: 0007 Client-side file structure
+description: File structure for our client apps
+date: 2024-12-20
+authors:
+  - Oguzhan Olguncu
+---
+
+## Executive Summary
+This RFC proposes restructuring our client components from their current flat organization into a feature-based architecture, grouping related components, hooks, and utilities within feature-specific directories. Each Next.js page will be treated as a distinct feature module, ensuring clear boundaries and colocation of related code. The migration can be implemented incrementally, with each feature module being refactored independently without disrupting ongoing development.
+
+Key benefits include:
+
+- Improved developer onboarding through intuitive code organization
+- Reduced coupling between features
+- Faster feature development through clear patterns and conventions
+- Better code maintainability through consistent structure
+- Easier code reviews through predictable file locations
+- **Standardized contribution patterns for our open source community**
+
+## Problem Statement
+### Current Situation
+Our Next.js application's flat directory structure has led to several challenges:
+
+1. Related code is scattered across different directories, making it difficult to understand feature boundaries
+2. New team members spend excessive time locating relevant components and understanding relationships
+3. Lack of consistent patterns leads to inconsistent implementations
+4. Code reuse is hindered by poor discoverability of existing components
+5. Utilities often end up far from the components they support
+
+
+A critical issue in our open-source project is the lack of standardized patterns. Currently:
+
+- Different contributors implement features using their own organizational preferences because they don't know our pattern.
+- This creates inconsistency across the codebase
+- Code reviews take longer as reviewers need to understand each contributor's unique approach
+- New contributors lack clear examples to follow
+- Integration of community contributions requires significant refactoring
+
+For example, our `/authorization` page demonstrates these issues...
+
+```bash
+├── authorization/
+│   ├── permissions/
+│   │   ├── [permissionId]/
+│   │   │   ├── client.tsx
+│   │   │   ├── delete-permission.tsx
+│   │   │   └── page.tsx
+│   │   ├── create-new-permission.tsx
+│   │   └── page.tsx
+│   └── roles/
+│       ├── [roleId]/
+│       │   ├── delete-role.tsx
+│       │   ├── page.tsx
+│       │   ├── permission-toggle.tsx
+│       │   ├── tree.tsx
+│       │   └── update-role.tsx
+│       ├── create-new-role.tsx
+│       └── page.tsx
+├── constants.ts
+└── layout.tsx
+```
+We could turn this into this:
+
+```bash
+├── authorization/
+│   ├── permissions/
+│   │   ├── [permissionId]/
+│   │   │   ├── components/
+│   │   │   │   └── permission-details.tsx
+│   │   │   ├── actions/
+│   │   │   │   └── delete-permission.ts
+│   │   │   ├── hooks/                     # Page-specific query hooks
+│   │   │   │   └── use-permission.ts      # Single permission queries
+│   │   │   └── page.tsx
+│   │   ├── components/
+│   │   │   ├── create-new-permission/
+│   │   │   │   ├── index.tsx
+│   │   │   │   └── permission-form.tsx
+│   │   ├── schemas/                       # New validation schemas folder
+│   │   │   ├── permission-form.schema.ts  # .schema or -schema suffix are both fine.
+│   │   │   └── permission.schema.ts
+│   │   ├── types/
+│   │   │   └── permission.ts
+│   │   ├── utils/
+│   │   │   └── permission-validator.ts
+│   │   ├── hooks/
+│   │   │   ├── use-permission-form.ts
+│   │   │   └── queries/                   # Shared permission query hooks
+│   │   │       ├── use-permissions-list.ts
+│   │   │       ├── use-create-permission.ts
+│   │   │       └── use-update-permission.ts
+│   │   ├── constants.ts                   # Permission wide constants
+│   │   └── page.tsx
+├── constants/
+│   └── shared.ts                          # Authorization wide constants
+```
+
+And, actual page files will look like this. Note this is audit component refactored from this [Old Audit Page](https://github.com/unkeyed/unkey/blob/46878c232b3e57372f43141816e508f63c6570fd/apps/dashboard/app/(app)/audit/%5Bbucket%5D/page.tsx) to this:
+```ts
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
+import { getOrgId } from "@/lib/auth";
+import { InputSearch } from "@unkey/icons";
+import { type SearchParams, getWorkspace, parseFilterParams } from "./actions";
+import { Filters } from "./components/filters";
+import { AuditLogTableClient } from "./components/table/audit-log-table-client";
+
+type Props = {
+  params: {
+    bucket: string;
+  };
+  searchParams: SearchParams;
+};
+
+export default async function AuditPage(props: Props) {
+  const orgId = await getOrgId();
+  const workspace = await getWorkspace(orgId);
+  const parsedParams = parseFilterParams({
+    ...props.searchParams,
+    bucket: props.params.bucket,
+  });
+
+  return (
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<InputSearch />}>
+          <Navbar.Breadcrumbs.Link href="/audit/unkey_mutations">Audit</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/audit/${props.params.bucket}`} active isIdentifier>
+            {workspace.ratelimitNamespaces.find((ratelimit) => ratelimit.id === props.params.bucket)
+              ?.name ?? props.params.bucket}
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <main className="mb-5">
+          <Filters workspace={workspace} parsedParams={parsedParams} bucket={parsedParams.bucket} />
+          <AuditLogTableClient />
+        </main>
+      </PageContent>
+    </div>
+  );
+}
+```
+Contributors and our team will be able to easily locate functions and components, and get a general feel for the component immediately.
+
+
+### Impact
+This problem affects multiple stakeholders in our ecosystem:
+
+Developer Community:
+- Open source contributors face a learning curve when trying to understand where to place new code
+- Community developers spend extra time in code review discussions about file organization rather than functionality
+- First-time contributors often need multiple revision cycles just to match project structure
+
+Core Team:
+- Maintainers spend significant time providing structural guidance in PRs
+- Code review efficiency is reduced by inconsistent file organization
+- Integration of community contributions requires extra refactoring effort
+
+End Users:
+- Feature delivery is slowed by organizational overhead
+- Bug fixes take longer as developers navigate inconsistent structures
+- New features may be delayed due to time spent on structural debates
+
+### Motivation
+Solving this organizational challenge is critical for several reasons:
+
+Project Scalability:
+- As our project grows, the cost of inconsistent structure compounds
+- More contributors means more potential for divergent patterns
+- Larger features become increasingly difficult to maintain without clear boundaries
+
+Community Growth:
+- Clear conventions lower the barrier to entry for new contributors
+- Standardized patterns help contributors focus on value-add features rather than structure
+- Predictable organization improves documentation and knowledge sharing
+
+Development Velocity:
+- Consistent patterns reduce cognitive load during development
+- Feature implementation time decreases as conventions become second nature
+- Code reviews can focus on logic and functionality rather than organization
+- Faster onboarding for new contributors who can follow established patterns
+
+Code Quality:
+- Well-organized code is easier to test and maintain
+- Clear boundaries prevent unwanted coupling between features
+- Consistent structure makes it easier to identify and fix architectural issues
+
+
+## Proposed Solution
+### Overview
+We propose implementing a feature-based architecture where each distinct feature (Next.js page) is treated as a self-contained module with its own component hierarchy. The structure follows these key principles:
+
+1. Feature Isolation
+   - Each feature (page) gets its own directory
+   - All related components, hooks, and utilities live within the feature directory
+   - Shared code is clearly separated from feature-specific code
+
+2. Consistent Internal Structure
+   Each feature directory follows a standard organization:
+   - `/components`: Feature-specific React components
+   - `/hooks`: Custom hooks for the feature
+   - `/actions`: Server actions and API calls
+   - `/types`: Types and interfaces
+   - `/schemas`: Zod schemas
+   - `/utils`: Helper functions and utilities
+   - `/constants`: Feature-specific constants
+
+3. Clear Dependencies
+   - Shared components live in a global `@components` or `/components` directory
+   - Feature-specific components shouldn't be imported by other features
+   - Common utilities, types and components are placed in root-level shared directories
+
+As demonstrated in the example of the `/authorization` feature above.
+
+
+## Alternatives Considered
+
+### Alternative 1: Features folders
+#### Description
+A simpler feature-based structure where all features are in a `/features` directory:
+
+```bash
+├── features/
+│   ├── authorization/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   └── utils/
+│   ├── audit/
+│   └── billing/
+├── shared/
+│   ├── components/
+│   └── utils/
+└── pages/
+```
+
+#### Pros
+- Clear separation between features and shared code
+- Simpler top-level organization
+- Common pattern in React applications
+- Less nesting compared to proposed solution
+- Easier to colocate tRPC and page related code
+
+#### Cons
+- More difficult to colocate route-specific code
+- Less granular organization within features
+- Harder to implement incrementally
+- Mixing of page-specific and feature-wide code
+
+#### Why we didn't choose this
+Going from what we have to this one is really hard to do incrementally.
+
+### Alternative 2: Flat structure (current)
+#### Description
+Our current flat structure where files are organized by type:
+
+#### Pros
+- Simple to understand
+- No complicated nesting
+- Easier to move components between features
+
+#### Cons
+- Related code is scattered
+- No clear feature boundaries
+- Poor scalability as app grows
+- Difficult to understand feature scope
+- Hard for new contributors to know where to put things
+- Mixed responsibilities in directories
+- No clear ownership of code
+- Harder to refactor single features
+- OSS contributors tend to put files in random places
+
+#### Why we didn't choose this
+The flat structure has proven problematic as our project grows and receives more open source contributions. The lack of clear conventions leads to inconsistent implementations and makes it harder for new contributors to understand where their code should go. The proposed solution provides clearer boundaries and better guides contributors toward consistent patterns.
+
+## Future Work
+After implementing the initial structure, we can gradually move towards a more framework-agnostic `/features` organization:
+- Move framework-independent code (components, hooks, utils) into `/features`
+- Keep Next.js specific files (page.tsx, loading.tsx, error.tsx) in the App Router structure
+- This separation will make our codebase more portable
+
+
+## Questions and Discussion Topics
+- Are there too many levels of nesting in the proposed structure?
+- Maybe we should adopt Remix.js-style suffixes for better clarity? Examples:
+    - `.type.ts` for type definitions
+    - `.schema.ts` for validation schemas
+    - `.client.tsx` for client-specific components
+    - `.server.ts` for server-only code
+    - `.action.ts` for server actions
+
+
+---
+## Document History
+
+| Version | Date | Description | Author |
+|---------|------|-------------|---------|
+| 0.1 | 2024-12-20 | Initial draft | @Oz |

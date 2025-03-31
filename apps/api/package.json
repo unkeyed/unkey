@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "build": "tsc",
@@ -17,8 +17,8 @@
     "@unkey/tsconfig": "workspace:^",
     "@vitest/ui": "^1.6.0",
     "typescript": "^5.5.3",
-    "vitest": "^1.6.0",
-    "wrangler": "^3.80.5"
+    "vitest": "^1.6.1",
+    "wrangler": "^3.92.0"
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
@@ -37,6 +37,7 @@
     "@unkey/metrics": "workspace:^",
     "@unkey/rbac": "workspace:^",
     "@unkey/schema": "workspace:^",
+    "@unkey/validation": "workspace:^",
     "@unkey/worker-logging": "workspace:^",
     "hono": "^4.6.3",
     "superjson": "^2.2.1",

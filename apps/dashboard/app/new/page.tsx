@@ -1,10 +1,11 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { insertAuditLogs } from "@/lib/audit";
+import { auth } from "@/lib/auth/server";
 import { db, schema } from "@/lib/db";
-import { auth } from "@clerk/nextjs";
+import { freeTierQuotas } from "@/lib/quotas";
 import { newId } from "@unkey/id";
+import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -13,6 +14,8 @@ import { CreateApi } from "./create-api";
 import { CreateRatelimit } from "./create-ratelimit";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
+
+export const dynamic = "force-dynamic";
 
 type Props = {
   searchParams: {
@@ -23,8 +26,27 @@ type Props = {
   };
 };
 
+function getBaseUrl() {
+  if (typeof window !== "undefined") {
+    // browser should use relative path
+    return "";
+  }
+
+  if (process.env.VERCEL_URL) {
+    // reference for vercel.com
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  // assume localhost
+  return `http://localhost:${process.env.PORT ?? 3000}`;
+}
+
 export default async function (props: Props) {
-  const { userId } = auth();
+  const user = await auth.getCurrentUser();
+  // make typescript happy
+  if (!user) {
+    return redirect("/auth/sign-in");
+  }
 
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({
@@ -58,7 +80,7 @@ export default async function (props: Props) {
   if (props.searchParams.workspaceId && !props.searchParams.product) {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAt)),
+        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
     });
     if (!workspace) {
       return redirect("/new");
@@ -131,7 +153,7 @@ export default async function (props: Props) {
   if (props.searchParams.product === "keys") {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAt)),
+        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
     });
     if (!workspace) {
       return redirect("/new");
@@ -161,7 +183,7 @@ export default async function (props: Props) {
   if (props.searchParams.product === "ratelimit") {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAt)),
+        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
     });
     if (!workspace) {
       return redirect("/new");
@@ -184,56 +206,9 @@ export default async function (props: Props) {
 
         <Separator className="my-8" />
 
-        <CreateRatelimit />
+        <CreateRatelimit workspace={workspace} />
       </div>
     );
-  }
-  if (userId) {
-    const personalWorkspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, userId), isNull(table.deletedAt)),
-    });
-
-    // if no personal workspace exists, we create one
-    if (!personalWorkspace) {
-      const workspaceId = newId("workspace");
-      await db.transaction(async (tx) => {
-        await tx.insert(schema.workspaces).values({
-          id: workspaceId,
-          tenantId: userId,
-          name: "Personal",
-          plan: "free",
-          stripeCustomerId: null,
-          stripeSubscriptionId: null,
-          features: {},
-          betaFeatures: {},
-          subscriptions: null,
-          createdAt: new Date(),
-        });
-        await insertAuditLogs(tx, {
-          workspaceId: workspaceId,
-          event: "workspace.create",
-          actor: {
-            type: "user",
-            id: userId,
-          },
-          description: `Created ${workspaceId}`,
-          resources: [
-            {
-              type: "workspace",
-              id: workspaceId,
-            },
-          ],
-
-          context: {
-            userAgent: headers().get("user-agent") ?? undefined,
-            location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
-          },
-        });
-      });
-
-      return redirect(`/new?workspaceId=${workspaceId}`);
-    }
   }
 
   return (

@@ -34,6 +34,7 @@ export function defaultProSubscriptions(): Subscriptions | null {
   if (!env.success) {
     return null;
   }
+
   return {
     plan: {
       productId: env.data.STRIPE_PRODUCT_ID_PRO_PLAN,

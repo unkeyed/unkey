@@ -6,7 +6,14 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
 import { DatabaseError } from "@planetscale/database";
-import { type EncryptedKey, type Key, type KeyPermission, type KeyRole, schema } from "@unkey/db";
+import {
+  type InsertEncryptedKey,
+  type InsertIdentity,
+  type InsertKey,
+  type InsertKeyPermission,
+  type InsertKeyRole,
+  schema,
+} from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -67,13 +74,18 @@ The underscore is automatically added if you are defining a prefix, for example:
                     "The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.",
                   example: "unkey_32kq",
                 }),
-                ownerId: z
+                ownerId: z.string().optional().openapi({
+                  description: "Deprecated, use `externalId`",
+                  example: "team_123",
+                  deprecated: true,
+                }),
+                externalId: z
                   .string()
                   .optional()
                   .openapi({
                     description: `Your user’s Id. This will provide a link between Unkey and your customer record.
 When validating a key, we will return this back to you, so you can clearly identify your user from their api key.`,
-                    example: "team_123",
+                    example: "user_123",
                   }),
                 meta: z
                   .record(z.unknown())
@@ -304,10 +316,11 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
       }
     }
 
-    const keys: Array<Key> = [];
-    const encryptedKeys: Array<EncryptedKey> = [];
-    const roleConnections: Array<KeyRole> = [];
-    const permissionConnections: Array<KeyPermission> = [];
+    const createIdentities: Array<InsertIdentity> = [];
+    const keys: Array<InsertKey> = [];
+    const encryptedKeys: Array<InsertEncryptedKey> = [];
+    const roleConnections: Array<InsertKeyRole> = [];
+    const permissionConnections: Array<InsertKeyPermission> = [];
 
     const requestWithKeyIds = req.map((r) => ({
       ...r,
@@ -350,7 +363,11 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           return (
             (await db.readonly.query.apis.findFirst({
               where: (table, { eq, and, isNull }) =>
-                and(eq(table.id, key.apiId), isNull(table.deletedAt)),
+                and(
+                  eq(table.workspaceId, authorizedWorkspaceId),
+                  eq(table.id, key.apiId),
+                  isNull(table.deletedAtM),
+                ),
               with: {
                 keyAuth: true,
               },
@@ -397,6 +414,43 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             message: "when interval is set to 'daily', 'refillDay' must be null.",
           });
         }
+
+        let identityId: string | null = null;
+        if (key.externalId) {
+          const identity = await cache.identityByExternalId.swr(
+            key.externalId,
+            async (externalId) => {
+              return await db.readonly.query.identities.findFirst({
+                where: (table, { eq, and }) =>
+                  and(
+                    eq(table.workspaceId, authorizedWorkspaceId),
+                    eq(table.externalId, externalId),
+                  ),
+              });
+            },
+          );
+          if (identity.err) {
+            throw new UnkeyApiError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: `unable to load identity: ${identity.err.message}`,
+            });
+          }
+          if (identity.val) {
+            identityId = identity.val.id;
+          } else {
+            identityId = newId("identity");
+            createIdentities.push({
+              id: identityId,
+              externalId: key.externalId,
+              workspaceId: authorizedWorkspaceId,
+              createdAt: Date.now(),
+              updatedAt: null,
+              meta: null,
+              environment: "default",
+            });
+          }
+        }
+
         /**
          * Set up an api for production
          */
@@ -410,25 +464,22 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           hash: hash,
           start: key.start ?? key.plaintext?.slice(0, 4) ?? "",
           ownerId: key.ownerId ?? null,
-          identityId: null,
+          identityId,
           meta: key.meta ? JSON.stringify(key.meta) : null,
           workspaceId: authorizedWorkspaceId,
           forWorkspaceId: null,
           expires: key.expires ? new Date(key.expires) : null,
-          createdAt: new Date(),
           ratelimitAsync: key.ratelimit?.async ?? key.ratelimit?.type === "fast",
           ratelimitLimit: key.ratelimit?.limit ?? key.ratelimit?.refillRate ?? null,
           ratelimitDuration: key.ratelimit?.refillInterval ?? key.ratelimit?.refillInterval ?? null,
           remaining: key.remaining ?? null,
-          refillInterval: key.refill?.interval ?? null,
-          refillDay: key.refill?.interval === "daily" ? null : key?.refill?.refillDay ?? 1,
+          refillDay: key.refill?.interval === "daily" ? null : (key?.refill?.refillDay ?? 1),
           refillAmount: key.refill?.amount ?? null,
-          deletedAt: null,
+          deletedAtM: null,
           enabled: key.enabled ?? true,
           environment: key.environment ?? null,
           createdAtM: Date.now(),
           updatedAtM: null,
-          deletedAtM: null,
           lastRefillAt: null,
         });
 
@@ -436,9 +487,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           const roleId = roles[role];
           roleConnections.push({
             keyId: key.keyId,
-            createdAt: new Date(),
+            createdAtM: Date.now(),
             roleId,
-            updatedAt: null,
+            updatedAtM: null,
             workspaceId: authorizedWorkspaceId,
           });
         }
@@ -446,10 +497,10 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           const permissionId = permissions[permission];
           permissionConnections.push({
             keyId: key.keyId,
-            createdAt: new Date(),
+            createdAtM: Date.now(),
             permissionId,
             tempId: 0,
-            updatedAt: null,
+            updatedAtM: null,
             workspaceId: authorizedWorkspaceId,
           });
         }
@@ -473,12 +524,30 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             keyId: key.keyId,
             encrypted: encryptionResponse.encrypted,
             encryptionKeyId: encryptionResponse.keyId,
+            createdAt: Date.now(),
+            updatedAt: null,
           });
         }
       }),
     );
 
     await db.primary.transaction(async (tx) => {
+      if (createIdentities.length > 0) {
+        await tx
+          .insert(schema.identities)
+          .values(createIdentities)
+          .onDuplicateKeyUpdate({ set: { updatedAt: Date.now() } })
+          .catch((e) => {
+            logger.error("unable to create identities", {
+              error: e.message,
+            });
+            throw new UnkeyApiError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "unable to create identities",
+            });
+          });
+      }
+
       if (keys.length > 0) {
         await tx
           .insert(schema.keys)
@@ -490,7 +559,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
                 workspaceId: authorizedWorkspaceId,
               });
               throw new UnkeyApiError({
-                code: "NOT_UNIQUE",
+                code: "CONFLICT",
                 message: e.body.message,
               });
             }

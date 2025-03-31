@@ -1,3 +1,9 @@
+/**
+ * TODO: With WorkOS, orgs don't have an image.
+ * We will need to implement this ourselves at a future date.
+ * Currently unsupported and ununsed until re-implemented.
+ */
+
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";

@@ -77,10 +77,8 @@ export async function migrateKey(
         start: message.start ?? "",
         ownerId: message.ownerId,
         meta: message.meta ? JSON.stringify(message.meta) : null,
-        createdAt: new Date(),
         createdAtM: Date.now(),
         expires: message.expires ? new Date(message.expires) : null,
-        refillInterval: message.refill?.interval,
         refillAmount: message.refill?.amount,
         refillDay: message.refill?.refillDay,
         enabled: message.enabled,
@@ -109,7 +107,7 @@ export async function migrateKey(
           keyId,
           roleId,
           workspaceId: message.workspaceId,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
         }));
 
         await tx.insert(schema.keysRoles).values(roleConnections);
@@ -124,7 +122,7 @@ export async function migrateKey(
           keyId,
           permissionId,
           workspaceId: message.workspaceId,
-          createdAt: new Date(),
+          createdAtM: Date.now(),
         }));
 
         await tx.insert(schema.keysPermissions).values(permissionConnections);

@@ -23,6 +23,8 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 
 // Export Durable Objects for cloudflare
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
+export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
+
 import { cors, init, metrics } from "@/pkg/middleware";
 import type { MessageBatch } from "@cloudflare/workers-types";
 import { ConsoleLogger } from "@unkey/worker-logging";
@@ -55,6 +57,8 @@ import { registerV1RatelimitDeleteOverride } from "./routes/v1_ratelimits_delete
 import { registerV1RatelimitGetOverride } from "./routes/v1_ratelimits_getOverride";
 import { registerV1RatelimitListOverrides } from "./routes/v1_ratelimits_listOverrides";
 import { registerV1RatelimitSetOverride } from "./routes/v1_ratelimits_setOverride";
+
+import { registerV1AnalyticsGetVerifications } from "./routes/v1_analytics_getVerifications";
 
 const app = newApp();
 
@@ -123,6 +127,9 @@ registerV1IdentitiesGetIdentity(app);
 registerV1IdentitiesListIdentities(app);
 registerV1IdentitiesUpdateIdentity(app);
 registerV1IdentitiesDeleteIdentity(app);
+
+// analytics
+registerV1AnalyticsGetVerifications(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);

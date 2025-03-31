@@ -1,6 +1,6 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { type Identity, and, eq, isNull, sql } from "@unkey/db";
+import type { Identity } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
@@ -67,7 +67,8 @@ When you're creating a key and immediately listing all keys to display them to y
               example: "eyJrZXkiOiJrZXlfMTIzNCJ9",
             }),
             total: z.number().int().openapi({
-              description: "The total number of keys for this api",
+              description:
+                "The total number of keys for this api. This is an approximation and may lag behind up to 5 minutes.",
             }),
           }),
         },
@@ -104,7 +105,7 @@ export const registerV1ApisListKeys = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAtM)),
           with: {
             keyAuth: true,
           },
@@ -162,14 +163,14 @@ export const registerV1ApisListKeys = (app: App) =>
     async function loadKeys() {
       const keySpace = await db.readonly.query.keyAuth.findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, api!.keyAuthId!), isNull(schema.keys.deletedAt)),
+          and(eq(table.id, api!.keyAuthId!), isNull(schema.keys.deletedAtM)),
 
         with: {
           keys: {
             where: (table, { and, isNull, gt, eq }) =>
               and(
                 ...[
-                  isNull(table.deletedAt),
+                  isNull(table.deletedAtM),
                   cursor ? gt(table.id, cursor) : undefined,
                   identity
                     ? eq(table.identityId, identity.id)
@@ -208,26 +209,6 @@ export const registerV1ApisListKeys = (app: App) =>
 
       if (!keySpace) {
         throw new UnkeyApiError({ code: "NOT_FOUND", message: "keyspace not found" });
-      }
-
-      if (keySpace.sizeLastUpdatedAt < Date.now() - 60_000) {
-        const count = await db.primary
-          .select({ count: sql<string>`count(*)` })
-          .from(schema.keys)
-          .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt)));
-
-        keySpace.sizeApprox = Number.parseInt(count?.at(0)?.count ?? "0");
-        keySpace.sizeLastUpdatedAt = Date.now();
-
-        c.executionCtx.waitUntil(
-          db.primary
-            .update(schema.keyAuth)
-            .set({
-              sizeApprox: keySpace.sizeApprox,
-              sizeLastUpdatedAt: keySpace.sizeLastUpdatedAt,
-            })
-            .where(eq(schema.keyAuth.id, keySpace.id)),
-        );
       }
 
       /**
@@ -321,7 +302,7 @@ export const registerV1ApisListKeys = (app: App) =>
         name: k.name ?? undefined,
         ownerId: k.ownerId ?? undefined,
         meta: k.meta ? JSON.parse(k.meta) : undefined,
-        createdAt: k.createdAt.getTime() ?? undefined,
+        createdAt: k.createdAtM ?? undefined,
         updatedAt: k.updatedAtM ?? undefined,
         expires: k.expires?.getTime() ?? undefined,
         ratelimit:
@@ -336,15 +317,14 @@ export const registerV1ApisListKeys = (app: App) =>
               }
             : undefined,
         remaining: k.remaining ?? undefined,
-        refill:
-          k.refillInterval && k.refillAmount && k.lastRefillAt
-            ? {
-                interval: k.refillInterval,
-                amount: k.refillAmount,
-                refillDay: k.refillInterval === "monthly" && k.refillDay ? k.refillDay : null,
-                lastRefillAt: k.lastRefillAt?.getTime(),
-              }
-            : undefined,
+        refill: k.refillAmount
+          ? {
+              interval: k.refillDay ? ("monthly" as const) : ("daily" as const),
+              amount: k.refillAmount,
+              refillDay: k.refillDay,
+              lastRefillAt: k.lastRefillAt?.getTime(),
+            }
+          : undefined,
         environment: k.environment ?? undefined,
         plaintext: plaintext[k.id] ?? undefined,
         roles: k.roles,
