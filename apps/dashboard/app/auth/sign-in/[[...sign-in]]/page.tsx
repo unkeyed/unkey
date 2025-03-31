@@ -1,19 +1,19 @@
 "use client";
 
+import { Loading } from "@/components/dashboard/loading";
 import { FadeIn } from "@/components/landing/fade-in";
-import { SignInProvider } from "../../context/signin-context";
-import { useSignIn } from "../../hooks";
 import { MoveRight } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { ErrorBanner, WarnBanner } from "../../banners";
+import { SignInProvider } from "../../context/signin-context";
+import { useSignIn } from "../../hooks";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
+import { EmailVerify } from "../email-verify";
 import { OAuthSignIn } from "../oauth-signin";
 import { OrgSelector } from "../org-selector";
-import { useSearchParams } from "next/navigation";
-import { EmailVerify } from "../email-verify";
-import { useEffect, useRef, useState } from "react";
-import { Loading } from "@/components/dashboard/loading";
 
 function SignInContent() {
   const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs, handleSignInViaEmail } =
@@ -38,7 +38,9 @@ function SignInContent() {
   // Handle auto sign-in with invitation token and email
   useEffect(() => {
     // Only run this effect on the client side after hydration
-    if (!clientReady) return;
+    if (!clientReady) {
+      return;
+    }
 
     const attemptAutoSignIn = async () => {
       // Only proceed if we have required data, aren't in other auth states, and haven't attempted sign-in yet

@@ -14,11 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { completeOrgSelection } from "../actions";
 import type { Organization } from "@/lib/auth/types";
 import { Button } from "@unkey/ui";
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { completeOrgSelection } from "../actions";
 
 interface OrgSelectorProps {
   organizations: Organization[];

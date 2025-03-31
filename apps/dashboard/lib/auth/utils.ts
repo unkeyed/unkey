@@ -1,9 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { deleteCookie } from "./cookies";
 import { auth } from "./server";
 import { UNKEY_SESSION_COOKIE, type User } from "./types";
-import { deleteCookie, SetSessionCookie } from "./cookies";
 
 // Helper function for ensuring a signed-in user
 export async function requireAuth(): Promise<User> {
@@ -25,7 +25,7 @@ export async function requireEmailMatch(params: {
     if (invitation?.email !== email) {
       throw new Error("Email address does not match the invitation email.");
     }
-  } catch (error) {
+  } catch (_error) {
     throw new Error("Invalid invitation");
   }
 }

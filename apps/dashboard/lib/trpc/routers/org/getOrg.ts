@@ -1,7 +1,7 @@
-import { requireUser, t } from "../../trpc";
 import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { requireUser, t } from "../../trpc";
 
 export const getOrg = t.procedure
   .use(requireUser)

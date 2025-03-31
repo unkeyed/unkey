@@ -6,9 +6,9 @@ import { Loading } from "@/components/dashboard/loading";
 import { FadeInStagger } from "@/components/landing/fade-in";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { useSignUp } from "../hooks/useSignUp";
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { useSearchParams } from "next/navigation";
+import { useSignUp } from "../hooks/useSignUp";
 
 interface Props {
   setVerification: (value: boolean) => void;

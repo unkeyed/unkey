@@ -2,8 +2,8 @@ import { env } from "@/lib/env";
 import { TRPCError, initTRPC } from "@trpc/server";
 import { Ratelimit } from "@unkey/ratelimit";
 import superjson from "superjson";
-import type { Context } from "./context";
 import { auth } from "../auth/server";
+import type { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create({ transformer: superjson });
 

@@ -92,7 +92,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
         </Empty>
       ) : (
         Object.entries(keysByExternalId).map(([externalId, ks]) => (
-          <div className="flex flex-col gap-2">
+          <div key={externalId} className="flex flex-col gap-2">
             <div className="flex items-center gap-1">
               {externalId === nullExternalId ? (
                 <div className="flex items-center justify-between gap-2 text-xs font-medium ph-no-capture">

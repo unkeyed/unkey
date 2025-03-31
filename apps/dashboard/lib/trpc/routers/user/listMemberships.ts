@@ -1,7 +1,7 @@
-import { TRPCError } from "@trpc/server";
-import { requireSelf, requireUser, t } from "../../trpc";
 import { auth as authProvider } from "@/lib/auth/server";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { requireSelf, requireUser, t } from "../../trpc";
 
 export const listMemberships = t.procedure
   .use(requireUser)
