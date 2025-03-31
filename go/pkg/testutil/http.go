@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -34,6 +35,7 @@ type Harness struct {
 	middleware []zen.Middleware
 
 	DB          db.Database
+	Caches      caches.Caches
 	Logger      logging.Logger
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
@@ -57,6 +59,12 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	caches, err := caches.New(caches.Config{
+		Logger: logger,
+		Clock:  clk,
+	})
+	require.NoError(t, err)
+
 	srv, err := zen.New(zen.Config{
 		InstanceID: "test",
 		Logger:     logger,
@@ -64,9 +72,10 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		Logger: logger,
-		DB:     db,
-		Clock:  clk,
+		Logger:   logger,
+		DB:       db,
+		Clock:    clk,
+		KeyCache: caches.KeyByHash,
 	})
 	require.NoError(t, err)
 
@@ -77,6 +86,7 @@ func NewHarness(t *testing.T) *Harness {
 		DB:     db,
 		Logger: logger,
 		Clock:  clk,
+		Cache:  caches.PermissionsByKeyId,
 	})
 	require.NoError(t, err)
 
@@ -105,6 +115,7 @@ func NewHarness(t *testing.T) *Harness {
 		DB:          db,
 		seeder:      seeder,
 		Clock:       clk,
+		Caches:      caches,
 
 		middleware: []zen.Middleware{
 			zen.WithTracing(),

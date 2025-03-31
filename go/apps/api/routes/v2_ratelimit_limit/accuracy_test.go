@@ -58,11 +58,13 @@ func TestRateLimitAccuracy(t *testing.T) {
 									h := testutil.NewHarness(t)
 
 									route := handler.New(handler.Services{
-										DB:          h.DB,
-										Keys:        h.Keys,
-										Logger:      h.Logger,
-										Permissions: h.Permissions,
-										Ratelimit:   h.Ratelimit,
+										DB:                            h.DB,
+										Keys:                          h.Keys,
+										Logger:                        h.Logger,
+										Permissions:                   h.Permissions,
+										Ratelimit:                     h.Ratelimit,
+										RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+										RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
 									})
 									h.Register(route)
 									ctx := context.Background()

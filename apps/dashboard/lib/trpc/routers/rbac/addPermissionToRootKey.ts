@@ -3,10 +3,11 @@ import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 import { upsertPermissions } from "../rbac";
 export const addPermissionToRootKey = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       rootKeyId: z.string(),
@@ -62,7 +63,7 @@ export const addPermissionToRootKey = t.procedure
                 "We are unable to add permission to the root key. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, [
+        await insertAuditLogs(tx, [
           ...auditLogs,
           {
             workspaceId: ctx.workspace.id,

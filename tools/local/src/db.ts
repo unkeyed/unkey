@@ -1,7 +1,6 @@
 import { exec } from "node:child_process";
 import path from "node:path";
 import { mysqlDrizzle, schema } from "@unkey/db";
-import { newId } from "@unkey/id";
 import mysql from "mysql2/promise";
 import { task } from "./util";
 
@@ -57,7 +56,8 @@ export async function prepareDatabase(url?: string): Promise<{
       .insert(schema.workspaces)
       .values({
         id: ROW_IDS.rootWorkspace,
-        tenantId: "user_REPLACE_ME",
+        orgId: "user_REPLACE_ME",
+        clerkTenantId: "tenant_REPLACE_ME",
         name: "Unkey",
         createdAtM: Date.now(),
         betaFeatures: {},
@@ -65,18 +65,15 @@ export async function prepareDatabase(url?: string): Promise<{
       })
       .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
 
-    s.message("Created root workspace");
+    await db.insert(schema.quotas).values({
+      workspaceId: ROW_IDS.rootWorkspace,
+      requestsPerMonth: 150_000,
+      auditLogsRetentionDays: 30,
+      logsRetentionDays: 7,
+      team: false,
+    });
 
-    await db
-      .insert(schema.auditLogBucket)
-      .values({
-        id: newId("auditLogBucket"),
-        workspaceId: ROW_IDS.rootWorkspace,
-        name: "unkey_mutations",
-        deleteProtection: true,
-      })
-      .onDuplicateKeyUpdate({ set: { createdAt: Date.now() } });
-    s.message("Created audit log bucket");
+    s.message("Created root workspace");
 
     await db
       .insert(schema.keyAuth)

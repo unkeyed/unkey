@@ -253,7 +253,7 @@ export abstract class Harness {
     const unkeyWorkspace: Workspace = {
       id: newId("test"),
       name: "unkey",
-      tenantId: newId("test"),
+      clerkTenantId: newId("test"),
       orgId: newId("test"),
       plan: "enterprise",
       tier: "Enterprise",
@@ -275,8 +275,8 @@ export abstract class Harness {
     const userWorkspace: Workspace = {
       id: newId("test"),
       name: "user",
-      tenantId: newId("test"),
       orgId: newId("test"),
+      clerkTenantId: newId("test"),
       plan: "pro",
       tier: "Pro Max",
       features: {},
@@ -357,10 +357,24 @@ export abstract class Harness {
 
   protected async seed(): Promise<void> {
     await this.db.primary.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
+    await this.db.primary.insert(schema.quotas).values({
+      workspaceId: this.resources.unkeyWorkspace.id,
+      requestsPerMonth: 150_000,
+      auditLogsRetentionDays: 30,
+      logsRetentionDays: 7,
+      team: false,
+    });
     await this.db.primary.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);
     await this.db.primary.insert(schema.apis).values(this.resources.unkeyApi);
 
     await this.db.primary.insert(schema.workspaces).values(this.resources.userWorkspace);
+    await this.db.primary.insert(schema.quotas).values({
+      workspaceId: this.resources.userWorkspace.id,
+      requestsPerMonth: 150_000,
+      auditLogsRetentionDays: 30,
+      logsRetentionDays: 7,
+      team: false,
+    });
     await this.db.primary.insert(schema.keyAuth).values(this.resources.userKeyAuth);
     await this.db.primary.insert(schema.apis).values(this.resources.userApi);
   }

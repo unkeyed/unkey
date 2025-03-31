@@ -1,9 +1,9 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { insertAuditLogs } from "@/lib/audit";
+import { auth } from "@/lib/auth/server";
 import { db, schema } from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
-import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
 import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
@@ -15,6 +15,8 @@ import { CreateRatelimit } from "./create-ratelimit";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   searchParams: {
     workspaceId?: string;
@@ -24,8 +26,27 @@ type Props = {
   };
 };
 
+function getBaseUrl() {
+  if (typeof window !== "undefined") {
+    // browser should use relative path
+    return "";
+  }
+
+  if (process.env.VERCEL_URL) {
+    // reference for vercel.com
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  // assume localhost
+  return `http://localhost:${process.env.PORT ?? 3000}`;
+}
+
 export default async function (props: Props) {
-  const { userId } = auth();
+  const user = await auth.getCurrentUser();
+  // make typescript happy
+  if (!user) {
+    return redirect("/auth/sign-in");
+  }
 
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({
@@ -163,11 +184,6 @@ export default async function (props: Props) {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
-      with: {
-        auditLogBuckets: {
-          where: (table, { eq }) => eq(table.name, "unkey_mutations"),
-        },
-      },
     });
     if (!workspace) {
       return redirect("/new");
@@ -190,74 +206,9 @@ export default async function (props: Props) {
 
         <Separator className="my-8" />
 
-        <CreateRatelimit
-          workspace={{ ...workspace, auditLogBucket: workspace.auditLogBuckets[0] }}
-        />
+        <CreateRatelimit workspace={workspace} />
       </div>
     );
-  }
-  if (userId) {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, userId), isNull(table.deletedAtM)),
-    });
-
-    // if no personal workspace exists, we create one
-    if (!workspace) {
-      const workspaceId = newId("workspace");
-      await db.transaction(async (tx) => {
-        await tx.insert(schema.workspaces).values({
-          id: workspaceId,
-          tenantId: userId,
-          name: "Personal",
-          plan: "free",
-          tier: "Free",
-          stripeCustomerId: null,
-          stripeSubscriptionId: null,
-          features: {},
-          betaFeatures: {},
-          subscriptions: null,
-          createdAtM: Date.now(),
-        });
-
-        await tx.insert(schema.quotas).values({
-          workspaceId,
-          ...freeTierQuotas,
-        });
-
-        const bucketId = newId("auditLogBucket");
-        await tx.insert(schema.auditLogBucket).values({
-          id: bucketId,
-          workspaceId,
-          name: "unkey_mutations",
-          retentionDays: 30,
-          deleteProtection: true,
-        });
-
-        await insertAuditLogs(tx, bucketId, {
-          workspaceId: workspaceId,
-          event: "workspace.create",
-          actor: {
-            type: "user",
-            id: userId,
-          },
-          description: `Created ${workspaceId}`,
-          resources: [
-            {
-              type: "workspace",
-              id: workspaceId,
-            },
-          ],
-
-          context: {
-            userAgent: headers().get("user-agent") ?? undefined,
-            location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
-          },
-        });
-      });
-
-      return redirect(`/new?workspaceId=${workspaceId}`);
-    }
   }
 
   return (

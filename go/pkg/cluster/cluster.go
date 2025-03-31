@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/ring"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
@@ -94,10 +93,11 @@ func (c *cluster) registerMetrics() error {
 	err := metrics.Cluster.Size.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
 		members, err := c.membership.Members()
 		if err != nil {
+			c.logger.Error("failed to collect cluster size", "error", err)
 			return err
 		}
 
-		o.Observe(int64(len(members)), metric.WithAttributes(attribute.String("instanceID", c.self.ID)))
+		o.Observe(int64(len(members)))
 		return nil
 	})
 

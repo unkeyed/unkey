@@ -1,22 +1,20 @@
 import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { UsageBanner } from "./banner";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export default async function Layout({ children }: LayoutProps) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       apis: {
         where: (table, { isNull }) => isNull(table.deletedAtM),
@@ -25,12 +23,11 @@ export default async function Layout({ children }: LayoutProps) {
   });
 
   if (!workspace) {
-    return redirect("/apis");
+    return redirect("/new");
   }
 
   return (
     <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-base-12 lg:flex-row">
-      <UsageBanner workspace={workspace} />
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}

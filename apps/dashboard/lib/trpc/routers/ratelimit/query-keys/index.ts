@@ -1,13 +1,16 @@
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import {
   type RatelimitNamespacesResponse,
   queryRatelimitNamespacesPayload,
   ratelimitNamespacesResponse,
 } from "./schemas";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 
-export const queryRatelimitNamespaces = rateLimitedProcedure(ratelimit.read)
+export const queryRatelimitNamespaces = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
   .input(queryRatelimitNamespacesPayload)
   .output(ratelimitNamespacesResponse)
   .query(async ({ ctx, input }) => {
