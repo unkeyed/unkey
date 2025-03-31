@@ -68,7 +68,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
     const { cache, db, usageLimiter } = c.get("services");
 
     const key = await db.readonly.query.keys.findFirst({
-      where: (table, { eq }) => eq(table.id, req.keyId),
+      where: (table, { eq, isNull, and }) => and(eq(table.id, req.keyId), isNull(table.deletedAtM)),
       with: {
         keyAuth: {
           with: {

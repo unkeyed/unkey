@@ -18,7 +18,7 @@ type Cache[K comparable, V any] interface {
 	// Removes the key from the cache.
 	Remove(ctx context.Context, key K)
 
-	SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), translateError func(error) CacheHit) (value V, err error)
+	SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(error) Op) (value V, err error)
 
 	// Dump returns a serialized representation of the cache.
 	Dump(ctx context.Context) ([]byte, error)
@@ -37,6 +37,7 @@ type Key interface {
 type CacheHit int
 
 const (
+	//
 	Null CacheHit = iota
 	// The entry was in the cache and can be used
 	Hit
@@ -44,4 +45,16 @@ const (
 	Miss
 	// The entry did not exist in the origin
 
+)
+
+type Op int
+
+const (
+	// do nothing
+	Noop Op = iota
+	// The entry was in the cache and should be stored in the cache
+	WriteValue Op = iota
+	// The entry was not found in the origin, we must store that information
+	// in the cache
+	WriteNull Op = iota
 )

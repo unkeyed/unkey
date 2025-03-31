@@ -1,5 +1,5 @@
 .footer_illustration {
-  animation: animate-footer_illustration 5s cubic-bezier(.77, .1, .33, .9) infinite;
+  animation: animate-footer_illustration 5s cubic-bezier(0.77, 0.1, 0.33, 0.9) infinite;
 }
 
 @keyframes animate-footer_illustration {

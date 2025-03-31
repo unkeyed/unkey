@@ -3,7 +3,6 @@ import { NamespaceNavbar } from "./namespace-navbar";
 import { getWorkspaceDetails } from "./namespace.actions";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function RatelimitNamespacePage(props: {
   params: { namespaceId: string };
@@ -15,6 +14,7 @@ export default async function RatelimitNamespacePage(props: {
     props.params.namespaceId,
     "/ratelimits",
   );
+
   return (
     <div>
       <NamespaceNavbar

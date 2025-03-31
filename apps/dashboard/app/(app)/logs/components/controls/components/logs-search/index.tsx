@@ -44,7 +44,13 @@ export const LogsSearch = () => {
 
   return (
     <LogsLLMSearch
+      exampleQueries={[
+        "Show failed requests today",
+        "Show auth errors in the last 3h",
+        "Show API calls from a path that includes api/v1/",
+      ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
+      searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({
           query,

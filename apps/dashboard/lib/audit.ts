@@ -5,6 +5,8 @@ import type { MaybeArray } from "@/lib/types";
 import { type Database, type Transaction, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 
+export const AUDIT_LOG_BUCKET = "unkey_mutations";
+
 export const auditLogsDataSchema = z
   .object({
     workspaceId: z.string(),
@@ -57,7 +59,7 @@ export type UnkeyAuditLog = {
   event: z.infer<typeof unkeyAuditLogEvents>;
   description: string;
   actor: {
-    type: "user" | "key";
+    type: "user" | "key" | "system";
     name?: string;
     id: string;
     meta?: Record<string, string | number | boolean | null>;
@@ -93,7 +95,6 @@ export type UnkeyAuditLog = {
 
 export async function insertAuditLogs(
   db: Transaction | Database,
-  bucketId: string,
   logOrLogs: MaybeArray<UnkeyAuditLog>,
 ) {
   const logs = Array.isArray(logOrLogs) ? logOrLogs : [logOrLogs];
@@ -107,7 +108,8 @@ export async function insertAuditLogs(
     await db.insert(schema.auditLog).values({
       id: auditLogId,
       workspaceId: log.workspaceId,
-      bucketId,
+      bucketId: "DEPRECATED",
+      bucket: AUDIT_LOG_BUCKET,
       event: log.event,
       time: Date.now(),
       display: log.description,
@@ -123,7 +125,8 @@ export async function insertAuditLogs(
         log.resources.map((r) => ({
           workspaceId: log.workspaceId,
           auditLogId,
-          bucketId,
+          bucketId: "DEPRECATED",
+          bucket: AUDIT_LOG_BUCKET,
           displayName: "",
           type: r.type,
           id: r.id,

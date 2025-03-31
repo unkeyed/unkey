@@ -112,8 +112,12 @@ export const registerV1KeysAddRoles = (app: App) =>
 
     const [key, existingRoles, connectedRoles] = await Promise.all([
       db.primary.query.keys.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, req.keyId)),
+        where: (table, { eq, and, isNull }) =>
+          and(
+            eq(table.workspaceId, auth.authorizedWorkspaceId),
+            eq(table.id, req.keyId),
+            isNull(table.deletedAtM),
+          ),
       }),
       db.primary.query.roles.findMany({
         where: (table, { eq, or, and, inArray }) =>

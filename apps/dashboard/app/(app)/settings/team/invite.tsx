@@ -1,14 +1,4 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -27,24 +17,46 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { useOrganization } from "@clerk/nextjs";
+import type { Organization, User } from "@/lib/auth/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { DialogContainer } from "@/components/dialog-container";
+import { trpc } from "@/lib/trpc/client";
+
 const formSchema = z.object({
   email: z.string().email(),
   role: z.enum(["admin", "basic_member"]),
 });
 
-export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  user: User | null;
+  organization: Organization | null;
+}
 
-  const { organization } = useOrganization();
+export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const utils = trpc.useUtils();
+
+  const createInvitation = trpc.org.invitations.create.useMutation({
+    onSuccess: () => {
+      // Invalidate the invitations list query to trigger a refetch
+      utils.org.invitations.list.invalidate();
+
+      toast.success(
+        `We have sent an email to ${form.getValues("email")} with instructions on how to join your workspace.`,
+      );
+      setDialogOpen(false);
+    },
+    onError: (error: { message: any }) => {
+      toast.error(`Failed to send invitation: ${error.message}`);
+    },
+  });
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -52,115 +64,110 @@ export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonE
     },
   });
 
-  const [isLoading, setLoading] = useState(false);
+  // If user or organization isn't available yet, return null or a loading state
+  if (!user!.orgId || !organization) {
+    return null;
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      setLoading(true);
-      await organization?.inviteMember({
-        emailAddress: values.email,
-        role: values.role,
-      });
-
-      toast.success(
-        `We have sent an email to ${values.email} with instructions on how to join your workspace`,
-      );
-      router.refresh();
-    } catch (err) {
-      console.error(err);
-      toast.error((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
+    await createInvitation.mutateAsync({
+      email: values.email,
+      role: values.role,
+      orgId: user!.orgId!,
+    });
   }
-  const router = useRouter();
 
   return (
     <>
-      <Dialog open={dialogOpen} onOpenChange={(o) => setDialogOpen(o)}>
-        <DialogTrigger asChild>
-          <Button
-            onClick={() => {
-              setDialogOpen(!dialogOpen);
-            }}
-            className="flex-row items-center gap-1 font-semibold "
-            {...rest}
+      <Button
+        onClick={() => {
+          setDialogOpen(!dialogOpen);
+        }}
+        className="flex-row items-center gap-1 font-semibold "
+        {...rest}
+        color="default"
+      >
+        <Plus size={18} className="w-4 h-4 " />
+        Invite Member
+      </Button>
+      <DialogContainer
+        isOpen={dialogOpen}
+        onOpenChange={(o) => setDialogOpen(o)}
+        title={`Invite someone to join ${organization.name}`}
+        footer={
+          <>
+            <Button
+              onClick={() => {
+                setDialogOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              form="invite-form"
+              variant="primary"
+              disabled={!form.formState.isValid || form.formState.isSubmitting}
+              loading={form.formState.isSubmitting}
+              type="submit"
+            >
+              Send invitation
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-gray-11">
+          They will receive an email with instructions on how to join your workspace.
+        </p>
+        <Form {...form}>
+          <form
+            id="invite-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-4"
           >
-            <Plus size={18} className="w-4 h-4 " />
-            Invite Member
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Invite someone to join {organization?.name}</DialogTitle>
-            <DialogDescription>
-              They will receive an email with instructions on how to join your workspace.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="hey@unkey.dev"
+                      {...field}
+                      className=" dark:focus:border-gray-700"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <Input
-                        placeholder="hey@unkey.dev"
-                        {...field}
-                        className=" dark:focus:border-gray-700"
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a verified email to display" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a verified email to display" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="basic_member">Member</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Admins may invite new members or remove them and change workspace settings.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter className="flex-row items-center justify-end gap-2 pt-4 ">
-                <Button
-                  onClick={() => {
-                    setDialogOpen(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  disabled={!form.formState.isValid || isLoading}
-                  type="submit"
-                >
-                  {isLoading ? <Loading /> : "Send invitation"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+                    <SelectContent>
+                      <SelectItem value="basic_member">Member</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Admins may invite new members or remove them and change workspace settings.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+      </DialogContainer>
     </>
   );
 };

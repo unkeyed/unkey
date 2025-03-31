@@ -8,6 +8,20 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
+// flush writes a batch of rows to the specified ClickHouse table.
+// It handles the preparation of the batch, appending each row as a struct,
+// and finally sending the batch to ClickHouse.
+//
+// This function is used internally by the batch processors to efficiently
+// insert data in batches rather than individual rows.
+//
+// Parameters:
+//   - ctx: Context for the operation, allowing for cancellation and timeouts
+//   - conn: The ClickHouse connection to use
+//   - table: The name of the destination table
+//   - rows: A slice of structures representing the rows to insert
+//
+// Returns an error if any part of the batch operation fails.
 func flush[T any](ctx context.Context, conn ch.Conn, table string, rows []T) error {
 	batch, err := conn.PrepareBatch(ctx, fmt.Sprintf("INSERT INTO %s", table))
 	if err != nil {

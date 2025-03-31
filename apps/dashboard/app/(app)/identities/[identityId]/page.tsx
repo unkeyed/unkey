@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { Fingerprint } from "@unkey/icons";
+import { formatNumber } from "@/lib/fmt";
 import { Button } from "@unkey/ui";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
+import { Navigation } from "./navigation";
 type Props = {
   params: {
     identityId: string;
@@ -29,13 +29,13 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
   const identity = await db.query.identities.findFirst({
     where: (table, { eq }) => eq(table.id, props.params.identityId),
     with: {
       workspace: {
         columns: {
-          tenantId: true,
+          orgId: true,
         },
       },
       keys: {
@@ -52,25 +52,13 @@ export default async function Page(props: Props) {
     },
   });
 
-  if (!identity || identity.workspace.tenantId !== tenantId) {
+  if (!identity || identity.workspace.orgId !== orgId) {
     return notFound();
   }
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Fingerprint />}>
-          <Navbar.Breadcrumbs.Link href="/identities">Identities</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/identities/${props.params.identityId}`}
-            className="w-[200px] truncate"
-            active
-            isIdentifier
-          >
-            {props.params.identityId}
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation identityId={props.params.identityId} />
       <PageContent>
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between gap-8">
@@ -123,13 +111,9 @@ export default async function Page(props: Props) {
               </TableHeader>
               <TableBody>
                 {identity.ratelimits.map((ratelimit) => (
-                  <TableRow>
+                  <TableRow key={ratelimit.id}>
                     <TableCell className="font-mono">{ratelimit.name}</TableCell>
-                    <TableCell className="font-mono">
-                      {Intl.NumberFormat(undefined, {
-                        notation: "compact",
-                      }).format(ratelimit.limit)}
-                    </TableCell>
+                    <TableCell className="font-mono">{formatNumber(ratelimit.limit)}</TableCell>
                     <TableCell className="font-mono">{ms(ratelimit.duration)}</TableCell>
                   </TableRow>
                 ))}

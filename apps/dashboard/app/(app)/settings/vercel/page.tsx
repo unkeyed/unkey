@@ -1,10 +1,15 @@
+/**
+ * Deprecated with new auth
+ * Hiding for now until we decide if we want to fix it up or toss it
+ */
+
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navbar } from "@/components/navbar";
+import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
-import { clerkClient } from "@clerk/nextjs";
 import { Gear } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
@@ -13,6 +18,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { navigation } from "../constants";
 import { Client } from "./client";
+
+export const dynamic = "force-dynamic";
+
 type Props = {
   searchParams: {
     configurationId?: string;
@@ -20,10 +28,9 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       apis: {
         where: (table, { isNull }) => isNull(table.deletedAtM),
@@ -51,13 +58,7 @@ export default async function Page(props: Props) {
   if (!integration) {
     return (
       <div>
-        <Navbar>
-          <Navbar.Breadcrumbs icon={<Gear />}>
-            <Navbar.Breadcrumbs.Link href="/settings/vercel" active>
-              Settings
-            </Navbar.Breadcrumbs.Link>
-          </Navbar.Breadcrumbs>
-        </Navbar>
+        <Navigation href="/settings/vercel" name="Settings" icon={<Gear />} />
         <PageContent>
           <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />
@@ -118,11 +119,11 @@ export default async function Page(props: Props) {
   const users = (
     await Promise.all(
       [...new Set(integration.vercelBindings.map((b) => b.lastEditedBy))].map(async (id) => {
-        const u = await clerkClient.users.getUser(id);
+        const u = await auth.getUser(id);
         return {
-          id: u.id,
-          name: u.username ?? u.emailAddresses.at(0)?.emailAddress ?? "",
-          image: u.imageUrl,
+          id: u!.id,
+          name: u!.fullName ?? u!.email ?? "",
+          image: u!.avatarUrl,
         };
       }),
     )
@@ -131,7 +132,7 @@ export default async function Page(props: Props) {
       acc[user.id] = user;
       return acc;
     },
-    {} as Record<string, { id: string; name: string; image: string }>,
+    {} as Record<string, { id: string; name: string; image: string | null }>,
   );
 
   const projects = await Promise.all(
@@ -159,7 +160,7 @@ export default async function Page(props: Props) {
             Record<
               VercelBinding["resourceType"],
               | (VercelBinding & {
-                  updatedBy: { id: string; name: string; image: string };
+                  updatedBy: { id: string; name: string; image: string | null };
                 })
               | null
             >
@@ -170,13 +171,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
-            Settings
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
+      <Navigation href="/settings/vercel" icon={<Gear />} name="Settings" />
       <PageContent>
         <SubMenu navigation={navigation} segment="vercel" />
         <div className="mt-8" />

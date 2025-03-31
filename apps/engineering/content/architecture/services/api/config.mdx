@@ -42,13 +42,13 @@ go build -o unkey .
   ### Run the binary:
 
 ```bash
-unkey api --config ./path/to/config.json
+unkey api --database-primary="mysql://unkey:password@tcp(localhost:3306)/unkey?parseTime=true"
 ```
 
 You should now be able to access the API at
 
 ```bash
-$ curl http://localhost:<HTTP_PORT>/v2/liveness
+$ curl http://localhost:7070/v2/liveness
 {"message":"we're cooking"}%
 ```
 </Step>
@@ -59,153 +59,294 @@ $ curl http://localhost:<HTTP_PORT>/v2/liveness
 
 ## Configuration
 
-The API server requires a json configuration file to be passed as an argument to the binary.
 
-You can use `${SOME_NAME}` as placeholder in your config file and it will be replaced by the value of the environment variable `SOME_NAME`.
+You can configure the Unkey API using command-line flags or environment variables. For each flag shown below, there's an equivalent environment variable.
+
+For example, `--http-port=8080` can also be set using the environment variable `UNKEY_HTTP_PORT=8080`.
+
+### Basic Configuration
+
+These options control the fundamental behavior of the API server.
 
 
-```json title="Example"
-{
-  "httpPort": "${PORT}"
-}
+<Property name="--platform" type="string" required={false}>
+  Identifies the cloud platform where this node is running. This information is primarily used for logging, metrics, and debugging purposes.
+
+  **Environment variable:** `UNKEY_PLATFORM`
+
+  **Examples:**
+  - `--platform=aws` - When running on Amazon Web Services
+  - `--platform=gcp` - When running on Google Cloud Platform
+  - `--platform=hetzner` - When running on Hetzner Cloud
+  - `--platform=docker` - When running in Docker (e.g., local or Docker Compose)
+</Property>
+
+<Property name="--http-port | UNKEY_HTTP_PORT" type="int" default="7070" required={false}>
+  HTTP port for the API server to listen on. This port must be accessible by all clients that will interact with the API. In containerized environments, ensure this port is properly exposed.
+
+  **Examples:**
+  - `--http-port=7070` - Default port
+</Property>
+
+<Property name="--region | UNKEY_REGION" type="string" defaultValue="unknown" required={false}>
+  Geographic region identifier where this node is deployed. Used for logging, metrics categorization, and can affect routing decisions in multi-region setups.
+
+  **Examples:**
+  - `--region=us-east-1` - AWS US East (N. Virginia)
+  - `--region=eu-west-1` - AWS Europe (Ireland)
+  - `--region=us-central1` - GCP US Central
+  - `--region=dev-local` - For local development environments
+</Property>
+
+## Database Configuration
+
+The Unkey API requires a MySQL database for storing keys and configuration. For global deployments, a read replica endpoint can be configured to offload read operations.
+
+<Property name="--database-primary | UNKEY_DATABASE_PRIMARY_DSN" type="string" required={true}>
+  Primary database connection string for read and write operations. This MySQL database stores all persistent data including API keys, workspaces, and configuration. It is required for all deployments.
+
+  For production use, ensure the database has proper backup procedures in place. Unkey is using [PlanetScale](https://planetscale.com/)
+
+  **Examples:**
+  - `--database-primary=mysql://root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
+  - `--database-primary=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
+</Property>
+
+<Property name="--database-readonly-replica | UNKEY_DATABASE_READONLY_DSN" type="string" required={false}>
+  Optional read-replica database connection string for read operations. When provided, most read operations will be directed to this read replica, reducing load on the primary database and latency for users.
+
+  This is recommended for high-traffic deployments to improve performance and scalability. The read replica must be a valid MySQL read replica of the primary database.
+
+  Unkey is using [PlanetScales](https://planetscale.com/) global read replica endpoint.
+
+  **Examples:**
+  - `--database-readonly-replica=mysql://root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
+  - `--database-readonly-replica=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
+</Property>
+
+## Analytics & Monitoring
+
+These options configure analytics storage and observability for the Unkey API.
+
+<Property name="--clickhouse-url | UNKEY_CLICKHOUSE_URL" type="string" required={false}>
+  ClickHouse database connection string for analytics. ClickHouse is used for storing high-volume event data like API key validations, http request logs and historically aggregated analytics.
+
+  This is optional but highly recommended for production environments. If not provided, analytical capabilities will be omitted but core key validation will still function.
+
+
+  **Examples:**
+  - `--clickhouse-url=clickhouse://localhost:9000/unkey`
+  - `--clickhouse-url=clickhouse://user:password@clickhouse.example.com:9000/unkey`
+  - `--clickhouse-url=clickhouse://default:password@clickhouse.default.svc.cluster.local:9000/unkey?secure=true`
+</Property>
+
+<Property name="--otel | UNKEY_OTEL" type="boolean" defaultValue={false} required={false}>
+  Enable OpenTelemetry. The Unkey API will collect and export telemetry data (metrics, traces, and logs) using the OpenTelemetry protocol.
+
+  When this flag is set to true, the following standard OpenTelemetry environment variables are used to configure the exporter:
+
+  - `OTEL_EXPORTER_OTLP_ENDPOINT`: The URL of your OpenTelemetry collector
+  - `OTEL_EXPORTER_OTLP_PROTOCOL`: The protocol to use (http/protobuf or grpc)
+  - `OTEL_EXPORTER_OTLP_HEADERS`: Headers for authentication (e.g., "authorization=Bearer \<token\>")
+
+  Using these standard variables ensures compatibility with OpenTelemetry documentation and tools. For detailed configuration information, see the [official OpenTelemetry documentation](https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/).
+
+  **Examples:**
+
+  ```bash
+  # Enable OpenTelemetry
+  export UNKEY_OTEL=true
+  export OTEL_EXPORTER_OTLP_ENDPOINT="https://otlp-gateway-prod-us-east-0.grafana.net/otlp"
+  export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+  export OTEL_EXPORTER_OTLP_HEADERS="authorization=Basic ..."
+
+  # Or as command-line flags
+  unkey api --otel=true"
+  ```
+</Property>
+
+<Property name="--otel-trace-sampling-rate | UNKEY_OTEL_TRACE_SAMPLING_RATE" type="float64" defaultValue={0.25} required={false}>
+  Sets the sampling rate for OpenTelemetry traces as a decimal value between 0.0 and 1.0. This controls what percentage of traces will be collected and exported, helping to balance observability needs with performance and cost considerations.
+
+  - 0.0 means no traces are sampled (0%)
+  - 0.25 means 25% of traces are sampled (default)
+  - 1.0 means all traces are sampled (100%)
+
+  Lower sampling rates reduce overhead and storage costs but provide less visibility. Higher rates give more comprehensive data but increase resource usage and costs.
+
+  This setting only takes effect when OpenTelemetry is enabled with `--otel=true`.
+
+  **Examples:**
+  - `--otel-trace-sampling-rate=0.1` - Sample 10% of traces
+  - `--otel-trace-sampling-rate=0.25` - Sample 25% of traces (default)
+  - `--otel-trace-sampling-rate=1.0` - Sample all traces
+
+  **Environment variable:** `UNKEY_OTEL_TRACE_SAMPLING_RATE`
+</Property>
+
+<Property name="--color | UNKEY_COLOR" type="boolean" defaultValue={false} required={false}>
+  Enable ANSI color codes in log output. When enabled, log output will include ANSI color escape sequences to highlight different log levels, timestamps, and other components of the log messages.
+
+  This is useful for local development and debugging but should typically be disabled in production environments where logs are collected by systems that may not properly handle ANSI escape sequences.
+
+  **Examples:**
+  - `--color=true` - Enable colored logs (good for local development)
+  - `--color=false` - Disable colored logs (default, best for production)
+</Property>
+
+## Clustering Configuration
+
+Unkey supports clustering for high availability and distributed rate limiting. These options configure how nodes in a cluster discover and communicate with each other.
+
+<Property name="--cluster | UNKEY_CLUSTER" type="boolean" defaultValue={false} required={false}>
+  Enable cluster mode to connect multiple Unkey API nodes together. When enabled, this node will attempt to form or join a cluster with other Unkey nodes. Clustering provides high availability, load distribution, and consistent rate limiting across nodes.
+
+  For production deployments with multiple instances, set this to true. For single-node setups (local development, small deployments), leave this disabled.
+
+  When clustering is enabled, you must also configure:
+  1. An address advertisement method (static or AWS ECS metadata)
+  2. A discovery method (static addresses or Redis)
+  3. Appropriate ports for RPC and gossip protocols
+
+
+  **Examples:**
+  - `--cluster=true` - Enable clustering
+  - `--cluster=false` - Disable clustering (default)
+</Property>
+
+<Property name="--cluster-instance-id | UNKEY_CLUSTER_INSTANCE_ID" type="string" defaultValue="auto-generated" required={false}>
+  Unique identifier for this instance within the cluster. Every instance in a cluster must have a unique identifier. This ID is used in logs, metrics, and for instance-to-node communication within the cluster.
+
+  If not specified, a random id with 'node_' prefix will be automatically generated. For ephemeral nodes (like in auto-scaling groups), automatic generation is appropriate. For stable deployments, consider setting this to a persistent value tied to the instance.
+
+  **Examples:**
+  - `--cluster-instance-id=instance_east1_001` - For a instance in East region, instance 001
+  - `--cluster-instance-id=instance_replica2` - For a second replica instance
+  - `--cluster-instance-id=instance_dev_local` - For local development
+</Property>
+
+### Node Address Advertisement
+
+You must configure exactly one method for advertising this node's address to other nodes in the cluster.
+
+<Property name="--cluster-advertise-addr-static | UNKEY_CLUSTER_ADVERTISE_ADDR_STATIC" type="string" required={false}>
+  Static IP address or hostname that other nodes can use to connect to this node. This is required for clustering when not using AWS ECS discovery. The address must be reachable by all other nodes in the cluster.
+
+  For on-premises or static cloud deployments, use a fixed IP address or DNS name. In Kubernetes environments, this could be the pod's DNS name within the cluster.
+
+  **Examples:**
+  - `--cluster-advertise-addr-static=10.0.1.5` - Direct IP address
+  - `--cluster-advertise-addr-static=node1.unkey.internal` - DNS name
+  - `--cluster-advertise-addr-static=unkey-0.unkey-headless.default.svc.cluster.local` - Kubernetes DNS
+</Property>
+
+<Property name="--cluster-advertise-addr-aws-ecs-metadata | UNKEY_CLUSTER_ADVERTISE_ADDR_AWS_ECS_METADATA" type="boolean" defaultValue={false} required={false}>
+  Enable automatic address discovery using AWS ECS container metadata. When running on AWS ECS, this flag allows the container to automatically determine its private DNS name from the ECS metadata service. This simplifies cluster configuration in AWS ECS deployments with dynamic IP assignments.
+
+  Do not set `cluster-advertise-addr-static` if this option is enabled. This option is specifically designed for AWS ECS and won't work in other environments.
+
+  **Examples:**
+  - `--cluster-advertise-addr-aws-ecs-metadata=true` - Enable AWS ECS metadata-based discovery
+  - `--cluster-advertise-addr-aws-ecs-metadata=false` - Disable (default)
+</Property>
+
+### Communication Ports
+
+<Property name="--cluster-rpc-port | UNKEY_CLUSTER_RPC_PORT" type="number" defaultValue={7071} required={false}>
+  Port used for internal RPC communication between cluster nodes. This port is used for direct node-to-node communication within the cluster for operations like distributed rate limiting and state synchronization.
+
+  The port must be accessible by all other nodes in the cluster and should be different from the HTTP and gossip ports to avoid conflicts. In containerized environments, ensure this port is properly exposed between containers.
+
+
+  **Examples:**
+  - `--cluster-rpc-port=7071` - Default RPC port
+  - `--cluster-rpc-port=9000` - Alternative port if 7071 is unavailable
+</Property>
+
+<Property name="--cluster-gossip-port | UNKEY_CLUSTER_GOSSIP_PORT" type="number" defaultValue={7072} required={false}>
+  Port used for cluster membership and failure detection via gossip protocol. The gossip protocol is used to maintain cluster membership, detect node failures, and distribute information about the cluster state.
+
+  This port must be accessible by all other nodes in the cluster and should be different from the HTTP and RPC ports to avoid conflicts. In containerized environments, ensure this port is properly exposed between containers.
+
+  **Examples:**
+  - `--cluster-gossip-port=7072` - Default gossip port
+  - `--cluster-gossip-port=9001` - Alternative port if 7072 is unavailable
+</Property>
+
+### Node Discovery Methods
+
+You must configure exactly one method for discovering other nodes in the cluster.
+
+<Property name="--cluster-discovery-static-addrs | UNKEY_CLUSTER_DISCOVERY_STATIC_ADDRS" type="string[]" required={false}>
+  List of seed node addresses for static cluster configuration. When using static discovery, these addresses serve as initial contact points for joining the cluster. At least one functioning node address must be provided for initial cluster formation.
+
+  This flag is required for clustering when not using Redis discovery. Each address should be a hostname or IP address that's reachable by this node. It's not necessary to list all nodes - just enough to ensure reliable discovery.
+
+  **Examples:**
+  - `--cluster-discovery-static-addrs=10.0.1.5,10.0.1.6`
+  - `--cluster-discovery-static-addrs=node1.unkey.internal,node2.unkey.internal`
+  - `--cluster-discovery-static-addrs=unkey-0.unkey-headless.default.svc.cluster.local`
+</Property>
+
+<Property name="--cluster-discovery-redis-url | UNKEY_CLUSTER_DISCOVERY_REDIS_URL" type="string" required={false}>
+  Redis connection string for dynamic cluster discovery. Redis-based discovery enables nodes to register themselves and discover other nodes through a shared Redis instance. This is recommended for dynamic environments where nodes may come and go frequently, such as auto-scaling groups in AWS ECS.
+
+  When specified, nodes will register themselves in Redis and discover other nodes automatically. This eliminates the need for static address configuration. The Redis instance should be accessible by all nodes in the cluster and have low latency to ensure timely node discovery.
+
+  **Examples:**
+  - `--cluster-discovery-redis-url=redis://localhost:6379/0`
+  - `--cluster-discovery-redis-url=redis://user:password@redis.example.com:6379/0`
+  - `--cluster-discovery-redis-url=redis://user:password@redis-master.default.svc.cluster.local:6379/0?tls=true`
+</Property>
+
+## Deployment Examples
+
+### Single-Node
+
+```bash
+unkey api \
+  --database-primary="mysql://root:password@localhost:3306/unkey?parseTime=true" \
+  --color=true \
+  --http-port=8080 \
+  --region=dev-local
 ```
 
-The most up to date json schema can be found here: [https://raw.githubusercontent.com/unkeyed/unkey/refs/heads/main/go/schema.json](https://raw.githubusercontent.com/unkeyed/unkey/refs/heads/main/go/schema.json)
+### Docker Compose Setup
 
-Most IDEs support JSON schema validation if you put it in your config file.
-```json
-  {
-    "$schema": "https://raw.githubusercontent.com/unkeyed/unkey/refs/heads/main/go/schema.json",
-    // ...
-  }
+```yaml
+services:
+  api:
+    deploy:
+      replicas: 3
+      endpoint_mode: vip
+    command: ["api"]
+    image: ghcr.io/unkeyed/unkey:latest
+    depends_on:
+      - mysql
+      - redis
+      - clickhouse
+    environment:
+      UNKEY_HTTP_PORT: 7070
+      UNKEY_CLUSTER: true
+      UNKEY_CLUSTER_GOSSIP_PORT: 9090
+      UNKEY_CLUSTER_RPC_PORT: 9091
+      UNKEY_CLUSTER_DISCOVERY_REDIS_URL: "redis://redis:6379"
+      UNKEY_DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey?parseTime=true"
+      UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
 ```
 
-<Callout type="info">
-  You can check out our own configuration files on [GitHub](https://github.com/unkeyed/unkey/tree/main/go).
-</Callout>
 
+### AWS ECS Production Cluster
 
-
-
-### General Configuration
-
-These settings define the fundamental properties of the server.
-
-<Property name="platform" type="string" >
-  The platform this server is running on ("aws", "gcp", ...).
-
-  Most metrics include this information to help with troubleshooting and monitoring.
-</Property>
-
-<Property name="image" type="string">
-  The container image and version identifier for this instance.
-</Property>
-
-<Property name="httpPort" type="number">
-  The HTTP port where the server will listen for incoming connections. Defaults to 7070.
-</Property>
-
-
-<Property name="region" type="string">
-  Geographic region identifier where this server is deployed (e.g., "us-west-1")
-</Property>
-
-### Heartbeat Configuration
-The API can send heartbeats to a destination to monitor its health.
-
-<Property name="heartbeat" type="object">
-  Configuration for server health check reporting. Contains the following properties:
-
-  <Property name="url" type="string" required>
-    Endpoint URL where heartbeat signals will be sent (e.g., "http://monitor.example.com/heartbeat")
-  </Property>
-
-  <Property name="interval" type="number" required>
-    Time between heartbeat signals in seconds (e.g., 30 for checking every half minute)
-  </Property>
-</Property>
-
-### Cluster Configuration
-Settings for cluster operation when running multiple server instances together.
-
-<Property name="cluster" type="object">
-  Settings for multi-server cluster operations:
-
-  <Property name="nodeId" type="string">
-    Unique identifier for this node in the cluster (e.g., "node-1", "server-east-1")
-
-    If omitted, a random id will be generated.
-  </Property>
-
-  <Property name="advertiseAddr" type="string">
-    Network address other nodes will use to contact this node (e.g., "10.0.0.1", "node1.example.com")
-  </Property>
-
-  <Property name="rpcPort" type="string">
-    Port used for internal cluster communication via RPC. Defaults to "7071".
-  </Property>
-
-  <Property name="gossipPort" type="string">
-    Port used for cluster membership and state dissemination. Defaults to "7072".
-  </Property>
-
-  <Property name="discovery" type="object">
-    Configuration for how cluster nodes discover each other on startup.
-
-    Only one discovery method can be configured at a time.
-
-    <Property name="static" type="object">
-      Fixed list of cluster nodes for stable environments:
-
-      <Property name="addrs" type="string[]" required>
-        List of node addresses to connect to (e.g., ["node1:7071", "node2:7071"])
-      </Property>
-    </Property>
-
-    <Property name="redis" type="object">
-      Redis-based dynamic discovery for flexible environments.
-      All nodes will send heartbeats to the Redis server with their address.
-
-      <Property name="url" type="string" required>
-        Redis connection string (e.g., "redis://redis.example.com:6379")
-      </Property>
-    </Property>
-  </Property>
-</Property>
-
-### Logging and Monitoring
-Configuration for observability and debugging capabilities.
-
-<Property name="logs" type="object">
-  Logging configuration settings:
-
-  <Property name="color" type="boolean">
-    Enable colored output in log messages for better readability
-  </Property>
-</Property>
-
-
-### Database Configuration
-Database connection settings for the server's data storage.
-
-<Property name="database" type="object" required>
-  Database connection configuration:
-
-  <Property name="primary" type="string" required>
-    Primary database connection string for read and write operations (e.g., "postgresql://user:pass@localhost:5432/dbname")
-  </Property>
-
-  <Property name="readonlyReplica" type="string">
-    Optional read-only database replica for scaling read operations
-  </Property>
-</Property>
-
-### ClickHouse Configuration
-
-<Property name="clickhouse" type="object">
-  ClickHouse integration for metrics and logging:
-
-  <Property name="url" type="string" required>
-    ClickHouse server connection string (e.g., "http://clickhouse:8123")
-  </Property>
-</Property>
+```bash
+unkey api \
+  --platform="aws" \
+  --region="us-east-1" \
+  --cluster=true \
+  --cluster-advertise-addr-aws-ecs-metadata=true \
+  --cluster-discovery-redis-url="redis://user:password@redis.example.com:6379" \
+  --database-primary="mysql://user:password@primary.mysql.example.com:3306/unkey?parseTime=true" \
+  --database-readonly-replica="mysql://readonly:password@replica.mysql.example.com:3306/unkey?parseTime=true" \
+  --clickhouse-url="clickhouse://user:password@clickhouse.example.com:9000/unkey" \
+  --otel-otlp-endpoint="https://your-grafana-endpoint.com"
+```

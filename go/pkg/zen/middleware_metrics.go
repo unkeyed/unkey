@@ -1,18 +1,34 @@
 package zen
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type EventBuffer interface {
 	BufferApiRequest(schema.ApiRequestV1)
 }
 
+// WithMetrics returns middleware that collects metrics about each request,
+// including request counts, latencies, and status codes.
+//
+// The metrics are buffered and periodically sent to an event buffer.
+//
+// Example:
+//
+//	server.RegisterRoute(
+//	    []zen.Middleware{zen.WithMetrics(eventBuffer)},
+//	    route,
+//	)
 func WithMetrics(eventBuffer EventBuffer) Middleware {
 	redactions := map[*regexp.Regexp]string{
 		regexp.MustCompile(`"key":\s*"[a-zA-Z0-9_]+"`):       `"key": "[REDACTED]"`,
@@ -28,10 +44,11 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 	}
 
 	return func(next HandleFunc) HandleFunc {
-		return func(s *Session) error {
+		return func(ctx context.Context, s *Session) error {
 			start := time.Now()
-			nextErr := next(s)
+			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
+
 			requestHeaders := []string{}
 			for k, vv := range s.r.Header {
 				if k == "authorization" {
@@ -46,6 +63,15 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 				responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
 			}
 
+			attributes := attribute.NewSet(
+				attribute.String("host", s.r.Host),
+				attribute.String("method", s.r.Method),
+				attribute.String("path", s.r.URL.Path),
+				attribute.Int("status", s.responseStatus),
+			)
+			metrics.Http.Requests.Add(ctx, 1, metric.WithAttributeSet(attributes))
+			metrics.Http.Latency.Record(ctx, serviceLatency.Milliseconds(), metric.WithAttributeSet(attributes))
+
 			eventBuffer.BufferApiRequest(schema.ApiRequestV1{
 				WorkspaceID:     s.workspaceID,
 				RequestID:       s.requestID,
@@ -58,7 +84,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 				ResponseStatus:  s.responseStatus,
 				ResponseHeaders: responseHeaders,
 				ResponseBody:    string(redact(s.responseBody)),
-				Error:           "",
+				Error:           fault.UserFacingMessage(nextErr),
 				ServiceLatency:  serviceLatency.Milliseconds(),
 			})
 			return nextErr

@@ -2,14 +2,12 @@ package membership
 
 import (
 	"bytes"
-	"context"
-	"log/slog"
 
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-// logger implements io.Writer interface to integrate with memberlist's logging system
-// and routes logs to the application's structured logging system.
+// logger implements io.Writer interface to integrate memberlist's logging system
+// with the application's structured logging system.
 type logger struct {
 	logger logging.Logger
 }
@@ -38,11 +36,11 @@ func (l logger) Write(p []byte) (n int, err error) {
 	case "DEBUG":
 		break
 	case "INFO":
-		l.logger.Info(context.Background(), string(p), slog.String("pkg", "memberlist"))
+		l.logger.Info(string(p), "pkg", "memberlist")
 	case "WARN":
-		l.logger.Warn(context.Background(), string(p), slog.String("pkg", "memberlist"))
+		l.logger.Warn(string(p), "pkg", "memberlist")
 	case "ERROR":
-		l.logger.Error(context.Background(), string(p), slog.String("pkg", "memberlist"))
+		l.logger.Error(string(p), "pkg", "memberlist")
 	}
 	return len(p), nil
 }

@@ -603,6 +603,8 @@ export interface components {
           [key: string]: unknown;
         };
       };
+      /** @description A unique id for this request, please provide it to Unkey support to help us debug your issue. */
+      requestId: string;
     };
     /** @description A query for which permissions you require */
     PermissionQuery: OneOf<
@@ -3657,7 +3659,7 @@ export interface operations {
            * @description Explain what this permission does. This is just for your team, your users will not see this.
            * @example record.write can create new dns records for our domains.
            */
-          description?: string;
+          description?: string | "";
         };
       };
     };
@@ -3959,7 +3961,7 @@ export interface operations {
            * @description Explain what this role does. This is just for your team, your users will not see this.
            * @example dns.records.manager can read and write dns records for our domains.
            */
-          description?: string;
+          description?: string | "";
         };
       };
     };

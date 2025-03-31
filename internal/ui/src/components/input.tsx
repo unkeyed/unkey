@@ -10,22 +10,18 @@ const inputVariants = cva(
         default: [
           "border border-gray-5 hover:border-gray-8 bg-gray-2",
           "focus:border focus:border-accent-12 focus:ring-4 focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0",
-          "[&:not(:placeholder-shown)]:focus:ring-0",
         ],
         success: [
           "border border-success-9 hover:border-success-10 bg-gray-2",
           "focus:border-success-8 focus:ring-2 focus:ring-success-2 focus-visible:outline-none",
-          "[&:not(:placeholder-shown)]:focus:ring-success-0",
         ],
         warning: [
           "border border-warning-9 hover:border-warning-10 bg-gray-2",
           "focus:border-warning-8 focus:ring-2 focus:ring-warning-2 focus-visible:outline-none",
-          "[&:not(:placeholder-shown)]:focus:ring-warning-0",
         ],
         error: [
           "border border-error-9 hover:border-error-10 bg-gray-2",
           "focus:border-error-8 focus:ring-2 focus:ring-error-2 focus-visible:outline-none",
-          "[&:not(:placeholder-shown)]:focus:ring-error-0",
         ],
       },
     },
@@ -49,13 +45,14 @@ const inputWrapperVariants = cva("relative flex items-center w-full", {
   },
 });
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement>,
-    VariantProps<typeof inputVariants> {
+// Hack to populate fumadocs' AutoTypeTable
+export type DocumentedInputProps = VariantProps<typeof inputVariants> & {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   wrapperClassName?: string;
-}
+};
+
+export type InputProps = DocumentedInputProps & React.InputHTMLAttributes<HTMLInputElement>;
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, variant, type, leftIcon, rightIcon, wrapperClassName, ...props }, ref) => {

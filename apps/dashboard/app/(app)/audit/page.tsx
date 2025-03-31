@@ -1,53 +1,18 @@
-import { Navbar } from "@/components/navbar";
-import { PageContent } from "@/components/page-content";
-import { getTenantId } from "@/lib/auth";
+import { Navigation } from "@/components/navigation/navigation";
+import { getOrgId } from "@/lib/auth";
 import { InputSearch } from "@unkey/icons";
-import { Empty } from "@unkey/ui";
-import { type SearchParams, getWorkspace, parseFilterParams } from "./actions";
-import { Filters } from "./components/filters";
+import { getWorkspace } from "./actions";
 import { LogsClient } from "./components/logs-client";
-
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
-type Props = {
-  searchParams: SearchParams;
-};
-
-export default async function AuditPage(props: Props) {
-  const tenantId = getTenantId();
-  const workspace = await getWorkspace(tenantId);
-  const parsedParams = parseFilterParams(props.searchParams);
+export default async function AuditPage() {
+  const orgId = await getOrgId();
+  const { workspace, members } = await getWorkspace(orgId);
 
   return (
     <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<InputSearch />}>
-          <Navbar.Breadcrumbs.Link href="/audit">Audit</Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
-      <PageContent>
-        {workspace.auditLogBuckets.length > 0 ? (
-          <main className="mb-5">
-            <Filters
-              workspace={workspace}
-              parsedParams={parsedParams}
-              selectedBucketName={parsedParams.bucketName}
-            />
-
-            <LogsClient />
-          </main>
-        ) : (
-          <Empty>
-            <Empty.Icon />
-            <Empty.Title>No logs</Empty.Title>
-            <Empty.Description>
-              There are no audit logs available yet. Create a key or another resource and come back
-              here.
-            </Empty.Description>
-          </Empty>
-        )}
-      </PageContent>
+      <Navigation href="/audit" name="Audit" icon={<InputSearch />} />
+      <LogsClient rootKeys={workspace.keys} buckets={["unkey_mutations"]} members={members} />
     </div>
   );
 }

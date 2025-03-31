@@ -7,10 +7,30 @@ tasks:
     cmds:
       - go fmt ./...
       - task: lint
-  test:
+
+  pull:
     cmds:
       - docker pull mysql:latest
-      - go test -cover -json -failfast ./... | tparse -all -progress
+
+  test-full:
+    deps:
+      - pull
+      - otel
+    env:
+      INTEGRATION_TEST: true
+      SIMULATION_TEST: false
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    cmds:
+      - go test -failfast ./... -timeout=30m
+
+  test-unit:
+    cmds:
+      - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
+
+  otel:
+    cmds:
+      - docker compose -f ../deployment/docker-compose.yaml up otel -d
 
   build:
     cmds:
@@ -24,7 +44,3 @@ tasks:
   lint:
     cmds:
       - golangci-lint run
-
-  simulate:
-    cmds:
-      - go run github.com/jellevandenhooff/gosim/cmd/gosim test -v -run TestGosim

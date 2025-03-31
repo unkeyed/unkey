@@ -2,21 +2,23 @@ package ratelimit
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"strings"
 
 	"connectrpc.com/connect"
 	"connectrpc.com/otelconnect"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/tracing"
+	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type peer struct {
-	node   cluster.Node
-	client ratelimitv1connect.RatelimitServiceClient
+	instance cluster.Instance
+	client   ratelimitv1connect.RatelimitServiceClient
 }
 
 // syncs peers removes old peers based on the cluster's event listeners
@@ -25,7 +27,7 @@ type peer struct {
 func (s *service) syncPeers() {
 	for leave := range s.cluster.SubscribeLeave() {
 
-		s.logger.Info(context.Background(), "peer left", slog.String("peer", leave.ID))
+		s.logger.Info("peer left", "peer", leave.ID)
 		s.peerMu.Lock()
 		delete(s.peers, leave.ID)
 		s.peerMu.Unlock()
@@ -33,7 +35,18 @@ func (s *service) syncPeers() {
 
 }
 
-func (s *service) getPeer(key string) (peer, error) {
+func (s *service) getPeer(ctx context.Context, key string) (peer, error) {
+	ctx, span := tracing.Start(ctx, "getPeer")
+	defer span.End()
+
+	var p peer
+
+	defer func() {
+		metrics.Ratelimit.Origin.Add(ctx, 1, metric.WithAttributeSet(attribute.NewSet(
+			attribute.String("origin_instance_id", p.instance.ID),
+		),
+		))
+	}()
 
 	s.peerMu.RLock()
 	p, ok := s.peers[key]
@@ -60,23 +73,29 @@ func (s *service) newPeer(ctx context.Context, key string) (peer, error) {
 	s.peerMu.Lock()
 	defer s.peerMu.Unlock()
 
-	node, err := s.cluster.FindNode(ctx, key)
+	instance, err := s.cluster.FindInstance(ctx, key)
 	if err != nil {
-		return peer{}, fault.Wrap(err, fault.WithDesc("failed to find node", "The ratelimit origin could not be found."))
+		return peer{}, fault.Wrap(err, fault.WithDesc("failed to find instance", "The ratelimit origin could not be found."))
 	}
 
-	s.logger.Info(ctx, "peer added", slog.String("peer", node.ID), slog.String("address", node.RpcAddr))
-	rpcAddr := node.RpcAddr
+	s.logger.Info("peer added",
+		"peer", instance.ID,
+		"address", instance.RpcAddr,
+	)
+	rpcAddr := instance.RpcAddr
 	if !strings.Contains(rpcAddr, "://") {
 		rpcAddr = "http://" + rpcAddr
 	}
 
-	interceptor, err := otelconnect.NewInterceptor(otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()))
+	interceptor, err := otelconnect.NewInterceptor(
+		otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()),
+		otelconnect.WithoutServerPeerAttributes(),
+	)
 	if err != nil {
-		s.logger.Error(context.Background(), "failed to create interceptor", slog.String("error", err.Error()))
+		s.logger.Error("failed to create interceptor", "error", err.Error())
 		return peer{}, err
 	}
 
 	c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, rpcAddr, connect.WithInterceptors(interceptor))
-	return peer{node: node, client: c}, nil
+	return peer{instance: instance, client: c}, nil
 }

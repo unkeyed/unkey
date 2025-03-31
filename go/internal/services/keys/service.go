@@ -1,24 +1,31 @@
 package keys
 
 import (
-	"github.com/unkeyed/unkey/go/pkg/database"
-	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/cache"
+	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 type Config struct {
-	Logger logging.Logger
-	DB     database.Database
+	Logger   logging.Logger
+	DB       db.Database
+	Clock    clock.Clock
+	KeyCache cache.Cache[string, db.Key]
 }
 
 type service struct {
 	logger logging.Logger
-	db     database.Database
+	db     db.Database
+	// hash -> key
+	keyCache cache.Cache[string, db.Key]
 }
 
 func New(config Config) (*service, error) {
 
 	return &service{
-		logger: config.Logger,
-		db:     config.DB,
+		logger:   config.Logger,
+		db:       config.DB,
+		keyCache: config.KeyCache,
 	}, nil
 }

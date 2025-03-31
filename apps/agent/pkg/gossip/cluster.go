@@ -275,11 +275,6 @@ func (c *cluster) randomPeers(n int, withoutNodeIds ...string) ([]*gossipv1.Memb
 		peerIds = append(peerIds, id)
 	}
 
-	if len(peerIds) == 0 || len(peerIds) < c.config.GossipFactor {
-		c.logger.Warn().Int("gossipFactor", c.config.GossipFactor).Int("peers", len(peerIds)).Msg("not enough peers to gossip with")
-		return nil, fault.New("not enough peers to gossip with")
-	}
-
 	peers := []*gossipv1.Member{}
 	for len(peers) < n {
 		peer := c.members[peerIds[rand.Intn(len(peerIds))]]

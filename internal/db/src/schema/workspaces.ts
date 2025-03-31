@@ -10,10 +10,10 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
-import { auditLogBucket } from "./audit_logs";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
+import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { deleteProtection } from "./util/delete_protection";
@@ -26,11 +26,15 @@ export const workspaces = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     // Coming from our auth provider clerk
     // This can be either a user_xxx or org_xxx id
-    tenantId: varchar("tenant_id", { length: 256 }).notNull(),
+    clerkTenantId: varchar("tenant_id", { length: 256 }).notNull(),
+    orgId: varchar("org_id", { length: 256 }),
     name: varchar("name", { length: 256 }).notNull(),
 
     // different plans, this should only be used for visualisations in the ui
+    // @deprecated - use tier
     plan: mysqlEnum("plan", ["free", "pro", "enterprise"]).default("free"),
+    // replaces plan
+    tier: varchar("tier", { length: 256 }).default("Free"),
 
     // stripe
     stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
@@ -106,11 +110,11 @@ export const workspaces = mysqlTable(
     ...lifecycleDatesMigration,
   },
   (table) => ({
-    tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
+    clerkTenantIdIdx: uniqueIndex("tenant_id_idx").on(table.clerkTenantId),
   }),
 );
 
-export const workspacesRelations = relations(workspaces, ({ many }) => ({
+export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   apis: many(apis),
   keys: many(keys, {
     relationName: "workspace_key_relation",
@@ -126,7 +130,5 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   ratelimitNamespaces: many(ratelimitNamespaces),
   keySpaces: many(keyAuth),
   identities: many(identities),
-  auditLogBuckets: many(auditLogBucket, {
-    relationName: "workspace_audit_log_bucket_relation",
-  }),
+  quota: one(quotas),
 }));

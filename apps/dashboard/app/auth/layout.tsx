@@ -1,7 +1,7 @@
 import { FadeIn } from "@/components/landing/fade-in";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@/lib/auth/server";
 import { FileText } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -75,9 +75,9 @@ export default async function AuthenticatedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = auth();
+  const user = await auth.getCurrentUser();
 
-  if (userId) {
+  if (user) {
     return redirect("/apis");
   }
   const quote = quotes[Math.floor(Math.random() * quotes.length)];
@@ -109,11 +109,11 @@ export default async function AuthenticatedLayout({
           <div className="flex items-center justify-center ">
             <p className="p-4 text-xs text-center text-white/50 text-balance">
               By continuing, you agree to Unkey's{" "}
-              <Link className="underline" href="/policies/terms">
+              <Link className="underline" href="https://www.unkey.com/policies/terms" target="_blank" rel="noopener noreferrer">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link className="underline" href="/policies/privacy">
+              <Link className="underline" href="https://www.unkey.com/policies/privacy" target="_blank" rel="noopener noreferrer">
                 Privacy Policy
               </Link>
               , and to receive periodic emails with updates.

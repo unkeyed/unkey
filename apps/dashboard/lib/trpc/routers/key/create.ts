@@ -4,10 +4,11 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const createKey = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       prefix: z
@@ -17,7 +18,12 @@ export const createKey = t.procedure
           message: "Prefixes cannot contain spaces.",
         })
         .optional(),
-      bytes: z.number().int().gte(16).default(16),
+      bytes: z
+        .number()
+        .int()
+        .min(8, { message: "Key must be between 8 and 255 bytes long" })
+        .max(255, { message: "Key must be between 8 and 255 bytes long" })
+        .default(16),
       keyAuthId: z.string(),
       ownerId: z.string().nullish(),
       meta: z.record(z.unknown()).optional(),
@@ -96,7 +102,7 @@ export const createKey = t.procedure
           environment: input.environment,
         });
 
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "key.create",

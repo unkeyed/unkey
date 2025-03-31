@@ -3,22 +3,22 @@ import { getTimestampFromRelative } from "@/lib/utils";
 import type { LogsTimeseriesParams } from "@unkey/clickhouse/src/logs";
 import type { z } from "zod";
 import {
+  type RegularTimeseriesGranularity,
   type TimeseriesConfig,
-  type TimeseriesGranularity,
   getTimeseriesGranularity,
 } from "../../utils/granularity";
 
 export function transformFilters(params: z.infer<typeof queryTimeseriesPayload>): {
   params: Omit<LogsTimeseriesParams, "workspaceId">;
-  granularity: TimeseriesGranularity;
+  granularity: RegularTimeseriesGranularity;
 } {
-  let timeConfig: TimeseriesConfig;
+  let timeConfig: TimeseriesConfig<"forRegular">;
   if (params.since !== "") {
     const startTime = getTimestampFromRelative(params.since);
     const endTime = Date.now();
-    timeConfig = getTimeseriesGranularity(startTime, endTime);
+    timeConfig = getTimeseriesGranularity("forRegular", startTime, endTime);
   } else {
-    timeConfig = getTimeseriesGranularity(params.startTime, params.endTime);
+    timeConfig = getTimeseriesGranularity("forRegular", params.startTime, params.endTime);
   }
 
   return {

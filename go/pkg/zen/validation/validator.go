@@ -1,13 +1,15 @@
 package validation
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
-	"github.com/unkeyed/unkey/go/api"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/pkg/ctxutil"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 )
 
 type OpenAPIValidator interface {
@@ -16,7 +18,7 @@ type OpenAPIValidator interface {
 	// Returns a BadRequestError if the request is invalid that should be
 	// marshalled and returned to the client.
 	// The second return value is a boolean that is true if the request is valid.
-	Validate(r *http.Request) (api.BadRequestError, bool)
+	Validate(r *http.Request) (openapi.BadRequestError, bool)
 }
 
 type Validator struct {
@@ -24,7 +26,7 @@ type Validator struct {
 }
 
 func New() (*Validator, error) {
-	document, err := libopenapi.NewDocument(api.Spec)
+	document, err := libopenapi.NewDocument(openapi.Spec)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.WithDesc("failed to create OpenAPI document", ""))
 	}
@@ -51,37 +53,47 @@ func New() (*Validator, error) {
 		validator: v,
 	}, nil
 }
-func (v *Validator) Validate(r *http.Request) (api.BadRequestError, bool) {
+
+func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestError, bool) {
+	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
+	defer validationSpan.End()
 
 	valid, errors := v.validator.ValidateHttpRequest(r)
-	if !valid {
-		valErr := api.BadRequestError{
-			Title:     "Bad Request",
-			Detail:    "One or more fields failed validation",
-			Instance:  nil,
-			Status:    http.StatusBadRequest,
-			RequestId: ctxutil.GetRequestId(r.Context()),
-			Type:      "https://unkey.com/docs/errors/bad_request",
-			Errors:    []api.ValidationError{},
-		}
-		if len(errors) >= 1 {
 
-			err := errors[0]
-
-			for _, e := range err.SchemaValidationErrors {
-
-				valErr.Errors = append(valErr.Errors, api.ValidationError{
-					Message:  e.Reason,
-					Location: e.AbsoluteLocation,
-					Fix:      &err.HowToFix,
-				})
-			}
-
-		}
-		return valErr, false
+	if valid {
+		// nolint:exhaustruct
+		return openapi.BadRequestError{}, true
+	}
+	res := openapi.BadRequestError{
+		Title:     "Bad Request",
+		Detail:    "One or more fields failed validation",
+		Instance:  nil,
+		Status:    http.StatusBadRequest,
+		RequestId: ctxutil.GetRequestId(r.Context()),
+		Type:      "https://unkey.com/docs/errors/bad_request",
+		Errors:    []openapi.ValidationError{},
 	}
 
-	// nolint:exhaustruct
-	return api.BadRequestError{}, true
+	if len(errors) > 0 {
+		err := errors[0]
+		res.Detail = err.Message
+
+		for _, verr := range err.SchemaValidationErrors {
+			res.Errors = append(res.Errors, openapi.ValidationError{
+				Message:  verr.Reason,
+				Location: verr.Location,
+				Fix:      nil,
+			})
+		}
+		if len(res.Errors) == 0 {
+			res.Errors = append(res.Errors, openapi.ValidationError{
+				Message:  err.Reason,
+				Location: err.ValidationType,
+				Fix:      &err.HowToFix,
+			})
+		}
+	}
+
+	return res, false
 
 }
