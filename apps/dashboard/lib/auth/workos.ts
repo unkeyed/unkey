@@ -4,6 +4,7 @@ import {
   type Invitation as WorkOSInvitation,
   type Organization as WorkOSOrganization,
 } from "@workos-inc/node";
+import { getBaseUrl } from "../utils";
 import { BaseAuthProvider } from "./base-provider";
 import { getCookie } from "./cookies";
 import {
@@ -192,7 +193,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }
 
   // Organization Management
-  async createTenant(params: { name: string; userId: string }): Promise<string> {
+  async createTenant(params: {
+    name: string;
+    userId: string;
+  }): Promise<string> {
     const { name, userId } = params;
     if (!name || !userId) {
       throw new Error("Organization name and userId are required.");
@@ -220,7 +224,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      const org = await this.provider.organizations.createOrganization({ name });
+      const org = await this.provider.organizations.createOrganization({
+        name,
+      });
       return this.transformOrganizationData(org);
     } catch (error) {
       throw this.handleError(error);
@@ -453,7 +459,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         inviterUserId: user.id,
       });
 
-      return this.transformInvitationData(invitation, { orgId, inviterId: user.id });
+      return this.transformInvitationData(invitation, {
+        orgId,
+        inviterId: user.id,
+      });
     } catch (error) {
       throw this.handleError(error);
     }
@@ -643,7 +652,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async verifyEmail(params: { code: string; token: string }): Promise<VerificationResult> {
+  async verifyEmail(params: {
+    code: string;
+    token: string;
+  }): Promise<VerificationResult> {
     const { code, token } = params;
 
     try {
@@ -767,12 +779,13 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   // OAuth Methods
   signInViaOAuth(options: SignInViaOAuthOptions): string {
-    const { redirectUrl, provider, redirectUrlComplete } = options;
+    const { provider, redirectUrlComplete } = options;
     const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete }));
-
+    const baseUrl = getBaseUrl();
+    const redirect = `${baseUrl}/auth/sso-callback`;
     return this.provider.userManagement.getAuthorizationUrl({
       clientId: this.clientId,
-      redirectUri: redirectUrl ?? env().NEXT_PUBLIC_WORKOS_REDIRECT_URI,
+      redirectUri: env().NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? redirect,
       provider: provider === "github" ? "GitHubOAuth" : "GoogleOAuth",
       state,
     });
