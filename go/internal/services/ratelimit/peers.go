@@ -184,7 +184,10 @@ func (s *service) newPeer(ctx context.Context, key string) (peer, error) {
 		rpcAddr = "http://" + rpcAddr
 	}
 
-	interceptor, err := otelconnect.NewInterceptor(otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()))
+	interceptor, err := otelconnect.NewInterceptor(
+		otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()),
+		otelconnect.WithoutServerPeerAttributes(),
+	)
 	if err != nil {
 		s.logger.Error("failed to create interceptor", "error", err.Error())
 		return peer{}, err
