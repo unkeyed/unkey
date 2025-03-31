@@ -198,8 +198,9 @@ export const FilterCheckbox = <
         {selectionMode === "multiple" && (
           <div className="flex justify-between items-center">
             <label
+              htmlFor="select-all-checkbox"
               className="flex items-center gap-[18px] cursor-pointer"
-              // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
+              // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
               role="checkbox"
               aria-checked={checkboxes.every((checkbox) => checkbox.checked)}
               onKeyDown={handleKeyboardEvent}
@@ -220,8 +221,9 @@ export const FilterCheckbox = <
         {checkboxes.map((checkbox, index) => (
           <label
             key={checkbox.id}
+            htmlFor={`checkbox-${checkbox.id}`}
             className="flex gap-[18px] items-center py-1 cursor-pointer"
-            // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
+            // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
             role="checkbox"
             aria-checked={checkbox.checked}
             onKeyDown={(e) => handleKeyboardEvent(e, index)}

@@ -22,7 +22,8 @@ type Props = {
   };
 };
 
-function getBaseUrl() {
+// Currently unused in this page.
+/* function getBaseUrl() {
   if (typeof window !== "undefined") {
     // browser should use relative path
     return "";
@@ -35,7 +36,7 @@ function getBaseUrl() {
 
   // assume localhost
   return `http://localhost:${process.env.PORT ?? 3000}`;
-}
+} */
 
 export default async function (props: Props) {
   const user = await auth.getCurrentUser();

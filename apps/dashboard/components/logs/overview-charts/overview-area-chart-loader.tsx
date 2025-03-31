@@ -35,7 +35,7 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
   }
 
   // Animation frame function with smooth, continuous wave patterns
-  // biome-ignore lint/correctness/useExhaustiveDependencies: go touch grass biome
+
   const animate = useCallback(() => {
     setPhase((prev) => prev + 0.01);
     animationRef.current = requestAnimationFrame(animate);

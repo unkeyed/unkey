@@ -13,7 +13,8 @@
       "correctness": {
         "noUnusedVariables": "error",
         "useExhaustiveDependencies": "warn",
-        "noUnusedImports": "warn"
+        "noUnusedImports": "warn",
+        "noChildrenProp": "off"
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"

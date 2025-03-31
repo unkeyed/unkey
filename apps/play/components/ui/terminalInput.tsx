@@ -37,7 +37,9 @@ export default function TerminalInput({ sendInput }: TerminalInputProps) {
 
   return (
     <div className={"flex w-full bg-[#1F1F1E]/70 border border-white/30 "}>
-      <label className="animate-pulse pl-4 mt-2 text-xl text-white">{">>>"}</label>
+      <label htmlFor="input" className="animate-pulse pl-4 mt-2 text-xl text-white">
+        {">>>"}
+      </label>
       <form onSubmit={handleInput}>
         <textarea
           cols={cols}
