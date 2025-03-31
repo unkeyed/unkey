@@ -13,7 +13,7 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const Plus: React.FC<IconProps> = ({ size, filled, ...props }) => {
+export const Link4: React.FC<IconProps> = ({ size, filled, ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
     <svg
@@ -24,27 +24,20 @@ export const Plus: React.FC<IconProps> = ({ size, filled, ...props }) => {
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="currentColor">
-        <line
-          fill={filled ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <path
+          d="M9 18c-3.31 0-6-2.69-6-6v-0.75a1.13 1.13 0 0 1 2.25 0v0.75c0 2.07 1.68 3.75 3.75 3.75s3.75-1.68 3.75-3.75v-0.75a1.13 1.13 0 0 1 2.25 0v0.75c0 3.31-2.69 6-6 6z"
+          fill="currentColor"
           strokeWidth={strokeWidth}
-          x1="9"
-          x2="9"
-          y1="3.25"
-          y2="14.75"
         />
-        <line
-          fill={filled ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <path
+          d="M13.88 7.88a1.13 1.13 0 0 1-1.13-1.13v-0.75c0-2.07-1.68-3.75-3.75-3.75s-3.75 1.68-3.75 3.75v0.75a1.13 1.13 0 0 1-2.25 0v-0.75c0-3.31 2.69-6 6-6s6 2.69 6 6v0.75a1.13 1.13 0 0 1-1.13 1.13z"
+          fill="currentColor"
           strokeWidth={strokeWidth}
-          x1="3.25"
-          x2="14.75"
-          y1="9"
-          y2="9"
+        />
+        <path
+          d="M9 13.5a1.13 1.13 0 0 1-1.13-1.13v-6.75a1.13 1.13 0 0 1 2.25 0v6.75a1.13 1.13 0 0 1-1.12 1.13z"
+          fill="currentColor"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>

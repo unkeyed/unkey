@@ -34,6 +34,8 @@
 
     --border: 24, 6%, 83%;
     --ring: 24, 6%, 83%;
+    
+    
   }
 
   .dark {
@@ -69,6 +71,8 @@
 
     --border: 12, 6%, 15%;
     --ring: 12, 6%, 15%;
+
+
   }
 }
 
@@ -76,9 +80,11 @@
   * {
     @apply border-border;
   }
+
   html {
     @apply scroll-smooth;
   }
+
   body {
     @apply bg-background text-content;
   }
@@ -104,9 +110,23 @@ code .line::before {
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }
+}
+
+/* For Webkit-based browsers (Chrome, Safari and Opera) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* For IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .animate-fill-left {
