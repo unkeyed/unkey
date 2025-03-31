@@ -44,6 +44,19 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
     setIsOpen(false);
   };
 
+  // Add global style to force dark theme temporarily
+  useEffect(() => {
+    if (clientReady && isOpen) {
+      const originalStyles = document.documentElement.style.cssText;
+      document.documentElement.classList.add("dark");
+      
+      return () => {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.style.cssText = originalStyles;
+      };
+    }
+  }, [clientReady, isOpen]);
+
   return (
     <Dialog
       open={clientReady && isOpen}
