@@ -1,6 +1,7 @@
 import { setCookiesOnResponse } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
+import { getBaseUrl } from "@/lib/utils";
 import { type NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   const authResult = await auth.completeOAuthSignIn(request);
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Get base URL from request because Next.js wants it
-  const baseUrl = new URL(request.url).origin;
+  const baseUrl = getBaseUrl();
   const response = NextResponse.redirect(new URL(authResult.redirectTo, baseUrl));
 
   return await setCookiesOnResponse(response, authResult.cookies);
