@@ -8,6 +8,7 @@ import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
 import { QueriesProvider, type QueryParamsTypes, useQueries } from "./queries-context";
 import { QueriesTabs } from "./queries-tabs";
+import { User } from "@/lib/auth/types";
 
 type QueriesPopoverProps<T extends FilterValue, U extends QueryParamsTypes> = {
   children: React.ReactNode;
@@ -139,7 +140,7 @@ const PopoverHeader = () => {
 type QueriesContentProps = {
   focusedTabIndex: number;
   selectedQueryIndex: number;
-  user: any;
+  user: User | undefined | null;
 };
 
 const QueriesContent = ({ focusedTabIndex, selectedQueryIndex, user }: QueriesContentProps) => {
@@ -180,7 +181,10 @@ const QueriesContent = ({ focusedTabIndex, selectedQueryIndex, user }: QueriesCo
           return (
             <ListGroup
               key={filterItem.id}
-              user={user}
+              user={user ? {
+                fullName: user.fullName ?? "",
+                imageUrl: user.avatarUrl ?? undefined
+              } : undefined}
               filterList={{
                 filters: transformFilters(filterItem.filters),
                 id: filterItem.id,
@@ -203,7 +207,10 @@ const QueriesContent = ({ focusedTabIndex, selectedQueryIndex, user }: QueriesCo
             return (
               <ListGroup
                 key={filterItem.id}
-                user={user}
+                user={user ? {
+                  fullName: user.fullName ?? "",
+                  imageUrl: user.avatarUrl ?? undefined
+                } : undefined}
                 filterList={{
                   filters: transformFilters(filterItem.filters),
                   id: filterItem.id,

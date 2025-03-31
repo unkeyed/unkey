@@ -19,8 +19,8 @@ type ListGroupProps = {
     createdAt: number;
     bookmarked: boolean;
   };
-  user: {
-    username: string
+  user?: {
+    fullName: string
     imageUrl?: string
   };
   index: number;
@@ -138,7 +138,7 @@ export function ListGroup({
               </div>
             </div>
             <QueriesMadeBy
-              userName={user?.username ?? ""}
+              userName={user?.fullName ?? ""}
               userImageSrc={user?.imageUrl ?? ""}
               createdString={getSinceTime(filterList.createdAt)}
             />
