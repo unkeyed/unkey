@@ -44,7 +44,6 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
     setIsOpen(false);
   };
 
-
   return (
     <Dialog
       open={clientReady && isOpen}
@@ -55,7 +54,9 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
       <DialogContent className="dark border-border w-11/12">
         <DialogHeader className="dark">
           <DialogTitle className="text-white">Workspace Selection</DialogTitle>
-          <DialogDescription className="dark">Select a workspace to continue authentication:</DialogDescription>
+          <DialogDescription className="dark">
+            Select a workspace to continue authentication:
+          </DialogDescription>
         </DialogHeader>
         <Select onValueChange={(orgId) => setSelected(orgId)} value={selected}>
           <SelectTrigger className="dark">

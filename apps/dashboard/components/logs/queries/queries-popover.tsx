@@ -1,6 +1,7 @@
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import type { User } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useRef, useState } from "react";
 import type { FilterValue } from "../validation/filter.types";
@@ -8,7 +9,6 @@ import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
 import { QueriesProvider, type QueryParamsTypes, useQueries } from "./queries-context";
 import { QueriesTabs } from "./queries-tabs";
-import { User } from "@/lib/auth/types";
 
 type QueriesPopoverProps<T extends FilterValue, U extends QueryParamsTypes> = {
   children: React.ReactNode;
@@ -181,10 +181,14 @@ const QueriesContent = ({ focusedTabIndex, selectedQueryIndex, user }: QueriesCo
           return (
             <ListGroup
               key={filterItem.id}
-              user={user ? {
-                fullName: user.fullName ?? "",
-                imageUrl: user.avatarUrl ?? undefined
-              } : undefined}
+              user={
+                user
+                  ? {
+                      fullName: user.fullName ?? "",
+                      imageUrl: user.avatarUrl ?? undefined,
+                    }
+                  : undefined
+              }
               filterList={{
                 filters: transformFilters(filterItem.filters),
                 id: filterItem.id,
@@ -207,10 +211,14 @@ const QueriesContent = ({ focusedTabIndex, selectedQueryIndex, user }: QueriesCo
             return (
               <ListGroup
                 key={filterItem.id}
-                user={user ? {
-                  fullName: user.fullName ?? "",
-                  imageUrl: user.avatarUrl ?? undefined
-                } : undefined}
+                user={
+                  user
+                    ? {
+                        fullName: user.fullName ?? "",
+                        imageUrl: user.avatarUrl ?? undefined,
+                      }
+                    : undefined
+                }
                 filterList={{
                   filters: transformFilters(filterItem.filters),
                   id: filterItem.id,
