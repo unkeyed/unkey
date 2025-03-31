@@ -105,7 +105,7 @@ export const queryAuditLogs = async (
         eq(table.bucket, params.bucket),
         events.length > 0 ? inArray(table.event, events) : undefined,
         between(
-          table.createdAt,
+          table.time,
           Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
           params.endTime ?? Date.now(),
         ),
