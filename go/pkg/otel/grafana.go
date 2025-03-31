@@ -110,7 +110,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	}
 	shutdowns.RegisterCtx(logExporter.Shutdown)
 
-	var processor log.Processor = log.NewBatchProcessor(logExporter, log.WithExportBufferSize(512))
+	var processor log.Processor = log.NewBatchProcessor(logExporter, log.WithExportBufferSize(512), log.WithExportInterval(15*time.Second))
 	processor = minsev.NewLogProcessor(processor, minsev.SeverityInfo)
 	shutdowns.RegisterCtx(processor.Shutdown)
 
@@ -166,7 +166,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 		trace.WithBatcher(
 			traceExporter,
 			trace.WithMaxExportBatchSize(512),
-			trace.WithBatchTimeout(3*time.Second),
+			trace.WithBatchTimeout(15*time.Second),
 		),
 		trace.WithResource(res),
 		trace.WithSampler(sampler),
@@ -194,7 +194,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 		metric.WithReader(
 			metric.NewPeriodicReader(
 				metricExporter,
-				metric.WithInterval(1*time.Second),
+				metric.WithInterval(15*time.Second),
 			),
 		),
 		metric.WithResource(res),
