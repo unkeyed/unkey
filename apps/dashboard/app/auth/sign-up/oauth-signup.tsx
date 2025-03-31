@@ -7,11 +7,13 @@ import type { OAuthStrategy } from "@/lib/auth/types";
 import * as React from "react";
 import { signInViaOAuth } from "../actions";
 import { OAuthButton } from "../oauth-button";
+import { getBaseUrl } from "@/lib/utils";
 
 export function OAuthSignUp() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
   const [clientReady, setClientReady] = React.useState(false);
   const redirectUrlComplete = "/new";
+  const baseUrl = getBaseUrl();
 
   // Set clientReady to true after hydration is complete
   React.useEffect(() => {
@@ -22,6 +24,7 @@ export function OAuthSignUp() {
     try {
       setIsLoading(provider);
       const url = await signInViaOAuth({
+        redirectUrl: baseUrl,
         provider,
         redirectUrlComplete,
       });

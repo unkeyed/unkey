@@ -9,6 +9,7 @@ import * as React from "react";
 import { signInViaOAuth } from "../actions";
 import { OAuthButton } from "../oauth-button";
 import { LastUsed, useLastUsed } from "./last_used";
+import { getBaseUrl } from "@/lib/utils";
 
 export const OAuthSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
@@ -16,6 +17,7 @@ export const OAuthSignIn: React.FC = () => {
   const [clientReady, setClientReady] = React.useState(false);
   const searchParams = useSearchParams();
   const redirectUrlComplete = searchParams?.get("redirect") ?? "/apis";
+  const baseUrl = getBaseUrl();
 
   // Set clientReady to true after hydration is complete
   React.useEffect(() => {
@@ -28,6 +30,7 @@ export const OAuthSignIn: React.FC = () => {
       setLastUsed(provider);
 
       const url = await signInViaOAuth({
+        redirectUrl: baseUrl,
         provider,
         redirectUrlComplete,
       });
