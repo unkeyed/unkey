@@ -13,7 +13,6 @@ export function OAuthSignUp() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
   const [clientReady, setClientReady] = React.useState(false);
   const redirectUrlComplete = "/new";
-  const baseUrl = getBaseUrl();
 
   // Set clientReady to true after hydration is complete
   React.useEffect(() => {
