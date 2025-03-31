@@ -46,7 +46,7 @@ export const env = () =>
       WORKOS_WEBHOOK_SECRET: z.string().optional(),
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: z
         .string()
-        .default("http://localhost:3000/auth/sso-callback"),
+        .optional(),
       WORKOS_COOKIE_PASSWORD: z.string().optional(),
     })
     .parse(process.env);
