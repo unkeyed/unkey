@@ -17,16 +17,16 @@ Below is an oversimplified version of tracking usage based upon an API key this 
 
 - API key creation
 - Setting the credit amount for a user
-- Safe way to look up an API key to get the usage base. 
+- Safe way to look up an API key to get the usage base.
 
 However, the idea is the following:
 
 1. User requests one of the endpoints
 2. We retrieve the key from the header
-3. We get their remaining credits. If they have zero we return an error
+3. We get their remaining credits. If they have zero, we return an error
 4. We reduce the credit amount based on the endpoint used
-5. We update our Redis storage with the new value. 
-6. We finally return the data from our endpoint. 
+5. We update our Redis storage with the new value
+6. We finally return the data from our endpoint
 
 
 ```typescript
@@ -82,17 +82,15 @@ serve(app)
 
 There are a lot of issues we need to consider with the implementation above:
 
-- What happens if a user makes multiple requests how can we ensure accuracy and speed?
+- What happens if a user makes multiple requests? How can we ensure accuracy and speed?
 - We don't have rate-limiting requests, so we need to implement them to ensure there isn't an abuse vector.
 - What happens if a user gets a new key? How do we ensure everything is accurate?
 
 ## How to simplify your implementation using Unkey
 
-Unkey is an open-source API developer platform that allows developers to simplify the implementation of scalable and secure APIs. 
+Unkey is an open-source API developer platform that allows developers to simplify the implementation of scalable and secure APIs.
 
-By implementing Unkey, we can remove the need for storage like Redis to handle cost-based APIs and provide analytics, ratelimiting, RBAC, and more.
-
-With Unkey, just a few lines of code, you can protect your API; the key holds all the information, so there isn't a requirement to look at another system to find this information. API keys can be created programatically or through our dashboard.  
+With Unkey, with just a few lines of code, you can protect your API; the key holds all the information, so there isn't a requirement to look at another system to find this information. API keys can be created programmatically or through our dashboard.
 
 ```typescript
 const { result, error } = await verifyKey({
@@ -106,9 +104,9 @@ const { result, error } = await verifyKey({
 
 Below, we took the above implementation and removed the need for:
 
-- Implementing API key creation (Are example doesn't show this)
-- Setting the credit amount for a user (Are example doesn't show this)
-- Safe way to look up an API key to get the usage base. 
+- Implementing API key creation (Our example doesn't show this)
+- Setting the credit amount for a user (Our example doesn't show this)
+- Safe way to look up an API key to get the usage base
 - Redis
 
 ```typescript
@@ -158,9 +156,9 @@ const verifyKeyWithCost = (cost: number) => createMiddleware(async (c, next) => 
         return c.json({ error: "Internal server error" }, 500);
     }
   }
-  /** Handle Unkey Result if it's not valid such as 
+  /** Handle Unkey Result if it's not valid such as
   * Ratelimited, disabled, expired or no remaining credits
-  * There are other errors but not needed for this example
+  * There are other errors but they're not needed for this example
   **/
   if (!result.valid) {
     switch (result.code) {
@@ -202,4 +200,4 @@ app.get("/expensive-endpoint", verifyKeyWithCost(5), (c) => {
 serve(app)
 ```
 
-As you can see we really simplified the code and remove additional looks ups via databases, allowing your API to be performant and scalable. You can get started for [free today](https://app.unkey.com)! 
+As you can see we really simplified the code and removed additional lookups via databases, allowing your API to be performant and scalable. You can get started for [free today](https://app.unkey.com)!
