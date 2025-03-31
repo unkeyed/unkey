@@ -63,7 +63,7 @@ Examples:
   --region=eu-west-1    # AWS Europe (Ireland)
   --region=us-central1  # GCP US Central
   --region=dev-local    # For local development environments`,
-			Sources:  cli.EnvVars("UNKEY_REGION"),
+			Sources:  cli.EnvVars("UNKEY_REGION", "AWS_REGION"),
 			Value:    "unknown",
 			Required: false,
 		},

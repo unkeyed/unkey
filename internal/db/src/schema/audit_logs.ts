@@ -9,11 +9,11 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { newId } from "@unkey/id";
+import { deleteProtection } from "./util/delete_protection";
 
 export const auditLogBucket = mysqlTable(
   "audit_log_bucket",
@@ -41,15 +41,6 @@ export const auditLogBucket = mysqlTable(
   }),
 );
 
-export const auditLogBucketRelations = relations(auditLogBucket, ({ one, many }) => ({
-  workspace: one(workspaces, {
-    fields: [auditLogBucket.workspaceId],
-    references: [workspaces.id],
-    relationName: "workspace_audit_log_bucket_relation",
-  }),
-  logs: many(auditLog),
-}));
-
 export const auditLog = mysqlTable(
   "audit_log",
   {
@@ -58,7 +49,9 @@ export const auditLog = mysqlTable(
       .$defaultFn(() => newId("auditLog")),
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-
+    // bucket is the name of the bucket that the target belongs to
+    bucket: varchar("bucket", { length: 256 }).notNull().default("unkey_mutations"),
+    // @deprecated
     bucketId: varchar("bucket_id", { length: 256 }).notNull(),
     event: varchar("event", { length: 256 }).notNull(),
 
@@ -81,6 +74,7 @@ export const auditLog = mysqlTable(
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),
     bucketId: index("bucket_id_idx").on(table.bucketId),
+    bucket: index("bucket_idx").on(table.bucket),
     event: index("event_idx").on(table.event),
     actorId: index("actor_id_idx").on(table.actorId),
     time: index("time_idx").on(table.time),
@@ -92,10 +86,10 @@ export const auditLogRelations = relations(auditLog, ({ one, many }) => ({
     fields: [auditLog.workspaceId],
     references: [workspaces.id],
   }),
-  bucket: one(auditLogBucket, {
-    fields: [auditLog.bucketId],
-    references: [auditLogBucket.id],
-  }),
+  // bucket: one(auditLogBucket, {
+  //   fields: [auditLog.bucketId],
+  //   references: [auditLogBucket.id],
+  // }),
   targets: many(auditLogTarget),
 }));
 
@@ -103,7 +97,11 @@ export const auditLogTarget = mysqlTable(
   "audit_log_target",
   {
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    // @deprecated
     bucketId: varchar("bucket_id", { length: 256 }).notNull(),
+
+    // bucket is the name of the bucket that the target belongs to
+    bucket: varchar("bucket", { length: 256 }).notNull().default("unkey_mutations"),
     auditLogId: varchar("audit_log_id", { length: 256 }).notNull(),
 
     // A human readable name to display in the UI
@@ -121,6 +119,7 @@ export const auditLogTarget = mysqlTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.auditLogId, table.id] }),
+    bucket: index("bucket").on(table.bucket),
     auditLog: index("audit_log_id").on(table.auditLogId),
     id: index("id_idx").on(table.id),
   }),
@@ -131,10 +130,10 @@ export const auditLogTargetRelations = relations(auditLogTarget, ({ one }) => ({
     fields: [auditLogTarget.workspaceId],
     references: [workspaces.id],
   }),
-  bucket: one(auditLogBucket, {
-    fields: [auditLogTarget.bucketId],
-    references: [auditLogBucket.id],
-  }),
+  // bucket: one(auditLogBucket, {
+  //   fields: [auditLogTarget.bucketId],
+  //   references: [auditLogBucket.id],
+  // }),
   log: one(auditLog, {
     fields: [auditLogTarget.auditLogId],
     references: [auditLog.id],

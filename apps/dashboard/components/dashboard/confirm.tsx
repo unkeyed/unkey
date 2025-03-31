@@ -1,18 +1,8 @@
 "use client";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
-import { Loading } from "./loading";
+import { DialogContainer } from "@/components/dialog-container";
 
 export type ConfirmProps = {
   title: string;
@@ -36,25 +26,31 @@ export const Confirm: React.FC<ConfirmProps> = (props): JSX.Element => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild disabled={props.disabled}>
-        {props.trigger}
-      </DialogTrigger>
-      <DialogContent
-        className={cn("sm:max-w-[425px]", { "border-alert": props.variant === "destructive" })}
+    <>
+      {props.trigger}
+      <DialogContainer
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+        title={props.title}
+        footer={
+          <div className="w-full flex flex-col gap-2 items-center justify-center">
+            <Button
+              type="submit"
+              variant="primary"
+              size="xlg"
+              disabled={loading}
+              loading={loading}
+              className="w-full rounded-lg"
+              onClick={onConfirm}
+            >
+              Confirm
+            </Button>
+          </div>
+        }
       >
-        <DialogHeader>
-          <DialogTitle>{props.title}</DialogTitle>
-          <DialogDescription>{props.description}</DialogDescription>
-        </DialogHeader>
-
-        <DialogFooter>
-          <Button type="submit" variant={props.variant} onClick={onConfirm}>
-            {loading ? <Loading /> : "Confirm"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <p>{props.description}</p>
+      </DialogContainer>
+    </>
   );
 };
 

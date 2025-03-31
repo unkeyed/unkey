@@ -37,6 +37,20 @@ var (
 		//     attribute.Int("status", 200),
 		//   ))
 		Requests Int64Counter
+
+		// Latency measures the time taken to process an API request.
+		// Use this histogram to monitor response times and identify performance bottlenecks.
+		//
+		// Attributes:
+		//   - path (string): The HTTP path of the request (e.g., "/api/v1/users")
+		//   - status (int): The HTTP status code of the response (e.g., 200, 404, 500)
+		//
+		// Example:
+		//   metrics.Http.Latency.Record(ctx, time.Since(start), metric.WithAttributes(
+		//     attribute.String("path", "/api/v1/users"),
+		//     attribute.Int("status", 200),
+		//   ))
+		Latency metric.Int64Histogram
 	}
 
 	// Cache contains metrics related to cache operations
@@ -207,6 +221,13 @@ func Init(m metric.Meter) error {
 	// Initialize HTTP metrics
 	Http.Requests, err = m.Int64Counter("http_request",
 		metric.WithDescription("How many api requests we handle."),
+	)
+	if err != nil {
+		return err
+	}
+
+	Http.Latency, err = m.Int64Histogram("http_latency",
+		metric.WithDescription("How long it takes to process an api request."),
 	)
 	if err != nil {
 		return err
