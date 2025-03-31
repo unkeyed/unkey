@@ -785,7 +785,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     const redirect = `${baseUrl}/auth/sso-callback`;
     return this.provider.userManagement.getAuthorizationUrl({
       clientId: this.clientId,
-      redirectUri: redirect ?? env().NEXT_PUBLIC_WORKOS_REDIRECT_URI,
+      redirectUri: env().NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? redirect,
       provider: provider === "github" ? "GitHubOAuth" : "GoogleOAuth",
       state,
     });
