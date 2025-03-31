@@ -8,7 +8,9 @@
     "rules": {
       "recommended": true,
       "a11y": {
-        "noSvgWithoutTitle": "off"
+        "noSvgWithoutTitle": "off",
+        "useSemanticElements": "warn",
+        "useFocusableInteractive": "warn"
       },
       "correctness": {
         "noUnusedVariables": "error",
