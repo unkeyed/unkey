@@ -12,6 +12,8 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/cache"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -27,6 +29,7 @@ type Services struct {
 	Logger                        logging.Logger
 	Keys                          keys.KeyService
 	DB                            db.Database
+	ClickHouse                    clickhouse.Bufferer
 	Permissions                   permissions.PermissionService
 	Ratelimit                     ratelimit.Service
 	RatelimitNamespaceByNameCache cache.Cache[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]
@@ -180,6 +183,16 @@ func New(svc Services) zen.Route {
 			)
 		}
 
+		if s.Request().Header.Get("X-Unkey-Metrics") != "disabled" {
+			svc.ClickHouse.BufferRatelimit(schema.RatelimitRequestV1{
+				RequestID:   s.RequestID(),
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Time:        time.Now().UnixMilli(),
+				NamespaceID: namespace.ID,
+				Identifier:  req.Identifier,
+				Passed:      result.Success,
+			})
+		}
 		res := Response{
 			Success:    result.Success,
 			Limit:      limit,

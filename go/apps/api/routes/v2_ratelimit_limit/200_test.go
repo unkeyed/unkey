@@ -33,6 +33,7 @@ func TestLimitSuccessfully(t *testing.T) {
 		DB:                            h.DB,
 		Keys:                          h.Keys,
 		Logger:                        h.Logger,
+		ClickHouse:                    h.ClickHouse,
 		Permissions:                   h.Permissions,
 		Ratelimit:                     h.Ratelimit,
 		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,

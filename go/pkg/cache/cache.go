@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"github.com/unkeyed/unkey/go/pkg/repeat"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -90,60 +91,30 @@ func New[K comparable, V any](config Config[K, V]) (*cache[K, V], error) {
 		}()
 	}
 
-	err = c.registerMetrics()
-	if err != nil {
-		return nil, err
-	}
+	c.registerMetrics()
 	return c, nil
 
 }
 
-func (c *cache[K, V]) registerMetrics() error {
+func (c *cache[K, V]) registerMetrics() {
 
 	attributes := metric.WithAttributes(
 		attribute.String("resource", c.resource),
 	)
 
-	err := metrics.Cache.Size.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
-		o.Observe(int64(c.otter.Size()), attributes)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
+	repeat.Every(10*time.Second, func() {
+		ctx := context.Background()
 
-	err = metrics.Cache.Capacity.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
-		o.Observe(int64(c.otter.Capacity()), attributes)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
+		stats := c.otter.Stats()
 
-	err = metrics.Cache.Hits.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
-		o.Observe(c.otter.Stats().Hits(), attributes)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
+		metrics.Cache.Size.Record(ctx, int64(c.otter.Size()), attributes)
+		metrics.Cache.Capacity.Record(ctx, int64(c.otter.Capacity()), attributes)
+		metrics.Cache.Hits.Record(ctx, stats.Hits(), attributes)
+		metrics.Cache.Misses.Record(ctx, stats.Misses(), attributes)
+		metrics.Cache.Evicted.Record(ctx, stats.EvictedCount(), attributes)
 
-	err = metrics.Cache.Misses.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
-		o.Observe(c.otter.Stats().Misses(), attributes)
-		return nil
 	})
-	if err != nil {
-		return err
-	}
 
-	err = metrics.Cache.Evicted.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
-		o.Observe(c.otter.Stats().EvictedCount(), attributes)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {

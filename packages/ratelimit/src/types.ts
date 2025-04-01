@@ -33,15 +33,6 @@ export type RatelimitResponse = {
 
 export type LimitOptions = {
   /**
-   * Separate requests into groups, groups are combined with your identifier and can be filtered
-   * and searched later.
-   *
-   * @example `group: "send.email"` -> `send.email_${userId}`
-   *
-   */
-  // group?: string;
-
-  /**
    * Expensive requests may use up more resources. You can specify a cost to the request and
    * we'll deduct this many tokens in the current window. If there are not enough tokens left,
    * the request is denied.
@@ -72,28 +63,28 @@ export type LimitOptions = {
    * This takes precedence over the limit defined in the constructor as well as any limits defined
    * for this identifier in Unkey.
    */
-  // limit?: Limit;
+  limit?: Limit;
 
   /**
    * Do not wait for a response from the origin. Faster but less accurate.
    */
-  async?: boolean;
+  // async?: boolean;
 
   /**
    * Record arbitrary data about this request. This does not affect the limit itself but can help
    * you debug later.
    */
-  meta?: Record<string, string | number | boolean | null>;
+  // meta?: Record<string, string | number | boolean | null>;
 
   /**
    * Specify which resources this request would access and we'll create a papertrail for you.
    *
    * @see https://unkey.dev/app/audit
    */
-  resources?: {
-    type: string;
-    id: string;
-    name?: string;
-    meta?: Record<string, string | number | boolean | null>;
-  }[];
+  // resources?: {
+  //   type: string;
+  //   id: string;
+  //   name?: string;
+  //   meta?: Record<string, string | number | boolean | null>;
+  // }[];
 };
