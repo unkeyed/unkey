@@ -56,7 +56,7 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
     try {
       // cf stopped sending valid `Date` objects for some reason, so we fall back to Date.now()
       t = event.timestamp;
-    } catch { }
+    } catch {}
     t.setUTCMonth(t.getUTCMonth() - 1);
     const year = t.getUTCFullYear();
     const month = t.getUTCMonth() + 1; // months are 0 indexed
