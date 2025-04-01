@@ -201,6 +201,12 @@ Examples:
 			Sources:  cli.EnvVars("UNKEY_CLUSTER_DISCOVERY_STATIC_ADDRS"),
 			Required: false,
 		},
+		&cli.BoolFlag{
+			Name:     "cluster-discovery-aws-ecs",
+			Usage:    `Use the AWS ECS API to find peers within the same cluster.`,
+			Sources:  cli.EnvVars("UNKEY_CLUSTER_DISCOVERY_AWS_ECS"),
+			Required: false,
+		},
 		// Discovery configuration - Redis
 		&cli.StringFlag{
 			Name: "cluster-discovery-redis-url",
@@ -340,6 +346,17 @@ Examples:
 			Value:    0.25,
 			Required: false,
 		},
+		&cli.IntFlag{
+			Name: "prometheus-port",
+			Usage: `Enables prometheus and configures the exposed port.
+Metrics will be available at /metrics and http service discovery at /sd.
+
+Default: disabled
+			`,
+			Sources:  cli.EnvVars("UNKEY_PROMETHEUS_PORT"),
+			Value:    0,
+			Required: false,
+		},
 	},
 
 	Action: action,
@@ -376,7 +393,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		ClusterAdvertiseAddrStatic:         cmd.String("cluster-advertise-addr-static"),
 		ClusterAdvertiseAddrAwsEcsMetadata: cmd.Bool("cluster-advertise-addr-aws-ecs-metadata"),
 		ClusterDiscoveryStaticAddrs:        cmd.StringSlice("cluster-discovery-static-addrs"),
+		ClusterDiscoveryAwsEcs:             cmd.Bool("cluster-discovery-aws-ecs"),
 		ClusterDiscoveryRedisURL:           cmd.String("cluster-discovery-redis-url"),
+		PrometheusPort:                     int(cmd.Int("prometheus-port")),
 		Clock:                              clock.New(),
 	}
 
