@@ -76,17 +76,13 @@
   * {
     @apply border-border;
   }
+
   html {
     @apply scroll-smooth;
   }
+
   body {
     @apply bg-background text-content;
-  }
-}
-
-@-moz-document url-prefix() {
-  #root-key-alert-title {
-    padding-left: 1.25rem;
   }
 }
 
@@ -110,9 +106,23 @@ code .line::before {
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }
+}
+
+/* For Webkit-based browsers (Chrome, Safari and Opera) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* For IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .animate-fill-left {

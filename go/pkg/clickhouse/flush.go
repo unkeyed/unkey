@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
@@ -19,11 +20,15 @@ import (
 //   - ctx: Context for the operation, allowing for cancellation and timeouts
 //   - conn: The ClickHouse connection to use
 //   - table: The name of the destination table
-//   - rows: A slice of structures representing the rows to insert
+//   - rows: A slice of structs representing the rows to insert
 //
 // Returns an error if any part of the batch operation fails.
 func flush[T any](ctx context.Context, conn ch.Conn, table string, rows []T) error {
-	batch, err := conn.PrepareBatch(ctx, fmt.Sprintf("INSERT INTO %s", table))
+	batch, err := conn.PrepareBatch(
+		ctx,
+		fmt.Sprintf("INSERT INTO %s", table),
+		driver.WithReleaseConnection(),
+	)
 	if err != nil {
 		return fault.Wrap(err, fault.WithDesc("preparing batch failed", ""))
 	}

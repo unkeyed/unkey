@@ -118,7 +118,6 @@ export interface SessionData {
 export type OAuthStrategy = "google" | "github";
 
 export interface SignInViaOAuthOptions {
-  redirectUrl?: string;
   redirectUrlComplete: string;
   provider: OAuthStrategy;
 }

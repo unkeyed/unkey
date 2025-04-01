@@ -23,7 +23,7 @@ func (s *service) VerifyRootKey(ctx context.Context, sess *zen.Session) (VerifyR
 	if err != nil {
 		return VerifyResponse{}, fault.Wrap(err,
 			fault.WithTag(fault.UNAUTHORIZED),
-			fault.WithDesc("invalid root key", "The provided root key is invalid"))
+			fault.WithDesc("invalid root key", "The provided root key is invalid."))
 	}
 
 	return res, nil

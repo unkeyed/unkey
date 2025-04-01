@@ -12,16 +12,16 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { setCookie } from "@/lib/auth/cookies";
+import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useRef, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useRef, useTransition } from "react";
-import { setCookie } from "@/lib/auth/cookies";
-import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name is required and should be at least 3 characters").max(50),
 });

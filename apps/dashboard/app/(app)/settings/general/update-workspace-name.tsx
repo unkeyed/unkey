@@ -63,7 +63,9 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col space-y-2">
-              <label className="hidden sr-only">Name</label>
+              <label htmlFor="name" className="hidden sr-only">
+                Name
+              </label>
               <FormField
                 control={form.control}
                 name="name"

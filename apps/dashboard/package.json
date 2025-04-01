@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@ant-design/plots": "^1.2.5",
-    "@clerk/nextjs": "^4.29.10",
     "@hookform/resolvers": "^3.3.4",
     "@planetscale/database": "^1.16.0",
     "@radix-ui/react-accordion": "^1.2.0",
@@ -107,7 +106,6 @@
     "zod": "^3.23.5"
   },
   "devDependencies": {
-    "@clerk/types": "^3.63.1",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@testing-library/react": "^16.2.0",
     "@testing-library/react-hooks": "^8.0.1",

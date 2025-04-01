@@ -43,7 +43,18 @@ type ApiRequestV1 struct {
 	Error string `ch:"error"`
 
 	// ServiceLatency is the time in milliseconds it took to process the request
-	ServiceLatency int64 `ch:"serviceLatency"`
+	ServiceLatency int64 `ch:"service_latency"`
+
+	UserAgent string `ch:"user_agent"`
+
+	IpAddress string `ch:"ip_address"`
+
+	Country string `ch:"country"`
+
+	City string `ch:"city"`
+
+	Colo      string `ch:"colo"`
+	Continent string `ch:"continent"`
 }
 
 // KeyVerificationRequestV1 represents a key verification operation, tracking
@@ -53,6 +64,7 @@ type ApiRequestV1 struct {
 //
 // Fields are mapped to ClickHouse columns using the `ch` struct tags.
 type KeyVerificationRequestV1 struct {
+
 	// RequestID is a unique identifier for this verification request
 	RequestID string `ch:"request_id"`
 
@@ -76,4 +88,15 @@ type KeyVerificationRequestV1 struct {
 
 	// IdentityID links the key to a specific identity, if applicable
 	IdentityID string `ch:"identity_id"`
+
+	Tags []string `ch:"tags"`
+}
+
+type RatelimitRequestV1 struct {
+	RequestID   string `ch:"request_id"`
+	Time        int64  `ch:"time"`
+	WorkspaceID string `ch:"workspace_id"`
+	NamespaceID string `ch:"namespace_id"`
+	Identifier  string `ch:"identifier"`
+	Passed      bool   `ch:"passed"`
 }

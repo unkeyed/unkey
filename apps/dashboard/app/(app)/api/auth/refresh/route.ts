@@ -1,5 +1,5 @@
-import { auth } from "@/lib/auth/server";
 import { setCookie } from "@/lib/auth/cookies";
+import { auth } from "@/lib/auth/server";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 
 export async function POST(request: Request) {
