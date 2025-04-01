@@ -26,6 +26,6 @@
     "typescript": "^5.5.3"
   },
   "dependencies": {
-    "@unkey/api": "workspace:^"
+    "@unkey/api": "^2.0.0-alpha.1"
   }
 }

@@ -782,7 +782,7 @@ export default function Page() {
                     const isAutoFilled = cache.current[value.cacheAs ?? key] === defaultValue;
 
                     return (
-                      <div className="relative w-full">
+                      <div key={key} className="relative w-full">
                         <NamedInput
                           key={key}
                           label={key}
@@ -819,8 +819,11 @@ export default function Page() {
 
               {curlEquivalent !== null && (
                 <>
-                  <label className="mt-3">Equivalent CURL request:</label>
+                  <label htmlFor="curl" className="mt-3">
+                    Equivalent CURL request:
+                  </label>
                   <Textarea
+                    id="curl"
                     className="mt-2 resize-none font-mono h-[104px] lg:h-[160px] text-xs lg:text-sm p-3 text-[#686868]"
                     value={curlEquivalent}
                     readOnly

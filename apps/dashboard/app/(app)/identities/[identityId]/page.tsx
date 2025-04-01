@@ -138,7 +138,7 @@ export default async function Page(props: Props) {
               </TableHeader>
               <TableBody>
                 {identity.keys.map((key) => (
-                  <TableRow>
+                  <TableRow key={key.id}>
                     <TableCell className="font-mono">{key.id}</TableCell>
                     <TableCell className="font-mono text-xs">
                       {key.meta ? (

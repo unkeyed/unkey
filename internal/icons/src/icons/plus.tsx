@@ -9,31 +9,38 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-
 import type React from "react";
 
-import type { IconProps } from "../props";
-export const Plus: React.FC<IconProps> = (props) => {
+import { type IconProps, sizeMap } from "../props";
+
+export const Plus: React.FC<IconProps> = ({ size, filled, ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor">
         <line
-          fill="none"
+          fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="9"
           x2="9"
           y1="3.25"
           y2="14.75"
         />
         <line
-          fill="none"
+          fill={filled ? "currentColor" : "none"}
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="3.25"
           x2="14.75"
           y1="9"

@@ -84,6 +84,7 @@ export const DateTimeSuggestions = ({ className, options, onChange }: Suggestion
             >
               <button
                 type="button"
+                // biome-ignore lint/a11y/useSemanticElements: its okay
                 role="radio"
                 aria-checked={checked}
                 ref={(el: HTMLButtonElement | null) => {

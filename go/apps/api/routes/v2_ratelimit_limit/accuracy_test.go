@@ -62,6 +62,7 @@ func TestRateLimitAccuracy(t *testing.T) {
 										Keys:                          h.Keys,
 										Logger:                        h.Logger,
 										Permissions:                   h.Permissions,
+										ClickHouse:                    h.ClickHouse,
 										Ratelimit:                     h.Ratelimit,
 										RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
 										RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,

@@ -58,13 +58,19 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	logger := logging.New().
-		With(
-			slog.String("instanceID", cfg.ClusterInstanceID),
-			slog.String("platform", cfg.Platform),
-			slog.String("region", cfg.Region),
-			slog.String("version", version.Version),
-		)
+	logger := logging.New()
+	if cfg.ClusterInstanceID != "" {
+		logger = logger.With(slog.String("instanceID", cfg.ClusterInstanceID))
+	}
+	if cfg.Platform != "" {
+		logger = logger.With(slog.String("platform", cfg.Platform))
+	}
+	if cfg.Region != "" {
+		logger = logger.With(slog.String("region", cfg.Region))
+	}
+	if version.Version != "" {
+		logger = logger.With(slog.String("version", version.Version))
+	}
 
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
@@ -92,7 +98,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create cluster: %w", err)
 	}
 
-	var ch clickhouse.Bufferer = clickhouse.NewNoop()
+	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
 		ch, err = clickhouse.New(clickhouse.Config{
 			URL:    cfg.ClickhouseURL,
@@ -176,7 +182,7 @@ func Run(ctx context.Context, cfg Config) error {
 	routes.Register(srv, &routes.Services{
 		Logger:      logger,
 		Database:    db,
-		EventBuffer: ch,
+		ClickHouse:  ch,
 		Keys:        keySvc,
 		Validator:   validator,
 		Ratelimit:   rlSvc,

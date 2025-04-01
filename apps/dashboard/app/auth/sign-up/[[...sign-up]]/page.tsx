@@ -1,14 +1,14 @@
 "use client";
+import { Loading } from "@/components/dashboard/loading";
 import { FadeIn } from "@/components/landing/fade-in";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { SignUpProvider } from "../../context/signup-context";
+import { useSignUp } from "../../hooks";
 import { EmailCode } from "../email-code";
 import { EmailSignUp } from "../email-signup";
 import { OAuthSignUp } from "../oauth-signup";
-import { SignUpProvider } from "../../context/signup-context";
-import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
-import { useSearchParams } from "next/navigation";
-import { Loading } from "@/components/dashboard/loading";
-import { useSignUp } from "../../hooks";
 
 export default function AuthenticationPage() {
   const [verify, setVerify] = useState(false);

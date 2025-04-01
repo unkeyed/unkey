@@ -118,11 +118,11 @@ func (bp *BatchProcessor[T]) process() {
 		case e, ok := <-bp.buffer:
 			if !ok {
 				// channel closed
+				t.Stop()
 				if len(bp.batch) > 0 {
 					bp.flush(context.Background(), bp.batch)
 					bp.batch = bp.batch[:0]
 				}
-				t.Stop()
 				return
 			}
 			bp.batch = append(bp.batch, e)

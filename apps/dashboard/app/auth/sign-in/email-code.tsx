@@ -2,10 +2,10 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
-import { useSignIn } from "../hooks";
 import { cn } from "@/lib/utils";
 import { OTPInput, type SlotProps } from "input-otp";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSignIn } from "../hooks";
 
 export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   const { handleVerification, handleResendCode, setError } = useSignIn();

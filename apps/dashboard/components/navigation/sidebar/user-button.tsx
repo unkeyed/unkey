@@ -14,8 +14,8 @@ import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 
 import { signOut } from "@/lib/auth/utils";
-import type React from "react";
 import { trpc } from "@/lib/trpc/client";
+import type React from "react";
 
 export const UserButton: React.FC = () => {
   const { isMobile, state, openMobile } = useSidebar();

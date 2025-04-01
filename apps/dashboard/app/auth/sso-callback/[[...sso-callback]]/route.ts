@@ -1,7 +1,7 @@
+import { setCookiesOnResponse } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
-import { NextRequest, NextResponse } from "next/server";
-import { setCookiesOnResponse } from "@/lib/auth/cookies";
+import { type NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   const authResult = await auth.completeOAuthSignIn(request);
 

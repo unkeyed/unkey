@@ -31,9 +31,8 @@ export const env = () =>
       GITHUB_KEYS_URI: z.string().optional(),
 
       // This key is used for ratelimiting our trpc procedures
-      // It requires the following permissions:
-      // - `ratelimit.*.create_namespace`
-      // - `ratelimit.*.limit`
+      // It requires the following permission:
+      // `ratelimit.*.limit`
       UNKEY_ROOT_KEY: z.string().optional(),
 
       CLICKHOUSE_URL: z.string().optional(),
@@ -44,9 +43,7 @@ export const env = () =>
       WORKOS_API_KEY: z.string().optional(),
       WORKOS_CLIENT_ID: z.string().optional(),
       WORKOS_WEBHOOK_SECRET: z.string().optional(),
-      NEXT_PUBLIC_WORKOS_REDIRECT_URI: z
-        .string()
-        .default("http://localhost:3000/auth/sso-callback"),
+      NEXT_PUBLIC_WORKOS_REDIRECT_URI: z.string().optional(),
       WORKOS_COOKIE_PASSWORD: z.string().optional(),
     })
     .parse(process.env);
