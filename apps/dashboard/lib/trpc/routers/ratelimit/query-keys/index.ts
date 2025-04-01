@@ -1,11 +1,11 @@
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
   type RatelimitNamespacesResponse,
   queryRatelimitNamespacesPayload,
   ratelimitNamespacesResponse,
 } from "./schemas";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 
 export const queryRatelimitNamespaces = t.procedure
   .use(requireUser)
