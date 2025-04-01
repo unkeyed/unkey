@@ -74,7 +74,7 @@ export const Client: React.FC<Props> = ({
       <PageHeader
         title="Connect Vercel Project"
         description="You can add more projects later"
-        actions={[<WorkspaceSwitcher />]}
+        actions={[<WorkspaceSwitcher key="workspace-switcher" />]}
       />
 
       <div className="flex flex-col flex-1 flex-grow gap-16">

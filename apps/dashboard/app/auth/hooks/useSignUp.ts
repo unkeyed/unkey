@@ -1,8 +1,8 @@
 "use client";
 
+import type { UserData } from "@/lib/auth/types";
 import { resendAuthCode, signUpViaEmail, verifyAuthCode, verifyEmail } from "../actions";
 import { useSignUpContext } from "../context/signup-context";
-import type { UserData } from "@/lib/auth/types";
 
 export function useSignUp() {
   const { userData, updateUserData, clearUserData } = useSignUpContext();

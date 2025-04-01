@@ -47,7 +47,7 @@ const RiveAccelerateAsset = ({ day, stateMachines }: { day: number; stateMachine
   const smVarHighlight = useStateMachineInput(r.rive, stateMachines, "highlight");
   const smVarUnlockedUntil = useStateMachineInput(r.rive, stateMachines, "unlocked_until");
 
-  function onClickDay(day: number) {
+  const onClickDay = React.useCallback((day: number) => {
     let el = document.getElementById(`day_${day}`);
     if (!el) {
       el = document.getElementById("day_1");
@@ -57,7 +57,7 @@ const RiveAccelerateAsset = ({ day, stateMachines }: { day: number; stateMachine
       return;
     }
     el.scrollIntoView();
-  }
+  }, []);
 
   // Wait until the rive object is instantiated before adding the Rive
   // event listener
@@ -98,7 +98,7 @@ const RiveAccelerateAsset = ({ day, stateMachines }: { day: number; stateMachine
     r.rive.on(EventType.RiveEvent, onRiveEventReceived);
 
     setDone(true);
-  }, [done, day, r.rive, smVarHighlight, smVarUnlockedUntil]);
+  }, [done, day, r.rive, smVarHighlight, smVarUnlockedUntil, onClickDay]);
 
   return <r.RiveComponent />;
 };

@@ -1,7 +1,7 @@
-import { requireOrgAdmin, requireUser, t } from "../../trpc";
 import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { requireOrgAdmin, requireUser, t } from "../../trpc";
 
 export const removeMembership = t.procedure
   .use(requireUser)

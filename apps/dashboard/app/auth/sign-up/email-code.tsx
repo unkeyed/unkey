@@ -4,10 +4,10 @@ import * as React from "react";
 
 import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
-import { useSignUp } from "../hooks/useSignUp";
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { cn } from "@/lib/utils";
 import { OTPInput, type SlotProps } from "input-otp";
+import { useSignUp } from "../hooks/useSignUp";
 
 export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   const { handleCodeVerification, handleResendCode } = useSignUp();

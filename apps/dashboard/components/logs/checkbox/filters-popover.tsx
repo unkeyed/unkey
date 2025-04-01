@@ -168,6 +168,7 @@ const FilterItem = ({
             hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none
             ${isFocused ? "bg-gray-3" : ""}`}
           tabIndex={0}
+          // biome-ignore lint/a11y/useSemanticElements: its okay
           role="button"
         >
           <div className="flex gap-2 items-center">

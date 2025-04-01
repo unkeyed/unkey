@@ -19,7 +19,6 @@
   "dependencies": {
     "@agentic/serper": "^7.0.0",
     "@ai-sdk/openai": "^0.0.63",
-    "@clerk/nextjs": "^4.29.10",
     "@mendable/firecrawl-js": "^1.5.2",
     "@octokit/rest": "^21.0.2",
     "@planetscale/database": "^1.16.0",
