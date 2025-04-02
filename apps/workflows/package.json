@@ -3,12 +3,13 @@
   "version": "0.0.1",
   "scripts": {
     "deploy": "wrangler deploy",
-    "start": "wrangler dev"
+    "start": "wrangler dev",
+    "build": "wrangler build"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241022.0",
     "typescript": "^5.0.4",
-    "wrangler": "^3.92.0"
+    "wrangler": "^4.6.0"
   },
   "dependencies": {
     "@planetscale/database": "^1.19.0",
