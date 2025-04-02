@@ -1,3 +1,4 @@
+import { formatFilterValues } from "@/app/(app)/logs/components/controls/components/logs-queries/utils";
 import type { QuerySearchParams } from "@/app/(app)/logs/filters.schema";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -217,12 +218,27 @@ describe("useBookmarkedFilters", () => {
     localStorageMock.setItem("savedFilters", JSON.stringify(savedFilters));
 
     const { result } = renderHook(() => useBookmarkedFilters(defaultProps));
-    const parsedFilters = result.current.parseSavedFilters();
+    const parsedFilters = result.current.savedFilters;
+    expect(parsedFilters).toBeDefined();
 
-    expect(parsedFilters[0].filters.status.values).toEqual([
-      { value: "2xx", color: "bg-success-9" },
-      { value: "404", color: "bg-warning-9" },
-      { value: "5xx", color: "bg-error-9" },
-    ]);
+    expect(formatFilterValues(parsedFilters[0].filters)).toEqual({
+      status: {
+        operator: "is",
+        values: [
+          {
+            color: "bg-success-9",
+            value: "2xx",
+          },
+          {
+            color: "bg-warning-9",
+            value: "404",
+          },
+          {
+            color: "bg-error-9",
+            value: "5xx",
+          },
+        ],
+      },
+    });
   });
 });

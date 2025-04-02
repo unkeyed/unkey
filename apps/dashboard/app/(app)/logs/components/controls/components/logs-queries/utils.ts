@@ -13,14 +13,13 @@ export function formatFilterValues(
         return {
           value:
             value === "200" ? "2xx" : value === "400" ? "4xx" : value === "500" ? "5xx" : value,
-          color:
-            value === "200"
-              ? "bg-success-9"
-              : value === "400"
-                ? "bg-warning-9"
-                : value === "500"
-                  ? "bg-error-9"
-                  : null,
+          color: value.startsWith("2")
+            ? "bg-success-9"
+            : value.startsWith("4")
+              ? "bg-warning-9"
+              : value.startsWith("5")
+                ? "bg-error-9"
+                : null,
         };
       case "methods":
         return { value: value.toUpperCase(), color: null };
