@@ -55,7 +55,7 @@ export const createPlainIssue = t.procedure
       onUpdate: {
         email: {
           email: user.email,
-          isVerified: true
+          isVerified: true,
         },
         fullName: { value: user.fullName ?? "N/A" },
       },

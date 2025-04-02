@@ -1,20 +1,15 @@
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Code } from "@/components/ui/code";
 import { getOrgId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
-import { navigation } from "../constants";
-import { DefaultBytes } from "./default-bytes";
-import { DefaultPrefix } from "./default-prefix";
-import { DeleteApi } from "./delete-api";
-import { DeleteProtection } from "./delete-protection";
-import { Navigation } from "./navigation";
-import { UpdateApiName } from "./update-api-name";
-import { UpdateIpWhitelist } from "./update-ip-whitelist";
-
+// import { DefaultBytes } from "./components/default-bytes";
+// import { DefaultPrefix } from "./components/default-prefix";
+// import { DeleteApi } from "./components/delete-api";
+// import { DeleteProtection } from "./components/delete-protection";
+// import { UpdateApiName } from "./components/update-api-name";
+// import { UpdateIpWhitelist } from "./components/update-ip-whitelist";
+import { ApisNavbar } from "../api-id-navbar";
+import { SettingsClient } from "./components/settings-client";
 export const dynamic = "force-dynamic";
 
 type Props = {
@@ -53,33 +48,17 @@ export default async function SettingsPage(props: Props) {
 
   return (
     <div>
-      <Navigation api={api} />
+      <ApisNavbar
+        api={api}
+        activePage={{
+          href: `/apis/${api.id}/settings`,
+          text: "Settings",
+        }}
+        apis={workspace.apis}
+      />
 
       <PageContent>
-        <SubMenu navigation={navigation(api.id, api.keyAuthId!)} segment="settings" />
-
-        <div className="flex flex-col gap-8 mb-20 mt-8">
-          <UpdateApiName api={api} />
-          <DefaultBytes keyAuth={keyAuth} />
-          <DefaultPrefix keyAuth={keyAuth} />
-          <UpdateIpWhitelist api={api} workspace={workspace} />
-          <Card>
-            <CardHeader>
-              <CardTitle>API ID</CardTitle>
-              <CardDescription>This is your api id. It's used in some API calls.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4">
-                <pre>{api.id}</pre>
-                <div className="flex items-start justify-between gap-4">
-                  <CopyButton value={api.id} />
-                </div>
-              </Code>
-            </CardContent>
-          </Card>
-          <DeleteProtection api={api} />
-          <DeleteApi api={api} keys={keyAuth.sizeApprox} />
-        </div>
+        <SettingsClient api={api} workspace={workspace} keyAuth={keyAuth} />
       </PageContent>
     </div>
   );

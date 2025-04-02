@@ -107,7 +107,5 @@ export const FieldsToTruncate = [
 ] as const;
 
 export function shouldTruncateRow(field: string): boolean {
-  console.log("field", field);
-
   return FieldsToTruncate.includes(field as (typeof FieldsToTruncate)[number]);
 }
