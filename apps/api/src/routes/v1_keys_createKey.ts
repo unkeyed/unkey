@@ -437,21 +437,21 @@ export const registerV1KeysCreateKey = (app: App) =>
     await Promise.all([
       roleIds.length > 0
         ? db.primary.insert(schema.keysRoles).values(
-          roleIds.map((roleId) => ({
-            keyId: newKey.id,
-            roleId,
-            workspaceId: authorizedWorkspaceId,
-          })),
-        )
+            roleIds.map((roleId) => ({
+              keyId: newKey.id,
+              roleId,
+              workspaceId: authorizedWorkspaceId,
+            })),
+          )
         : Promise.resolve(),
       permissionIds.length > 0
         ? db.primary.insert(schema.keysPermissions).values(
-          permissionIds.map((permissionId) => ({
-            keyId: newKey.id,
-            permissionId,
-            workspaceId: authorizedWorkspaceId,
-          })),
-        )
+            permissionIds.map((permissionId) => ({
+              keyId: newKey.id,
+              permissionId,
+              workspaceId: authorizedWorkspaceId,
+            })),
+          )
         : Promise.resolve(),
     ]);
 

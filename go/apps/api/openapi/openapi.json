@@ -17,9 +17,7 @@
       "maxElapsedTime": 10000,
       "exponent": 1.5
     },
-    "statusCodes": [
-      "5XX"
-    ],
+    "statusCodes": ["5XX"],
     "retryConnectionErrors": true
   },
   "components": {
@@ -34,9 +32,7 @@
     "schemas": {
       "Meta": {
         "type": "object",
-        "required": [
-          "requestId"
-        ],
+        "required": ["requestId"],
         "properties": {
           "requestId": {
             "description": "A unique id for this request. Please always provide this to support.",
@@ -93,12 +89,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "detail",
-          "status",
-          "title",
-          "type"
-        ]
+        "required": ["detail", "status", "title", "type"]
       },
       "ValidationError": {
         "additionalProperties": false,
@@ -117,10 +108,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "message",
-          "location"
-        ]
+        "required": ["message", "location"]
       },
       "BadRequestErrorDetails": {
         "allOf": [
@@ -138,18 +126,13 @@
                 "type": "array"
               }
             },
-            "required": [
-              "errors"
-            ]
+            "required": ["errors"]
           }
         ]
       },
       "NotFoundErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -161,10 +144,7 @@
       },
       "UnauthorizedErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -176,10 +156,7 @@
       },
       "ForbiddenErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -191,10 +168,7 @@
       },
       "PreconditionFailedErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -206,10 +180,7 @@
       },
       "BadRequestErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -221,10 +192,7 @@
       },
       "InternalServerErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -243,16 +211,11 @@
             "type": "string"
           }
         },
-        "required": [
-          "message"
-        ]
+        "required": ["message"]
       },
       "V2LivenessResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -295,11 +258,7 @@
             "minimum": 0
           }
         },
-        "required": [
-          "identifier",
-          "limit",
-          "duration"
-        ],
+        "required": ["identifier", "limit", "duration"],
         "type": "object"
       },
       "RatelimitSetOverrideResponseData": {
@@ -310,16 +269,11 @@
             "type": "string"
           }
         },
-        "required": [
-          "overrideId"
-        ]
+        "required": ["overrideId"]
       },
       "V2RatelimitSetOverrideResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -352,9 +306,7 @@
             "maxLength": 255
           }
         },
-        "required": [
-          "identifier"
-        ],
+        "required": ["identifier"],
         "type": "object"
       },
       "RatelimitGetOverrideResponseData": {
@@ -391,20 +343,11 @@
             "minimum": 0
           }
         },
-        "required": [
-          "namespaceId",
-          "overrideId",
-          "duration",
-          "identifier",
-          "limit"
-        ]
+        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"]
       },
       "V2RatelimitGetOverrideResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -463,12 +406,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "overrideId",
-          "identifier",
-          "limit",
-          "duration"
-        ]
+        "required": ["overrideId", "identifier", "limit", "duration"]
       },
       "RatelimitListOverridesResponseData": {
         "type": "array",
@@ -478,10 +416,7 @@
       },
       "V2RatelimitListOverridesResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -529,12 +464,7 @@
             "minimum": 1
           }
         },
-        "required": [
-          "namespace",
-          "identifier",
-          "limit",
-          "duration"
-        ],
+        "required": ["namespace", "identifier", "limit", "duration"],
         "type": "object"
       },
       "RatelimitLimitResponseData": {
@@ -564,19 +494,11 @@
             "type": "string"
           }
         },
-        "required": [
-          "limit",
-          "remaining",
-          "reset",
-          "success"
-        ]
+        "required": ["limit", "remaining", "reset", "success"]
       },
       "V2RatelimitLimitResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -609,9 +531,7 @@
             "maxLength": 255
           }
         },
-        "required": [
-          "identifier"
-        ],
+        "required": ["identifier"],
         "type": "object"
       },
       "RatelimitDeleteOverrideResponseData": {
@@ -620,10 +540,7 @@
       },
       "V2RatelimitDeleteOverrideResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -638,9 +555,7 @@
   "paths": {
     "/v2/ratelimit.limit": {
       "post": {
-        "tags": [
-          "ratelimit"
-        ],
+        "tags": ["ratelimit"],
         "operationId": "v1.ratelimit.limit",
         "summary": "TODO",
         "security": [
@@ -724,9 +639,7 @@
     },
     "/v2/ratelimit.setOverride": {
       "post": {
-        "tags": [
-          "ratelimit"
-        ],
+        "tags": ["ratelimit"],
         "operationId": "ratelimit.setOverride",
         "security": [
           {
@@ -809,9 +722,7 @@
     },
     "/v2/ratelimit.getOverride": {
       "post": {
-        "tags": [
-          "ratelimit"
-        ],
+        "tags": ["ratelimit"],
         "operationId": "ratelimit.getOverride",
         "security": [
           {
@@ -894,9 +805,7 @@
     },
     "/v2/ratelimit.listOverrides": {
       "post": {
-        "tags": [
-          "ratelimit"
-        ],
+        "tags": ["ratelimit"],
         "operationId": "ratelimit.listOverrides",
         "summary": "List rate limit overrides",
         "security": [
@@ -980,9 +889,7 @@
     },
     "/v2/ratelimit.deleteOverride": {
       "post": {
-        "tags": [
-          "ratelimit"
-        ],
+        "tags": ["ratelimit"],
         "operationId": "ratelimit.deleteOverride",
         "requestBody": {
           "content": {
@@ -1060,9 +967,7 @@
     },
     "/v2/liveness": {
       "get": {
-        "tags": [
-          "liveness"
-        ],
+        "tags": ["liveness"],
         "operationId": "liveness",
         "description": "This endpoint checks if the service is alive.",
         "responses": {

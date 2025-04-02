@@ -3,10 +3,5 @@
   "description": "Intuitive and helpful",
   "icon": "Code",
   "root": true,
-  "pages": [
-    "overview",
-    "auth",
-    "rpc",
-    "errors"
-  ]
+  "pages": ["overview", "auth", "rpc", "errors"]
 }
