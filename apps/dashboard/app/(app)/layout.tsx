@@ -1,7 +1,8 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { getOrgId } from "@/lib/auth";
+import { getIsImpersonator, getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
@@ -13,6 +14,7 @@ interface LayoutProps {
 
 export default async function Layout({ children }: LayoutProps) {
   const orgId = await getOrgId();
+  const isImpersonator = await getIsImpersonator();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
@@ -64,6 +66,18 @@ export default async function Layout({ children }: LayoutProps) {
                 )}
               </div>
             </div>
+            {isImpersonator && (
+              <div className="absolute bottom-0 right-0 size-fit z-10 pb-2 pr-2 center">
+                <Alert variant="alert">
+                  <AlertTitle className="text-base font-semibold text-center">
+                    Impersonating User
+                  </AlertTitle>
+                  <AlertDescription className="text-center">
+                    Do not make changes, and log out when you're done
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
           </div>
         </div>
       </SidebarProvider>
