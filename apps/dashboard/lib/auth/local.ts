@@ -30,7 +30,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
   
   // Fixed IDs for local development
   private readonly USER_ID = "user_local_admin";
-  private readonly ORG_ID = "org_local_default";
+  private readonly ORG_ID = "org_localdefault";
   
   // Fixed user and org objects
   private readonly user: User;

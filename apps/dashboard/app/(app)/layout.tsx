@@ -22,8 +22,6 @@ export default async function Layout({ children }: LayoutProps) {
     },
   });
 
-  console.log("layout workspace:", orgId, workspace);
-
   if (!workspace) {
     return redirect("/new");
   }
