@@ -168,25 +168,13 @@ export class Ratelimit implements Ratelimiter {
     let timeoutId: any = null;
     try {
       const ps: Promise<RatelimitResponse>[] = [
-        this.unkey.ratelimit
-          .limit({
-            namespace: this.config.namespace,
-            identifier,
-            limit: opts?.limit?.limit ?? this.config.limit,
-            duration: ms(opts?.limit?.duration ?? this.config.duration),
-            cost: opts?.cost,
-          })
-          .then(async (res) => {
-            if (res.statusCode !== 200 || !res.v2RatelimitLimitResponseBody) {
-              throw new Error(
-                `Ratelimit failed: [${res.statusCode} - ${res.rawResponse.headers.get(
-                  "Unkey-Request-Id",
-                )}]: ${await res.rawResponse.text()}`,
-              );
-            }
-
-            return res.v2RatelimitLimitResponseBody;
-          }),
+        this.unkey.ratelimit.limit({
+          namespace: this.config.namespace,
+          identifier,
+          limit: opts?.limit?.limit ?? this.config.limit,
+          duration: ms(opts?.limit?.duration ?? this.config.duration),
+          cost: opts?.cost,
+        }),
       ];
       if (timeout) {
         ps.push(

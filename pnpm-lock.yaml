@@ -1617,8 +1617,8 @@ importers:
   packages/ratelimit:
     dependencies:
       '@unkey/api':
-        specifier: ^2.0.0-alpha.1
-        version: 2.0.0-alpha.1(zod@3.24.2)
+        specifier: 2.0.0-alpha.5
+        version: 2.0.0-alpha.5(zod@3.23.8)
     devDependencies:
       '@types/node':
         specifier: ^20.14.9
@@ -11790,12 +11790,17 @@ packages:
       '@unkey/rbac': 0.1.13
     dev: false
 
-  /@unkey/api@2.0.0-alpha.1(zod@3.24.2):
-    resolution: {integrity: sha512-YDKPKdzPbw/bOKZXLYe2YKF7Efsw3NtUJxK0x3grAjlIjc33zikN0yIn2gG2klhvWYH5I/gdlCrQH3ymKZagCQ==}
+  /@unkey/api@2.0.0-alpha.5(zod@3.23.8):
+    resolution: {integrity: sha512-WUUUXLPyXSGpdFsSEP1+2/mxKpxyHkXOnoP+OHdvZ9NL4nagWTU3BBuDTNQfKOCfJaCgujU/+1xaWp267gkjmQ==}
+    hasBin: true
     peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.5.0
       zod: '>= 3'
+    peerDependenciesMeta:
+      '@modelcontextprotocol/sdk':
+        optional: true
     dependencies:
-      zod: 3.24.2
+      zod: 3.23.8
     dev: false
 
   /@unkey/error@0.0.2:
@@ -26478,9 +26483,6 @@ packages:
 
   /zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
-
-  /zod@3.24.2:
-    resolution: {integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==}
 
   /zustand@4.5.6(react@18.3.1):
     resolution: {integrity: sha512-ibr/n1hBzLLj5Y+yUcU7dYw8p6WnIVzdJbnX+1YpaScvZVF2ziugqHs+LAmHw4lWO9c/zRj+K1ncgWDQuthEdQ==}

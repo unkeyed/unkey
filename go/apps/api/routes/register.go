@@ -5,6 +5,7 @@ import (
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
+	v2RatelimitListOverrides "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_list_overrides"
 	v2RatelimitSetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -40,7 +41,6 @@ func Register(srv *zen.Server, svc *Services) {
 	// ---------------------------------------------------------------------------
 	// v2/ratelimit
 
-	// v2/ratelimit.limit
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2RatelimitLimit.New(v2RatelimitLimit.Services{
@@ -54,7 +54,6 @@ func Register(srv *zen.Server, svc *Services) {
 			RatelimitOverrideMatchesCache: svc.Caches.RatelimitOverridesMatch,
 		}),
 	)
-	// v2/ratelimit.setOverride
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2RatelimitSetOverride.New(v2RatelimitSetOverride.Services{
@@ -68,6 +67,16 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2RatelimitGetOverride.New(v2RatelimitGetOverride.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+		}),
+	)
+
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2RatelimitListOverrides.New(v2RatelimitListOverrides.Services{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,

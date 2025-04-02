@@ -208,41 +208,39 @@
         "type": "object"
       },
       "V2RatelimitGetOverrideResponseBody": {
+        "$ref": "#/components/schemas/RatelimitOverride"
+      },
+      "V2RatelimitListOverridesRequestBody": {
+        "description": "List all overrides for a namespace",
         "additionalProperties": false,
         "properties": {
           "namespaceId": {
-            "description": "The id of the namespace.",
+            "description": "The id of the namespace. Either namespaceId or namespaceName must be provided",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
-          "overrideId": {
-            "description": "The id of the override.",
+          "namespaceName": {
+            "description": "The name of the namespace. Either namespaceId or namespaceName must be provided",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
-          },
-          "duration": {
-            "description": "The duration in milliseconds for the rate limit window.",
-            "format": "int64",
-            "type": "integer",
-            "minimum": 1000
-          },
-          "identifier": {
-            "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255
-          },
-          "limit": {
-            "description": "The maximum number of requests allowed.",
-            "format": "int64",
-            "type": "integer",
-            "minimum": 0
           }
         },
-        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"],
         "type": "object"
+      },
+      "V2RatelimitListOverridesResponseBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "overrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RatelimitOverride"
+            }
+          }
+        },
+        "required": ["overrides"]
       },
       "V2RatelimitLimitRequestBody": {
         "additionalProperties": false,
@@ -341,6 +339,43 @@
       "V2RatelimitDeleteOverrideResponseBody": {
         "additionalProperties": false,
         "type": "object"
+      },
+      "RatelimitOverride": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "namespaceId": {
+            "description": "The id of the namespace.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "overrideId": {
+            "description": "The id of the override.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "duration": {
+            "description": "The duration in milliseconds for the rate limit window.",
+            "format": "int64",
+            "type": "integer",
+            "minimum": 1000
+          },
+          "identifier": {
+            "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "limit": {
+            "description": "The maximum number of requests allowed.",
+            "format": "int64",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"]
       }
     }
   },
@@ -537,6 +572,89 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/V2RatelimitGetOverrideResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/v2/ratelimit.listOverrides": {
+      "post": {
+        "tags": ["ratelimit"],
+        "operationId": "ratelimit.listOverrides",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2RatelimitListOverridesRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2RatelimitListOverridesResponseBody"
                 }
               }
             },
