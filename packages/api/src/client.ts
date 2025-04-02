@@ -227,6 +227,84 @@ export class Unkey {
           body: req,
         });
       },
+      addPermissions: async (
+        req: paths["/v1/keys.addPermissions"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/keys.addPermissions"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "keys.addPermissions"],
+          method: "POST",
+          body: req,
+        });
+      },
+      setPermissions: async (
+        req: paths["/v1/keys.setPermissions"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/keys.setPermissions"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "keys.setPermissions"],
+          method: "POST",
+          body: req,
+        });
+      },
+      removePermissions: async (
+        req: paths["/v1/keys.removePermissions"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/keys.removePermissions"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "keys.removePermissions"],
+          method: "POST",
+          body: req,
+        });
+      },
+      addRoles: async (
+        req: paths["/v1/keys.addRoles"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/keys.addRoles"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "keys.addRoles"],
+          method: "POST",
+          body: req,
+        });
+      },
+      removeRoles: async (
+        req: paths["/v1/keys.removeRoles"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/keys.removeRoles"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "keys.removeRoles"],
+          method: "POST",
+          body: req,
+        });
+      },
+      setRoles: async (
+        req: paths["/v1/keys.setRoles"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/keys.setRoles"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "keys.setRoles"],
+          method: "POST",
+          body: req,
+        });
+      },
       update: async (
         req: paths["/v1/keys.updateKey"]["post"]["requestBody"]["content"]["application/json"],
       ): Promise<
@@ -357,6 +435,88 @@ export class Unkey {
           path: ["v1", "apis.listKeys"],
           method: "GET",
           query: req,
+        });
+      },
+    };
+  }
+  public get permissions() {
+    return {
+      createRole: async (
+        req: paths["/v1/permissions.createRole"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/permissions.createRole"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "permissions.createRole"],
+          method: "POST",
+          body: req,
+        });
+      },
+      getRole: async (
+        req: paths["/v1/permissions.getRole"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/permissions.getRole"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "permissions.getRole"],
+          method: "GET",
+          query: req,
+        });
+      },
+      deleteRole: async (
+        req: paths["/v1/permissions.deleteRole"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/permissions.deleteRole"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "permissions.deleteRole"],
+          method: "POST",
+          body: req,
+        });
+      },
+      createPermission: async (
+        req: paths["/v1/permissions.createPermission"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/permissions.createPermission"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "permissions.createPermission"],
+          method: "POST",
+          body: req,
+        });
+      },
+      getPermission: async (
+        req: paths["/v1/permissions.getPermission"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/permissions.getPermission"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "permissions.getPermission"],
+          method: "GET",
+          query: req,
+        });
+      },
+      deletePermission: async (
+        req: paths["/v1/permissions.deletePermission"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/permissions.deletePermission"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "permissions.deletePermission"],
+          method: "POST",
+          body: req,
         });
       },
     };

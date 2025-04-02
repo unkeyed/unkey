@@ -47,6 +47,7 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 				fault.WithDesc("key does not exist", "We could not find the requested key."),
 			)
 		}
+
 		return VerifyResponse{}, fault.Wrap(
 			err,
 			fault.WithDesc("unable to load key", "We could not load the requested key."),

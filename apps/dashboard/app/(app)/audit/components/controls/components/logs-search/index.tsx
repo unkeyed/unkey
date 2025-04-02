@@ -44,6 +44,11 @@ export const LogsSearch = () => {
 
   return (
     <LogsLLMSearch
+      exampleQueries={[
+        "Show keys created in the last 3h",
+        "Show all ratelimit events",
+        "Show all role deletions",
+      ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>

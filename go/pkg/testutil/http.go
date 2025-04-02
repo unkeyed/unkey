@@ -10,9 +10,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -35,10 +37,12 @@ type Harness struct {
 	middleware []zen.Middleware
 
 	DB          db.Database
+	Caches      caches.Caches
 	Logger      logging.Logger
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
 	Auditlogs   auditlogs.AuditLogService
+	ClickHouse  clickhouse.ClickHouse
 	Ratelimit   ratelimit.Service
 	seeder      *seed.Seeder
 }
@@ -59,6 +63,12 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	caches, err := caches.New(caches.Config{
+		Logger: logger,
+		Clock:  clk,
+	})
+	require.NoError(t, err)
+
 	srv, err := zen.New(zen.Config{
 		InstanceID: "test",
 		Logger:     logger,
@@ -66,11 +76,14 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		Logger: logger,
-		DB:     db,
-		Clock:  clk,
+		Logger:   logger,
+		DB:       db,
+		Clock:    clk,
+		KeyCache: caches.KeyByHash,
 	})
 	require.NoError(t, err)
+
+	ch := clickhouse.NewNoop()
 
 	validator, err := validation.New()
 	require.NoError(t, err)
@@ -79,6 +92,7 @@ func NewHarness(t *testing.T) *Harness {
 		DB:     db,
 		Logger: logger,
 		Clock:  clk,
+		Cache:  caches.PermissionsByKeyId,
 	})
 	require.NoError(t, err)
 
@@ -104,6 +118,7 @@ func NewHarness(t *testing.T) *Harness {
 		Keys:        keyService,
 		Permissions: permissionService,
 		Ratelimit:   ratelimitService,
+		ClickHouse:  ch,
 		DB:          db,
 		seeder:      seeder,
 		Clock:       clk,
@@ -111,6 +126,7 @@ func NewHarness(t *testing.T) *Harness {
 			DB:     db,
 			Logger: logger,
 		}),
+		Caches: caches,
 		middleware: []zen.Middleware{
 			zen.WithTracing(),
 			zen.WithLogging(logger),

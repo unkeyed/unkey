@@ -16,17 +16,19 @@ import (
 // Clickhouse represents a client for interacting with a ClickHouse database.
 // It provides batch processing for different event types to efficiently store
 // high volumes of data while minimizing connection overhead.
-type Clickhouse struct {
+type clickhouse struct {
 	conn   ch.Conn
 	logger logging.Logger
 
 	// Batched processors for different event types
 	requests         *batch.BatchProcessor[schema.ApiRequestV1]
 	keyVerifications *batch.BatchProcessor[schema.KeyVerificationRequestV1]
+	ratelimits       *batch.BatchProcessor[schema.RatelimitRequestV1]
 }
 
-var _ Bufferer = (*Clickhouse)(nil)
-var _ Querier = (*Clickhouse)(nil)
+var _ Bufferer = (*clickhouse)(nil)
+var _ Querier = (*clickhouse)(nil)
+var _ ClickHouse = (*clickhouse)(nil)
 
 // Config contains the configuration options for the ClickHouse client.
 type Config struct {
@@ -54,7 +56,8 @@ type Config struct {
 //	if err != nil {
 //	    return fmt.Errorf("failed to initialize clickhouse: %w", err)
 //	}
-func New(config Config) (*Clickhouse, error) {
+func New(config Config) (*clickhouse, error) {
+
 	opts, err := ch.ParseDSN(config.URL)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.WithDesc("parsing clickhouse DSN failed", ""))
@@ -65,10 +68,9 @@ func New(config Config) (*Clickhouse, error) {
 	opts.Debugf = func(format string, v ...any) {
 		config.Logger.Debug(fmt.Sprintf(format, v...))
 	}
-	//	if opts.TLS == nil {
-	//
-	//		opts.TLS = new(tls.Config)
-	//	}
+	opts.MaxOpenConns = 50
+	opts.ConnMaxLifetime = time.Hour
+	opts.ConnOpenStrategy = ch.ConnOpenRoundRobin
 
 	config.Logger.Info("connecting to clickhouse")
 	conn, err := ch.Open(opts)
@@ -89,12 +91,12 @@ func New(config Config) (*Clickhouse, error) {
 	if err != nil {
 		return nil, fault.Wrap(err, fault.WithDesc("pinging clickhouse failed", ""))
 	}
-	c := &Clickhouse{
+	c := &clickhouse{
 		conn:   conn,
 		logger: config.Logger,
 
-		requests: batch.New[schema.ApiRequestV1](batch.Config[schema.ApiRequestV1]{
-			Name:          "api reqeusts",
+		requests: batch.New(batch.Config[schema.ApiRequestV1]{
+			Name:          "api requests",
 			Drop:          true,
 			BatchSize:     1000,
 			BufferSize:    100000,
@@ -130,6 +132,25 @@ func New(config Config) (*Clickhouse, error) {
 					}
 				},
 			}),
+		ratelimits: batch.New[schema.RatelimitRequestV1](
+			batch.Config[schema.RatelimitRequestV1]{
+				Name:          "rate limits",
+				Drop:          true,
+				BatchSize:     1000,
+				BufferSize:    100000,
+				FlushInterval: time.Second,
+				Consumers:     4,
+				Flush: func(ctx context.Context, rows []schema.RatelimitRequestV1) {
+					table := "ratelimits.raw_ratelimits_v1"
+					err := flush(ctx, conn, table, rows)
+					if err != nil {
+						config.Logger.Error("failed to flush batch",
+							"table", table,
+							"error", err.Error(),
+						)
+					}
+				},
+			}),
 	}
 
 	// err = c.conn.Ping(context.Background())
@@ -152,7 +173,7 @@ func New(config Config) (*Clickhouse, error) {
 //	if err != nil {
 //	    logger.Error("failed to shutdown clickhouse client", err)
 //	}
-func (c *Clickhouse) Shutdown(ctx context.Context) error {
+func (c *clickhouse) Shutdown(ctx context.Context) error {
 	c.requests.Close()
 	err := c.conn.Close()
 	if err != nil {
@@ -180,7 +201,7 @@ func (c *Clickhouse) Shutdown(ctx context.Context) error {
 //	    Path:           r.URL.Path,
 //	    ResponseStatus: status,
 //	})
-func (c *Clickhouse) BufferApiRequest(req schema.ApiRequestV1) {
+func (c *clickhouse) BufferApiRequest(req schema.ApiRequestV1) {
 	c.requests.Buffer(req)
 }
 
@@ -201,6 +222,28 @@ func (c *Clickhouse) BufferApiRequest(req schema.ApiRequestV1) {
 //	    KeyID:      keyID,
 //	    Outcome:    "success",
 //	})
-func (c *Clickhouse) BufferKeyVerification(req schema.KeyVerificationRequestV1) {
+func (c *clickhouse) BufferKeyVerification(req schema.KeyVerificationRequestV1) {
 	c.keyVerifications.Buffer(req)
+}
+
+// BufferRatelimit adds a ratelimit event to the buffer for batch processing.
+// The event will be flushed to ClickHouse automatically based on the configured
+// batch size and flush interval.
+//
+// This method is non-blocking if the buffer has available capacity. If the buffer
+// is full and the Drop option is enabled (which is the default), the event will
+// be silently dropped.
+//
+// Example:
+//
+//	ch.BufferRatelimit(schema.RatelimitRequestV1{
+//	    RequestID:      requestID,
+//	    Time:           time.Now().UnixMilli(),
+//	    WorkspaceID:    workspaceID,
+//	    NamespaceID:    namespaceID,
+//	    Identifier:     identifier,
+//	    Passed:         passed,
+//	})
+func (c *clickhouse) BufferRatelimit(req schema.RatelimitRequestV1) {
+	c.ratelimits.Buffer(req)
 }

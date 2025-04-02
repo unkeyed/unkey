@@ -30,11 +30,14 @@ func TestLimitSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 
 	route := handler.New(handler.Services{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Ratelimit:   h.Ratelimit,
+		DB:                            h.DB,
+		Keys:                          h.Keys,
+		Logger:                        h.Logger,
+		ClickHouse:                    h.ClickHouse,
+		Permissions:                   h.Permissions,
+		Ratelimit:                     h.Ratelimit,
+		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+		RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
 	})
 
 	h.Register(route)

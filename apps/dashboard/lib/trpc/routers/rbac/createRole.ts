@@ -3,7 +3,7 @@ import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -13,7 +13,8 @@ const nameSchema = z
   });
 
 export const createRole = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: nameSchema,
@@ -52,7 +53,7 @@ export const createRole = t.procedure
                 "We are unable to create a role. Please try again or contact support@unkey.dev.",
             });
           });
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           event: "role.create",
           actor: {
@@ -83,7 +84,7 @@ export const createRole = t.procedure
           );
           await insertAuditLogs(
             tx,
-            ctx.workspace.auditLogBucket.id,
+
             input.permissionIds.map((permissionId) => ({
               workspaceId: ctx.workspace.id,
               event: "authorization.connect_role_and_permission",

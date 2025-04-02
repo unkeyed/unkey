@@ -2,9 +2,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const disconnectRoleFromKey = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       roleId: z.string(),
@@ -23,7 +24,7 @@ export const disconnectRoleFromKey = t.procedure
               eq(schema.keysRoles.keyId, input.keyId),
             ),
           );
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "authorization.disconnect_role_and_key",

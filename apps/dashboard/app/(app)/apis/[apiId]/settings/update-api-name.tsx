@@ -76,7 +76,9 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
           <div className="flex flex-col space-y-2">
             <input type="hidden" name="workspaceId" value={api.workspaceId} />
             <input type="hidden" name="apiId" value={api.id} />
-            <label className="hidden sr-only">Name</label>
+            <label htmlFor="name" className="hidden sr-only">
+              Name
+            </label>
             <FormField
               control={form.control}
               name="name"

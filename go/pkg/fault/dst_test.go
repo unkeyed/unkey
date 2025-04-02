@@ -141,7 +141,7 @@ func NewErrorChainGenerator(seed int64) *ErrorChainGenerator {
 	}
 }
 
-func (g *ErrorChainGenerator) generateErrorChain() (error, []fault.Tag, []string) {
+func (g *ErrorChainGenerator) generateErrorChain() ([]fault.Tag, []string, error) {
 	depth := g.rng.Intn(maxDepth) + 1
 	usedTags := make([]fault.Tag, 0, depth)
 	usedMsgs := make([]string, 0, depth)
@@ -171,7 +171,7 @@ func (g *ErrorChainGenerator) generateErrorChain() (error, []fault.Tag, []string
 		}
 	}
 
-	return err, usedTags, usedMsgs
+	return usedTags, usedMsgs, err
 }
 
 func TestDST(t *testing.T) {
@@ -188,7 +188,7 @@ func TestDST(t *testing.T) {
 
 	for i := 0; i < numTestCases; i++ {
 		t.Run(fmt.Sprintf("TestCase_%d", i), func(t *testing.T) {
-			err, expectedTags, expectedMsgs := generator.generateErrorChain()
+			expectedTags, expectedMsgs, err := generator.generateErrorChain()
 
 			if err == nil {
 				t.Fatal("generated error should not be nil")
@@ -217,8 +217,8 @@ func TestReproducibility(t *testing.T) {
 	gen2 := NewErrorChainGenerator(seed)
 
 	for i := 0; i < 10; i++ {
-		err1, tags1, msgs1 := gen1.generateErrorChain()
-		err2, tags2, msgs2 := gen2.generateErrorChain()
+		tags1, msgs1, err1 := gen1.generateErrorChain()
+		tags2, msgs2, err2 := gen2.generateErrorChain()
 
 		if err1.Error() != err2.Error() {
 			t.Errorf("Case %d: Errors not identical with same seed", i)

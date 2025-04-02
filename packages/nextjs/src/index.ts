@@ -69,7 +69,7 @@ export function withUnkey<TContext extends NextContext = NextContext>(
      */
     const key = config?.getKey
       ? config.getKey(req)
-      : req.headers.get("authorization")?.replace("Bearer ", "") ?? null;
+      : (req.headers.get("authorization")?.replace("Bearer ", "") ?? null);
     if (key === null) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }

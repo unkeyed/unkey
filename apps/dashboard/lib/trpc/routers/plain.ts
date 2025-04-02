@@ -1,13 +1,16 @@
+import { auth } from "@/lib/auth/server";
 import { env } from "@/lib/env";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-import { clerkClient } from "@clerk/nextjs";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { PlainClient, uiComponent } from "@team-plain/typescript-sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 const issueType = z.enum(["bug", "feature", "security", "question", "payment"]);
 const severity = z.enum(["p0", "p1", "p2", "p3"]);
-export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
+export const createPlainIssue = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.create))
   .input(
     z.object({
       issueType,
@@ -29,7 +32,7 @@ export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
       apiKey,
     });
 
-    const user = await clerkClient.users.getUser(ctx.user.id);
+    const user = await auth.getUser(ctx.user.id);
     if (!user) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -37,25 +40,24 @@ export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
       });
     }
 
-    const email = user.emailAddresses.at(0)!.emailAddress;
     const plainUser = await client.upsertCustomer({
       identifier: {
-        emailAddress: email,
+        emailAddress: user.email,
       },
       onCreate: {
         externalId: user.id,
         email: {
-          email: email,
-          isVerified: user.emailAddresses.at(0)?.verification?.status === "verified",
+          email: user.email,
+          isVerified: true,
         },
-        fullName: user.username ?? user.firstName ?? "none avail",
+        fullName: user.fullName ?? "N/A",
       },
       onUpdate: {
         email: {
-          email: email,
-          isVerified: user.emailAddresses.at(0)?.verification?.status === "verified",
+          email: user.email,
+          isVerified: true,
         },
-        fullName: { value: user.username ?? user.firstName ?? "none avail" },
+        fullName: { value: user.fullName ?? "N/A" },
       },
     });
     if (plainUser.error) {
@@ -70,7 +72,7 @@ export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
       title: `${input.severity} - ${input.issueType}`,
       priority: severityToNumber[input.severity],
       customerIdentifier: {
-        emailAddress: email,
+        emailAddress: user.email,
       },
       components: [
         uiComponent.plainText({ text: input.message }),

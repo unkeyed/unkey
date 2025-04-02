@@ -109,3 +109,59 @@ test("cannot encrypt without permissions", async (t) => {
   t.expect(res.status, `expected 403, received: ${JSON.stringify(res, null, 2)}`).toBe(403);
   t.expect(res.body.error.code).toEqual("INSUFFICIENT_PERMISSIONS");
 });
+
+test("cannot create role without permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  await h.db.primary
+    .update(schema.keyAuth)
+    .set({
+      storeEncryptedKeys: true,
+    })
+    .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
+
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+  const res = await h.post<V1KeysCreateKeyRequest, ErrorResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+      roles: ["r1"],
+    },
+  });
+
+  t.expect(res.status, `expected 403, received: ${JSON.stringify(res, null, 2)}`).toBe(403);
+  t.expect(res.body.error.code).toEqual("INSUFFICIENT_PERMISSIONS");
+});
+
+test("cannot create permission without permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  await h.db.primary
+    .update(schema.keyAuth)
+    .set({
+      storeEncryptedKeys: true,
+    })
+    .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
+
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+  const res = await h.post<V1KeysCreateKeyRequest, ErrorResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+      permissions: ["p1"],
+    },
+  });
+
+  t.expect(res.status, `expected 403, received: ${JSON.stringify(res, null, 2)}`).toBe(403);
+  t.expect(res.body.error.code).toEqual("INSUFFICIENT_PERMISSIONS");
+});

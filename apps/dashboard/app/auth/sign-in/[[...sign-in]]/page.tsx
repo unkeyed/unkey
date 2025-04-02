@@ -1,51 +1,120 @@
 "use client";
-import { FadeIn } from "@/components/landing/fade-in";
 
-import { useAuth } from "@clerk/nextjs";
+import { Loading } from "@/components/dashboard/loading";
+import { FadeIn } from "@/components/landing/fade-in";
 import { MoveRight } from "lucide-react";
 import Link from "next/link";
-import * as React from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { ErrorBanner, WarnBanner } from "../../banners";
+import { SignInProvider } from "../../context/signin-context";
+import { useSignIn } from "../../hooks";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
+import { EmailVerify } from "../email-verify";
 import { OAuthSignIn } from "../oauth-signin";
+import { OrgSelector } from "../org-selector";
 
-export default function AuthenticationPage() {
-  const [verify, setVerify] = React.useState(false);
-  const [accountNotFound, setAccountNotFound] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [email, setEmail] = React.useState("");
-  const { isLoaded } = useAuth();
-  if (!isLoaded) {
-    return null;
+function SignInContent() {
+  const { isVerifying, accountNotFound, error, email, hasPendingAuth, orgs, handleSignInViaEmail } =
+    useSignIn();
+  const searchParams = useSearchParams();
+  const verifyParam = searchParams?.get("verify");
+  const invitationToken = searchParams?.get("invitation_token");
+  const invitationEmail = searchParams?.get("email");
+
+  // Initialize isLoading as false
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Add clientReady state to handle hydration
+  const [clientReady, setClientReady] = useState(false);
+  const hasAttemptedSignIn = useRef(false);
+
+  // Set clientReady to true after hydration
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
+
+  // Handle auto sign-in with invitation token and email
+  useEffect(() => {
+    // Only run this effect on the client side after hydration
+    if (!clientReady) {
+      return;
+    }
+
+    const attemptAutoSignIn = async () => {
+      // Only proceed if we have required data, aren't in other auth states, and haven't attempted sign-in yet
+      if (
+        invitationToken &&
+        invitationEmail &&
+        !isVerifying &&
+        !hasPendingAuth &&
+        !hasAttemptedSignIn.current
+      ) {
+        // Mark that we've attempted sign-in to prevent multiple attempts
+        hasAttemptedSignIn.current = true;
+
+        // Set loading state to true
+        setIsLoading(true);
+
+        try {
+          // Attempt sign-in with the provided email
+          await handleSignInViaEmail(invitationEmail);
+        } catch (err) {
+          console.error("Auto sign-in failed:", err);
+        } finally {
+          // Reset loading state
+          setIsLoading(false);
+        }
+      }
+    };
+
+    attemptAutoSignIn();
+  }, [
+    clientReady,
+    invitationToken,
+    invitationEmail,
+    isVerifying,
+    hasPendingAuth,
+    handleSignInViaEmail,
+  ]);
+
+  // Show a loading indicator only when isLoading is true AND client has hydrated
+  if (clientReady && isLoading) {
+    return <Loading />;
   }
 
   return (
     <div className="flex flex-col gap-10">
-      {accountNotFound ? (
+      {hasPendingAuth && <OrgSelector organizations={orgs} />}
+
+      {accountNotFound && (
         <WarnBanner>
           <div className="flex items-center justify-between w-full gap-2">
             <p className="text-xs">Account not found, did you mean to sign up?</p>
-
             <Link href={`/auth/sign-up?email=${encodeURIComponent(email)}`}>
-              <div className="border text-center text-xs border-transparent hover:border-[#FFD55D]/50  text-[#FFD55D]  duration-200  p-1 rounded-lg ">
+              <div className="border text-center text-xs border-transparent hover:border-[#FFD55D]/50 text-[#FFD55D] duration-200 p-1 rounded-lg">
                 <MoveRight className="w-4 h-4" />
               </div>
             </Link>
           </div>
         </WarnBanner>
-      ) : null}
-      {error ? <ErrorBanner>{error}</ErrorBanner> : null}
+      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
-      {verify ? (
+      {isVerifying ? (
         <FadeIn>
-          <EmailCode setError={setError} />
+          <EmailCode invitationToken={invitationToken || undefined} />
+        </FadeIn>
+      ) : verifyParam === "email" ? (
+        <FadeIn>
+          <EmailVerify />
         </FadeIn>
       ) : (
         <>
-          <div className="flex flex-col ">
+          <div className="flex flex-col">
             <h1 className="text-4xl text-white">Sign In</h1>
-            <p className="mt-4 text-sm text-md text-white/50 ">
+            <p className="mt-4 text-sm text-md text-white/50">
               New to Unkey?{" "}
               <Link href="/auth/sign-up" className="ml-2 text-white hover:underline">
                 Create new account
@@ -62,18 +131,18 @@ export default function AuthenticationPage() {
                 <span className="px-2 bg-black text-white/40">or continue using email</span>
               </div>
             </div>
-            <div className="w-full">
-              <EmailSignIn
-                setError={setError}
-                verification={setVerify}
-                setAccountNotFound={setAccountNotFound}
-                email={setEmail}
-                emailValue={email}
-              />
-            </div>
+            <EmailSignIn />
           </div>
         </>
       )}
     </div>
+  );
+}
+
+export default function AuthenticationPage() {
+  return (
+    <SignInProvider>
+      <SignInContent />
+    </SignInProvider>
   );
 }

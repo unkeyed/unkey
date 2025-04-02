@@ -35,6 +35,11 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				return nil
 			}
 
+			logger.Error("api error",
+				"error", err.Error(),
+				"publicMessage", fault.UserFacingMessage(err),
+			)
+
 			//	errorSteps := fault.Flatten(err)
 			//	if len(errorSteps) > 0 {
 

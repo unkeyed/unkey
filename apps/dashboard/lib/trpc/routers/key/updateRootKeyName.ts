@@ -2,9 +2,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const updateRootKeyName = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       keyId: z.string(),
@@ -15,7 +16,7 @@ export const updateRootKeyName = t.procedure
     const key = await db.query.keys.findFirst({
       where: (table, { eq, isNull, and }) =>
         and(
-          eq(table.workspaceId, ctx.workspace.id),
+          eq(table.forWorkspaceId, ctx.workspace.id),
           eq(table.id, input.keyId),
           isNull(table.deletedAtM),
         ),
@@ -44,7 +45,7 @@ export const updateRootKeyName = t.procedure
                 "We are unable to update root key name. Please try again or contact support@unkey.dev",
             });
           });
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
             type: "user",

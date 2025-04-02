@@ -1,0 +1,61 @@
+---
+title: WorkOS
+description: Setting up WorkOS
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+
+Unkey does not require WorkOS. You can use Unkey without any 3rd party identity provider if you want.
+As a business however, we use WorkOS for our identity provider in production.
+
+If you want to set up WorkOS locally or in preview mode, follow these steps:
+
+<Callout>
+  This is not a comprehensive production checklist.
+</Callout>
+
+<Steps>
+
+<Step>
+  ### Login to WorkOS
+  - Go to [WorkOS](https://dashboard.workos.com)
+  - Sign in
+</Step>
+
+<Step>
+  ### Select Environment
+
+  In the top left corner, select the environment you want to use.
+  For Unkey employees, this is `staging`.
+</Step>
+
+<Step>
+  ### Copy credentials
+
+  Under the `Quick start` section on [/get-started](https://dashboard.workos.com/get-started), you should find the `WORKOS_CLIENT_ID` and `WORKOS_API_KEY`.
+
+  You'll need those in the next step.
+
+
+
+</Step>
+
+<Step>
+  ### Configure .env
+
+  In `/apps/dashboard/.env`, ensure the following variables are set:
+
+```
+AUTH_PROVIDER="workos"
+NEXT_PUBLIC_WORKOS_REDIRECT_URI="http://localhost:3000/auth/sso-callback"
+WORKOS_COOKIE_PASSWORD=
+WORKOS_CLIENT_ID=
+WORKOS_API_KEY=
+```
+
+You can generate a secure cookie password via `openssl rand -base64 64`
+</Step>
+
+
+</Steps>

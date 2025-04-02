@@ -8,29 +8,27 @@ import (
 	"time"
 
 	"github.com/maypok86/otter"
-	"github.com/panjf2000/ants"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"github.com/unkeyed/unkey/go/pkg/repeat"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
 type cache[K comparable, V any] struct {
-	otter otter.Cache[K, swrEntry[V]]
-	fresh time.Duration
-	stale time.Duration
-	// If a key is stale, its key will be put into this channel and a goroutine refreshes it in the background
-	refreshC chan K
+	otter    otter.Cache[K, swrEntry[V]]
+	fresh    time.Duration
+	stale    time.Duration
 	logger   logging.Logger
 	resource string
 	clock    clock.Clock
 
+	revalidateC chan func()
+
 	inflightMu        sync.Mutex
 	inflightRefreshes map[K]bool
-
-	pool *ants.Pool
 }
 
 type Config[K comparable, V any] struct {
@@ -62,14 +60,13 @@ func New[K comparable, V any](config Config[K, V]) (*cache[K, V], error) {
 		return nil, err
 	}
 
-	otter, err := builder.CollectStats().Cost(func(key K, value swrEntry[V]) uint32 {
-		return 1
-	}).WithTTL(config.Stale).Build()
-	if err != nil {
-		return nil, err
-	}
-
-	pool, err := ants.NewPool(10)
+	otter, err := builder.
+		CollectStats().
+		Cost(func(key K, value swrEntry[V]) uint32 {
+			return 1
+		}).
+		WithTTL(config.Stale).
+		Build()
 	if err != nil {
 		return nil, err
 	}
@@ -78,69 +75,46 @@ func New[K comparable, V any](config Config[K, V]) (*cache[K, V], error) {
 		otter:             otter,
 		fresh:             config.Fresh,
 		stale:             config.Stale,
-		refreshC:          make(chan K, 1000),
 		logger:            config.Logger,
 		resource:          config.Resource,
 		clock:             config.Clock,
-		pool:              pool,
+		revalidateC:       make(chan func(), 1000),
 		inflightMu:        sync.Mutex{},
 		inflightRefreshes: make(map[K]bool),
 	}
 
-	err = c.registerMetrics()
-	if err != nil {
-		return nil, err
+	for range 10 {
+		go func() {
+			for revalidate := range c.revalidateC {
+				revalidate()
+			}
+		}()
 	}
+
+	c.registerMetrics()
 	return c, nil
 
 }
 
-func (c *cache[K, V]) registerMetrics() error {
+func (c *cache[K, V]) registerMetrics() {
 
 	attributes := metric.WithAttributes(
 		attribute.String("resource", c.resource),
 	)
 
-	err := metrics.Cache.Size.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
-		o.Observe(int64(c.otter.Size()), attributes)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
+	repeat.Every(10*time.Second, func() {
+		ctx := context.Background()
 
-	err = metrics.Cache.Capacity.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
-		o.Observe(int64(c.otter.Capacity()), attributes)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
+		stats := c.otter.Stats()
 
-	err = metrics.Cache.Hits.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
-		o.Observe(c.otter.Stats().Hits(), attributes)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
+		metrics.Cache.Size.Record(ctx, int64(c.otter.Size()), attributes)
+		metrics.Cache.Capacity.Record(ctx, int64(c.otter.Capacity()), attributes)
+		metrics.Cache.Hits.Record(ctx, stats.Hits(), attributes)
+		metrics.Cache.Misses.Record(ctx, stats.Misses(), attributes)
+		metrics.Cache.Evicted.Record(ctx, stats.EvictedCount(), attributes)
 
-	err = metrics.Cache.Misses.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
-		o.Observe(c.otter.Stats().Misses(), attributes)
-		return nil
 	})
-	if err != nil {
-		return err
-	}
 
-	err = metrics.Cache.Evicted.RegisterCallback(func(_ context.Context, o metric.Int64Observer) error {
-		o.Observe(c.otter.Stats().EvictedCount(), attributes)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
@@ -234,10 +208,8 @@ func (c *cache[K, V]) Restore(ctx context.Context, b []byte) error {
 	}
 	now := c.clock.Now()
 	for key, entry := range data {
-		if now.Before(entry.Fresh) {
+		if now.Before(entry.Fresh) || now.Before(entry.Stale) {
 			c.Set(ctx, key, entry.Value)
-		} else if now.Before(entry.Stale) {
-			c.refreshC <- key
 		}
 		// If the entry is older than, we don't restore it
 	}
@@ -248,11 +220,12 @@ func (c *cache[K, V]) Clear(ctx context.Context) {
 	c.otter.Clear()
 }
 
-func (c *cache[K, V]) refresh(
+func (c *cache[K, V]) revalidate(
 	ctx context.Context,
 	key K, refreshFromOrigin func(context.Context) (V, error),
 	op func(error) Op,
 ) {
+
 	c.inflightMu.Lock()
 	_, ok := c.inflightRefreshes[key]
 	if ok {
@@ -268,8 +241,11 @@ func (c *cache[K, V]) refresh(
 		c.inflightMu.Unlock()
 	}()
 
+	metrics.Cache.Revalidations.Add(ctx, 1, metric.WithAttributes(attribute.String("resource", c.resource)))
 	v, err := refreshFromOrigin(ctx)
-
+	if err != nil {
+		c.logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
+	}
 	switch op(err) {
 	case WriteValue:
 		c.Set(ctx, key, v)
@@ -303,13 +279,12 @@ func (c *cache[K, V]) SWR(
 			// We have data, but it's stale, so we refresh it in the background
 			// but return the current value
 
-			err := c.pool.Submit(func() {
-				c.refresh(ctx, key, refreshFromOrigin, op)
-			})
-			if err != nil {
-				c.logger.Error("failed to submit refresh task", "error", err.Error())
-			}
+			c.revalidateC <- func() {
+				// If we don't uncancel the context, the revalidation will get canceled when
+				// the api response is returned
+				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
 
+			}
 			return e.Value, nil
 		}
 
