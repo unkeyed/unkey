@@ -108,7 +108,7 @@ func TestAccuracy(t *testing.T) {
 							for res := range results {
 								require.Equal(t, http.StatusOK, res.Status, "expected 200 status, but got:%s", res.RawBody)
 								total++
-								if res.Body.Success {
+								if res.Body.Data.Success {
 									passed++
 								}
 

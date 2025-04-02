@@ -336,8 +336,8 @@ export const registerV1KeysCreateKey = (app: App) =>
     const externalId = req.externalId ?? req.ownerId;
 
     const [permissionIds, roleIds, identity] = await Promise.all([
-      getPermissionIds(auth, rbac, db.readonly, authorizedWorkspaceId, req.permissions ?? []),
-      getRoleIds(auth, rbac, db.readonly, authorizedWorkspaceId, req.roles ?? []),
+      getPermissionIds(auth, rbac, db.primary, authorizedWorkspaceId, req.permissions ?? []),
+      getRoleIds(auth, rbac, db.primary, authorizedWorkspaceId, req.roles ?? []),
       externalId
         ? upsertIdentity(db.primary, authorizedWorkspaceId, externalId)
         : Promise.resolve(null),
@@ -437,21 +437,21 @@ export const registerV1KeysCreateKey = (app: App) =>
     await Promise.all([
       roleIds.length > 0
         ? db.primary.insert(schema.keysRoles).values(
-            roleIds.map((roleId) => ({
-              keyId: newKey.id,
-              roleId,
-              workspaceId: authorizedWorkspaceId,
-            })),
-          )
+          roleIds.map((roleId) => ({
+            keyId: newKey.id,
+            roleId,
+            workspaceId: authorizedWorkspaceId,
+          })),
+        )
         : Promise.resolve(),
       permissionIds.length > 0
         ? db.primary.insert(schema.keysPermissions).values(
-            permissionIds.map((permissionId) => ({
-              keyId: newKey.id,
-              permissionId,
-              workspaceId: authorizedWorkspaceId,
-            })),
-          )
+          permissionIds.map((permissionId) => ({
+            keyId: newKey.id,
+            permissionId,
+            workspaceId: authorizedWorkspaceId,
+          })),
+        )
         : Promise.resolve(),
     ]);
 
