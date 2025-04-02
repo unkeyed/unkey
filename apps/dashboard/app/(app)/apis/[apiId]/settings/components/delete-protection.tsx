@@ -127,7 +127,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
             <form className="flex flex-col" onSubmit={form.handleSubmit(onSubmit)}>
               <div className="flex flex-row items-center justify-between w-full h-16 px-6 py-4">
                 <div className="flex font-medium leading-8 text-md whitespace-nowrap">
-                  Enable API Delete Protection
+                  {api.deleteProtection ? "Disable" : "Enable"} API Delete Protection
                 </div>
                 <div className="flex justify-end w-full">
                   <AlertDialogCancel className="text-gray-11">X</AlertDialogCancel>

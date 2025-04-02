@@ -13,7 +13,7 @@ import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
 export const Shield: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize } = sizeMap[size];
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
   return (
     <svg
       height={pixelSize}
@@ -29,7 +29,7 @@ export const Shield: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>
