@@ -23,7 +23,7 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	}
 	h := hash.Sha256(rawKey)
 
-	key, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.Key, error) {
+	key, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.FindKeyByHashRow, error) {
 		return db.Query.FindKeyByHash(ctx, s.db.RO(), h)
 	}, func(err error) cache.Op {
 		if err == nil {
@@ -56,8 +56,13 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 
 	// Following are various checks to ensure the validity of the key
 	// - Is it enabled?
+	// - Is it deleted?
 	// - Is it expired?
 	// - Is it ratelimited?
+	// - Is the related workspace deleted?
+	// - Is the related workspace disabled?
+	// - Is the related forWorkspace deleted?
+	// - Is the related forWorkspace disabled?
 
 	if key.DeletedAtM.Valid {
 		return VerifyResponse{}, fault.New(
@@ -71,6 +76,36 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 			"key is disabled",
 			fault.WithDesc("", "The key is disabled."),
 		)
+	}
+
+	if key.WsDeletedAtM.Valid {
+		return VerifyResponse{}, fault.New(
+			"key is deleted",
+			fault.WithDesc("ws_deleted_at is non-zero", "The key has been deleted."),
+		)
+	}
+
+	if !key.WsEnabled.Valid || !key.WsEnabled.Bool {
+		return VerifyResponse{}, fault.New(
+			"key is disabled",
+			fault.WithDesc("Workspace is disabled or not found", "The key is disabled."),
+		)
+	}
+
+	if key.ForWorkspaceID.Valid {
+		if key.ForWorkspaceDeletedAtM.Valid {
+			return VerifyResponse{}, fault.New(
+				"key is deleted",
+				fault.WithDesc("for_workspace_deleted_at is non-zero", "The key has been deleted."),
+			)
+		}
+
+		if !key.ForWorkspaceEnabled.Valid || !key.ForWorkspaceEnabled.Bool {
+			return VerifyResponse{}, fault.New(
+				"key is disabled",
+				fault.WithDesc("Workspace is disabled or not found", "The key is disabled."),
+			)
+		}
 	}
 
 	res := VerifyResponse{

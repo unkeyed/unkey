@@ -363,7 +363,6 @@ Default: disabled
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
-
 	config := api.Config{
 		// Basic configuration
 		Platform: cmd.String("platform"),

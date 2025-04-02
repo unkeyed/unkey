@@ -1,0 +1,164 @@
+package auditlogs
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
+	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/uid"
+)
+
+const (
+	DEFAULT_BUCKET = "unkey_mutations"
+)
+
+func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditLog) error {
+	if len(logs) == 0 {
+		return nil
+	}
+
+	auditLogs := make([]db.InsertAuditLogParams, 0)
+	auditLogTargets := make([]db.InsertAuditLogTargetParams, 0)
+
+	var dbTx db.DBTX = tx
+	var rwTx *sql.Tx
+	if tx == nil {
+		// If we didn't get a transaction, start a new one so we can commit all
+		// audit logs together to not miss anything
+		newTx, err := s.db.RW().Begin(ctx)
+		if err != nil {
+			return err
+		}
+
+		dbTx = newTx
+		rwTx = newTx
+
+		defer func() {
+			rollbackErr := rwTx.Rollback()
+			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				s.logger.Error("rollback failed", "error", rollbackErr)
+			}
+		}()
+	}
+
+	for _, l := range logs {
+		auditLogID := uid.New(uid.AuditLogPrefix)
+		if l.Bucket == "" {
+			l.Bucket = DEFAULT_BUCKET
+		}
+
+		bucketID, err := s.findBucketID(ctx, l.WorkspaceID, l.Bucket)
+		if err != nil {
+			continue
+		}
+
+		now := time.Now().UnixMilli()
+
+		auditLogs = append(auditLogs, db.InsertAuditLogParams{
+			ID:          auditLogID,
+			WorkspaceID: l.WorkspaceID,
+			BucketID:    bucketID,
+			Event:       string(l.Event),
+			Display:     l.Display,
+			ActorMeta:   l.ActorMeta,
+			ActorType:   string(l.ActorType),
+			ActorID:     l.ActorID,
+			ActorName:   sql.NullString{String: l.ActorName, Valid: l.ActorName != ""},
+			RemoteIp:    sql.NullString{String: l.RemoteIP, Valid: l.RemoteIP != ""},
+			UserAgent:   sql.NullString{String: l.UserAgent, Valid: l.UserAgent != ""},
+			Time:        now,
+			CreatedAt:   now,
+		})
+
+		for _, resource := range l.Resources {
+			auditLogTargets = append(auditLogTargets, db.InsertAuditLogTargetParams{
+				ID:          resource.ID,
+				AuditLogID:  auditLogID,
+				WorkspaceID: l.WorkspaceID,
+				BucketID:    bucketID,
+				Type:        string(resource.Type),
+				DisplayName: resource.DisplayName,
+				Name:        sql.NullString{String: resource.DisplayName, Valid: resource.DisplayName != ""},
+				Meta:        resource.Meta,
+				CreatedAt:   now,
+			})
+		}
+	}
+
+	for _, log := range auditLogs {
+		if err := db.Query.InsertAuditLog(ctx, dbTx, log); err != nil {
+			return err
+		}
+	}
+
+	for _, logTarget := range auditLogTargets {
+		if err := db.Query.InsertAuditLogTarget(ctx, dbTx, logTarget); err != nil {
+			return err
+		}
+	}
+
+	// If we are not using a transaction that has been passed in we will just commit all logs
+	if rwTx != nil {
+		if err := rwTx.Commit(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// This handles finding the bucket ID for a given workspace and bucket name
+// It will create a new bucket if it doesn't already exist
+func (s *service) findBucketID(ctx context.Context, workspaceID, bucket string) (string, error) {
+	cacheKey := fmt.Sprintf("%s:%s", workspaceID, bucket)
+	bucketID, err := s.bucketCache.SWR(
+		ctx,
+		cacheKey,
+		func(ctx context.Context) (string, error) {
+			return db.Query.FindAuditLogBucketIDByWorkspaceIDAndName(ctx, s.db.RO(), db.FindAuditLogBucketIDByWorkspaceIDAndNameParams{
+				WorkspaceID: workspaceID,
+				Name:        bucket,
+			})
+		},
+		func(err error) cache.Op {
+			if err == nil {
+				return cache.WriteValue
+			}
+
+			if errors.Is(err, sql.ErrNoRows) {
+				return cache.WriteNull
+			}
+
+			return cache.Noop
+		},
+	)
+
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		s.logger.Error("Failed to fetch audit log bucket", "workspaceID", workspaceID, "bucket", bucket, "error", err)
+		return "", err
+	}
+
+	if errors.Is(err, sql.ErrNoRows) {
+		bucketID = uid.New(uid.AuditLogBucketPrefix)
+		err = db.Query.InsertAuditLogBucket(ctx, s.db.RW(), db.InsertAuditLogBucketParams{
+			ID:            bucketID,
+			WorkspaceID:   workspaceID,
+			Name:          bucket,
+			CreatedAt:     time.Now().UnixMilli(),
+			RetentionDays: sql.NullInt32{Int32: 90, Valid: true},
+		})
+		if err != nil {
+			s.logger.Error("Failed to insert audit log bucket", "workspaceID", workspaceID, "bucket", bucket, "error", err)
+			return "", err
+		}
+
+		s.bucketCache.Set(ctx, cacheKey, bucketID)
+	}
+
+	return bucketID, nil
+}

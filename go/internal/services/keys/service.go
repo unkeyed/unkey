@@ -11,18 +11,17 @@ type Config struct {
 	Logger   logging.Logger
 	DB       db.Database
 	Clock    clock.Clock
-	KeyCache cache.Cache[string, db.Key]
+	KeyCache cache.Cache[string, db.FindKeyByHashRow]
 }
 
 type service struct {
 	logger logging.Logger
 	db     db.Database
 	// hash -> key
-	keyCache cache.Cache[string, db.Key]
+	keyCache cache.Cache[string, db.FindKeyByHashRow]
 }
 
 func New(config Config) (*service, error) {
-
 	return &service{
 		logger:   config.Logger,
 		db:       config.DB,
