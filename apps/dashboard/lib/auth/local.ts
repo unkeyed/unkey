@@ -22,7 +22,7 @@ import {
 /**
  * Local Auth Provider
  * - Single user (always signed in)
- * - Single organization
+ * - Single organization / single workspace
  * - No invitations or multi-user support
  */
 export class LocalAuthProvider extends BaseAuthProvider {
