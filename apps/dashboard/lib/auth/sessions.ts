@@ -1,11 +1,11 @@
 "use server";
 
+import { env } from "@/lib/env";
 import type { NextRequest } from "next/server";
 import { getCookie, getCookieOptionsAsString, setSessionCookie } from "./cookies";
 import { auth } from "./server";
-import { UNKEY_SESSION_COOKIE } from "./types";
+import { LOCAL_ORG_ID, LOCAL_ORG_ROLE, LOCAL_USER_ID, UNKEY_SESSION_COOKIE } from "./types";
 
-// Define the return type of updateSession
 type SessionResult = {
   session: {
     userId: string;
@@ -22,10 +22,44 @@ type SessionResult = {
 export async function updateSession(request?: NextRequest): Promise<SessionResult> {
   const UNKEY_SESSION_HEADER = `x-${UNKEY_SESSION_COOKIE}`;
   const headers = new Headers();
+  const environment = env();
 
   // Remove any lingering session headers
   headers.delete(UNKEY_SESSION_HEADER);
 
+  // Check if we're using local auth provider
+  if (environment.AUTH_PROVIDER === "local") {
+    // Generate a local session token that doesn't expire
+    const localSessionToken = "local_session_token";
+
+    // Set the header for internal use
+    headers.set(UNKEY_SESSION_HEADER, localSessionToken);
+
+    // set the cookie for local auth
+    const sessionToken = await getCookie(UNKEY_SESSION_COOKIE, request);
+    if (!sessionToken) {
+      try {
+        const expiresAt = new Date();
+        expiresAt.setFullYear(expiresAt.getFullYear() + 10);
+
+        await setSessionCookie({ token: localSessionToken, expiresAt });
+      } catch (_error) {
+        headers.append(
+          "Set-Cookie",
+          `${UNKEY_SESSION_COOKIE}=${localSessionToken}; Path=/; SameSite=Strict; Max-Age=${60 * 60 * 24 * 365 * 10}`,
+        );
+      }
+    }
+
+    return {
+      session: {
+        userId: LOCAL_USER_ID,
+        orgId: LOCAL_ORG_ID,
+        role: LOCAL_ORG_ROLE,
+      },
+      headers,
+    };
+  }
   try {
     // Get session token from cookie - handle case when request is undefined
     let sessionToken: string | null | undefined;

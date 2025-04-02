@@ -13,7 +13,7 @@ export default async function middleware(req: NextRequest, _evt: NextFetchEvent)
   }
 
   const AUTH_PROVIDER = env().AUTH_PROVIDER;
-  const isEnabled = () => AUTH_PROVIDER === "workos";
+  const isEnabled = () => AUTH_PROVIDER !== "local";
 
   // Define public paths that should bypass authentication
   const publicPaths = [

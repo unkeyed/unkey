@@ -35,16 +35,22 @@ export const CreateWorkspace: React.FC = () => {
   const workspaceIdRef = useRef<string | null>(null);
 
   const switchOrgMutation = trpc.user.switchOrg.useMutation({
-    onSuccess: (sessionData) => {
-      setCookie({
+    onSuccess: async (sessionData) => {
+      if (!sessionData.expiresAt) {
+        console.error("Missing session data: ", sessionData);
+        toast.error(`Failed to switch organizations: ${sessionData.error}`);
+        return;
+      }
+
+      await setCookie({
         name: UNKEY_SESSION_COOKIE,
-        value: sessionData.token!,
+        value: sessionData.token,
         options: {
           httpOnly: true,
           secure: true,
-          sameSite: "lax",
+          sameSite: "strict",
           path: "/",
-          maxAge: Math.floor((sessionData.expiresAt!.getTime() - Date.now()) / 1000),
+          maxAge: Math.floor((sessionData.expiresAt.getTime() - Date.now()) / 1000),
         },
       }).then(() => {
         startTransition(() => {
@@ -63,7 +69,30 @@ export const CreateWorkspace: React.FC = () => {
       switchOrgMutation.mutate(organizationId);
     },
     onError: (error) => {
-      toast.error(`Failed to create workspace: ${error.message}`);
+      if (error.data?.code === "METHOD_NOT_SUPPORTED") {
+        toast.error("", {
+          style: {
+            display: "flex",
+            flexDirection: "column",
+          },
+          duration: 20000,
+          description: error.message,
+          action: (
+            <div className="mx-auto pt-2">
+              <Button
+                onClick={() => {
+                  toast.dismiss();
+                  router.push("/apis");
+                }}
+              >
+                Return to APIs
+              </Button>
+            </div>
+          ),
+        });
+      } else {
+        toast.error(`Failed to create workspace: ${error.message}`);
+      }
     },
   });
 
