@@ -105,7 +105,6 @@ export function ListGroup({
       >
         <div
           className={cn("flex flex-col w-11/12 ", `tabIndex-${index}`)}
-          role="button"
           onClick={() => handleSelection()}
           onKeyUp={(e) => e.key === "Enter"}
           tabIndex={index}
@@ -151,8 +150,9 @@ export function ListGroup({
           onMouseLeave={handleMouseLeave}
         >
           <Tooltip open={toolTipOpen}>
-            <TooltipTrigger>
-              <div
+            <TooltipTrigger asChild>
+              <button
+                type="button"
                 className={cn(
                   "flex h-7 w-6 ml-[1px]  justify-center items-center text-accent-9 rounded-md",
                   filterList.bookmarked
@@ -160,13 +160,12 @@ export function ListGroup({
                     : "hover:bg-gray-3 hover:text-accent-12",
                   `tabIndex-${0}`,
                 )}
-                role="button"
                 onClick={() => handleBookmarkChanged()}
                 onKeyUp={(e) => e.key === "Enter"}
                 aria-label={filterList.bookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
               >
                 <Bookmark size="md-regular" filled={filterList.bookmarked} />
-              </div>
+              </button>
             </TooltipTrigger>
             <TooltipContent
               className="flex h-8 py-1 px-2 rounded-lg font-500 text-[12px] justify-center items-center leading-6 shadow-lg"

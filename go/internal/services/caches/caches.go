@@ -72,7 +72,7 @@ func New(config Config) (Caches, error) {
 
 	ratelimitNamespace, err := cache.New(cache.Config[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]{
 		Fresh:    time.Minute,
-		Stale:    time.Hour,
+		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
 		MaxSize:  1_000,
 		Resource: "ratelimit_namespace_by_name",
@@ -84,7 +84,7 @@ func New(config Config) (Caches, error) {
 
 	ratelimitOverridesMatch, err := cache.New(cache.Config[db.FindRatelimitOverrideMatchesParams, []db.RatelimitOverride]{
 		Fresh:    time.Minute,
-		Stale:    time.Hour,
+		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
 		MaxSize:  1_000,
 		Resource: "ratelimit_overrides",
@@ -96,7 +96,7 @@ func New(config Config) (Caches, error) {
 
 	keyByHash, err := cache.New(cache.Config[string, db.Key]{
 		Fresh:   10 * time.Second,
-		Stale:   60 * time.Second,
+		Stale:   24 * time.Hour,
 		Logger:  config.Logger,
 		MaxSize: 1_000_000,
 
@@ -109,7 +109,7 @@ func New(config Config) (Caches, error) {
 
 	permissionsByKeyId, err := cache.New(cache.Config[string, []string]{
 		Fresh:   10 * time.Second,
-		Stale:   60 * time.Second,
+		Stale:   24 * time.Hour,
 		Logger:  config.Logger,
 		MaxSize: 1_000_000,
 

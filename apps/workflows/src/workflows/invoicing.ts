@@ -29,11 +29,12 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
       apiVersion: "2023-10-16",
       typescript: true,
     });
-    let workspaces = await step.do("fetch workspaces", () =>
+    let workspaces = await step.do("fetch old pro workspaces", () =>
       db.query.workspaces.findMany({
         where: (table, { isNotNull, isNull, not, eq, and }) =>
           and(
             isNotNull(table.stripeCustomerId),
+            isNull(table.stripeSubscriptionId),
             isNotNull(table.subscriptions),
             not(eq(table.plan, "free")),
             isNull(table.deletedAtM),

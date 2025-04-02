@@ -47,6 +47,9 @@ type Config struct {
 	// ClusterDiscoveryRedisURL provides a Redis connection string for dynamic cluster discovery
 	ClusterDiscoveryRedisURL string
 
+	// ClusterDiscoveryAwsEcs uses the aws ecs API to find peers
+	ClusterDiscoveryAwsEcs bool
+
 	// --- Logs configuration ---
 
 	// LogsColor enables ANSI color codes in log output
@@ -71,7 +74,8 @@ type Config struct {
 	OtelEnabled           bool
 	OtelTraceSamplingRate float64
 
-	Clock clock.Clock
+	PrometheusPort int
+	Clock          clock.Clock
 }
 
 func (c Config) Validate() error {
