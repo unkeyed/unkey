@@ -1,0 +1,203 @@
+---
+date: 2025-01-22
+title: Implementing Variable API Route Costs with Unkey
+image: "/images/blog-images/covers/cost-og-image.png"
+description: Learn how to efficiently implement variable costs for API routes using Unkey, an open-source API developer platform.
+author: james
+tags: ["tutorial"]
+---
+
+We all know API endpoints aren't created equal; some are more expensive than others. They can be more expensive due to compute cycles, or they could be financially more expensive because you are using a different AI model. When selling access to an API based upon usage with endpoints that could be very expensive, you need to be able to charge credits based on what endpoint a user is requesting data from. Below is an example of two routes: a cheap route and a more expensive one.
+
+<Image src="/images/blog-images/api-costs/routes-cost.png" alt="Overrides example" width="1920" height="1080"/>
+
+## How to implement cost based API usage
+
+Below is an oversimplified version of tracking usage based upon an API key this doesn't include:
+
+- API key creation
+- Setting the credit amount for a user
+- Safe way to look up an API key to get the usage base.
+
+However, the idea is the following:
+
+1. User requests one of the endpoints
+2. We retrieve the key from the header
+3. We get their remaining credits. If they have zero, we return an error
+4. We reduce the credit amount based on the endpoint used
+5. We update our Redis storage with the new value
+6. We finally return the data from our endpoint
+
+
+```typescript
+import { serve } from '@hono/node-server'
+import { Hono } from 'hono'
+import { createClient } from 'redis'
+import { createMiddleware } from 'hono/factory'
+
+const app = new Hono()
+
+
+const client = createClient();
+
+const verifyKeyWithCost = (cost: number) => createMiddleware(async (c, next) => {
+  const key = c.req.header('X-API-Key');
+  if (!key) {
+    return c.json({ error: "No API key provided" }, 401);
+  }
+
+  const credits = await client.get(key);
+  if (credits === null) {
+    c.json({ error: "Internal server error" }, 500);
+  }
+
+  const remainingCredits = parseInt(credits) - cost;
+  if (remainingCredits < 0) {
+    c.json({ error: "API key usage exceeded" }, 429);
+  }
+
+  await client.set(key, remainingCredits.toString());
+  await next();
+});
+
+// Cheap endpoint (costs 1 credit)
+app.get('/cheap-endpoint', verifyKeyWithCost(1), (c) => {
+  return c.json({
+    message: "Accessed cheap endpoint",
+    cost: 1,
+  });
+});
+
+// Expensive endpoint (costs 5 credits)
+app.get('/expensive-endpoint', verifyKeyWithCost(5), (c) => {
+  return c.json({
+    message: "Accessed expensive endpoint",
+    cost: 5,
+  });
+});
+
+serve(app)
+
+```
+
+There are a lot of issues we need to consider with the implementation above:
+
+- What happens if a user makes multiple requests? How can we ensure accuracy and speed?
+- We don't have rate-limiting requests, so we need to implement them to ensure there isn't an abuse vector.
+- What happens if a user gets a new key? How do we ensure everything is accurate?
+
+## How to simplify your implementation using Unkey
+
+Unkey is an open-source API developer platform that allows developers to simplify the implementation of scalable and secure APIs.
+
+With Unkey, with just a few lines of code, you can protect your API; the key holds all the information, so there isn't a requirement to look at another system to find this information. API keys can be created programmatically or through our dashboard.
+
+```typescript
+const { result, error } = await verifyKey({
+  key,
+  remaining: {
+    cost,
+  },
+  apiId: "API_ID_FROM_UNKEY",
+});
+```
+
+Below, we took the above implementation and removed the need for:
+
+- Implementing API key creation (Our example doesn't show this)
+- Setting the credit amount for a user (Our example doesn't show this)
+- Safe way to look up an API key to get the usage base
+- Redis
+
+```typescript
+import { Hono } from "hono";
+import { serve } from '@hono/node-server'
+import { createMiddleware } from "hono/factory";
+import { verifyKey } from "@unkey/api";
+
+const app = new Hono();
+
+type UnkeyResult = Awaited<ReturnType<typeof verifyKey>>["result"];
+
+declare module "hono" {
+  interface ContextVariableMap {
+    unkey: UnkeyResult;
+  }
+}
+
+// Middleware to verify API key with specified cost
+const verifyKeyWithCost = (cost: number) => createMiddleware(async (c, next) => {
+  const key = c.req.header("X-API-Key");
+  if (!key) {
+    return c.json({ error: "No API key provided" }, 401);
+  }
+
+  const { result, error } = await verifyKey({
+    key,
+    remaining: {
+      cost,
+    },
+    apiId: "API_ID_FROM_UNKEY",
+  });
+
+  /**
+  * Handle Unkey Errors
+  * We have others but not important for this example
+  */
+  if (error) {
+    switch (error.code) {
+      case "TOO_MANY_REQUESTS":
+        return c.json({ error: "Rate limit exceeded" }, 429);
+      case "BAD_REQUEST":
+        return c.json({ error: "Bad request" }, 400);
+      case "INTERNAL_SERVER_ERROR":
+        return c.json({ error: "Internal server error" }, 500);
+      default:
+        return c.json({ error: "Internal server error" }, 500);
+    }
+  }
+  /** Handle Unkey Result if it's not valid such as
+  * Ratelimited, disabled, expired or no remaining credits
+  * There are other errors but they're not needed for this example
+  **/
+  if (!result.valid) {
+    switch (result.code) {
+      case "DISABLED":
+        return c.json({ error: "API key is disabled" }, 401);
+      case "USAGE_EXCEEDED":
+        return c.json({ error: "API key usage exceeded" }, 429);
+      case "NOT_FOUND":
+        return c.json({ error: "API key not found" }, 404);
+      default:
+        return c.json({ error: "Internal server error" }, 500);
+    }
+  }
+  /** Add verification result to context for this example to show how Unkey works
+  * This can also be used in a route handler for additional business logic
+  **/
+  c.set("unkey", result);
+  await next();
+});
+
+// Cheap endpoint - costs 1 credit
+app.get("/cheap-endpoint", verifyKeyWithCost(1), (c) => {
+  return c.json({
+    message: "Accessed cheap endpoint",
+    cost: 1,
+    verificationResult: c.get("unkey")
+  });
+});
+
+// Expensive endpoint - costs 5 credits
+app.get("/expensive-endpoint", verifyKeyWithCost(5), (c) => {
+  return c.json({
+    message: "Accessed expensive endpoint",
+    cost: 5,
+    verificationResult: c.get("unkey")
+  });
+});
+
+serve(app)
+```
+
+As you can see we really simplified the code and removed additional lookups via databases, allowing your API to be performant and scalable. You can get started for [free today](https://app.unkey.com)!

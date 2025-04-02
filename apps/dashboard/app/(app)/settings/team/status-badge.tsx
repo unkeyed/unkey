@@ -1,7 +1,7 @@
 "use client";
 
-import { memo } from "react";
 import { Badge } from "@/components/ui/badge";
+import { memo } from "react";
 
 type StatusBadgeProps = {
   status: "pending" | "accepted" | "revoked" | "expired";

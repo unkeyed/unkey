@@ -19,10 +19,10 @@ import type React from "react";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "@/components/ui/toaster";
+import { SetSessionCookie } from "@/lib/auth/cookies";
 // import { useOrganization, useUser } from "@/lib/auth/hooks";
 import { trpc } from "@/lib/trpc/client";
-import { SetSessionCookie } from "@/lib/auth/cookies";
-import { toast } from "@/components/ui/toaster";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { data: user } = trpc.user.getCurrentUser.useQuery();

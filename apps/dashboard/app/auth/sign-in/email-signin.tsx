@@ -1,7 +1,7 @@
 import { Loading } from "@/components/dashboard/loading";
 import { Input } from "@/components/ui/input";
+import { type FormEvent, useEffect, useState } from "react";
 import { useSignIn } from "../hooks";
-import { type FormEvent, useState, useEffect } from "react";
 import { LastUsed, useLastUsed } from "./last_used";
 
 export function EmailSignIn() {

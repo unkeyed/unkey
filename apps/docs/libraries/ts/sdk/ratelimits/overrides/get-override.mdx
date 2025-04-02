@@ -51,14 +51,14 @@ Async will return a response immediately, lowering latency at the cost of accura
 
 <RequestExample>
 ```ts
-const override = await unkey.ratelimit.getOverride({
-  identifier:"user.example", 
+const override = await unkey.ratelimits.getOverride({
+  identifier:"user.example",
   nameSpaceId:"rlns_12345",
 });
 ```
 ```ts
-const override = await unkey.ratelimit.getOverride({
-  identifier:"user.example", 
+const override = await unkey.ratelimits.getOverride({
+  identifier:"user.example",
   namespaceName: "email.outbound"
 });
 ```

@@ -3,9 +3,9 @@
 import { Loading } from "@/components/dashboard/loading";
 import { GitHub, Google } from "@/components/ui/icons";
 import { toast } from "@/components/ui/toaster";
-import { signInViaOAuth } from "../actions";
 import type { OAuthStrategy } from "@/lib/auth/types";
 import * as React from "react";
+import { signInViaOAuth } from "../actions";
 import { OAuthButton } from "../oauth-button";
 
 export function OAuthSignUp() {

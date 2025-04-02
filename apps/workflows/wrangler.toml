@@ -35,4 +35,4 @@ binding = "INVOICING"
 # this is class that extends the Workflow class in src/index.ts
 class_name = "Invoicing"
 [triggers]
-crons = ["* * * * *", "0 0 * * *", "0 13 1 * *"]
+crons = ["* * * * *", "0 0 * * *"]

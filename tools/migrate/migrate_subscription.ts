@@ -14,11 +14,11 @@ async function main() {
   await conn.ping();
   const db = mysqlDrizzle(conn, { schema, mode: "default" });
 
-  const workspaceId = "ws_4RN4KfMm8oahuthjfVnWu7bAs4mv";
+  const stripeCustomerId = "cus_PymfArtwYO47fS";
   const productId = "prod_Rtu3rLbjwprz7p";
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.id, workspaceId),
+    where: (table, { eq }) => eq(table.stripeCustomerId, stripeCustomerId),
   });
 
   if (!workspace) {

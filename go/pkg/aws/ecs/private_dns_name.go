@@ -64,7 +64,6 @@ func GetPrivateDnsName() (string, error) {
 	}
 
 	body := ecsTaskMetadataV2Response{} // nolint:exhaustruct
-	fmt.Println("body", body)
 
 	err = json.Unmarshal(b, &body)
 	if err != nil {

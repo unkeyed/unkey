@@ -55,7 +55,7 @@ export function useWaveAnimation({
   }
 
   // Animation frame function with smooth, continuous wave patterns
-  // biome-ignore lint/correctness/useExhaustiveDependencies: go touch some grass biome
+
   const animateFrame = useCallback(() => {
     setPhase((prev) => prev + animationSpeed);
     animationRef.current = requestAnimationFrame(animateFrame);

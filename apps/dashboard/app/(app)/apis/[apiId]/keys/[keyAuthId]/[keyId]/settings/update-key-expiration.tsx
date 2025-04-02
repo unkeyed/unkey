@@ -63,7 +63,7 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
     delayError: 100,
     defaultValues: {
       keyId: apiKey.id ? apiKey.id : undefined,
-      enableExpiration: apiKey.expires !== null ? true : false,
+      enableExpiration: apiKey.expires !== null,
     },
   });
 

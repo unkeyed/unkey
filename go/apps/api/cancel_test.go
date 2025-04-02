@@ -49,6 +49,11 @@ func TestContextCancellation(t *testing.T) {
 	// Start the API server in a goroutine
 	go func() {
 		err := api.Run(ctx, config)
+
+		if err != nil {
+			// it's really hard to get this error cause the test fails before we read from the channel
+			t.Logf("Error from run: %s", err.Error())
+		}
 		resultCh <- err
 	}()
 
