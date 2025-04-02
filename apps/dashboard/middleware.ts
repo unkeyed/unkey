@@ -11,11 +11,11 @@ export default async function (req: NextRequest, _evt: NextFetchEvent) {
 
   let res: NextResponse;
   const AUTH_PROVIDER = env().AUTH_PROVIDER;
-  const isEnabled = () => AUTH_PROVIDER === "workos";
+  //const isEnabled = () => AUTH_PROVIDER === "workos";
 
   try {
     res = await auth.createMiddleware({
-      enabled: isEnabled(),
+      enabled: true,
       publicPaths: [
         "/auth/sign-in",
         "/auth/sign-up",

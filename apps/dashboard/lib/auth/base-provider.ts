@@ -155,11 +155,9 @@ export abstract class BaseAuthProvider {
       const allPublicPaths = [
         ...middlewareConfig.publicPaths,
         "/api/auth/refresh",
-        "/api/auth/create-tenant",
       ];
 
       if (this.isPublicPath(pathname, allPublicPaths)) {
-        console.debug("Public path detected, proceeding without auth check");
         return NextResponse.next();
       }
 
