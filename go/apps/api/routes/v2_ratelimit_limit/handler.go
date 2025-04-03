@@ -2,6 +2,8 @@ package v2RatelimitLimit
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"net/http"
 	"time"
 
@@ -9,9 +11,13 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/pkg/cache"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -20,11 +26,14 @@ type Request = openapi.V2RatelimitLimitRequestBody
 type Response = openapi.V2RatelimitLimitResponseBody
 
 type Services struct {
-	Logger      logging.Logger
-	Keys        keys.KeyService
-	DB          db.Database
-	Permissions permissions.PermissionService
-	Ratelimit   ratelimit.Service
+	Logger                        logging.Logger
+	Keys                          keys.KeyService
+	DB                            db.Database
+	ClickHouse                    clickhouse.Bufferer
+	Permissions                   permissions.PermissionService
+	Ratelimit                     ratelimit.Service
+	RatelimitNamespaceByNameCache cache.Cache[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]
+	RatelimitOverrideMatchesCache cache.Cache[db.FindRatelimitOverrideMatchesParams, []db.RatelimitOverride]
 }
 
 // New creates a new route handler for ratelimits.limit
@@ -50,10 +59,29 @@ func New(svc Services) zen.Route {
 			cost = *req.Cost
 		}
 
-		namespace, err := db.Query.FindRatelimitNamespaceByName(ctx, svc.DB.RO(), db.FindRatelimitNamespaceByNameParams{
+		ctx, span := tracing.Start(ctx, "FindRatelimitNamespaceByName")
+
+		findNamespaceArgs := db.FindRatelimitNamespaceByNameParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Name:        req.Namespace,
+		}
+		namespace, err := svc.RatelimitNamespaceByNameCache.SWR(ctx, findNamespaceArgs, func(ctx context.Context) (db.RatelimitNamespace, error) {
+			return db.Query.FindRatelimitNamespaceByName(ctx, svc.DB.RO(), findNamespaceArgs)
+		}, func(err error) cache.Op {
+			if err == nil {
+				// everything went well and we have a namespace response
+				return cache.WriteValue
+			}
+			if errors.Is(err, sql.ErrNoRows) {
+				// the response is empty, we need to store that the namespace does not exist
+				return cache.WriteNull
+			}
+			// this is a noop in the cache
+			return cache.Noop
+
 		})
+
+		span.End()
 		if err != nil {
 			return db.HandleErr(err, "namespace")
 		}
@@ -95,11 +123,26 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		overrides, err := db.Query.FindRatelimitOverrideMatches(ctx, svc.DB.RO(), db.FindRatelimitOverrideMatchesParams{
+		findOverrideMatchesArgs := db.FindRatelimitOverrideMatchesParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
 			Identifier:  req.Identifier,
+		}
+		ctx, overridesSpan := tracing.Start(ctx, "FindRatelimitOverrideMatches")
+		overrides, err := svc.RatelimitOverrideMatchesCache.SWR(ctx, findOverrideMatchesArgs, func(ctx context.Context) ([]db.RatelimitOverride, error) {
+			return db.Query.FindRatelimitOverrideMatches(ctx, svc.DB.RO(), findOverrideMatchesArgs)
+		}, func(err error) cache.Op {
+			if err == nil {
+				// everything went well and we have a namespace response
+				return cache.WriteValue
+			}
+
+			// this is a noop in the cache
+			return cache.Noop
+
 		})
+
+		overridesSpan.End()
 		if err != nil {
 			return db.HandleErr(err, "override")
 		}
@@ -140,15 +183,31 @@ func New(svc Services) zen.Route {
 			)
 		}
 
+		if s.Request().Header.Get("X-Unkey-Metrics") != "disabled" {
+			svc.ClickHouse.BufferRatelimit(schema.RatelimitRequestV1{
+				RequestID:   s.RequestID(),
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Time:        time.Now().UnixMilli(),
+				NamespaceID: namespace.ID,
+				Identifier:  req.Identifier,
+				Passed:      result.Success,
+			})
+		}
 		res := Response{
-			Success:    result.Success,
-			Limit:      limit,
-			Remaining:  result.Remaining,
-			Reset:      result.Reset,
-			OverrideId: nil,
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.RatelimitLimitResponseData{
+
+				Success:    result.Success,
+				Limit:      limit,
+				Remaining:  result.Remaining,
+				Reset:      result.Reset,
+				OverrideId: nil,
+			},
 		}
 		if overrideId != "" {
-			res.OverrideId = &overrideId
+			res.Data.OverrideId = &overrideId
 		}
 		// Return success response
 		return s.JSON(http.StatusOK, res)

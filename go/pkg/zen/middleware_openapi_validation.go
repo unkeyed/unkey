@@ -24,10 +24,13 @@ import (
 func WithValidation(validator *validation.Validator) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
-			err, valid := validator.Validate(s.r)
+
+			err, valid := validator.Validate(ctx, s.r)
+
 			if !valid {
-				err.RequestId = s.requestID
-				return s.JSON(err.Status, err)
+				err.Meta.RequestId = s.requestID
+
+				return s.JSON(err.Error.Status, err)
 			}
 			return next(ctx, s)
 		}

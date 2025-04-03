@@ -2,10 +2,9 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
+	"net"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/routes"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -25,6 +25,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/membership"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/prometheus"
+	"github.com/unkeyed/unkey/go/pkg/rpc"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -39,16 +41,17 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	shutdowns := shutdown.New()
-
 	clk := clock.New()
+
+	shutdowns := shutdown.New()
 
 	if cfg.OtelEnabled {
 		grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			Application: "api",
-			Version:     version.Version,
-			NodeID:      cfg.ClusterNodeID,
-			CloudRegion: cfg.Region,
+			Application:     "api",
+			Version:         version.Version,
+			InstanceID:      cfg.ClusterInstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
 		},
 			shutdowns,
 		)
@@ -57,13 +60,19 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	logger := logging.New().
-		With(
-			slog.String("nodeId", cfg.ClusterNodeID),
-			slog.String("platform", cfg.Platform),
-			slog.String("region", cfg.Region),
-			slog.String("version", version.Version),
-		)
+	logger := logging.New()
+	if cfg.ClusterInstanceID != "" {
+		logger = logger.With(slog.String("instanceID", cfg.ClusterInstanceID))
+	}
+	if cfg.Platform != "" {
+		logger = logger.With(slog.String("platform", cfg.Platform))
+	}
+	if cfg.Region != "" {
+		logger = logger.With(slog.String("region", cfg.Region))
+	}
+	if version.Version != "" {
+		logger = logger.With(slog.String("version", version.Version))
+	}
 
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
@@ -86,12 +95,33 @@ func Run(ctx context.Context, cfg Config) error {
 
 	defer db.Close()
 
-	c, err := setupCluster(cfg, logger, shutdowns)
+	d, err := setupDiscovery(cfg, logger, shutdowns)
+	if err != nil {
+		return fmt.Errorf("unable to create service discovery: %w", err)
+	}
+
+	if cfg.PrometheusPort > 0 {
+		prom, promErr := prometheus.New(prometheus.Config{
+			Discovery: d,
+			Logger:    logger,
+		})
+		if promErr != nil {
+			return fmt.Errorf("unable to start prometheus: %w", promErr)
+		}
+		go func() {
+			promListenErr := prom.Listen(ctx, fmt.Sprintf(":%d", cfg.PrometheusPort))
+			if promListenErr != nil {
+				panic(promListenErr)
+			}
+		}()
+	}
+
+	c, err := setupCluster(cfg, logger, d, shutdowns)
 	if err != nil {
 		return fmt.Errorf("unable to create cluster: %w", err)
 	}
 
-	var ch clickhouse.Bufferer = clickhouse.NewNoop()
+	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
 		ch, err = clickhouse.New(clickhouse.Config{
 			URL:    cfg.ClickhouseURL,
@@ -102,9 +132,17 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	srv, err := zen.New(zen.Config{
-		NodeID: cfg.ClusterNodeID,
+	caches, err := caches.New(caches.Config{
 		Logger: logger,
+		Clock:  clk,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create caches: %w", err)
+	}
+
+	srv, err := zen.New(zen.Config{
+		InstanceID: cfg.ClusterInstanceID,
+		Logger:     logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
@@ -118,8 +156,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		Logger: logger,
-		DB:     db,
+		Logger:   logger,
+		DB:       db,
+		Clock:    clk,
+		KeyCache: caches.KeyByHash,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -134,22 +174,48 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
 	}
 
+	if cfg.ClusterEnabled {
+
+		rpcSvc, rpcErr := rpc.New(rpc.Config{
+			Logger:           logger,
+			RatelimitService: rlSvc,
+		})
+		if rpcErr != nil {
+			return fmt.Errorf("unable to create rpc service: %w", rpcErr)
+		}
+
+		go func() {
+			listenErr := rpcSvc.Listen(ctx, fmt.Sprintf(":%d", cfg.ClusterRpcPort))
+			if listenErr != nil {
+				panic(listenErr)
+			}
+		}()
+	}
+
+	p, err := permissions.New(permissions.Config{
+		DB:     db,
+		Logger: logger,
+		Clock:  clk,
+		Cache:  caches.PermissionsByKeyId,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create permissions service: %w", err)
+	}
+
 	routes.Register(srv, &routes.Services{
 		Logger:      logger,
 		Database:    db,
-		EventBuffer: ch,
+		ClickHouse:  ch,
 		Keys:        keySvc,
 		Validator:   validator,
 		Ratelimit:   rlSvc,
-		Permissions: permissions.New(permissions.Config{
-			DB:     db,
-			Logger: logger,
-		}),
+		Permissions: p,
+		Caches:      caches,
 	})
 
 	go func() {
 		listenErr := srv.Listen(ctx, fmt.Sprintf(":%d", cfg.HttpPort))
-		if listenErr != nil && !errors.Is(listenErr, http.ErrServerClosed) {
+		if listenErr != nil {
 			panic(listenErr)
 		}
 	}()
@@ -182,36 +248,84 @@ func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns *shu
 	}
 	return nil
 }
-func setupCluster(cfg Config, logger logging.Logger, shutdowns *shutdown.Shutdowns) (cluster.Cluster, error) {
+
+func setupDiscovery(cfg Config, logger logging.Logger, shutdowns *shutdown.Shutdowns) (discovery.Discoverer, error) {
+
+	if cfg.ClusterDiscoveryRedisURL != "" {
+		advertiseAddr, err := getAdvertiseAddr(cfg)
+		if err != nil {
+			return nil, err
+		}
+		d, err := discovery.NewRedis(discovery.RedisConfig{
+			URL:        cfg.ClusterDiscoveryRedisURL,
+			InstanceID: cfg.ClusterInstanceID,
+			Addr:       advertiseAddr,
+			Logger:     logger,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("unable to create redis discovery: %w", err)
+		}
+		shutdowns.RegisterCtx(d.Shutdown)
+		return d, nil
+	} else if cfg.ClusterDiscoveryAwsEcs {
+		d, err := discovery.NewAwsEcs(discovery.AwsEcsConfig{
+			Region: cfg.Region,
+			Logger: logger,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("unable to create aws ecs discovery: %w", err)
+		}
+		return d, nil
+	}
+	return &discovery.Static{
+		Addrs: cfg.ClusterDiscoveryStaticAddrs,
+	}, nil
+
+}
+
+func getAdvertiseAddr(cfg Config) (string, error) {
+
+	switch {
+	case cfg.ClusterAdvertiseAddrStatic != "":
+		{
+
+			hosts, err := net.LookupHost(cfg.ClusterAdvertiseAddrStatic)
+			if err != nil {
+				return "", err
+			}
+			if len(hosts) == 0 {
+				return "", err
+			}
+
+			return hosts[0], nil
+		}
+	case cfg.ClusterAdvertiseAddrAwsEcsMetadata:
+		{
+			addr, err := ecs.GetPrivateDnsName()
+			if err != nil {
+				return "", fmt.Errorf("unable to get private dns name: %w", err)
+			}
+			return addr, nil
+
+		}
+
+	default:
+		return "", fmt.Errorf("invalid advertise address configuration: %+v", cfg)
+	}
+}
+func setupCluster(cfg Config, logger logging.Logger, d discovery.Discoverer, shutdowns *shutdown.Shutdowns) (cluster.Cluster, error) {
 	if !cfg.ClusterEnabled {
 		return cluster.NewNoop("", "127.0.0.1"), nil
 	}
 
-	var advertiseHost string
-	{
-		switch {
-		case cfg.ClusterAdvertiseAddrStatic != "":
-			{
-				advertiseHost = cfg.ClusterAdvertiseAddrStatic
-			}
-		case cfg.ClusterAdvertiseAddrAwsEcsMetadata:
-
-			{
-				var getDnsErr error
-				advertiseHost, getDnsErr = ecs.GetPrivateDnsName()
-				if getDnsErr != nil {
-					return nil, fmt.Errorf("unable to get private dns name: %w", getDnsErr)
-				}
-
-			}
-		default:
-			return nil, fmt.Errorf("invalid advertise address configuration")
-		}
+	advertiseAddr, err := getAdvertiseAddr(cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	m, err := membership.New(membership.Config{
-		NodeID:        cfg.ClusterNodeID,
-		AdvertiseHost: advertiseHost,
+		InstanceID:    cfg.ClusterInstanceID,
+		AdvertiseHost: advertiseAddr,
 		GossipPort:    cfg.ClusterGossipPort,
 		RpcPort:       cfg.ClusterRpcPort,
 		HttpPort:      cfg.HttpPort,
@@ -222,9 +336,9 @@ func setupCluster(cfg Config, logger logging.Logger, shutdowns *shutdown.Shutdow
 	}
 
 	c, err := cluster.New(cluster.Config{
-		Self: cluster.Node{
-			ID:      cfg.ClusterNodeID,
-			RpcAddr: fmt.Sprintf("%s:%d", advertiseHost, cfg.ClusterRpcPort),
+		Self: cluster.Instance{
+			ID:      cfg.ClusterInstanceID,
+			RpcAddr: fmt.Sprintf("%s:%d", advertiseAddr, cfg.ClusterRpcPort),
 		},
 		Logger:     logger,
 		Membership: m,
@@ -233,38 +347,6 @@ func setupCluster(cfg Config, logger logging.Logger, shutdowns *shutdown.Shutdow
 		return nil, fmt.Errorf("unable to create cluster: %w", err)
 	}
 	shutdowns.RegisterCtx(c.Shutdown)
-
-	var d discovery.Discoverer
-
-	switch {
-	case cfg.ClusterDiscoveryStaticAddrs != nil:
-		{
-			d = &discovery.Static{
-				Addrs: cfg.ClusterDiscoveryStaticAddrs,
-			}
-			break
-		}
-
-	case cfg.ClusterDiscoveryRedisURL != "":
-		{
-			rd, rErr := discovery.NewRedis(discovery.RedisConfig{
-				URL:    cfg.ClusterDiscoveryRedisURL,
-				NodeID: cfg.ClusterNodeID,
-				Addr:   fmt.Sprintf("%s:%d", advertiseHost, cfg.ClusterGossipPort),
-				Logger: logger,
-			})
-			if rErr != nil {
-				return nil, fmt.Errorf("unable to create redis discovery: %w", rErr)
-			}
-			shutdowns.RegisterCtx(rd.Shutdown)
-			d = rd
-			break
-		}
-	default:
-		{
-			return nil, fmt.Errorf("missing discovery method")
-		}
-	}
 
 	err = m.Start(d)
 	if err != nil {

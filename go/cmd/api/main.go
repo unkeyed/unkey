@@ -63,7 +63,7 @@ Examples:
   --region=eu-west-1    # AWS Europe (Ireland)
   --region=us-central1  # GCP US Central
   --region=dev-local    # For local development environments`,
-			Sources:  cli.EnvVars("UNKEY_REGION"),
+			Sources:  cli.EnvVars("UNKEY_REGION", "AWS_REGION"),
 			Value:    "unknown",
 			Required: false,
 		},
@@ -90,9 +90,9 @@ Examples:
 			Required: false,
 		},
 		&cli.StringFlag{
-			Name: "cluster-node-id",
-			Usage: `Unique identifier for this node within the cluster.
-Every node in a cluster must have a unique identifier. This ID is used in logs,
+			Name: "cluster-instance-id",
+			Usage: `Unique identifier for this instance within the cluster.
+Every instance in a cluster must have a unique identifier. This ID is used in logs,
 metrics, and for node-to-node communication within the cluster.
 
 If not specified, a random UUID with 'node_' prefix will be automatically generated.
@@ -100,11 +100,11 @@ For ephemeral nodes (like in auto-scaling groups), automatic generation is appro
 For stable deployments, consider setting this to a persistent value tied to the instance.
 
 Examples:
-  --cluster-node-id=node_east1_001  # For a node in East region, instance 001
-  --cluster-node-id=node_replica2   # For a second replica node
-  --cluster-node-id=node_dev_local  # For local development`,
+  --cluster-instance-id=instance_east1_001  # For a instance in East region, instance 001
+  --cluster-instance-id=instance_replica2   # For a second replica instance
+  --cluster-instance-id=instance_dev_local  # For local development`,
 			Sources:  cli.EnvVars("UNKEY_CLUSTER_NODE_ID"),
-			Value:    uid.New(uid.NodePrefix),
+			Value:    uid.New(uid.InstancePrefix),
 			Required: false,
 		},
 		&cli.StringFlag{
@@ -199,6 +199,12 @@ Examples:
   --cluster-discovery-static-addrs=node1.unkey.internal,node2.unkey.internal
   --cluster-discovery-static-addrs=unkey-0.unkey-headless.default.svc.cluster.local`,
 			Sources:  cli.EnvVars("UNKEY_CLUSTER_DISCOVERY_STATIC_ADDRS"),
+			Required: false,
+		},
+		&cli.BoolFlag{
+			Name:     "cluster-discovery-aws-ecs",
+			Usage:    `Use the AWS ECS API to find peers within the same cluster.`,
+			Sources:  cli.EnvVars("UNKEY_CLUSTER_DISCOVERY_AWS_ECS"),
 			Required: false,
 		},
 		// Discovery configuration - Redis
@@ -317,6 +323,40 @@ Examples:
 			Sources:  cli.EnvVars("UNKEY_OTEL"),
 			Required: false,
 		},
+		&cli.FloatFlag{
+			Name: "otel-trace-sampling-rate",
+			Usage: `Sets the sampling rate for OpenTelemetry traces as a value between 0.0 and 1.0.
+This controls what percentage of traces will be collected and exported, helping to balance
+observability needs with performance and cost considerations.
+
+- 0.0 means no traces are sampled (0%)
+- 0.25 means 25% of traces are sampled (default)
+- 1.0 means all traces are sampled (100%)
+
+Lower sampling rates reduce overhead and storage costs but provide less visibility.
+Higher rates give more comprehensive data but increase resource usage and costs.
+
+This setting only takes effect when OpenTelemetry is enabled with --otel=true.
+
+Examples:
+  --otel-trace-sampling-rate=0.1   # Sample 10% of traces
+  --otel-trace-sampling-rate=0.25  # Sample 25% of traces (default)
+  --otel-trace-sampling-rate=1.0   # Sample all traces`,
+			Sources:  cli.EnvVars("UNKEY_OTEL_TRACE_SAMPLING_RATE"),
+			Value:    0.25,
+			Required: false,
+		},
+		&cli.IntFlag{
+			Name: "prometheus-port",
+			Usage: `Enables prometheus and configures the exposed port.
+Metrics will be available at /metrics and http service discovery at /sd.
+
+Default: disabled
+			`,
+			Sources:  cli.EnvVars("UNKEY_PROMETHEUS_PORT"),
+			Value:    0,
+			Required: false,
+		},
 	},
 
 	Action: action,
@@ -342,17 +382,20 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		ClickhouseURL: cmd.String("clickhouse-url"),
 
 		// OpenTelemetry configuration
-		OtelEnabled: cmd.Bool("otel"),
+		OtelEnabled:           cmd.Bool("otel"),
+		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 
 		// Cluster
 		ClusterEnabled:                     cmd.Bool("cluster"),
-		ClusterNodeID:                      cmd.String("cluster-node-id"),
+		ClusterInstanceID:                  cmd.String("cluster-instance-id"),
 		ClusterRpcPort:                     int(cmd.Int("cluster-rpc-port")),
 		ClusterGossipPort:                  int(cmd.Int("cluster-gossip-port")),
 		ClusterAdvertiseAddrStatic:         cmd.String("cluster-advertise-addr-static"),
 		ClusterAdvertiseAddrAwsEcsMetadata: cmd.Bool("cluster-advertise-addr-aws-ecs-metadata"),
 		ClusterDiscoveryStaticAddrs:        cmd.StringSlice("cluster-discovery-static-addrs"),
+		ClusterDiscoveryAwsEcs:             cmd.Bool("cluster-discovery-aws-ecs"),
 		ClusterDiscoveryRedisURL:           cmd.String("cluster-discovery-redis-url"),
+		PrometheusPort:                     int(cmd.Int("prometheus-port")),
 		Clock:                              clock.New(),
 	}
 

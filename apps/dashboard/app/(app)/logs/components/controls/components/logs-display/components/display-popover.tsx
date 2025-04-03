@@ -43,6 +43,7 @@ const DisplayPropertyItem = ({
       ${isFocused ? "ring-2 ring-accent-7" : ""}`}
     onClick={onClick}
     tabIndex={isFocused ? 0 : -1}
+    // biome-ignore lint/a11y/useSemanticElements: its okay
     role="button"
     onKeyDown={(e) => {
       if (e.key === "Enter" || e.key === " ") {

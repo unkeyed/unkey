@@ -3,7 +3,9 @@ package tracing
 import (
 	"context"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 )
@@ -18,6 +20,7 @@ var globalTracer trace.TracerProvider
 // any specific tracer is configured.
 func init() {
 	globalTracer = noop.NewTracerProvider()
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 }
 
 // SetGlobalTraceProvider sets the global trace provider for the application.

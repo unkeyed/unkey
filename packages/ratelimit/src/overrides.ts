@@ -1,9 +1,8 @@
 import { Unkey } from "@unkey/api";
-import { version } from "../package.json";
 
 export type OverrideConfig = {
   /**
-   * @default https://api.unkey.dev
+   * @default https://api.unkey.com
    */
   baseUrl?: string;
 
@@ -13,15 +12,6 @@ export type OverrideConfig = {
    * Make sure the root key has permissions to use overrides.
    */
   rootKey: string;
-
-  /**
-   *
-   * By default telemetry data is enabled, and sends:
-   * runtime (Node.js / Edge)
-   * platform (Node.js / Vercel / AWS)
-   * SDK version
-   */
-  disableTelemetry?: boolean;
 };
 
 export class Overrides {
@@ -31,8 +21,6 @@ export class Overrides {
     this.unkey = new Unkey({
       baseUrl: config.baseUrl,
       rootKey: config.rootKey,
-      disableTelemetry: config.disableTelemetry,
-      wrapperSdkVersion: `@unkey/ratelimit@${version}`,
     });
   }
 

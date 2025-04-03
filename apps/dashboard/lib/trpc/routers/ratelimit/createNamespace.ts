@@ -5,9 +5,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const createNamespace = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       name: z.string().min(1).max(50),
@@ -24,7 +25,7 @@ export const createNamespace = t.procedure
 
           createdAtM: Date.now(),
         });
-        await insertAuditLogs(tx, ctx.workspace.auditLogBucket.id, {
+        await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
             type: "user",

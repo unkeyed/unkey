@@ -30,6 +30,15 @@ import { updateRootKeyName } from "./key/updateRootKeyName";
 import { llmSearch } from "./logs/llm-search";
 import { queryLogs } from "./logs/query-logs";
 import { queryTimeseries } from "./logs/query-timeseries";
+import {
+  getInvitationList,
+  getOrg,
+  getOrganizationMemberList,
+  inviteMember,
+  removeMembership,
+  revokeInvitation,
+  updateMembership,
+} from "./org";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
@@ -59,6 +68,7 @@ import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateSubscription } from "./stripe/updateSubscription";
+import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
@@ -168,6 +178,24 @@ export const router = t.router({
   audit: t.router({
     logs: fetchAuditLog,
     llmSearch: auditLogsSearch,
+  }),
+  user: t.router({
+    getCurrentUser,
+    listMemberships,
+    switchOrg,
+  }),
+  org: t.router({
+    getOrg,
+    members: t.router({
+      list: getOrganizationMemberList,
+      remove: removeMembership,
+      update: updateMembership,
+    }),
+    invitations: t.router({
+      list: getInvitationList,
+      create: inviteMember,
+      remove: revokeInvitation,
+    }),
   }),
 });
 

@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
@@ -29,13 +29,13 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
   const identity = await db.query.identities.findFirst({
     where: (table, { eq }) => eq(table.id, props.params.identityId),
     with: {
       workspace: {
         columns: {
-          tenantId: true,
+          orgId: true,
         },
       },
       keys: {
@@ -52,7 +52,7 @@ export default async function Page(props: Props) {
     },
   });
 
-  if (!identity || identity.workspace.tenantId !== tenantId) {
+  if (!identity || identity.workspace.orgId !== orgId) {
     return notFound();
   }
 
@@ -138,7 +138,7 @@ export default async function Page(props: Props) {
               </TableHeader>
               <TableBody>
                 {identity.keys.map((key) => (
-                  <TableRow>
+                  <TableRow key={key.id}>
                     <TableCell className="font-mono">{key.id}</TableCell>
                     <TableCell className="font-mono text-xs">
                       {key.meta ? (

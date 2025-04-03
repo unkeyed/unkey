@@ -23,7 +23,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 	namespaceName := "test_namespace"
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -37,7 +37,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
 		ID:          overrideID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		NamespaceID: namespaceID,
 		Identifier:  identifier,
 		Limit:       limit,
@@ -55,7 +55,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources.UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -72,11 +72,11 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
 		require.NotNil(t, res.Body)
-		require.Equal(t, overrideID, res.Body.OverrideId)
-		require.Equal(t, namespaceID, res.Body.NamespaceId)
-		require.Equal(t, identifier, res.Body.Identifier)
-		require.Equal(t, int64(limit), res.Body.Limit)
-		require.Equal(t, int64(duration), res.Body.Duration)
+		require.Equal(t, overrideID, res.Body.Data.OverrideId)
+		require.Equal(t, namespaceID, res.Body.Data.NamespaceId)
+		require.Equal(t, identifier, res.Body.Data.Identifier)
+		require.Equal(t, int64(limit), res.Body.Data.Limit)
+		require.Equal(t, int64(duration), res.Body.Data.Duration)
 	})
 
 	// Test getting by namespace ID
@@ -89,10 +89,10 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
 		require.NotNil(t, res.Body)
-		require.Equal(t, overrideID, res.Body.OverrideId)
-		require.Equal(t, namespaceID, res.Body.NamespaceId)
-		require.Equal(t, identifier, res.Body.Identifier)
-		require.Equal(t, int64(limit), res.Body.Limit)
-		require.Equal(t, int64(duration), res.Body.Duration)
+		require.Equal(t, overrideID, res.Body.Data.OverrideId)
+		require.Equal(t, namespaceID, res.Body.Data.NamespaceId)
+		require.Equal(t, identifier, res.Body.Data.Identifier)
+		require.Equal(t, int64(limit), res.Body.Data.Limit)
+		require.Equal(t, int64(duration), res.Body.Data.Duration)
 	})
 }

@@ -22,8 +22,8 @@ type Config struct {
 
 	ClusterEnabled bool
 
-	// ClusterNodeID is the unique identifier for this node within the cluster
-	ClusterNodeID string
+	// ClusterInstanceID is the unique identifier for this instance within the cluster
+	ClusterInstanceID string
 
 	// --- Advertise Address configuration ---
 
@@ -47,6 +47,9 @@ type Config struct {
 	// ClusterDiscoveryRedisURL provides a Redis connection string for dynamic cluster discovery
 	ClusterDiscoveryRedisURL string
 
+	// ClusterDiscoveryAwsEcs uses the aws ecs API to find peers
+	ClusterDiscoveryAwsEcs bool
+
 	// --- Logs configuration ---
 
 	// LogsColor enables ANSI color codes in log output
@@ -68,16 +71,18 @@ type Config struct {
 	// --- OpenTelemetry configuration ---
 
 	// OtelOtlpEndpoint specifies the OpenTelemetry collector endpoint for metrics, traces, and logs
-	OtelEnabled bool
+	OtelEnabled           bool
+	OtelTraceSamplingRate float64
 
-	Clock clock.Clock
+	PrometheusPort int
+	Clock          clock.Clock
 }
 
 func (c Config) Validate() error {
 
 	if c.ClusterEnabled {
-		err := assert.Multi(
-			assert.NotEmpty(c.ClusterNodeID, "node id must not be empty"),
+		err := assert.All(
+			assert.NotEmpty(c.ClusterInstanceID, "instance id must not be empty"),
 			assert.Greater(c.ClusterRpcPort, 0),
 			assert.Greater(c.ClusterGossipPort, 0),
 			assert.True(c.ClusterAdvertiseAddrStatic != "" || c.ClusterAdvertiseAddrAwsEcsMetadata),

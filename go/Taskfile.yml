@@ -11,18 +11,20 @@ tasks:
   pull:
     cmds:
       - docker pull mysql:latest
+      - docker pull grafana/otel-lgtm:latest
 
-  test:
+  test-full:
     deps:
       - pull
+    env:
+      INTEGRATION_TEST: true
+      SIMULATION_TEST: false
+    cmds:
+      - go test -failfast -timeout=60m -shuffle=on ./...
+
+  test-unit:
     cmds:
       - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
-
-  test-e2e:
-    env:
-      SIMULATON_TEST: true
-    cmds:
-      - task: test
 
   build:
     cmds:

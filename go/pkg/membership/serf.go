@@ -17,7 +17,7 @@ import (
 )
 
 type Config struct {
-	NodeID        string
+	InstanceID    string
 	AdvertiseHost string
 	GossipPort    int
 	RpcPort       int
@@ -47,28 +47,28 @@ var _ Membership = (*serfMembership)(nil)
 func New(config Config) (*serfMembership, error) {
 
 	host, err := parseHost(config.AdvertiseHost)
-
 	if err != nil {
 		return nil, err
 	}
-	// Create self member with metadata
+
 	self := Member{
-		NodeID:     config.NodeID,
-		Host:       host,
+		InstanceID: config.InstanceID,
+		Host:       config.AdvertiseHost,
 		GossipPort: config.GossipPort,
 		RpcPort:    config.RpcPort,
 	}
 
 	// Serf configuration
 	serfConfig := serf.DefaultConfig()
-	serfConfig.NodeName = config.NodeID
+	serfConfig.NodeName = config.InstanceID
 	serfConfig.MemberlistConfig.AdvertiseAddr = host
 	serfConfig.MemberlistConfig.AdvertisePort = config.GossipPort
 	serfConfig.MemberlistConfig.BindAddr = "0.0.0.0"
 	serfConfig.MemberlistConfig.BindPort = config.GossipPort
-
 	serfConfig.Tags = self.ToMap()
+
 	serfConfig.LogOutput = logger{config.Logger}
+	serfConfig.MemberlistConfig.LogOutput = logger{config.Logger}
 
 	// Create event handlers for Serf
 	eventCh := make(chan serf.Event, 256)
@@ -120,28 +120,28 @@ func (m *serfMembership) handleEvents(ch <-chan serf.Event) {
 			for _, member := range e.Members {
 				m.logger.Debug("Received member event",
 					"type", e.EventType().String(),
-					"nodeID", member.Name,
+					"instanceID", member.Name,
 					"tags", fmt.Sprintf("%v", member.Tags))
 
 				mem, err := memberFromMap(member.Tags)
 				if err != nil {
 					m.logger.Error(err.Error(),
-						"nodeID", member.Name)
+						"instanceID", member.Name)
 					continue
 				}
 
 				switch e.EventType() {
 				case serf.EventMemberJoin:
 					// Don't emit join events for self
-					if mem.NodeID != m.self.NodeID {
-						m.logger.Debug("Emitting join event", "nodeID", mem.NodeID)
+					if mem.InstanceID != m.self.InstanceID {
+						m.logger.Debug("Emitting join event", "instanceID", mem.InstanceID)
 						m.onJoin.Emit(context.Background(), mem)
 					}
 				case serf.EventMemberLeave, serf.EventMemberFailed:
-					m.logger.Debug("Emitting leave event", "nodeID", mem.NodeID)
+					m.logger.Debug("Emitting leave event", "instanceID", mem.InstanceID)
 					m.onLeave.Emit(context.Background(), mem)
 				case serf.EventMemberUpdate:
-					m.logger.Debug("Emitting update event", "nodeID", mem.NodeID)
+					m.logger.Debug("Emitting update event", "instanceID", mem.InstanceID)
 					m.onUpdate.Emit(context.Background(), mem)
 				case serf.EventMemberReap:
 				case serf.EventUser:
@@ -189,11 +189,18 @@ func (m *serfMembership) Start(discover discovery.Discoverer) error {
 		return fault.Wrap(err)
 	}
 
+	m.logger.Info("trying to join cluster",
+		"addrs", strings.Join(addrs, ","),
+		"self", m.self,
+	)
+
 	// Format addresses to include port - convert ips to ip:port
-	joinAddrs := make([]string, 0, len(addrs))
+	joinAddrs := []string{}
 	for _, addr := range addrs {
+
 		// Skip empty addresses
 		if addr == "" {
+			m.logger.Info("skipping empty address")
 			continue
 		}
 
@@ -204,34 +211,33 @@ func (m *serfMembership) Start(discover discovery.Discoverer) error {
 		m.logger.Info("Joining cluster",
 			"addrs", strings.Join(joinAddrs, ","),
 		)
-
-		err := retry.New(
-			retry.Attempts(10),
-			retry.Backoff(func(n int) time.Duration { return time.Duration(n) * 100 * time.Millisecond }),
-		).Do(
-			func() error {
-				successfullyContacted, joinErr := m.serf.Join(joinAddrs, true)
-				if joinErr != nil {
-					m.logger.Warn("failed to join",
-						"error", joinErr.Error(),
-						"successfullyContacted", successfullyContacted,
-						"addrs", strings.Join(joinAddrs, ","),
-					)
-					return joinErr
-				}
-
-				m.logger.Info("Successfully joined cluster",
+	} else {
+		m.logger.Info("No peers to join, starting new cluster")
+	}
+	err = retry.New(
+		retry.Attempts(10),
+		retry.Backoff(func(n int) time.Duration { return time.Duration(n) * 100 * time.Millisecond }),
+	).Do(
+		func() error {
+			successfullyContacted, joinErr := m.serf.Join(joinAddrs, true)
+			if joinErr != nil {
+				m.logger.Warn("failed to join",
+					"error", joinErr.Error(),
 					"successfullyContacted", successfullyContacted,
 					"addrs", strings.Join(joinAddrs, ","),
 				)
-				return nil
-			})
+				return joinErr
+			}
 
-		if err != nil {
-			return fault.Wrap(err, fault.WithDesc("Failed to join", ""))
-		}
-	} else {
-		m.logger.Info("No peers to join, starting new cluster")
+			m.logger.Info("Successfully joined cluster",
+				"successfullyContacted", successfullyContacted,
+				"addrs", strings.Join(joinAddrs, ","),
+			)
+			return nil
+		})
+
+	if err != nil {
+		return err
 	}
 
 	return nil

@@ -8,12 +8,15 @@
     "rules": {
       "recommended": true,
       "a11y": {
-        "noSvgWithoutTitle": "off"
+        "noSvgWithoutTitle": "off",
+        "useSemanticElements": "warn",
+        "useFocusableInteractive": "warn"
       },
       "correctness": {
         "noUnusedVariables": "error",
         "useExhaustiveDependencies": "warn",
-        "noUnusedImports": "warn"
+        "noUnusedImports": "warn",
+        "noChildrenProp": "off"
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"
@@ -40,6 +43,7 @@
       "dist",
       ".nuxt",
       "./packages/api/src/openapi.d.ts",
+      "./internal/auth-migrator/",
       ".wrangler",
       ".react-email",
       ".content-collections",
@@ -61,7 +65,8 @@
       ".react-email",
       ".content-collections",
       ".source",
-      ".trigger"
+      ".trigger",
+      "./internal/auth-migrator"
     ]
   },
   "organizeImports": {
@@ -73,7 +78,8 @@
       ".nuxt",
       ".wrangler",
       ".react-email",
-      ".content-collections"
+      ".content-collections",
+      "./internal/auth-migrator"
     ]
   }
 }

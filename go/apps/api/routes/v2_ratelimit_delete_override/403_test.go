@@ -24,7 +24,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	namespaceName := "test_namespace"
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
-		WorkspaceID: h.Resources.UserWorkspace.ID, // Use the default workspace
+		WorkspaceID: h.Resources().UserWorkspace.ID, // Use the default workspace
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -35,7 +35,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	overrideID := uid.New(uid.RatelimitOverridePrefix)
 	err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
 		ID:          overrideID,
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		NamespaceID: namespaceID,
 		Identifier:  identifier,
 		Limit:       10,
@@ -69,7 +69,7 @@ func TestWorkspacePermissions(t *testing.T) {
 		Identifier:  identifier,
 	}
 
-	res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 	// This should return a 404 Not Found (for security reasons we don't reveal if the namespace exists)
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
@@ -77,7 +77,7 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	// Verify the override was NOT deleted
 	override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
-		WorkspaceID: h.Resources.UserWorkspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		OverrideID:  overrideID,
 	})
 	require.NoError(t, err)

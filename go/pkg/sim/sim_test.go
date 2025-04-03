@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/sim"
+	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
 // Define a simple state for our test simulation
@@ -56,7 +57,7 @@ func (e AddValueEvent) Run(rng *sim.Rand, state *TestState) error {
 
 // Test the basic simulation functionality
 func TestBasicSimulation(t *testing.T) {
-	sim.CheckEnabled(t)
+	testutil.SkipUnlessSimulation(t)
 	// Generate a new seed for the test
 	seed := sim.NewSeed()
 

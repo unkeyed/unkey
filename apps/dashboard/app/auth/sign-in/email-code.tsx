@@ -1,61 +1,90 @@
 "use client";
 
-import { useSignIn } from "@clerk/nextjs";
-import { OTPInput, type SlotProps } from "input-otp";
-import { useRouter } from "next/navigation";
-import * as React from "react";
-
 import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
-import { Minus } from "lucide-react";
+import { OTPInput, type SlotProps } from "input-otp";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSignIn } from "../hooks";
 
-type Props = {
-  setError: (s: string) => void;
-};
+export function EmailCode({ invitationToken }: { invitationToken?: string }) {
+  const { handleVerification, handleResendCode, setError } = useSignIn();
+  const [timeLeft, setTimeLeft] = useState(10); // Start with 10 seconds
+  const [isLoading, setIsLoading] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [clientReady, setClientReady] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-export const EmailCode: React.FC<Props> = ({ setError }) => {
-  const router = useRouter();
-  const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
-  const [isLoading, setIsLoading] = React.useState(false);
+  // Function to start or restart the countdown timer
+  const startCountdown = useCallback(() => {
+    // Clear any existing timer first
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
 
-  const verifyCode = async (otp: string) => {
-    if (!signInLoaded || typeof otp !== "string") {
-      return null;
+    // Set initial time
+    setTimeLeft(10);
+
+    // Start a new timer
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prevTime) => {
+        if (prevTime <= 1) {
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+  }, []);
+
+  // Set clientReady to true after hydration is complete
+  useEffect(() => {
+    setClientReady(true);
+    startCountdown();
+
+    // Start countdown timer only on client side
+    const timer = setInterval(() => {
+      setTimeLeft((prevTime) => {
+        if (prevTime <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+
+    // Clean up timer when component unmounts
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [startCountdown]);
+
+  const verifyCode = async (code: string) => {
+    if (!code) {
+      return;
     }
     setIsLoading(true);
-    await signIn
-      .attemptFirstFactor({
-        strategy: "email_code",
-        code: otp,
-      })
-      .then(async (result) => {
-        if (result.status === "complete" && result.createdSessionId) {
-          toast.success("Signed in", {
-            description: "redirecting...",
-          });
-          await setActive({ session: result.createdSessionId });
-          router.push("/apis");
-        }
-      })
-      .catch((err) => {
-        setError(err.errors.at(0)?.longMessage ?? "Unknown error, pleae contact support@unkey.dev");
+    try {
+      await handleVerification(code, invitationToken);
+      toast.success("Signed in", {
+        description: "redirecting...",
       });
+    } catch (err) {
+      setError((err as Error).message);
+    }
     setIsLoading(false);
   };
 
   const resendCode = async () => {
     try {
-      const firstFactor = signIn?.supportedFirstFactors.find((f) => f.strategy === "email_code") as
-        | { emailAddressId: string }
-        | undefined;
-      if (!firstFactor) {
-        return null;
-      }
-      const p = signIn!.prepareFirstFactor({
-        strategy: "email_code",
-        emailAddressId: firstFactor.emailAddressId,
-      });
+      // Reset the timer when resending code
+      startCountdown();
+
+      const p = handleResendCode();
       toast.promise(p, {
         loading: "Sending new code ...",
         success: "A new code has been sent to your email",
@@ -63,12 +92,9 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
       await p;
     } catch (error) {
       setIsLoading(false);
-      setError((error as Error).message);
       console.error(error);
     }
   };
-
-  const [otp, setOtp] = React.useState("");
 
   return (
     <div className="flex flex-col max-w-sm mx-auto text-left">
@@ -79,12 +105,16 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
         To continue, please enter the 6 digit verification code sent to the provided email.
       </p>
 
-      <p className="mt-2 text-sm text-white/40">
-        Didn't receive the code?{" "}
-        <button type="button" className="text-white" onClick={resendCode}>
-          Resend
-        </button>
-      </p>
+      {/* Only show resend option after countdown reaches zero */}
+      {timeLeft === 0 && (
+        <p className="mt-2 text-sm text-white/40">
+          Didn't receive the code?{" "}
+          <button type="button" className="text-white" onClick={resendCode}>
+            Resend
+          </button>
+        </p>
+      )}
+
       <form className="flex flex-col gap-12 mt-10" onSubmit={() => verifyCode(otp)}>
         <OTPInput
           data-1p-ignore
@@ -94,12 +124,7 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
           maxLength={6}
           render={({ slots }) => (
             <div className="flex items-center justify-between">
-              {slots.slice(0, 3).map((slot, idx) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: I have nothing better
-                <Slot key={idx} {...slot} />
-              ))}
-              <Minus className="w-6 h-6 text-white/15" />
-              {slots.slice(3).map((slot, idx) => (
+              {slots.slice(0, 6).map((slot, idx) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: I have nothing better
                 <Slot key={idx} {...slot} />
               ))}
@@ -113,13 +138,13 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
           disabled={isLoading}
           onClick={() => verifyCode(otp)}
         >
-          {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
+          {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
           Continue
         </button>
       </form>
     </div>
   );
-};
+}
 
 const Slot: React.FC<SlotProps> = (props) => (
   <div

@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { Clone } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -54,7 +55,7 @@ export const OutcomeDistributionSection = ({
                   <span>{formatOutcomeName(outcome)}:</span>
                 </div>
                 <span className="ml-2 text-xs text-accent-12 truncate font-mono tabular-nums">
-                  {count.toLocaleString()}
+                  {formatNumber(count)}
                 </span>
               </div>
             ))}

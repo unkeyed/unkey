@@ -1,3 +1,8 @@
+/**
+ * Deprecated with new auth
+ * Hiding for now until we decide if we want to fix it up or toss it
+ */
+
 "use client";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -69,7 +74,7 @@ export const Client: React.FC<Props> = ({
       <PageHeader
         title="Connect Vercel Project"
         description="You can add more projects later"
-        actions={[<WorkspaceSwitcher />]}
+        actions={[<WorkspaceSwitcher key="workspace-switcher" />]}
       />
 
       <div className="flex flex-col flex-1 flex-grow gap-16">

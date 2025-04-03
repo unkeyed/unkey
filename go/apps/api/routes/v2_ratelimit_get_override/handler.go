@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -109,11 +108,17 @@ func New(svc Services) zen.Route {
 			return err
 		}
 		return s.JSON(http.StatusOK, Response{
-			OverrideId:  override.ID,
-			Duration:    int64(override.Duration),
-			Identifier:  override.Identifier,
-			NamespaceId: override.NamespaceID,
-			Limit:       int64(override.Limit),
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.RatelimitGetOverrideResponseData{
+
+				OverrideId:  override.ID,
+				Duration:    int64(override.Duration),
+				Identifier:  override.Identifier,
+				NamespaceId: override.NamespaceID,
+				Limit:       int64(override.Limit),
+			},
 		})
 	})
 }
@@ -123,9 +128,7 @@ func getNamespace(ctx context.Context, svc Services, workspaceID string, req Req
 	switch {
 	case req.NamespaceId != nil:
 		{
-			res, err := db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
-			log.Println("getNamespace", res, err)
-			return res, err
+			return db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
 
 		}
 	case req.NamespaceName != nil:

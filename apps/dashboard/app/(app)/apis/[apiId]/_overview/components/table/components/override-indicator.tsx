@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import Link from "next/link";
 import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked-percentage";
 
 export const KeyTooltip = ({
@@ -29,6 +30,7 @@ export const KeyTooltip = ({
 
 type KeyIdentifierColumnProps = {
   log: KeysOverviewLog;
+  apiId: string;
 };
 
 // Get warning icon based on error severity
@@ -59,7 +61,7 @@ const getWarningMessage = (severity: string, errorRate: number) => {
   }
 };
 
-export const KeyIdentifierColumn = ({ log }: KeyIdentifierColumnProps) => {
+export const KeyIdentifierColumn = ({ log, apiId }: KeyIdentifierColumnProps) => {
   const errorPercentage = getErrorPercentage(log);
   const severity = getErrorSeverity(log);
   const hasErrors = severity !== "none";
@@ -73,10 +75,16 @@ export const KeyIdentifierColumn = ({ log }: KeyIdentifierColumnProps) => {
           {getWarningIcon(severity)}
         </div>
       </KeyTooltip>
-      <div className="font-mono font-medium truncate">
-        {log.key_id.substring(0, 8)}...
-        {log.key_id.substring(log.key_id.length - 4)}
-      </div>
+      <Link
+        title={`View details for ${log.key_id}`}
+        className="font-mono group-hover:underline decoration-dotted"
+        href={`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
+      >
+        <div className="font-mono font-medium truncate">
+          {log.key_id.substring(0, 8)}...
+          {log.key_id.substring(log.key_id.length - 4)}
+        </div>
+      </Link>
     </div>
   );
 };

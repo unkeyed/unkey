@@ -16,6 +16,7 @@ export const TagFilter: React.FC<Props> = ({ className, tags }) => {
     <div className={cn("flex flex-row py-24 w-full justify-center gap-6", className)}>
       {tags.map((tag) => (
         <button
+          key={tag}
           type="button"
           onClick={() => filterPosts(tag)}
           className={cn(

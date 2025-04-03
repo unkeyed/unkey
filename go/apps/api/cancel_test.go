@@ -19,8 +19,7 @@ func TestContextCancellation(t *testing.T) {
 
 	// Create a containers instance for database
 	containers := containers.New(t)
-	dbDsn := containers.RunMySQL()
-	t.Log("dbDsn", dbDsn)
+	dbDsn, _ := containers.RunMySQL()
 	// Get free ports for the node
 	portAllocator := port.New()
 	httpPort := portAllocator.Get()
@@ -36,7 +35,7 @@ func TestContextCancellation(t *testing.T) {
 		Region:                  "test-region",
 		Clock:                   nil,   // Will use real clock
 		ClusterEnabled:          false, // Disable clustering for simpler test
-		ClusterNodeID:           uid.New("node"),
+		ClusterInstanceID:       uid.New(uid.InstancePrefix),
 		LogsColor:               false,
 		ClickhouseURL:           "",
 		DatabasePrimary:         dbDsn,
@@ -50,6 +49,11 @@ func TestContextCancellation(t *testing.T) {
 	// Start the API server in a goroutine
 	go func() {
 		err := api.Run(ctx, config)
+
+		if err != nil {
+			// it's really hard to get this error cause the test fails before we read from the channel
+			t.Logf("Error from run: %s", err.Error())
+		}
 		resultCh <- err
 	}()
 

@@ -12,10 +12,9 @@ func (s *service) VerifyRootKey(ctx context.Context, sess *zen.Session) (VerifyR
 	rootKey, err := zen.Bearer(sess)
 	if err != nil {
 		return VerifyResponse{}, fault.Wrap(err,
-			fault.WithTag(fault.UNAUTHORIZED),
 			fault.WithDesc(
 				"no bearer",
-				"You must provide a valid root key in the Authorization header in the format 'Bearer <root_key>'",
+				"You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'",
 			),
 		)
 	}
@@ -24,7 +23,7 @@ func (s *service) VerifyRootKey(ctx context.Context, sess *zen.Session) (VerifyR
 	if err != nil {
 		return VerifyResponse{}, fault.Wrap(err,
 			fault.WithTag(fault.UNAUTHORIZED),
-			fault.WithDesc("invalid root key", "The provided root key is invalid"))
+			fault.WithDesc("invalid root key", "The provided root key is invalid."))
 	}
 
 	return res, nil

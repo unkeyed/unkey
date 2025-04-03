@@ -169,7 +169,7 @@ func TestNodeRemovalRebuild(t *testing.T) {
 	}
 
 	for _, token := range r.tokens {
-		_, exists := nodeIDs[token.nodeID]
-		require.True(t, exists, "Token references non-existent node ID: %s", token.nodeID)
+		_, exists := nodeIDs[token.instanceID]
+		require.True(t, exists, "Token references non-existent instance ID: %s", token.instanceID)
 	}
 }

@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/pb33f/libopenapi"
@@ -8,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/pkg/ctxutil"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 )
 
 type OpenAPIValidator interface {
@@ -16,7 +18,7 @@ type OpenAPIValidator interface {
 	// Returns a BadRequestError if the request is invalid that should be
 	// marshalled and returned to the client.
 	// The second return value is a boolean that is true if the request is valid.
-	Validate(r *http.Request) (openapi.BadRequestError, bool)
+	Validate(r *http.Request) (openapi.BadRequestErrorResponse, bool)
 }
 
 type Validator struct {
@@ -52,35 +54,49 @@ func New() (*Validator, error) {
 	}, nil
 }
 
-func (v *Validator) Validate(r *http.Request) (openapi.BadRequestError, bool) {
+func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestErrorResponse, bool) {
+	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
+	defer validationSpan.End()
 
 	valid, errors := v.validator.ValidateHttpRequest(r)
+
 	if valid {
 		// nolint:exhaustruct
-		return openapi.BadRequestError{}, true
+		return openapi.BadRequestErrorResponse{}, true
 	}
-	valErr := openapi.BadRequestError{
-		Title:     "Bad Request",
-		Detail:    "One or more fields failed validation",
-		Instance:  nil,
-		Status:    http.StatusBadRequest,
-		RequestId: ctxutil.GetRequestId(r.Context()),
-		Type:      "https://unkey.com/docs/errors/bad_request",
-		Errors:    []openapi.ValidationError{},
+	res := openapi.BadRequestErrorResponse{
+		Meta: openapi.Meta{
+			RequestId: ctxutil.GetRequestId(r.Context()),
+		},
+		Error: openapi.BadRequestErrorDetails{
+			Title:    "Bad Request",
+			Detail:   "One or more fields failed validation",
+			Instance: nil,
+			Status:   http.StatusBadRequest,
+			Type:     "https://unkey.com/docs/errors/bad_request",
+			Errors:   []openapi.ValidationError{},
+		},
 	}
 
-	for _, err := range errors {
-
-		for _, e := range err.SchemaValidationErrors {
-
-			valErr.Errors = append(valErr.Errors, openapi.ValidationError{
-				Message:  e.Reason,
-				Location: e.AbsoluteLocation,
+	if len(errors) > 0 {
+		err := errors[0]
+		res.Error.Detail = err.Message
+		for _, verr := range err.SchemaValidationErrors {
+			res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
+				Message:  verr.Reason,
+				Location: verr.Location,
+				Fix:      nil,
+			})
+		}
+		if len(res.Error.Errors) == 0 {
+			res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
+				Message:  err.Reason,
+				Location: err.ValidationType,
 				Fix:      &err.HowToFix,
 			})
 		}
-
 	}
-	return valErr, false
+
+	return res, false
 
 }
