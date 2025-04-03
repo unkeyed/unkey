@@ -121,14 +121,19 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
           </div>
         ) : (
           <div className="flex items-center justify-end w-full gap-4">
-            <div className="flex items-center justify-center px-1 border rounded-lg border-grayA-4 h-9">
+            <a
+              href="https://cal.com/james-r-perkins/sales"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center px-1 border rounded-lg border-grayA-4 h-9"
+            >
               <AnimatedShinyText
                 shimmerWidth={50}
                 className="py-1 px-[9px] rounded-lg text-[13px] leading-6 font-medium"
               >
                 Upgrade to Enterprise...
               </AnimatedShinyText>
-            </div>
+            </a>
             <a
               href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
               target="_blank"
