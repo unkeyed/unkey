@@ -1,9 +1,9 @@
-import { AbortTaskRunError, metadata, task } from "@trigger.dev/sdk/v3";
-import { Octokit } from "@octokit/rest";
-import GithubSlugger from "github-slugger";
 import { tryCatch } from "@/lib/utils/try-catch";
-import type { FieldSelection } from "../generate/takeaways/generate-takeaways";
+import { Octokit } from "@octokit/rest";
+import { AbortTaskRunError, metadata, task } from "@trigger.dev/sdk/v3";
+import GithubSlugger from "github-slugger";
 import yaml from "js-yaml";
+import type { FieldSelection } from "../generate/takeaways/generate-takeaways";
 
 /**
  * Task that updates takeaways content in the glossary by creating a GitHub PR

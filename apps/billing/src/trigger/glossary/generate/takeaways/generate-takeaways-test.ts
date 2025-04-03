@@ -1,7 +1,7 @@
-import { generateTakeawaysTask } from "./generate-takeaways";
-import { z } from "zod";
 import { takeawaysSchema } from "@/lib/db-marketing/schemas/takeaways-schema";
-import { type TestCase, createTestRunner, okResultSchema, errorResultSchema } from "@/lib/test";
+import { type TestCase, createTestRunner, errorResultSchema, okResultSchema } from "@/lib/test";
+import { z } from "zod";
+import { generateTakeawaysTask } from "./generate-takeaways";
 
 const testCases: TestCase<typeof generateTakeawaysTask>[] = [
   {

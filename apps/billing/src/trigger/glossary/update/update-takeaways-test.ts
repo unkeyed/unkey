@@ -1,8 +1,8 @@
+import { takeawaysSchema } from "@/lib/db-marketing/schemas/takeaways-schema";
+import { type TestCase, createTestRunner, errorResultSchema, okResultSchema } from "@/lib/test";
 import { z } from "zod";
 import { updateTakeawaysTask } from "./update-takeaways";
 import { updateTakeawaysCleanupTask } from "./update-takeaways-cleanup";
-import { takeawaysSchema } from "@/lib/db-marketing/schemas/takeaways-schema";
-import { type TestCase, createTestRunner, okResultSchema, errorResultSchema } from "@/lib/test";
 
 // Pre-generated takeaways from previous run
 const preGeneratedTakeaways = {

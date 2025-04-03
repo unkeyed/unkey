@@ -1,7 +1,7 @@
+import { type TestCase, createTestRunner, errorResultSchema, okResultSchema } from "@/lib/test";
+import { z } from "zod";
 import { updateGlossaryContentTask } from "./update-content";
 import { cleanupGlossaryUpdateTask } from "./update-content-cleanup";
-import { type TestCase, createTestRunner, okResultSchema, errorResultSchema } from "@/lib/test";
-import { z } from "zod";
 
 const testCases: TestCase<typeof updateGlossaryContentTask>[] = [
   {

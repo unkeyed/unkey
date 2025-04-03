@@ -1,9 +1,9 @@
-import { AbortTaskRunError, metadata, task } from "@trigger.dev/sdk/v3";
-import { z } from "zod";
 import { takeawaysSchema } from "@/lib/db-marketing/schemas/takeaways-schema";
 import { google } from "@/lib/google";
-import { generateObject } from "ai";
 import { tryCatch } from "@/lib/utils/try-catch";
+import { AbortTaskRunError, metadata, task } from "@trigger.dev/sdk/v3";
+import { generateObject } from "ai";
+import { z } from "zod";
 
 // Field Selection Schema - Similar to Prisma's select API
 export const fieldSelectionSchema = z.object({
