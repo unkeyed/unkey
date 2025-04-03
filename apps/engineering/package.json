@@ -14,7 +14,7 @@
     "@unkey/ui": "workspace:^",
     "fumadocs-core": "14.4.0",
     "fumadocs-mdx": "11.1.1",
-    "fumadocs-openapi": "^5.7.5",
+    "fumadocs-openapi": "5.7.5",
     "fumadocs-twoslash": "^2.0.1",
     "fumadocs-typescript": "^3.0.2",
     "fumadocs-ui": "14.4.0",
