@@ -52,11 +52,11 @@ func TestOverrideNotFound(t *testing.T) {
 			Identifier:  "non_existent_identifier",
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
-		require.Equal(t, http.StatusNotFound, res.Body.Status)
+		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 	})
 
 	// Test with non-existent namespace
@@ -67,10 +67,10 @@ func TestOverrideNotFound(t *testing.T) {
 			Identifier:  "some_identifier",
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent namespace name
@@ -81,9 +81,9 @@ func TestOverrideNotFound(t *testing.T) {
 			Identifier:    "some_identifier",
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
 	})
 }
