@@ -38,6 +38,7 @@ export const changeWorkspaceName = t.procedure
             {
               type: "workspace",
               id: ctx.workspace.id,
+              name: input.name,
             },
           ],
           context: {

@@ -55,6 +55,7 @@ export const deleteNamespace = t.procedure
           {
             type: "ratelimitNamespace",
             id: namespace.id,
+            name: namespace.name,
           },
         ],
         context: {
@@ -95,6 +96,7 @@ export const deleteNamespace = t.procedure
               {
                 type: "ratelimitNamespace",
                 id: namespace.id,
+                name: namespace.name,
               },
               {
                 type: "ratelimitOverride",

@@ -24,19 +24,19 @@ export const LogSection = ({
 
   return (
     <div className="flex flex-col gap-1 mt-[16px]">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <span className="text-[13px] text-accent-9 font-sans">{title}</span>
       </div>
-      <Card className="bg-gray-2 border-gray-4 rounded-lg">
-        <CardContent className="py-2 px-3 text-xs relative group ">
-          <pre className="flex flex-col gap-1 whitespace-pre-wrap leading-relaxed">
+      <Card className="rounded-lg bg-gray-2 border-gray-4">
+        <CardContent className="relative px-3 py-2 text-xs group ">
+          <pre className="flex flex-col gap-1 leading-relaxed whitespace-pre-wrap">
             {Array.isArray(details)
               ? details.map((header) => {
                   const [key, ...valueParts] = header.split(":");
                   const value = valueParts.join(":").trim();
                   return (
                     <div className="group flex items-center w-full p-[3px]" key={key}>
-                      <span className="w-28 text-left truncate text-accent-9">{key}:</span>
+                      <span className="text-left truncate w-28 text-accent-9">{key}:</span>
                       <span className="ml-2 text-xs text-accent-12 ">{value}</span>
                     </div>
                   );
@@ -46,7 +46,7 @@ export const LogSection = ({
           <Button
             shape="square"
             onClick={handleClick}
-            className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute transition-opacity opacity-0 bottom-2 right-3 group-hover:opacity-100"
             aria-label="Copy content"
           >
             <Copy size={14} />
