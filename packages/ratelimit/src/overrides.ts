@@ -19,22 +19,21 @@ export class Overrides {
 
   constructor(config: OverrideConfig) {
     this.unkey = new Unkey({
-      serverURL: config.baseUrl,
+      baseUrl: config.baseUrl,
       rootKey: config.rootKey,
     });
   }
 
   public get getOverride() {
-    return this.unkey.ratelimit.getOverride;
+    return this.unkey.ratelimits.getOverride;
   }
   public get setOverride() {
-    return this.unkey.ratelimit.setOverride;
+    return this.unkey.ratelimits.setOverride;
   }
   public get deleteOverride() {
-    return this.unkey.ratelimit.deleteOverride;
+    return this.unkey.ratelimits.deleteOverride;
   }
-  // TODO: add this back when it's implemented
-  // public get listOverrides() {
-  //   return this.unkey.ratelimit.listOverrides;
-  // }
+  public get listOverrides() {
+    return this.unkey.ratelimits.listOverrides;
+  }
 }

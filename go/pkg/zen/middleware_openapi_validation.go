@@ -28,9 +28,9 @@ func WithValidation(validator *validation.Validator) Middleware {
 			err, valid := validator.Validate(ctx, s.r)
 
 			if !valid {
-				err.RequestId = s.requestID
+				err.Meta.RequestId = s.requestID
 
-				return s.JSON(err.Status, err)
+				return s.JSON(err.Error.Status, err)
 			}
 			return next(ctx, s)
 		}

@@ -150,7 +150,7 @@ func TestRateLimitAccuracy(t *testing.T) {
 										res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 										require.Equal(t, 200, res.Status, "expected 200 status")
 
-										if res.Body.Success {
+										if res.Body.Data.Success {
 											successCount++
 										}
 									}
