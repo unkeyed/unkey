@@ -1617,8 +1617,8 @@ importers:
   packages/ratelimit:
     dependencies:
       '@unkey/api':
-        specifier: ^2.0.0-alpha.1
-        version: 2.0.0-alpha.1(zod@3.24.2)
+        specifier: ^0.35.0
+        version: 0.35.0
     devDependencies:
       '@types/node':
         specifier: ^20.14.9
@@ -11790,12 +11790,10 @@ packages:
       '@unkey/rbac': 0.1.13
     dev: false
 
-  /@unkey/api@2.0.0-alpha.1(zod@3.24.2):
-    resolution: {integrity: sha512-YDKPKdzPbw/bOKZXLYe2YKF7Efsw3NtUJxK0x3grAjlIjc33zikN0yIn2gG2klhvWYH5I/gdlCrQH3ymKZagCQ==}
-    peerDependencies:
-      zod: '>= 3'
+  /@unkey/api@0.35.0:
+    resolution: {integrity: sha512-I7KhrOKNQl/0gtjQhrcmrOjLu9dThMlzAOmMO/n5LsJLl/L5CZzafijAEusSkHpLWHLFdDgJ07ynwcdYjYrKuA==}
     dependencies:
-      zod: 3.24.2
+      '@unkey/rbac': 0.3.1
     dev: false
 
   /@unkey/error@0.0.2:
@@ -11805,10 +11803,23 @@ packages:
       zod-error: 1.5.0
     dev: false
 
+  /@unkey/error@0.2.0:
+    resolution: {integrity: sha512-DFGb4A7SrusZPP0FYuRIF0CO+Gi4etLUAEJ6EKc+TKYmscL0nEJ2Pr38FyX9MvjI4Wx5l35Wc9KsBjMm9Ybh7w==}
+    dependencies:
+      zod: 3.23.8
+    dev: false
+
   /@unkey/rbac@0.1.13:
     resolution: {integrity: sha512-BUuKQb7xoI2e+UtuDvr5U0ShZkG1gG8UxG5VzL6tonmoxGVC1vP0ZS5TKMLbhjYD6Dh5SDeak95qGDsQdaX7Ew==}
     dependencies:
       '@unkey/error': 0.0.2
+      zod: 3.23.8
+    dev: false
+
+  /@unkey/rbac@0.3.1:
+    resolution: {integrity: sha512-Hj+52XRIlBBl3/qOUq9K71Fwy3PWExBQOpOClVYHdrcmbgqNL6L4EdW/BzliLhqPCdwZTPVSJTnZ3Hw4ZYixsQ==}
+    dependencies:
+      '@unkey/error': 0.2.0
       zod: 3.23.8
     dev: false
 
@@ -26478,9 +26489,6 @@ packages:
 
   /zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
-
-  /zod@3.24.2:
-    resolution: {integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==}
 
   /zustand@4.5.6(react@18.3.1):
     resolution: {integrity: sha512-ibr/n1hBzLLj5Y+yUcU7dYw8p6WnIVzdJbnX+1YpaScvZVF2ziugqHs+LAmHw4lWO9c/zRj+K1ncgWDQuthEdQ==}
