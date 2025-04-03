@@ -68,164 +68,19 @@ Examples:
 			Required: false,
 		},
 
-		// Cluster configuration
-		&cli.BoolFlag{
-			Name: "cluster",
-			Usage: `Enable cluster mode to connect multiple Unkey API nodes together.
-When enabled, this node will attempt to form or join a cluster with other Unkey nodes.
-Clustering provides high availability, load distribution, and consistent rate limiting across nodes.
-
-For production deployments with multiple instances, set this to true.
-For single-node setups (local development, small deployments), leave this disabled.
-
-When clustering is enabled, you must also configure:
-1. An address advertisement method (static or AWS ECS metadata)
-2. A discovery method (static addresses or Redis)
-3. Appropriate ports for RPC and gossip protocols
-
-Examples:
-  --cluster=true   # Enable clustering
-  --cluster=false  # Disable clustering (default)`,
-			Sources:  cli.EnvVars("UNKEY_CLUSTER"),
-			Required: false,
-		},
 		&cli.StringFlag{
-			Name: "cluster-instance-id",
-			Usage: `Unique identifier for this instance within the cluster.
-Every instance in a cluster must have a unique identifier. This ID is used in logs,
-metrics, and for node-to-node communication within the cluster.
-
-If not specified, a random UUID with 'node_' prefix will be automatically generated.
-For ephemeral nodes (like in auto-scaling groups), automatic generation is appropriate.
-For stable deployments, consider setting this to a persistent value tied to the instance.
-
-Examples:
-  --cluster-instance-id=instance_east1_001  # For a instance in East region, instance 001
-  --cluster-instance-id=instance_replica2   # For a second replica instance
-  --cluster-instance-id=instance_dev_local  # For local development`,
-			Sources:  cli.EnvVars("UNKEY_CLUSTER_NODE_ID"),
+			Name:     "instance-id",
+			Usage:    "Unique identifier for this instance within the cluster.",
+			Sources:  cli.EnvVars("UNKEY_INSTANCE_ID"),
 			Value:    uid.New(uid.InstancePrefix),
 			Required: false,
 		},
+
+		// Redis
 		&cli.StringFlag{
-			Name: "cluster-advertise-addr-static",
-			Usage: `Static IP address or hostname that other nodes can use to connect to this node.
-This is required for clustering when not using AWS ECS discovery.
-The address must be reachable by all other nodes in the cluster.
-
-For on-premises or static cloud deployments, use a fixed IP address or DNS name.
-In Kubernetes environments, this could be the pod's DNS name within the cluster.
-
-Only one advertisement method should be configured - either static or AWS ECS metadata.
-
-Examples:
-  --cluster-advertise-addr-static=10.0.1.5             # Direct IP address
-  --cluster-advertise-addr-static=node1.unkey.internal # DNS name
-  --cluster-advertise-addr-static=unkey-0.unkey-headless.default.svc.cluster.local  # Kubernetes DNS`,
-			Sources:  cli.EnvVars("UNKEY_CLUSTER_ADVERTISE_ADDR_STATIC", "HOSTNAME"),
-			Required: false,
-		},
-		&cli.BoolFlag{
-			Name: "cluster-advertise-addr-aws-ecs-metadata",
-			Usage: `Enable automatic address discovery using AWS ECS container metadata.
-When running on AWS ECS, this flag allows the container to automatically determine
-its private DNS name from the ECS metadata service. This simplifies cluster configuration
-in AWS ECS deployments with dynamic IP assignments.
-
-Only one advertisement method should be configured - either static or AWS ECS metadata.
-Do not set cluster-advertise-addr-static if this option is enabled.
-
-This option is specifically designed for AWS ECS and won't work in other environments.
-
-Examples:
-  --cluster-advertise-addr-aws-ecs-metadata=true  # Enable AWS ECS metadata-based discovery
-  --cluster-advertise-addr-aws-ecs-metadata=false # Disable (default)`,
-			Sources:  cli.EnvVars("UNKEY_CLUSTER_ADVERTISE_ADDR_AWS_ECS_METADATA"),
-			Required: false,
-		},
-		&cli.IntFlag{
-			Name: "cluster-rpc-port",
-			Usage: `Port used for internal RPC communication between cluster nodes.
-This port is used for direct node-to-node communication within the cluster for
-operations like distributed rate limiting and state synchronization.
-
-The port must be accessible by all other nodes in the cluster and should be
-different from the HTTP and gossip ports to avoid conflicts.
-
-In containerized environments, ensure this port is properly exposed between containers.
-For security, this port should typically not be exposed to external networks.
-
-Examples:
-  --cluster-rpc-port=7071  # Default RPC port`,
-			Sources:  cli.EnvVars("UNKEY_CLUSTER_RPC_PORT"),
-			Value:    7071,
-			Required: false,
-		},
-		&cli.IntFlag{
-			Name: "cluster-gossip-port",
-			Usage: `Port used for cluster membership and failure detection via gossip protocol.
-The gossip protocol is used to maintain cluster membership, detect node failures,
-and distribute information about the cluster state.
-
-This port must be accessible by all other nodes in the cluster and should be
-different from the HTTP and RPC ports to avoid conflicts.
-
-In containerized environments, ensure this port is properly exposed between containers.
-For security, this port should typically not be exposed to external networks.
-
-Examples:
-  --cluster-gossip-port=7072  # Default gossip port`,
-			Sources:  cli.EnvVars("UNKEY_CLUSTER_GOSSIP_PORT"),
-			Value:    7072,
-			Required: false,
-		},
-		// Discovery configuration - static
-		&cli.StringSliceFlag{
-			Name: "cluster-discovery-static-addrs",
-			Usage: `List of seed node addresses for static cluster configuration.
-When using static discovery, these addresses serve as initial contact points for
-joining the cluster. At least one functioning node address must be provided for
-initial cluster formation.
-
-This flag is required for clustering when not using Redis discovery.
-Each address should be a hostname or IP address that's reachable by this node.
-It's not necessary to list all nodes - just enough to ensure reliable discovery.
-
-Nodes will automatically discover the full cluster membership after connecting to
-any existing cluster member.
-
-Examples:
-  --cluster-discovery-static-addrs=10.0.1.5,10.0.1.6
-  --cluster-discovery-static-addrs=node1.unkey.internal,node2.unkey.internal
-  --cluster-discovery-static-addrs=unkey-0.unkey-headless.default.svc.cluster.local`,
-			Sources:  cli.EnvVars("UNKEY_CLUSTER_DISCOVERY_STATIC_ADDRS"),
-			Required: false,
-		},
-		&cli.BoolFlag{
-			Name:     "cluster-discovery-aws-ecs",
-			Usage:    `Use the AWS ECS API to find peers within the same cluster.`,
-			Sources:  cli.EnvVars("UNKEY_CLUSTER_DISCOVERY_AWS_ECS"),
-			Required: false,
-		},
-		// Discovery configuration - Redis
-		&cli.StringFlag{
-			Name: "cluster-discovery-redis-url",
-			Usage: `Redis connection string for dynamic cluster discovery.
-Redis-based discovery enables nodes to register themselves and discover other nodes
-through a shared Redis instance. This is recommended for dynamic environments where
-nodes may come and go frequently, such as auto-scaling groups in AWS ECS.
-
-When specified, nodes will register themselves in Redis and discover other nodes
-automatically. This eliminates the need for static address configuration.
-
-The Redis instance should be accessible by all nodes in the cluster and have
-low latency to ensure timely node discovery.
-
-Examples:
-  --cluster-discovery-redis-url=redis://localhost:6379/0
-  --cluster-discovery-redis-url=redis://user:password@redis.example.com:6379/0
-  --cluster-discovery-redis-url=redis://user:password@redis-master.default.svc.cluster.local:6379/0?tls=true`,
-			Sources:  cli.EnvVars("UNKEY_CLUSTER_DISCOVERY_REDIS_URL"),
+			Name:     "redis-url",
+			Usage:    "Redis connection string for cross-cluster semi-durable storage of counters.",
+			Sources:  cli.EnvVars("UNKEY_REDIS_URL"),
 			Required: false,
 		},
 		// Logs configuration
@@ -357,6 +212,17 @@ Default: disabled
 			Value:    0,
 			Required: false,
 		},
+		&cli.BoolFlag{
+			Name: "test-mode",
+			Usage: `Enable test mode. This is potentially unsafe.
+Testmode enables some flags for testing purposes and may trust client inputs blindly.
+
+Default: disabled
+			`,
+			Sources:  cli.EnvVars("UNKEY_TEST_MODE"),
+			Value:    false,
+			Required: false,
+		},
 	},
 
 	Action: action,
@@ -385,18 +251,11 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		OtelEnabled:           cmd.Bool("otel"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 
-		// Cluster
-		ClusterEnabled:                     cmd.Bool("cluster"),
-		ClusterInstanceID:                  cmd.String("cluster-instance-id"),
-		ClusterRpcPort:                     int(cmd.Int("cluster-rpc-port")),
-		ClusterGossipPort:                  int(cmd.Int("cluster-gossip-port")),
-		ClusterAdvertiseAddrStatic:         cmd.String("cluster-advertise-addr-static"),
-		ClusterAdvertiseAddrAwsEcsMetadata: cmd.Bool("cluster-advertise-addr-aws-ecs-metadata"),
-		ClusterDiscoveryStaticAddrs:        cmd.StringSlice("cluster-discovery-static-addrs"),
-		ClusterDiscoveryAwsEcs:             cmd.Bool("cluster-discovery-aws-ecs"),
-		ClusterDiscoveryRedisURL:           cmd.String("cluster-discovery-redis-url"),
-		PrometheusPort:                     int(cmd.Int("prometheus-port")),
-		Clock:                              clock.New(),
+		InstanceID:     cmd.String("instance-id"),
+		RedisUrl:       cmd.String("redis-url"),
+		PrometheusPort: int(cmd.Int("prometheus-port")),
+		Clock:          clock.New(),
+		TestMode:       cmd.Bool("test-mode"),
 	}
 
 	err := config.Validate()

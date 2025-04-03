@@ -54,7 +54,6 @@ func TestRateLimitAccuracy(t *testing.T) {
 						t.Run(fmt.Sprintf("duration_%dms", duration), func(t *testing.T) {
 							for _, loadFactor := range loadFactors {
 								t.Run(fmt.Sprintf("load_%.1fx", loadFactor), func(t *testing.T) {
-									t.Parallel()
 									h := testutil.NewHarness(t)
 
 									route := handler.New(handler.Services{

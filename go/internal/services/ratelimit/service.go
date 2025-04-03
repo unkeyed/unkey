@@ -2,19 +2,15 @@ package ratelimit
 
 import (
 	"context"
+	"fmt"
 	"sync"
-	"time"
 
-	"connectrpc.com/connect"
-	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1/ratelimitv1connect"
+	"github.com/redis/go-redis/v9"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/cluster"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -68,9 +64,6 @@ type service struct {
 	// logger handles structured logging output
 	logger logging.Logger
 
-	// cluster manages node discovery and state distribution
-	cluster cluster.Cluster
-
 	// shutdownCh signals service shutdown
 	shutdownCh chan struct{}
 
@@ -81,28 +74,22 @@ type service struct {
 	// Protected by bucketsMu
 	buckets map[string]*bucket
 
-	// peerMu protects access to peer-related fields
-	peerMu sync.RWMutex
-
-	// peers maps node IDs to peer connections
-	// Protected by peerMu
-	peers map[string]peer
+	redis *redis.Client
 
 	// replayBuffer holds rate limit events for async propagation
 	// Thread-safe internally
-	replayBuffer *buffer.Buffer[*ratelimitv1.ReplayRequest]
+	replayBuffer *buffer.Buffer[RatelimitRequest]
 
 	// replayCircuitBreaker prevents cascading failures during peer communication
 	// Thread-safe internally
-	replayCircuitBreaker circuitbreaker.CircuitBreaker[*connect.Response[ratelimitv1.ReplayResponse]]
+	replayCircuitBreaker circuitbreaker.CircuitBreaker[int64]
 }
 
-var _ ratelimitv1connect.RatelimitServiceHandler = (*service)(nil)
-
 type Config struct {
-	Logger  logging.Logger
-	Cluster cluster.Cluster
-	Clock   clock.Clock
+	Logger logging.Logger
+	// optional
+	RedisURL string
+	Clock    clock.Clock
 }
 
 // New creates a new rate limiting service with the given configuration.
@@ -140,20 +127,42 @@ func New(config Config) (*service, error) {
 		config.Clock = clock.New()
 	}
 
+	err := assert.All(
+		assert.NotEmpty(config.RedisURL, "ratelimiting needs a redis url"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &service{
 		clock:                config.Clock,
 		logger:               config.Logger,
-		cluster:              config.Cluster,
 		shutdownCh:           make(chan struct{}),
 		bucketsMu:            sync.RWMutex{},
 		buckets:              make(map[string]*bucket),
-		peerMu:               sync.RWMutex{},
-		peers:                make(map[string]peer),
-		replayBuffer:         buffer.New[*ratelimitv1.ReplayRequest](10_000, true),
-		replayCircuitBreaker: circuitbreaker.New[*connect.Response[ratelimitv1.ReplayResponse]]("replayRatelimitRequest"),
+		redis:                nil,
+		replayBuffer:         buffer.New[RatelimitRequest](10_000, true),
+		replayCircuitBreaker: circuitbreaker.New[int64]("replayRatelimitRequest"),
 	}
 
-	go s.syncPeers()
+	if config.RedisURL != "" {
+
+		opts, err := redis.ParseURL(config.RedisURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse redis url: %w", err)
+		}
+
+		rdb := redis.NewClient(opts)
+		config.Logger.Debug("pinging redis")
+
+		_, err = rdb.Ping(context.Background()).Result()
+		if err != nil {
+			return nil, fmt.Errorf("failed to ping redis: %w", err)
+		}
+		s.redis = rdb
+
+	}
+
 	s.expireWindowsAndBuckets()
 
 	// start multiple goroutines to do replays
@@ -208,119 +217,59 @@ func New(config Config) (*service, error) {
 //	    return fmt.Errorf("rate limit exceeded, retry after %v",
 //	        time.UnixMilli(resp.Reset))
 //	}
-func (r *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
+func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
+
 	_, span := tracing.Start(ctx, "Ratelimit")
 	defer span.End()
+
+	if req.Time.IsZero() {
+		req.Time = s.clock.Now()
+	}
 
 	err := assert.All(
 		assert.NotEmpty(req.Identifier, "ratelimit identifier must not be empty"),
 		assert.Greater(req.Limit, 0, "ratelimit limit must be greater than zero"),
 		assert.GreaterOrEqual(req.Cost, 0, "ratelimit cost must not be negative"),
 		assert.GreaterOrEqual(req.Duration.Milliseconds(), 1000, "ratelimit duration must be at least 1s"),
+		assert.False(req.Time.IsZero(), "request time must not be zero"),
 	)
 	if err != nil {
 		return RatelimitResponse{}, err
 	}
 
-	now := r.clock.Now()
-
-	localRes, goToOrigin, err := r.localRatelimit(ctx, now, req)
-	if err != nil {
-		return RatelimitResponse{}, err
-	}
-
-	replayRequest := &ratelimitv1.ReplayRequest{
-		Request: &ratelimitv1.RatelimitRequest{
-			Identifier: req.Identifier,
-			Limit:      req.Limit,
-			Duration:   req.Duration.Milliseconds(),
-			Cost:       req.Cost,
-		},
-		Time:   now.UnixMilli(),
-		Denied: !localRes.Success,
-	}
-
-	if goToOrigin {
-		metrics.Ratelimit.OriginDecisions.Add(ctx, 1)
-		originRes, err := r.syncWithOrigin(ctx, replayRequest)
-		if err != nil {
-			r.logger.Error("unable to ask the origin",
-				"error", err.Error(),
-				"identifier", req.Identifier,
-			)
-		} else if originRes != nil {
-			return RatelimitResponse{
-				Limit:          originRes.GetResponse().GetLimit(),
-				Remaining:      originRes.GetResponse().GetRemaining(),
-				Reset:          originRes.GetResponse().GetReset_(),
-				Success:        originRes.GetResponse().GetSuccess(),
-				Current:        originRes.GetResponse().GetCurrent(),
-				CurrentWindow:  originRes.GetCurrent(),
-				PreviousWindow: originRes.GetPrevious(),
-			}, nil
-		}
-	} else {
-		r.replayBuffer.Buffer(replayRequest)
-		metrics.Ratelimit.LocalDecisions.Add(ctx, 1)
-
-	}
-
-	return localRes, nil
-}
-
-// localRatelimit performs a rate limit check using only local state.
-// It implements the core sliding window algorithm and determines if
-// synchronization with the origin node is needed.
-//
-// Parameters:
-//   - ctx: Context for cancellation and tracing
-//   - now: Current time (from service clock)
-//   - req: The rate limit request
-//
-// Returns:
-//   - RatelimitResponse: The local rate limit decision
-//   - bool: True if sync with origin is needed
-//   - error: Any errors during processing
-//
-// Algorithm:
-//  1. Gets or creates local rate limit bucket
-//  2. Calculates effective count using sliding window
-//  3. Updates local state if request is allowed
-//  4. Determines if origin sync is needed
-//
-// Thread Safety:
-//   - Protected by bucket mutex
-//   - Safe for concurrent calls
-//
-// Performance: O(1) time complexity
-func (r *service) localRatelimit(ctx context.Context, now time.Time, req RatelimitRequest) (RatelimitResponse, bool, error) {
-	_, span := tracing.Start(ctx, "localRatelimit")
-	defer span.End()
-
 	key := bucketKey{req.Identifier, req.Limit, req.Duration}
 	span.SetAttributes(attribute.String("key", key.toString()))
 
-	b, _ := r.getOrCreateBucket(key)
+	b, _ := s.getOrCreateBucket(key)
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	goToOrigin := now.UnixMilli() < b.strictUntil.UnixMilli()
+	goToOrigin := req.Time.UnixMilli() < b.strictUntil.UnixMilli()
 	// Get current and previous windows
-	currentWindow, currentWindowExisted := b.getCurrentWindow(now)
-	previousWindow, _ := b.getPreviousWindow(now)
+	currentWindow, currentWindowExisted := b.getCurrentWindow(req.Time)
+	previousWindow, previousWindowExisted := b.getPreviousWindow(req.Time)
 
-	if !currentWindowExisted {
-		goToOrigin = true
+	if goToOrigin || !currentWindowExisted {
+		redisCurrentCounter, err := s.redisGet(ctx, key.toString(), currentWindow.sequence)
+		if err == nil && redisCurrentCounter > currentWindow.counter {
+			currentWindow.counter = redisCurrentCounter
+		}
+	}
+	if goToOrigin || !previousWindowExisted {
+		redisPreviousCounter, err := s.redisGet(ctx, key.toString(), previousWindow.sequence)
+		if err == nil && redisPreviousCounter > previousWindow.counter {
+			previousWindow.counter = redisPreviousCounter
+		}
 	}
 
 	// Calculate time elapsed in current window (as a fraction)
-	windowElapsed := float64(now.UnixMilli()-currentWindow.GetStart()) / float64(req.Duration.Milliseconds())
+	windowElapsed := float64(req.Time.UnixMilli()-currentWindow.start) / float64(req.Duration.Milliseconds())
 
 	// Pure sliding window calculation:
 	// - We count 100% of current window
 	// - We count a decreasing portion of previous window based on how far we are into current window
-	effectiveCount := currentWindow.GetCounter() + int64(float64(previousWindow.GetCounter())*(1.0-windowElapsed))
+	effectiveCount := currentWindow.counter + int64(float64(previousWindow.counter)*(1.0-windowElapsed))
 
 	effectiveCount += req.Cost
 
@@ -331,22 +280,20 @@ func (r *service) localRatelimit(ctx context.Context, now time.Time, req Ratelim
 			remaining = 0
 		}
 
-		b.strictUntil = now.Add(req.Duration)
+		b.strictUntil = req.Time.Add(req.Duration)
 
 		span.SetAttributes(attribute.Bool("passed", false))
 		return RatelimitResponse{
-			Success:        false,
-			Remaining:      remaining,
-			Reset:          currentWindow.GetStart() + currentWindow.GetDuration(),
-			Limit:          req.Limit,
-			Current:        effectiveCount,
-			CurrentWindow:  currentWindow,
-			PreviousWindow: previousWindow,
-		}, goToOrigin, nil
+			Success:   false,
+			Remaining: remaining,
+			Reset:     currentWindow.start + currentWindow.duration,
+			Limit:     req.Limit,
+			Current:   effectiveCount,
+		}, nil
 	}
 
 	// Increment current window counter
-	currentWindow.Counter += req.Cost
+	currentWindow.counter += req.Cost
 
 	remaining := req.Limit - effectiveCount
 	if remaining < 0 {
@@ -354,13 +301,13 @@ func (r *service) localRatelimit(ctx context.Context, now time.Time, req Ratelim
 	}
 	span.SetAttributes(attribute.Bool("passed", true))
 
+	s.replayBuffer.Buffer(req)
+
 	return RatelimitResponse{
-		Success:        true,
-		Remaining:      remaining,
-		Reset:          currentWindow.GetStart() + currentWindow.GetDuration(),
-		Limit:          req.Limit,
-		Current:        currentWindow.GetCounter(),
-		CurrentWindow:  currentWindow,
-		PreviousWindow: previousWindow,
-	}, goToOrigin, nil
+		Success:   true,
+		Remaining: remaining,
+		Reset:     currentWindow.start + currentWindow.duration,
+		Limit:     req.Limit,
+		Current:   currentWindow.counter,
+	}, nil
 }

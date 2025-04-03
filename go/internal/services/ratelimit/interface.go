@@ -4,8 +4,6 @@ package ratelimit
 import (
 	"context"
 	"time"
-
-	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
 )
 
 // Service defines the core rate limiting functionality. It provides thread-safe
@@ -90,6 +88,10 @@ type RatelimitRequest struct {
 	// Must be >= 0. Defaults to 1 if not specified.
 	// The request will be denied if Cost > Limit.
 	Cost int64
+
+	// Time of the request
+	// If not specified or zero, the ratelimiter will use its own clock.
+	Time time.Time
 }
 
 // RatelimitResponse contains the result of a rate limit check and the current state
@@ -133,14 +135,6 @@ type RatelimitResponse struct {
 	//   - Understanding usage patterns
 	//   - Implementing custom backoff strategies
 	Current int64
-
-	// CurrentWindow contains detailed state about the current time window
-	// including exact start time, duration, and counter.
-	CurrentWindow *ratelimitv1.Window
-
-	// PreviousWindow contains state about the previous time window,
-	// used internally for sliding window calculations.
-	PreviousWindow *ratelimitv1.Window
 }
 
 // Middleware defines a function type that wraps a Service with additional functionality.

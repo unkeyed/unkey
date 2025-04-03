@@ -33,9 +33,8 @@ func TestContextCancellation(t *testing.T) {
 		Image:                   "test",
 		HttpPort:                httpPort,
 		Region:                  "test-region",
-		Clock:                   nil,   // Will use real clock
-		ClusterEnabled:          false, // Disable clustering for simpler test
-		ClusterInstanceID:       uid.New(uid.InstancePrefix),
+		Clock:                   nil, // Will use real clock
+		InstanceID:              uid.New(uid.InstancePrefix),
 		LogsColor:               false,
 		ClickhouseURL:           "",
 		DatabasePrimary:         dbDsn,

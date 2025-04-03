@@ -48,7 +48,7 @@ func (s *service) expireWindowsAndBuckets() {
 		for bucketID, bucket := range s.buckets {
 			bucket.mu.Lock()
 			for sequence, window := range bucket.windows {
-				if s.clock.Now().UnixMilli() > (window.GetStart() + (3 * window.GetDuration())) {
+				if s.clock.Now().UnixMilli() > (window.start + (3 * window.duration)) {
 					delete(bucket.windows, sequence)
 					metrics.Ratelimit.EvictedWindows.Add(ctx, 1)
 				} else {

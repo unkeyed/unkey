@@ -2,41 +2,16 @@ package prometheus
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"net"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/unkeyed/unkey/go/pkg/discovery"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
-
-// https://prometheus.io/docs/prometheus/latest/http_sd
-// [
-//
-//	{
-//		"targets": [ "<host>", ... ],
-//	  "labels": {
-//		  "<labelname>": "<labelvalue>", ...
-//		}
-//	},
-//	...
-//
-// ]
-type ServiceDiscoveryResponseElement struct {
-	Targets []string          `json:"targets"`
-	Labels  map[string]string `json:"labels,omitempty"`
-}
-
-type ServiceDiscoveryResponse = []ServiceDiscoveryResponseElement
 
 type Server struct {
 	mu sync.Mutex
@@ -45,13 +20,10 @@ type Server struct {
 	isListening bool
 	srv         *http.Server
 	mux         *http.ServeMux
-
-	sd discovery.Discoverer
 }
 
 type Config struct {
-	Logger    logging.Logger
-	Discovery discovery.Discoverer
+	Logger logging.Logger
 }
 
 func New(config Config) (*Server, error) {
@@ -81,59 +53,9 @@ func New(config Config) (*Server, error) {
 		isListening: false,
 		srv:         srv,
 		mux:         mux,
-		sd:          config.Discovery,
 	}
 
 	mux.Handle("GET /metrics", promhttp.Handler())
-
-	// dummy metric for the demo
-	sdCounterDummyMetric := promauto.NewCounter(prometheus.CounterOpts{
-		Name: "sd_called_total",
-		Help: "Demo counter just so we have something",
-	})
-
-	mux.HandleFunc("GET /sd", func(w http.ResponseWriter, r *http.Request) {
-		sdCounterDummyMetric.Add(1.0)
-		_, port, err := net.SplitHostPort(s.srv.Addr)
-		if err != nil {
-			s.internalServerError(err, w)
-			return
-		}
-
-		addrs, err := s.sd.Discover()
-		if err != nil {
-			s.internalServerError(err, w)
-			return
-		}
-
-		e := ServiceDiscoveryResponseElement{
-			Targets: []string{},
-			Labels: map[string]string{
-				// I don't know why they're prefixed but that's what the docs do
-				"__meta_region":   "todo",
-				"__meta_platform": "aws",
-			},
-		}
-
-		for _, addr := range addrs {
-
-			e.Targets = append(e.Targets, fmt.Sprintf("%s:%s", addr, port))
-		}
-
-		w.Header().Add("Content-Type", "application/json")
-		b, err := json.Marshal(ServiceDiscoveryResponse{e})
-		if err != nil {
-			s.internalServerError(err, w)
-			return
-		}
-
-		_, err = w.Write(b)
-		if err != nil {
-			s.logger.Error("unable to write prometheus /sd response",
-				"err", err.Error(),
-			)
-		}
-	})
 
 	return s, nil
 }
@@ -190,13 +112,4 @@ func (s *Server) Shutdown() error {
 		return fault.Wrap(err)
 	}
 	return nil
-}
-
-func (s *Server) internalServerError(err error, w http.ResponseWriter) {
-	s.logger.Error(err.Error())
-	w.WriteHeader(http.StatusInternalServerError)
-	_, wErr := w.Write([]byte(err.Error()))
-	if wErr != nil {
-		s.logger.Error("writing response failed", "err", wErr.Error())
-	}
 }
