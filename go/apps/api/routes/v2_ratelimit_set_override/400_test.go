@@ -33,18 +33,18 @@ func TestBadRequests(t *testing.T) {
 	t.Run("missing all required fields", func(t *testing.T) {
 		req := openapi.V2RatelimitSetOverrideRequestBody{}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Greater(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("missing identifier", func(t *testing.T) {
@@ -54,18 +54,18 @@ func TestBadRequests(t *testing.T) {
 			Duration:    1000,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Greater(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("empty identifier", func(t *testing.T) {
@@ -76,18 +76,18 @@ func TestBadRequests(t *testing.T) {
 			Duration:    1000,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Greater(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 
 	})
 
@@ -98,18 +98,18 @@ func TestBadRequests(t *testing.T) {
 			Limit:       10,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Greater(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("invalid limit (negative)", func(t *testing.T) {
@@ -120,18 +120,18 @@ func TestBadRequests(t *testing.T) {
 			Duration:    1000,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Greater(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("invalid duration (negative)", func(t *testing.T) {
@@ -142,18 +142,18 @@ func TestBadRequests(t *testing.T) {
 			Duration:    -1000,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Greater(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.setOverride' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("neither namespace ID nor name provided", func(t *testing.T) {
@@ -165,18 +165,18 @@ func TestBadRequests(t *testing.T) {
 			Duration:      1000,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "You must provide either a namespace ID or name.", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Equal(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "You must provide either a namespace ID or name.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Equal(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("malformed authorization header", func(t *testing.T) {
