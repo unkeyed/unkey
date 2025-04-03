@@ -194,14 +194,20 @@ func New(svc Services) zen.Route {
 			})
 		}
 		res := Response{
-			Success:    result.Success,
-			Limit:      limit,
-			Remaining:  result.Remaining,
-			Reset:      result.Reset,
-			OverrideId: nil,
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.RatelimitLimitResponseData{
+
+				Success:    result.Success,
+				Limit:      limit,
+				Remaining:  result.Remaining,
+				Reset:      result.Reset,
+				OverrideId: nil,
+			},
 		}
 		if overrideId != "" {
-			res.OverrideId = &overrideId
+			res.Data.OverrideId = &overrideId
 		}
 		// Return success response
 		return s.JSON(http.StatusOK, res)

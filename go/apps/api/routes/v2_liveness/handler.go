@@ -14,7 +14,13 @@ func New() zen.Route {
 	return zen.NewRoute("GET", "/v2/liveness", func(ctx context.Context, s *zen.Session) error {
 
 		res := Response{
-			Message: "we're cooking",
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.LivenessResponseData{
+
+				Message: "we're cooking",
+			},
 		}
 		return s.JSON(http.StatusOK, res)
 	})

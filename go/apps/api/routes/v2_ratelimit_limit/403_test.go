@@ -59,7 +59,7 @@ func TestWorkspacePermissions(t *testing.T) {
 		Duration:   60000,
 	}
 
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 
 	// This should return a 404 Not Found (for security reasons we don't reveal if the namespace exists)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d, body: %s", res.Status, res.RawBody)
