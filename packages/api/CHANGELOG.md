@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.35.0
+
+### Minor Changes
+
+- f73fc7e: feat: add permissions
+
 ## 0.34.0
 
 ### Minor Changes
