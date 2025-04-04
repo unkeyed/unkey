@@ -55,7 +55,7 @@ export const SerperSearchResultSchema = z.object({
 // Keyword Schema as defined in MVP
 export const KeywordSchema = z.object({
   keyword: z.string(),
-  source: z.enum(["related_search", "llm_extracted"]),
+  source: z.enum(["related_search", "llm_extracted", "autosuggest"]),
   confidence: z.number().min(0).max(1).optional(),
   context: z.string().optional(),
 });

@@ -1,6 +1,7 @@
 import { type TestCase, createTestRunner, errorResultSchema, okResultSchema } from "@/lib/test";
 import { RelatedKeywordsOutputSchema, relatedKeywordsTask } from "./related-keywords";
 import { serperSearchTask, TaskOutputSchema, KeywordSchema } from "./serper-search";
+import { serperAutosuggestTask, TaskOutputSchema as SerperAutosuggestTaskOutputSchema } from "./serper-autosuggest";
 
 // Test cases for related-keywords task
 const relatedKeywordsTestCases: TestCase<typeof relatedKeywordsTask>[] = [
@@ -205,6 +206,97 @@ const serperSearchTestCases: TestCase<typeof serperSearchTask>[] = [
   },
 ];
 
+// Test cases for serper-autosuggest task
+const serperAutosuggestTestCases: TestCase<typeof serperAutosuggestTask>[] = [
+  {
+    name: "serperAutosuggestBasicTest",
+    input: {
+      inputTerm: "MIME types",
+    },
+    validate(result) {
+      const validation = okResultSchema.safeParse(result);
+      if (!validation.success) {
+        console.info(
+          `Test '${this.name}' failed. Expected a valid result, but got: ${JSON.stringify(result)}`,
+        );
+        console.info(validation.error.errors.map((e) => e.message).join("\n"));
+        return false;
+      }
+
+      const outputValidation = SerperAutosuggestTaskOutputSchema.safeParse(validation.data.output);
+      if (!outputValidation.success) {
+        console.warn(
+          `Test '${this.name}' failed. Expected a valid output format, but got: ${JSON.stringify(validation.data.output)}`,
+        );
+        console.warn(outputValidation.error.errors.map((e) => e.message).join("\n"));
+        return false;
+      }
+
+      const output = outputValidation.data;
+
+      // Check if the inputTerm matches
+      if (output.inputTerm !== "MIME types") {
+        console.warn(
+          `Test '${this.name}' failed. Expected inputTerm to be "MIME types", but got: ${output.inputTerm}`,
+        );
+        return false;
+      }
+
+      // Check if there are keywords in the result
+      if (output.keywords.length === 0) {
+        console.warn(
+          `Test '${this.name}' failed. Expected keywords to be non-empty, but got: ${output.keywords.length} keywords`,
+        );
+        return false;
+      }
+
+      // Check if all keywords have the correct source and confidence
+      const invalidKeywords = output.keywords.filter(
+        (k) => k.source !== "autosuggest" || k.confidence !== 1.0
+      );
+      if (invalidKeywords.length > 0) {
+        console.warn(
+          `Test '${this.name}' failed. Found keywords with incorrect source or confidence:`,
+          invalidKeywords,
+        );
+        return false;
+      }
+
+      // Check if the keywords are related to the topic
+      const hasMimeKeywords = output.keywords.some(
+        (k) => k.keyword.toLowerCase().includes("mime") || k.keyword.toLowerCase().includes("type"),
+      );
+      if (!hasMimeKeywords) {
+        console.warn(
+          `Test '${this.name}' failed. Expected keywords to be related to "MIME types", but found none`,
+        );
+        return false;
+      }
+
+      console.info(`Test '${this.name}' passed. ✔︎`);
+      return true;
+    },
+  },
+  {
+    name: "serperAutosuggestEmptyInputTest",
+    input: {
+      inputTerm: "", // Empty term should cause an error
+    },
+    validate(result) {
+      const validation = errorResultSchema.safeParse(result);
+      if (!validation.success) {
+        console.info(
+          `Test '${this.name}' failed. Expected an error result, but got: ${JSON.stringify(result)}`,
+        );
+        return false;
+      }
+
+      console.info(`Test '${this.name}' passed. ✔︎`);
+      return true;
+    },
+  },
+];
+
 // Export individual test runners for each task
 export const relatedKeywordsTest = createTestRunner({
   id: "related_keywords_test",
@@ -218,11 +310,17 @@ export const serperSearchTest = createTestRunner({
   testCases: serperSearchTestCases,
 });
 
+export const serperAutosuggestTest = createTestRunner({
+  id: "serper_autosuggest_test",
+  task: serperAutosuggestTask,
+  testCases: serperAutosuggestTestCases,
+});
+
 // Combined test runner for all keyword research tests
 export const keywordResearchTest = createTestRunner({
   id: "keyword_research_test",
   task: serperSearchTask,
-  testCases: serperSearchTestCases,
+  testCases: [...serperSearchTestCases, ...serperAutosuggestTestCases],
 });
 
 // Future test cases will be added as we implement more tasks:
