@@ -1,7 +1,16 @@
 import { type TestCase, createTestRunner, errorResultSchema, okResultSchema } from "@/lib/test";
 import { RelatedKeywordsOutputSchema, relatedKeywordsTask } from "./related-keywords";
 import { serperSearchTask, TaskOutputSchema, KeywordSchema } from "./serper-search";
-import { serperAutosuggestTask, TaskOutputSchema as SerperAutosuggestTaskOutputSchema } from "./serper-autosuggest";
+import {
+  serperAutosuggestTask,
+  TaskOutputSchema as SerperAutosuggestTaskOutputSchema,
+} from "./serper-autosuggest";
+import {
+  enrichKeywordsTask,
+  TaskOutputSchema as EnrichKeywordsTaskOutputSchema,
+} from "./enrich-keywords";
+import type { ZodIssue } from "zod";
+import { batch, task } from "@trigger.dev/sdk/v3";
 
 // Test cases for related-keywords task
 const relatedKeywordsTestCases: TestCase<typeof relatedKeywordsTask>[] = [
@@ -252,7 +261,7 @@ const serperAutosuggestTestCases: TestCase<typeof serperAutosuggestTask>[] = [
 
       // Check if all keywords have the correct source and confidence
       const invalidKeywords = output.keywords.filter(
-        (k) => k.source !== "autosuggest" || k.confidence !== 1.0
+        (k) => k.source !== "autosuggest" || k.confidence !== 1.0,
       );
       if (invalidKeywords.length > 0) {
         console.warn(
@@ -297,6 +306,203 @@ const serperAutosuggestTestCases: TestCase<typeof serperAutosuggestTask>[] = [
   },
 ];
 
+// Test cases for enrich-keywords task
+const enrichKeywordsTestCases: TestCase<typeof enrichKeywordsTask>[] = [
+  {
+    name: "enrichKeywordsBasicTest",
+    input: {
+      keywords: [{
+        keyword: "MIME types",
+        source: "llm_extracted",
+        confidence: 1,
+        context: "The main topic of the search results"
+      }]
+    },
+    validate(result) {
+      const validation = okResultSchema.safeParse(result);
+      if (!validation.success) {
+        console.info(
+          `Test '${this.name}' failed. Expected a valid result, but got: ${JSON.stringify(result)}`,
+        );
+        console.info(validation.error.errors.map((error: ZodIssue) => error.message).join("\n"));
+        return false;
+      }
+
+      const outputValidation = EnrichKeywordsTaskOutputSchema.safeParse(validation.data.output);
+      if (!outputValidation.success) {
+        console.warn(
+          `Test '${this.name}' failed. Expected a valid output format, but got: ${JSON.stringify(validation.data.output)}`,
+        );
+        console.warn(outputValidation.error.errors.map((error: ZodIssue) => error.message).join("\n"));
+        return false;
+      }
+
+      const output = outputValidation.data;
+
+      // Verify enriched data structure
+      const firstKeyword = output.enrichedKeywords[0];
+      if (typeof firstKeyword.volume !== 'number' || 
+          typeof firstKeyword.cpc !== 'number' || 
+          typeof firstKeyword.competition !== 'number') {
+        console.warn(
+          `Test '${this.name}' failed. Missing or invalid enrichment metrics in response: ${JSON.stringify(firstKeyword)}`,
+        );
+        return false;
+      }
+
+      // Verify source attribution is preserved
+      if (firstKeyword.source !== "llm_extracted" || 
+          firstKeyword.confidence !== 1) {
+        console.warn(
+          `Test '${this.name}' failed. Source attribution not preserved`,
+        );
+        return false;
+      }
+
+      console.info(`Test '${this.name}' passed. ✔︎`);
+      return true;
+    },
+  },
+  {
+    name: "enrichKeywordsAutosuggestTest",
+    input: {
+      keywords: [
+        {
+          keyword: "mime types list",
+          source: "autosuggest",
+          confidence: 1,
+          context: "Direct Google autocomplete suggestion",
+        },
+      ],
+    },
+    validate(result) {
+      const validation = okResultSchema.safeParse(result);
+      if (!validation.success) {
+        console.info(
+          `Test '${this.name}' failed. Expected a valid result, but got: ${JSON.stringify(result)}`,
+        );
+        return false;
+      }
+
+      const outputValidation = EnrichKeywordsTaskOutputSchema.safeParse(validation.data.output);
+      if (!outputValidation.success) {
+        console.warn(
+          `Test '${this.name}' failed. Expected a valid output format, but got: ${JSON.stringify(validation.data.output)}`,
+        );
+        return false;
+      }
+
+      const output = outputValidation.data;
+
+      // Verify source is preserved
+      if (output.enrichedKeywords[0].source !== "autosuggest") {
+        console.warn(`Test '${this.name}' failed. Source not preserved correctly`);
+        return false;
+      }
+
+      console.info(`Test '${this.name}' passed. ✔︎`);
+      return true;
+    },
+  },
+  {
+    name: "enrichKeywordsLargeTest",
+    input: {
+      keywords: Array.from({ length: 101 }, (_, i) => ({
+        keyword: `test keyword ${i}`,
+        source: "autosuggest",
+        confidence: 1,
+        context: "Test context",
+      })),
+    },
+    validate(result) {
+      const validation = errorResultSchema.safeParse(result);
+      if (!validation.success) {
+        console.info(
+          `Test '${this.name}' failed. Expected an error result, but got: ${JSON.stringify(result)}`,
+        );
+        return false;
+      }
+
+      const error = validation.data.error;
+      if (typeof error !== "object" || !error || !("message" in error)) {
+        console.warn(`Test '${this.name}' failed. Expected error to have a message property`);
+        return false;
+      }
+
+      const message = (error as { message: unknown }).message;
+      if (
+        typeof message !== "string" ||
+        !message.includes("Cannot process more than 100 keywords")
+      ) {
+        console.warn(`Test '${this.name}' failed. Expected error about keyword limit`);
+        return false;
+      }
+
+      console.info(`Test '${this.name}' passed. ✔︎`);
+      return true;
+    },
+  },
+  {
+    name: "enrichKeywordsInvalidTest",
+    input: {
+      keywords: [
+        {
+          keyword: "this_keyword_should_not_exist_in_api_response",
+          source: "autosuggest",
+          confidence: 1,
+          context: "Invalid keyword test",
+        },
+      ],
+    },
+    validate(result) {
+      const validation = okResultSchema.safeParse(result);
+      if (!validation.success) {
+        console.info(
+          `Test '${this.name}' failed. Expected a valid result, but got: ${JSON.stringify(result)}`,
+        );
+        return false;
+      }
+
+      const outputValidation = EnrichKeywordsTaskOutputSchema.safeParse(validation.data.output);
+      if (!outputValidation.success) {
+        console.warn(
+          `Test '${this.name}' failed. Expected a valid output format, but got: ${JSON.stringify(validation.data.output)}`,
+        );
+        return false;
+      }
+
+      const output = outputValidation.data;
+
+      // Verify that the keyword was skipped
+      if (output.metadata.skippedCount !== 1) {
+        console.warn(
+          `Test '${this.name}' failed. Expected 1 skipped keyword, got ${output.metadata.skippedCount}`,
+        );
+        return false;
+      }
+
+      // Verify the specific keyword was skipped
+      if (!output.metadata.skippedKeywords.includes("this_keyword_should_not_exist_in_api_response")) {
+        console.warn(
+          `Test '${this.name}' failed. Expected keyword to be in skipped list`,
+        );
+        return false;
+      }
+
+      // Verify no enriched keywords were returned
+      if (output.enrichedKeywords.length !== 0) {
+        console.warn(
+          `Test '${this.name}' failed. Expected no enriched keywords, got ${output.enrichedKeywords.length}`,
+        );
+        return false;
+      }
+
+      console.info(`Test '${this.name}' passed. ✔︎`);
+      return true;
+    },
+  },
+];
+
 // Export individual test runners for each task
 export const relatedKeywordsTest = createTestRunner({
   id: "related_keywords_test",
@@ -316,14 +522,36 @@ export const serperAutosuggestTest = createTestRunner({
   testCases: serperAutosuggestTestCases,
 });
 
-// Combined test runner for all keyword research tests
-export const keywordResearchTest = createTestRunner({
-  id: "keyword_research_test",
-  task: serperSearchTask,
-  testCases: [...serperSearchTestCases, ...serperAutosuggestTestCases],
+export const enrichKeywordsTest = createTestRunner({
+  id: "enrich_keywords_test",
+  task: enrichKeywordsTask,
+  testCases: enrichKeywordsTestCases,
+});
+
+// Export combined test runner
+export const keywordResearchTestAll = task({
+  id: "keyword_research_test_all",
+  run: async () => {
+    batch.triggerAndWait([
+      {
+        id: relatedKeywordsTest.id,
+        payload: {},
+      },
+      {
+        id: serperSearchTest.id,
+        payload: {},
+      },
+      {
+        id: serperAutosuggestTest.id,
+        payload: {},
+      },
+      {
+        id: enrichKeywordsTest.id,
+        payload: {},
+      },
+    ]);
+  },
 });
 
 // Future test cases will be added as we implement more tasks:
-// 1. Serper Autosuggest test cases
-// 2. Enrich Keywords test cases
-// 3. Parent Task (_research-keywords) test cases
+// 1. Parent Task (_research-keywords) test cases
