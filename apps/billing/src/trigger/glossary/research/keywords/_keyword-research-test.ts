@@ -1,6 +1,6 @@
 import { type TestCase, createTestRunner, errorResultSchema, okResultSchema } from "@/lib/test";
 import { RelatedKeywordsOutputSchema, relatedKeywordsTask } from "./related-keywords";
-import { SerperSearchResultSchema, serperSearchTask } from "./serper-search";
+import { serperSearchTask, TaskOutputSchema, KeywordSchema } from "./serper-search";
 
 // Test cases for related-keywords task
 const relatedKeywordsTestCases: TestCase<typeof relatedKeywordsTask>[] = [
@@ -97,7 +97,7 @@ const serperSearchTestCases: TestCase<typeof serperSearchTask>[] = [
         return false;
       }
 
-      const outputValidation = SerperSearchResultSchema.safeParse(validation.data.output.result);
+      const outputValidation = TaskOutputSchema.safeParse(validation.data.output);
       if (!outputValidation.success) {
         console.warn(
           `Test '${this.name}' failed. Expected a valid output format, but got: ${JSON.stringify(validation.data.output)}`,
@@ -108,29 +108,64 @@ const serperSearchTestCases: TestCase<typeof serperSearchTask>[] = [
 
       const output = outputValidation.data;
 
-      // Check if there are organic results
-      if (!output.organic || output.organic.length === 0) {
+      // Check if the inputTerm matches
+      if (output.inputTerm !== "MIME types") {
         console.warn(
-          `Test '${this.name}' failed. Expected organic results to be non-empty, but got: ${output.organic?.length ?? 0} results`,
+          `Test '${this.name}' failed. Expected inputTerm to be "MIME types", but got: ${output.inputTerm}`,
         );
         return false;
       }
 
-      // Check if the results are related to MIME types
-      const hasMimeResults = output.organic.some(
-        (result) => 
-          result.title.toLowerCase().includes("mime") || 
-          result.snippet.toLowerCase().includes("mime"),
+      // Check if there are organic results
+      if (!output.searchResult.organic || output.searchResult.organic.length === 0) {
+        console.warn(
+          `Test '${this.name}' failed. Expected organic results to be non-empty, but got: ${output.searchResult.organic?.length ?? 0} results`,
+        );
+        return false;
+      }
+
+      // Check if there are keywords in the result
+      if (output.keywords.length === 0) {
+        console.warn(
+          `Test '${this.name}' failed. Expected keywords to be non-empty, but got: ${output.keywords.length} keywords`,
+        );
+        return false;
+      }
+
+      // Check if we have keywords from both sources
+      const hasRelatedSearchKeywords = output.keywords.some((k) => k.source === "related_search");
+      const hasLLMKeywords = output.keywords.some((k) => k.source === "llm_extracted");
+
+      if (!hasRelatedSearchKeywords || !hasLLMKeywords) {
+        console.warn(
+          `Test '${this.name}' failed. Expected keywords from both sources (related_search and llm_extracted)`,
+        );
+        return false;
+      }
+
+      // Check if the keywords are related to the topic
+      const hasMimeKeywords = output.keywords.some(
+        (k) => k.keyword.toLowerCase().includes("mime") || k.keyword.toLowerCase().includes("type"),
       );
 
-      if (!hasMimeResults) {
-        console.warn(`Test '${this.name}' failed. Expected results to be related to "MIME types"`);
+      if (!hasMimeKeywords) {
+        console.warn(`Test '${this.name}' failed. Expected keywords to be related to "MIME types"`);
+        return false;
+      }
+
+      // Check keyword schema compliance
+      const keywordValidations = output.keywords.map((k) => KeywordSchema.safeParse(k));
+      const invalidKeywords = keywordValidations.filter((v) => !v.success);
+      if (invalidKeywords.length > 0) {
+        console.warn(
+          `Test '${this.name}' failed. Found ${invalidKeywords.length} invalid keywords`,
+        );
         return false;
       }
 
       console.info(`Test '${this.name}' passed. ✔︎`);
       return true;
-    }
+    },
   },
   {
     name: "serperSearchEmptyInputTest",
@@ -148,7 +183,7 @@ const serperSearchTestCases: TestCase<typeof serperSearchTask>[] = [
 
       // Since error is typed as unknown in errorResultSchema, we need to do runtime checks
       const error = validation.data.error;
-      if (typeof error !== 'object' || !error || !('message' in error)) {
+      if (typeof error !== "object" || !error || !("message" in error)) {
         console.warn(
           `Test '${this.name}' failed. Expected error to have a message property, but got: ${JSON.stringify(error)}`,
         );
@@ -157,7 +192,7 @@ const serperSearchTestCases: TestCase<typeof serperSearchTask>[] = [
 
       // Now TypeScript knows error.message exists and is a property
       const message = (error as { message: unknown }).message;
-      if (typeof message !== 'string' || !message.includes("Input term is required")) {
+      if (typeof message !== "string" || !message.includes("Input term is required")) {
         console.warn(
           `Test '${this.name}' failed. Expected error message to include "Input term is required", but got: ${message}`,
         );
@@ -186,8 +221,8 @@ export const serperSearchTest = createTestRunner({
 // Combined test runner for all keyword research tests
 export const keywordResearchTest = createTestRunner({
   id: "keyword_research_test",
-  task: serperSearchTask, // We'll start with just the serper search task for now
-  testCases: serperSearchTestCases, // Only running serper search test cases
+  task: serperSearchTask,
+  testCases: serperSearchTestCases,
 });
 
 // Future test cases will be added as we implement more tasks:
