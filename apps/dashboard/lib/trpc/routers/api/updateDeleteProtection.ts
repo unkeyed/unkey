@@ -69,6 +69,7 @@ export const updateAPIDeleteProtection = t.procedure
             {
               type: "api",
               id: api.id,
+              name: api.name,
               meta: {
                 deleteProtection: input.enabled,
               },

@@ -43,6 +43,7 @@ export const deletePermission = t.procedure
             {
               type: "permission",
               id: input.permissionId,
+              name: permission.name,
             },
           ],
           context: {

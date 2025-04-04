@@ -74,6 +74,7 @@ export const updateKeyRatelimit = t.procedure
             {
               type: "key",
               id: key.id,
+              name: key.name || undefined,
               meta: {
                 "ratelimit.async": ratelimitAsync,
                 "ratelimit.limit": ratelimitLimit,
@@ -111,6 +112,7 @@ export const updateKeyRatelimit = t.procedure
               {
                 type: "key",
                 id: key.id,
+                name: key.name || undefined,
               },
             ],
             context: {

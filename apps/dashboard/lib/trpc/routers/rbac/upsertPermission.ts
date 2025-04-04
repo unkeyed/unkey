@@ -60,6 +60,7 @@ export async function upsertPermission(
         {
           type: "permission",
           id: permission.id,
+          name: permission.name,
         },
       ],
       context: {

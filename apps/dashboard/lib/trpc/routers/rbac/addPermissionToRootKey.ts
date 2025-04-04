@@ -74,10 +74,12 @@ export const addPermissionToRootKey = t.procedure
               {
                 type: "key",
                 id: rootKey.id,
+                name: rootKey.name || undefined,
               },
               {
                 type: "permission",
                 id: p.id,
+                name: p.name,
               },
             ],
             context: {

@@ -89,6 +89,7 @@ export const createRootKey = t.procedure
             {
               type: "key",
               id: keyId,
+              name: input?.name,
             },
           ],
           context: {
@@ -150,10 +151,12 @@ export const createRootKey = t.procedure
               {
                 type: "key" as const,
                 id: keyId,
+                name: input?.name,
               },
               {
                 type: "permission" as const,
                 id: p.id,
+                name: p.name,
               },
             ],
             context: {

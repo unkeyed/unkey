@@ -66,10 +66,12 @@ export const removePermissionFromRootKey = t.procedure
             {
               type: "permission",
               id: input.permissionName,
+              name: permissionRelation.permission.name,
             },
             {
               type: "key",
               id: input.rootKeyId,
+              name: key.name || undefined,
             },
           ],
           context: {

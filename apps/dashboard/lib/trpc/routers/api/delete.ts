@@ -60,6 +60,7 @@ export const deleteApi = t.procedure
             {
               type: "api",
               id: api.id,
+              name: api.name,
             },
           ],
           context: {
@@ -92,6 +93,7 @@ export const deleteApi = t.procedure
                 {
                   type: "api",
                   id: api.id,
+                  name: api.name,
                 },
                 {
                   type: "key",

@@ -46,6 +46,7 @@ export const updateRole = t.procedure
             {
               type: "role",
               id: input.id,
+              name: input.name,
             },
           ],
           context: {

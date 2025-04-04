@@ -77,6 +77,7 @@ export const updateKeyMetadata = t.procedure
             {
               type: "key",
               id: key.id,
+              name: key.name || undefined,
             },
           ],
           context: {

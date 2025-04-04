@@ -86,10 +86,12 @@ export const connectRoleToKey = t.procedure
             {
               type: "role",
               id: role.id,
+              name: role.name,
             },
             {
               type: "key",
               id: key.id,
+              name: key.name || undefined,
             },
           ],
           context: {
