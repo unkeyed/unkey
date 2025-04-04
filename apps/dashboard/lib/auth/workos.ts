@@ -40,7 +40,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
     const cookiePassword = env().WORKOS_COOKIE_PASSWORD;
     if (!cookiePassword) {
-      throw new Error("WORKOS_COOKIE_PASSWORD is required for WorkOS authentication");
+      throw new Error(
+        "WORKOS_COOKIE_PASSWORD is required for WorkOS authentication"
+      );
     }
 
     // Initialize properties after validation
@@ -52,7 +54,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }
 
   // Session Management
-  async validateSession(sessionToken: string): Promise<SessionValidationResult> {
+  async validateSession(
+    sessionToken: string
+  ): Promise<SessionValidationResult> {
     if (!sessionToken) {
       return { isValid: false, shouldRefresh: false };
     }
@@ -84,7 +88,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async refreshSession(sessionToken: string | null): Promise<SessionRefreshResult> {
+  async refreshSession(
+    sessionToken: string | null
+  ): Promise<SessionRefreshResult> {
     if (!sessionToken) {
       throw new Error("No session token provided");
     }
@@ -114,11 +120,17 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         };
       }
 
-      throw new Error("reason" in refreshResult ? refreshResult.reason : "Session refresh failed");
+      throw new Error(
+        "reason" in refreshResult
+          ? refreshResult.reason
+          : "Session refresh failed"
+      );
     } catch (error) {
       console.error("Session refresh error:", {
         error: error instanceof Error ? error.message : "Unknown error",
-        token: sessionToken ? `${sessionToken.substring(0, 10)}...` : "no token",
+        token: sessionToken
+          ? `${sessionToken.substring(0, 10)}...`
+          : "no token",
       });
       throw error;
     }
@@ -204,14 +216,12 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
     try {
       const org = await this.createOrg(name);
-      const membership = await this.provider.userManagement.createOrganizationMembership({
-        organizationId: org.id,
-        userId,
-        roleSlug: "admin",
-      });
-
-      console.table(membership);
-
+      const membership =
+        await this.provider.userManagement.createOrganizationMembership({
+          organizationId: org.id,
+          userId,
+          roleSlug: "admin",
+        });
       return membership.organizationId;
     } catch (error) {
       throw this.handleError(error);
@@ -318,14 +328,17 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         return { data: [], metadata: {} };
       }
 
-      const memberships = await this.provider.userManagement.listOrganizationMemberships({
-        userId: userId,
-        limit: 100,
-        statuses: ["active"],
-      });
+      const memberships =
+        await this.provider.userManagement.listOrganizationMemberships({
+          userId: userId,
+          limit: 100,
+          statuses: ["active"],
+        });
 
       // Fetch organizations for each membership
-      const orgs = await Promise.all(memberships.data.map((m) => this.getOrg(m.organizationId)));
+      const orgs = await Promise.all(
+        memberships.data.map((m) => this.getOrg(m.organizationId))
+      );
 
       const orgMap = new Map(orgs.map((org) => [org.id, org]));
 
@@ -346,25 +359,32 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async getOrganizationMemberList(orgId: string): Promise<MembershipListResponse> {
+  async getOrganizationMemberList(
+    orgId: string
+  ): Promise<MembershipListResponse> {
     if (!orgId) {
       throw new Error("Organization id is required.");
     }
 
     try {
       const org = await this.getOrg(orgId);
-      const members = await this.provider.userManagement.listOrganizationMemberships({
-        organizationId: orgId,
-        limit: 100,
-        statuses: ["active"],
-      });
+      const members =
+        await this.provider.userManagement.listOrganizationMemberships({
+          organizationId: orgId,
+          limit: 100,
+          statuses: ["active"],
+        });
 
       // Get user data for each member
-      const users = await Promise.all(members.data.map((m) => this.getUser(m.userId)));
+      const users = await Promise.all(
+        members.data.map((m) => this.getUser(m.userId))
+      );
 
       // Create user map excluding null results
       const userMap = new Map(
-        users.filter((user): user is User => user !== null).map((user) => [user.id, user]),
+        users
+          .filter((user): user is User => user !== null)
+          .map((user) => [user.id, user])
       );
 
       return {
@@ -398,10 +418,11 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      const membership = await this.provider.userManagement.updateOrganizationMembership(
-        membershipId,
-        { roleSlug: role },
-      );
+      const membership =
+        await this.provider.userManagement.updateOrganizationMembership(
+          membershipId,
+          { roleSlug: role }
+        );
 
       // Get related data
       const [org, user] = await Promise.all([
@@ -433,7 +454,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      await this.provider.userManagement.deleteOrganizationMembership(membershipId);
+      await this.provider.userManagement.deleteOrganizationMembership(
+        membershipId
+      );
     } catch (error) {
       throw this.handleError(error);
     }
@@ -474,14 +497,20 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      const invitationsList = await this.provider.userManagement.listInvitations({
-        organizationId: orgId,
-      });
+      const invitationsList =
+        await this.provider.userManagement.listInvitations({
+          organizationId: orgId,
+        });
 
       return {
         data: invitationsList.data
-          .map((invitation) => this.transformInvitationData(invitation, { orgId }))
-          .filter((invitation) => invitation.state === "pending" || invitation.state === "expired"),
+          .map((invitation) =>
+            this.transformInvitationData(invitation, { orgId })
+          )
+          .filter(
+            (invitation) =>
+              invitation.state === "pending" || invitation.state === "expired"
+          ),
         metadata: invitationsList.listMetadata || {},
       };
     } catch (error) {
@@ -499,7 +528,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      const invitation = await this.provider.userManagement.findInvitationByToken(invitationToken);
+      const invitation =
+        await this.provider.userManagement.findInvitationByToken(
+          invitationToken
+        );
 
       return this.transformInvitationData(invitation);
     } catch (error) {
@@ -526,7 +558,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      const invitation = await this.provider.userManagement.acceptInvitation(invitationId);
+      const invitation = await this.provider.userManagement.acceptInvitation(
+        invitationId
+      );
       return this.transformInvitationData(invitation);
     } catch (error) {
       throw this.handleError(error);
@@ -551,7 +585,11 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       return { success: true };
     } catch (error: any) {
-      if (error.errors?.some((detail: any) => detail.code === "email_not_available")) {
+      if (
+        error.errors?.some(
+          (detail: any) => detail.code === "email_not_available"
+        )
+      ) {
         return this.handleError(new Error(AuthErrorCode.EMAIL_ALREADY_EXISTS));
       }
       if (error.message.includes("email_required")) {
@@ -596,16 +634,17 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     const { email, code, invitationToken } = params;
 
     try {
-      const { sealedSession } = await this.provider.userManagement.authenticateWithMagicAuth({
-        clientId: this.clientId,
-        code,
-        email,
-        invitationToken,
-        session: {
-          sealSession: true,
-          cookiePassword: this.cookiePassword,
-        },
-      });
+      const { sealedSession } =
+        await this.provider.userManagement.authenticateWithMagicAuth({
+          clientId: this.clientId,
+          code,
+          email,
+          invitationToken,
+          session: {
+            sealSession: true,
+            cookiePassword: this.cookiePassword,
+          },
+        });
 
       if (!sealedSession) {
         throw new Error("No sealed session returned");
@@ -634,7 +673,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
           message: error.rawData.message,
           user: this.transformUserData(error.rawData.user),
-          organizations: error.rawData.organizations.map(this.transformOrganizationData),
+          organizations: error.rawData.organizations.map(
+            this.transformOrganizationData
+          ),
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
@@ -698,7 +739,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
           message: error.rawData.message,
           user: this.transformUserData(error.rawData.user),
-          organizations: error.rawData.organizations.map(this.transformOrganizationData),
+          organizations: error.rawData.organizations.map(
+            this.transformOrganizationData
+          ),
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
@@ -722,15 +765,17 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }): Promise<VerificationResult> {
     try {
       const { sealedSession } =
-        await this.provider.userManagement.authenticateWithOrganizationSelection({
-          pendingAuthenticationToken: params.pendingAuthToken,
-          organizationId: params.orgId,
-          clientId: this.clientId,
-          session: {
-            sealSession: true,
-            cookiePassword: this.cookiePassword,
-          },
-        });
+        await this.provider.userManagement.authenticateWithOrganizationSelection(
+          {
+            pendingAuthenticationToken: params.pendingAuthToken,
+            organizationId: params.orgId,
+            clientId: this.clientId,
+            session: {
+              sealSession: true,
+              cookiePassword: this.cookiePassword,
+            },
+          }
+        );
 
       if (!sealedSession) {
         throw new Error("No sealed session returned");
@@ -801,14 +846,15 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      const { sealedSession } = await this.provider.userManagement.authenticateWithCode({
-        clientId: this.clientId,
-        code,
-        session: {
-          sealSession: true,
-          cookiePassword: this.cookiePassword,
-        },
-      });
+      const { sealedSession } =
+        await this.provider.userManagement.authenticateWithCode({
+          clientId: this.clientId,
+          code,
+          session: {
+            sealSession: true,
+            cookiePassword: this.cookiePassword,
+          },
+        });
 
       if (!sealedSession) {
         throw new Error("No sealed session returned");
@@ -840,7 +886,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
           message: error.rawData.message,
           user: this.transformUserData(error.rawData.user),
-          organizations: error.rawData.organizations.map(this.transformOrganizationData),
+          organizations: error.rawData.organizations.map(
+            this.transformOrganizationData
+          ),
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
@@ -899,7 +947,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     };
   }
 
-  private transformOrganizationData(providerOrg: WorkOSOrganization): Organization {
+  private transformOrganizationData(
+    providerOrg: WorkOSOrganization
+  ): Organization {
     return {
       id: providerOrg.id,
       name: providerOrg.name,
@@ -910,7 +960,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   private transformInvitationData(
     providerInvitation: WorkOSInvitation,
-    context?: { orgId: string; inviterId?: string },
+    context?: { orgId: string; inviterId?: string }
   ): Invitation {
     return {
       id: providerInvitation.id,
