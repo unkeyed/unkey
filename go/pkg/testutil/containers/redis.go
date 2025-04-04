@@ -83,18 +83,16 @@ func (c *Containers) RunRedis() (client *redis.Client, hostAddr, dockerAddr stri
 		require.NoError(c.t, c.pool.Purge(resource))
 	})
 
-	hostAddr = fmt.Sprintf("localhost:%s", resource.GetPort("6379/tcp"))
-	dockerAddr = fmt.Sprintf("%s:6379", resource.GetIPInNetwork(c.network))
+	hostAddr = fmt.Sprintf("redis://localhost:%s", resource.GetPort("6379/tcp"))
+	dockerAddr = fmt.Sprintf("redis://%s:6379", resource.GetIPInNetwork(c.network))
+
+	opts, err := redis.ParseURL(hostAddr)
+	require.NoError(c.t, err)
 
 	// Configure the Redis client
 	// nolint:exhaustruct
-	client = redis.NewClient(&redis.Options{
-		Addr:     hostAddr,
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
+	client = redis.NewClient(opts)
 
-	// Wait for the Redis server to be ready
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

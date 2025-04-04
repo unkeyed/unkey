@@ -15,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/cluster"
+	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
@@ -54,6 +54,8 @@ func NewHarness(t *testing.T) *Harness {
 
 	dsn, _ := cont.RunMySQL()
 
+	_, redisUrl, _ := cont.RunRedis()
+
 	db, err := db.New(db.Config{
 		Logger:      logger,
 		PrimaryDSN:  dsn,
@@ -70,6 +72,9 @@ func NewHarness(t *testing.T) *Harness {
 	srv, err := zen.New(zen.Config{
 		InstanceID: "test",
 		Logger:     logger,
+		Flags: &zen.Flags{
+			TestMode: true,
+		},
 	})
 	require.NoError(t, err)
 
@@ -94,10 +99,16 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	ctr, err := counter.NewRedis(counter.RedisConfig{
+		RedisURL: redisUrl,
+		Logger:   logger,
+	})
+	require.NoError(t, err)
+
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
 		Logger:  logger,
-		Cluster: cluster.NewNoop("test", "localhost"),
 		Clock:   clk,
+		Counter: ctr,
 	})
 	require.NoError(t, err)
 
