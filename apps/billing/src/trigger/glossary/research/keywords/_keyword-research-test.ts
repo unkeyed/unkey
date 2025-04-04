@@ -38,16 +38,16 @@ const relatedKeywordsTestCases: TestCase<typeof relatedKeywordsTask>[] = [
       }
 
       // Check if there are keywords in the result
-      if (output.keywords.length === 0) {
+      if (output.keywordIdeas.length === 0) {
         console.warn(
-          `Test '${this.name}' failed. Expected keywords to be non-empty, but got: ${output.keywords.length} keywords`,
+          `Test '${this.name}' failed. Expected keywords to be non-empty, but got: ${output.keywordIdeas.length} keywords`,
         );
         return false;
       }
 
       // Check if the keywords are related to the topic
       // This is a simplified check - in a real scenario, you might want to do more sophisticated validation
-      const hasMimeKeywords = output.keywords.some(
+      const hasMimeKeywords = output.keywordIdeas.some(
         (k) => k.keyword.toLowerCase().includes("mime") || k.keyword.toLowerCase().includes("type"),
       );
 

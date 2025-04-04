@@ -4,19 +4,26 @@ import { z } from "zod";
 // Define schemas for task input and output
 const RelatedKeywordSchema = z.object({
   keyword: z.string(),
-  volume: z.number(),
-  cpc: z.string(),
+  avg_monthly_searches: z.number(),
   competition: z.number(),
+  competition_index: z.number(),
+  high_top_of_page_bid_micros: z.number(),
+  low_top_of_page_bid_micros: z.number()
 });
 
 export type RelatedKeyword = z.infer<typeof RelatedKeywordSchema>;
 
 export const RelatedKeywordsOutputSchema = z.object({
   inputTerm: z.string(),
-  keywords: z.array(RelatedKeywordSchema),
+  keywordIdeas: z.array(RelatedKeywordSchema)
 });
 
 export type RelatedKeywordsOutput = z.infer<typeof RelatedKeywordsOutputSchema>;
+
+// Schema for the raw data from the website
+const KeywordDataSchema = z.object({
+  keywordIdeas: z.array(RelatedKeywordSchema)
+});
 
 /**
  * Task to scrape massiveonlinemarketing.nl for related keywords with volume, CPC, and competition data
@@ -47,31 +54,22 @@ export const relatedKeywordsTask = task({
 
       const html = await response.text();
 
-      // 3. Extract data from script tag as `any`
+      // 3. Extract data from script tag
       const extraction = extractKeywordData(html);
 
       if (extraction.error) {
-        throw new AbortTaskRunError(
-          `Failed to extract keyword data: ${extraction.error.message}`,
-        );
+        throw new AbortTaskRunError(extraction.error.message);
       }
 
-      const keywordData = extraction.data;
-
-      if (keywordData.length === 0) {
-        throw new AbortTaskRunError(`No keyword data found for term: ${inputTerm}`);
-      }
-
-      // After extracting data
-      const validationResult = z.array(RelatedKeywordSchema).safeParse(keywordData);
+      const validationResult = KeywordDataSchema.safeParse(extraction.data);
       if (!validationResult.success) {
-        throw new AbortTaskRunError(`Invalid keyword data format: ${validationResult.error.message}`);
+        throw new AbortTaskRunError("Invalid keyword data structure");
       }
 
-      // 5. Return results
+      // 4. Return results in the original format
       return {
         inputTerm,
-        keywords: keywordData,
+        keywordIdeas: validationResult.data.keywordIdeas
       };
     } catch (error) {
       if (error instanceof AbortTaskRunError) {
@@ -89,52 +87,101 @@ export const relatedKeywordsTask = task({
  * This finds the script tag with keywordData and parses the JSON
  */
 function extractKeywordData(html: string) {
-  try {
-    // Look for script tag with self.__next_f.push and keywordData
-    const scriptRegex = /self\.__next_f\.push\(\[([^\[\]]+keywordData[^\[\]]+)\]\)/g;
-    const matches = html.matchAll(scriptRegex);
+  // First find all script tags containing self.__next_f.push
+  const scriptTagRegex = /<script>self\.__next_f\.push\(\[(.*?)\]\)<\/script>/g;
+  const matches = Array.from(html.matchAll(scriptTagRegex));
+  
+  console.log(`Found ${matches.length} __next_f.push scripts`);
+  
+  for (const [index, match] of matches.entries()) {
+    const content = match[1];
+    console.log(`\nChecking script ${index + 1}/${matches.length}`);
+    console.log("Content:", content.slice(0, 200));
+    
+    if (!content) {
+      console.log("Empty content, skipping");
+      continue;
+    }
 
-    let keywordDataMatch = null;
-    for (const match of matches) {
-      if (match[1]?.includes("keywordData")) {
-        keywordDataMatch = match[1];
+    if (!content.includes('keywordData')) {
+      console.log('No keywordData found, skipping');
+      continue;
+    }
+
+    console.log("\nFound script containing keywordData!");
+    
+    // Find the keywordData object start - handle escaped quotes
+    const keywordDataStr = '\\"keywordData\\"';
+    const keywordDataStart = content.indexOf(keywordDataStr);
+    console.log("keywordData position:", keywordDataStart);
+    
+    if (keywordDataStart === -1) {
+      console.log("Could not find keywordData start position");
+      continue;
+    }
+
+    // Find the opening brace after the escaped quotes
+    const objectStart = content.indexOf(':{', keywordDataStart);
+    if (objectStart === -1) {
+      console.log("Could not find opening brace");
+      continue;
+    }
+
+    // Skip the colon to get to the actual brace
+    const actualObjectStart = objectStart + 1;
+    console.log("Opening brace position:", actualObjectStart);
+
+    // Find the closing brace by counting opening/closing braces
+    let braceCount = 1;
+    let objectEnd = -1;
+
+    for (let i = actualObjectStart + 1; i < content.length; i++) {
+      const char = content[i];
+      if (char === '{') {
+        braceCount++;
+      }
+      if (char === '}') {
+        braceCount--;
+      }
+      if (braceCount === 0) {
+        objectEnd = i;
         break;
       }
     }
 
-    if (!keywordDataMatch) {
-      return { data: null, error: new Error("Could not find keywordData in the page") };
+    if (objectEnd === -1) {
+      console.log("Could not find matching closing brace");
+      continue;
+    }
+    console.log("Found closing brace at position:", objectEnd);
+
+    // Extract and parse the JSON
+    const jsonStr = content.substring(actualObjectStart, objectEnd + 1);
+    console.log("Extracted JSON string:", jsonStr);
+
+    let parsed: { keywordIdeas?: Array<unknown> };
+    try {
+      // First unescape the JSON string
+      const unescapedJson = jsonStr.replace(/\\"/g, '"');
+      parsed = JSON.parse(unescapedJson);
+      console.log("Successfully parsed JSON. Found keys:", Object.keys(parsed));
+    } catch (error) {
+      console.log("JSON parse error:", error instanceof Error ? error.message : String(error));
+      continue;
     }
 
-    // Extract and parse the JSON data
-    // This is a simplified version - actual implementation will need to properly extract the JSON
-    // from the JavaScript code in the script tag
-    const jsonStartIndex = keywordDataMatch.indexOf("{");
-    const jsonEndIndex = keywordDataMatch.lastIndexOf("}") + 1;
-
-    if (jsonStartIndex === -1 || jsonEndIndex === -1) {
-      return { data: null, error: new Error("Could not locate JSON data in the script") };
+    if (!parsed?.keywordIdeas?.length) {
+      console.log("Missing keywordIdeas array or empty");
+      continue;
     }
 
-    const jsonStr = keywordDataMatch.substring(jsonStartIndex, jsonEndIndex);
-
-    // Parse the JSON
-    // Note: In the actual implementation, we may need to unescape characters
-    // and handle other transformations to get valid JSON
-    const data = JSON.parse(jsonStr);
-
-    if (!data.keywords) {
-      return { data: null, error: new Error("Could not find keywords in the data") };
-    }
-
-    // TODO: Should this be a string? RIght now it's any
-    const keywords = data.keywords; 
-
-    return { data: keywords, error: null };
-  } catch (error) {
-    return { data: null, error: new Error(
-        `Failed to extract keyword data: ${error instanceof Error ? error.message : String(error)}`,
-      ),
-    };
+    console.log(`Successfully found ${parsed.keywordIdeas.length} keyword ideas`);
+    return { data: parsed, error: null };
   }
+
+  console.log("\nNo valid keyword data found in any matches");
+  return { 
+    data: null, 
+    error: new Error("Could not find valid keywordData in the page") 
+  };
 }
