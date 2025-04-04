@@ -65,7 +65,7 @@ const getColor = (colorVar, { opacityVariable, opacityValue }) => {
 function generateRadixColors() {
   const colorNames = [
     "gray",
-    "grayA", // Also labeled as "brand" in Figma colors
+    "grayA",
     "info",
     "success",
     "successA", // Added tealA
@@ -75,7 +75,7 @@ function generateRadixColors() {
     "error",
     "errorA", // Added tomatoA
     "feature",
-    "accent",
+    "accent", // Also labeled as "brand" in Figma colors
     "base",
   ];
 
