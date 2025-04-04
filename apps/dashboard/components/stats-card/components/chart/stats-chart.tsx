@@ -43,7 +43,7 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height="100%" debounce={1000}>
       <ChartContainer config={config}>
         <BarChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
           <YAxis domain={["auto", (dataMax: number) => dataMax * 1.3]} hide />
