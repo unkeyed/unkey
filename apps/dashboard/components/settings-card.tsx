@@ -1,7 +1,7 @@
 import { cn } from "@unkey/ui/src/lib/utils";
 
 type SettingCardProps = {
-  title: string;
+  title: string | React.ReactNode;
   description: string | React.ReactNode;
   children?: React.ReactNode;
   className?: string;
