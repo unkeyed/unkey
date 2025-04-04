@@ -20,7 +20,7 @@ tasks:
       INTEGRATION_TEST: true
       SIMULATION_TEST: false
     cmds:
-      - go test -failfast -timeout=60m -shuffle=on ./...
+      - go test -failfast -timeout=60m -shuffle=on -v ./...
 
   test-unit:
     cmds:

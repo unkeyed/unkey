@@ -34,11 +34,6 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				return nil
 			}
 
-			logger.Error("api error",
-				"error", err.Error(),
-				"publicMessage", fault.UserFacingMessage(err),
-			)
-
 			//	errorSteps := fault.Flatten(err)
 			//	if len(errorSteps) > 0 {
 
@@ -171,6 +166,11 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				break
 			}
 
+			logger.Error("api error",
+				"error", err.Error(),
+				"requestId", s.RequestID(),
+				"publicMessage", fault.UserFacingMessage(err),
+			)
 			return s.JSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: s.RequestID(),
