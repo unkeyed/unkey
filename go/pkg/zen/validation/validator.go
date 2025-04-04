@@ -18,7 +18,7 @@ type OpenAPIValidator interface {
 	// Returns a BadRequestError if the request is invalid that should be
 	// marshalled and returned to the client.
 	// The second return value is a boolean that is true if the request is valid.
-	Validate(r *http.Request) (openapi.BadRequestError, bool)
+	Validate(r *http.Request) (openapi.BadRequestErrorResponse, bool)
 }
 
 type Validator struct {
@@ -54,7 +54,7 @@ func New() (*Validator, error) {
 	}, nil
 }
 
-func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestError, bool) {
+func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestErrorResponse, bool) {
 	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
 	defer validationSpan.End()
 
@@ -62,31 +62,34 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 
 	if valid {
 		// nolint:exhaustruct
-		return openapi.BadRequestError{}, true
+		return openapi.BadRequestErrorResponse{}, true
 	}
-	res := openapi.BadRequestError{
-		Title:     "Bad Request",
-		Detail:    "One or more fields failed validation",
-		Instance:  nil,
-		Status:    http.StatusBadRequest,
-		RequestId: ctxutil.GetRequestId(r.Context()),
-		Type:      "https://unkey.com/docs/errors/bad_request",
-		Errors:    []openapi.ValidationError{},
+	res := openapi.BadRequestErrorResponse{
+		Meta: openapi.Meta{
+			RequestId: ctxutil.GetRequestId(r.Context()),
+		},
+		Error: openapi.BadRequestErrorDetails{
+			Title:    "Bad Request",
+			Detail:   "One or more fields failed validation",
+			Instance: nil,
+			Status:   http.StatusBadRequest,
+			Type:     "https://unkey.com/docs/errors/bad_request",
+			Errors:   []openapi.ValidationError{},
+		},
 	}
 
 	if len(errors) > 0 {
 		err := errors[0]
-		res.Detail = err.Message
-
+		res.Error.Detail = err.Message
 		for _, verr := range err.SchemaValidationErrors {
-			res.Errors = append(res.Errors, openapi.ValidationError{
+			res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
 				Message:  verr.Reason,
 				Location: verr.Location,
 				Fix:      nil,
 			})
 		}
-		if len(res.Errors) == 0 {
-			res.Errors = append(res.Errors, openapi.ValidationError{
+		if len(res.Error.Errors) == 0 {
+			res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
 				Message:  err.Reason,
 				Location: err.ValidationType,
 				Fix:      &err.HowToFix,

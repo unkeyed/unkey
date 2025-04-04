@@ -10,7 +10,7 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { buildUnkeyQuery } from "@unkey/rbac";
+import { type RBAC, buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["keys"],
@@ -336,8 +336,8 @@ export const registerV1KeysCreateKey = (app: App) =>
     const externalId = req.externalId ?? req.ownerId;
 
     const [permissionIds, roleIds, identity] = await Promise.all([
-      getPermissionIds(db.readonly, authorizedWorkspaceId, req.permissions ?? []),
-      getRoleIds(db.readonly, authorizedWorkspaceId, req.roles ?? []),
+      getPermissionIds(auth, rbac, db.primary, authorizedWorkspaceId, req.permissions ?? []),
+      getRoleIds(auth, rbac, db.primary, authorizedWorkspaceId, req.roles ?? []),
       externalId
         ? upsertIdentity(db.primary, authorizedWorkspaceId, externalId)
         : Promise.resolve(null),
@@ -536,6 +536,8 @@ export const registerV1KeysCreateKey = (app: App) =>
   });
 
 async function getPermissionIds(
+  auth: { permissions: Array<string> },
+  rbac: RBAC,
   db: Database,
   workspaceId: string,
   permissionNames: Array<string>,
@@ -551,21 +553,42 @@ async function getPermissionIds(
       name: true,
     },
   });
-  if (permissions.length < permissionNames.length) {
-    const missingPermissions = permissionNames.filter(
-      (name) => !permissions.some((permission) => permission.name === name),
-    );
+  if (permissions.length === permissionNames.length) {
+    return permissions.map((r) => r.id);
+  }
+
+  const { val, err } = rbac.evaluatePermissions(
+    buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_permission")),
+    auth.permissions,
+  );
+  if (err) {
     throw new UnkeyApiError({
-      code: "PRECONDITION_FAILED",
-      message: `Permissions ${JSON.stringify(
-        missingPermissions,
-      )} are missing, please create them first`,
+      code: "INTERNAL_SERVER_ERROR",
+      message: `Failed to evaluate permissions: ${err.message}`,
     });
   }
-  return permissions.map((r) => r.id);
+  if (!val.valid) {
+    throw new UnkeyApiError({ code: "INSUFFICIENT_PERMISSIONS", message: val.message });
+  }
+
+  const missingPermissions = permissionNames.filter(
+    (name) => !permissions.some((permission) => permission.name === name),
+  );
+
+  const newPermissions = missingPermissions.map((name) => ({
+    id: newId("permission"),
+    workspaceId,
+    name,
+  }));
+
+  await db.insert(schema.permissions).values(newPermissions);
+
+  return [...permissions, ...newPermissions].map((permission) => permission.id);
 }
 
 async function getRoleIds(
+  auth: { permissions: Array<string> },
+  rbac: RBAC,
   db: Database,
   workspaceId: string,
   roleNames: Array<string>,
@@ -581,14 +604,35 @@ async function getRoleIds(
       name: true,
     },
   });
-  if (roles.length < roleNames.length) {
-    const missingRoles = roleNames.filter((name) => !roles.some((role) => role.name === name));
+  if (roles.length === roleNames.length) {
+    return roles.map((r) => r.id);
+  }
+
+  const { val, err } = rbac.evaluatePermissions(
+    buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_role")),
+    auth.permissions,
+  );
+  if (err) {
     throw new UnkeyApiError({
-      code: "PRECONDITION_FAILED",
-      message: `Roles ${JSON.stringify(missingRoles)} are missing, please create them first`,
+      code: "INTERNAL_SERVER_ERROR",
+      message: `Failed to evaluate permissions: ${err.message}`,
     });
   }
-  return roles.map((r) => r.id);
+  if (!val.valid) {
+    throw new UnkeyApiError({ code: "INSUFFICIENT_PERMISSIONS", message: val.message });
+  }
+
+  const missingRoles = roleNames.filter((name) => !roles.some((role) => role.name === name));
+
+  const newRoles = missingRoles.map((name) => ({
+    id: newId("role"),
+    workspaceId,
+    name,
+  }));
+
+  await db.insert(schema.roles).values(newRoles);
+
+  return [...roles, ...newRoles].map((role) => role.id);
 }
 
 export async function upsertIdentity(

@@ -1,4 +1,4 @@
-package rpc
+package prometheus
 
 import (
 	"context"
@@ -7,12 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
-	"connectrpc.com/otelconnect"
-	"github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1/ratelimitv1connect"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 )
 
 type Server struct {
@@ -22,14 +20,10 @@ type Server struct {
 	isListening bool
 	srv         *http.Server
 	mux         *http.ServeMux
-	// Define fields for the server
 }
 
 type Config struct {
 	Logger logging.Logger
-
-	RatelimitService ratelimitv1connect.RatelimitServiceHandler
-	// Define fields for the configuration
 }
 
 func New(config Config) (*Server, error) {
@@ -53,31 +47,17 @@ func New(config Config) (*Server, error) {
 		WriteTimeout: 20 * time.Second,
 	}
 
-	interceptor, err := otelconnect.NewInterceptor(
-		otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()),
-		otelconnect.WithTrustRemote(),
-		otelconnect.WithoutServerPeerAttributes(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if config.RatelimitService != nil {
-		mux.Handle(
-			ratelimitv1connect.NewRatelimitServiceHandler(
-				config.RatelimitService,
-				connect.WithInterceptors(interceptor),
-			),
-		)
-	}
-
-	return &Server{
+	s := &Server{
 		mu:          sync.Mutex{},
 		logger:      config.Logger,
 		isListening: false,
 		srv:         srv,
 		mux:         mux,
-	}, nil
+	}
+
+	mux.Handle("GET /metrics", promhttp.Handler())
+
+	return s, nil
 }
 
 // Listen starts the RPC server on the specified address.
@@ -89,7 +69,7 @@ func New(config Config) (*Server, error) {
 //	// Start server in a goroutine to allow for graceful shutdown
 //	go func() {
 //	    if err := server.Listen(ctx, ":8080"); err != nil {
-//	        log.Printf("rpc stopped: %v", err)
+//	        log.Printf("server stopped: %v", err)
 //	    }
 //	}()
 func (s *Server) Listen(ctx context.Context, addr string) error {
@@ -104,7 +84,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 
 	s.srv.Addr = addr
 
-	s.logger.Info("listening", "srv", "rpc", "addr", addr)
+	s.logger.Info("listening", "srv", "prometheus", "addr", addr)
 
 	err := s.srv.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {

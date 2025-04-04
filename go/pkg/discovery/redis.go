@@ -21,12 +21,10 @@ import (
 //
 // This approach provides self-cleaning discovery without any centralized management.
 type Redis struct {
-	rdb    *redis.Client
-	logger logging.Logger
-
-	addr       string
-	instanceID string
-
+	rdb               *redis.Client
+	logger            logging.Logger
+	addr              string
+	instanceID        string
 	ttl               time.Duration
 	heartbeatInterval time.Duration
 	shutdownC         chan struct{}
@@ -40,7 +38,7 @@ type RedisConfig struct {
 	// InstanceID is the unique identifier for this instance
 	InstanceID string
 
-	// Addr is the address other instances should use to connect to this instance
+	// Addr is the host or ip other instances should use to connect to this instance
 	// This is the address that will be advertised in Redis
 	Addr string
 
@@ -116,7 +114,7 @@ func (r *Redis) heartbeat() {
 // The key includes a common prefix for all discovery entries and the instance ID,
 // making it easy to scan for all instances while also retrieving specific instances.
 func (r *Redis) key(instanceID string) string {
-	return fmt.Sprintf("discovery::instances::%s", instanceID)
+	return fmt.Sprintf("discovery::v1::instances::%s", instanceID)
 }
 
 // advertise publishes this instance's address to Redis with a TTL.
