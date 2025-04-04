@@ -17,27 +17,56 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 )
 
+// AwsEcs implements service discovery for applications running in Amazon ECS.
+// It discovers other tasks within the same ECS service by:
+//   - Querying the ECS API for running tasks in the same service
+//   - Extracting network addresses from task metadata
+//   - Filtering out the current task to prevent self-discovery
+//
+// This implementation requires:
+//   - The ECS Task Metadata endpoint to be enabled
+//   - Appropriate IAM permissions to call ECS APIs
+//   - Tasks to be running in the same ECS cluster and service
 type AwsEcs struct {
+	// client is the AWS SDK ECS client used to query task information
 	client *ecs.Client
+	
+	// logger receives operational logs for monitoring and debugging
 	logger logging.Logger
 
+	// clusterArn identifies the ECS cluster containing the tasks
 	clusterArn string
-	family     string
+	
+	// family is the name of the task definition family
+	family string
 
-	// Task ARN of the container running right now.
-	// We need this to prevent joining a cluster with just ourselves.
-	// [Discover()] must not return addresses of ourself
+	// taskArn uniquely identifies this task in ECS
+	// Used to filter out self-discovery when querying for peers
 	taskArn string
 }
 
+// AwsEcsConfig configures the AWS ECS service discovery implementation.
 type AwsEcsConfig struct {
+	// Logger receives operational logs for monitoring and debugging
 	Logger logging.Logger
+
+	// Region specifies the AWS region where the ECS cluster is running
+	// Example: "us-east-1", "eu-west-1"
 	Region string
 }
 
+// NewAwsEcs creates a new ECS-based service discoverer.
+// It initializes an AWS SDK client and retrieves task metadata from the
+// ECS Task Metadata endpoint. The metadata is used to identify the current
+// task and its cluster for subsequent discovery operations.
+//
+// Returns an error if:
+//   - Required environment variables are missing
+//   - Task metadata endpoint is unreachable
+//   - Task metadata is invalid or incomplete
+//   - AWS credentials are invalid or missing
 func NewAwsEcs(config AwsEcsConfig) (*AwsEcs, error) {
-
-	config.Logger.Warn("ecs sd config", "config", config)
+	config.Logger.Debug("initializing ecs service discovery", "config", config)
 	a := &AwsEcs{
 		client: ecs.NewFromConfig(aws.Config{
 			Region: config.Region,
@@ -56,6 +85,20 @@ func NewAwsEcs(config AwsEcsConfig) (*AwsEcs, error) {
 	return a, nil
 }
 
+// Discover implements the Discoverer interface for ECS tasks.
+// It queries the ECS API to find other running tasks in the same service,
+// extracting their network addresses for peer-to-peer communication.
+//
+// The method:
+//   - Lists all running tasks in the same family
+//   - Filters out this task's own ARN
+//   - Retrieves detailed task information including network interfaces
+//   - Extracts private IPv4 addresses from network interfaces
+//
+// Returns an error if:
+//   - ECS API calls fail
+//   - Tasks have no network interfaces
+//   - Required task information is missing
 func (a AwsEcs) Discover() ([]string, error) {
 	ctx := context.Background()
 
@@ -72,6 +115,16 @@ func (a AwsEcs) Discover() ([]string, error) {
 	return addrs, nil
 }
 
+// getAddrs retrieves network addresses for the given task ARNs.
+// For each task, it:
+//   - Calls DescribeTasks to get detailed task information
+//   - Extracts the private IPv4 address from the first network interface
+//   - Logs any failures for individual tasks
+//
+// Returns an error if:
+//   - The input slice is empty or too large (AWS limits)
+//   - The DescribeTasks call fails
+//   - A task has no network interfaces
 func (a *AwsEcs) getAddrs(ctx context.Context, taskArns []string) ([]string, error) {
 
 	err := assert.All(
@@ -112,6 +165,15 @@ func (a *AwsEcs) getAddrs(ctx context.Context, taskArns []string) ([]string, err
 
 }
 
+// getTaskArns retrieves ARNs for all running tasks in the same family.
+// It handles pagination automatically and filters out this task's ARN.
+//
+// The method uses ListTasks to find tasks that are:
+//   - In the same cluster
+//   - From the same task definition family
+//   - In RUNNING desired status
+//
+// Returns an error if the ListTasks API call fails.
 func (a *AwsEcs) getTaskArns(ctx context.Context) ([]string, error) {
 	taskArns := []string{}
 
@@ -146,6 +208,20 @@ func (a *AwsEcs) getTaskArns(ctx context.Context) ([]string, error) {
 	return taskArns, nil
 }
 
+// getMeta retrieves and validates task metadata from the ECS Task Metadata endpoint.
+// This information is used to identify:
+//   - The current task (via TaskARN)
+//   - The ECS cluster this task belongs to
+//   - The task definition family
+//
+// The method requires the ECS_CONTAINER_METADATA_URI_V4 environment variable
+// to be set, which is automatically provided by the ECS agent.
+//
+// Returns an error if:
+//   - The metadata endpoint environment variable is missing
+//   - The HTTP request fails
+//   - The response is invalid or missing required fields
+//   - Required metadata fields are empty
 func (a *AwsEcs) getMeta() error {
 
 	// Retrieve the metadata URI from environment

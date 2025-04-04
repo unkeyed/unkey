@@ -10,16 +10,45 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
-// Redis implements the Discoverer interface using a Redis backend for service discovery.
-// This discovery method is suitable for dynamic environments where instances may come and
-// go frequently, such as auto-scaling groups or containerized deployments.
+// Redis implements dynamic service discovery using Redis as a coordination backend.
+// It provides reliable peer discovery in environments where instances frequently
+// come and go, such as:
+//   - Auto-scaling groups
+//   - Containerized deployments
+//   - Kubernetes pods
+//   - Cloud-native applications
 //
-// Redis discovery works by:
-// 1. Having each instance periodically advertise itself by writing its address to Redis
-// 2. Setting a TTL on each advertisement so that offline instances are automatically removed
-// 3. Providing a mechanism to enumerate all currently active instances
+// Redis discovery uses a self-cleaning mechanism where:
+//   - Each instance periodically advertises its address with a TTL
+//   - Offline instances are automatically removed when their TTL expires
+//   - New instances are immediately discoverable upon advertisement
+//   - No central management or cleanup is required
 //
-// This approach provides self-cleaning discovery without any centralized management.
+// Thread Safety
+//
+// Redis is safe for concurrent use. It maintains a background goroutine for
+// heartbeats that must be cleaned up by calling Shutdown().
+//
+// Example:
+//
+//	discoverer, err := discovery.NewRedis(discovery.RedisConfig{
+//	    URL:        "redis://localhost:6379/0",
+//	    InstanceID: "node-1",
+//	    Addr:      "10.0.1.1:9000",
+//	    Logger:    logger,
+//	})
+//	if err != nil {
+//	    return err
+//	}
+//	defer discoverer.Shutdown(context.Background())
+//
+//	// Discover peers
+//	addrs, err := discoverer.Discover()
+//
+// Error Handling
+//
+// Redis implements retry logic for transient failures during discovery.
+// Permanent errors (like invalid configuration) are returned immediately.
 type Redis struct {
 	rdb               *redis.Client
 	logger            logging.Logger
@@ -30,29 +59,53 @@ type Redis struct {
 	shutdownC         chan struct{}
 }
 
-// RedisConfig defines the configuration options for Redis-based discovery.
+// RedisConfig defines the configuration for Redis-based service discovery.
 type RedisConfig struct {
-	// URL is the Redis connection string, e.g., "redis://user:pass@localhost:6379/0"
+	// URL specifies the Redis connection string in the format:
+	// redis://[username:password@]host[:port][/database_number]
+	//
+	// Examples:
+	//   redis://localhost:6379/0
+	//   redis://user:pass@redis.example.com:6379/1
+	//   redis://10.0.1.5:6379/0
 	URL string
 
-	// InstanceID is the unique identifier for this instance
+	// InstanceID uniquely identifies this node in the cluster.
+	// Must be unique across all instances using the same Redis backend.
+	// Common formats include:
+	//   - UUIDs: "550e8400-e29b-41d4-a716-446655440000"
+	//   - Hostnames: "node-1", "worker-a"
+	//   - Cloud instance IDs: "i-0123456789abcdef0"
 	InstanceID string
 
-	// Addr is the host or ip other instances should use to connect to this instance
-	// This is the address that will be advertised in Redis
+	// Addr specifies the network address other instances will use to connect
+	// to this instance. Must be in "host:port" format where host can be:
+	//   - DNS name: "node1.example.com:9000"
+	//   - IPv4: "10.0.1.5:9000"
+	//   - IPv6: "[2001:db8::1]:9000"
 	Addr string
 
-	// Logger is used for operational logging
+	// Logger receives operational logs for monitoring and debugging.
+	// Must implement the logging.Logger interface.
 	Logger logging.Logger
 }
 
-// NewRedis creates a new Redis-based discoverer and starts the advertisement process.
-// The returned discoverer will automatically:
-// 1. Connect to the specified Redis instance
-// 2. Immediately advertise this instance's address
-// 3. Start a background goroutine to periodically refresh the advertisement
+// NewRedis creates a new Redis-based discoverer and initializes the advertisement process.
+// It performs the following setup:
+//  1. Establishes connection to Redis using the provided URL
+//  2. Validates the connection with a PING command
+//  3. Advertises this instance's address immediately
+//  4. Starts a background goroutine for periodic advertisement refresh
 //
-// The instance will continue to advertise itself until Shutdown is called.
+// The instance continues to advertise itself until Shutdown is called.
+// Failing to call Shutdown may leave stale entries in Redis.
+//
+// NewRedis returns an error if:
+//   - The Redis URL is invalid or unreachable
+//   - Initial advertisement fails
+//   - Required configuration fields are missing
+//
+// The returned discoverer is immediately ready for use.
 func NewRedis(config RedisConfig) (*Redis, error) {
 	opts, err := redis.ParseURL(config.URL)
 	if err != nil {
@@ -87,12 +140,13 @@ func NewRedis(config RedisConfig) (*Redis, error) {
 	return r, nil
 }
 
-// heartbeat periodically refreshes this instance's advertisement in Redis.
-// This ensures that the instance remains discoverable even during long periods
-// of inactivity. It also renews the TTL, preventing the instance from being
-// considered offline if it's still running.
+// heartbeat maintains this instance's presence in Redis through periodic
+// advertisement refreshes. It runs until Shutdown is called.
+//
+// The heartbeat ensures the instance remains discoverable during long periods
+// of inactivity by refreshing the TTL before expiration. This prevents the
+// instance from being considered offline while still running.
 func (r *Redis) heartbeat() {
-
 	t := time.NewTicker(r.heartbeatInterval)
 	defer t.Stop()
 
@@ -110,27 +164,48 @@ func (r *Redis) heartbeat() {
 	}
 }
 
-// key generates the Redis key used to store instance information.
-// The key includes a common prefix for all discovery entries and the instance ID,
-// making it easy to scan for all instances while also retrieving specific instances.
+// key generates a Redis key for storing instance information. The key format is:
+// "discovery::v1::instances::<instanceID>"
+//
+// This format enables:
+//   - Namespace isolation with the "discovery" prefix
+//   - Version-based migrations with "v1"
+//   - Easy scanning of all instances using the "instances" prefix
+//   - Direct lookup of specific instances by ID
+// key formats a Redis key for the given instance ID.
 func (r *Redis) key(instanceID string) string {
 	return fmt.Sprintf("discovery::v1::instances::%s", instanceID)
 }
 
 // advertise publishes this instance's address to Redis with a TTL.
-// Other instances can discover this instance by scanning for keys with the discovery prefix.
+// The address remains discoverable until either:
+//   - The TTL expires (90s by default)
+//   - The instance calls Shutdown
+//   - Redis is cleared/restarted
+//
+// The TTL ensures that crashed or network-partitioned instances are
+// automatically removed from discovery after a reasonable timeout.
+// advertise updates this instance's address in Redis with a TTL.
+// The TTL is refreshed automatically by the heartbeat goroutine.
 func (r *Redis) advertise(ctx context.Context) error {
 	return r.rdb.Set(ctx, r.key(r.instanceID), r.addr, r.ttl).Err()
 }
 
-// Discover returns a list of addresses for all active instances registered in Redis.
-// It scans for all keys with the discovery prefix and retrieves their values,
-// which contain the addresses of the instances.
+// Discover returns addresses of all active instances except this one.
+// It implements automatic retry logic to handle transient Redis failures.
 //
-// This implementation includes retry logic to handle transient Redis failures,
-// making the discovery process more resilient in production environments.
+// The method:
+//   - Scans Redis for all discovery keys
+//   - Retrieves the address for each key
+//   - Filters out this instance's own address
+//   - Retries up to 10 times on failure
+//
+// Returns an error if discovery fails after all retries.
+//
+// Thread Safety: Safe for concurrent use.
+// Discover implements the Discoverer interface using Redis as a backend.
+// It returns addresses of all active instances except this one.
 func (r *Redis) Discover() ([]string, error) {
-
 	addrs := []string{}
 
 	err := retry.New(
@@ -146,8 +221,14 @@ func (r *Redis) Discover() ([]string, error) {
 	return addrs, err
 }
 
-// discover performs the actual Redis query to find all active instances.
-// It scans for all keys with the discovery prefix and retrieves their values.
+// discover performs the actual Redis operations to find active instances.
+// It:
+//   - Scans for all discovery keys using SCAN
+//   - Retrieves addresses using GET
+//   - Filters out this instance's own address
+//   - Handles Redis pagination automatically
+//
+// Returns an error if either SCAN or GET operations fail.
 func (r *Redis) discover() ([]string, error) {
 	pattern := r.key("*")
 
@@ -186,9 +267,20 @@ func (r *Redis) discover() ([]string, error) {
 	return addrs, nil
 }
 
-// Shutdown stops the heartbeat goroutine and removes this instance's entry from Redis.
-// This should be called during graceful shutdown to ensure the instance is no longer
-// discoverable once it's offline.
+// Shutdown gracefully terminates the discoverer by:
+//   - Stopping the heartbeat goroutine
+//   - Removing this instance's entry from Redis
+//   - Cleaning up resources
+//
+// After Shutdown, the instance is no longer discoverable by peers.
+// This method should be called during graceful shutdown, typically
+// using defer:
+//
+//	discoverer, _ := discovery.NewRedis(config)
+//	defer discoverer.Shutdown(ctx)
+//
+// Thread Safety: Safe to call concurrently, but only the first call
+// will have an effect.
 func (r *Redis) Shutdown(ctx context.Context) error {
 	r.shutdownC <- struct{}{}
 	return r.rdb.Del(ctx, r.key(r.instanceID)).Err()
