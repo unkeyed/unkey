@@ -11,7 +11,6 @@ import {
 } from "./enrich-keywords";
 import { researchKeywords } from "./_research-keywords";
 import type { ZodIssue } from "zod";
-import { batch, task } from "@trigger.dev/sdk/v3";
 
 // Test cases for the parent research-keywords task
 const researchKeywordsTestCases: TestCase<typeof researchKeywords>[] = [
@@ -78,10 +77,12 @@ const researchKeywordsTestCases: TestCase<typeof researchKeywords>[] = [
       }
 
       // Check deduplication metadata
-      if (!output.metadata.deduplication || 
-          typeof output.metadata.deduplication.total !== 'number' ||
-          typeof output.metadata.deduplication.skippedEnrichment !== 'number' ||
-          typeof output.metadata.deduplication.duplicatesRemoved !== 'number') {
+      if (
+        !output.metadata.deduplication ||
+        typeof output.metadata.deduplication.total !== "number" ||
+        typeof output.metadata.deduplication.skippedEnrichment !== "number" ||
+        typeof output.metadata.deduplication.duplicatesRemoved !== "number"
+      ) {
         console.warn(
           `Test '${this.name}' failed. Invalid deduplication metadata structure: ${JSON.stringify(output.metadata.deduplication)}`,
         );
@@ -90,22 +91,20 @@ const researchKeywordsTestCases: TestCase<typeof researchKeywords>[] = [
 
       // Verify case-insensitive deduplication
       const normalizedKeywords = new Set(
-        output.keywords.map((k: { keyword: string }) => k.keyword.toLowerCase().trim())
+        output.keywords.map((k: { keyword: string }) => k.keyword.toLowerCase().trim()),
       );
       if (normalizedKeywords.size !== output.keywords.length) {
-        console.warn(
-          `Test '${this.name}' failed. Found case-insensitive duplicates in results`,
-        );
+        console.warn(`Test '${this.name}' failed. Found case-insensitive duplicates in results`);
         return false;
       }
 
       // Check if deduplication counts make sense
-      if (output.metadata.deduplication.total < output.keywords.length ||
-          output.metadata.deduplication.duplicatesRemoved !== 
-          output.metadata.deduplication.total - output.keywords.length) {
-        console.warn(
-          `Test '${this.name}' failed. Deduplication counts don't add up`,
-        );
+      if (
+        output.metadata.deduplication.total < output.keywords.length ||
+        output.metadata.deduplication.duplicatesRemoved !==
+          output.metadata.deduplication.total - output.keywords.length
+      ) {
+        console.warn(`Test '${this.name}' failed. Deduplication counts don't add up`);
         return false;
       }
 
@@ -120,10 +119,10 @@ const researchKeywordsTestCases: TestCase<typeof researchKeywords>[] = [
       // Check keyword structure
       const invalidKeywords = output.keywords.filter(
         (k: { keyword: string; volume: number; cpc: number; competition: number }) =>
-          typeof k.keyword !== 'string' ||
-          typeof k.volume !== 'number' ||
-          typeof k.cpc !== 'number' ||
-          typeof k.competition !== 'number'
+          typeof k.keyword !== "string" ||
+          typeof k.volume !== "number" ||
+          typeof k.cpc !== "number" ||
+          typeof k.competition !== "number",
       );
 
       if (invalidKeywords.length > 0) {
@@ -136,7 +135,7 @@ const researchKeywordsTestCases: TestCase<typeof researchKeywords>[] = [
       // Check for topic relevance
       const hasMimeKeywords = output.keywords.some(
         (k: { keyword: string }) =>
-          k.keyword.toLowerCase().includes('mime') || k.keyword.toLowerCase().includes('type')
+          k.keyword.toLowerCase().includes("mime") || k.keyword.toLowerCase().includes("type"),
       );
 
       if (!hasMimeKeywords) {
@@ -215,7 +214,7 @@ const relatedKeywordsTestCases: TestCase<typeof relatedKeywordsTask>[] = [
       // Check if the keywords are related to the topic
       const hasMimeKeywords = output.keywordIdeas.some(
         (k: { keyword: string }) =>
-          k.keyword.toLowerCase().includes('mime') || k.keyword.toLowerCase().includes('type')
+          k.keyword.toLowerCase().includes("mime") || k.keyword.toLowerCase().includes("type"),
       );
 
       if (!hasMimeKeywords) {
@@ -313,7 +312,7 @@ const serperSearchTestCases: TestCase<typeof serperSearchTask>[] = [
       // Check if the keywords are related to the topic
       const hasMimeKeywords = output.keywords.some(
         (k: { keyword: string }) =>
-          k.keyword.toLowerCase().includes('mime') || k.keyword.toLowerCase().includes('type')
+          k.keyword.toLowerCase().includes("mime") || k.keyword.toLowerCase().includes("type"),
       );
 
       if (!hasMimeKeywords) {
@@ -432,7 +431,7 @@ const serperAutosuggestTestCases: TestCase<typeof serperAutosuggestTask>[] = [
       // Check if the keywords are related to the topic
       const hasMimeKeywords = output.keywords.some(
         (k: { keyword: string }) =>
-          k.keyword.toLowerCase().includes('mime') || k.keyword.toLowerCase().includes('type')
+          k.keyword.toLowerCase().includes("mime") || k.keyword.toLowerCase().includes("type"),
       );
       if (!hasMimeKeywords) {
         console.warn(
@@ -695,35 +694,3 @@ export const enrichKeywordsTest = createTestRunner({
   task: enrichKeywordsTask,
   testCases: enrichKeywordsTestCases,
 });
-
-// Export combined test runner
-export const keywordResearchTestAll = task({
-  id: "keyword_research_test_all",
-  run: async () => {
-    batch.triggerAndWait([
-      {
-        id: researchKeywordsTest.id,
-        payload: {},
-      },
-      {
-        id: relatedKeywordsTest.id,
-        payload: {},
-      },
-      {
-        id: serperSearchTest.id,
-        payload: {},
-      },
-      {
-        id: serperAutosuggestTest.id,
-        payload: {},
-      },
-      {
-        id: enrichKeywordsTest.id,
-        payload: {},
-      },
-    ]);
-  },
-});
-
-// Future test cases will be added as we implement more tasks:
-// 1. Parent Task (_research-keywords) test cases
