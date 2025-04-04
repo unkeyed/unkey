@@ -9,8 +9,164 @@ import {
   enrichKeywordsTask,
   TaskOutputSchema as EnrichKeywordsTaskOutputSchema,
 } from "./enrich-keywords";
+import { researchKeywords } from "./_research-keywords";
 import type { ZodIssue } from "zod";
 import { batch, task } from "@trigger.dev/sdk/v3";
+
+// Test cases for the parent research-keywords task
+const researchKeywordsTestCases: TestCase<typeof researchKeywords>[] = [
+  {
+    name: "researchKeywordsBasicTest",
+    input: {
+      inputTerm: "MIME types",
+    },
+    validate(result) {
+      const validation = okResultSchema.safeParse(result);
+      if (!validation.success) {
+        console.info(
+          `Test '${this.name}' failed. Expected a valid result, but got: ${JSON.stringify(result)}`,
+        );
+        console.info(validation.error.errors.map((e) => e.message).join("\n"));
+        return false;
+      }
+
+      const output = validation.data.output;
+
+      // Check if we have keywords
+      if (!output.keywords || output.keywords.length === 0) {
+        console.warn(
+          `Test '${this.name}' failed. Expected keywords to be non-empty, but got: ${output.keywords?.length ?? 0} keywords`,
+        );
+        return false;
+      }
+
+      // Check metadata structure
+      if (
+        !output.metadata ||
+        typeof output.metadata.totalKeywords !== "number" ||
+        !output.metadata.sources ||
+        typeof output.metadata.sources.relatedKeywords !== "number" ||
+        typeof output.metadata.sources.serperSearch !== "number" ||
+        typeof output.metadata.sources.serperAutosuggest !== "number"
+      ) {
+        console.warn(
+          `Test '${this.name}' failed. Invalid metadata structure: ${JSON.stringify(output.metadata)}`,
+        );
+        return false;
+      }
+
+      // Check if total keywords matches the array length
+      if (output.metadata.totalKeywords !== output.keywords.length) {
+        console.warn(
+          `Test '${this.name}' failed. Metadata total (${output.metadata.totalKeywords}) doesn't match actual keywords length (${output.keywords.length})`,
+        );
+        return false;
+      }
+
+      // Check if source counts add up
+      const totalFromSources =
+        output.metadata.sources.relatedKeywords +
+        output.metadata.sources.serperSearch +
+        output.metadata.sources.serperAutosuggest;
+
+      // Note: totalFromSources might be greater than totalKeywords due to deduplication
+      if (totalFromSources < output.metadata.totalKeywords) {
+        console.warn(
+          `Test '${this.name}' failed. Source totals (${totalFromSources}) less than total keywords (${output.metadata.totalKeywords})`,
+        );
+        return false;
+      }
+
+      // Check deduplication metadata
+      if (!output.metadata.deduplication || 
+          typeof output.metadata.deduplication.total !== 'number' ||
+          typeof output.metadata.deduplication.skippedEnrichment !== 'number' ||
+          typeof output.metadata.deduplication.duplicatesRemoved !== 'number') {
+        console.warn(
+          `Test '${this.name}' failed. Invalid deduplication metadata structure: ${JSON.stringify(output.metadata.deduplication)}`,
+        );
+        return false;
+      }
+
+      // Verify case-insensitive deduplication
+      const normalizedKeywords = new Set(
+        output.keywords.map((k: { keyword: string }) => k.keyword.toLowerCase().trim())
+      );
+      if (normalizedKeywords.size !== output.keywords.length) {
+        console.warn(
+          `Test '${this.name}' failed. Found case-insensitive duplicates in results`,
+        );
+        return false;
+      }
+
+      // Check if deduplication counts make sense
+      if (output.metadata.deduplication.total < output.keywords.length ||
+          output.metadata.deduplication.duplicatesRemoved !== 
+          output.metadata.deduplication.total - output.keywords.length) {
+        console.warn(
+          `Test '${this.name}' failed. Deduplication counts don't add up`,
+        );
+        return false;
+      }
+
+      // Verify that we're not unnecessarily enriching keywords
+      if (output.metadata.deduplication.skippedEnrichment < 0) {
+        console.warn(
+          `Test '${this.name}' failed. Invalid skipped enrichment count: ${output.metadata.deduplication.skippedEnrichment}`,
+        );
+        return false;
+      }
+
+      // Check keyword structure
+      const invalidKeywords = output.keywords.filter(
+        (k: { keyword: string; volume: number; cpc: number; competition: number }) =>
+          typeof k.keyword !== 'string' ||
+          typeof k.volume !== 'number' ||
+          typeof k.cpc !== 'number' ||
+          typeof k.competition !== 'number'
+      );
+
+      if (invalidKeywords.length > 0) {
+        console.warn(
+          `Test '${this.name}' failed. Found ${invalidKeywords.length} invalid keyword structures`,
+        );
+        return false;
+      }
+
+      // Check for topic relevance
+      const hasMimeKeywords = output.keywords.some(
+        (k: { keyword: string }) =>
+          k.keyword.toLowerCase().includes('mime') || k.keyword.toLowerCase().includes('type')
+      );
+
+      if (!hasMimeKeywords) {
+        console.warn(`Test '${this.name}' failed. Expected keywords to be related to "MIME types"`);
+        return false;
+      }
+
+      console.info(`Test '${this.name}' passed. ✔︎`);
+      return true;
+    },
+  },
+  {
+    name: "researchKeywordsEmptyInputTest",
+    input: {
+      inputTerm: "", // Empty term should cause an error
+    },
+    validate(result) {
+      const validation = errorResultSchema.safeParse(result);
+      if (!validation.success) {
+        console.info(
+          `Test '${this.name}' failed. Expected an error result, but got: ${JSON.stringify(result)}`,
+        );
+        return false;
+      }
+
+      console.info(`Test '${this.name}' passed. ✔︎`);
+      return true;
+    },
+  },
+];
 
 // Test cases for related-keywords task
 const relatedKeywordsTestCases: TestCase<typeof relatedKeywordsTask>[] = [
@@ -58,7 +214,8 @@ const relatedKeywordsTestCases: TestCase<typeof relatedKeywordsTask>[] = [
 
       // Check if the keywords are related to the topic
       const hasMimeKeywords = output.keywordIdeas.some(
-        (k) => k.keyword.toLowerCase().includes("mime") || k.keyword.toLowerCase().includes("type"),
+        (k: { keyword: string }) =>
+          k.keyword.toLowerCase().includes('mime') || k.keyword.toLowerCase().includes('type')
       );
 
       if (!hasMimeKeywords) {
@@ -155,7 +312,8 @@ const serperSearchTestCases: TestCase<typeof serperSearchTask>[] = [
 
       // Check if the keywords are related to the topic
       const hasMimeKeywords = output.keywords.some(
-        (k) => k.keyword.toLowerCase().includes("mime") || k.keyword.toLowerCase().includes("type"),
+        (k: { keyword: string }) =>
+          k.keyword.toLowerCase().includes('mime') || k.keyword.toLowerCase().includes('type')
       );
 
       if (!hasMimeKeywords) {
@@ -273,7 +431,8 @@ const serperAutosuggestTestCases: TestCase<typeof serperAutosuggestTask>[] = [
 
       // Check if the keywords are related to the topic
       const hasMimeKeywords = output.keywords.some(
-        (k) => k.keyword.toLowerCase().includes("mime") || k.keyword.toLowerCase().includes("type"),
+        (k: { keyword: string }) =>
+          k.keyword.toLowerCase().includes('mime') || k.keyword.toLowerCase().includes('type')
       );
       if (!hasMimeKeywords) {
         console.warn(
@@ -311,12 +470,14 @@ const enrichKeywordsTestCases: TestCase<typeof enrichKeywordsTask>[] = [
   {
     name: "enrichKeywordsBasicTest",
     input: {
-      keywords: [{
-        keyword: "MIME types",
-        source: "llm_extracted",
-        confidence: 1,
-        context: "The main topic of the search results"
-      }]
+      keywords: [
+        {
+          keyword: "MIME types",
+          source: "llm_extracted",
+          confidence: 1,
+          context: "The main topic of the search results",
+        },
+      ],
     },
     validate(result) {
       const validation = okResultSchema.safeParse(result);
@@ -333,7 +494,9 @@ const enrichKeywordsTestCases: TestCase<typeof enrichKeywordsTask>[] = [
         console.warn(
           `Test '${this.name}' failed. Expected a valid output format, but got: ${JSON.stringify(validation.data.output)}`,
         );
-        console.warn(outputValidation.error.errors.map((error: ZodIssue) => error.message).join("\n"));
+        console.warn(
+          outputValidation.error.errors.map((error: ZodIssue) => error.message).join("\n"),
+        );
         return false;
       }
 
@@ -341,9 +504,11 @@ const enrichKeywordsTestCases: TestCase<typeof enrichKeywordsTask>[] = [
 
       // Verify enriched data structure
       const firstKeyword = output.enrichedKeywords[0];
-      if (typeof firstKeyword.volume !== 'number' || 
-          typeof firstKeyword.cpc !== 'number' || 
-          typeof firstKeyword.competition !== 'number') {
+      if (
+        typeof firstKeyword.volume !== "number" ||
+        typeof firstKeyword.cpc !== "number" ||
+        typeof firstKeyword.competition !== "number"
+      ) {
         console.warn(
           `Test '${this.name}' failed. Missing or invalid enrichment metrics in response: ${JSON.stringify(firstKeyword)}`,
         );
@@ -351,11 +516,8 @@ const enrichKeywordsTestCases: TestCase<typeof enrichKeywordsTask>[] = [
       }
 
       // Verify source attribution is preserved
-      if (firstKeyword.source !== "llm_extracted" || 
-          firstKeyword.confidence !== 1) {
-        console.warn(
-          `Test '${this.name}' failed. Source attribution not preserved`,
-        );
+      if (firstKeyword.source !== "llm_extracted" || firstKeyword.confidence !== 1) {
+        console.warn(`Test '${this.name}' failed. Source attribution not preserved`);
         return false;
       }
 
@@ -482,10 +644,10 @@ const enrichKeywordsTestCases: TestCase<typeof enrichKeywordsTask>[] = [
       }
 
       // Verify the specific keyword was skipped
-      if (!output.metadata.skippedKeywords.includes("this_keyword_should_not_exist_in_api_response")) {
-        console.warn(
-          `Test '${this.name}' failed. Expected keyword to be in skipped list`,
-        );
+      if (
+        !output.metadata.skippedKeywords.includes("this_keyword_should_not_exist_in_api_response")
+      ) {
+        console.warn(`Test '${this.name}' failed. Expected keyword to be in skipped list`);
         return false;
       }
 
@@ -504,6 +666,12 @@ const enrichKeywordsTestCases: TestCase<typeof enrichKeywordsTask>[] = [
 ];
 
 // Export individual test runners for each task
+export const researchKeywordsTest = createTestRunner({
+  id: "research_keywords_test",
+  task: researchKeywords,
+  testCases: researchKeywordsTestCases,
+});
+
 export const relatedKeywordsTest = createTestRunner({
   id: "related_keywords_test",
   task: relatedKeywordsTask,
@@ -533,6 +701,10 @@ export const keywordResearchTestAll = task({
   id: "keyword_research_test_all",
   run: async () => {
     batch.triggerAndWait([
+      {
+        id: researchKeywordsTest.id,
+        payload: {},
+      },
       {
         id: relatedKeywordsTest.id,
         payload: {},
