@@ -1,7 +1,6 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Code } from "@/components/ui/code";
-import { getOrgId } from "@/lib/auth";
-import { auth } from "@/lib/auth/server";
+import { getAuth, getCurrentUser, getOrgId } from "@/lib/auth";
 import { router } from "@/lib/trpc/routers";
 import { createCallerFactory } from "@trpc/server";
 import type { Workspace } from "@unkey/db";
@@ -14,11 +13,10 @@ type Props = {
 };
 
 export const CreateRatelimit: React.FC<Props> = async (props) => {
-  const user = await auth.getCurrentUser();
+  const user = await getCurrentUser();
   if (!user) {
     return null;
   }
-  const orgId = await getOrgId();
 
   const trpc = createCallerFactory()(router)({
     req: {} as any,
@@ -27,7 +25,7 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
     },
     workspace: props.workspace,
     tenant: {
-      id: orgId,
+      id: user.orgId!, // if you have a workspace, you will have an orgId
     },
     audit: {
       location: "",

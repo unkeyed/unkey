@@ -10,6 +10,7 @@ import { CreateApi } from "./create-api";
 import { CreateRatelimit } from "./create-ratelimit";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -39,11 +40,7 @@ type Props = {
 } */
 
 export default async function (props: Props) {
-  const user = await auth.getCurrentUser();
-  // make typescript happy
-  if (!user) {
-    return redirect("/auth/sign-in");
-  }
+  const user = await getCurrentUser();
 
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({

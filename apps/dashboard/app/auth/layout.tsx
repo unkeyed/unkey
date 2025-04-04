@@ -1,7 +1,7 @@
 import { FadeIn } from "@/components/landing/fade-in";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { auth } from "@/lib/auth/server";
+import { getCurrentUser } from "@/lib/auth";
 import { FileText } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -75,7 +75,7 @@ export default async function AuthenticatedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await auth.getCurrentUser();
+  const user = await getCurrentUser();
 
   if (user) {
     return redirect("/apis");

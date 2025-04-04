@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { switchOrg } from "../actions";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const DASHBOARD_URL = new URL("/apis", request.url);
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(DASHBOARD_URL); // middleware will pickup if they are not authenticated and redirect to login
   }
 
-  const user = await auth.getCurrentUser();
+  const user = await getCurrentUser();
   // exchange token for invitation
   const invitation = await auth.getInvitation(invitationToken);
   if (!invitation) {
