@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
@@ -98,10 +99,16 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	ratelimitService, err := ratelimit.New(ratelimit.Config{
-		Logger:   logger,
-		Clock:    clk,
+	ctr, err := counter.NewRedis(counter.RedisConfig{
 		RedisURL: redisUrl,
+		Logger:   logger,
+	})
+	require.NoError(t, err)
+
+	ratelimitService, err := ratelimit.New(ratelimit.Config{
+		Logger:  logger,
+		Clock:   clk,
+		Counter: ctr,
 	})
 	require.NoError(t, err)
 

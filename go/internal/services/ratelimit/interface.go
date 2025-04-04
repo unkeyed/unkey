@@ -120,7 +120,7 @@ type RatelimitResponse struct {
 	//   - Implement automatic retry after window reset
 	//   - Schedule future requests optimally
 	//   - Calculate backoff periods
-	Reset int64
+	Reset time.Time
 
 	// Success indicates whether the rate limit check passed.
 	//   true  = request is allowed

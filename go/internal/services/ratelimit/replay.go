@@ -75,7 +75,12 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 		innerCtx, cancel = context.WithTimeout(innerCtx, 2*time.Second)
 		defer cancel()
 
-		return s.redisIncr(innerCtx, key.toString(), currentWindow.sequence, req.Cost)
+		return s.counter.Increment(
+			innerCtx,
+			counterKey(key, currentWindow.sequence),
+			req.Cost,
+			currentWindow.duration*3,
+		)
 
 	})
 	if err != nil {

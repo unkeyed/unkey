@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -156,10 +157,18 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
 
-	rlSvc, err := ratelimit.New(ratelimit.Config{
-		Logger:   logger,
-		Clock:    clk,
+	ctr, err := counter.NewRedis(counter.RedisConfig{
 		RedisURL: cfg.RedisUrl,
+		Logger:   logger,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create counter: %w", err)
+	}
+
+	rlSvc, err := ratelimit.New(ratelimit.Config{
+		Logger:  logger,
+		Clock:   clk,
+		Counter: ctr,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)

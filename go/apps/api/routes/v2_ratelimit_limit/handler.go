@@ -216,7 +216,7 @@ func New(svc Services) zen.Route {
 				Success:    result.Success,
 				Limit:      limit,
 				Remaining:  result.Remaining,
-				Reset:      result.Reset,
+				Reset:      result.Reset.UnixMilli(),
 				OverrideId: nil,
 			},
 		}

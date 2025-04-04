@@ -13,7 +13,7 @@ type window struct {
 	// Duration of the window in milliseconds.
 	// This matches the duration from the original request and defines
 	// how long this window remains active.
-	duration int64
+	duration time.Duration
 	// Current token count in this window.
 	// This is the actual count of tokens consumed during this window's
 	// lifetime. It must never exceed the configured limit.
@@ -23,7 +23,7 @@ type window struct {
 	// - Calculate window expiration
 	// - Determine if a window is still active
 	// - Handle sliding window calculations between current and previous windows
-	start int64
+	start time.Time
 }
 
 // newWindow creates a new rate limit window starting at the given time.
@@ -59,8 +59,8 @@ func newWindow(sequence int64, t time.Time, duration time.Duration) *window {
 	metrics.Ratelimit.CreatedWindows.Add(context.Background(), 1)
 	return &window{
 		sequence: sequence,
-		start:    t.Truncate(duration).UnixMilli(),
-		duration: duration.Milliseconds(),
+		start:    t.Truncate(duration),
+		duration: duration,
 		counter:  0,
 	}
 }

@@ -2,14 +2,13 @@ package ratelimit
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
@@ -74,7 +73,8 @@ type service struct {
 	// Protected by bucketsMu
 	buckets map[string]*bucket
 
-	redis *redis.Client
+	// counter is the distributed counter implementation
+	counter counter.Counter
 
 	// replayBuffer holds rate limit events for async propagation
 	// Thread-safe internally
@@ -87,9 +87,10 @@ type service struct {
 
 type Config struct {
 	Logger logging.Logger
-	// optional
-	RedisURL string
-	Clock    clock.Clock
+
+	Clock clock.Clock
+	// If provided, use this counter implementation instead of creating a Redis counter
+	Counter counter.Counter
 }
 
 // New creates a new rate limiting service with the given configuration.
@@ -127,40 +128,15 @@ func New(config Config) (*service, error) {
 		config.Clock = clock.New()
 	}
 
-	err := assert.All(
-		assert.NotEmpty(config.RedisURL, "ratelimiting needs a redis url"),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	s := &service{
 		clock:                config.Clock,
 		logger:               config.Logger,
 		shutdownCh:           make(chan struct{}),
 		bucketsMu:            sync.RWMutex{},
 		buckets:              make(map[string]*bucket),
-		redis:                nil,
+		counter:              config.Counter,
 		replayBuffer:         buffer.New[RatelimitRequest](10_000, true),
 		replayCircuitBreaker: circuitbreaker.New[int64]("replayRatelimitRequest"),
-	}
-
-	if config.RedisURL != "" {
-
-		opts, err := redis.ParseURL(config.RedisURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse redis url: %w", err)
-		}
-
-		rdb := redis.NewClient(opts)
-		config.Logger.Debug("pinging redis")
-
-		_, err = rdb.Ping(context.Background()).Result()
-		if err != nil {
-			return nil, fmt.Errorf("failed to ping redis: %w", err)
-		}
-		s.redis = rdb
-
 	}
 
 	s.expireWindowsAndBuckets()
@@ -171,6 +147,12 @@ func New(config Config) (*service, error) {
 	}
 
 	return s, nil
+}
+
+// Close releases all resources held by the rate limiter.
+// It should be called when the service is no longer needed.
+func (s *service) Close() error {
+	return s.counter.Close()
 }
 
 // Ratelimit checks if a request should be allowed under current rate limit constraints.
@@ -194,10 +176,6 @@ func New(config Config) (*service, error) {
 // Errors:
 //   - Returns validation errors for invalid parameters
 //   - May return errors from cluster communication
-//
-// Performance:
-//   - O(1) time complexity for local decisions
-//   - Network round trip only when syncing with origin
 //
 // Thread Safety:
 //   - Safe for concurrent use
@@ -250,21 +228,39 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	currentWindow, currentWindowExisted := b.getCurrentWindow(req.Time)
 	previousWindow, previousWindowExisted := b.getPreviousWindow(req.Time)
 
+	refreshKeys := []string{}
+	currentKey := ""
+	previousKey := ""
+
 	if goToOrigin || !currentWindowExisted {
-		redisCurrentCounter, err := s.redisGet(ctx, key.toString(), currentWindow.sequence)
-		if err == nil && redisCurrentCounter > currentWindow.counter {
-			currentWindow.counter = redisCurrentCounter
-		}
+		currentKey = counterKey(key, currentWindow.sequence)
+		refreshKeys = append(refreshKeys, currentKey)
+
 	}
 	if goToOrigin || !previousWindowExisted {
-		redisPreviousCounter, err := s.redisGet(ctx, key.toString(), previousWindow.sequence)
-		if err == nil && redisPreviousCounter > previousWindow.counter {
-			previousWindow.counter = redisPreviousCounter
+		previousKey = counterKey(key, previousWindow.sequence)
+		refreshKeys = append(refreshKeys, previousKey)
+	}
+
+	if len(refreshKeys) > 0 {
+		res, err := s.counter.MultiGet(ctx, refreshKeys)
+		if err != nil {
+			s.logger.Error("unable to get counter values",
+				"keys", refreshKeys,
+				"error", err.Error(),
+			)
 		}
+		if counter := res[currentKey]; counter > currentWindow.counter {
+			currentWindow.counter = counter
+		}
+		if counter := res[previousKey]; counter > previousWindow.counter {
+			previousWindow.counter = counter
+		}
+
 	}
 
 	// Calculate time elapsed in current window (as a fraction)
-	windowElapsed := float64(req.Time.UnixMilli()-currentWindow.start) / float64(req.Duration.Milliseconds())
+	windowElapsed := float64(req.Time.Sub(currentWindow.start).Milliseconds()) / float64(req.Duration.Milliseconds())
 
 	// Pure sliding window calculation:
 	// - We count 100% of current window
@@ -286,7 +282,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		return RatelimitResponse{
 			Success:   false,
 			Remaining: remaining,
-			Reset:     currentWindow.start + currentWindow.duration,
+			Reset:     currentWindow.start.Add(currentWindow.duration),
 			Limit:     req.Limit,
 			Current:   effectiveCount,
 		}, nil
@@ -306,7 +302,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	return RatelimitResponse{
 		Success:   true,
 		Remaining: remaining,
-		Reset:     currentWindow.start + currentWindow.duration,
+		Reset:     currentWindow.start.Add(currentWindow.duration),
 		Limit:     req.Limit,
 		Current:   currentWindow.counter,
 	}, nil
