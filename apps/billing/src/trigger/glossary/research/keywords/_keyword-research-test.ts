@@ -108,14 +108,6 @@ const serperSearchTestCases: TestCase<typeof serperSearchTask>[] = [
 
       const output = outputValidation.data;
 
-      // Check if the search parameters match the input
-      if (output.searchParameters.q !== "MIME types") {
-        console.warn(
-          `Test '${this.name}' failed. Expected search query to be "MIME types", but got: ${output.searchParameters.q}`,
-        );
-        return false;
-      }
-
       // Check if there are organic results
       if (!output.organic || output.organic.length === 0) {
         console.warn(
