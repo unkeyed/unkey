@@ -4,7 +4,6 @@ import { type NextFetchEvent, type NextRequest, NextResponse } from "next/server
 
 export default async function (req: NextRequest, _evt: NextFetchEvent) {
   const url = new URL(req.url);
-  console.info("host", url.host);
   if (url.host === "gateway.new") {
     return NextResponse.redirect("https://app.unkey.com/gateway-new");
   }
