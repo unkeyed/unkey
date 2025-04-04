@@ -135,6 +135,7 @@ export abstract class BaseAuthProvider {
     signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
     const response = NextResponse.redirect(signInUrl);
     response.cookies.delete(config.cookieName);
+    response.headers.set('x-middleware-processed', 'true');
     return response;
   }
 
@@ -144,8 +145,18 @@ export abstract class BaseAuthProvider {
       ...DEFAULT_MIDDLEWARE_CONFIG,
       ...config,
     };
+    
 
     return async (request: NextRequest): Promise<NextResponse> => {
+      // attempt to deduplicate edge middleware from processing multiple times in a row for the same route
+      // custom header won't persist across navigation changes
+      const middlewareProcessed = request.headers.get('x-middleware-processed');
+    
+      if (middlewareProcessed === 'true') {
+        console.debug('Request already processed by middleware, skipping');
+        return NextResponse.next();
+      }
+
       if (!middlewareConfig.enabled) {
         return NextResponse.next();
       }
@@ -154,8 +165,6 @@ export abstract class BaseAuthProvider {
 
       const allPublicPaths = [
         ...middlewareConfig.publicPaths,
-        "/api/auth/refresh",
-        "/api/auth/create-tenant",
       ];
 
       if (this.isPublicPath(pathname, allPublicPaths)) {
@@ -192,9 +201,7 @@ export abstract class BaseAuthProvider {
                 "Session refresh failed, redirecting to login: ",
                 await refreshResponse.text(),
               );
-              const response = this.redirectToLogin(request, middlewareConfig);
-              response.cookies.delete(middlewareConfig.cookieName);
-              return response;
+              return this.redirectToLogin(request, middlewareConfig);
             }
 
             // Create a next response
@@ -206,20 +213,16 @@ export abstract class BaseAuthProvider {
                 response.headers.append("Set-Cookie", value);
               }
             });
-
+            response.headers.set('x-middleware-processed', 'true');
             return response;
           } catch (error) {
             console.debug("Session refresh failed, redirecting to login: ", error);
-            const response = this.redirectToLogin(request, middlewareConfig);
-            response.cookies.delete(middlewareConfig.cookieName);
-            return response;
+            return this.redirectToLogin(request, middlewareConfig);
           }
         }
 
         console.debug("Invalid session, redirecting to login");
-        const response = this.redirectToLogin(request, middlewareConfig);
-        response.cookies.delete(middlewareConfig.cookieName);
-        return response;
+        return this.redirectToLogin(request, middlewareConfig);
       } catch (error) {
         console.error("Authentication middleware error:", {
           error: error instanceof Error ? error.message : "Unknown error",
