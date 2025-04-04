@@ -55,6 +55,11 @@ export const NamespaceNavbar = ({
             <QuickNavPopover
               items={[
                 {
+                  id: "requests",
+                  label: "Requests",
+                  href: `/ratelimits/${namespace.id}`,
+                },
+                {
                   id: "logs",
                   label: "Logs",
                   href: `/ratelimits/${namespace.id}/logs`,
