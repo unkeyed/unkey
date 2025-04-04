@@ -20,6 +20,7 @@ func TestContextCancellation(t *testing.T) {
 	// Create a containers instance for database
 	containers := containers.New(t)
 	dbDsn, _ := containers.RunMySQL()
+	_, redisUrl, _ := containers.RunRedis()
 	// Get free ports for the node
 	portAllocator := port.New()
 	httpPort := portAllocator.Get()
@@ -36,6 +37,7 @@ func TestContextCancellation(t *testing.T) {
 		Clock:                   nil, // Will use real clock
 		InstanceID:              uid.New(uid.InstancePrefix),
 		LogsColor:               false,
+		RedisUrl:                redisUrl,
 		ClickhouseURL:           "",
 		DatabasePrimary:         dbDsn,
 		DatabaseReadonlyReplica: "",

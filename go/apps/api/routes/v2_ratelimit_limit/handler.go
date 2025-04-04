@@ -188,10 +188,6 @@ func New(svc Services) zen.Route {
 				}
 			}
 		}
-		if limitReq.Time.IsZero() {
-
-			panic("request time must not be zero")
-		}
 
 		result, err := svc.Ratelimit.Ratelimit(ctx, limitReq)
 		if err != nil {
