@@ -7,17 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import type { Organization } from "@/lib/auth/types";
 import { Button } from "@unkey/ui";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { useLocalStorage } from "usehooks-ts";
 import { completeOrgSelection } from "../actions";
 
 interface OrgSelectorProps {
@@ -25,10 +20,13 @@ interface OrgSelectorProps {
 }
 
 export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
-  const [selected, setSelected] = useState<string>();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState<null | string>(null);
   const [clientReady, setClientReady] = useState(false);
-
+  const [lastUsed, setLastUsed] = useLocalStorage<string | undefined>(
+    "unkey_last_org_id",
+    undefined,
+  );
   // Set client ready after hydration
   useEffect(() => {
     setClientReady(true);
@@ -36,11 +34,14 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
     setIsOpen(true);
   }, []);
 
-  const handleContinue = async () => {
-    if (!selected) {
+  const submit = async (orgId: string) => {
+    if (isLoading) {
       return;
     }
-    await completeOrgSelection(selected);
+    setIsLoading(orgId);
+    await completeOrgSelection(orgId);
+    setLastUsed(orgId);
+    setIsLoading(null);
     setIsOpen(false);
   };
 
@@ -58,21 +59,25 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
             Select a workspace to continue authentication:
           </DialogDescription>
         </DialogHeader>
-        <Select onValueChange={(orgId) => setSelected(orgId)} value={selected}>
-          <SelectTrigger className="dark">
-            <SelectValue placeholder="Select a Workspace" />
-          </SelectTrigger>
-          <SelectContent className="dark">
-            {organizations.map((org) => (
-              <SelectItem key={org.id} value={org.id}>
+
+        <ul className="flex flex-col gap-4 w-full overflow-y-auto max-h-96">
+          {organizations
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((org) => (
+              <Button
+                variant={lastUsed === org.id ? "primary" : "outline"}
+                size="2xlg"
+                loading={isLoading === org.id}
+                key={org.id}
+                onClick={() => submit(org.id)}
+              >
                 {org.name}
-              </SelectItem>
+                {lastUsed === org.id ? (
+                  <span className="absolute right-4 text-xs text-content-subtle">Last used</span>
+                ) : null}
+              </Button>
             ))}
-          </SelectContent>
-        </Select>
-        <Button className="dark" variant="primary" onClick={handleContinue} disabled={!selected}>
-          Continue with Sign-In
-        </Button>
+        </ul>
       </DialogContent>
     </Dialog>
   );
