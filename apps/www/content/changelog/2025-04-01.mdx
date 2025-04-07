@@ -26,6 +26,58 @@ We believe these changes will make Unkey an even more attractive and accessible 
 
 Check out the updated pricing table on our pricing page [here](/pricing).
 
-### API / Ratelimit Overview upgrade
+### Ratelimit Overview overhaul
 
-We have completely revamped our API and ratelimit overview page.
+We have completely revamped our ratelimit overview page, making analytics the main focus of the page. You can see data such as:
+
+- Request count
+- Identifier
+- Passed / block requests
+
+
+<ImageZoom src="/images/changelog/2025-04-04/ratelimits.png" alt="Ratelimits example" width="1920" height="1080"/>
+
+You can also override an identifier directly on the page to make blocking or allowing requests more easily.
+
+
+<ImageZoom src="/images/changelog/2025-04-04/override.png" alt="Override example" width="1920" height="1080"/>
+
+
+
+## Other PRs 
+
+### Added
+- 
+
+### Changed
+- Sidebar component added with improved UI and accessibility features.
+- Global baseUrl function created to infer Vercel URL for WorkOS redirect more reliably.
+- RESTful API and API Documentation-Driven Design topics added and updated in the glossary.
+- Switched authentication from Clerk to WorkOS, along with necessary migrations and auth abstraction.
+- Updated middleware to allow webhooks more securely.
+- Disable backend navigation action items to improve UI clarity and performance.
+- Main configuration centralized for cache management.
+- Sampling support for tracing allows specifying the rate via configurations.
+- Updated layout.tsx to improve URL structure and maintain consistency.
+- Enabled RPC server attributes in OpenTelemetry configuration for performance optimization.
+
+### Deprecated
+- Deprecated use of useEffect in dark mode settings due to defaulting issues, replaced with className approach.
+
+### Removed
+- Removed outdated and redundant quota checks.
+- Removed Clerk authentication system completely.
+- Backend engineering job post deleted after recruitment completion.
+- Unused files and code related to the unused banner component.
+
+### Fixed
+- OAuth extraction from URL to improve security.
+- Dark mode forced on the auth page to respect user's system preferences.
+- Vercel redirection configuration for WorkOS fixed to handle edge cases.
+- Sign out functionality adoption fixed.
+- Timestamp conversion for logs and related elements.
+- Layout shifts, missing props for UI components, and hydration issues addressed with dynamic imports and better coding practices.
+- Multiple minor bug fixes like navbar realignment, format issues, wrong environment variables, and outdated quota handling.
+
+### Security
+- Addresses a critical security vulnerability, CVE-2025-29927.
