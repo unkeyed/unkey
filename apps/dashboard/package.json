@@ -101,7 +101,7 @@
     "tailwindcss": "^3.4.3",
     "tailwindcss-animate": "^1.0.7",
     "trpc-tools": "^0.12.0",
-    "typescript": "5.5.3",
+    "typescript": "^5.7.3",
     "usehooks-ts": "^3.1.0",
     "zod": "^3.23.5"
   },
@@ -111,7 +111,7 @@
     "@testing-library/react-hooks": "^8.0.1",
     "@types/d3-array": "^3.2.1",
     "@types/ms": "^0.7.34",
-    "@types/node": "^20.14.9",
+    "@types/node": "^22.14.0",
     "@types/react": "18.3.11",
     "@types/react-dom": "18.3.0",
     "autoprefixer": "^10.4.19",

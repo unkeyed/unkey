@@ -44,12 +44,13 @@ describe("getStructuredSearchFromLLM", () => {
   };
 
   it("should return TRPCError if openai is not configured", async () => {
-    const result = await getStructuredSearchFromLLM(null as any, "test query", 1706024400000);
-    expect(result).rejects.toThrowError(
+    await expect(
+      getStructuredSearchFromLLM(null as any, "test query", 1706024400000)
+    ).rejects.toThrowError(
       new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "OpenAI isn't configured correctly, please check your API key",
-      }),
+      })
     );
   });
 
@@ -71,7 +72,7 @@ describe("getStructuredSearchFromLLM", () => {
     const result = await getStructuredSearchFromLLM(
       mockOpenAI as any,
       "find rejected requests",
-      1706024400000,
+      1706024400000
     );
 
     expect(result).toEqual({
@@ -101,7 +102,7 @@ describe("getStructuredSearchFromLLM", () => {
     const result = await getStructuredSearchFromLLM(
       mockOpenAI as any,
       "find requests containing test with identifier abc-123",
-      1706024400000,
+      1706024400000
     );
 
     expect(result).toEqual({
@@ -126,7 +127,11 @@ describe("getStructuredSearchFromLLM", () => {
     mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     await expect(
-      getStructuredSearchFromLLM(mockOpenAI as any, "invalid query", 1706024400000),
+      getStructuredSearchFromLLM(
+        mockOpenAI as any,
+        "invalid query",
+        1706024400000
+      )
     ).rejects.toThrow(TRPCError);
   });
 
@@ -136,26 +141,29 @@ describe("getStructuredSearchFromLLM", () => {
     });
 
     await expect(
-      getStructuredSearchFromLLM(mockOpenAI as any, "test query", 1706024400000),
+      getStructuredSearchFromLLM(mockOpenAI as any, "test query", 1706024400000)
     ).rejects.toThrowError(
       new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message: "Search rate limit exceeded. Please try again in a few minutes.",
-      }),
+        message:
+          "Search rate limit exceeded. Please try again in a few minutes.",
+      })
     );
   });
 
   it("should handle general errors", async () => {
-    mockOpenAI.beta.chat.completions.parse.mockRejectedValueOnce(new Error("Unknown error"));
+    mockOpenAI.beta.chat.completions.parse.mockRejectedValueOnce(
+      new Error("Unknown error")
+    );
 
     await expect(
-      getStructuredSearchFromLLM(mockOpenAI as any, "test query", 1706024400000),
+      getStructuredSearchFromLLM(mockOpenAI as any, "test query", 1706024400000)
     ).rejects.toThrowError(
       new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
           "Failed to process your search query. Please try again or contact support@unkey.dev if the issue persists.",
-      }),
+      })
     );
   });
 });

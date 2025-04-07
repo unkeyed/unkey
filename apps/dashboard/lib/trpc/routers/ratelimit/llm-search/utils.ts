@@ -26,10 +26,11 @@ import { zodResponseFormat } from "openai/helpers/zod.mjs";
 export async function getStructuredSearchFromLLM(
   openai: OpenAI | null,
   userSearchMsg: string,
-  usersReferenceMS: number,
+  usersReferenceMS: number
 ) {
   try {
     if (!openai) {
+      console.log(openai);
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "OpenAI isn't configured correctly, please check your API key",
@@ -74,8 +75,8 @@ export async function getStructuredSearchFromLLM(
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
-        userSearchMsg,
-      )}\n Output ${(error as Error).message}}`,
+        userSearchMsg
+      )}\n Output ${(error as Error).message}}`
     );
     if (error instanceof TRPCError) {
       throw error;
@@ -84,7 +85,8 @@ export async function getStructuredSearchFromLLM(
     if ((error as any).response?.status === 429) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message: "Search rate limit exceeded. Please try again in a few minutes.",
+        message:
+          "Search rate limit exceeded. Please try again in a few minutes.",
       });
     }
 
