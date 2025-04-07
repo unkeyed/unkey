@@ -2,10 +2,7 @@ import type { QuerySearchParams } from "@/app/(app)/logs/filters.schema";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FilterValue } from "../validation/filter.types";
-import {
-  type SavedFiltersGroup,
-  useBookmarkedFilters,
-} from "./use-bookmarked-filters";
+import { type SavedFiltersGroup, useBookmarkedFilters } from "./use-bookmarked-filters";
 
 // Mock modules
 vi.mock("nuqs", () => {
@@ -131,9 +128,7 @@ describe("useBookmarkedFilters", () => {
 
     localStorageMock.setItem("savedFilters", JSON.stringify(savedFilters));
 
-    const { result, rerender } = renderHook(() =>
-      useBookmarkedFilters(defaultProps)
-    );
+    const { result, rerender } = renderHook(() => useBookmarkedFilters(defaultProps));
 
     act(() => {
       result.current.toggleBookmark(savedFilters[0].id);
@@ -175,9 +170,7 @@ describe("useBookmarkedFilters", () => {
       bookmarked: false,
     };
 
-    const { result, rerender } = renderHook(() =>
-      useBookmarkedFilters(defaultProps)
-    );
+    const { result, rerender } = renderHook(() => useBookmarkedFilters(defaultProps));
     const { applyFilterGroup } = result.current;
 
     expect(mockFilters.length).toBe(0);

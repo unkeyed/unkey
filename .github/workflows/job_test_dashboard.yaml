@@ -1,0 +1,16 @@
+name: Test Dashboard
+on:
+  workflow_call:
+jobs:
+  test:
+    name: Test Dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          ts: true
+      - name: Run dashboard tests
+        run: pnpm run test
+        working-directory: apps/dashboard
