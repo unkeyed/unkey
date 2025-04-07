@@ -11,26 +11,20 @@ tasks:
   pull:
     cmds:
       - docker pull mysql:latest
+      - docker pull grafana/otel-lgtm:latest
 
   test-full:
     deps:
       - pull
-      - otel
     env:
       INTEGRATION_TEST: true
       SIMULATION_TEST: false
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
-      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
     cmds:
-      - go test -failfast -timeout=60m -shuffle=on ./...
+      - go test -failfast -timeout=60m -shuffle=on -v ./...
 
   test-unit:
     cmds:
       - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
-
-  otel:
-    cmds:
-      - docker compose -f ../deployment/docker-compose.yaml up otel -d
 
   build:
     cmds:

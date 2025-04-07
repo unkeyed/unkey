@@ -52,6 +52,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Permissions:                   svc.Permissions,
 			RatelimitNamespaceByNameCache: svc.Caches.RatelimitNamespaceByName,
 			RatelimitOverrideMatchesCache: svc.Caches.RatelimitOverridesMatch,
+			TestMode:                      srv.Flags().TestMode,
 		}),
 	)
 	// v2/ratelimit.setOverride
