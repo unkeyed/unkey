@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogContainer } from "@/components/dialog-container";
 
 import type { Organization } from "@/lib/auth/types";
 import { Button } from "@unkey/ui";
@@ -24,7 +18,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
   const [isLoading, setIsLoading] = useState<null | string>(null);
   const [clientReady, setClientReady] = useState(false);
   const [lastUsed, setLastUsed] = useLocalStorage<string | undefined>(
-    "unkey_last_org_id",
+    "unkey_last_org_name",
     undefined,
   );
   // Set client ready after hydration
@@ -34,51 +28,44 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
     setIsOpen(true);
   }, []);
 
-  const submit = async (orgId: string) => {
+  const submit = async (orgId: string, orgName: string) => {
     if (isLoading) {
       return;
     }
     setIsLoading(orgId);
     await completeOrgSelection(orgId);
-    setLastUsed(orgId);
+    setLastUsed(orgName);
     setIsLoading(null);
     setIsOpen(false);
   };
 
   return (
-    <Dialog
-      open={clientReady && isOpen}
+    <DialogContainer
+      className="dark"
+      isOpen={clientReady && isOpen}
       onOpenChange={(open) => {
         setIsOpen(open);
       }}
+      title="Select a workspace"
     >
-      <DialogContent className="dark border-border w-11/12">
-        <DialogHeader className="dark">
-          <DialogTitle className="text-white">Workspace Selection</DialogTitle>
-          <DialogDescription className="dark">
-            Select a workspace to continue authentication:
-          </DialogDescription>
-        </DialogHeader>
-
-        <ul className="flex flex-col gap-4 w-full overflow-y-auto max-h-96">
-          {organizations
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((org) => (
-              <Button
-                variant={lastUsed === org.id ? "primary" : "outline"}
-                size="2xlg"
-                loading={isLoading === org.id}
-                key={org.id}
-                onClick={() => submit(org.id)}
-              >
-                {org.name}
-                {lastUsed === org.id ? (
-                  <span className="absolute right-4 text-xs text-content-subtle">Last used</span>
-                ) : null}
-              </Button>
-            ))}
-        </ul>
-      </DialogContent>
-    </Dialog>
+      <ul className="flex flex-col gap-4 w-full overflow-y-auto max-h-96">
+        {organizations
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((org) => (
+            <Button
+              variant={lastUsed === org.name ? "primary" : "outline"}
+              size="2xlg"
+              loading={isLoading === org.id}
+              key={org.id}
+              onClick={() => submit(org.id, org.name)}
+            >
+              {org.name}
+              {lastUsed === org.name ? (
+                <span className="absolute right-4 text-xs text-content-subtle">Last used</span>
+              ) : null}
+            </Button>
+          ))}
+      </ul>
+    </DialogContainer>
   );
 };

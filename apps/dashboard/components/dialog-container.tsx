@@ -10,6 +10,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import type { PropsWithChildren, ReactNode } from "react";
 
 type DialogContainerProps = PropsWithChildren<{
+  className?: string;
   isOpen: boolean;
   onOpenChange: (value: boolean) => void;
   title: string;
@@ -19,6 +20,7 @@ type DialogContainerProps = PropsWithChildren<{
 }>;
 
 export const DialogContainer = ({
+  className,
   isOpen,
   onOpenChange,
   title,
@@ -30,7 +32,10 @@ export const DialogContainer = ({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className="drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0"
+        className={cn(
+          "drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0",
+          className,
+        )}
         onOpenAutoFocus={(e) => {
           if (preventAutoFocus) {
             e.preventDefault();
