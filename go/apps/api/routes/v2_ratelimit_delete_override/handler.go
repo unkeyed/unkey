@@ -206,7 +206,12 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		return s.JSON(http.StatusOK, Response{})
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.RatelimitDeleteOverrideResponseData{},
+		})
 	})
 }
 
