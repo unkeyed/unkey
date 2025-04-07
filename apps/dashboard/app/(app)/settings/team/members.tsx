@@ -26,112 +26,106 @@ type MembersProps = {
   userMembership: Membership | null;
 };
 
-export const Members = memo<MembersProps>(
-  ({ organization, user, userMembership }) => {
-    const { data: orgMemberships, isLoading } = trpc.org.members.list.useQuery(
-      organization!.id
-    );
-    const memberships = orgMemberships?.data;
-    const isAdmin = userMembership?.role === "admin";
-    const utils = trpc.useUtils();
+export const Members = memo<MembersProps>(({ organization, user, userMembership }) => {
+  const { data: orgMemberships, isLoading } = trpc.org.members.list.useQuery(organization!.id);
+  const memberships = orgMemberships?.data;
+  const isAdmin = userMembership?.role === "admin";
+  const utils = trpc.useUtils();
 
-    const removeMember = trpc.org.members.remove.useMutation({
-      onSuccess: () => {
-        // Invalidate the member list query to trigger a refetch
-        utils.org.members.list.invalidate();
-        toast.success("Member removed successfully");
-      },
-      onError: (error) => {
-        toast.error(error.message || "Failed to remove member");
-      },
-    });
+  const removeMember = trpc.org.members.remove.useMutation({
+    onSuccess: () => {
+      // Invalidate the member list query to trigger a refetch
+      utils.org.members.list.invalidate();
+      toast.success("Member removed successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to remove member");
+    },
+  });
 
-    if (isLoading) {
-      return (
-        <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
-          <Loading />
-        </div>
-      );
-    }
-
-    if (!memberships || memberships.length === 0) {
-      return (
-        <Empty>
-          <Empty.Title>No team members</Empty.Title>
-          <Empty.Description>Invite members to your team</Empty.Description>
-          {isAdmin && <InviteButton user={user} organization={organization} />}
-        </Empty>
-      );
-    }
-
+  if (isLoading) {
     return (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Member</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>{/*/ empty */}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {memberships.map(({ id, role, user: member }) => (
-            <TableRow key={id}>
-              <TableCell>
-                <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
-                  <Avatar>
-                    <AvatarImage src={member.avatarUrl ?? undefined} />
-                    <AvatarFallback>
-                      {member.fullName?.slice(0, 1) ?? member.email.slice(0, 1)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start">
-                    <span className="text-content font-medium">
-                      {`${member.firstName ? member.firstName : member.email} ${
-                        member.lastName ? member.lastName : ""
-                      }`}
-                    </span>
-                    <span className="text-content-subtle text-xs">
-                      {member.firstName ? member.email : ""}
-                    </span>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <RoleSwitcher
-                  member={{ id, role }}
-                  organization={organization}
-                  user={user}
-                  userMembership={userMembership}
-                />
-              </TableCell>
-              <TableCell>
-                {isAdmin && user && member.id !== user.id ? (
-                  <Confirm
-                    variant="destructive"
-                    title="Remove member"
-                    description={`Are you sure you want to remove ${member.email}?`}
-                    onConfirm={async () => {
-                      try {
-                        await removeMember.mutateAsync({
-                          orgId: organization!.id,
-                          membershipId: id,
-                        });
-                      } catch (error) {
-                        console.error("Error removing member:", error);
-                      }
-                    }}
-                    trigger={(onClick) => (
-                      <Button onClick={onClick}>Remove</Button>
-                    )}
-                  />
-                ) : null}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
+        <Loading />
+      </div>
     );
   }
-);
+
+  if (!memberships || memberships.length === 0) {
+    return (
+      <Empty>
+        <Empty.Title>No team members</Empty.Title>
+        <Empty.Description>Invite members to your team</Empty.Description>
+        {isAdmin && <InviteButton user={user} organization={organization} />}
+      </Empty>
+    );
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Member</TableHead>
+          <TableHead>Role</TableHead>
+          <TableHead>{/*/ empty */}</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {memberships.map(({ id, role, user: member }) => (
+          <TableRow key={id}>
+            <TableCell>
+              <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
+                <Avatar>
+                  <AvatarImage src={member.avatarUrl ?? undefined} />
+                  <AvatarFallback>
+                    {member.fullName?.slice(0, 1) ?? member.email.slice(0, 1)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start">
+                  <span className="text-content font-medium">
+                    {`${member.firstName ? member.firstName : member.email} ${
+                      member.lastName ? member.lastName : ""
+                    }`}
+                  </span>
+                  <span className="text-content-subtle text-xs">
+                    {member.firstName ? member.email : ""}
+                  </span>
+                </div>
+              </div>
+            </TableCell>
+            <TableCell>
+              <RoleSwitcher
+                member={{ id, role }}
+                organization={organization}
+                user={user}
+                userMembership={userMembership}
+              />
+            </TableCell>
+            <TableCell>
+              {isAdmin && user && member.id !== user.id ? (
+                <Confirm
+                  variant="destructive"
+                  title="Remove member"
+                  description={`Are you sure you want to remove ${member.email}?`}
+                  onConfirm={async () => {
+                    try {
+                      await removeMember.mutateAsync({
+                        orgId: organization!.id,
+                        membershipId: id,
+                      });
+                    } catch (error) {
+                      console.error("Error removing member:", error);
+                    }
+                  }}
+                  trigger={(onClick) => <Button onClick={onClick}>Remove</Button>}
+                />
+              ) : null}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+});
 
 Members.displayName = "Members";
