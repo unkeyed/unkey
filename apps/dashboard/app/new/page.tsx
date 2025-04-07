@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
-import { getAuth, getCurrentUser } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
@@ -24,6 +24,8 @@ type Props = {
 
 
 export default async function (props: Props) {
+  const _auth = await getAuth(); 
+
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({
       where: (table, { eq }) => eq(table.id, props.searchParams.apiId!),
