@@ -1,7 +1,7 @@
 "use client";
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { trpc } from "@/lib/trpc/client";
-import { Gear } from "@unkey/icons";
+import { ArrowOppositeDirectionY, Gear } from "@unkey/icons";
 import { Key } from "lucide-react";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
@@ -30,8 +30,8 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
     return data.pages.flatMap((page) =>
       page.apiList.map((api) => {
         const currentApiActive = segments.at(0) === "apis" && segments.at(1) === api.id;
+        const isExactlyApiRoot = currentApiActive && segments.length === 2;
 
-        // Create settings sub-item
         const settingsItem: NavItem = {
           icon: Gear,
           href: `/apis/${api.id}/settings`,
@@ -39,7 +39,14 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
           active: currentApiActive && segments.at(2) === "settings",
         };
 
-        const subItems: NavItem[] = [settingsItem];
+        const overviewItem: NavItem = {
+          icon: ArrowOppositeDirectionY,
+          href: `/apis/${api.id}`,
+          label: "Requests",
+          active: isExactlyApiRoot || (currentApiActive && !segments.at(2)),
+        };
+
+        const subItems: NavItem[] = [overviewItem, settingsItem];
 
         if (api.keyspaceId) {
           const keysItem: NavItem = {

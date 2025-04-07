@@ -2,7 +2,12 @@
 
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { trpc } from "@/lib/trpc/client";
-import { Gear, Layers3, Sliders } from "@unkey/icons";
+import {
+  ArrowDottedRotateAnticlockwise,
+  ArrowOppositeDirectionY,
+  Gear,
+  Layers3,
+} from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
@@ -32,8 +37,16 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
         const currentNamespaceActive =
           segments.at(0) === "ratelimits" && segments.at(1) === namespace.id;
 
+        const isExactlyRatelimitRoot = currentNamespaceActive && segments.length === 2;
+
         // Create sub-items for logs, settings, and overrides
         const subItems: NavItem[] = [
+          {
+            icon: ArrowOppositeDirectionY,
+            href: `/ratelimits/${namespace.id}`,
+            label: "Requests",
+            active: isExactlyRatelimitRoot || (currentNamespaceActive && !segments.at(2)),
+          },
           {
             icon: Layers3,
             href: `/ratelimits/${namespace.id}/logs`,
@@ -47,7 +60,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
             active: currentNamespaceActive && segments.at(2) === "settings",
           },
           {
-            icon: Sliders,
+            icon: ArrowDottedRotateAnticlockwise,
             href: `/ratelimits/${namespace.id}/overrides`,
             label: "Overrides",
             active: currentNamespaceActive && segments.at(2) === "overrides",

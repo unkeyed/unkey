@@ -43,11 +43,20 @@ export const NestedNavItem = ({
   const handleMenuItemClick = (e: React.MouseEvent) => {
     // If the item has children, toggle the open state
     if (item.items && item.items.length > 0) {
-      e.preventDefault();
-      setIsOpen((prev) => !prev);
+      // Check if we're closing or opening
+      const willClose = isOpen;
+
+      // Toggle the open state
+      setIsOpen(!isOpen);
+
+      // If we're closing, prevent navigation
+      if (willClose) {
+        e.preventDefault();
+        return;
+      }
     }
 
-    // If the item has a href, also navigate to it
+    // If the item has a href, navigate to it
     if (item.href) {
       if (!item.external) {
         // Show loading state ONLY for parent
@@ -126,7 +135,7 @@ export const NestedNavItem = ({
             {subPending[subItem.label as string] ? (
               <AnimatedLoadingSpinner />
             ) : SubIcon ? (
-              <SubIcon />
+              <SubIcon size="xl-medium" />
             ) : null}
             <span className="truncate">{subItem.label}</span>
             {subItem.tag && <div className="ml-auto">{subItem.tag}</div>}
@@ -157,7 +166,11 @@ export const NestedNavItem = ({
           )}
           onClick={handleMenuItemClick}
         >
-          {showParentLoader && Icon ? <AnimatedLoadingSpinner /> : Icon ? <Icon /> : null}
+          {showParentLoader && Icon ? (
+            <AnimatedLoadingSpinner />
+          ) : Icon ? (
+            <Icon size="xl-medium" />
+          ) : null}
           <span className="truncate max-w-[180px]">{item.label}</span>
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
           {/* Chevron icon to indicate there are children */}
