@@ -47,6 +47,11 @@ export const ApisNavbar = ({
             <QuickNavPopover
               items={[
                 {
+                  id: "requests",
+                  label: "Requests",
+                  href: `/apis/${api.id}`,
+                },
+                {
                   id: "keys",
                   label: "Keys",
                   href: `/apis/${api.id}/keys/${api.keyAuthId}`,
