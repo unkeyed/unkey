@@ -238,7 +238,7 @@ const FlatNavItem = memo(({ item }: { item: NavItem }) => {
           isActive={item.active}
           className={getButtonStyles(item.active, showLoader)}
         >
-          {showLoader ? <AnimatedLoadingSpinner /> : <Icon size="xl-medium" />}
+          {showLoader ? <AnimatedLoadingSpinner /> : Icon ? <Icon size="xl-medium" /> : null}
           <span>{item.label}</span>
         </SidebarMenuButton>
       </NavLink>
@@ -264,7 +264,7 @@ const NestedNavItem = memo(({ item }: { item: NavItem & { items?: NavItem[] } })
             isActive={item.active}
             className={getButtonStyles(item.active, showLoader)}
           >
-            {showLoader ? <AnimatedLoadingSpinner /> : <Icon />}
+            {showLoader ? <AnimatedLoadingSpinner /> : Icon ? <Icon size="xl-medium" /> : null}
             <span>{item.label}</span>
             <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
           </SidebarMenuButton>
@@ -336,6 +336,8 @@ const ToggleSidebarButton = memo(
     toggleNavItem: NavItem;
     toggleSidebar: () => void;
   }) => {
+    const Icon = toggleNavItem.icon;
+
     return (
       <SidebarMenuItem>
         <SidebarMenuButton
@@ -344,7 +346,7 @@ const ToggleSidebarButton = memo(
           className={getButtonStyles(toggleNavItem.active)}
           onClick={toggleSidebar}
         >
-          <toggleNavItem.icon size="xl-medium" />
+          {Icon && <Icon size="xl-medium" />}
           <span>{toggleNavItem.label}</span>
         </SidebarMenuButton>
       </SidebarMenuItem>
