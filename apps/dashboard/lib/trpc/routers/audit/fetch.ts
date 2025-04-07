@@ -78,25 +78,31 @@ export const queryAuditLogs = async (
   const rootKeyValues = (params.rootKeys ?? []).map((r) => r.value);
   const users = [...userValues, ...rootKeyValues];
 
-  const cursor = params.cursorTime !== null ? { time: params.cursorTime } : null;
+  const cursor = params.cursor;
 
   const retentionDays =
     (workspace.features.auditLogRetentionDays ?? workspace.plan === "free") ? 30 : 90;
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
+  // By default we need the last "50"(LIMIT) records.
+  const hasTimeFilter = params.startTime !== undefined || params.endTime !== undefined;
+
   const logs = await db.query.auditLog.findMany({
-    where: (table, { eq, or, and, inArray, between, lt }) =>
+    where: (table, { eq, and, inArray, between, lt, gte }) =>
       and(
         eq(table.workspaceId, workspace.id),
         eq(table.bucket, params.bucket),
         events.length > 0 ? inArray(table.event, events) : undefined,
-        between(
-          table.time,
-          Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
-          params.endTime ?? Date.now(),
-        ),
+        // Apply time filters only if explicitly provided, otherwise just respect retention period
+        hasTimeFilter
+          ? between(
+              table.time,
+              Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
+              params.endTime ?? Date.now(),
+            )
+          : gte(table.time, retentionCutoffUnixMilli), // Only enforce retention period
         users.length > 0 ? inArray(table.actorId, users) : undefined,
-        cursor ? or(lt(table.time, cursor.time)) : undefined,
+        cursor ? lt(table.time, cursor) : undefined,
       ),
     with: {
       targets: true,
@@ -104,7 +110,6 @@ export const queryAuditLogs = async (
     orderBy: (table, { desc }) => desc(table.time),
     limit: params.limit + 1,
   });
-
   return logs;
 };
 
