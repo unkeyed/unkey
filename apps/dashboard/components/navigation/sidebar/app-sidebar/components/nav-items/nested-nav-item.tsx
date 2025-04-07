@@ -132,10 +132,12 @@ export const NestedNavItem = ({
             isActive={subItem.active}
             className={getButtonStyles(subItem.active, subPending[subItem.label as string])}
           >
-            {subPending[subItem.label as string] ? (
-              <AnimatedLoadingSpinner />
-            ) : SubIcon ? (
-              <SubIcon size="xl-medium" />
+            {SubIcon ? (
+              subPending[subItem.label as string] ? (
+                <AnimatedLoadingSpinner />
+              ) : (
+                <SubIcon size="xl-medium" />
+              )
             ) : null}
             <span className="truncate">{subItem.label}</span>
             {subItem.tag && <div className="ml-auto">{subItem.tag}</div>}
@@ -166,11 +168,7 @@ export const NestedNavItem = ({
           )}
           onClick={handleMenuItemClick}
         >
-          {showParentLoader && Icon ? (
-            <AnimatedLoadingSpinner />
-          ) : Icon ? (
-            <Icon size="xl-medium" />
-          ) : null}
+          {Icon ? showParentLoader ? <AnimatedLoadingSpinner /> : <Icon size="xl-medium" /> : null}
           <span className="truncate max-w-[180px]">{item.label}</span>
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
           {/* Chevron icon to indicate there are children */}
