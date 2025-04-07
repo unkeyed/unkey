@@ -44,7 +44,7 @@ export const ApiListGrid = ({
           <ApiListCard api={api} key={api.id} />
         ))}
       </div>
-      <div className="flex flex-col items-center justify-center mt-8 space-y-4">
+      <div className="flex flex-col items-center justify-center mt-8 space-y-4 pb-8">
         <div className="text-center text-sm text-accent-11">
           Showing {apiList.length} of {total} APIs
         </div>
