@@ -3,9 +3,11 @@ package seed
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
@@ -119,7 +121,23 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				Description: sql.NullString{String: "", Valid: false},
 				CreatedAt:   time.Now().UnixMilli(),
 			})
-			require.NoError(s.t, err)
+
+			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
+			if errors.As(err, &mysqlErr) {
+				// Error 1062 (23000): Duplicate entry
+				if mysqlErr.Number == 1064 {
+					existing, findErr := db.Query.FindPermissionByWorkspaceAndName(ctx, s.DB.RO(), db.FindPermissionByWorkspaceAndNameParams{
+						WorkspaceID: s.Resources.RootWorkspace.ID,
+						Name:        permission,
+					})
+					require.NoError(s.t, findErr)
+					s.t.Logf("found existing permission: %+v", existing)
+					permissionID = existing.ID
+				}
+
+			} else {
+				require.NoError(s.t, err)
+			}
 
 			err = db.Query.InsertKeyPermission(ctx, s.DB.RW(), db.InsertKeyPermissionParams{
 				PermissionID: permissionID,

@@ -52,7 +52,7 @@ func NewHarness(t *testing.T) *Harness {
 
 	cont := containers.New(t)
 
-	dsn, _ := cont.RunMySQL()
+	dsn, _ := cont.RunMySQL(containers.WithReuse(true), containers.WithPurge(false))
 
 	_, redisUrl, _ := cont.RunRedis()
 
@@ -70,8 +70,7 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	srv, err := zen.New(zen.Config{
-		InstanceID: "test",
-		Logger:     logger,
+		Logger: logger,
 		Flags: &zen.Flags{
 			TestMode: true,
 		},
@@ -114,9 +113,6 @@ func NewHarness(t *testing.T) *Harness {
 
 	// Create seeder
 	seeder := seed.New(t, db)
-
-	// Seed the database
-	seeder.Seed(context.Background())
 
 	h := Harness{
 		t:           t,

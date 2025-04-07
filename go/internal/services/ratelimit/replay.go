@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/assert"
-	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 // replayRequests processes buffered rate limit events by synchronizing them with
@@ -47,7 +47,7 @@ func (s *service) replayRequests() {
 
 func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) error {
 	defer func(start time.Time) {
-		metrics.Ratelimit.OriginSyncLatency.Record(ctx, time.Since(start).Milliseconds())
+		metrics.RatelimitOriginSyncLatency.Observe(time.Since(start).Seconds())
 	}(time.Now())
 
 	ctx, span := tracing.Start(ctx, "syncWithOrigin")

@@ -25,10 +25,6 @@ type Config struct {
 
 	// Enable TestMode
 	TestMode bool
-	// --- Logs configuration ---
-
-	// LogsColor enables ANSI color codes in log output
-	LogsColor bool
 
 	// --- ClickHouse configuration ---
 
