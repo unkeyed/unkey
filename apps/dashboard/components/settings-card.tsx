@@ -33,7 +33,7 @@ export function SettingCard({
   return (
     <div
       className={cn(
-        "px-6 py-3 w-full flex gap-6 justify-between items-center flex-col lg:flex-row",
+        "px-6 py-3 w-full flex gap-6 justify-between items-center",
         borderRadiusClass,
         borderClass,
         className,
