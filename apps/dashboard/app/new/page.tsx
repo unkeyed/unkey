@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
-import { auth } from "@/lib/auth/server";
+import { getAuth, getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
@@ -10,7 +10,6 @@ import { CreateApi } from "./create-api";
 import { CreateRatelimit } from "./create-ratelimit";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
-import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -23,25 +22,8 @@ type Props = {
   };
 };
 
-// Currently unused in this page.
-/* function getBaseUrl() {
-  if (typeof window !== "undefined") {
-    // browser should use relative path
-    return "";
-  }
-
-  if (process.env.VERCEL_URL) {
-    // reference for vercel.com
-    return `https://${process.env.VERCEL_URL}`;
-  }
-
-  // assume localhost
-  return `http://localhost:${process.env.PORT ?? 3000}`;
-} */
 
 export default async function (props: Props) {
-  const user = await getCurrentUser();
-
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({
       where: (table, { eq }) => eq(table.id, props.searchParams.apiId!),

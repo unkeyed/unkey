@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getCookie } from "./cookies";
 import {
   AuthErrorCode,
   type AuthErrorResponse,
@@ -135,51 +134,50 @@ export abstract class BaseAuthProvider {
     signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
     const response = NextResponse.redirect(signInUrl);
     response.cookies.delete(config.cookieName);
-    response.headers.set('x-middleware-processed', 'true');
+    response.headers.set("x-middleware-processed", "true");
     return response;
   }
 
-/**
- * Creates a Next.js edge middleware function for basic authentication screening.
- * 
- * This factory generates a middleware function that performs lightweight authentication
- * checks at the edge. It only verifies the presence of a session cookie and handles
- * public path exclusions, delegating full authentication validation to server components.
- * 
- * @param config - Optional configuration to override default middleware settings
- * @returns A Next.js middleware function that performs basic auth screening and handles redirects
- * 
- * @example
- * // Create middleware with custom public paths
- * const authMiddleware = authService.createMiddleware({
- *   publicPaths: ['/about', '/pricing', '/api/public'],
- *   loginPath: '/custom-login'
- * });
- * 
- * // In middleware.ts
- * export default authMiddleware;
- */
+  /**
+   * Creates a Next.js edge middleware function for basic authentication screening.
+   *
+   * This factory generates a middleware function that performs lightweight authentication
+   * checks at the edge. It only verifies the presence of a session cookie and handles
+   * public path exclusions, delegating full authentication validation to server components.
+   *
+   * @param config - Optional configuration to override default middleware settings
+   * @returns A Next.js middleware function that performs basic auth screening and handles redirects
+   *
+   * @example
+   * // Create middleware with custom public paths
+   * const authMiddleware = authService.createMiddleware({
+   *   publicPaths: ['/about', '/pricing', '/api/public'],
+   *   loginPath: '/custom-login'
+   * });
+   *
+   * // In middleware.ts
+   * export default authMiddleware;
+   */
   public createMiddleware(config: Partial<MiddlewareConfig> = {}) {
     const middlewareConfig = {
       ...DEFAULT_MIDDLEWARE_CONFIG,
       ...config,
     };
-  
+
     return async (request: NextRequest): Promise<NextResponse> => {
-  
       const { pathname } = request.nextUrl;
-      
+
       // Skip public paths
       if (this.isPublicPath(pathname, middlewareConfig.publicPaths)) {
         return NextResponse.next();
       }
-  
+
       // Check if cookie exists at all (lightweight check)
       const hasSessionCookie = request.cookies.has(middlewareConfig.cookieName);
       if (!hasSessionCookie) {
         return this.redirectToLogin(request, middlewareConfig);
       }
-  
+
       // Allow request to proceed to server components for full auth check
       return NextResponse.next();
     };

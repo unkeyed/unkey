@@ -1,7 +1,7 @@
+import { getCurrentUser } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { switchOrg } from "../actions";
-import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const DASHBOARD_URL = new URL("/apis", request.url);

@@ -1,6 +1,6 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Code } from "@/components/ui/code";
-import { getAuth, getCurrentUser, getOrgId } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { router } from "@/lib/trpc/routers";
 import { createCallerFactory } from "@trpc/server";
 import type { Workspace } from "@unkey/db";
