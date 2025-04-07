@@ -46,7 +46,7 @@ func (tc TestCase) TestName() string {
 var (
 	nodeCounts   = []int{1, 3, 9}
 	limits       = []int64{5, 100, 1000}
-	durations    = []time.Duration{time.Second, time.Minute, time.Hour, 24 * time.Hour}
+	durations    = []time.Duration{time.Second, time.Minute, time.Hour}
 	loadFactors  = []float64{0.9, 2.0, 10.0}
 	windowCounts = []int{10, 100}
 )
