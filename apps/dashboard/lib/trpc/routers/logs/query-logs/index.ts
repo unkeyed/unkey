@@ -41,6 +41,8 @@ export const queryLogs = t.procedure
         });
       });
 
+    console.log(workspace.id);
+
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
