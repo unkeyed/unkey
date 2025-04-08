@@ -1,0 +1,53 @@
+---
+title: 0010 Splitting the monorepo
+description: Splitting the monorepo into multiple smaller, more focused repositories / monorepos.
+date: 2025-04-07
+authors:
+  - James Perkins
+---
+
+## Summary
+
+As our codebase continues to grow, the need for scalability, maintainability, and improved development workflows has become more critical. This RFC proposes splitting our current monorepo into multiple smaller, more focused repositories / monorepos.
+
+## Motivation
+
+We have on several occasions encountered issues with our current Monorepo structure, such as:
+
+- Increased build times due to large codebases
+- Complex dependency management across multiple projects
+- Difficulty onboarding new contributors due to the size and complexity of the monorepo
+- Conflicts between different projects
+
+There is nothing worse than pushing a change that affects a single project only to have a separate project affected as well. While monorepos make sense, splitting the monorepo into smaller, more focused repositories can help address these issues.
+
+## Detailed design
+
+The proposal is to transition from a monorepo to a multi-repo / monorepo architecture, breaking up our codebase into several repositories based on functionality and project scope. Each repository would encapsulate its dependencies, tools, and build processes.
+
+### Key Repositories
+1. **Core**: The Core API code, dashboard, and engineering documentation is contained.
+2. **SDKs**: Houses all our SDKs, this makes autogeneration of SDKs easier.
+3. **Infra**: This includes all infra codes in its repo today.
+4. **Documentation**: Dedicated documentation for Unkey.
+5. **Marketing site**: It's not dependent on anything else, so we should just keep it separate.
+
+## Benefits
+- **Improved Build Performance**: Smaller repositories lead to faster incremental builds and no more waiting for unrelated builds to fire off.
+- **Improved GH Actions**: Only run relevant actions for each repository.
+- **Simplified Dependency Management**: Each repository will manage its dependencies, making upgrading and maintaining easier.
+- **Easier Onboarding**: New developers can clone and work on a smaller codebase relevant to their tasks.
+
+## Drawbacks
+
+The drawback is that there are more repositories to clone and maintain. However, grouping core product functionality into a single repository can lead to a more cohesive and unified codebase, making it easier to maintain and develop.
+
+## Alternatives
+
+The alternative is to keep the mono repo structure as is and continue to bloat it with unrelated projects.
+
+## Unresolved questions
+
+- **Migration Plan**: A clear, step-by-step plan will need to be established for moving code and setting up each new repository.
+- **Communication**: Ensure all team members are updated on changes and can adapt to the new structure, including when we should pull the main and checkout codes.
+- **Tooling**: Set up the necessary tools for managing multiple repositories if needed.
