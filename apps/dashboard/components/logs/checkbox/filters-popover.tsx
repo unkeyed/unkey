@@ -1,10 +1,22 @@
 import { KeyboardButton } from "@/components/keyboard-button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { type KeyboardEvent, type PropsWithChildren, useEffect, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  type PropsWithChildren,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { FilterValue } from "../validation/filter.types";
+import { useMediaQuery } from "usehooks-ts";
+import { Drawer } from "@/components/ui/drawer";
 
 export type FilterItemConfig = {
   id: string;
@@ -23,8 +35,10 @@ export const FiltersPopover = ({
   children,
   items,
   activeFilters,
-  getFilterCount = (field) => activeFilters.filter((f) => f.field === field).length,
+  getFilterCount = (field) =>
+    activeFilters.filter((f) => f.field === field).length,
 }: PropsWithChildren<FiltersPopoverProps>) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [open, setOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -54,12 +68,16 @@ export const FiltersPopover = ({
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setFocusedIndex((prev) => (prev === null ? 0 : (prev + 1) % items.length));
+        setFocusedIndex((prev) =>
+          prev === null ? 0 : (prev + 1) % items.length
+        );
         break;
       case "ArrowUp":
         e.preventDefault();
         setFocusedIndex((prev) =>
-          prev === null ? items.length - 1 : (prev - 1 + items.length) % items.length,
+          prev === null
+            ? items.length - 1
+            : (prev - 1 + items.length) % items.length
         );
         break;
       case "Enter":
@@ -76,27 +94,51 @@ export const FiltersPopover = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent
-        className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg"
-        align="start"
-        onKeyDown={handleKeyDown}
-      >
-        <div className="flex flex-col gap-2 w-full">
-          <PopoverHeader />
-          {items.map((item, index) => (
-            <FilterItem
-              key={item.id}
-              {...item}
-              filterCount={getFilterCount(item.id)}
-              isFocused={focusedIndex === index}
-              isActive={activeFilter === item.id}
-            />
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <>
+      {isMobile ? (
+        <Drawer.Root open={open} onOpenChange={setOpen}>
+          <Drawer.Trigger asChild>{children}</Drawer.Trigger>
+          <Drawer.Content>
+            <div className="flex flex-col w-full">
+              <span className="text-gray-9 text-sm px-4 pt-3">Filters</span>
+              <div className="p-2">
+                {items.map((item, index) => (
+                  <FilterItem
+                    key={item.id}
+                    {...item}
+                    filterCount={getFilterCount(item.id)}
+                    isFocused={focusedIndex === index}
+                    isActive={activeFilter === item.id}
+                  />
+                ))}
+              </div>
+            </div>
+          </Drawer.Content>
+        </Drawer.Root>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>{children}</PopoverTrigger>
+          <PopoverContent
+            className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg"
+            align="start"
+            onKeyDown={handleKeyDown}
+          >
+            <div className="flex flex-col gap-2 w-full">
+              <PopoverHeader />
+              {items.map((item, index) => (
+                <FilterItem
+                  key={item.id}
+                  {...item}
+                  filterCount={getFilterCount(item.id)}
+                  isFocused={focusedIndex === index}
+                  isActive={activeFilter === item.id}
+                />
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+    </>
   );
 };
 
@@ -121,6 +163,7 @@ const FilterItem = ({
   isActive,
   filterCount,
 }: FilterItemProps) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [open, setOpen] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -133,9 +176,13 @@ const FilterItem = ({
     }
   };
 
-  useKeyboardShortcut({ key: shortcut || "", meta: true }, () => setOpen(true), {
-    preventDefault: true,
-  });
+  useKeyboardShortcut(
+    { key: shortcut || "", meta: true },
+    () => setOpen(true),
+    {
+      preventDefault: true,
+    }
+  );
 
   useEffect(() => {
     if (isFocused && itemRef.current) {
@@ -149,7 +196,7 @@ const FilterItem = ({
     }
     if (isActive && open && contentRef.current) {
       const focusableElements = contentRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
       if (focusableElements.length > 0) {
         (focusableElements[0] as HTMLElement).focus();
@@ -160,52 +207,110 @@ const FilterItem = ({
   }, [isActive, open]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <div
-          ref={itemRef}
-          className={`flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer
+    <>
+      {isMobile ? (
+        <Drawer.Nested>
+          <Drawer.Trigger asChild>
+            <div
+              ref={itemRef}
+              className={`flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer
+          hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none
+          ${isFocused ? "bg-gray-3" : ""}`}
+              tabIndex={0}
+              // biome-ignore lint/a11y/useSemanticElements: its okay
+              role="button"
+            >
+              <div className="flex gap-2 items-center">
+                {shortcut && (
+                  <KeyboardButton
+                    shortcut={shortcut}
+                    modifierKey="⌘"
+                    role="presentation"
+                    aria-haspopup="true"
+                    title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
+                  />
+                )}
+                <span className="text-[13px] text-accent-12 font-medium">
+                  {label}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {filterCount > 0 && (
+                  <div className="bg-gray-6 rounded size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
+                    {filterCount}
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  tabIndex={-1}
+                  className="size-5 [&_svg]:size-2"
+                >
+                  <CaretRight className="text-gray-7 group-hover:text-gray-10" />
+                </Button>
+              </div>
+            </div>
+          </Drawer.Trigger>
+          <Drawer.Content ref={contentRef} onKeyDown={handleKeyDown}>
+            {component}
+          </Drawer.Content>
+        </Drawer.Nested>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <div
+              ref={itemRef}
+              className={`flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer
             hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none
             ${isFocused ? "bg-gray-3" : ""}`}
-          tabIndex={0}
-          // biome-ignore lint/a11y/useSemanticElements: its okay
-          role="button"
-        >
-          <div className="flex gap-2 items-center">
-            {shortcut && (
-              <KeyboardButton
-                shortcut={shortcut}
-                modifierKey="⌘"
-                role="presentation"
-                aria-haspopup="true"
-                title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
-              />
-            )}
-            <span className="text-[13px] text-accent-12 font-medium">{label}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {filterCount > 0 && (
-              <div className="bg-gray-6 rounded size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
-                {filterCount}
+              tabIndex={0}
+              // biome-ignore lint/a11y/useSemanticElements: its okay
+              role="button"
+            >
+              <div className="flex gap-2 items-center">
+                {shortcut && (
+                  <KeyboardButton
+                    shortcut={shortcut}
+                    modifierKey="⌘"
+                    role="presentation"
+                    aria-haspopup="true"
+                    title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
+                  />
+                )}
+                <span className="text-[13px] text-accent-12 font-medium">
+                  {label}
+                </span>
               </div>
-            )}
-            <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
-              <CaretRight className="text-gray-7 group-hover:text-gray-10" />
-            </Button>
-          </div>
-        </div>
-      </PopoverTrigger>
-      <PopoverContent
-        ref={contentRef}
-        className="min-w-60 w-full bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg"
-        side="right"
-        align="start"
-        sideOffset={12}
-        onKeyDown={handleKeyDown}
-        tabIndex={-1}
-      >
-        {component}
-      </PopoverContent>
-    </Popover>
+              <div className="flex items-center gap-1.5">
+                {filterCount > 0 && (
+                  <div className="bg-gray-6 rounded size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
+                    {filterCount}
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  tabIndex={-1}
+                  className="size-5 [&_svg]:size-2"
+                >
+                  <CaretRight className="text-gray-7 group-hover:text-gray-10" />
+                </Button>
+              </div>
+            </div>
+          </PopoverTrigger>
+          <PopoverContent
+            ref={contentRef}
+            className="min-w-60 z-50 w-full bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg"
+            side="right"
+            align="start"
+            sideOffset={12}
+            onKeyDown={handleKeyDown}
+            tabIndex={-1}
+          >
+            {component}
+          </PopoverContent>
+        </Popover>
+      )}
+    </>
   );
 };

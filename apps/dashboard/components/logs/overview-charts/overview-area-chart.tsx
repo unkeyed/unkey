@@ -61,7 +61,8 @@ export const OverviewAreaChart = ({
 
   const labelsWithDefaults = {
     ...labels,
-    showRightSide: labels.showRightSide !== undefined ? labels.showRightSide : true,
+    showRightSide:
+      labels.showRightSide !== undefined ? labels.showRightSide : true,
     reverse: labels.reverse !== undefined ? labels.reverse : false,
   };
 
@@ -98,7 +99,10 @@ export const OverviewAreaChart = ({
       if (!selection.startTimestamp || !selection.endTimestamp) {
         return;
       }
-      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
+      const [start, end] = [
+        selection.startTimestamp,
+        selection.endTimestamp,
+      ].sort((a, b) => a - b);
       onSelectionChange({ start, end });
     }
     setSelection({
@@ -123,7 +127,10 @@ export const OverviewAreaChart = ({
     const values = data.map((d) => d[metric.key]);
     const min = data.length > 0 ? Math.min(...values) : 0;
     const max = data.length > 0 ? Math.max(...values) : 0;
-    const avg = data.length > 0 ? values.reduce((sum, val) => sum + val, 0) / data.length : 0;
+    const avg =
+      data.length > 0
+        ? values.reduce((sum, val) => sum + val, 0) / data.length
+        : 0;
 
     ranges[metric.key] = { min, max, avg };
   });
@@ -136,10 +143,10 @@ export const OverviewAreaChart = ({
       <div
         className={cn(
           "pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10",
-          labelsWithDefaults.reverse && "flex-row-reverse",
+          labelsWithDefaults.reverse && "flex-row-reverse"
         )}
       >
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 max-md:w-full">
           <div className="flex items-center gap-2">
             {labelsWithDefaults.reverse &&
               labelsWithDefaults.metrics.map((metric) => (
@@ -156,11 +163,11 @@ export const OverviewAreaChart = ({
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
             {primaryMetric.formatter
               ? `${primaryMetric.formatter(
-                  ranges[primaryMetric.key].min,
+                  ranges[primaryMetric.key].min
                 )} - ${primaryMetric.formatter(ranges[primaryMetric.key].max)}`
-              : `${formatNumber(ranges[primaryMetric.key].min)} - ${formatNumber(
-                  ranges[primaryMetric.key].max,
-                )}`}
+              : `${formatNumber(
+                  ranges[primaryMetric.key].min
+                )} - ${formatNumber(ranges[primaryMetric.key].max)}`}
           </div>
         </div>
 
@@ -169,8 +176,13 @@ export const OverviewAreaChart = ({
             {labelsWithDefaults.metrics.map((metric) => (
               <div key={metric.key} className="flex flex-col gap-1">
                 <div className="flex gap-2 items-center">
-                  <div className="rounded h-[10px] w-1" style={{ backgroundColor: metric.color }} />
-                  <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+                  <div
+                    className="rounded h-[10px] w-1"
+                    style={{ backgroundColor: metric.color }}
+                  />
+                  <div className="text-accent-10 text-[11px] leading-4">
+                    {metric.label}
+                  </div>
                 </div>
                 <div className="text-accent-12 text-[18px] font-semibold leading-7">
                   {metric.formatter
@@ -204,13 +216,24 @@ export const OverviewAreaChart = ({
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="5%" stopColor={metric.color} stopOpacity={0.2} />
-                    <stop offset="95%" stopColor={metric.color} stopOpacity={0} />
+                    <stop
+                      offset="5%"
+                      stopColor={metric.color}
+                      stopOpacity={0.2}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={metric.color}
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                 ))}
               </defs>
 
-              <YAxis domain={["auto", (dataMax: number) => dataMax * 1.1]} hide />
+              <YAxis
+                domain={["auto", (dataMax: number) => dataMax * 1.1]}
+                hide
+              />
               <CartesianGrid
                 horizontal
                 vertical={false}
@@ -272,14 +295,17 @@ export const OverviewAreaChart = ({
         </ResponsiveContainer>
       </div>
 
-      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
+      <div className="h-8 max-md:gap-4 max-md:overflow-x-auto border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
         {data.length > 0
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now(),
+              data.at(-1)?.originalTimestamp ?? Date.now()
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-              <div key={i} className="z-10">
+              <div
+                key={i}
+                className="z-10 max-md:w-44 max-md:whitespace-nowrap"
+              >
                 {formatTimestampLabel(time)}
               </div>
             ))

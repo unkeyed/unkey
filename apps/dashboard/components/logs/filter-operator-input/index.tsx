@@ -41,12 +41,15 @@ export const FilterOperatorInput = <T extends string>({
   };
 
   return (
-    <div className="flex w-[500px]">
-      <div className="flex flex-col gap-2 p-2 w-[180px] border-r border-gray-4 items-center">
+    <div className="flex max-md:flex-col w-full md:w-[500px]">
+      <div className="flex flex-col gap-2 p-2 w-full md:w-[180px] md:border-r border-gray-4 items-center">
         {options.map((option) => (
           <div
             key={option.id}
-            className={cn("group relative w-full rounded-lg", "focus-within:outline-none")}
+            className={cn(
+              "group relative w-full rounded-lg",
+              "focus-within:outline-none"
+            )}
           >
             <button
               type="button"
@@ -58,7 +61,7 @@ export const FilterOperatorInput = <T extends string>({
                 "hover:bg-gray-3",
                 "focus:outline-none focus:ring-2 focus:ring-accent-7",
                 "focus:bg-gray-3",
-                selectedOption === option.id && "bg-gray-3",
+                selectedOption === option.id && "bg-gray-3"
               )}
             >
               <span>{option.label}</span>
@@ -71,7 +74,7 @@ export const FilterOperatorInput = <T extends string>({
           </div>
         ))}
       </div>
-      <div className="flex flex-col gap-[14px] py-3 w-[320px] px-3">
+      <div className="flex flex-col gap-[14px] py-3 w-full md:w-[320px] px-3">
         <div className="space-y-2">
           <p className="text-gray-9 text-xs">
             {label}{" "}
@@ -88,7 +91,11 @@ export const FilterOperatorInput = <T extends string>({
             className="w-full px-3 py-2 text-sm bg-accent-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-accent-5 border-accent-12 drop-shadow-sm placeholder:text-gray-8"
           />
         </div>
-        <Button variant="primary" className="py-[14px] w-full h-9 rounded-md" onClick={handleApply}>
+        <Button
+          variant="primary"
+          className="py-[14px] w-full h-9 rounded-md"
+          onClick={handleApply}
+        >
           Search
         </Button>
       </div>

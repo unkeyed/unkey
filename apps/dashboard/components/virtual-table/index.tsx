@@ -110,7 +110,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
             </thead>
           </table>
           {emptyState ? (
-            <div className="flex-1 flex items-center justify-center h-full">{emptyState}</div>
+            <div className="flex-1 flex items-center justify-center">{emptyState}</div>
           ) : (
             <EmptyState />
           )}
