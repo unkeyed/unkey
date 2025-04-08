@@ -10,26 +10,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { SignOutButton, useUser } from "@clerk/nextjs";
 import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
+import { signOut } from "@/lib/auth/utils";
+import { trpc } from "@/lib/trpc/client";
 import type React from "react";
 
 export const UserButton: React.FC = () => {
-  const { user } = useUser();
-  const router = useRouter();
   const { isMobile, state, openMobile } = useSidebar();
+  const { data: user, error } = trpc.user.getCurrentUser.useQuery();
+  if (!user || error) {
+    return <div className="h-10" />;
+  }
 
   // When mobile sidebar is open, we want to show the full component
   const isCollapsed = (state === "collapsed" || isMobile) && !(isMobile && openMobile);
 
-  if (!user) {
-    return null;
-  }
-
   // Get user display name
-  const displayName = user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress;
+  const displayName = user.fullName ?? user.email;
 
   return (
     <DropdownMenu>
@@ -48,13 +47,13 @@ export const UserButton: React.FC = () => {
           )}
         >
           <Avatar className="w-6 h-6 rounded-full border border-grayA-6">
-            {user.imageUrl ? (
-              <AvatarImage src={user.imageUrl} alt="Profile picture" className="rounded-full" />
+            {user.avatarUrl ? (
+              <AvatarImage src={user.avatarUrl} alt="Profile picture" className="rounded-full" />
             ) : null}
             <AvatarFallback
               className={cn("bg-gray-2 border border-grayA-6 rounded-full", "w-6 h-6")}
             >
-              {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
+              {(user.fullName ?? "U").slice(0, 1).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           {/* Show username when not collapsed OR when on mobile with sidebar open */}
@@ -92,14 +91,18 @@ export const UserButton: React.FC = () => {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
-            <DropdownMenuItem asChild className="cursor-pointer">
-              <span>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign out
-              </span>
-            </DropdownMenuItem>
-          </SignOutButton>
+          <DropdownMenuItem
+            asChild
+            className="cursor-pointer"
+            onClick={async () => {
+              await signOut();
+            }}
+          >
+            <span>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign out
+            </span>
+          </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

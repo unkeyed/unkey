@@ -20,7 +20,7 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	// Create a namespace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
-	namespaceName := "test_namespace"
+	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -33,6 +33,7 @@ func TestLimitSuccessfully(t *testing.T) {
 		DB:                            h.DB,
 		Keys:                          h.Keys,
 		Logger:                        h.Logger,
+		ClickHouse:                    h.ClickHouse,
 		Permissions:                   h.Permissions,
 		Ratelimit:                     h.Ratelimit,
 		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
@@ -61,11 +62,11 @@ func TestLimitSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
 		require.NotNil(t, res.Body)
-		require.True(t, res.Body.Success, "Rate limit should not be exceeded on first request")
-		require.Equal(t, int64(100), res.Body.Limit)
-		require.Equal(t, int64(99), res.Body.Remaining)
-		require.Greater(t, res.Body.Reset, int64(0))
-		require.Nil(t, res.Body.OverrideId, "No override should be applied")
+		require.True(t, res.Body.Data.Success, "Rate limit should not be exceeded on first request")
+		require.Equal(t, int64(100), res.Body.Data.Limit)
+		require.Equal(t, int64(99), res.Body.Data.Remaining)
+		require.Greater(t, res.Body.Data.Reset, int64(0))
+		require.Nil(t, res.Body.Data.OverrideId, "No override should be applied")
 	})
 
 	// Test with custom cost
@@ -83,9 +84,9 @@ func TestLimitSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.True(t, res.Body.Success)
-		require.Equal(t, int64(100), res.Body.Limit)
-		require.Equal(t, int64(95), res.Body.Remaining) // 100 - 5
+		require.True(t, res.Body.Data.Success)
+		require.Equal(t, int64(100), res.Body.Data.Limit)
+		require.Equal(t, int64(95), res.Body.Data.Remaining) // 100 - 5
 	})
 
 	// Test with rate limit override
@@ -118,11 +119,11 @@ func TestLimitSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.True(t, res.Body.Success)
-		require.Equal(t, int64(limit), res.Body.Limit) // Should use override limit
-		require.Equal(t, int64(199), res.Body.Remaining)
-		require.NotNil(t, res.Body.OverrideId)
-		require.Equal(t, overrideID, *res.Body.OverrideId)
+		require.True(t, res.Body.Data.Success)
+		require.Equal(t, int64(limit), res.Body.Data.Limit) // Should use override limit
+		require.Equal(t, int64(199), res.Body.Data.Remaining)
+		require.NotNil(t, res.Body.Data.OverrideId)
+		require.Equal(t, overrideID, *res.Body.Data.OverrideId)
 	})
 
 	// Test rate limit exceeded
@@ -138,16 +139,16 @@ func TestLimitSuccessfully(t *testing.T) {
 		// First request should succeed
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res1.Status)
-		require.True(t, res1.Body.Success)
-		require.Equal(t, int64(0), res1.Body.Remaining)
+		require.True(t, res1.Body.Data.Success)
+		require.Equal(t, int64(0), res1.Body.Data.Remaining)
 
 		// Second request should fail (rate limited)
 		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res2.Status) // Still returns 200 OK
 		require.NotNil(t, res2.Body)
-		require.False(t, res2.Body.Success, "Rate limit should be exceeded")
-		require.Equal(t, int64(1), res2.Body.Limit)
-		require.Equal(t, int64(0), res2.Body.Remaining)
+		require.False(t, res2.Body.Data.Success, "Rate limit should be exceeded")
+		require.Equal(t, int64(1), res2.Body.Data.Limit)
+		require.Equal(t, int64(0), res2.Body.Data.Remaining)
 	})
 	t.Run("rate limiting with active override", func(t *testing.T) {
 		// Create an override with tight limits
@@ -178,30 +179,30 @@ func TestLimitSuccessfully(t *testing.T) {
 		// First request - should succeed and use override values
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res1.Status)
-		require.True(t, res1.Body.Success)
-		require.Equal(t, int64(overrideLimit), res1.Body.Limit) // Should use override limit
-		require.Equal(t, int64(2), res1.Body.Remaining)         // 3-1=2 remaining
-		require.NotNil(t, res1.Body.OverrideId)
-		require.Equal(t, overrideID, *res1.Body.OverrideId)
+		require.True(t, res1.Body.Data.Success)
+		require.Equal(t, int64(overrideLimit), res1.Body.Data.Limit) // Should use override limit
+		require.Equal(t, int64(2), res1.Body.Data.Remaining)         // 3-1=2 remaining
+		require.NotNil(t, res1.Body.Data.OverrideId)
+		require.Equal(t, overrideID, *res1.Body.Data.OverrideId)
 
 		// Second request - should succeed
 		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res2.Status)
-		require.True(t, res2.Body.Success)
-		require.Equal(t, int64(1), res2.Body.Remaining) // 2-1=1 remaining
+		require.True(t, res2.Body.Data.Success)
+		require.Equal(t, int64(1), res2.Body.Data.Remaining) // 2-1=1 remaining
 
 		// Third request - should succeed but use up last remaining quota
 		res3 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res3.Status)
-		require.True(t, res3.Body.Success)
-		require.Equal(t, int64(0), res3.Body.Remaining) // No more remaining
+		require.True(t, res3.Body.Data.Success)
+		require.Equal(t, int64(0), res3.Body.Data.Remaining) // No more remaining
 
 		// Fourth request - should be rate limited
 		res4 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res4.Status)
-		require.False(t, res4.Body.Success, "Request should be rate limited")
-		require.Equal(t, int64(0), res4.Body.Remaining)
-		require.NotNil(t, res4.Body.OverrideId)
-		require.Equal(t, overrideID, *res4.Body.OverrideId)
+		require.False(t, res4.Body.Data.Success, "Request should be rate limited")
+		require.Equal(t, int64(0), res4.Body.Data.Remaining)
+		require.NotNil(t, res4.Body.Data.OverrideId)
+		require.Equal(t, overrideID, *res4.Body.Data.OverrideId)
 	})
 }

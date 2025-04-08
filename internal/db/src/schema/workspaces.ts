@@ -10,7 +10,6 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
-import { auditLogBucket } from "./audit_logs";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
@@ -27,7 +26,7 @@ export const workspaces = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     // Coming from our auth provider clerk
     // This can be either a user_xxx or org_xxx id
-    tenantId: varchar("tenant_id", { length: 256 }).notNull(),
+    clerkTenantId: varchar("tenant_id", { length: 256 }).notNull(),
     orgId: varchar("org_id", { length: 256 }),
     name: varchar("name", { length: 256 }).notNull(),
 
@@ -111,7 +110,7 @@ export const workspaces = mysqlTable(
     ...lifecycleDatesMigration,
   },
   (table) => ({
-    tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
+    clerkTenantIdIdx: uniqueIndex("tenant_id_idx").on(table.clerkTenantId),
   }),
 );
 
@@ -131,8 +130,5 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   ratelimitNamespaces: many(ratelimitNamespaces),
   keySpaces: many(keyAuth),
   identities: many(identities),
-  auditLogBuckets: many(auditLogBucket, {
-    relationName: "workspace_audit_log_bucket_relation",
-  }),
-  quota: one(quotas),
+  quotas: one(quotas),
 }));

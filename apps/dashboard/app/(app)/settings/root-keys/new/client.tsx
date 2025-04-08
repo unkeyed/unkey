@@ -279,7 +279,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
           }
         }}
       >
-        <DialogContent className="flex flex-col max-sm:w-full bg-grayA-1 border-gray-4">
+        <DialogContent className="flex flex-col max-sm:w-full dark:bg-grayA-1 border-gray-4 bg-white">
           <DialogHeader>
             <DialogTitle>Your API Key</DialogTitle>
             <DialogDescription className="w-fit text-accent-10">

@@ -49,7 +49,10 @@ export function BlogCard({
         <div className="flex flex-col h-80 pt-6 pb-2">
           <div className="flex flex-wrap h-6 gap-4 flex-inline">
             {tags?.map((tag) => (
-              <div className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md content-center">
+              <div
+                key={tag}
+                className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md content-center"
+              >
                 {tag.charAt(0).toUpperCase() + tag.slice(1)}
               </div>
             ))}

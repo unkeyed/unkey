@@ -1,9 +1,11 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { queryUsageResponse } from "./schemas";
 
-export const queryUsage = rateLimitedProcedure(ratelimit.read)
+export const queryUsage = t.procedure
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
   .output(queryUsageResponse)
   .query(async ({ ctx }) => {
     const dateNow = new Date();

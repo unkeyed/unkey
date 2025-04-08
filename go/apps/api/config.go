@@ -1,11 +1,13 @@
 package api
 
 import (
-	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 )
 
 type Config struct {
+
+	// InstanceID is the unique identifier for this instance of the API server
+	InstanceID string
 	// Platform identifies the cloud platform where the node is running (e.g., aws, gcp, hetzner)
 	Platform string
 
@@ -18,39 +20,11 @@ type Config struct {
 	// Region identifies the geographic region where this node is deployed
 	Region string
 
-	// --- Cluster configuration ---
+	// RedisUrl is the Redis database connection string
+	RedisUrl string
 
-	ClusterEnabled bool
-
-	// ClusterInstanceID is the unique identifier for this instance within the cluster
-	ClusterInstanceID string
-
-	// --- Advertise Address configuration ---
-
-	// ClusterAdvertiseAddrStatic is a static IP address or hostname for node discovery
-	ClusterAdvertiseAddrStatic string
-
-	// ClusterAdvertiseAddrAwsEcsMetadata enables automatic address discovery using AWS ECS container metadata
-	ClusterAdvertiseAddrAwsEcsMetadata bool
-
-	// ClusterRpcPort is the port used for internal RPC communication between nodes (default: 7071)
-	ClusterRpcPort int
-
-	// ClusterGossipPort is the port used for cluster membership and failure detection (default: 7072)
-	ClusterGossipPort int
-
-	// --- Discovery configuration ---
-
-	// ClusterDiscoveryStaticAddrs lists seed node addresses for static cluster configuration
-	ClusterDiscoveryStaticAddrs []string
-
-	// ClusterDiscoveryRedisURL provides a Redis connection string for dynamic cluster discovery
-	ClusterDiscoveryRedisURL string
-
-	// --- Logs configuration ---
-
-	// LogsColor enables ANSI color codes in log output
-	LogsColor bool
+	// Enable TestMode
+	TestMode bool
 
 	// --- ClickHouse configuration ---
 
@@ -71,22 +45,12 @@ type Config struct {
 	OtelEnabled           bool
 	OtelTraceSamplingRate float64
 
-	Clock clock.Clock
+	PrometheusPort int
+	Clock          clock.Clock
 }
 
 func (c Config) Validate() error {
 
-	if c.ClusterEnabled {
-		err := assert.All(
-			assert.NotEmpty(c.ClusterInstanceID, "instance id must not be empty"),
-			assert.Greater(c.ClusterRpcPort, 0),
-			assert.Greater(c.ClusterGossipPort, 0),
-			assert.True(c.ClusterAdvertiseAddrStatic != "" || c.ClusterAdvertiseAddrAwsEcsMetadata),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
+	// nothing to validate yet
 	return nil
 }

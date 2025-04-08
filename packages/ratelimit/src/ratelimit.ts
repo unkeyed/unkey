@@ -1,12 +1,11 @@
 import { Unkey } from "@unkey/api";
-import { version } from "../package.json";
 import { type Duration, ms } from "./duration";
 import type { Ratelimiter } from "./interface";
 import type { Limit, LimitOptions, RatelimitResponse } from "./types";
 
 export type RatelimitConfig = Limit & {
   /**
-   * @default https://api.unkey.dev
+   * @default https://api.unkey.com
    */
   baseUrl?: string;
 
@@ -127,8 +126,6 @@ export class Ratelimit implements Ratelimiter {
     this.unkey = new Unkey({
       baseUrl: config.baseUrl,
       rootKey: config.rootKey,
-      disableTelemetry: config.disableTelemetry,
-      wrapperSdkVersion: `@unkey/ratelimit@${version}`,
     });
   }
 
@@ -163,10 +160,10 @@ export class Ratelimit implements Ratelimiter {
     const timeout =
       this.config.timeout === false
         ? null
-        : this.config.timeout ?? {
+        : (this.config.timeout ?? {
             ms: 5000,
             fallback: () => ({ success: false, limit: 0, remaining: 0, reset: Date.now() }),
-          };
+          });
 
     let timeoutId: any = null;
     try {
@@ -175,19 +172,17 @@ export class Ratelimit implements Ratelimiter {
           .limit({
             namespace: this.config.namespace,
             identifier,
-            limit: this.config.limit,
-            duration: ms(this.config.duration),
+            limit: opts?.limit?.limit ?? this.config.limit,
+            duration: ms(opts?.limit?.duration ?? this.config.duration),
             cost: opts?.cost,
-            meta: opts?.meta,
-            resources: opts?.resources,
-            async: typeof opts?.async !== "undefined" ? opts.async : this.config.async,
           })
-          .then((res) => {
+          .then(async (res) => {
             if (res.error) {
               throw new Error(
                 `Ratelimit failed: [${res.error.code} - ${res.error.requestId}]: ${res.error.message}`,
               );
             }
+
             return res.result;
           }),
       ];

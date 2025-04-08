@@ -4,9 +4,10 @@ import { stripeEnv } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 export const createSubscription = t.procedure
-  .use(auth)
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(
     z.object({
       productId: z.string(),
@@ -99,7 +100,7 @@ export const createSubscription = t.procedure
         },
       });
 
-    await insertAuditLogs(db, ctx.workspace.auditLogBucket.id, {
+    await insertAuditLogs(db, {
       workspaceId: ctx.workspace.id,
       actor: {
         type: "user",

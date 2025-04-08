@@ -4,7 +4,6 @@ import { getWorkspaceDetailsWithOverrides } from "../namespace.actions";
 import { OverridesTable } from "./overrides-table";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function OverridePage({
   params: { namespaceId },
