@@ -76,6 +76,5 @@ export const getCurrentUser = cache(async (): Promise<User> => {
   if (!user) {
     redirect("/auth/sign-in");
   }
-  return { ...user, orgId }
+  return { ...user, orgId };
 });
-

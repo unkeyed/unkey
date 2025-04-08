@@ -22,9 +22,8 @@ type Props = {
   };
 };
 
-
 export default async function (props: Props) {
-  const _auth = await getAuth(); 
+  const _auth = await getAuth();
 
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({
