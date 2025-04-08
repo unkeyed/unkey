@@ -190,7 +190,4 @@ describe("useBookmarkedFilters", () => {
       metadata: undefined,
     });
   });
-
-  // Remove the failing test that uses parseSavedFilters since this function
-  // is not implemented in the current code
 });
