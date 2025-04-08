@@ -20,6 +20,7 @@ func TestContextCancellation(t *testing.T) {
 	// Create a containers instance for database
 	containers := containers.New(t)
 	dbDsn, _ := containers.RunMySQL()
+	_, redisUrl, _ := containers.RunRedis()
 	// Get free ports for the node
 	portAllocator := port.New()
 	httpPort := portAllocator.Get()
@@ -33,10 +34,9 @@ func TestContextCancellation(t *testing.T) {
 		Image:                   "test",
 		HttpPort:                httpPort,
 		Region:                  "test-region",
-		Clock:                   nil,   // Will use real clock
-		ClusterEnabled:          false, // Disable clustering for simpler test
-		ClusterInstanceID:       uid.New(uid.InstancePrefix),
-		LogsColor:               false,
+		Clock:                   nil, // Will use real clock
+		InstanceID:              uid.New(uid.InstancePrefix),
+		RedisUrl:                redisUrl,
 		ClickhouseURL:           "",
 		DatabasePrimary:         dbDsn,
 		DatabaseReadonlyReplica: "",

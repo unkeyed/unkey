@@ -209,9 +209,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         userId,
         roleSlug: "admin",
       });
-
-      console.table(membership);
-
       return membership.organizationId;
     } catch (error) {
       throw this.handleError(error);
