@@ -68,3 +68,5 @@ export * from "./icons/triangle-warning";
 export * from "./icons/ufo";
 export * from "./icons/user-search";
 export * from "./icons/xmark";
+export * from "./icons/arrow-opposite-direction-y";
+export * from "./icons/arrow-dotted-rotate-anticlockwise";
