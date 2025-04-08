@@ -1,8 +1,8 @@
 import { batch, task } from "@trigger.dev/sdk/v3";
 import Exa from "exa-js";
-import { evaluateSearchResults } from "../evaluate-search-results";
-import { domainCategories, exaDomainSearchTask } from "../exa-domain-search";
-import type { ExaCosts } from "../types";
+import { evaluateSearchResults } from "./evaluate-search-results";
+import { domainCategories, exaDomainSearchTask } from "./exa-domain-search";
+import type { ExaCosts } from "./types";
 
 export const technicalResearchTask = task({
   id: "technical_research",
