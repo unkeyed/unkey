@@ -51,7 +51,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
         setIsOpen(open);
       }}
     >
-      <DialogContent className="dark border-border w-11/12">
+      <DialogContent className="dark border-border w-11/12 bg-black">
         <DialogHeader className="dark">
           <DialogTitle className="text-white">Workspace Selection</DialogTitle>
           <DialogDescription className="dark">

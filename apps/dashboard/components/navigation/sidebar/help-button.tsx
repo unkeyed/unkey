@@ -10,7 +10,7 @@ import Link from "next/link";
 import type React from "react";
 
 import { useFeedback } from "@/components/dashboard/feedback-component";
-import { Book2, BracketsCurly, CaretRight, Chats, CircleQuestion } from "@unkey/icons";
+import { Book2, BracketsCurly, Chats, CircleCaretRight, CircleQuestion } from "@unkey/icons";
 import { useState } from "react";
 export const HelpButton: React.FC = () => {
   const [_, openFeedback] = useFeedback();
@@ -25,7 +25,7 @@ export const HelpButton: React.FC = () => {
         <DropdownMenuGroup className="w-full">
           <Link href="/new">
             <DropdownMenuItem className="cursor-pointer w-full">
-              <CaretRight className="size-4 mr-3 text-gray-9" />
+              <CircleCaretRight className="size-4 mr-3 text-gray-9" />
               <span className="text-accent-12 text-sm font-medium">Onboarding</span>
             </DropdownMenuItem>
           </Link>

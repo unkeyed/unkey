@@ -23,7 +23,7 @@ export * from "./icons/chart-usage";
 export * from "./icons/chats";
 export * from "./icons/chevron-right";
 export * from "./icons/chevron-up";
-export * from "./icons/circle-carret-right";
+export * from "./icons/circle-caret-right";
 export * from "./icons/circle-check";
 export * from "./icons/brackets-curly";
 export * from "./icons/circle-half-dotted-clock";
