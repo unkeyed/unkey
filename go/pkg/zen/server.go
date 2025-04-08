@@ -38,8 +38,6 @@ type Flags struct {
 
 // Config configures the behavior of a Server instance.
 type Config struct {
-	// InstanceID uniquely identifies this server instance, useful for logging and tracing.
-	InstanceID string
 
 	// Logger provides structured logging for the server. If nil, logging is disabled.
 	Logger logging.Logger

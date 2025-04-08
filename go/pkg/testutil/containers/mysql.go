@@ -13,6 +13,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type containerConfig struct {
+	reuse bool
+	purge bool
+}
+
+type apply func(*containerConfig)
+
+func WithReuse(reuse bool) apply {
+	return func(c *containerConfig) {
+		c.reuse = reuse
+	}
+}
+
+func WithPurge(purge bool) apply {
+	return func(c *containerConfig) {
+		c.purge = purge
+	}
+}
+
 // RunMySQL starts a MySQL container and returns a database connection string (DSN).
 //
 // The method starts a containerized MySQL instance, waits until it's ready to accept
@@ -59,30 +78,57 @@ import (
 //
 // Note: This function requires Docker to be installed and running on the system
 // where tests are executed. It will fail if Docker is not available.
-func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
+func (c *Containers) RunMySQL(opts ...apply) (hostDsn, dockerDsn string) {
 	c.t.Helper()
 	defer func(start time.Time) {
 		c.t.Logf("starting MySQL took %s", time.Since(start))
 	}(time.Now())
 
-	// nolint:exhaustruct
-	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: "mysql",
-		Tag:        "latest",
-		Env: []string{
-			"MYSQL_ROOT_PASSWORD=root",
-			"MYSQL_DATABASE=unkey",
-			"MYSQL_USER=unkey",
-			"MYSQL_PASSWORD=password",
-		},
-		Networks: []*dockertest.Network{
-			c.network,
-		},
-	})
+	args := containerConfig{
+		reuse: false,
+		purge: true,
+	}
+	for _, fn := range opts {
+		fn(&args)
+	}
+
+	name := fmt.Sprintf("mysql_%s", c.t.Name())
+	if args.reuse {
+		name = "mysql-reuse"
+	}
+
+	var resource *dockertest.Resource
+	var reusing bool
+	var err error
+	if args.reuse {
+		resource, reusing = c.pool.ContainerByName(name)
+	}
+
+	if !reusing {
+
+		// nolint:exhaustruct
+		resource, err = c.pool.RunWithOptions(&dockertest.RunOptions{
+			Name:       name,
+			Repository: "mysql",
+			Tag:        "latest",
+			Env: []string{
+				"MYSQL_ROOT_PASSWORD=root",
+				"MYSQL_DATABASE=unkey",
+				"MYSQL_USER=unkey",
+				"MYSQL_PASSWORD=password",
+			},
+		})
+		require.NoError(c.t, err)
+	}
+
+	err = resource.ConnectToNetwork(c.network)
 	require.NoError(c.t, err)
 
 	c.t.Cleanup(func() {
-		require.NoError(c.t, c.pool.Purge(resource))
+		require.NoError(c.t, resource.DisconnectFromNetwork(c.network))
+		if args.purge {
+			require.NoError(c.t, c.pool.Purge(resource))
+		}
 	})
 
 	cfg := mysql.NewConfig()
@@ -114,19 +160,22 @@ func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
 	c.t.Cleanup(func() {
 		require.NoError(c.t, conn.Close())
 	})
-	// Creating the database tables
-	queries := strings.Split(string(db.Schema), ";")
-	for _, query := range queries {
-		query = strings.TrimSpace(query)
-		if query == "" {
-			continue
+	if !reusing {
+
+		// Creating the database tables
+		queries := strings.Split(string(db.Schema), ";")
+		for _, query := range queries {
+			query = strings.TrimSpace(query)
+			if query == "" {
+				continue
+			}
+			// Add the semicolon back
+			query += ";"
+
+			_, err = conn.Exec(query)
+			require.NoError(c.t, err)
+
 		}
-		// Add the semicolon back
-		query += ";"
-
-		_, err = conn.Exec(query)
-		require.NoError(c.t, err)
-
 	}
 
 	hostDsn = cfg.FormatDSN()

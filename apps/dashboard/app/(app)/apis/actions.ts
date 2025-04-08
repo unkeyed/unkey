@@ -19,6 +19,7 @@ export async function fetchApiOverview({
     .where(and(eq(schema.apis.workspaceId, workspaceId), isNull(schema.apis.deletedAtM)));
   const total = Number(totalResult[0]?.count || 0);
 
+  // Updated query to include keyAuth and fetch actual keys
   const query = db.query.apis.findMany({
     where: (table, { and, eq, isNull, gt }) => {
       const conditions = [eq(table.workspaceId, workspaceId), isNull(table.deletedAtM)];
@@ -30,6 +31,7 @@ export async function fetchApiOverview({
     with: {
       keyAuth: {
         columns: {
+          id: true, // Include the keyspace ID
           sizeApprox: true,
         },
       },
@@ -44,7 +46,23 @@ export async function fetchApiOverview({
   const nextCursor =
     hasMore && apiItems.length > 0 ? { id: apiItems[apiItems.length - 1].id } : undefined;
 
-  const apiList = await apiItemsWithApproxKeyCounts(apiItems);
+  // Transform the data to include key information
+  const apiList = await Promise.all(
+    apiItems.map(async (api) => {
+      const keyspaceId = api.keyAuth?.id || null;
+
+      return {
+        id: api.id,
+        name: api.name,
+        keyspaceId,
+        keys: [
+          {
+            count: api.keyAuth?.sizeApprox || 0,
+          },
+        ],
+      };
+    }),
+  );
 
   return {
     apiList,

@@ -11,20 +11,29 @@ tasks:
   pull:
     cmds:
       - docker pull mysql:latest
+      - docker pull redis:latest
       - docker pull grafana/otel-lgtm:latest
+
+  build-docker:
+    cmds:
+      - docker build -t apiv2:latest .
 
   test-full:
     deps:
       - pull
+      - build-docker
     env:
       INTEGRATION_TEST: true
       SIMULATION_TEST: false
     cmds:
-      - go test -failfast -timeout=60m -shuffle=on -v ./...
+      - cmd: echo "Running full tests... this can take more than 30min... run 'task test-unit' for faster tests"
+        silent: true
+      - cmd: go test -failfast -timeout=60m -shuffle=on -v -json -p=10 ./... | tparse -all -progress  -smallscreen
+        silent: true
 
   test-unit:
     cmds:
-      - go test -json -race -failfast ./... -timeout=30m | tparse -all -progress  -smallscreen
+      - go test -json -race -failfast ./... -skip "^TestIntegration_" -timeout=30m -p=10 | tparse -all -progress  -smallscreen
 
   build:
     cmds:
@@ -33,7 +42,7 @@ tasks:
   generate:
     cmds:
       - go generate ./...
-      - buf generate
+      # - buf generate
 
   lint:
     cmds:

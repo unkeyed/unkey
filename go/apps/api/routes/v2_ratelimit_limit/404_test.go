@@ -59,7 +59,7 @@ func TestNamespaceNotFound(t *testing.T) {
 	// Test with deleted namespace
 	t.Run("deleted namespace", func(t *testing.T) {
 		// Create a namespace and then delete it
-		deletedNamespace := "deleted_namespace"
+		deletedNamespace := uid.New("test")
 		ctx := context.Background()
 
 		// Create namespace
