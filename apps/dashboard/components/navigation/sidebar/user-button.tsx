@@ -30,8 +30,6 @@ export const UserButton: React.FC = () => {
   // Get user display name
   const displayName = user?.fullName ?? user?.email ?? "";
 
-  //className="dark:bg-white bg-black text-gray-1 px-2 py-1 border border-accent-6 shadow-md font-medium text-xs"
-  //
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
