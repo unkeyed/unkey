@@ -24,7 +24,7 @@ export const HelpButton: React.FC = () => {
       >
         <CircleQuestion className="text-gray-9 group-hover/help:text-gray-12 size-5" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" className="flex w-44 flex-col gap-2">
+      <DropdownMenuContent side="bottom" className="flex w-44 flex-col gap-3">
         <DropdownMenuGroup className="w-full">
           <Link href="/new">
             <DropdownMenuItem className="cursor-pointer w-full">
