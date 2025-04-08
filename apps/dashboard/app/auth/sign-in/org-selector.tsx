@@ -22,9 +22,10 @@ import { completeOrgSelection } from "../actions";
 
 interface OrgSelectorProps {
   organizations: Organization[];
+  onError: (errorMessage: string) => void;
 }
 
-export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
+export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, onError }) => {
   const [selected, setSelected] = useState<string>();
   const [isOpen, setIsOpen] = useState(false);
   const [clientReady, setClientReady] = useState(false);
@@ -40,8 +41,24 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
     if (!selected) {
       return;
     }
-    await completeOrgSelection(selected);
-    setIsOpen(false);
+    try {
+      const result = await completeOrgSelection(selected);
+
+      if (!result.success) {
+        onError(result.message);
+      }
+
+      return;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to complete organization selection. Please re-authenticate or contact support@unkey.dev";
+
+      onError(errorMessage);
+    } finally {
+      setIsOpen(false);
+    }
   };
 
   return (
