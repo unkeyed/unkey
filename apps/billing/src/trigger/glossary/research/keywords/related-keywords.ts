@@ -91,45 +91,63 @@ function extractKeywordData(html: string) {
   const scriptTagRegex = /<script>self\.__next_f\.push\(\[(.*?)\]\)<\/script>/g;
   const matches = Array.from(html.matchAll(scriptTagRegex));
   
-  console.log(`Found ${matches.length} __next_f.push scripts`);
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`Found ${matches.length} __next_f.push scripts`);
+  }
   
   for (const [index, match] of matches.entries()) {
     const content = match[1];
-    console.log(`\nChecking script ${index + 1}/${matches.length}`);
-    console.log("Content:", content.slice(0, 200));
+    if (process.env.NODE_ENV !== "production") {
+      console.info(`\nChecking script ${index + 1}/${matches.length}`);
+      console.info("Content:", content.slice(0, 200));
+    }
     
     if (!content) {
-      console.log("Empty content, skipping");
+      if (process.env.NODE_ENV !== "production") {
+        console.info("Empty content, skipping");
+      }
       continue;
     }
 
     if (!content.includes('keywordData')) {
-      console.log('No keywordData found, skipping');
+      if (process.env.NODE_ENV !== "production") {
+        console.info('No keywordData found, skipping');
+      }
       continue;
     }
 
-    console.log("\nFound script containing keywordData!");
+    if (process.env.NODE_ENV !== "production") {
+      console.info("\nFound script containing keywordData!");
+    }
     
     // Find the keywordData object start - handle escaped quotes
     const keywordDataStr = '\\"keywordData\\"';
     const keywordDataStart = content.indexOf(keywordDataStr);
-    console.log("keywordData position:", keywordDataStart);
+    if (process.env.NODE_ENV !== "production") {
+      console.info("keywordData position:", keywordDataStart);
+    }
     
     if (keywordDataStart === -1) {
-      console.log("Could not find keywordData start position");
+      if (process.env.NODE_ENV !== "production") {
+        console.info("Could not find keywordData start position");
+      }
       continue;
     }
 
     // Find the opening brace after the escaped quotes
     const objectStart = content.indexOf(':{', keywordDataStart);
     if (objectStart === -1) {
-      console.log("Could not find opening brace");
+      if (process.env.NODE_ENV !== "production") {
+        console.info("Could not find opening brace");
+      }
       continue;
     }
 
     // Skip the colon to get to the actual brace
     const actualObjectStart = objectStart + 1;
-    console.log("Opening brace position:", actualObjectStart);
+    if (process.env.NODE_ENV !== "production") {
+      console.info("Opening brace position:", actualObjectStart);
+    }
 
     // Find the closing brace by counting opening/closing braces
     let braceCount = 1;
@@ -150,36 +168,52 @@ function extractKeywordData(html: string) {
     }
 
     if (objectEnd === -1) {
-      console.log("Could not find matching closing brace");
+      if (process.env.NODE_ENV !== "production") {
+        console.info("Could not find matching closing brace");
+      }
       continue;
     }
-    console.log("Found closing brace at position:", objectEnd);
+    if (process.env.NODE_ENV !== "production") {
+      console.info("Found closing brace at position:", objectEnd);
+    }
 
     // Extract and parse the JSON
     const jsonStr = content.substring(actualObjectStart, objectEnd + 1);
-    console.log("Extracted JSON string:", jsonStr);
+    if (process.env.NODE_ENV !== "production") {
+      console.info("Extracted JSON string:", jsonStr);
+    }
 
     let parsed: { keywordIdeas?: Array<unknown> };
     try {
       // First unescape the JSON string
       const unescapedJson = jsonStr.replace(/\\"/g, '"');
       parsed = JSON.parse(unescapedJson);
-      console.log("Successfully parsed JSON. Found keys:", Object.keys(parsed));
+      if (process.env.NODE_ENV !== "production") {
+        console.info("Successfully parsed JSON. Found keys:", Object.keys(parsed));
+      }
     } catch (error) {
-      console.log("JSON parse error:", error instanceof Error ? error.message : String(error));
+      if (process.env.NODE_ENV !== "production") {
+        console.info("JSON parse error:", error instanceof Error ? error.message : String(error));
+      }
       continue;
     }
 
     if (!parsed?.keywordIdeas?.length) {
-      console.log("Missing keywordIdeas array or empty");
+      if (process.env.NODE_ENV !== "production") {
+        console.info("Missing keywordIdeas array or empty");
+      }
       continue;
     }
 
-    console.log(`Successfully found ${parsed.keywordIdeas.length} keyword ideas`);
+    if (process.env.NODE_ENV !== "production") {
+      console.info(`Successfully found ${parsed.keywordIdeas.length} keyword ideas`);
+    }
     return { data: parsed, error: null };
   }
 
-  console.log("\nNo valid keyword data found in any matches");
+  if (process.env.NODE_ENV !== "production") {
+    console.info("\nNo valid keyword data found in any matches");
+  }
   return { 
     data: null, 
     error: new Error("Could not find valid keywordData in the page") 
