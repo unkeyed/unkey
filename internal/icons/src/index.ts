@@ -19,6 +19,7 @@ export * from "./icons/check";
 export * from "./icons/chevron-down";
 export * from "./icons/chevron-expand-y";
 export * from "./icons/chevron-left";
+export * from "./icons/chart-usage";
 export * from "./icons/chevron-right";
 export * from "./icons/chevron-up";
 export * from "./icons/circle-carret-right";

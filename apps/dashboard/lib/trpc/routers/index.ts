@@ -15,6 +15,7 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { queryUsage } from "./billing/query-usage";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -176,6 +177,9 @@ export const router = t.router({
     queryLogs,
     queryTimeseries,
     llmSearch,
+  }),
+  billing: t.router({
+    queryUsage,
   }),
   audit: t.router({
     logs: fetchAuditLog,
