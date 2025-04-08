@@ -206,8 +206,8 @@ export function createTestRunner<
         }
       }
 
-      console.log(`\nDuration: ${Date.now() - startTime}ms`);
-      console.log("===============================");
+      console.info(`\nDuration: ${Date.now() - startTime}ms`);
+      console.info("===============================");
 
       return metadata;
     },

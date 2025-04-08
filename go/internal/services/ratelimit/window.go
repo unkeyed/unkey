@@ -1,10 +1,9 @@
 package ratelimit
 
 import (
-	"context"
 	"time"
 
-	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 type window struct {
@@ -56,7 +55,7 @@ type window struct {
 //	    time.Minute,
 //	)
 func newWindow(sequence int64, t time.Time, duration time.Duration) *window {
-	metrics.Ratelimit.CreatedWindows.Add(context.Background(), 1)
+	metrics.RatelimitWindowsCreated.Inc()
 	return &window{
 		sequence: sequence,
 		start:    t.Truncate(duration),

@@ -127,7 +127,6 @@ func TestRedisCounter(t *testing.T) {
 		}
 
 		for _, tc := range tests {
-			tc := tc // Capture range variable for parallel execution
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
@@ -194,7 +193,6 @@ func TestRedisCounter(t *testing.T) {
 		}
 
 		for _, tc := range tests {
-			tc := tc // Capture range variable for parallel execution
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 

@@ -7,10 +7,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestBadRequests(t *testing.T) {
@@ -50,7 +51,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("missing identifier", func(t *testing.T) {
 		req := openapi.V2RatelimitGetOverrideRequestBody{
-			NamespaceId: util.Pointer("not_empty"),
+			NamespaceId: ptr.P("not_empty"),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -69,7 +70,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("empty identifier", func(t *testing.T) {
 		req := openapi.V2RatelimitGetOverrideRequestBody{
-			NamespaceId:   util.Pointer("not_empty"),
+			NamespaceId:   ptr.P("not_empty"),
 			NamespaceName: nil,
 			Identifier:    "",
 		}
@@ -115,7 +116,7 @@ func TestBadRequests(t *testing.T) {
 			// No Authorization header
 		}
 
-		namespaceName := "test_namespace"
+		namespaceName := uid.New("test")
 		req := handler.Request{
 			NamespaceName: &namespaceName,
 			Identifier:    "test_identifier",
@@ -132,7 +133,7 @@ func TestBadRequests(t *testing.T) {
 			"Authorization": {"malformed_header"},
 		}
 
-		namespaceName := "test_namespace"
+		namespaceName := uid.New("test")
 		req := handler.Request{
 			NamespaceName: &namespaceName,
 			Identifier:    "test_identifier",

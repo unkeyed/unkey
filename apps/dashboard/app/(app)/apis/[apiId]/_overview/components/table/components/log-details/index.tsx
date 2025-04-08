@@ -92,7 +92,7 @@ export const KeysOverviewLogDetails = ({
         ? log.key_details.remaining_requests
         : "Unlimited",
     "Rate Limit": log.key_details.ratelimit_limit
-      ? `${log.key_details.ratelimit_limit} per ${log.key_details.ratelimit_duration || "N/A"}s`
+      ? `${log.key_details.ratelimit_limit} per ${log.key_details.ratelimit_duration || "N/A"}ms`
       : "No limit",
     Async: log.key_details.ratelimit_async ? "Yes" : "No",
   };

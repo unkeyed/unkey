@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestUnauthorizedAccess(t *testing.T) {
@@ -27,7 +28,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		namespaceName := "test_namespace"
+		namespaceName := uid.New("test")
 		req := handler.Request{
 			NamespaceName: &namespaceName,
 			Identifier:    "test_identifier",
