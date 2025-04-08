@@ -19,3 +19,11 @@ export async function getOrgId(): Promise<string> {
 
   return orgId;
 }
+
+export async function getIsImpersonator(): Promise<boolean> {
+  const user = await auth.getCurrentUser();
+  if (!user) {
+    return false;
+  }
+  return user.impersonator !== undefined;
+}
