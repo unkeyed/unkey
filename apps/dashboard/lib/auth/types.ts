@@ -14,6 +14,7 @@ export interface User {
   lastName: string | null;
   avatarUrl: string | null;
   fullName: string | null;
+  impersonator: unknown | undefined;
 }
 
 export interface Organization {
