@@ -25,7 +25,7 @@ type Props = {
 export default async function (props: Props) {
   // ensure we have an authenticated user
   // we don't actually need any user data though
-  await getAuth(); 
+  await getAuth();
 
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({
