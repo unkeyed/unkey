@@ -10,11 +10,19 @@
  * https://nucleoapp.com/license
  */
 import type React from "react";
-import type { IconProps } from "../props";
+import { type IconProps, sizeMap } from "../props";
 
-export const MoonStars: React.FC<IconProps> = (props) => {
+export const MoonStars: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
+
   return (
-    <svg height="18" width="18" {...props} viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      {...props}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor">
         <path
           d="M13,11.75c-3.452,0-6.25-2.798-6.25-6.25,0-1.352,.433-2.599,1.162-3.622-3.364,.628-5.912,3.575-5.912,7.122,0,4.004,3.246,7.25,7.25,7.25,3.372,0,6.198-2.306,7.009-5.424-.95,.583-2.063,.924-3.259,.924Z"
@@ -22,7 +30,7 @@ export const MoonStars: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
         <path
           d="M12.743,4.492l-.946-.315-.316-.947c-.102-.306-.609-.306-.711,0l-.316,.947-.946,.315c-.153,.051-.257,.194-.257,.356s.104,.305,.257,.356l.946,.315,.316,.947c.051,.153,.194,.256,.355,.256s.305-.104,.355-.256l.316-.947,.946-.315c.153-.051,.257-.194,.257-.356s-.104-.305-.257-.356Z"

@@ -10,11 +10,19 @@
  * https://nucleoapp.com/license
  */
 import type React from "react";
-import type { IconProps } from "../props";
+import { type IconProps, sizeMap } from "../props";
 
-export const Laptop2: React.FC<IconProps> = (props) => {
+export const Laptop2: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
+
   return (
-    <svg height="18" width="18" {...props} viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      {...props}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor">
         <path
           d="M4.25,12.75c-1.105,0-2-.895-2-2V4.75c0-1.105,.895-2,2-2H13.75c1.105,0,2,.895,2,2v6c0,1.105-.895,2-2,2"
@@ -22,7 +30,7 @@ export const Laptop2: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
         <path
           d="M17.25,12.75H.75v.5c0,1.105,.895,2,2,2H15.25c1.105,0,2-.895,2-2v-.5Z"
@@ -30,7 +38,7 @@ export const Laptop2: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>

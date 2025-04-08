@@ -10,18 +10,26 @@
  * https://nucleoapp.com/license
  */
 import type React from "react";
-import type { IconProps } from "../props";
+import { type IconProps, sizeMap } from "../props";
 
-export const Sun: React.FC<IconProps> = (props) => {
+export const Sun: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
+
   return (
-    <svg height="18" width="18" {...props} viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      {...props}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor">
         <line
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="9"
           x2="9"
           y1="1.25"
@@ -32,7 +40,7 @@ export const Sun: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="14.48"
           x2="13.773"
           y1="3.52"
@@ -43,7 +51,7 @@ export const Sun: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="16.75"
           x2="15.75"
           y1="9"
@@ -54,7 +62,7 @@ export const Sun: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="14.48"
           x2="13.773"
           y1="14.48"
@@ -65,7 +73,7 @@ export const Sun: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="9"
           x2="9"
           y1="16.75"
@@ -76,7 +84,7 @@ export const Sun: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="3.52"
           x2="4.227"
           y1="14.48"
@@ -87,7 +95,7 @@ export const Sun: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="1.25"
           x2="2.25"
           y1="9"
@@ -98,7 +106,7 @@ export const Sun: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="3.52"
           x2="4.227"
           y1="3.52"
@@ -112,7 +120,7 @@ export const Sun: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>
