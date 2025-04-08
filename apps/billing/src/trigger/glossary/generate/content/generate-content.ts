@@ -3,7 +3,7 @@ import { AbortTaskRunError, metadata, task } from "@trigger.dev/sdk/v3";
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { CacheStrategy } from "../../_generate-glossary-entry";
-import { technicalResearchTask } from "../../research/_technical-research";
+import { technicalResearchTask } from "../../research/technical/_technical-research";
 
 // Define Zod schemas for the content generation and review
 const contentGenerationSchema = z.object({
