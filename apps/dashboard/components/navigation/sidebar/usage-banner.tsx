@@ -12,7 +12,10 @@ type Props = {
 };
 
 export const UsageBanner: React.FC<Props> = ({ quotas }) => {
-  const usage = trpc.billing.queryUsage.useQuery();
+  const usage = trpc.billing.queryUsage.useQuery(undefined, {
+    refetchOnMount: true,
+    refetchInterval: 60 * 1000,
+  });
 
   const current = usage.data?.billableTotal ?? 0;
   const max = quotas.requestsPerMonth;
