@@ -34,10 +34,6 @@ function SignInContent() {
   // Initialize isLoading as false
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleOrgSelectionError = (errorMessage: string) => {
-    setError(errorMessage);
-  };
-
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
   const hasAttemptedSignIn = useRef(false);
@@ -98,7 +94,7 @@ function SignInContent() {
 
   return (
     <div className="flex flex-col gap-10">
-      {hasPendingAuth && <OrgSelector organizations={orgs} onError={handleOrgSelectionError} />}
+      {hasPendingAuth && <OrgSelector organizations={orgs} onError={setError} />}
 
       {accountNotFound && (
         <WarnBanner>
