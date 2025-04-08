@@ -13,17 +13,13 @@ export type BaseCheckboxOption = {
 
 type ExtractField<T> = T extends FilterValue<infer F, any, any> ? F : string;
 
-type ExtractOperator<T> = T extends FilterValue<any, infer O, any>
-  ? O
-  : FilterOperator;
+type ExtractOperator<T> = T extends FilterValue<any, infer O, any> ? O : FilterOperator;
 
-type ExtractValue<T> = T extends FilterValue<any, any, infer V>
-  ? V
-  : string | number;
+type ExtractValue<T> = T extends FilterValue<any, any, infer V> ? V : string | number;
 
 interface BaseCheckboxFilterProps<
   TItem extends Record<string, any>,
-  TFilterValue extends FilterValue<any, any, any>
+  TFilterValue extends FilterValue<any, any, any>,
 > {
   options: Array<{ id: number } & TItem>;
   filterField: ExtractField<TFilterValue>;
@@ -52,7 +48,7 @@ interface BaseCheckboxFilterProps<
 
 export const FilterCheckbox = <
   TItem extends Record<string, any>,
-  TFilterValue extends FilterValue<any, any, any>
+  TFilterValue extends FilterValue<any, any, any>,
 >({
   options,
   filterField,
@@ -72,14 +68,16 @@ export const FilterCheckbox = <
   defaultSelectionIndex,
 }: BaseCheckboxFilterProps<TItem, TFilterValue>) => {
   // Use the provided useCheckboxState hook
-  const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } =
-    useCheckboxState<TItem, TFilterValue>({
-      options,
-      filters,
-      filterField,
-      checkPath,
-      shouldSyncWithOptions,
-    });
+  const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState<
+    TItem,
+    TFilterValue
+  >({
+    options,
+    filters,
+    filterField,
+    checkPath,
+    shouldSyncWithOptions,
+  });
 
   // Handle single selection mode logic
   const handleSingleSelection = useCallback(
@@ -106,7 +104,7 @@ export const FilterCheckbox = <
         handleCheckboxChange(index);
       }
     },
-    [checkboxes, handleCheckboxChange, allowDeselection]
+    [checkboxes, handleCheckboxChange, allowDeselection],
   );
 
   // Effect for default selection in single selection mode
@@ -129,7 +127,7 @@ export const FilterCheckbox = <
         handleCheckboxChange(index);
       }
     },
-    [selectionMode, handleCheckboxChange, handleSingleSelection]
+    [selectionMode, handleCheckboxChange, handleSingleSelection],
   );
 
   // Handle keyboard event
@@ -147,7 +145,7 @@ export const FilterCheckbox = <
       // Use the handleKeyDown from the hook for other keyboard navigation
       handleKeyDown(event, index);
     },
-    [handleCheckboxClick, handleSelectAll, handleKeyDown, selectionMode]
+    [handleCheckboxClick, handleSelectAll, handleKeyDown, selectionMode],
   );
 
   // Handle applying the filter
@@ -185,15 +183,7 @@ export const FilterCheckbox = <
 
       updateFilters([...otherFilters, ...newFilters]);
     }
-  }, [
-    checkboxes,
-    filterField,
-    operator,
-    filters,
-    updateFilters,
-    createFilterValue,
-    selectionMode,
-  ]);
+  }, [checkboxes, filterField, operator, filters, updateFilters, createFilterValue, selectionMode]);
 
   return (
     <div className={cn("flex flex-col p-2", className)}>
@@ -201,7 +191,7 @@ export const FilterCheckbox = <
         className={cn(
           "flex flex-col gap-2 font-mono px-2 py-2",
           showScroll &&
-            "max-h-64 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            "max-h-64 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
         )}
         ref={scrollContainerRef}
       >
@@ -222,9 +212,7 @@ export const FilterCheckbox = <
                 onClick={handleSelectAll}
               />
               <span className="text-xs text-accent-12">
-                {checkboxes.every((checkbox) => checkbox.checked)
-                  ? "Unselect All"
-                  : "Select All"}
+                {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
               </span>
             </label>
           </div>

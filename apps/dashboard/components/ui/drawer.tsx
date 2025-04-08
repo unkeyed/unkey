@@ -29,10 +29,7 @@ const CONTENT_NAME = "DrawerContent";
 type DrawerContentElement = React.ElementRef<typeof Vaul.Content>;
 type DrawerContentProps = React.ComponentPropsWithoutRef<typeof Vaul.Content>;
 
-const DrawerContent = React.forwardRef<
-  DrawerContentElement,
-  DrawerContentProps
->((props, ref) => {
+const DrawerContent = React.forwardRef<DrawerContentElement, DrawerContentProps>((props, ref) => {
   const { className, children, ...contentProps } = props;
 
   return (
@@ -43,7 +40,7 @@ const DrawerContent = React.forwardRef<
         ref={ref}
         className={cn(
           "bg-gray-1 border border-border flex flex-col fixed bottom-0 left-0 right-0 max-h-[82vh] rounded-t-xl drop-shadow-2xl",
-          className
+          className,
         )}
       >
         {children}
@@ -67,5 +64,5 @@ export const Drawer = Object.assign(
     Title: DrawerTitle,
     Description: DrawerDescription,
     Nested: DrawerNested,
-  }
+  },
 );
