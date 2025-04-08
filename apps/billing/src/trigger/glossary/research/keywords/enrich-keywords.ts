@@ -1,7 +1,7 @@
 import { task } from "@trigger.dev/sdk/v3";
+import { AbortTaskRunError } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 import { KeywordSchema } from "./serper-search";
-import { AbortTaskRunError } from "@trigger.dev/sdk/v3";
 
 // Keywords Everywhere API Response Schema
 const KeywordsEverywhereResponseSchema = z.object({
@@ -118,9 +118,11 @@ export const enrichKeywordsTask = task({
         }
 
         // Skip if no meaningful data (all metrics are zero)
-        if (enrichment.vol === 0 && 
-            Number.parseFloat(enrichment.cpc.value) === 0 && 
-            enrichment.competition === 0) {
+        if (
+          enrichment.vol === 0 &&
+          Number.parseFloat(enrichment.cpc.value) === 0 &&
+          enrichment.competition === 0
+        ) {
           skippedKeywords.push(keyword.keyword);
           return null;
         }

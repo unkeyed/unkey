@@ -1,6 +1,6 @@
-import { z } from "zod";
 import { task } from "@trigger.dev/sdk/v3";
 import { AbortTaskRunError } from "@trigger.dev/sdk/v3";
+import { z } from "zod";
 import { KeywordSchema } from "./serper-search";
 
 // Serper Autosuggest Response Schema

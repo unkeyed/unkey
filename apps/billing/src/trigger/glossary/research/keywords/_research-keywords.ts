@@ -1,9 +1,9 @@
-import { task, batch, AbortTaskRunError } from "@trigger.dev/sdk/v3";
+import { AbortTaskRunError, batch, task } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
-import { relatedKeywordsTask } from "./related-keywords";
-import { serperSearchTask } from "./serper-search";
-import { serperAutosuggestTask } from "./serper-autosuggest";
 import { enrichKeywordsTask } from "./enrich-keywords";
+import { relatedKeywordsTask } from "./related-keywords";
+import { serperAutosuggestTask } from "./serper-autosuggest";
+import { serperSearchTask } from "./serper-search";
 
 // Input schema
 const ParentTaskPayload = z.object({
@@ -41,26 +41,26 @@ const normalizeKeyword = (keyword: string) => keyword.toLowerCase().trim();
 
 /**
  * Performs comprehensive keyword research by combining and enriching data from multiple sources.
- * 
+ *
  * Flow:
  * 1. Executes three tasks in parallel:
  *    - Related keywords from massiveonlinemarketing.nl
  *    - Serper search results
  *    - Serper autosuggest results
- * 
+ *
  * 2. Processes results in priority order:
  *    a. Related keywords are processed first as primary source
  *    b. Serper search results are enriched if confidence >= 0.8
  *    c. Serper autosuggest results are enriched if confidence >= 0.8
- * 
+ *
  * 3. Deduplication:
  *    - Uses normalized keywords (lowercase, trimmed) as unique keys
  *    - Skips enrichment for already known keywords
  *    - Tracks metadata about deduplication process
- * 
+ *
  * @param payload - Contains the input term for keyword research
  * @param payload.inputTerm - The seed keyword to research
- * 
+ *
  * @returns {Promise<{
  *   keywords: Array<{
  *     keyword: string;
@@ -83,7 +83,7 @@ const normalizeKeyword = (keyword: string) => keyword.toLowerCase().trim();
  *     };
  *   };
  * }>}
- * 
+ *
  * @throws {AbortTaskRunError} If inputTerm is empty
  */
 export const researchKeywords = task({

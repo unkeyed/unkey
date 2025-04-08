@@ -1,8 +1,8 @@
-import { z } from "zod";
+import { openai } from "@ai-sdk/openai";
 import { task } from "@trigger.dev/sdk/v3";
 import { AbortTaskRunError } from "@trigger.dev/sdk/v3";
-import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
+import { z } from "zod";
 
 // Serper API Response Schema
 export const SerperSearchResultSchema = z.object({
@@ -146,7 +146,8 @@ export const serperSearchTask = task({
 
       const llmResponse = await generateObject({
         model: openai("gpt-4o-mini"),
-        system: 'You are an SEO expert specializing in keyword research. Your task is to analyze search results and extract relevant keywords.',
+        system:
+          "You are an SEO expert specializing in keyword research. Your task is to analyze search results and extract relevant keywords.",
         prompt: `Analyze these search results for '${inputTerm}' and extract relevant keywords.
 
 Focus on keywords that would be valuable for SEO optimization, including:
@@ -165,13 +166,13 @@ Search Results:
 ${organicContent}
 ${paaContent}`,
         schema: z.array(KeywordSchema),
-        output: "array"
+        output: "array",
       });
 
       // 4. Combine and deduplicate keywords
       const allKeywords = [...relatedKeywords, ...llmResponse.object[0]];
       const uniqueKeywords = Array.from(
-        new Map(allKeywords.map(item => [item.keyword.toLowerCase(), item])).values()
+        new Map(allKeywords.map((item) => [item.keyword.toLowerCase(), item])).values(),
       );
 
       return {
@@ -189,4 +190,3 @@ ${paaContent}`,
     }
   },
 });
-

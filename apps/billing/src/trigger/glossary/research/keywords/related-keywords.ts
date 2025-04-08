@@ -8,21 +8,21 @@ const RelatedKeywordSchema = z.object({
   competition: z.number(),
   competition_index: z.number(),
   high_top_of_page_bid_micros: z.number(),
-  low_top_of_page_bid_micros: z.number()
+  low_top_of_page_bid_micros: z.number(),
 });
 
 export type RelatedKeyword = z.infer<typeof RelatedKeywordSchema>;
 
 export const RelatedKeywordsOutputSchema = z.object({
   inputTerm: z.string(),
-  keywordIdeas: z.array(RelatedKeywordSchema)
+  keywordIdeas: z.array(RelatedKeywordSchema),
 });
 
 export type RelatedKeywordsOutput = z.infer<typeof RelatedKeywordsOutputSchema>;
 
 // Schema for the raw data from the website
 const KeywordDataSchema = z.object({
-  keywordIdeas: z.array(RelatedKeywordSchema)
+  keywordIdeas: z.array(RelatedKeywordSchema),
 });
 
 /**
@@ -69,7 +69,7 @@ export const relatedKeywordsTask = task({
       // 4. Return results in the original format
       return {
         inputTerm,
-        keywordIdeas: validationResult.data.keywordIdeas
+        keywordIdeas: validationResult.data.keywordIdeas,
       };
     } catch (error) {
       if (error instanceof AbortTaskRunError) {
@@ -84,25 +84,25 @@ export const relatedKeywordsTask = task({
 
 /**
  * Extracts and parses keyword data from HTML content containing Next.js hydration scripts.
- * 
+ *
  * This function specifically targets Next.js script tags containing serialized keyword data
  * from massiveonlinemarketing.nl. It performs the following steps:
- * 
+ *
  * 1. Finds all script tags containing 'self.__next_f.push'
  * 2. Iterates through matches to find the one containing 'keywordData'
  * 3. Carefully extracts the JSON object using brace matching
  * 4. Unescapes and parses the JSON data
- * 
+ *
  * The function includes extensive debug logging in non-production environments
  * to help diagnose extraction issues.
- * 
+ *
  * @param html - Raw HTML string from the webpage
- * 
+ *
  * @returns {Object} Result object
  * @returns {Object|null} result.data - Parsed keyword data if found
  * @returns {Array} [result.data.keywordIdeas] - Array of keyword ideas if present
  * @returns {Error|null} result.error - Error object if extraction fails
- * 
+ *
  * @example
  * const { data, error } = extractKeywordData(htmlContent);
  * if (error) {
@@ -110,7 +110,7 @@ export const relatedKeywordsTask = task({
  *   return;
  * }
  * console.log('Found keyword ideas:', data.keywordIdeas);
- * 
+ *
  * @remarks
  * - Uses regex to find Next.js hydration scripts
  * - Implements careful JSON extraction with brace counting
@@ -121,18 +121,18 @@ function extractKeywordData(html: string) {
   // First find all script tags containing self.__next_f.push
   const scriptTagRegex = /<script>self\.__next_f\.push\(\[(.*?)\]\)<\/script>/g;
   const matches = Array.from(html.matchAll(scriptTagRegex));
-  
+
   if (process.env.NODE_ENV !== "production") {
     console.info(`Found ${matches.length} __next_f.push scripts`);
   }
-  
+
   for (const [index, match] of matches.entries()) {
     const content = match[1];
     if (process.env.NODE_ENV !== "production") {
       console.info(`\nChecking script ${index + 1}/${matches.length}`);
       console.info("Content:", content.slice(0, 200));
     }
-    
+
     if (!content) {
       if (process.env.NODE_ENV !== "production") {
         console.info("Empty content, skipping");
@@ -140,9 +140,9 @@ function extractKeywordData(html: string) {
       continue;
     }
 
-    if (!content.includes('keywordData')) {
+    if (!content.includes("keywordData")) {
       if (process.env.NODE_ENV !== "production") {
-        console.info('No keywordData found, skipping');
+        console.info("No keywordData found, skipping");
       }
       continue;
     }
@@ -150,14 +150,14 @@ function extractKeywordData(html: string) {
     if (process.env.NODE_ENV !== "production") {
       console.info("\nFound script containing keywordData!");
     }
-    
+
     // Find the keywordData object start - handle escaped quotes
     const keywordDataStr = '\\"keywordData\\"';
     const keywordDataStart = content.indexOf(keywordDataStr);
     if (process.env.NODE_ENV !== "production") {
       console.info("keywordData position:", keywordDataStart);
     }
-    
+
     if (keywordDataStart === -1) {
       if (process.env.NODE_ENV !== "production") {
         console.info("Could not find keywordData start position");
@@ -166,7 +166,7 @@ function extractKeywordData(html: string) {
     }
 
     // Find the opening brace after the escaped quotes
-    const objectStart = content.indexOf(':{', keywordDataStart);
+    const objectStart = content.indexOf(":{", keywordDataStart);
     if (objectStart === -1) {
       if (process.env.NODE_ENV !== "production") {
         console.info("Could not find opening brace");
@@ -186,10 +186,10 @@ function extractKeywordData(html: string) {
 
     for (let i = actualObjectStart + 1; i < content.length; i++) {
       const char = content[i];
-      if (char === '{') {
+      if (char === "{") {
         braceCount++;
       }
-      if (char === '}') {
+      if (char === "}") {
         braceCount--;
       }
       if (braceCount === 0) {
@@ -245,8 +245,8 @@ function extractKeywordData(html: string) {
   if (process.env.NODE_ENV !== "production") {
     console.info("\nNo valid keyword data found in any matches");
   }
-  return { 
-    data: null, 
-    error: new Error("Could not find valid keywordData in the page") 
+  return {
+    data: null,
+    error: new Error("Could not find valid keywordData in the page"),
   };
 }
