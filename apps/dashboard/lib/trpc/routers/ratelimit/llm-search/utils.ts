@@ -30,7 +30,6 @@ export async function getStructuredSearchFromLLM(
 ) {
   try {
     if (!openai) {
-      console.log(openai);
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "OpenAI isn't configured correctly, please check your API key",
