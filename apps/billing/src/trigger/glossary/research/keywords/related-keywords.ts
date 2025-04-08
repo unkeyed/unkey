@@ -109,7 +109,7 @@ export const relatedKeywordsTask = task({
  *   console.error('Failed to extract keyword data:', error);
  *   return;
  * }
- * console.log('Found keyword ideas:', data.keywordIdeas);
+ * console.info('Found keyword ideas:', data.keywordIdeas);
  *
  * @remarks
  * - Uses regex to find Next.js hydration scripts
