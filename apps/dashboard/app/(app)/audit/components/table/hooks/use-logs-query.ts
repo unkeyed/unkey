@@ -1,4 +1,3 @@
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { useEffect, useMemo, useState } from "react";
@@ -16,13 +15,11 @@ export function useAuditLogsQuery({ limit = 50 }: UseLogsQueryParams) {
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
-  //Required for preventing double trpc call during initial render
-  const dateNow = useMemo(() => Date.now(), []);
   const queryParams = useMemo(() => {
     const params: AuditQueryLogsPayload = {
       limit,
-      startTime: dateNow - HISTORICAL_DATA_WINDOW,
-      endTime: dateNow,
+      startTime: undefined,
+      endTime: undefined,
       events: { filters: [] },
       users: { filters: [] },
       rootKeys: { filters: [] },
@@ -98,7 +95,7 @@ export function useAuditLogsQuery({ limit = 50 }: UseLogsQueryParams) {
     });
 
     return params;
-  }, [filters, limit, dateNow]);
+  }, [filters, limit]);
 
   const {
     data: initialData,
@@ -108,7 +105,6 @@ export function useAuditLogsQuery({ limit = 50 }: UseLogsQueryParams) {
     isLoading,
   } = trpc.audit.logs.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialCursor: { auditId: null, time: null },
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
