@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Organization } from "@/lib/auth/types";
+import { errorMessages, type Organization } from "@/lib/auth/types";
 import { Button } from "@unkey/ui";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -51,9 +51,9 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, onError
       return;
     } catch (error) {
       const errorMessage =
-        error instanceof Error && error.message === "no pending session"
-          ? "Organization selection timed out. Please re-authenticate."
-          : "Failed to complete organization selection. Please re-authenticate or contact support.";
+        error instanceof Error 
+          ? error.message
+          : "Failed to complete organization selection. Please re-authenticate or contact support@unkey.dev";
 
       onError(errorMessage);
     } finally {
