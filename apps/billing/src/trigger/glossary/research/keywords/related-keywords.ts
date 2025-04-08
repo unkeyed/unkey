@@ -83,8 +83,39 @@ export const relatedKeywordsTask = task({
 });
 
 /**
- * Extract keyword data from HTML content
- * This finds the script tag with keywordData and parses the JSON
+ * Extracts and parses keyword data from HTML content containing Next.js hydration scripts.
+ * 
+ * This function specifically targets Next.js script tags containing serialized keyword data
+ * from massiveonlinemarketing.nl. It performs the following steps:
+ * 
+ * 1. Finds all script tags containing 'self.__next_f.push'
+ * 2. Iterates through matches to find the one containing 'keywordData'
+ * 3. Carefully extracts the JSON object using brace matching
+ * 4. Unescapes and parses the JSON data
+ * 
+ * The function includes extensive debug logging in non-production environments
+ * to help diagnose extraction issues.
+ * 
+ * @param html - Raw HTML string from the webpage
+ * 
+ * @returns {Object} Result object
+ * @returns {Object|null} result.data - Parsed keyword data if found
+ * @returns {Array} [result.data.keywordIdeas] - Array of keyword ideas if present
+ * @returns {Error|null} result.error - Error object if extraction fails
+ * 
+ * @example
+ * const { data, error } = extractKeywordData(htmlContent);
+ * if (error) {
+ *   console.error('Failed to extract keyword data:', error);
+ *   return;
+ * }
+ * console.log('Found keyword ideas:', data.keywordIdeas);
+ * 
+ * @remarks
+ * - Uses regex to find Next.js hydration scripts
+ * - Implements careful JSON extraction with brace counting
+ * - Handles escaped quotes in the serialized data
+ * - Includes debug logging in non-production environments
  */
 function extractKeywordData(html: string) {
   // First find all script tags containing self.__next_f.push

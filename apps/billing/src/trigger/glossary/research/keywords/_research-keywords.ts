@@ -39,6 +39,53 @@ const ParentTaskOutput = z.object({
 // Helper to normalize keywords for comparison
 const normalizeKeyword = (keyword: string) => keyword.toLowerCase().trim();
 
+/**
+ * Performs comprehensive keyword research by combining and enriching data from multiple sources.
+ * 
+ * Flow:
+ * 1. Executes three tasks in parallel:
+ *    - Related keywords from massiveonlinemarketing.nl
+ *    - Serper search results
+ *    - Serper autosuggest results
+ * 
+ * 2. Processes results in priority order:
+ *    a. Related keywords are processed first as primary source
+ *    b. Serper search results are enriched if confidence >= 0.8
+ *    c. Serper autosuggest results are enriched if confidence >= 0.8
+ * 
+ * 3. Deduplication:
+ *    - Uses normalized keywords (lowercase, trimmed) as unique keys
+ *    - Skips enrichment for already known keywords
+ *    - Tracks metadata about deduplication process
+ * 
+ * @param payload - Contains the input term for keyword research
+ * @param payload.inputTerm - The seed keyword to research
+ * 
+ * @returns {Promise<{
+ *   keywords: Array<{
+ *     keyword: string;
+ *     volume: number;
+ *     cpc: number;
+ *     competition: number;
+ *     source: "massiveonlinemarketing.nl" | "relatedSearch" | "autosuggest" | "llm_extracted";
+ *   }>;
+ *   metadata: {
+ *     totalKeywords: number;
+ *     sources: {
+ *       relatedKeywords: number;
+ *       serperSearch: number;
+ *       serperAutosuggest: number;
+ *     };
+ *     deduplication: {
+ *       total: number;
+ *       skippedEnrichment: number;
+ *       duplicatesRemoved: number;
+ *     };
+ *   };
+ * }>}
+ * 
+ * @throws {AbortTaskRunError} If inputTerm is empty
+ */
 export const researchKeywords = task({
   id: "research_keywords",
   run: async (payload: z.infer<typeof ParentTaskPayload>) => {
@@ -76,7 +123,7 @@ export const researchKeywords = task({
       totalKeywordsBeforeDedup += relatedResult.output.keywordIdeas.length;
     }
 
-    // Helper to filter out keywords we already have data for
+    // Helper to filter out keywords we already have data for so that we don't enrich them again
     const filterNewKeywords = (keywords: Array<{ keyword: string; confidence?: number }>) => {
       const newKeywords = keywords.filter(
         (kw) => (kw.confidence ?? 0) >= 0.8 && !keywordMap.has(normalizeKeyword(kw.keyword)),
@@ -85,7 +132,7 @@ export const researchKeywords = task({
       return newKeywords;
     };
 
-    // Process Serper search results
+    // Enrich Serper search results with keyword metrics
     if (serperSearchResult.ok) {
       const newSearchKeywords = filterNewKeywords(serperSearchResult.output.keywords);
 
@@ -117,7 +164,7 @@ export const researchKeywords = task({
       }
     }
 
-    // Process Serper autosuggest results
+    // Enrich Serper autosuggest results with keyword metrics
     if (serperAutosuggestResult.ok) {
       const newAutosuggestKeywords = filterNewKeywords(serperAutosuggestResult.output.keywords);
 
