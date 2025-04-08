@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import * as clack from "@clack/prompts";
-import { eq, schema } from "@unkey/db";
+import { and, eq, isNull, schema } from "@unkey/db";
 import {
   clickhouse,
   connectDatabase,
@@ -12,6 +12,27 @@ import {
 } from "./utils";
 
 const BATCH_SIZE = 50_000;
+
+async function getAPIs(workspaceId: string) {
+  const { db, conn } = await connectDatabase();
+
+  try {
+    const apis = await db
+      .select({
+        id: schema.apis.id,
+        name: schema.apis.name,
+        keyAuthId: schema.apis.keyAuthId,
+      })
+      .from(schema.apis)
+      .where(and(eq(schema.apis.workspaceId, workspaceId), isNull(schema.apis.deletedAtM)))
+      .orderBy(schema.apis.name);
+
+    return apis;
+  } finally {
+    await conn.end();
+  }
+}
+
 async function createApi(workspaceId: string, name: string) {
   const { db, conn } = await connectDatabase();
 
@@ -186,6 +207,42 @@ async function createKeysForApi(
 
     spinner.stop(`Created ${count} keys for API ${apiId}`);
     return createdKeys;
+  } finally {
+    await conn.end();
+  }
+}
+
+// Get existing keys for an API/keyspace
+async function getExistingKeys(workspaceId: string, keyAuthId: string) {
+  const { db, conn } = await connectDatabase();
+
+  try {
+    const keys = await db
+      .select({
+        id: schema.keys.id,
+        name: schema.keys.name,
+        start: schema.keys.start,
+        enabled: schema.keys.enabled,
+        ratelimitLimit: schema.keys.ratelimitLimit,
+        remaining: schema.keys.remaining,
+      })
+      .from(schema.keys)
+      .where(
+        and(
+          eq(schema.keys.workspaceId, workspaceId),
+          eq(schema.keys.keyAuthId, keyAuthId),
+          isNull(schema.keys.deletedAtM),
+        ),
+      );
+
+    return keys.map((key) => ({
+      id: key.id,
+      name: key.name ?? `Unnamed Key (${key.id})`,
+      prefix: key.start,
+      enabled: Boolean(key.enabled),
+      hasRatelimit: key.ratelimitLimit !== null,
+      hasUsageLimit: key.remaining !== null,
+    }));
   } finally {
     await conn.end();
   }
@@ -427,61 +484,158 @@ async function insertVerificationEvents(
 }
 
 export async function seedApiAndKeys(workspaceId: string, count: number) {
-  const apiName = await clack.text({
-    message: "Enter a name for the API:",
-    defaultValue: `API ${new Date().toISOString().substring(0, 10)}`,
-    validate(value) {
-      if (!value || value.trim().length === 0) {
-        return "Please enter a valid API name";
-      }
-    },
-  });
-
-  if (clack.isCancel(apiName)) {
-    clack.cancel("Operation cancelled");
-    process.exit(0);
-  }
-
-  // Step 2: Ask how many keys to create
-  const keyCount = await clack.text({
-    message: "How many keys would you like to create for this API?",
-    defaultValue: "100",
-    validate(value) {
-      const num = Number.parseInt(value, 10);
-      if (Number.isNaN(num) || num <= 0) {
-        return "Please enter a valid positive number";
-      }
-    },
-  });
-
-  if (clack.isCancel(keyCount)) {
-    clack.cancel("Operation cancelled");
-    process.exit(0);
-  }
-
-  const numKeyCount = Number.parseInt(keyCount as string, 10);
-
+  // First, fetch existing APIs
   const spinner = clack.spinner();
-  spinner.start(`Creating API "${apiName}"...`);
-  const { apiId, keyAuthId } = await createApi(workspaceId, apiName as string);
-  spinner.stop(`Created API: ${apiName} (${apiId}) with keyspace: ${keyAuthId}`);
+  spinner.start(`Fetching existing APIs for workspace ${workspaceId}...`);
 
-  const keys = await createKeysForApi(workspaceId, apiId, keyAuthId, numKeyCount);
+  const existingApis = await getAPIs(workspaceId);
+  spinner.stop(`Found ${existingApis.length} existing APIs.`);
 
-  const generateVerifications = await clack.confirm({
-    message: "Would you like to generate key verification events?",
-    initialValue: true,
-  });
+  // Variables to track API and keyspace IDs
+  let apiId: string;
+  let keyAuthId: string;
+  let apiName: string;
 
-  if (clack.isCancel(generateVerifications)) {
-    clack.cancel("Operation cancelled");
-    process.exit(0);
+  // Ask user if they want to use an existing API or create a new one
+  if (existingApis.length > 0) {
+    const apiChoice = await clack.select({
+      message: "Would you like to use an existing API or create a new one?",
+      options: [
+        { value: "existing", label: "Use an existing API" },
+        { value: "new", label: "Create a new API" },
+      ],
+    });
+
+    if (clack.isCancel(apiChoice)) {
+      clack.cancel("Operation cancelled");
+      process.exit(0);
+    }
+
+    if (apiChoice === "existing") {
+      // Get user to select an existing API
+      const selectedApi = await clack.select({
+        message: "Select an API:",
+        options: existingApis.map((api) => ({
+          value: JSON.stringify({ id: api.id, keyAuthId: api.keyAuthId }),
+          label: api.name,
+        })),
+      });
+
+      if (clack.isCancel(selectedApi)) {
+        clack.cancel("Operation cancelled");
+        process.exit(0);
+      }
+
+      const { id, keyAuthId: selectedKeyAuthId } = JSON.parse(selectedApi as string);
+      apiId = id;
+      keyAuthId = selectedKeyAuthId;
+      apiName = existingApis.find((api) => api.id === apiId)?.name || "Unknown";
+
+      spinner.start(`Using existing API: ${apiName} (${apiId})`);
+      spinner.stop();
+    } else {
+      // Create a new API
+      apiName = (await clack.text({
+        message: "Enter a name for the new API:",
+        defaultValue: `API ${new Date().toISOString().substring(0, 10)}`,
+        validate(value) {
+          if (!value || value.trim().length === 0) {
+            return "Please enter a valid API name";
+          }
+        },
+      })) as string;
+
+      if (clack.isCancel(apiName)) {
+        clack.cancel("Operation cancelled");
+        process.exit(0);
+      }
+
+      spinner.start(`Creating API "${apiName}"...`);
+      const result = await createApi(workspaceId, apiName as string);
+      apiId = result.apiId;
+      keyAuthId = result.keyAuthId;
+      spinner.stop(`Created API: ${apiName} (${apiId}) with keyspace: ${keyAuthId}`);
+    }
+  } else {
+    // No existing APIs, create a new one
+    apiName = (await clack.text({
+      message: "No existing APIs found. Enter a name for the new API:",
+      defaultValue: `API ${new Date().toISOString().substring(0, 10)}`,
+      validate(value) {
+        if (!value || value.trim().length === 0) {
+          return "Please enter a valid API name";
+        }
+      },
+    })) as string;
+
+    if (clack.isCancel(apiName)) {
+      clack.cancel("Operation cancelled");
+      process.exit(0);
+    }
+
+    spinner.start(`Creating API "${apiName}"...`);
+    const result = await createApi(workspaceId, apiName as string);
+    apiId = result.apiId;
+    keyAuthId = result.keyAuthId;
+    spinner.stop(`Created API: ${apiName} (${apiId}) with keyspace: ${keyAuthId}`);
   }
 
-  if (generateVerifications) {
-    const verificationCount = await clack.text({
-      message: "How many verification events would you like to create?",
-      defaultValue: count.toString(),
+  // Check if the API already has keys
+  spinner.start(`Checking for existing keys for API ${apiName}...`);
+  const existingKeys = await getExistingKeys(workspaceId, keyAuthId);
+  spinner.stop(`Found ${existingKeys.length} existing keys for API ${apiName}.`);
+
+  let keys: {
+    id: string;
+    name: string;
+    prefix: string;
+    enabled: boolean;
+    hasRatelimit: boolean;
+    hasUsageLimit: boolean;
+  }[] = existingKeys;
+
+  // Ask if the user wants to create additional keys if using an existing API with keys
+  if (existingKeys.length > 0) {
+    const createMoreKeys = await clack.confirm({
+      message: `API ${apiName} already has ${existingKeys.length} keys. Would you like to create additional keys?`,
+      initialValue: false,
+    });
+
+    if (clack.isCancel(createMoreKeys)) {
+      clack.cancel("Operation cancelled");
+      process.exit(0);
+    }
+
+    if (createMoreKeys) {
+      // Ask how many additional keys to create
+      const keyCount = await clack.text({
+        message: "How many additional keys would you like to create for this API?",
+        defaultValue: "100",
+        validate(value) {
+          const num = Number.parseInt(value, 10);
+          if (Number.isNaN(num) || num <= 0) {
+            return "Please enter a valid positive number";
+          }
+        },
+      });
+
+      if (clack.isCancel(keyCount)) {
+        clack.cancel("Operation cancelled");
+        process.exit(0);
+      }
+
+      const numKeyCount = Number.parseInt(keyCount as string, 10);
+      const newKeys = await createKeysForApi(workspaceId, apiId, keyAuthId, numKeyCount);
+
+      // Add the new keys to our existing keys array
+      keys = [...existingKeys, ...newKeys];
+    }
+  } else {
+    // Either a new API or an existing API with no keys
+    // Ask how many keys to create
+    const keyCount = await clack.text({
+      message: "How many keys would you like to create for this API?",
+      defaultValue: "100",
       validate(value) {
         const num = Number.parseInt(value, 10);
         if (Number.isNaN(num) || num <= 0) {
@@ -490,29 +644,69 @@ export async function seedApiAndKeys(workspaceId: string, count: number) {
       },
     });
 
-    if (clack.isCancel(verificationCount)) {
+    if (clack.isCancel(keyCount)) {
       clack.cancel("Operation cancelled");
       process.exit(0);
     }
 
-    const numVerificationCount = Number.parseInt(verificationCount as string, 10);
+    const numKeyCount = Number.parseInt(keyCount as string, 10);
+    keys = await createKeysForApi(workspaceId, apiId, keyAuthId, numKeyCount);
+  }
 
-    const generateApiLogs = await clack.confirm({
-      message: "Would you like to generate matching API request logs for the verification events?",
+  // Check if we have keys before offering to generate verification events
+  if (keys.length > 0) {
+    const generateVerifications = await clack.confirm({
+      message: "Would you like to generate key verification events?",
       initialValue: true,
     });
 
-    if (clack.isCancel(generateApiLogs)) {
+    if (clack.isCancel(generateVerifications)) {
       clack.cancel("Operation cancelled");
       process.exit(0);
     }
 
-    await insertVerificationEvents(
-      workspaceId,
-      keyAuthId,
-      keys,
-      numVerificationCount,
-      generateApiLogs as boolean,
+    if (generateVerifications) {
+      const verificationCount = await clack.text({
+        message: "How many verification events would you like to create?",
+        defaultValue: count.toString(),
+        validate(value) {
+          const num = Number.parseInt(value, 10);
+          if (Number.isNaN(num) || num <= 0) {
+            return "Please enter a valid positive number";
+          }
+        },
+      });
+
+      if (clack.isCancel(verificationCount)) {
+        clack.cancel("Operation cancelled");
+        process.exit(0);
+      }
+
+      const numVerificationCount = Number.parseInt(verificationCount as string, 10);
+
+      const generateApiLogs = await clack.confirm({
+        message:
+          "Would you like to generate matching API request logs for the verification events?",
+        initialValue: true,
+      });
+
+      if (clack.isCancel(generateApiLogs)) {
+        clack.cancel("Operation cancelled");
+        process.exit(0);
+      }
+
+      await insertVerificationEvents(
+        workspaceId,
+        keyAuthId,
+        keys,
+        numVerificationCount,
+        generateApiLogs as boolean,
+      );
+    }
+  } else {
+    // biome-ignore lint/suspicious/noConsoleLog: <explanation>
+    console.log(
+      "No keys available for verification events. Skipping verification event generation.",
     );
   }
 
@@ -520,6 +714,6 @@ export async function seedApiAndKeys(workspaceId: string, count: number) {
     apiId,
     apiName,
     keyAuthId,
-    keyCount: numKeyCount,
+    keyCount: keys.length,
   };
 }

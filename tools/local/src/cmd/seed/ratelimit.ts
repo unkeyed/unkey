@@ -1,5 +1,5 @@
 import * as clack from "@clack/prompts";
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import {
   clickhouse,
   connectDatabase,
@@ -10,6 +10,26 @@ import {
 } from "./utils";
 
 const BATCH_SIZE = 50_000;
+
+async function getRatelimitNamespaces(workspaceId: string) {
+  const { db, conn } = await connectDatabase();
+
+  try {
+    const namespaces = await db
+      .select({
+        id: schema.ratelimitNamespaces.id,
+        name: schema.ratelimitNamespaces.name,
+      })
+      .from(schema.ratelimitNamespaces)
+      .where(eq(schema.ratelimitNamespaces.workspaceId, workspaceId))
+      .orderBy(schema.ratelimitNamespaces.name);
+
+    return namespaces;
+  } finally {
+    await conn.end();
+  }
+}
+
 async function createRatelimitNamespace(workspaceId: string, name: string) {
   const { db, conn } = await connectDatabase();
 
@@ -162,25 +182,93 @@ async function insertRatelimitEvents(
 }
 
 export async function seedRatelimitData(workspaceId: string, count: number) {
-  const namespaceName = await clack.text({
-    message: "Enter a name for the ratelimit namespace:",
-    defaultValue: `Ratelimit Namespace ${new Date().toISOString().substring(0, 10)}`,
-    validate(value) {
-      if (!value || value.trim().length === 0) {
-        return "Please enter a valid namespace name";
-      }
-    },
-  });
-
-  if (clack.isCancel(namespaceName)) {
-    clack.cancel("Operation cancelled");
-    process.exit(0);
-  }
-
+  // First, fetch existing ratelimit namespaces
   const spinner = clack.spinner();
-  spinner.start(`Creating ratelimit namespace "${namespaceName}"...`);
-  const namespaceId = await createRatelimitNamespace(workspaceId, namespaceName as string);
-  spinner.stop(`Created ratelimit namespace: ${namespaceName} (${namespaceId})`);
+  spinner.start(`Fetching existing ratelimit namespaces for workspace ${workspaceId}...`);
+
+  const existingNamespaces = await getRatelimitNamespaces(workspaceId);
+  spinner.stop(`Found ${existingNamespaces.length} existing ratelimit namespaces.`);
+
+  // Ask user if they want to use an existing namespace or create a new one
+  let namespaceId: string;
+  let namespaceName: string;
+
+  if (existingNamespaces.length > 0) {
+    const namespaceChoice = await clack.select({
+      message: "Would you like to use an existing namespace or create a new one?",
+      options: [
+        { value: "existing", label: "Use an existing namespace" },
+        { value: "new", label: "Create a new namespace" },
+      ],
+    });
+
+    if (clack.isCancel(namespaceChoice)) {
+      clack.cancel("Operation cancelled");
+      process.exit(0);
+    }
+
+    if (namespaceChoice === "existing") {
+      // Get user to select an existing namespace
+      const selectedNamespace = await clack.select({
+        message: "Select a namespace:",
+        options: existingNamespaces.map((ns) => ({
+          value: ns.id,
+          label: ns.name,
+        })),
+      });
+
+      if (clack.isCancel(selectedNamespace)) {
+        clack.cancel("Operation cancelled");
+        process.exit(0);
+      }
+
+      namespaceId = selectedNamespace as string;
+      namespaceName = existingNamespaces.find((ns) => ns.id === namespaceId)?.name || "Unknown";
+
+      spinner.start(`Using existing namespace: ${namespaceName} (${namespaceId})`);
+      spinner.stop();
+    } else {
+      // Create a new namespace
+      namespaceName = (await clack.text({
+        message: "Enter a name for the new ratelimit namespace:",
+        defaultValue: `Ratelimit Namespace ${new Date().toISOString().substring(0, 10)}`,
+        validate(value) {
+          if (!value || value.trim().length === 0) {
+            return "Please enter a valid namespace name";
+          }
+        },
+      })) as string;
+
+      if (clack.isCancel(namespaceName)) {
+        clack.cancel("Operation cancelled");
+        process.exit(0);
+      }
+
+      spinner.start(`Creating ratelimit namespace "${namespaceName}"...`);
+      namespaceId = await createRatelimitNamespace(workspaceId, namespaceName as string);
+      spinner.stop(`Created ratelimit namespace: ${namespaceName} (${namespaceId})`);
+    }
+  } else {
+    // No existing namespaces, create a new one
+    namespaceName = (await clack.text({
+      message: "No existing namespaces found. Enter a name for the new ratelimit namespace:",
+      defaultValue: `Ratelimit Namespace ${new Date().toISOString().substring(0, 10)}`,
+      validate(value) {
+        if (!value || value.trim().length === 0) {
+          return "Please enter a valid namespace name";
+        }
+      },
+    })) as string;
+
+    if (clack.isCancel(namespaceName)) {
+      clack.cancel("Operation cancelled");
+      process.exit(0);
+    }
+
+    spinner.start(`Creating ratelimit namespace "${namespaceName}"...`);
+    namespaceId = await createRatelimitNamespace(workspaceId, namespaceName as string);
+    spinner.stop(`Created ratelimit namespace: ${namespaceName} (${namespaceId})`);
+  }
 
   const generateApiLogs = await clack.confirm({
     message: "Would you like to generate matching API request logs for the ratelimit events?",

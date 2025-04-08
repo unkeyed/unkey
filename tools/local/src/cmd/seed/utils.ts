@@ -3,12 +3,10 @@ import { ClickHouse } from "@unkey/clickhouse";
 import { eq, mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 
-// Generate UUID using crypto
 export function generateUuid() {
   return crypto.randomUUID();
 }
 
-// Environment function
 function env() {
   return {
     CLICKHOUSE_URL: "http://default:password@localhost:8123",
