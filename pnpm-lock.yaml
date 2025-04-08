@@ -179,7 +179,7 @@ importers:
         version: 4.0.9
       ai:
         specifier: ^3.4.7
-        version: 3.4.7(react@18.3.1)(svelte@5.25.6)(vue@3.5.13)(zod@3.23.8)
+        version: 3.4.7(react@18.3.1)(svelte@5.25.8)(vue@3.5.13)(zod@3.23.8)
       drizzle-orm:
         specifier: ^0.33.0
         version: 0.33.0(@opentelemetry/api@1.4.1)(@planetscale/database@1.19.0)(@types/react@18.3.11)(react@18.3.1)
@@ -256,6 +256,9 @@ importers:
       '@radix-ui/react-popover':
         specifier: ^1.0.7
         version: 1.0.7(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
+      '@radix-ui/react-primitive':
+        specifier: ^2.0.2
+        version: 2.0.2(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
       '@radix-ui/react-progress':
         specifier: ^1.0.3
         version: 1.0.3(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
@@ -1064,7 +1067,7 @@ importers:
         version: link:../../packages/error
       ai:
         specifier: ^3.0.23
-        version: 3.4.7(react@18.3.1)(svelte@5.25.6)(vue@3.5.13)(zod@3.23.8)
+        version: 3.4.7(react@18.3.1)(svelte@5.25.8)(vue@3.5.13)(zod@3.23.8)
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1335,7 +1338,7 @@ importers:
         version: 18.3.1
       react-email:
         specifier: 2.1.1
-        version: 2.1.1(@babel/core@7.26.10)(eslint@9.23.0)(ts-node@10.9.2)
+        version: 2.1.1(@babel/core@7.26.10)(eslint@9.24.0)(ts-node@10.9.2)
       resend:
         specifier: ^4.0.0
         version: 4.0.0(react-dom@18.3.1)(react@18.3.1)
@@ -1906,7 +1909,7 @@ packages:
       - zod
     dev: false
 
-  /@ai-sdk/svelte@0.0.51(svelte@5.25.6)(zod@3.23.8):
+  /@ai-sdk/svelte@0.0.51(svelte@5.25.8)(zod@3.23.8):
     resolution: {integrity: sha512-aIZJaIds+KpCt19yUDCRDWebzF/17GCY7gN9KkcA2QM6IKRO5UmMcqEYja0ZmwFQPm1kBZkF2njhr8VXis2mAw==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -1917,8 +1920,8 @@ packages:
     dependencies:
       '@ai-sdk/provider-utils': 1.0.20(zod@3.23.8)
       '@ai-sdk/ui-utils': 0.0.46(zod@3.23.8)
-      sswr: 2.1.0(svelte@5.25.6)
-      svelte: 5.25.6
+      sswr: 2.1.0(svelte@5.25.8)
+      svelte: 5.25.8
     transitivePeerDependencies:
       - zod
     dev: false
@@ -2658,8 +2661,8 @@ packages:
     bundledDependencies:
       - is-unicode-supported
 
-  /@clerk/backend@1.26.0(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-ioZBMnwm4DD8IVPGDjFW3wkyn1JTMvTlsmdHGYsjdbXLtbRFVRJelAIMMGLcSmqMgzTKxnrJSOz8PxPjSMUFtw==}
+  /@clerk/backend@1.27.0(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-WqdigkqGyVcU0Y08xCJSor6I8j7WxtlZfMlIbHyw+JM8U06kNVSX9umRmTePFRFN02EwIQmQmqnRXVn0kwMyBQ==}
     engines: {node: '>=18.17.0'}
     peerDependencies:
       svix: ^1.62.0
@@ -2667,8 +2670,8 @@ packages:
       svix:
         optional: true
     dependencies:
-      '@clerk/shared': 3.3.0(react-dom@18.3.1)(react@18.3.1)
-      '@clerk/types': 4.50.2
+      '@clerk/shared': 3.4.0(react-dom@18.3.1)(react@18.3.1)
+      '@clerk/types': 4.51.0
       cookie: 1.0.2
       snakecase-keys: 8.0.1
       tslib: 2.8.1
@@ -2682,9 +2685,9 @@ packages:
     engines: {node: '>=18.17.0'}
     deprecated: 'January 10 2025 marks the end of support for @clerk/clerk-sdk-node as previously announced in our October 2024 deprecation notice. Express users can migrate to the @clerk/express package. For more information, you can find our changelog here: https://clerk.com/changelog/2025-01-10-node-sdk-eol'
     dependencies:
-      '@clerk/backend': 1.26.0(react-dom@18.3.1)(react@18.3.1)
+      '@clerk/backend': 1.27.0(react-dom@18.3.1)(react@18.3.1)
       '@clerk/shared': 2.22.0(react-dom@18.3.1)(react@18.3.1)
-      '@clerk/types': 4.50.2
+      '@clerk/types': 4.51.0
       tslib: 2.4.1
     transitivePeerDependencies:
       - react
@@ -2705,18 +2708,18 @@ packages:
       react-dom:
         optional: true
     dependencies:
-      '@clerk/types': 4.50.2
+      '@clerk/types': 4.51.0
       dequal: 2.0.3
       glob-to-regexp: 0.4.1
       js-cookie: 3.0.5
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      std-env: 3.8.1
+      std-env: 3.9.0
       swr: 2.3.3(react@18.3.1)
     dev: false
 
-  /@clerk/shared@3.3.0(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-hO1M5aRMzJVqkw6lWJ7NFVG5hWEnTZBUZGeHMYRwSPQzQNsgqsRMvpmaJO0Y2o0HNk50PpwZHaiFHcghUpfMiw==}
+  /@clerk/shared@3.4.0(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-3ms1JZVNXe/qJXdsFY+QlOYKcocdMKDHXDr/EvpuQV+WsLKkpMcswH2fbWNhsWG2otekL2sIYBVkCy+/0hBlPA==}
     engines: {node: '>=18.17.0'}
     requiresBuild: true
     peerDependencies:
@@ -2728,18 +2731,18 @@ packages:
       react-dom:
         optional: true
     dependencies:
-      '@clerk/types': 4.50.2
+      '@clerk/types': 4.51.0
       dequal: 2.0.3
       glob-to-regexp: 0.4.1
       js-cookie: 3.0.5
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      std-env: 3.8.1
+      std-env: 3.9.0
       swr: 2.3.3(react@18.3.1)
     dev: false
 
-  /@clerk/types@4.50.2:
-    resolution: {integrity: sha512-4m1RlV/Dl3ZGW5FAXmKfdCbhF7uTDDvaADZH1F6L3d3lRBdI6i7GppK1KqscOSgoC8OwJqGaiDVUPsg+Pp8usg==}
+  /@clerk/types@4.51.0:
+    resolution: {integrity: sha512-igUZ5BOe3rOgQSM8v9f6zHCOowX3yV36zWYImMUWD61cpLqUokKtN6qH2x8sHUHrq3B9Dj3AsXItGaQsLNs3mw==}
     engines: {node: '>=18.17.0'}
     dependencies:
       csstype: 3.1.3
@@ -4845,13 +4848,13 @@ packages:
     requiresBuild: true
     optional: true
 
-  /@eslint-community/eslint-utils@4.5.1(eslint@9.23.0):
+  /@eslint-community/eslint-utils@4.5.1(eslint@9.24.0):
     resolution: {integrity: sha512-soEIOALTfTK6EjmKMMoLugwaP0rzkad90iIWd1hMO9ARkSAyjfMfkRRhLvD5qH7vvM0Cg72pieUfR6yh6XxC4w==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     peerDependencies:
       eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
     dependencies:
-      eslint: 9.23.0
+      eslint: 9.24.0
       eslint-visitor-keys: 3.4.3
     dev: false
 
@@ -4860,8 +4863,8 @@ packages:
     engines: {node: ^12.0.0 || ^14.0.0 || >=16.0.0}
     dev: false
 
-  /@eslint/config-array@0.19.2:
-    resolution: {integrity: sha512-GNKqxfHG2ySmJOBSHg7LxeUx4xpuCoFjacmlCoYWEbaPXLwvfIjixRI12xCQZeULksQb23uiA8F40w5TojpV7w==}
+  /@eslint/config-array@0.20.0:
+    resolution: {integrity: sha512-fxlS1kkIjx8+vy2SjuCB94q3htSNrufYTXubwiBFeaQHbH6Ipi43gFJq2zCMt6PHhImH3Xmr0NksKDvchWlpQQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     dependencies:
       '@eslint/object-schema': 2.1.6
@@ -4907,8 +4910,8 @@ packages:
       - supports-color
     dev: false
 
-  /@eslint/js@9.23.0:
-    resolution: {integrity: sha512-35MJ8vCPU0ZMxo7zfev2pypqTwWTofFZO6m4KAtdoFhRpLJUpHTZZ+KB3C7Hb1d7bULYwO4lJXGCi5Se+8OMbw==}
+  /@eslint/js@9.24.0:
+    resolution: {integrity: sha512-uIY/y3z0uvOGX8cp1C2fiC4+ZmBhp6yZWkojtHL1YEMnRt1Y63HB9TM17proGEmeG7HeUY+UP36F0aknKYTpYA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     dev: false
 
@@ -5414,8 +5417,8 @@ packages:
     dev: true
     optional: true
 
-  /@inquirer/checkbox@4.1.4(@types/node@20.17.30):
-    resolution: {integrity: sha512-d30576EZdApjAMceijXA5jDzRQHT/MygbC+J8I7EqA6f/FRpYxlRtRJbHF8gHeWYeSdOuTEJqonn7QLB1ELezA==}
+  /@inquirer/checkbox@4.1.5(@types/node@20.17.30):
+    resolution: {integrity: sha512-swPczVU+at65xa5uPfNP9u3qx/alNwiaykiI/ExpsmMSQW55trmZcwhYWzw/7fj+n6Q8z1eENvR7vFfq9oPSAQ==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5423,9 +5426,9 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@inquirer/core': 10.1.9(@types/node@20.17.30)
+      '@inquirer/core': 10.1.10(@types/node@20.17.30)
       '@inquirer/figures': 1.0.11
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
       '@types/node': 20.17.30
       ansi-escapes: 4.3.2
       yoctocolors-cjs: 2.1.2
@@ -5439,8 +5442,8 @@ packages:
       '@inquirer/type': 1.5.5
     dev: true
 
-  /@inquirer/confirm@5.1.8(@types/node@20.17.30):
-    resolution: {integrity: sha512-dNLWCYZvXDjO3rnQfk2iuJNL4Ivwz/T2+C3+WnNfJKsNGSuOs3wAo2F6e0p946gtSAk31nZMfW+MRmYaplPKsg==}
+  /@inquirer/confirm@5.1.9(@types/node@20.17.30):
+    resolution: {integrity: sha512-NgQCnHqFTjF7Ys2fsqK2WtnA8X1kHyInyG+nMIuHowVTIgIuS10T4AznI/PvbqSpJqjCUqNBlKGh1v3bwLFL4w==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5448,13 +5451,13 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@inquirer/core': 10.1.9(@types/node@20.17.30)
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
+      '@inquirer/core': 10.1.10(@types/node@20.17.30)
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
       '@types/node': 20.17.30
     dev: true
 
-  /@inquirer/core@10.1.9(@types/node@20.17.30):
-    resolution: {integrity: sha512-sXhVB8n20NYkUBfDYgizGHlpRVaCRjtuzNZA6xpALIUbkgfd2Hjz+DfEN6+h1BRnuxw0/P4jCIMjMsEOAMwAJw==}
+  /@inquirer/core@10.1.10(@types/node@20.17.30):
+    resolution: {integrity: sha512-roDaKeY1PYY0aCqhRmXihrHjoSW2A00pV3Ke5fTpMCkzcGF64R8e0lw3dK+eLEHwS4vB5RnW1wuQmvzoRul8Mw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5463,7 +5466,7 @@ packages:
         optional: true
     dependencies:
       '@inquirer/figures': 1.0.11
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
       '@types/node': 20.17.30
       ansi-escapes: 4.3.2
       cli-width: 4.1.0
@@ -5491,8 +5494,8 @@ packages:
       yoctocolors-cjs: 2.1.2
     dev: true
 
-  /@inquirer/editor@4.2.9(@types/node@20.17.30):
-    resolution: {integrity: sha512-8HjOppAxO7O4wV1ETUlJFg6NDjp/W2NP5FB9ZPAcinAlNT4ZIWOLe2pUVwmmPRSV0NMdI5r/+lflN55AwZOKSw==}
+  /@inquirer/editor@4.2.10(@types/node@20.17.30):
+    resolution: {integrity: sha512-5GVWJ+qeI6BzR6TIInLP9SXhWCEcvgFQYmcRG6d6RIlhFjM5TyG18paTGBgRYyEouvCmzeco47x9zX9tQEofkw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5500,14 +5503,14 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@inquirer/core': 10.1.9(@types/node@20.17.30)
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
+      '@inquirer/core': 10.1.10(@types/node@20.17.30)
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
       '@types/node': 20.17.30
       external-editor: 3.1.0
     dev: true
 
-  /@inquirer/expand@4.0.11(@types/node@20.17.30):
-    resolution: {integrity: sha512-OZSUW4hFMW2TYvX/Sv+NnOZgO8CHT2TU1roUCUIF2T+wfw60XFRRp9MRUPCT06cRnKL+aemt2YmTWwt7rOrNEA==}
+  /@inquirer/expand@4.0.12(@types/node@20.17.30):
+    resolution: {integrity: sha512-jV8QoZE1fC0vPe6TnsOfig+qwu7Iza1pkXoUJ3SroRagrt2hxiL+RbM432YAihNR7m7XnU0HWl/WQ35RIGmXHw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5515,8 +5518,8 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@inquirer/core': 10.1.9(@types/node@20.17.30)
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
+      '@inquirer/core': 10.1.10(@types/node@20.17.30)
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
       '@types/node': 20.17.30
       yoctocolors-cjs: 2.1.2
     dev: true
@@ -5526,8 +5529,8 @@ packages:
     engines: {node: '>=18'}
     dev: true
 
-  /@inquirer/input@4.1.8(@types/node@20.17.30):
-    resolution: {integrity: sha512-WXJI16oOZ3/LiENCAxe8joniNp8MQxF6Wi5V+EBbVA0ZIOpFcL4I9e7f7cXse0HJeIPCWO8Lcgnk98juItCi7Q==}
+  /@inquirer/input@4.1.9(@types/node@20.17.30):
+    resolution: {integrity: sha512-mshNG24Ij5KqsQtOZMgj5TwEjIf+F2HOESk6bjMwGWgcH5UBe8UoljwzNFHqdMbGYbgAf6v2wU/X9CAdKJzgOA==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5535,13 +5538,13 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@inquirer/core': 10.1.9(@types/node@20.17.30)
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
+      '@inquirer/core': 10.1.10(@types/node@20.17.30)
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
       '@types/node': 20.17.30
     dev: true
 
-  /@inquirer/number@3.0.11(@types/node@20.17.30):
-    resolution: {integrity: sha512-pQK68CsKOgwvU2eA53AG/4npRTH2pvs/pZ2bFvzpBhrznh8Mcwt19c+nMO7LHRr3Vreu1KPhNBF3vQAKrjIulw==}
+  /@inquirer/number@3.0.12(@types/node@20.17.30):
+    resolution: {integrity: sha512-7HRFHxbPCA4e4jMxTQglHJwP+v/kpFsCf2szzfBHy98Wlc3L08HL76UDiA87TOdX5fwj2HMOLWqRWv9Pnn+Z5Q==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5549,13 +5552,13 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@inquirer/core': 10.1.9(@types/node@20.17.30)
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
+      '@inquirer/core': 10.1.10(@types/node@20.17.30)
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
       '@types/node': 20.17.30
     dev: true
 
-  /@inquirer/password@4.0.11(@types/node@20.17.30):
-    resolution: {integrity: sha512-dH6zLdv+HEv1nBs96Case6eppkRggMe8LoOTl30+Gq5Wf27AO/vHFgStTVz4aoevLdNXqwE23++IXGw4eiOXTg==}
+  /@inquirer/password@4.0.12(@types/node@20.17.30):
+    resolution: {integrity: sha512-FlOB0zvuELPEbnBYiPaOdJIaDzb2PmJ7ghi/SVwIHDDSQ2K4opGBkF+5kXOg6ucrtSUQdLhVVY5tycH0j0l+0g==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5563,14 +5566,14 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@inquirer/core': 10.1.9(@types/node@20.17.30)
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
+      '@inquirer/core': 10.1.10(@types/node@20.17.30)
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
       '@types/node': 20.17.30
       ansi-escapes: 4.3.2
     dev: true
 
-  /@inquirer/prompts@7.4.0(@types/node@20.17.30):
-    resolution: {integrity: sha512-EZiJidQOT4O5PYtqnu1JbF0clv36oW2CviR66c7ma4LsupmmQlUwmdReGKRp456OWPWMz3PdrPiYg3aCk3op2w==}
+  /@inquirer/prompts@7.4.1(@types/node@20.17.30):
+    resolution: {integrity: sha512-UlmM5FVOZF0gpoe1PT/jN4vk8JmpIWBlMvTL8M+hlvPmzN89K6z03+IFmyeu/oFCenwdwHDr2gky7nIGSEVvlA==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5578,21 +5581,21 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@inquirer/checkbox': 4.1.4(@types/node@20.17.30)
-      '@inquirer/confirm': 5.1.8(@types/node@20.17.30)
-      '@inquirer/editor': 4.2.9(@types/node@20.17.30)
-      '@inquirer/expand': 4.0.11(@types/node@20.17.30)
-      '@inquirer/input': 4.1.8(@types/node@20.17.30)
-      '@inquirer/number': 3.0.11(@types/node@20.17.30)
-      '@inquirer/password': 4.0.11(@types/node@20.17.30)
-      '@inquirer/rawlist': 4.0.11(@types/node@20.17.30)
-      '@inquirer/search': 3.0.11(@types/node@20.17.30)
-      '@inquirer/select': 4.1.0(@types/node@20.17.30)
+      '@inquirer/checkbox': 4.1.5(@types/node@20.17.30)
+      '@inquirer/confirm': 5.1.9(@types/node@20.17.30)
+      '@inquirer/editor': 4.2.10(@types/node@20.17.30)
+      '@inquirer/expand': 4.0.12(@types/node@20.17.30)
+      '@inquirer/input': 4.1.9(@types/node@20.17.30)
+      '@inquirer/number': 3.0.12(@types/node@20.17.30)
+      '@inquirer/password': 4.0.12(@types/node@20.17.30)
+      '@inquirer/rawlist': 4.0.12(@types/node@20.17.30)
+      '@inquirer/search': 3.0.12(@types/node@20.17.30)
+      '@inquirer/select': 4.1.1(@types/node@20.17.30)
       '@types/node': 20.17.30
     dev: true
 
-  /@inquirer/rawlist@4.0.11(@types/node@20.17.30):
-    resolution: {integrity: sha512-uAYtTx0IF/PqUAvsRrF3xvnxJV516wmR6YVONOmCWJbbt87HcDHLfL9wmBQFbNJRv5kCjdYKrZcavDkH3sVJPg==}
+  /@inquirer/rawlist@4.0.12(@types/node@20.17.30):
+    resolution: {integrity: sha512-wNPJZy8Oc7RyGISPxp9/MpTOqX8lr0r+lCCWm7hQra+MDtYRgINv1hxw7R+vKP71Bu/3LszabxOodfV/uTfsaA==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5600,30 +5603,14 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@inquirer/core': 10.1.9(@types/node@20.17.30)
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
-      '@types/node': 20.17.30
-      yoctocolors-cjs: 2.1.2
-    dev: true
-
-  /@inquirer/search@3.0.11(@types/node@20.17.30):
-    resolution: {integrity: sha512-9CWQT0ikYcg6Ls3TOa7jljsD7PgjcsYEM0bYE+Gkz+uoW9u8eaJCRHJKkucpRE5+xKtaaDbrND+nPDoxzjYyew==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@types/node': '>=18'
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-    dependencies:
-      '@inquirer/core': 10.1.9(@types/node@20.17.30)
-      '@inquirer/figures': 1.0.11
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
+      '@inquirer/core': 10.1.10(@types/node@20.17.30)
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
       '@types/node': 20.17.30
       yoctocolors-cjs: 2.1.2
     dev: true
 
-  /@inquirer/select@4.1.0(@types/node@20.17.30):
-    resolution: {integrity: sha512-z0a2fmgTSRN+YBuiK1ROfJ2Nvrpij5lVN3gPDkQGhavdvIVGHGW29LwYZfM/j42Ai2hUghTI/uoBuTbrJk42bA==}
+  /@inquirer/search@3.0.12(@types/node@20.17.30):
+    resolution: {integrity: sha512-H/kDJA3kNlnNIjB8YsaXoQI0Qccgf0Na14K1h8ExWhNmUg2E941dyFPrZeugihEa9AZNW5NdsD/NcvUME83OPQ==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -5631,9 +5618,25 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@inquirer/core': 10.1.9(@types/node@20.17.30)
+      '@inquirer/core': 10.1.10(@types/node@20.17.30)
       '@inquirer/figures': 1.0.11
-      '@inquirer/type': 3.0.5(@types/node@20.17.30)
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
+      '@types/node': 20.17.30
+      yoctocolors-cjs: 2.1.2
+    dev: true
+
+  /@inquirer/select@4.1.1(@types/node@20.17.30):
+    resolution: {integrity: sha512-IUXzzTKVdiVNMA+2yUvPxWsSgOG4kfX93jOM4Zb5FgujeInotv5SPIJVeXQ+fO4xu7tW8VowFhdG5JRmmCyQ1Q==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/node': '>=18'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+    dependencies:
+      '@inquirer/core': 10.1.10(@types/node@20.17.30)
+      '@inquirer/figures': 1.0.11
+      '@inquirer/type': 3.0.6(@types/node@20.17.30)
       '@types/node': 20.17.30
       ansi-escapes: 4.3.2
       yoctocolors-cjs: 2.1.2
@@ -5653,8 +5656,8 @@ packages:
       mute-stream: 1.0.0
     dev: true
 
-  /@inquirer/type@3.0.5(@types/node@20.17.30):
-    resolution: {integrity: sha512-ZJpeIYYueOz/i/ONzrfof8g89kNdO2hjGuvULROo3O8rlB2CRtSseE5KeirnyE4t/thAn/EwvS/vuQeJCn+NZg==}
+  /@inquirer/type@3.0.6(@types/node@20.17.30):
+    resolution: {integrity: sha512-/mKVCtVpyBu3IDarv0G+59KC4stsD5mDsGpYh+GKs1NZT88Jh52+cuoA1AtLk2Q0r/quNl+1cSUyLRHBFeD0XA==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -6621,7 +6624,7 @@ packages:
     resolution: {integrity: sha512-UF6GD/aDbElP6LJMZSSq72NvK0aQwtQ+fkjn0VLU9o1vNAA3M2K0tGL7lduZGQNw8LejOhr25eR4aXeRCgKb2A==}
     engines: {node: '>=18.0.0'}
     dependencies:
-      '@inquirer/prompts': 7.4.0(@types/node@20.17.30)
+      '@inquirer/prompts': 7.4.1(@types/node@20.17.30)
       '@oclif/core': 4.2.8
       ansis: 3.17.0
       fast-levenshtein: 3.0.0
@@ -11255,7 +11258,7 @@ packages:
       '@opentelemetry/semantic-conventions': 1.13.0
       '@trigger.dev/core': 3.3.17
       chalk: 5.4.1
-      cronstrue: 2.57.0
+      cronstrue: 2.58.0
       debug: 4.4.0(supports-color@8.1.1)
       evt: 2.5.9
       slug: 6.1.0
@@ -11815,7 +11818,7 @@ packages:
     dependencies:
       '@types/node': 20.17.30
       tapable: 2.2.1
-      webpack: 5.98.0(@swc/core@1.3.101)(esbuild@0.19.11)
+      webpack: 5.99.2(@swc/core@1.3.101)(esbuild@0.19.11)
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
@@ -12468,7 +12471,7 @@ packages:
       indent-string: 5.0.0
     dev: true
 
-  /ai@3.4.7(react@18.3.1)(svelte@5.25.6)(vue@3.5.13)(zod@3.23.8):
+  /ai@3.4.7(react@18.3.1)(svelte@5.25.8)(vue@3.5.13)(zod@3.23.8):
     resolution: {integrity: sha512-SutkVjFE86+xNql7fJERJkSEwpILEuiQvCoogJef6ZX/PGHvu3yepwHwVwedgABXe9SudOIKN48EQESrXX/xCw==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -12493,7 +12496,7 @@ packages:
       '@ai-sdk/provider-utils': 1.0.20(zod@3.23.8)
       '@ai-sdk/react': 0.0.62(react@18.3.1)(zod@3.23.8)
       '@ai-sdk/solid': 0.0.49(zod@3.23.8)
-      '@ai-sdk/svelte': 0.0.51(svelte@5.25.6)(zod@3.23.8)
+      '@ai-sdk/svelte': 0.0.51(svelte@5.25.8)(zod@3.23.8)
       '@ai-sdk/ui-utils': 0.0.46(zod@3.23.8)
       '@ai-sdk/vue': 0.0.53(vue@3.5.13)(zod@3.23.8)
       '@opentelemetry/api': 1.4.1
@@ -12503,7 +12506,7 @@ packages:
       nanoid: 3.3.6
       react: 18.3.1
       secure-json-parse: 2.7.0
-      svelte: 5.25.6
+      svelte: 5.25.8
       zod: 3.23.8
       zod-to-json-schema: 3.23.2(zod@3.23.8)
     transitivePeerDependencies:
@@ -12843,7 +12846,7 @@ packages:
       postcss: ^8.1.0
     dependencies:
       browserslist: 4.24.4
-      caniuse-lite: 1.0.30001709
+      caniuse-lite: 1.0.30001712
       fraction.js: 4.3.7
       normalize-range: 0.1.2
       picocolors: 1.1.1
@@ -12859,7 +12862,7 @@ packages:
       postcss: ^8.1.0
     dependencies:
       browserslist: 4.24.4
-      caniuse-lite: 1.0.30001709
+      caniuse-lite: 1.0.30001712
       fraction.js: 4.3.7
       normalize-range: 0.1.2
       picocolors: 1.1.1
@@ -12874,7 +12877,7 @@ packages:
       postcss: ^8.1.0
     dependencies:
       browserslist: 4.24.4
-      caniuse-lite: 1.0.30001709
+      caniuse-lite: 1.0.30001712
       fraction.js: 4.3.7
       normalize-range: 0.1.2
       picocolors: 1.1.1
@@ -13113,8 +13116,8 @@ packages:
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
     dependencies:
-      caniuse-lite: 1.0.30001709
-      electron-to-chromium: 1.5.130
+      caniuse-lite: 1.0.30001712
+      electron-to-chromium: 1.5.134
       node-releases: 2.0.19
       update-browserslist-db: 1.1.3(browserslist@4.24.4)
 
@@ -13257,8 +13260,8 @@ packages:
     resolution: {integrity: sha512-dU+Tx2fsypxTgtLoE36npi3UqcjSSMNYfkqgmoEhtZrraP5VWq0K7FkWVTYa8eMPtnU/G2txVsfdCJTn9uzpuQ==}
     dev: false
 
-  /caniuse-lite@1.0.30001709:
-    resolution: {integrity: sha512-NgL3vUTnDrPCZ3zTahp4fsugQ4dc7EKTSzwQDPEel6DMoMnfH2jhry9n2Zm8onbSR+f/QtKHFOA+iAQu4kbtWA==}
+  /caniuse-lite@1.0.30001712:
+    resolution: {integrity: sha512-MBqPpGYYdQ7/hfKiet9SCI+nmN5/hp4ZzveOJubl5DTAMa5oggjAuoi0Z4onBpKPFI2ePGnQuQIzF3VxDjDJig==}
 
   /capnp-ts@0.7.0:
     resolution: {integrity: sha512-XKxXAC3HVPv7r674zP0VC3RTXz+/JKhfyw94ljvF80yynK6VkTnqE3jMuN8b3dUVmmc43TjyxjW4KTsmB3c86g==}
@@ -13954,8 +13957,8 @@ packages:
   /create-require@1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
 
-  /cronstrue@2.57.0:
-    resolution: {integrity: sha512-gQOfxJa1RA9uDT4hx37NshhX4dW9t9zTCtIYu15LUziH+mkpuLXYcSEyM8ZewMJ2p8UVuHGjI3n4hGpu3HtCbg==}
+  /cronstrue@2.58.0:
+    resolution: {integrity: sha512-5P3esL5URj/u1h7N1zYl33V9XHNh15DQVGQITdIq7kAY78rP9tMYxXgi8kCXGoFqbyXFMMQRvzthHTYxUtp9Fw==}
     hasBin: true
     dev: false
 
@@ -15081,8 +15084,8 @@ packages:
       jake: 10.9.2
     dev: true
 
-  /electron-to-chromium@1.5.130:
-    resolution: {integrity: sha512-Ou2u7L9j2XLZbhqzyX0jWDj6gA8D3jIfVzt4rikLf3cGBa0VdReuFimBKS9tQJA4+XpeCxj1NoWlfBXzbMa9IA==}
+  /electron-to-chromium@1.5.134:
+    resolution: {integrity: sha512-zSwzrLg3jNP3bwsLqWHmS5z2nIOQ5ngMnfMZOWWtXnqqQkPVyOipxK98w+1beLw1TB+EImPNcG8wVP/cLVs2Og==}
 
   /emoji-regex-xs@1.0.0:
     resolution: {integrity: sha512-LRlerrMYoIDrT6jgpeZ2YYl/L8EulRTt5hQcYjy5AInh7HWXKimpqx68aknBFpGL2+/IcogTcaydJEgaTmOpDg==}
@@ -15609,31 +15612,31 @@ packages:
       source-map: 0.6.1
     dev: true
 
-  /eslint-config-prettier@9.0.0(eslint@9.23.0):
+  /eslint-config-prettier@9.0.0(eslint@9.24.0):
     resolution: {integrity: sha512-IcJsTkJae2S35pRsRAwoCE+925rJJStOdkKnLVgtE+tEpqU0EVVM7OqrwxqgptKdX29NUwC82I5pXsGFIgSevw==}
     hasBin: true
     peerDependencies:
       eslint: '>=7.0.0'
     dependencies:
-      eslint: 9.23.0
+      eslint: 9.24.0
     dev: false
 
-  /eslint-config-turbo@1.10.12(eslint@9.23.0):
+  /eslint-config-turbo@1.10.12(eslint@9.24.0):
     resolution: {integrity: sha512-z3jfh+D7UGYlzMWGh+Kqz++hf8LOE96q3o5R8X4HTjmxaBWlLAWG+0Ounr38h+JLR2TJno0hU9zfzoPNkR9BdA==}
     peerDependencies:
       eslint: '>6.6.0'
     dependencies:
-      eslint: 9.23.0
-      eslint-plugin-turbo: 1.10.12(eslint@9.23.0)
+      eslint: 9.24.0
+      eslint-plugin-turbo: 1.10.12(eslint@9.24.0)
     dev: false
 
-  /eslint-plugin-turbo@1.10.12(eslint@9.23.0):
+  /eslint-plugin-turbo@1.10.12(eslint@9.24.0):
     resolution: {integrity: sha512-uNbdj+ohZaYo4tFJ6dStRXu2FZigwulR1b3URPXe0Q8YaE7thuekKNP+54CHtZPH9Zey9dmDx5btAQl9mfzGOw==}
     peerDependencies:
       eslint: '>6.6.0'
     dependencies:
       dotenv: 16.0.3
-      eslint: 9.23.0
+      eslint: 9.24.0
     dev: false
 
   /eslint-scope@5.1.1:
@@ -15661,8 +15664,8 @@ packages:
     resolution: {integrity: sha512-UyLnSehNt62FFhSwjZlHmeokpRK59rcz29j+F1/aDgbkbRTk7wIc9XzdoasMUbRNKDM0qQt/+BJ4BrpFeABemw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  /eslint@9.23.0:
-    resolution: {integrity: sha512-jV7AbNoFPAY1EkFYpLq5bslU9NLNO8xnEeQXwErNibVryjk67wHVmddTBilc5srIttJDBrB0eMHKZBFbSIABCw==}
+  /eslint@9.24.0:
+    resolution: {integrity: sha512-eh/jxIEJyZrvbWRe4XuVclLPDYSYYYgLy5zXGGxD6j8zjSAxFEzI2fL/8xNq6O2yKqVt+eF2YhV+hxjV6UKXwQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     hasBin: true
     peerDependencies:
@@ -15671,13 +15674,13 @@ packages:
       jiti:
         optional: true
     dependencies:
-      '@eslint-community/eslint-utils': 4.5.1(eslint@9.23.0)
+      '@eslint-community/eslint-utils': 4.5.1(eslint@9.24.0)
       '@eslint-community/regexpp': 4.12.1
-      '@eslint/config-array': 0.19.2
+      '@eslint/config-array': 0.20.0
       '@eslint/config-helpers': 0.2.1
       '@eslint/core': 0.12.0
       '@eslint/eslintrc': 3.3.1
-      '@eslint/js': 9.23.0
+      '@eslint/js': 9.24.0
       '@eslint/plugin-kit': 0.2.8
       '@humanfs/node': 0.16.6
       '@humanwhocodes/module-importer': 1.0.1
@@ -15808,8 +15811,8 @@ packages:
       astring: 1.9.0
       source-map: 0.7.4
 
-  /estree-util-value-to-estree@3.3.2:
-    resolution: {integrity: sha512-hYH1aSvQI63Cvq3T3loaem6LW4u72F187zW4FHpTrReJSm6W66vYTFNO1vH/chmcOulp1HlAj1pxn8Ag0oXI5Q==}
+  /estree-util-value-to-estree@3.3.3:
+    resolution: {integrity: sha512-Db+m1WSD4+mUO7UgMeKkAwdbfNWwIxLt48XF2oFU9emPfXkIu+k5/nlOj313v7wqtAPo0f9REhUvznFrPkG8CQ==}
     dependencies:
       '@types/estree': 1.0.7
 
@@ -16588,7 +16591,7 @@ packages:
       chokidar: 4.0.3
       cross-spawn: 7.0.6
       esbuild: 0.24.2
-      estree-util-value-to-estree: 3.3.2
+      estree-util-value-to-estree: 3.3.3
       fast-glob: 3.3.3
       fumadocs-core: 14.4.0(@types/react@18.3.11)(next@14.2.15)(react-dom@18.3.1)(react@18.3.1)
       gray-matter: 4.0.3
@@ -16610,7 +16613,7 @@ packages:
       '@apidevtools/json-schema-ref-parser': 11.9.3
       '@fumari/json-schema-to-typescript': 1.1.3
       '@radix-ui/react-select': 2.1.6(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
-      '@radix-ui/react-slot': 1.1.2(@types/react@18.3.11)(react@18.3.1)
+      '@radix-ui/react-slot': 1.1.0(@types/react@18.3.11)(react@18.3.1)
       class-variance-authority: 0.7.1
       fast-glob: 3.3.3
       fumadocs-core: 14.5.4(@types/react@18.3.11)(next@14.2.15)(react-dom@18.3.1)(react@18.3.1)
@@ -16734,7 +16737,7 @@ packages:
       '@radix-ui/react-navigation-menu': 1.2.5(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
       '@radix-ui/react-popover': 1.1.6(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
       '@radix-ui/react-scroll-area': 1.2.3(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
-      '@radix-ui/react-slot': 1.1.2(@types/react@18.3.11)(react@18.3.1)
+      '@radix-ui/react-slot': 1.1.0(@types/react@18.3.11)(react@18.3.1)
       '@radix-ui/react-tabs': 1.1.3(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
       class-variance-authority: 0.7.1
       fumadocs-core: 14.5.4(@types/react@18.3.11)(next@14.2.15)(react-dom@18.3.1)(react@18.3.1)
@@ -20335,7 +20338,7 @@ packages:
       acorn: 8.14.1
       pathe: 2.0.3
       pkg-types: 1.3.1
-      ufo: 1.5.4
+      ufo: 1.6.1
     dev: true
 
   /mock-property@1.0.3:
@@ -20585,7 +20588,7 @@ packages:
       '@next/env': 14.1.0
       '@swc/helpers': 0.5.2
       busboy: 1.6.0
-      caniuse-lite: 1.0.30001709
+      caniuse-lite: 1.0.30001712
       graceful-fs: 4.2.11
       postcss: 8.4.31
       react: 18.3.1
@@ -20628,7 +20631,7 @@ packages:
       '@opentelemetry/api': 1.4.1
       '@swc/helpers': 0.5.5
       busboy: 1.6.0
-      caniuse-lite: 1.0.30001709
+      caniuse-lite: 1.0.30001712
       graceful-fs: 4.2.11
       postcss: 8.4.31
       react: 18.3.1
@@ -20669,7 +20672,7 @@ packages:
       '@next/env': 14.2.25
       '@swc/helpers': 0.5.5
       busboy: 1.6.0
-      caniuse-lite: 1.0.30001709
+      caniuse-lite: 1.0.30001712
       graceful-fs: 4.2.11
       postcss: 8.4.31
       react: 18.3.1
@@ -21642,7 +21645,7 @@ packages:
     dependencies:
       core-js: 3.41.0
       fflate: 0.4.8
-      preact: 10.26.4
+      preact: 10.26.5
       web-vitals: 4.2.4
     dev: false
 
@@ -21666,8 +21669,8 @@ packages:
       - debug
     dev: false
 
-  /preact@10.26.4:
-    resolution: {integrity: sha512-KJhO7LBFTjP71d83trW+Ilnjbo+ySsaAgCfXOXUlmGzJ4ygYPWmysm77yg4emwfmoz3b22yvH5IsVFHbhUaH5w==}
+  /preact@10.26.5:
+    resolution: {integrity: sha512-fmpDkgfGU6JYux9teDWLhj9mKN55tyepwYbxHgQuIxbWQzgFg5vk7Mrrtfx7xRxq798ynkY4DDDxZr235Kk+4w==}
     dev: false
 
   /prelude-ls@1.2.1:
@@ -22078,7 +22081,7 @@ packages:
       react-is: 18.1.0
     dev: false
 
-  /react-email@2.1.1(@babel/core@7.26.10)(eslint@9.23.0)(ts-node@10.9.2):
+  /react-email@2.1.1(@babel/core@7.26.10)(eslint@9.24.0)(ts-node@10.9.2):
     resolution: {integrity: sha512-09oMVl/jN0/Re0bT0sEqYjyyFSCN/Tg0YmzjC9wfYpnMx02Apk40XXitySDfUBMR9EgTdr6T4lYknACqiLK3mg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
@@ -22104,8 +22107,8 @@ packages:
       commander: 11.1.0
       debounce: 2.0.0
       esbuild: 0.19.11
-      eslint-config-prettier: 9.0.0(eslint@9.23.0)
-      eslint-config-turbo: 1.10.12(eslint@9.23.0)
+      eslint-config-prettier: 9.0.0(eslint@9.24.0)
+      eslint-config-turbo: 1.10.12(eslint@9.24.0)
       framer-motion: 10.17.4(react-dom@18.3.1)(react@18.3.1)
       glob: 10.3.4
       log-symbols: 4.1.0
@@ -22774,7 +22777,7 @@ packages:
     dependencies:
       '@types/mdast': 4.0.4
       estree-util-is-identifier-name: 3.0.0
-      estree-util-value-to-estree: 3.3.2
+      estree-util-value-to-estree: 3.3.3
       toml: 3.0.0
       unified: 11.0.5
       yaml: 2.7.1
@@ -23821,12 +23824,12 @@ packages:
       nan: 2.22.2
     dev: true
 
-  /sswr@2.1.0(svelte@5.25.6):
+  /sswr@2.1.0(svelte@5.25.8):
     resolution: {integrity: sha512-Cqc355SYlTAaUt8iDPaC/4DPPXK925PePLMxyBKuWd5kKc5mwsG3nT9+Mq2tyguL5s7b4Jg+IRMpTRsNTAfpSQ==}
     peerDependencies:
       svelte: ^4.0.0 || ^5.0.0-next.0
     dependencies:
-      svelte: 5.25.6
+      svelte: 5.25.8
       swrev: 4.0.0
     dev: false
 
@@ -23853,8 +23856,8 @@ packages:
     engines: {node: '>= 0.8'}
     dev: true
 
-  /std-env@3.8.1:
-    resolution: {integrity: sha512-vj5lIj3Mwf9D79hBkltk5qmkFI+biIKWS2IBxEyEU3AX1tUf7AoL8nSazCOiiqQsGKIq01SClsKEzweu34uwvA==}
+  /std-env@3.9.0:
+    resolution: {integrity: sha512-UGvjygr6F6tpH7o2qyqR6QYpwraIjKSdtzyBdyytFOHmPZY917kwdwLG0RbOjWOnKmnm3PeHjaoLLMie7kPLQw==}
 
   /stdin-discarder@0.1.0:
     resolution: {integrity: sha512-xhV7w8S+bUwlPTb4bAOUQhv8/cSS5offJuX8GQGq32ONF0ZtDWKfkdomM3HMRA+LhX6um/FZ0COqlwsjD53LeQ==}
@@ -24170,8 +24173,8 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  /svelte@5.25.6:
-    resolution: {integrity: sha512-RGkaeAXDuJdvhA1fdSM5GgD++vYfJYijZL0uN6kM2s/TRJ663jktBhZlF0qjzAJGR/34PtaeT3G8MKJY1EKeqg==}
+  /svelte@5.25.8:
+    resolution: {integrity: sha512-yRmjmT5rgCZUMfCKS5varGlSe/nQyr2oClyIirbBChfTFc00YjVAyVWo1zOH74La3hi5KRSkNJKncyJ04PwIYA==}
     engines: {node: '>=18'}
     dependencies:
       '@ampproject/remapping': 2.3.0
@@ -24442,7 +24445,7 @@ packages:
       supports-hyperlinks: 2.3.0
     dev: false
 
-  /terser-webpack-plugin@5.3.14(@swc/core@1.3.101)(esbuild@0.19.11)(webpack@5.98.0):
+  /terser-webpack-plugin@5.3.14(@swc/core@1.3.101)(esbuild@0.19.11)(webpack@5.99.2):
     resolution: {integrity: sha512-vkZjpUjb6OMS7dhV+tILUW6BhpDR7P2L/aQSAv+Uwk+m8KATX9EccViHTJR2qDtACKPIYndLGCyl3FMo+r2LMw==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -24465,7 +24468,7 @@ packages:
       schema-utils: 4.3.0
       serialize-javascript: 6.0.2
       terser: 5.39.0
-      webpack: 5.98.0(@swc/core@1.3.101)(esbuild@0.19.11)
+      webpack: 5.99.2(@swc/core@1.3.101)(esbuild@0.19.11)
     dev: false
 
   /terser@5.39.0:
@@ -25117,8 +25120,8 @@ packages:
     hasBin: true
     dev: false
 
-  /ufo@1.5.4:
-    resolution: {integrity: sha512-UsUk3byDzKd04EyoZ7U4DOlxQaD14JUKQl6/P7wiX4FNvUfm3XL246n9W5AmqwW5RSFJ27NAuM0iLscAOYUiGQ==}
+  /ufo@1.6.1:
+    resolution: {integrity: sha512-9a4/uxlTWJ4+a5i0ooc1rU7C7YOw3wT+UGqdeNNHWnOF9qcMBgLRS+4IYUqbczewFx4mLEig6gawh7X6mFlEkA==}
     dev: true
 
   /uglify-js@2.8.29:
@@ -25190,7 +25193,7 @@ packages:
       defu: 6.1.4
       ohash: 1.1.6
       pathe: 1.1.2
-      ufo: 1.5.4
+      ufo: 1.6.1
     dev: true
 
   /unenv@2.0.0-rc.15:
@@ -25200,7 +25203,7 @@ packages:
       exsolve: 1.0.4
       ohash: 2.0.11
       pathe: 2.0.3
-      ufo: 1.5.4
+      ufo: 1.6.1
     dev: true
 
   /unherit@3.0.1:
@@ -25768,7 +25771,7 @@ packages:
       magic-string: 0.30.17
       pathe: 1.1.2
       picocolors: 1.1.1
-      std-env: 3.8.1
+      std-env: 3.9.0
       strip-literal: 2.1.1
       tinybench: 2.9.0
       tinypool: 0.8.4
@@ -25826,7 +25829,7 @@ packages:
       magic-string: 0.30.17
       pathe: 1.1.2
       picocolors: 1.1.1
-      std-env: 3.8.1
+      std-env: 3.9.0
       strip-literal: 2.1.1
       tinybench: 2.9.0
       tinypool: 0.8.4
@@ -25966,8 +25969,8 @@ packages:
     resolution: {integrity: sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==}
     dev: true
 
-  /webpack@5.98.0(@swc/core@1.3.101)(esbuild@0.19.11):
-    resolution: {integrity: sha512-UFynvx+gM44Gv9qFgj0acCQK2VE1CtdfwFdimkapco3hlPCJ/zeq73n2yVKimVbtm+TnApIugGhLJnkU6gjYXA==}
+  /webpack@5.99.2(@swc/core@1.3.101)(esbuild@0.19.11):
+    resolution: {integrity: sha512-1LYyB3DIKS4k2JlBHKp+b63b1jp9Nn86wypihsZOeKove7kpRCAVqN8pIle0wbs6a0p4kxkMt01lbb6Y93CpRw==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     peerDependencies:
@@ -25996,7 +25999,7 @@ packages:
       neo-async: 2.6.2
       schema-utils: 4.3.0
       tapable: 2.2.1
-      terser-webpack-plugin: 5.3.14(@swc/core@1.3.101)(esbuild@0.19.11)(webpack@5.98.0)
+      terser-webpack-plugin: 5.3.14(@swc/core@1.3.101)(esbuild@0.19.11)(webpack@5.99.2)
       watchpack: 2.4.2
       webpack-sources: 3.2.3
     transitivePeerDependencies:

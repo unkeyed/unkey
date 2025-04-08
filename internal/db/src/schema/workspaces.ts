@@ -130,5 +130,5 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   ratelimitNamespaces: many(ratelimitNamespaces),
   keySpaces: many(keyAuth),
   identities: many(identities),
-  quota: one(quotas),
+  quotas: one(quotas),
 }));

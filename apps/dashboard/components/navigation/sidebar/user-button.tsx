@@ -21,7 +21,7 @@ export const UserButton: React.FC = () => {
   const { isMobile, state, openMobile } = useSidebar();
   const { data: user, error } = trpc.user.getCurrentUser.useQuery();
   if (!user || error) {
-    return null;
+    return <div className="h-10" />;
   }
 
   // When mobile sidebar is open, we want to show the full component
