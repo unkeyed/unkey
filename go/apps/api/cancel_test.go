@@ -36,7 +36,6 @@ func TestContextCancellation(t *testing.T) {
 		Region:                  "test-region",
 		Clock:                   nil, // Will use real clock
 		InstanceID:              uid.New(uid.InstancePrefix),
-		LogsColor:               false,
 		RedisUrl:                redisUrl,
 		ClickhouseURL:           "",
 		DatabasePrimary:         dbDsn,

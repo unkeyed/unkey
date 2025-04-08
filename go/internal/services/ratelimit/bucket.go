@@ -1,12 +1,11 @@
 package ratelimit
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 // bucket maintains rate limit state for a specific identifier+limit+duration combination.
@@ -99,7 +98,7 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 	defer s.bucketsMu.Unlock()
 	b, exists := s.buckets[key.toString()]
 	if !exists {
-		metrics.Ratelimit.CreatedWindows.Add(context.Background(), 1)
+		metrics.RatelimitBucketsCreated.Inc()
 		b = &bucket{
 			mu:          sync.RWMutex{},
 			limit:       key.limit,

@@ -21,7 +21,7 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	// Create a namespace in the default workspace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
-	namespaceName := "test_namespace"
+	namespaceName := uid.New("name")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID, // Use the default workspace

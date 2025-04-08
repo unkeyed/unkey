@@ -20,7 +20,7 @@ jobs:
           go: true
 
       - name: Test
-        run: go test -v -race -timeout=60m $(go run ./scripts/shard-test ${{ matrix.shard }})
+        run: go test -shuffle=on -timeout=60m $(go run ./scripts/shard-test ${{ matrix.shard }})
         working-directory: go
         env:
           INTEGRATION_TEST: true

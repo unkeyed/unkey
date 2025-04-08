@@ -33,7 +33,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("negative cost", func(t *testing.T) {
 		req := openapi.V2RatelimitLimitRequestBody{
-			Namespace:  "test_namespace",
+			Namespace:  uid.New("test"),
 			Identifier: "user_123",
 			Limit:      100,
 			Duration:   60000,
