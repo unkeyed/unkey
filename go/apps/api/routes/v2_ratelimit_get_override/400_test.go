@@ -7,10 +7,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestBadRequests(t *testing.T) {
@@ -34,58 +35,58 @@ func TestBadRequests(t *testing.T) {
 	t.Run("missing all required fields", func(t *testing.T) {
 		req := openapi.V2RatelimitGetOverrideRequestBody{}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "POST request body for '/v2/ratelimit.getOverride' failed to validate schema", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Greater(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.getOverride' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("missing identifier", func(t *testing.T) {
 		req := openapi.V2RatelimitGetOverrideRequestBody{
-			NamespaceId: util.Pointer("not_empty"),
+			NamespaceId: ptr.P("not_empty"),
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "POST request body for '/v2/ratelimit.getOverride' failed to validate schema", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Greater(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.getOverride' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("empty identifier", func(t *testing.T) {
 		req := openapi.V2RatelimitGetOverrideRequestBody{
-			NamespaceId:   util.Pointer("not_empty"),
+			NamespaceId:   ptr.P("not_empty"),
 			NamespaceName: nil,
 			Identifier:    "",
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "POST request body for '/v2/ratelimit.getOverride' failed to validate schema", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Greater(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.getOverride' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("neither namespace ID nor name provided", func(t *testing.T) {
@@ -95,18 +96,18 @@ func TestBadRequests(t *testing.T) {
 			Identifier:    "user_123",
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "You must provide either a namespace ID or name.", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Equal(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "You must provide either a namespace ID or name.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Equal(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("missing authorization header", func(t *testing.T) {
@@ -115,7 +116,7 @@ func TestBadRequests(t *testing.T) {
 			// No Authorization header
 		}
 
-		namespaceName := "test_namespace"
+		namespaceName := uid.New("test")
 		req := handler.Request{
 			NamespaceName: &namespaceName,
 			Identifier:    "test_identifier",
@@ -132,7 +133,7 @@ func TestBadRequests(t *testing.T) {
 			"Authorization": {"malformed_header"},
 		}
 
-		namespaceName := "test_namespace"
+		namespaceName := uid.New("test")
 		req := handler.Request{
 			NamespaceName: &namespaceName,
 			Identifier:    "test_identifier",

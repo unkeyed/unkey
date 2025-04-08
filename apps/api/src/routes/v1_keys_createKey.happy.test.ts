@@ -238,6 +238,45 @@ describe("roles", () => {
       expect(roles).include(r.role.name);
     }
   });
+  test("upserts the specified roles", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const roles = ["r1", "r2"];
+
+    const root = await h.createRootKey([
+      `api.${h.resources.userApi.id}.create_key`,
+      "rbac.*.create_role",
+    ]);
+
+    const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: "/v1/keys.createKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+        roles,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const key = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyId),
+      with: {
+        roles: {
+          with: {
+            role: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.roles.length).toBe(2);
+    for (const r of key!.roles!) {
+      expect(roles).include(r.role.name);
+    }
+  });
 });
 
 describe("permissions", () => {
@@ -286,6 +325,45 @@ describe("permissions", () => {
   });
 });
 
+test("upserts the specified permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const permissions = ["p1", "p2"];
+
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.create_key`,
+    "rbac.*.create_permission",
+  ]);
+
+  const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+      permissions,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  const key = await h.db.primary.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, res.body.keyId),
+    with: {
+      permissions: {
+        with: {
+          permission: true,
+        },
+      },
+    },
+  });
+  expect(key).toBeDefined();
+  expect(key!.permissions.length).toBe(2);
+  for (const p of key!.permissions!) {
+    expect(permissions).include(p.permission.name);
+  }
+});
 describe("with encryption", () => {
   test("encrypts a key", async (t) => {
     const h = await IntegrationHarness.init(t);

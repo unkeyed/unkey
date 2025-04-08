@@ -25,17 +25,24 @@ type Server struct {
 	isListening bool
 	mux         *http.ServeMux
 	srv         *http.Server
+	flags       Flags
 
 	sessions sync.Pool
 }
 
+// Flags configures the behavior of a Server instance.
+type Flags struct {
+	// TestMode enables test mode, accepting certain headers from untrusted clients such as fake times for testing purposes.
+	TestMode bool
+}
+
 // Config configures the behavior of a Server instance.
 type Config struct {
-	// InstanceID uniquely identifies this server instance, useful for logging and tracing.
-	InstanceID string
 
 	// Logger provides structured logging for the server. If nil, logging is disabled.
 	Logger logging.Logger
+
+	Flags *Flags
 }
 
 // New creates a new server with the provided configuration.
@@ -75,12 +82,19 @@ func New(config Config) (*Server, error) {
 		WriteTimeout: 20 * time.Second,
 	}
 
+	flags := Flags{
+		TestMode: false,
+	}
+	if config.Flags != nil {
+		flags = *config.Flags
+	}
 	s := &Server{
 		mu:          sync.Mutex{},
 		logger:      config.Logger,
 		isListening: false,
 		mux:         mux,
 		srv:         srv,
+		flags:       flags,
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
@@ -120,6 +134,10 @@ func (s *Server) returnSession(session any) {
 // This is primarily intended for testing and advanced usage scenarios.
 func (s *Server) Mux() *http.ServeMux {
 	return s.mux
+}
+
+func (s *Server) Flags() Flags {
+	return s.flags
 }
 
 // Listen starts the HTTP server on the specified address.

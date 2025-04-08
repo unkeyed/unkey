@@ -136,17 +136,17 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         sessionData: token,
         cookiePassword: this.cookiePassword,
       });
-
       const authResult = await session.authenticate();
       if (!authResult.authenticated) {
         console.error("Get current user failed:", authResult.reason);
         return null;
       }
 
-      const { user, organizationId } = authResult;
+      const { user, organizationId, impersonator } = authResult;
       return this.transformUserData({
         ...user,
         organizationId: organizationId,
+        impersonator,
       });
     } catch (error) {
       console.error("Error getting current user:", error);
@@ -209,9 +209,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         userId,
         roleSlug: "admin",
       });
-
-      console.table(membership);
-
       return membership.organizationId;
     } catch (error) {
       throw this.handleError(error);
@@ -896,6 +893,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         providerUser.firstName && providerUser.lastName
           ? `${providerUser.firstName} ${providerUser.lastName}`
           : null,
+      impersonator: providerUser.impersonator,
     };
   }
 

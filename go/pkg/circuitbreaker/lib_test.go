@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 )
 
 var errTestDownstream = errors.New("downstream test error")

@@ -409,7 +409,7 @@ async function replayToAws(
   });
   const awsLatency = performance.now() - t0;
 
-  const body = await resp.json<{ success: boolean }>();
+  const body = await resp.json<{ data: { success: boolean } }>();
 
   logger.info("aws response", {
     status: resp.status,
@@ -419,7 +419,7 @@ async function replayToAws(
   metrics.emit({
     metric: "metric.ratelimit.aws",
     awsLatency,
-    awsPassed: body.success,
+    awsPassed: body.data.success,
     cfPassed: res.success,
   });
 }
