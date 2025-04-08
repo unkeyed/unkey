@@ -18,8 +18,11 @@ export const HelpButton: React.FC = () => {
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger className="group w-8 h-8 rounded-lg flex justify-center items-center group-hover:bg-grayA-4">
-        <CircleQuestion className="text-gray-9 group-hover:text-gray-12 size-5" />
+      <DropdownMenuTrigger
+        aria-label="Help Options"
+        className="group/help w-8 h-8 rounded-lg flex justify-center items-center hover:bg-grayA-4"
+      >
+        <CircleQuestion className="text-gray-9 group-hover/help:text-gray-12 size-5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" className="flex w-44 flex-col gap-2">
         <DropdownMenuGroup className="w-full">
