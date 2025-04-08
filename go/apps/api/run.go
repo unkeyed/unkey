@@ -130,8 +130,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	srv, err := zen.New(zen.Config{
-		InstanceID: cfg.InstanceID,
-		Logger:     logger,
+		Logger: logger,
 		Flags: &zen.Flags{
 			TestMode: cfg.TestMode,
 		},

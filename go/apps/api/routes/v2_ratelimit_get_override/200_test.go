@@ -20,7 +20,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	// Create a namespace
 	namespaceID := uid.New("test_ns")
-	namespaceName := "test_namespace"
+	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,

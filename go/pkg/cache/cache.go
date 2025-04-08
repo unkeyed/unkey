@@ -8,13 +8,12 @@ import (
 	"time"
 
 	"github.com/maypok86/otter"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/go/pkg/repeat"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
 )
 
 type cache[K comparable, V any] struct {
@@ -66,6 +65,9 @@ func New[K comparable, V any](config Config[K, V]) (*cache[K, V], error) {
 			return 1
 		}).
 		WithTTL(config.Stale).
+		DeletionListener(func(key K, value swrEntry[V], cause otter.DeletionCause) {
+			metrics.CacheDeleted.WithLabelValues(config.Resource, cause.String()).Inc()
+		}).
 		Build()
 	if err != nil {
 		return nil, err
@@ -98,20 +100,14 @@ func New[K comparable, V any](config Config[K, V]) (*cache[K, V], error) {
 
 func (c *cache[K, V]) registerMetrics() {
 
-	attributes := metric.WithAttributes(
-		attribute.String("resource", c.resource),
-	)
-
 	repeat.Every(10*time.Second, func() {
-		ctx := context.Background()
 
 		stats := c.otter.Stats()
 
-		metrics.Cache.Size.Record(ctx, int64(c.otter.Size()), attributes)
-		metrics.Cache.Capacity.Record(ctx, int64(c.otter.Capacity()), attributes)
-		metrics.Cache.Hits.Record(ctx, stats.Hits(), attributes)
-		metrics.Cache.Misses.Record(ctx, stats.Misses(), attributes)
-		metrics.Cache.Evicted.Record(ctx, stats.EvictedCount(), attributes)
+		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
+		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(c.otter.Capacity()))
+		metrics.CacheHits.WithLabelValues(c.resource).Set(float64(stats.Hits()))
+		metrics.CacheMisses.WithLabelValues(c.resource).Set(float64(stats.Misses()))
 
 	})
 
@@ -164,14 +160,13 @@ func (c *cache[K, V]) Set(_ context.Context, key K, value V) {
 	})
 }
 
-func (c *cache[K, V]) get(ctx context.Context, key K) (swrEntry[V], bool) {
-	t0 := c.clock.Now()
+func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
+	timer := prometheus.NewTimer(prometheus.ObserverFunc(func(d float64) {
+		metrics.CacheReadLatency.WithLabelValues(c.resource).Observe(d)
+	}))
 	v, ok := c.otter.Get(key)
-	t1 := c.clock.Now()
 
-	metrics.Cache.ReadLatency.Record(ctx, t1.UnixMilli()-t0.UnixMilli(), metric.WithAttributes(
-		attribute.String("resource", c.resource),
-	))
+	timer.ObserveDuration()
 
 	return v, ok
 }
@@ -241,7 +236,7 @@ func (c *cache[K, V]) revalidate(
 		c.inflightMu.Unlock()
 	}()
 
-	metrics.Cache.Revalidations.Add(ctx, 1, metric.WithAttributes(attribute.String("resource", c.resource)))
+	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
 	v, err := refreshFromOrigin(ctx)
 	if err != nil {
 		c.logger.Warn("failed to revalidate", "error", err.Error(), "key", key)

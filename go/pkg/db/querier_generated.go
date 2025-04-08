@@ -96,6 +96,11 @@ type Querier interface {
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
 	//  WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	//FindPermissionByWorkspaceAndName
+	//
+	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m FROM `permissions`
+	//  WHERE workspace_id = ? AND name = ?
+	FindPermissionByWorkspaceAndName(ctx context.Context, db DBTX, arg FindPermissionByWorkspaceAndNameParams) (Permission, error)
 	//FindPermissionsForKey
 	//
 	//  WITH direct_permissions AS (

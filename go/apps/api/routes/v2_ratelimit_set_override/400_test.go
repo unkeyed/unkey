@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestBadRequests(t *testing.T) {
@@ -49,7 +50,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("missing identifier", func(t *testing.T) {
 		req := openapi.V2RatelimitSetOverrideRequestBody{
-			NamespaceId: util.Pointer("test_namespace_id"),
+			NamespaceId: ptr.P("test_namespace_id"),
 			Limit:       10,
 			Duration:    1000,
 		}
@@ -70,7 +71,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("empty identifier", func(t *testing.T) {
 		req := openapi.V2RatelimitSetOverrideRequestBody{
-			NamespaceId: util.Pointer("test_namespace_id"),
+			NamespaceId: ptr.P("test_namespace_id"),
 			Identifier:  "",
 			Limit:       10,
 			Duration:    1000,
@@ -93,7 +94,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("missing duration", func(t *testing.T) {
 		req := openapi.V2RatelimitSetOverrideRequestBody{
-			NamespaceId: util.Pointer("test_namespace_id"),
+			NamespaceId: ptr.P("test_namespace_id"),
 			Identifier:  "user_123",
 			Limit:       10,
 		}
@@ -114,7 +115,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("invalid limit (negative)", func(t *testing.T) {
 		req := openapi.V2RatelimitSetOverrideRequestBody{
-			NamespaceId: util.Pointer("test_namespace_id"),
+			NamespaceId: ptr.P("test_namespace_id"),
 			Identifier:  "user_123",
 			Limit:       -10,
 			Duration:    1000,
@@ -136,7 +137,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("invalid duration (negative)", func(t *testing.T) {
 		req := openapi.V2RatelimitSetOverrideRequestBody{
-			NamespaceId: util.Pointer("test_namespace_id"),
+			NamespaceId: ptr.P("test_namespace_id"),
 			Identifier:  "user_123",
 			Limit:       10,
 			Duration:    -1000,
@@ -185,7 +186,7 @@ func TestBadRequests(t *testing.T) {
 			"Authorization": {"malformed_header"},
 		}
 
-		namespaceName := "test_namespace"
+		namespaceName := uid.New("test")
 		req := handler.Request{
 			NamespaceName: &namespaceName,
 			Identifier:    "test_identifier",

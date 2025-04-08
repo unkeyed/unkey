@@ -56,11 +56,7 @@ services:
       - otel
     environment:
       UNKEY_HTTP_PORT: 7070
-      UNKEY_CLUSTER: true
-      UNKEY_CLUSTER_GOSSIP_PORT: 9090
-      UNKEY_CLUSTER_RPC_PORT: 9091
-      # UNKEY_CLUSTER_ADVERTISE_ADDR_STATIC: "${HOSTNAME}"
-      UNKEY_CLUSTER_DISCOVERY_REDIS_URL: "redis://redis:6379"
+      UNKEY_REDIS_URL: "redis://redis:6379"
       UNKEY_DATABASE_PRIMARY_DSN: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
       UNKEY_OTEL: true
