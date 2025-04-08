@@ -172,7 +172,7 @@ export enum AuthErrorCode {
   ACCOUNT_NOT_FOUND = "ACCOUNT_NOT_FOUND",
   ORGANIZATION_SELECTION_REQUIRED = "ORGANIZATION_SELECTION_REQUIRED",
   EMAIL_VERIFICATION_REQUIRED = "EMAIL_VERIFICATION_REQUIRED",
-  PENDING_SESSION_EXPIRED="PENDING_SESSION_EXPIRED",
+  PENDING_SESSION_EXPIRED = "PENDING_SESSION_EXPIRED",
 }
 
 export const errorMessages: Record<AuthErrorCode, string> = {
@@ -189,7 +189,8 @@ export const errorMessages: Record<AuthErrorCode, string> = {
     "Please choose a workspace to continue authentication.",
   [AuthErrorCode.EMAIL_VERIFICATION_REQUIRED]:
     "Email address not verified. Please check your email for a verification code.",
-  [AuthErrorCode.PENDING_SESSION_EXPIRED]: "Pending Authentication has expired. Please sign-in again."
+  [AuthErrorCode.PENDING_SESSION_EXPIRED]:
+    "Pending Authentication has expired. Please sign-in again.",
 };
 
 export interface MiddlewareConfig {
