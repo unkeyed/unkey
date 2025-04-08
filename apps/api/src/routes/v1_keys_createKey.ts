@@ -336,8 +336,8 @@ export const registerV1KeysCreateKey = (app: App) =>
     const externalId = req.externalId ?? req.ownerId;
 
     const [permissionIds, roleIds, identity] = await Promise.all([
-      getPermissionIds(auth, rbac, db.readonly, authorizedWorkspaceId, req.permissions ?? []),
-      getRoleIds(auth, rbac, db.readonly, authorizedWorkspaceId, req.roles ?? []),
+      getPermissionIds(auth, rbac, db.primary, authorizedWorkspaceId, req.permissions ?? []),
+      getRoleIds(auth, rbac, db.primary, authorizedWorkspaceId, req.roles ?? []),
       externalId
         ? upsertIdentity(db.primary, authorizedWorkspaceId, externalId)
         : Promise.resolve(null),

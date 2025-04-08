@@ -15,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/cluster"
+	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
@@ -52,7 +52,9 @@ func NewHarness(t *testing.T) *Harness {
 
 	cont := containers.New(t)
 
-	dsn, _ := cont.RunMySQL()
+	dsn, _ := cont.RunMySQL(containers.WithReuse(true), containers.WithPurge(false))
+
+	_, redisUrl, _ := cont.RunRedis()
 
 	db, err := db.New(db.Config{
 		Logger:      logger,
@@ -68,8 +70,10 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	srv, err := zen.New(zen.Config{
-		InstanceID: "test",
-		Logger:     logger,
+		Logger: logger,
+		Flags: &zen.Flags{
+			TestMode: true,
+		},
 	})
 	require.NoError(t, err)
 
@@ -94,18 +98,21 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	ctr, err := counter.NewRedis(counter.RedisConfig{
+		RedisURL: redisUrl,
+		Logger:   logger,
+	})
+	require.NoError(t, err)
+
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
 		Logger:  logger,
-		Cluster: cluster.NewNoop("test", "localhost"),
 		Clock:   clk,
+		Counter: ctr,
 	})
 	require.NoError(t, err)
 
 	// Create seeder
 	seeder := seed.New(t, db)
-
-	// Seed the database
-	seeder.Seed(context.Background())
 
 	h := Harness{
 		t:           t,

@@ -7,7 +7,7 @@ import { useState } from "react";
 export type ConfirmProps = {
   title: string;
   description?: string;
-  trigger: React.ReactNode;
+  trigger: (onClick: () => void) => React.ReactNode;
   onConfirm: () => void | Promise<void>;
   variant?: "destructive";
   disabled?: boolean;
@@ -27,7 +27,7 @@ export const Confirm: React.FC<ConfirmProps> = (props): JSX.Element => {
 
   return (
     <>
-      {props.trigger}
+      {props.trigger(() => setIsOpen(true))}
       <DialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}

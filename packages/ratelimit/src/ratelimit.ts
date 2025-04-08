@@ -124,7 +124,7 @@ export class Ratelimit implements Ratelimiter {
   constructor(config: RatelimitConfig) {
     this.config = config;
     this.unkey = new Unkey({
-      serverURL: config.baseUrl,
+      baseUrl: config.baseUrl,
       rootKey: config.rootKey,
     });
   }
@@ -168,7 +168,7 @@ export class Ratelimit implements Ratelimiter {
     let timeoutId: any = null;
     try {
       const ps: Promise<RatelimitResponse>[] = [
-        this.unkey.ratelimit
+        this.unkey.ratelimits
           .limit({
             namespace: this.config.namespace,
             identifier,
@@ -177,15 +177,13 @@ export class Ratelimit implements Ratelimiter {
             cost: opts?.cost,
           })
           .then(async (res) => {
-            if (res.statusCode !== 200 || !res.v2RatelimitLimitResponseBody) {
+            if (res.error) {
               throw new Error(
-                `Ratelimit failed: [${res.statusCode} - ${res.rawResponse.headers.get(
-                  "Unkey-Request-Id",
-                )}]: ${await res.rawResponse.text()}`,
+                `Ratelimit failed: [${res.error.code} - ${res.error.requestId}]: ${res.error.message}`,
               );
             }
 
-            return res.v2RatelimitLimitResponseBody;
+            return res.result;
           }),
       ];
       if (timeout) {
