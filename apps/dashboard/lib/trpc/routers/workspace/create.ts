@@ -31,8 +31,6 @@ export const createWorkspace = t.procedure
     const workspace: Workspace = {
       id: newId("workspace"),
       orgId: orgId,
-      // dumb hack to keep the unique property but also clearly mark it as a workos identifier
-      clerkTenantId: `workos_${orgId}`,
       name: input.name,
       plan: "free",
       tier: "Free",
