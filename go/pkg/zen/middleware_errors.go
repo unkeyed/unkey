@@ -16,6 +16,7 @@ import (
 //   - BAD_REQUEST: 400 Bad Request
 //   - UNAUTHORIZED: 401 Unauthorized
 //   - FORBIDDEN: 403 Forbidden
+//   - CONFLICT: 409 Conflict
 //   - PROTECTED_RESOURCE: 412 Precondition Failed
 //   - Other errors: 500 Internal Server Error
 //
@@ -150,6 +151,20 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Type:     "https://unkey.com/docs/errors/deletion_prevented",
 						Detail:   fault.UserFacingMessage(err),
 						Status:   http.StatusPreconditionFailed,
+						Instance: nil,
+					},
+				})
+			case fault.CONFLICT:
+				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+
+						Title:    "Another resource already uses this identifier",
+						Type:     "https://unkey.com/docs/errors/conflict",
+						Detail:   fault.UserFacingMessage(err),
+						Status:   http.StatusConflict,
 						Instance: nil,
 					},
 				})

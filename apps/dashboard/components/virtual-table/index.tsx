@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CaretDown, CaretExpandY, CaretUp, CircleCarretRight } from "@unkey/icons";
+import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
@@ -192,7 +192,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       <tr key={`content-${virtualRow.key}`}>
                         <td colSpan={columns.length} className="p-0">
                           <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-                            <CircleCarretRight className="size-3" />
+                            <CircleCaretRight className="size-3" />
                             Live
                           </div>
                         </td>
