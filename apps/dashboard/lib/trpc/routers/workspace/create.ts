@@ -31,6 +31,7 @@ export const createWorkspace = t.procedure
     const workspace: Workspace = {
       id: newId("workspace"),
       orgId: orgId,
+      __toBeDeleted: newId("fake"),
       name: input.name,
       plan: "free",
       tier: "Free",
