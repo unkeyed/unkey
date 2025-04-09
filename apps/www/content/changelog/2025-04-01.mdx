@@ -1,0 +1,86 @@
+---
+title: March Product Update
+date: 2025-03-31,
+tags: ["product"]
+---
+
+## New Features
+
+### Pricing Updates
+
+While this isn't a new feature, we've made some updates to our pricing plans to better serve everyone whether you are just starting out or scaling a project.
+
+- **Larger Free Tier** : We've significantly increased our free tier! You now get 150,000 requests per month completely free, up from the original 2,500. This allows you to thoroughly test Unkey and start scaling your project before entering your credit card.
+
+- **Simplified Pricing** : We've streamlined our pricing model to focus solely on requests. We've removed the separate charges for key verifications and standalone rate limit verifications, making it much simpler to understand and predict your costs.
+
+- **Tiered Pricing** : We're introducing tiered pricing starting at just $25. This gives you more flexibility to choose the plan that best fits your needs as you scale, we also reduced the price significantly, below is an example of **10M** requests in a month on the new and old pricing:
+
+| Old Price | New Price |
+|:---------:|:---------:|
+| $1010.00  | $250.00   |
+
+- **No Overage Charges** : We will no longer charge for overages. If you exceed your monthly request limit, we won't charge you but send you an email congratulating your success. If you continue to exceed the tier every month, we will ask you to upgrade to the next tier.
+
+We believe these changes will make Unkey an even more attractive and accessible solution for developers of all sizes and allow you to scale without worrying about your bill.
+
+Check out the updated pricing table on our pricing page [here](/pricing).
+
+### Ratelimit / API Overview overhaul
+
+We have completely revamped our ratelimit and API overview page, making analytics the main focus of the page.
+
+#### Ratelimit
+
+You can see all the important details about a specific namespace, including:
+
+- Request count
+- Identifier
+- Passed / block requests
+- Last request
+
+<ImageZoom src="/images/changelog/2025-04-04/ratelimits.png" alt="Ratelimits example" width="1920" height="1080"/>
+
+You can also override an identifier directly on the page to make blocking or allowing requests more easily.
+
+<ImageZoom src="/images/changelog/2025-04-04/override.png" alt="Override example" width="1920" height="1080"/>
+
+#### API
+
+In the API overview, we provide all the important details about a specific API, including:
+
+- API request totals
+- Active key totals
+- Valid / Invalid requests counts and types
+- Last used details
+
+We also include a natural language search and filter to allow you to quickly analyze and manage your API data.
+
+<ImageZoom src="/images/changelog/2025-04-04/overview.png" alt="API Overview example" width="1920" height="1080"/>
+
+You can also see important details about a specific key, but clicking on the key will open a modal with more information.
+
+<ImageZoom src="/images/changelog/2025-04-04/keyDetails.png" alt="Key Details example" width="1920" height="1080"/>
+
+## Other PRs
+
+### Changed
+- Sidebar component added with improved UI and accessibility features.
+- Global baseUrl function created to infer Vercel URL for WorkOS redirect more reliably.
+- Sampling support for tracing allows specifying the rate via configurations.
+- Updated layout.tsx to improve URL structure and maintain consistency.
+
+### Removed
+- Removed outdated and redundant quota checks.
+- Unused files and code related to the unused banner component.
+
+### Fixed
+- OAuth extraction from URL to improve security.
+- Dark mode forced on the auth page to show correct colors on dialogs
+- Vercel redirection configuration for WorkOS fixed to handle edge cases.
+- Timestamp conversion for logs and related elements.
+- Layout shifts, missing props for UI components, and hydration issues addressed with dynamic imports and better coding practices.
+- Multiple minor bug fixes like navbar realignment, format issues, wrong environment variables, and outdated quota handling.
+
+### Security
+- Addresses a critical security vulnerability, CVE-2025-29927.

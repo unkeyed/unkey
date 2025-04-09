@@ -25,7 +25,6 @@ export type TableConfig = {
   rowHeight: number;
   loadingRows: number;
   overscan: number;
-  tableBorder: number;
   throttleDelay: number;
   headerHeight: number;
 };
@@ -45,6 +44,13 @@ export type VirtualTableProps<T> = {
   selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
   isFetchingNextPage?: boolean;
+  loadMoreFooterProps?: {
+    itemLabel?: string;
+    buttonText?: string;
+    countInfoText?: React.ReactNode;
+    hasMore?: boolean;
+    hide?: boolean;
+  };
 };
 
 export type SeparatorItem = {

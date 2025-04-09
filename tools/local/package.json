@@ -13,6 +13,7 @@
   "devDependencies": {
     "@clack/prompts": "^0.7.0",
     "@unkey/db": "workspace:^",
+    "@unkey/clickhouse": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
     "mysql2": "^3.10.3",
