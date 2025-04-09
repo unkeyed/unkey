@@ -29,6 +29,7 @@ jobs:
         with:
           ts: true
       - name: Build
+        if: ${{ matrix.path != './apps/dashboard' }}
         run: pnpm turbo run build --filter=${{matrix.path}}
       - name: Test
         run: pnpm turbo run test --filter=${{matrix.path}}
