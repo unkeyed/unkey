@@ -142,31 +142,24 @@ export function getLogs(ch: Querier) {
 
     const logsQuery = ch.query({
       query: `
-    SELECT
-      request_id,
-      time,
-      workspace_id,
-      host,
-      method,
-      path,
-      request_headers,
-      request_body,
-      response_status,
-      response_headers,
-      response_body,
-      error,
-      service_latency
-    FROM metrics.raw_api_requests_v1
-    WHERE ${filterConditions}
-    AND (
-      CASE
-        WHEN {cursorTime: Nullable(UInt64)} IS NOT NULL
-        THEN time < {cursorTime: Nullable(UInt64)}
-        ELSE TRUE
-      END
-    )
-    ORDER BY time DESC
-    LIMIT {limit: Int}`,
+          SELECT
+        request_id,
+        time,
+        workspace_id,
+        host,
+        method,
+        path,
+        request_headers,
+        request_body,
+        response_status,
+        response_headers,
+        response_body,
+        error,
+        service_latency
+      FROM metrics.raw_api_requests_v1
+      WHERE ${filterConditions} AND ({cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)})
+      ORDER BY time DESC
+      LIMIT {limit: Int}`,
       params: extendedParamsSchema,
       schema: log,
     });

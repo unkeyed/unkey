@@ -38,6 +38,6 @@ export function transformFilters(
     methods,
     paths,
     statusCodes,
-    cursorTime: params.cursor?.time ?? null,
+    cursorTime: params.cursor ?? null,
   };
 }
