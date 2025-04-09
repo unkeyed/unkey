@@ -39,6 +39,5 @@ export function transformFilters(
     paths,
     statusCodes,
     cursorTime: params.cursor?.time ?? null,
-    cursorRequestId: params.cursor?.requestId ?? null,
   };
 }

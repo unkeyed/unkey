@@ -11,12 +11,7 @@ const LogsResponse = z.object({
   logs: z.array(log),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z
-    .object({
-      time: z.number().int(),
-      requestId: z.string(),
-    })
-    .optional(),
+  nextCursor: z.number().int().optional(),
 });
 
 type LogsResponse = z.infer<typeof LogsResponse>;
@@ -52,7 +47,6 @@ export const queryLogs = t.procedure
     const transformedInputs = transformFilters(input);
     const { logsQuery, totalQuery } = await clickhouse.api.logs({
       ...transformedInputs,
-      cursorRequestId: input.cursor?.requestId ?? null,
       cursorTime: input.cursor?.time ?? null,
       workspaceId: workspace.id,
     });
@@ -73,13 +67,7 @@ export const queryLogs = t.procedure
       logs,
       hasMore: logs.length === input.limit,
       total: countResult.val[0].total_count,
-      nextCursor:
-        logs.length > 0
-          ? {
-              time: logs[logs.length - 1].time,
-              requestId: logs[logs.length - 1].request_id,
-            }
-          : undefined,
+      nextCursor: logs.length > 0 ? logs[logs.length - 1].time : undefined,
     };
 
     return response;
