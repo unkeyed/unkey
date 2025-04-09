@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getCookie } from "./cookies";
 import {
   AuthErrorCode,
   type AuthErrorResponse,
@@ -135,10 +134,30 @@ export abstract class BaseAuthProvider {
     signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
     const response = NextResponse.redirect(signInUrl);
     response.cookies.delete(config.cookieName);
+    response.headers.set("x-middleware-processed", "true");
     return response;
   }
 
-  // Public middleware factory method
+  /**
+   * Creates a Next.js edge middleware function for basic authentication screening.
+   *
+   * This factory generates a middleware function that performs lightweight authentication
+   * checks at the edge. It only verifies the presence of a session cookie and handles
+   * public path exclusions, delegating full authentication validation to server components.
+   *
+   * @param config - Optional configuration to override default middleware settings
+   * @returns A Next.js middleware function that performs basic auth screening and handles redirects
+   *
+   * @example
+   * // Create middleware with custom public paths
+   * const authMiddleware = authService.createMiddleware({
+   *   publicPaths: ['/about', '/pricing', '/api/public'],
+   *   loginPath: '/custom-login'
+   * });
+   *
+   * // In middleware.ts
+   * export default authMiddleware;
+   */
   public createMiddleware(config: Partial<MiddlewareConfig> = {}) {
     const middlewareConfig = {
       ...DEFAULT_MIDDLEWARE_CONFIG,
@@ -146,89 +165,21 @@ export abstract class BaseAuthProvider {
     };
 
     return async (request: NextRequest): Promise<NextResponse> => {
-      if (!middlewareConfig.enabled) {
-        return NextResponse.next();
-      }
-
       const { pathname } = request.nextUrl;
 
-      const allPublicPaths = [
-        ...middlewareConfig.publicPaths,
-        "/api/auth/refresh",
-        "/api/auth/create-tenant",
-      ];
-
-      if (this.isPublicPath(pathname, allPublicPaths)) {
-        console.debug("Public path detected, proceeding without auth check");
+      // Skip public paths
+      if (this.isPublicPath(pathname, middlewareConfig.publicPaths)) {
         return NextResponse.next();
       }
 
-      try {
-        const token = await getCookie(middlewareConfig.cookieName, request);
-        if (!token) {
-          console.debug("No session token found, redirecting to login");
-          return this.redirectToLogin(request, middlewareConfig);
-        }
-
-        const validationResult = await this.validateSession(token);
-
-        if (validationResult.isValid) {
-          return NextResponse.next();
-        }
-
-        if (validationResult.shouldRefresh) {
-          try {
-            // Call the refresh route handler because you can only modify cookies in a route handlers or server action
-            // and you can't call a server action from middleware
-            const refreshResponse = await fetch(`${request.nextUrl.origin}/api/auth/refresh`, {
-              method: "POST",
-              headers: {
-                "x-current-token": token,
-              },
-            });
-
-            if (!refreshResponse.ok) {
-              console.debug(
-                "Session refresh failed, redirecting to login: ",
-                await refreshResponse.text(),
-              );
-              const response = this.redirectToLogin(request, middlewareConfig);
-              response.cookies.delete(middlewareConfig.cookieName);
-              return response;
-            }
-
-            // Create a next response
-            const response = NextResponse.next();
-
-            // Copy cookies from refresh response
-            refreshResponse.headers.forEach((value, key) => {
-              if (key.toLowerCase() === "set-cookie") {
-                response.headers.append("Set-Cookie", value);
-              }
-            });
-
-            return response;
-          } catch (error) {
-            console.debug("Session refresh failed, redirecting to login: ", error);
-            const response = this.redirectToLogin(request, middlewareConfig);
-            response.cookies.delete(middlewareConfig.cookieName);
-            return response;
-          }
-        }
-
-        console.debug("Invalid session, redirecting to login");
-        const response = this.redirectToLogin(request, middlewareConfig);
-        response.cookies.delete(middlewareConfig.cookieName);
-        return response;
-      } catch (error) {
-        console.error("Authentication middleware error:", {
-          error: error instanceof Error ? error.message : "Unknown error",
-          stack: error instanceof Error ? error.stack : undefined,
-          url: request.url,
-          pathname,
-        });
+      // Check if cookie exists at all (lightweight check)
+      const hasSessionCookie = request.cookies.has(middlewareConfig.cookieName);
+      if (!hasSessionCookie) {
         return this.redirectToLogin(request, middlewareConfig);
       }
+
+      // Allow request to proceed to server components for full auth check
+      return NextResponse.next();
     };
   }
 }

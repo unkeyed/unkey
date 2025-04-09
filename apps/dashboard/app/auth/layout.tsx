@@ -1,7 +1,7 @@
 import { FadeIn } from "@/components/landing/fade-in";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { auth } from "@/lib/auth/server";
+import { getAuth } from "@/lib/auth/get-auth";
 import { FileText } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -75,9 +75,9 @@ export default async function AuthenticatedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await auth.getCurrentUser();
+  const { userId } = await getAuth(); // we want the uncached version since the cached version redirects to sign-in
 
-  if (user) {
+  if (userId) {
     return redirect("/apis");
   }
   const quote = quotes[Math.floor(Math.random() * quotes.length)];
