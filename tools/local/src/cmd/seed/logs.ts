@@ -1,50 +1,86 @@
-import * as clack from "@clack/prompts";
+import {
+  type BatchInsertProgress,
+  initBatchInsertProgress,
+  promptForBatchSize,
+  updateProgressWithETA,
+} from "./batch-helper";
 import { clickhouse, generateRandomApiRequest } from "./utils";
 
-const BATCH_SIZE = 50_000;
-export async function seedApiRequestLogs(workspaceId: string, count: number) {
-  const spinner = clack.spinner();
-  spinner.start(
-    `Preparing to insert ${count} records into metrics.raw_api_requests_v1 for workspace ${workspaceId} with time distribution`,
-  );
+const DEFAULT_BATCH_SIZE = 50_000;
+
+/**
+ * Inserts API request logs in batches with progress tracking
+ */
+async function insertApiRequestLogs(
+  clickhouse: any,
+  workspaceId: string,
+  count: number,
+  batchSize = DEFAULT_BATCH_SIZE,
+) {
   const doInsert = clickhouse.api.insert;
-  let insertedCount = 0;
-  let batchNumber = 0;
+
+  // Initialize progress tracking
+  const progress: BatchInsertProgress = initBatchInsertProgress(count);
 
   try {
-    while (insertedCount < count) {
-      batchNumber++;
-      const batchSize = Math.min(BATCH_SIZE, count - insertedCount);
-      spinner.message(
-        `Generating batch ${batchNumber} with realistic time distribution (${batchSize} records)...`,
-      );
-      const batchOfRecords = [];
+    while (progress.insertedCount < count) {
+      progress.batchNumber++;
+      const currentBatchSize = Math.min(batchSize, count - progress.insertedCount);
 
-      for (let i = 0; i < batchSize; i++) {
+      // Update progress before processing batch
+      updateProgressWithETA(progress);
+
+      const batchOfRecords = [];
+      for (let i = 0; i < currentBatchSize; i++) {
         const requestData = generateRandomApiRequest(workspaceId);
         batchOfRecords.push(requestData);
       }
 
       if (batchOfRecords.length > 0) {
-        spinner.message(
-          `Inserting batch ${batchNumber} (${insertedCount + 1}-${
-            insertedCount + batchSize
-          }/${count})...`,
-        );
-
         await doInsert(batchOfRecords);
       }
 
-      insertedCount += batchSize;
-      if (batchNumber % 5 === 0 || insertedCount === count) {
-        spinner.message(`Processed ${insertedCount}/${count} records...`);
-      }
+      // Update progress after batch completion
+      progress.insertedCount += currentBatchSize;
+      updateProgressWithETA(progress);
     }
 
-    spinner.stop(`Successfully inserted ${count} records with realistic 30-day time distribution.`);
+    // End progress with a newline
+    process.stdout.write("\n");
+
+    const totalTimeElapsed = Date.now() - progress.startTime;
+    const avgRecordsPerSecond = count / (totalTimeElapsed / 1000);
+
+    console.log(
+      `✅ Successfully inserted ${count.toLocaleString()} API request logs with realistic 30-day time distribution (avg: ${Math.round(
+        avgRecordsPerSecond,
+      ).toLocaleString()} records/sec)`,
+    );
+
+    return {
+      count,
+      batchSize,
+      workspaceId,
+      totalTimeElapsed,
+      avgRecordsPerSecond,
+    };
   } catch (error: any) {
-    spinner.stop(`Error inserting data during batch ${batchNumber}: ${error.message}`);
+    // End progress with a newline
+    process.stdout.write("\n");
+
+    console.error(`❌ Error inserting data during batch ${progress.batchNumber}: ${error.message}`);
     console.error("ClickHouse Insert Error Details:", error);
     throw error;
   }
+}
+
+/**
+ * Main function to seed API request logs
+ */
+export async function seedApiRequestLogs(workspaceId: string, count: number) {
+  // Configure batch size using utility
+  const batchSize = await promptForBatchSize(DEFAULT_BATCH_SIZE);
+
+  // Insert API request logs
+  return await insertApiRequestLogs(clickhouse, workspaceId, count, batchSize);
 }

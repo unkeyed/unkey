@@ -15,7 +15,9 @@ function env() {
 }
 
 export const clickhouse = new ClickHouse({ url: env().CLICKHOUSE_URL });
-type DrizzleReturnType<T extends Record<string, unknown>> = ReturnType<typeof mysqlDrizzle<T>>;
+export type DrizzleReturnType<T extends Record<string, unknown>> = ReturnType<
+  typeof mysqlDrizzle<T>
+>;
 
 export async function connectDatabase<
   TSchema extends Record<string, unknown> = Record<string, unknown>,
@@ -633,7 +635,7 @@ export function generateRandomApiRequest(workspaceId: string) {
   const time = generateTimestamp();
 
   return {
-    request_id: generateUuid(),
+    request_id: generateUuid() as string,
     time,
     workspace_id: workspaceId,
     host: "api.unkey.dev",
@@ -729,3 +731,87 @@ function generateRealisticIp() {
     Math.random() * 256,
   )}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
 }
+
+/**
+ * Implements the Box-Muller transform to generate normally distributed random numbers
+ * Returns a random number with mean 0 and standard deviation 1
+ */
+function boxMullerTransform() {
+  const u1 = Math.random();
+  const u2 = Math.random();
+
+  const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+
+  // We only need one value
+  return z0;
+}
+
+/**
+ * Generate a normally distributed random index within a range
+ */
+export function getNormallyDistributedIndex(
+  mean: number,
+  stdDev: number,
+  min: number,
+  max: number,
+) {
+  let index: number;
+  do {
+    // Generate normally distributed value
+    const normalRandom = boxMullerTransform();
+
+    // Scale to our desired range
+    index = Math.round(mean + normalRandom * stdDev);
+  } while (index < min || index >= max);
+
+  return index;
+}
+
+const POOL_SIZE = 100;
+const COMMON_PREFIXES = ["ip:", "user:", "tenant:", "org:", "key:"];
+
+// Initialize pools for different identifier types
+export const identifierPools: Record<string, string[]> = {};
+
+// Generate pools of identifiers
+export function initializeIdentifierPools() {
+  for (const prefix of COMMON_PREFIXES) {
+    identifierPools[prefix] = [];
+    for (let i = 0; i < POOL_SIZE; i++) {
+      identifierPools[prefix].push(`${prefix}${generateRandomString(12)}`);
+    }
+  }
+}
+
+// Select an identifier from a pool using normal distribution
+export function selectIdentifier() {
+  // First choose a prefix type (this could also be weighted if needed)
+  const prefix = COMMON_PREFIXES[Math.floor(Math.random() * COMMON_PREFIXES.length)];
+
+  // Ensure the pool exists
+  if (!identifierPools[prefix]) {
+    initializeIdentifierPools();
+  }
+
+  // Use normal distribution to select from the pool
+  // Use mean at 20% of the pool to make some ids "hotter" than others
+  const mean = Math.floor(POOL_SIZE * 0.2);
+  const stdDev = POOL_SIZE / 5; // Standard deviation of 20% of the pool size
+  const index = getNormallyDistributedIndex(mean, stdDev, 0, POOL_SIZE);
+
+  return identifierPools[prefix][index];
+}
+
+export const createProgressBar = (percent: number) => {
+  const width = 20;
+  const filled = Math.floor(width * (percent / 100));
+  const empty = width - filled;
+  return `[${"█".repeat(filled)}${"·".repeat(empty)}]`;
+};
+
+export const formatDuration = (milliseconds: number) => {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+};
