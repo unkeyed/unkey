@@ -9,7 +9,7 @@
     "testing",
     "versions",
     "client-structure",
-    "populating-logs",
+    "seeding-db-and-clickhouse",
     "pull-request-checks"
   ]
 }
