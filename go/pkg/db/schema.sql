@@ -246,6 +246,7 @@ CREATE TABLE `audit_log` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`bucket_id` varchar(256) NOT NULL,
+	`bucket` varchar(256) NOT NULL,
 	`event` varchar(256) NOT NULL,
 	`time` bigint NOT NULL,
 	`display` varchar(256) NOT NULL,
@@ -260,22 +261,11 @@ CREATE TABLE `audit_log` (
 	CONSTRAINT `audit_log_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `audit_log_bucket` (
-	`id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`name` varchar(256) NOT NULL,
-	`retention_days` int,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	`delete_protection` boolean DEFAULT false,
-	CONSTRAINT `audit_log_bucket_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`workspace_id`,`name`)
-);
-
 CREATE TABLE `audit_log_target` (
 	`workspace_id` varchar(256) NOT NULL,
 	`bucket_id` varchar(256) NOT NULL,
 	`audit_log_id` varchar(256) NOT NULL,
+	`bucket` varchar(256) NOT NULL,
 	`display_name` varchar(256) NOT NULL,
 	`type` varchar(256) NOT NULL,
 	`id` varchar(256) NOT NULL,

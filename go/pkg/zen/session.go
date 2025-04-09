@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -55,6 +56,25 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 // Returns an empty string if no authenticated workspace ID is available.
 func (s *Session) AuthorizedWorkspaceID() string {
 	return s.workspaceID
+}
+
+func (s *Session) UserAgent() string {
+	return s.r.UserAgent()
+}
+
+func (s *Session) Location() string {
+	location := s.r.Header.Get("True-Client-Ip")
+	// Fall back to RemoteAddr
+	if location == "" {
+		host, _, err := net.SplitHostPort(s.r.RemoteAddr)
+		if err == nil {
+			location = host
+		} else {
+			location = s.r.RemoteAddr
+		}
+	}
+
+	return location
 }
 
 // Request returns the underlying http.Request.
