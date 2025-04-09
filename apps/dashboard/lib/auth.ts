@@ -10,10 +10,7 @@ type GetAuthResult = {
 };
 
 export async function getIsImpersonator(): Promise<boolean> {
-  const user = await auth.getCurrentUser();
-  if (!user) {
-    return false;
-  }
+  const user = await getCurrentUser();
   return user.impersonator !== undefined;
 }
 
