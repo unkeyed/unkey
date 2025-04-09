@@ -57,10 +57,22 @@ type BaseError struct {
 	Type string `json:"type"`
 }
 
+// ConflictErrorResponse defines model for ConflictErrorResponse.
+type ConflictErrorResponse struct {
+	Error BaseError `json:"error"`
+	Meta  Meta      `json:"meta"`
+}
+
 // ForbiddenErrorResponse defines model for ForbiddenErrorResponse.
 type ForbiddenErrorResponse struct {
 	Error BaseError `json:"error"`
 	Meta  Meta      `json:"meta"`
+}
+
+// IdentitiesCreateIdentityResponseData defines model for IdentitiesCreateIdentityResponseData.
+type IdentitiesCreateIdentityResponseData struct {
+	// IdentityId The id of the identity. Used internally, you do not need to store this.
+	IdentityId string `json:"identityId"`
 }
 
 // InternalServerErrorResponse defines model for InternalServerErrorResponse.
@@ -173,10 +185,40 @@ type UnauthorizedErrorResponse struct {
 	Meta  Meta      `json:"meta"`
 }
 
+// V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
+type V2IdentitiesCreateIdentityRequestBody struct {
+	// ExternalId The id of this identity in your system.
+	ExternalId string `json:"externalId"`
+
+	// Meta Attach metadata to this identity that you need to have access to when verifying a key.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Attach ratelimits to this identity.
+	Ratelimits *[]V2Ratelimit `json:"ratelimits,omitempty"`
+}
+
+// V2IdentitiesCreateIdentityResponseBody defines model for V2IdentitiesCreateIdentityResponseBody.
+type V2IdentitiesCreateIdentityResponseBody struct {
+	Data IdentitiesCreateIdentityResponseData `json:"data"`
+	Meta Meta                                 `json:"meta"`
+}
+
 // V2LivenessResponseBody defines model for V2LivenessResponseBody.
 type V2LivenessResponseBody struct {
 	Data LivenessResponseData `json:"data"`
 	Meta Meta                 `json:"meta"`
+}
+
+// V2Ratelimit defines model for V2Ratelimit.
+type V2Ratelimit struct {
+	// Duration The duration for each ratelimit window in milliseconds.
+	Duration int64 `json:"duration"`
+
+	// Limit How many requests may pass within a given window before requests are rejected.
+	Limit int64 `json:"limit"`
+
+	// Name The name of this limit. You will need to use this again when verifying a key.
+	Name string `json:"name"`
 }
 
 // V2RatelimitDeleteOverrideRequestBody Deletes an existing override.
@@ -296,6 +338,9 @@ type ValidationError struct {
 	// Message Error message text
 	Message string `json:"message"`
 }
+
+// V2IdentitiesCreateIdentityJSONRequestBody defines body for V2IdentitiesCreateIdentity for application/json ContentType.
+type V2IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody
 
 // RatelimitDeleteOverrideJSONRequestBody defines body for RatelimitDeleteOverride for application/json ContentType.
 type RatelimitDeleteOverrideJSONRequestBody = V2RatelimitDeleteOverrideRequestBody

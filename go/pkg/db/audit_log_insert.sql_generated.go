@@ -8,7 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 )
 
 const insertAuditLog = `-- name: InsertAuditLog :exec
@@ -16,6 +15,7 @@ INSERT INTO ` + "`" + `audit_log` + "`" + ` (
     id,
     workspace_id,
     bucket_id,
+    bucket,
     event,
     time,
     display,
@@ -39,24 +39,26 @@ INSERT INTO ` + "`" + `audit_log` + "`" + ` (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
 
 type InsertAuditLogParams struct {
-	ID          string          `db:"id"`
-	WorkspaceID string          `db:"workspace_id"`
-	BucketID    string          `db:"bucket_id"`
-	Event       string          `db:"event"`
-	Time        int64           `db:"time"`
-	Display     string          `db:"display"`
-	RemoteIp    sql.NullString  `db:"remote_ip"`
-	UserAgent   sql.NullString  `db:"user_agent"`
-	ActorType   string          `db:"actor_type"`
-	ActorID     string          `db:"actor_id"`
-	ActorName   sql.NullString  `db:"actor_name"`
-	ActorMeta   json.RawMessage `db:"actor_meta"`
-	CreatedAt   int64           `db:"created_at"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	BucketID    string         `db:"bucket_id"`
+	Bucket      string         `db:"bucket"`
+	Event       string         `db:"event"`
+	Time        int64          `db:"time"`
+	Display     string         `db:"display"`
+	RemoteIp    sql.NullString `db:"remote_ip"`
+	UserAgent   sql.NullString `db:"user_agent"`
+	ActorType   string         `db:"actor_type"`
+	ActorID     string         `db:"actor_id"`
+	ActorName   sql.NullString `db:"actor_name"`
+	ActorMeta   []byte         `db:"actor_meta"`
+	CreatedAt   int64          `db:"created_at"`
 }
 
 // InsertAuditLog
@@ -65,6 +67,7 @@ type InsertAuditLogParams struct {
 //	    id,
 //	    workspace_id,
 //	    bucket_id,
+//	    bucket,
 //	    event,
 //	    time,
 //	    display,
@@ -88,6 +91,7 @@ type InsertAuditLogParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertAuditLog(ctx context.Context, db DBTX, arg InsertAuditLogParams) error {
@@ -95,6 +99,7 @@ func (q *Queries) InsertAuditLog(ctx context.Context, db DBTX, arg InsertAuditLo
 		arg.ID,
 		arg.WorkspaceID,
 		arg.BucketID,
+		arg.Bucket,
 		arg.Event,
 		arg.Time,
 		arg.Display,

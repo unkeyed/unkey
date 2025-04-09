@@ -17,7 +17,9 @@
       "maxElapsedTime": 10000,
       "exponent": 1.5
     },
-    "statusCodes": ["5XX"],
+    "statusCodes": [
+      "5XX"
+    ],
     "retryConnectionErrors": true
   },
   "components": {
@@ -32,7 +34,9 @@
     "schemas": {
       "Meta": {
         "type": "object",
-        "required": ["requestId"],
+        "required": [
+          "requestId"
+        ],
         "properties": {
           "requestId": {
             "description": "A unique id for this request. Please always provide this to support.",
@@ -89,7 +93,12 @@
           }
         },
         "type": "object",
-        "required": ["detail", "status", "title", "type"]
+        "required": [
+          "detail",
+          "status",
+          "title",
+          "type"
+        ]
       },
       "ValidationError": {
         "additionalProperties": false,
@@ -108,7 +117,10 @@
           }
         },
         "type": "object",
-        "required": ["message", "location"]
+        "required": [
+          "message",
+          "location"
+        ]
       },
       "BadRequestErrorDetails": {
         "allOf": [
@@ -126,13 +138,33 @@
                 "type": "array"
               }
             },
-            "required": ["errors"]
+            "required": [
+              "errors"
+            ]
           }
         ]
       },
       "NotFoundErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "error": {
+            "$ref": "#/components/schemas/BaseError"
+          }
+        }
+      },
+      "ConflictErrorResponse": {
+        "type": "object",
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -144,7 +176,10 @@
       },
       "UnauthorizedErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -156,7 +191,10 @@
       },
       "ForbiddenErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -168,7 +206,10 @@
       },
       "PreconditionFailedErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -180,7 +221,10 @@
       },
       "BadRequestErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -192,7 +236,10 @@
       },
       "InternalServerErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -211,11 +258,16 @@
             "type": "string"
           }
         },
-        "required": ["message"]
+        "required": [
+          "message"
+        ]
       },
       "V2LivenessResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -258,7 +310,11 @@
             "minimum": 0
           }
         },
-        "required": ["identifier", "limit", "duration"],
+        "required": [
+          "identifier",
+          "limit",
+          "duration"
+        ],
         "type": "object"
       },
       "RatelimitSetOverrideResponseData": {
@@ -269,11 +325,16 @@
             "type": "string"
           }
         },
-        "required": ["overrideId"]
+        "required": [
+          "overrideId"
+        ]
       },
       "V2RatelimitSetOverrideResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -306,7 +367,9 @@
             "maxLength": 255
           }
         },
-        "required": ["identifier"],
+        "required": [
+          "identifier"
+        ],
         "type": "object"
       },
       "RatelimitGetOverrideResponseData": {
@@ -343,11 +406,20 @@
             "minimum": 0
           }
         },
-        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"]
+        "required": [
+          "namespaceId",
+          "overrideId",
+          "duration",
+          "identifier",
+          "limit"
+        ]
       },
       "V2RatelimitGetOverrideResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -406,7 +478,12 @@
             "type": "integer"
           }
         },
-        "required": ["overrideId", "identifier", "limit", "duration"]
+        "required": [
+          "overrideId",
+          "identifier",
+          "limit",
+          "duration"
+        ]
       },
       "RatelimitListOverridesResponseData": {
         "type": "array",
@@ -416,7 +493,10 @@
       },
       "V2RatelimitListOverridesResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -464,7 +544,12 @@
             "minimum": 1
           }
         },
-        "required": ["namespace", "identifier", "limit", "duration"],
+        "required": [
+          "namespace",
+          "identifier",
+          "limit",
+          "duration"
+        ],
         "type": "object"
       },
       "RatelimitLimitResponseData": {
@@ -494,11 +579,19 @@
             "type": "string"
           }
         },
-        "required": ["limit", "remaining", "reset", "success"]
+        "required": [
+          "limit",
+          "remaining",
+          "reset",
+          "success"
+        ]
       },
       "V2RatelimitLimitResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -531,7 +624,9 @@
             "maxLength": 255
           }
         },
-        "required": ["identifier"],
+        "required": [
+          "identifier"
+        ],
         "type": "object"
       },
       "RatelimitDeleteOverrideResponseData": {
@@ -540,7 +635,10 @@
       },
       "V2RatelimitDeleteOverrideResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -549,13 +647,96 @@
             "$ref": "#/components/schemas/RatelimitDeleteOverrideResponseData"
           }
         }
+      },
+      "V2IdentitiesCreateIdentityRequestBody": {
+        "type": "object",
+        "required": [
+          "externalId"
+        ],
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The id of this identity in your system.\n\nThis usually comes from your authentication provider and could be a userId, organisationId or even an email.\nIt does not matter what you use, as long as it uniquely identifies something in your application.\n\n`externalId`s are unique across your workspace and therefore a `CONFLICT` error is returned when you try to create duplicates.\n",
+            "example": "user_123"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Attach metadata to this identity that you need to have access to when verifying a key.\n\nThis will be returned as part of the `verifyKey` response.\n"
+          },
+          "ratelimits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2Ratelimit"
+            },
+            "description": "Attach ratelimits to this identity.\n\nWhen verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits."
+          }
+        }
+      },
+      "V2Ratelimit": {
+        "type": "object",
+        "required": [
+          "name",
+          "limit",
+          "duration"
+        ],
+        "properties": {
+          "name": {
+            "description": "The name of this limit. You will need to use this again when verifying a key.",
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128
+          },
+          "limit": {
+            "description": "How many requests may pass within a given window before requests are rejected.",
+            "type": "integer",
+            "format": "int64"
+          },
+          "duration": {
+            "description": "The duration for each ratelimit window in milliseconds.",
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "IdentitiesCreateIdentityResponseData": {
+        "type": "object",
+        "properties": {
+          "identityId": {
+            "description": "The id of the identity. Used internally, you do not need to store this.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identityId"
+        ]
+      },
+      "V2IdentitiesCreateIdentityResponseBody": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/IdentitiesCreateIdentityResponseData"
+          }
+        }
       }
     }
   },
   "paths": {
     "/v2/ratelimit.limit": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "v1.ratelimit.limit",
         "summary": "TODO",
         "security": [
@@ -639,7 +820,9 @@
     },
     "/v2/ratelimit.setOverride": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "ratelimit.setOverride",
         "security": [
           {
@@ -722,7 +905,9 @@
     },
     "/v2/ratelimit.getOverride": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "ratelimit.getOverride",
         "security": [
           {
@@ -805,7 +990,9 @@
     },
     "/v2/ratelimit.listOverrides": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "ratelimit.listOverrides",
         "summary": "List rate limit overrides",
         "security": [
@@ -889,8 +1076,15 @@
     },
     "/v2/ratelimit.deleteOverride": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "ratelimit.deleteOverride",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -965,9 +1159,96 @@
         }
       }
     },
+    "/v2/identities.createIdentity": {
+      "post": {
+        "tags": [
+          "identities"
+        ],
+        "operationId": "v2.identities.createIdentity",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2IdentitiesCreateIdentityRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2IdentitiesCreateIdentityResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "This response is sent when a request conflicts with the current state of the server.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
+    },
     "/v2/liveness": {
       "get": {
-        "tags": ["liveness"],
+        "tags": [
+          "liveness"
+        ],
         "operationId": "liveness",
         "description": "This endpoint checks if the service is alive.",
         "responses": {

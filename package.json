@@ -9,7 +9,7 @@
     "local": "pnpm --dir=tools/local local",
     "dev": "turbo run dev",
     "build": "pnpm turbo run build",
-    "fmt": "pnpm biome format . --write && pnpm biome check . --apply",
+    "fmt": "pnpm biome format . --write && pnpm biome check . --write",
     "test": "turbo run test --concurrency=1",
     "bootstrap": "turbo run bootstrap",
     "commit": "cz",
