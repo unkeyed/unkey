@@ -10,12 +10,7 @@ import { transformKeysFilters } from "./utils";
 const KeysOverviewLogsResponse = z.object({
   keysOverviewLogs: z.array(keysLogs),
   hasMore: z.boolean(),
-  nextCursor: z
-    .object({
-      time: z.number().int(),
-      requestId: z.string(),
-    })
-    .optional(),
+  nextCursor: z.number().int().optional(),
 });
 
 type KeysOverviewLogsResponse = z.infer<typeof KeysOverviewLogsResponse>;
@@ -46,8 +41,7 @@ export const queryKeysOverviewLogs = t.procedure
 
     const clickhouseResult = await clickhouse.api.keys.logs({
       ...transformedInputs,
-      cursorRequestId: input.cursor?.requestId ?? null,
-      cursorTime: input.cursor?.time ?? null,
+      cursorTime: input.cursor ?? null,
       workspaceId: ctx.workspace.id,
       keyspaceId: keyspaceId,
       // Only include keyIds filters if explicitly provided in the input
@@ -99,13 +93,7 @@ export const queryKeysOverviewLogs = t.procedure
     const response: KeysOverviewLogsResponse = {
       keysOverviewLogs,
       hasMore: logs.length === input.limit && keysOverviewLogs.length > 0,
-      nextCursor:
-        logs.length === input.limit
-          ? {
-              time: logs[logs.length - 1].time,
-              requestId: logs[logs.length - 1].request_id,
-            }
-          : undefined,
+      nextCursor: logs.length === input.limit ? logs[logs.length - 1].time : undefined,
     };
 
     return response;
