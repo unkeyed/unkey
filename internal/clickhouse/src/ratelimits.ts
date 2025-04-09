@@ -448,7 +448,6 @@ export const ratelimitOverviewLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
-  cursorRequestId: z.string().nullable(),
 
   sorts: z
     .array(
@@ -580,32 +579,26 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         ...orderByWithoutTime,
         `last_request_time ${timeDirection}`,
         `request_id ${timeDirection}`,
-      ].join(", ") || "last_request_time DESC, request_id DESC"; // Fallback if empty
+      ].join(", ") || "last_request_time DESC"; // Fallback if empty
 
     // Create cursor condition based on time direction
     let cursorCondition: string;
 
     // For first page or no cursor provided
-    if (!args.cursorTime || !args.cursorRequestId) {
+    if (!args.cursorTime) {
       cursorCondition = `
-      AND ({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
-      `;
+  AND ({cursorTime: Nullable(UInt64)} IS NULL)
+  `;
     } else {
       // For subsequent pages, use cursor based on time direction
       if (timeDirection === "ASC") {
         cursorCondition = `
-        AND (
-            (time = {cursorTime: Nullable(UInt64)} AND request_id > {cursorRequestId: Nullable(String)})
-            OR time > {cursorTime: Nullable(UInt64)}
-        )
-        `;
+    AND (time > {cursorTime: Nullable(UInt64)})
+    `;
       } else {
         cursorCondition = `
-        AND (
-            (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
-            OR time < {cursorTime: Nullable(UInt64)}
-        )
-        `;
+    AND (time < {cursorTime: Nullable(UInt64)})
+    `;
       }
     }
 
