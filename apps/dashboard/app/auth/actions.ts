@@ -161,7 +161,11 @@ export async function completeOrgSelection(
 ): Promise<NavigationResponse | AuthErrorResponse> {
   const tempSession = cookies().get(PENDING_SESSION_COOKIE);
   if (!tempSession) {
-    throw new Error("No pending session");
+    return {
+      success: false,
+      code: AuthErrorCode.PENDING_SESSION_EXPIRED,
+      message: errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED],
+    };
   }
 
   // Call auth provider with token and orgId

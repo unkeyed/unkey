@@ -5,6 +5,7 @@ import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import "@/styles/tailwind/tailwind.css";
 import "@unkey/ui/css";
 
+import { Feedback } from "@/components/dashboard/feedback-component";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
@@ -62,6 +63,9 @@ export default function RootLayout({
               <TooltipProvider>
                 {children}
                 <CommandMenu />
+                <Suspense>
+                  <Feedback />
+                </Suspense>
               </TooltipProvider>
             </ThemeProvider>
           </ReactQueryProvider>

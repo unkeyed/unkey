@@ -7,10 +7,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Chats } from "@unkey/icons";
 import { BookOpen, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
-import { Feedback as FeedbackComponent } from "./feedback-component";
+import React from "react";
+import { useFeedback } from "./feedback-component";
 
 export function CommandMenu() {
   const [open, setOpen] = React.useState(false);
@@ -88,10 +89,12 @@ const GenericLinkCommand: React.FC<{
 };
 
 const FeedbackCommand: React.FC = () => {
-  const [open, setOpen] = useState(false);
+  const [_, openFeedback] = useFeedback();
+
   return (
-    <CommandItem onSelect={() => setOpen(true)}>
-      <FeedbackComponent variant="command" FeedbackOpen={open} />
+    <CommandItem onSelect={() => openFeedback(true)}>
+      <Chats className="size-4 mr-2" />
+      <span>Feedback</span>
     </CommandItem>
   );
 };

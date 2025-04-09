@@ -277,43 +277,35 @@ type Api struct {
 }
 
 type AuditLog struct {
-	ID          string          `db:"id"`
-	WorkspaceID string          `db:"workspace_id"`
-	BucketID    string          `db:"bucket_id"`
-	Event       string          `db:"event"`
-	Time        int64           `db:"time"`
-	Display     string          `db:"display"`
-	RemoteIp    sql.NullString  `db:"remote_ip"`
-	UserAgent   sql.NullString  `db:"user_agent"`
-	ActorType   string          `db:"actor_type"`
-	ActorID     string          `db:"actor_id"`
-	ActorName   sql.NullString  `db:"actor_name"`
-	ActorMeta   json.RawMessage `db:"actor_meta"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
-}
-
-type AuditLogBucket struct {
-	ID               string        `db:"id"`
-	WorkspaceID      string        `db:"workspace_id"`
-	Name             string        `db:"name"`
-	RetentionDays    sql.NullInt32 `db:"retention_days"`
-	CreatedAt        int64         `db:"created_at"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
-	DeleteProtection sql.NullBool  `db:"delete_protection"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	BucketID    string         `db:"bucket_id"`
+	Bucket      string         `db:"bucket"`
+	Event       string         `db:"event"`
+	Time        int64          `db:"time"`
+	Display     string         `db:"display"`
+	RemoteIp    sql.NullString `db:"remote_ip"`
+	UserAgent   sql.NullString `db:"user_agent"`
+	ActorType   string         `db:"actor_type"`
+	ActorID     string         `db:"actor_id"`
+	ActorName   sql.NullString `db:"actor_name"`
+	ActorMeta   []byte         `db:"actor_meta"`
+	CreatedAt   int64          `db:"created_at"`
+	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
 type AuditLogTarget struct {
-	WorkspaceID string          `db:"workspace_id"`
-	BucketID    string          `db:"bucket_id"`
-	AuditLogID  string          `db:"audit_log_id"`
-	DisplayName string          `db:"display_name"`
-	Type        string          `db:"type"`
-	ID          string          `db:"id"`
-	Name        sql.NullString  `db:"name"`
-	Meta        json.RawMessage `db:"meta"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
+	WorkspaceID string         `db:"workspace_id"`
+	BucketID    string         `db:"bucket_id"`
+	AuditLogID  string         `db:"audit_log_id"`
+	Bucket      string         `db:"bucket"`
+	DisplayName string         `db:"display_name"`
+	Type        string         `db:"type"`
+	ID          string         `db:"id"`
+	Name        sql.NullString `db:"name"`
+	Meta        []byte         `db:"meta"`
+	CreatedAt   int64          `db:"created_at"`
+	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
 type EncryptedKey struct {
@@ -326,13 +318,13 @@ type EncryptedKey struct {
 }
 
 type Identity struct {
-	ID          string          `db:"id"`
-	ExternalID  string          `db:"external_id"`
-	WorkspaceID string          `db:"workspace_id"`
-	Environment string          `db:"environment"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
-	Meta        json.RawMessage `db:"meta"`
+	ID          string        `db:"id"`
+	ExternalID  string        `db:"external_id"`
+	WorkspaceID string        `db:"workspace_id"`
+	Environment string        `db:"environment"`
+	CreatedAt   int64         `db:"created_at"`
+	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+	Meta        []byte        `db:"meta"`
 }
 
 type Key struct {

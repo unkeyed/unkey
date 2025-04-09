@@ -19,6 +19,8 @@ type Resources struct {
 	RootWorkspace db.Workspace
 	RootKeyring   db.KeyAuth
 	UserWorkspace db.Workspace
+
+	DifferentWorkspace db.Workspace
 }
 
 // Seeder provides methods to seed test data
@@ -42,7 +44,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	// Insert root workspace
 	insertRootWorkspaceParams := db.InsertWorkspaceParams{
 		ID:        uid.New("test_ws"),
-		TenantID:  "unkey",
+		TenantID:  uid.New("unkey"),
 		Name:      "unkey",
 		CreatedAt: time.Now().UnixMilli(),
 	}
@@ -71,7 +73,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	// Insert user workspace
 	insertUserWorkspaceParams := db.InsertWorkspaceParams{
 		ID:        uid.New("test_ws"),
-		TenantID:  "user",
+		TenantID:  uid.New("user"),
 		Name:      "user",
 		CreatedAt: time.Now().UnixMilli(),
 	}
@@ -82,6 +84,18 @@ func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.UserWorkspace, err = db.Query.FindWorkspaceByID(ctx, s.DB.RW(), insertUserWorkspaceParams.ID)
 	require.NoError(s.t, err)
 
+	// Insert different workspace for permission tests
+	insertDifferentWorkspaceParams := db.InsertWorkspaceParams{
+		ID:        uid.New("test_ws"),
+		TenantID:  uid.New("alice"),
+		Name:      "alice",
+		CreatedAt: time.Now().UnixMilli(),
+	}
+
+	err = db.Query.InsertWorkspace(ctx, s.DB.RW(), insertDifferentWorkspaceParams)
+	require.NoError(s.t, err)
+	s.Resources.DifferentWorkspace, err = db.Query.FindWorkspaceByID(ctx, s.DB.RW(), insertDifferentWorkspaceParams.ID)
+	require.NoError(s.t, err)
 }
 
 // CreateRootKey creates a root key with optional permissions
@@ -148,6 +162,8 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			require.NoError(s.t, err)
 		}
 	}
+
+	s.t.Logf("created root key: %s", insertKeyParams.ID)
 
 	return key
 }
