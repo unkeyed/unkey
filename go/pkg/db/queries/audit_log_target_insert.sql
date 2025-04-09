@@ -2,6 +2,7 @@
 INSERT INTO `audit_log_target` (
     workspace_id,
     bucket_id,
+    bucket,
     audit_log_id,
     display_name,
     type,
@@ -12,6 +13,7 @@ INSERT INTO `audit_log_target` (
 ) VALUES (
     sqlc.arg(workspace_id),
     sqlc.arg(bucket_id),
+    sqlc.arg(bucket),
     sqlc.arg(audit_log_id),
     sqlc.arg(display_name),
     sqlc.arg(type),

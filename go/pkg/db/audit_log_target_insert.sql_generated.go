@@ -8,13 +8,13 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 )
 
 const insertAuditLogTarget = `-- name: InsertAuditLogTarget :exec
 INSERT INTO ` + "`" + `audit_log_target` + "`" + ` (
     workspace_id,
     bucket_id,
+    bucket,
     audit_log_id,
     display_name,
     type,
@@ -31,20 +31,22 @@ INSERT INTO ` + "`" + `audit_log_target` + "`" + ` (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
 
 type InsertAuditLogTargetParams struct {
-	WorkspaceID string          `db:"workspace_id"`
-	BucketID    string          `db:"bucket_id"`
-	AuditLogID  string          `db:"audit_log_id"`
-	DisplayName string          `db:"display_name"`
-	Type        string          `db:"type"`
-	ID          string          `db:"id"`
-	Name        sql.NullString  `db:"name"`
-	Meta        json.RawMessage `db:"meta"`
-	CreatedAt   int64           `db:"created_at"`
+	WorkspaceID string         `db:"workspace_id"`
+	BucketID    string         `db:"bucket_id"`
+	Bucket      string         `db:"bucket"`
+	AuditLogID  string         `db:"audit_log_id"`
+	DisplayName string         `db:"display_name"`
+	Type        string         `db:"type"`
+	ID          string         `db:"id"`
+	Name        sql.NullString `db:"name"`
+	Meta        []byte         `db:"meta"`
+	CreatedAt   int64          `db:"created_at"`
 }
 
 // InsertAuditLogTarget
@@ -52,6 +54,7 @@ type InsertAuditLogTargetParams struct {
 //	INSERT INTO `audit_log_target` (
 //	    workspace_id,
 //	    bucket_id,
+//	    bucket,
 //	    audit_log_id,
 //	    display_name,
 //	    type,
@@ -68,12 +71,14 @@ type InsertAuditLogTargetParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error {
 	_, err := db.ExecContext(ctx, insertAuditLogTarget,
 		arg.WorkspaceID,
 		arg.BucketID,
+		arg.Bucket,
 		arg.AuditLogID,
 		arg.DisplayName,
 		arg.Type,

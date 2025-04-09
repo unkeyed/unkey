@@ -33,7 +33,7 @@ tasks:
 
   test-unit:
     cmds:
-      - go test -json -race -failfast ./... -skip "^TestIntegration_" -timeout=30m -p=10 | tparse -all -progress  -smallscreen
+      - go test -json -race -failfast  -timeout=30m -p=10 ./... | tparse -all -progress  -smallscreen
 
   build:
     cmds:
