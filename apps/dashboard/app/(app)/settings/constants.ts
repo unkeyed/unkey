@@ -19,9 +19,4 @@ export const navigation = [
     href: "/settings/billing",
     segment: "billing",
   },
-  {
-    label: "User",
-    href: "/settings/user",
-    segment: "user",
-  },
 ];
