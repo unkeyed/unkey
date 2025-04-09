@@ -7,9 +7,11 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import { OutcomesFilter } from "./outcome-filter";
+import { useState } from "react";
 
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
+  const [open, setOpen] = useState(false);
 
   const options = keysOverviewFilterFieldConfig.names.operators.map((op) => ({
     id: op,
@@ -18,12 +20,16 @@ export const LogsFilters = () => {
   const activeNameFilter = filters.find((f) => f.field === "names");
   const activeIdentityFilter = filters.find((f) => f.field === "identities");
   const activeKeyIdsFilter = filters.find((f) => f.field === "keyIds");
-  const keyIdOptions = keysOverviewFilterFieldConfig.names.operators.map((op) => ({
-    id: op,
-    label: op,
-  }));
+  const keyIdOptions = keysOverviewFilterFieldConfig.names.operators.map(
+    (op) => ({
+      id: op,
+      label: op,
+    })
+  );
   return (
     <FiltersPopover
+      open={open}
+      onOpenChange={setOpen}
       items={[
         {
           id: "names",
@@ -36,7 +42,9 @@ export const LogsFilters = () => {
               defaultOption={activeNameFilter?.operator}
               defaultText={activeNameFilter?.value as string}
               onApply={(id, text) => {
-                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "names");
+                const activeFiltersWithoutNames = filters.filter(
+                  (f) => f.field !== "names"
+                );
                 updateFilters([
                   ...activeFiltersWithoutNames,
                   {
@@ -46,6 +54,7 @@ export const LogsFilters = () => {
                     value: text,
                   },
                 ]);
+                setOpen(false);
               }}
             />
           ),
@@ -61,7 +70,9 @@ export const LogsFilters = () => {
               defaultOption={activeIdentityFilter?.operator}
               defaultText={activeIdentityFilter?.value as string}
               onApply={(id, text) => {
-                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "identities");
+                const activeFiltersWithoutNames = filters.filter(
+                  (f) => f.field !== "identities"
+                );
                 updateFilters([
                   ...activeFiltersWithoutNames,
                   {
@@ -71,6 +82,7 @@ export const LogsFilters = () => {
                     value: text,
                   },
                 ]);
+                setOpen(false);
               }}
             />
           ),
@@ -86,7 +98,9 @@ export const LogsFilters = () => {
               defaultOption={activeKeyIdsFilter?.operator}
               defaultText={activeKeyIdsFilter?.value as string}
               onApply={(id, text) => {
-                const activeFiltersWithoutKeyIds = filters.filter((f) => f.field !== "keyIds");
+                const activeFiltersWithoutKeyIds = filters.filter(
+                  (f) => f.field !== "keyIds"
+                );
                 updateFilters([
                   ...activeFiltersWithoutKeyIds,
                   {
@@ -96,6 +110,7 @@ export const LogsFilters = () => {
                     value: text,
                   },
                 ]);
+                setOpen(false);
               }}
             />
           ),
@@ -104,7 +119,7 @@ export const LogsFilters = () => {
           id: "outcomes",
           label: "Outcomes",
           shortcut: "o",
-          component: <OutcomesFilter />,
+          component: <OutcomesFilter onOpenChange={() => setOpen(false)} />,
         },
       ]}
       activeFilters={filters}
@@ -114,7 +129,7 @@ export const LogsFilters = () => {
           variant="ghost"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
-            filters.length > 0 ? "bg-gray-4" : "",
+            filters.length > 0 ? "bg-gray-4" : ""
           )}
           aria-label="Filter logs"
           aria-haspopup="true"
@@ -122,7 +137,9 @@ export const LogsFilters = () => {
           title="Press 'F' to toggle filters"
         >
           <BarsFilter className="text-accent-9 size-4" />
-          <span className="text-accent-12 font-medium text-[13px] max-md:hidden">Filter</span>
+          <span className="text-accent-12 font-medium text-[13px] max-md:hidden">
+            Filter
+          </span>
           {filters.length > 0 && (
             <div className="bg-gray-7 rounded h-4 px-1 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
               {filters.length}

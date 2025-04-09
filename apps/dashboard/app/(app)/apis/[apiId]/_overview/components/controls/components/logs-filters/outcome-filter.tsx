@@ -2,7 +2,11 @@ import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { useFilters } from "../../../../hooks/use-filters";
 import { getOutcomeColor, getOutcomeOptions } from "../../../../utils";
 
-export const OutcomesFilter = () => {
+type OutcomesFilterProps = {
+  onOpenChange?: () => void;
+};
+
+export const OutcomesFilter = ({ onOpenChange }: OutcomesFilterProps) => {
   const { filters, updateFilters } = useFilters();
 
   // Get the options from our centralized utility
@@ -27,6 +31,7 @@ export const OutcomesFilter = () => {
       })}
       filters={filters}
       updateFilters={updateFilters}
+      onOpenChange={onOpenChange}
     />
   );
 };
