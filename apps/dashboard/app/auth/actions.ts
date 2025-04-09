@@ -164,7 +164,7 @@ export async function completeOrgSelection(
     return {
       success: false,
       code: AuthErrorCode.PENDING_SESSION_EXPIRED,
-      message: errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED]
+      message: errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED],
     };
   }
 
