@@ -27,7 +27,7 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
     },
     onError(error) {
       const errorMessage = `Unable to process your search request${
-        error.message ? "' ${error.message} '" : "."
+        error.message ? `' ${error.message} '` : "."
       } Please try again or refine your search criteria.`;
 
       toast.error(errorMessage, {
