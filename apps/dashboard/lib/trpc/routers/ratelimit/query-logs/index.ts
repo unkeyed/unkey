@@ -11,12 +11,7 @@ const RatelimitLogsResponse = z.object({
   ratelimitLogs: z.array(ratelimitLogs),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z
-    .object({
-      time: z.number().int(),
-      requestId: z.string(),
-    })
-    .optional(),
+  nextCursor: z.number().int().optional(),
 });
 
 type RatelimitLogsResponse = z.infer<typeof RatelimitLogsResponse>;
@@ -61,8 +56,7 @@ export const queryRatelimitLogs = t.procedure
     const transformedInputs = transformFilters(input);
     const { countQuery, logsQuery } = await clickhouse.ratelimits.logs({
       ...transformedInputs,
-      cursorRequestId: input.cursor?.requestId ?? null,
-      cursorTime: input.cursor?.time ?? null,
+      cursorTime: input.cursor ?? null,
       workspaceId: ctx.workspace.id,
       namespaceId: ratelimitNamespaces[0].id,
     });
@@ -81,13 +75,7 @@ export const queryRatelimitLogs = t.procedure
       ratelimitLogs: logs,
       total: countResult.val[0].total_count,
       hasMore: logs.length === input.limit,
-      nextCursor:
-        logs.length > 0
-          ? {
-              time: logs[logs.length - 1].time,
-              requestId: logs[logs.length - 1].request_id,
-            }
-          : undefined,
+      nextCursor: logs.length > 0 ? logs[logs.length - 1].time : undefined,
     };
 
     return response;

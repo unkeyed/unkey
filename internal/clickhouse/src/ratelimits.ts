@@ -263,7 +263,6 @@ export const ratelimitLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
-  cursorRequestId: z.string().nullable(),
 });
 
 export const ratelimitLogs = z.object({
@@ -355,8 +354,9 @@ WITH filtered_ratelimits AS (
         ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
         AND (${identifierConditions})
         AND (${statusCondition})
-        AND (({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL) 
-             OR (time, request_id) < ({cursorTime: Nullable(UInt64)}, {cursorRequestId: Nullable(String)}))
+        AND (
+            {cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)}
+        )
 )
 SELECT 
     fr.request_id,
@@ -395,7 +395,7 @@ LEFT JOIN (
     WHERE workspace_id = {workspaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
 ) m ON fr.request_id = m.request_id
-ORDER BY fr.time DESC, fr.request_id DESC
+ORDER BY fr.time DESC
 LIMIT {limit: Int}`,
       params: extendedParamsSchema,
       schema: ratelimitLogs,
