@@ -1014,49 +1014,6 @@ importers:
         specifier: ^5.5.3
         version: 5.7.3
 
-  internal/auth-migrator:
-    dependencies:
-      '@clerk/clerk-sdk-node':
-        specifier: ^5.1.6
-        version: 5.1.6(react-dom@18.3.1)(react@18.3.1)
-      '@planetscale/database':
-        specifier: ^1.19.0
-        version: 1.19.0
-      '@unkey/db':
-        specifier: workspace:^
-        version: link:../db
-      '@workos-inc/node':
-        specifier: ^7.43.0
-        version: 7.43.0(next@14.2.25)
-      dotenv-cli:
-        specifier: ^7.4.1
-        version: 7.4.1
-      drizzle-orm:
-        specifier: ^0.41.0
-        version: 0.41.0(@planetscale/database@1.19.0)
-      p-limit:
-        specifier: ^6.2.0
-        version: 6.2.0
-      tsx:
-        specifier: ^4.19.1
-        version: 4.19.1
-      zod:
-        specifier: 3.23.8
-        version: 3.23.8
-    devDependencies:
-      '@types/node':
-        specifier: 20.14.9
-        version: 20.14.9
-      '@unkey/tsconfig':
-        specifier: workspace:^
-        version: link:../tsconfig
-      ts-node:
-        specifier: ^10.9.2
-        version: 10.9.2(@types/node@20.14.9)(typescript@5.5.3)
-      typescript:
-        specifier: 5.5.3
-        version: 5.5.3
-
   internal/billing:
     dependencies:
       '@mendable/firecrawl-js':
@@ -1089,7 +1046,7 @@ importers:
     devDependencies:
       checkly:
         specifier: latest
-        version: 5.2.0(@types/node@20.17.30)(typescript@5.5.3)
+        version: 5.0.1(@types/node@20.17.30)(typescript@5.5.3)
       ts-node:
         specifier: 10.9.1
         version: 10.9.1(@types/node@20.17.30)(typescript@5.5.3)
@@ -2661,93 +2618,6 @@ packages:
     bundledDependencies:
       - is-unicode-supported
 
-  /@clerk/backend@1.27.0(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-WqdigkqGyVcU0Y08xCJSor6I8j7WxtlZfMlIbHyw+JM8U06kNVSX9umRmTePFRFN02EwIQmQmqnRXVn0kwMyBQ==}
-    engines: {node: '>=18.17.0'}
-    peerDependencies:
-      svix: ^1.62.0
-    peerDependenciesMeta:
-      svix:
-        optional: true
-    dependencies:
-      '@clerk/shared': 3.4.0(react-dom@18.3.1)(react@18.3.1)
-      '@clerk/types': 4.51.0
-      cookie: 1.0.2
-      snakecase-keys: 8.0.1
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - react
-      - react-dom
-    dev: false
-
-  /@clerk/clerk-sdk-node@5.1.6(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-KeF5p0XP0gNoCx+YIHrfrkNNADBz8ZabwPAhOiJZ9Wo14r93WlzRA51IE0Qgteej8IpWwnvKu4/MpiV7FFoLqA==}
-    engines: {node: '>=18.17.0'}
-    deprecated: 'January 10 2025 marks the end of support for @clerk/clerk-sdk-node as previously announced in our October 2024 deprecation notice. Express users can migrate to the @clerk/express package. For more information, you can find our changelog here: https://clerk.com/changelog/2025-01-10-node-sdk-eol'
-    dependencies:
-      '@clerk/backend': 1.27.0(react-dom@18.3.1)(react@18.3.1)
-      '@clerk/shared': 2.22.0(react-dom@18.3.1)(react@18.3.1)
-      '@clerk/types': 4.51.0
-      tslib: 2.4.1
-    transitivePeerDependencies:
-      - react
-      - react-dom
-      - svix
-    dev: false
-
-  /@clerk/shared@2.22.0(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-VWBeddOJVa3sqUPdvquaaQYw4h5hACSG3EUDOW7eSu2F6W3BXUozyLJQPBJ9C0MuoeHhOe/DeV8x2KqOgxVZaQ==}
-    engines: {node: '>=18.17.0'}
-    requiresBuild: true
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0 || ^19.0.0-0
-      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-0
-    peerDependenciesMeta:
-      react:
-        optional: true
-      react-dom:
-        optional: true
-    dependencies:
-      '@clerk/types': 4.51.0
-      dequal: 2.0.3
-      glob-to-regexp: 0.4.1
-      js-cookie: 3.0.5
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      std-env: 3.9.0
-      swr: 2.3.3(react@18.3.1)
-    dev: false
-
-  /@clerk/shared@3.4.0(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-3ms1JZVNXe/qJXdsFY+QlOYKcocdMKDHXDr/EvpuQV+WsLKkpMcswH2fbWNhsWG2otekL2sIYBVkCy+/0hBlPA==}
-    engines: {node: '>=18.17.0'}
-    requiresBuild: true
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0 || ^19.0.0-0
-      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-0
-    peerDependenciesMeta:
-      react:
-        optional: true
-      react-dom:
-        optional: true
-    dependencies:
-      '@clerk/types': 4.51.0
-      dequal: 2.0.3
-      glob-to-regexp: 0.4.1
-      js-cookie: 3.0.5
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      std-env: 3.9.0
-      swr: 2.3.3(react@18.3.1)
-    dev: false
-
-  /@clerk/types@4.51.0:
-    resolution: {integrity: sha512-igUZ5BOe3rOgQSM8v9f6zHCOowX3yV36zWYImMUWD61cpLqUokKtN6qH2x8sHUHrq3B9Dj3AsXItGaQsLNs3mw==}
-    engines: {node: '>=18.17.0'}
-    dependencies:
-      csstype: 3.1.3
-    dev: false
-
   /@clickhouse/client-common@1.6.0:
     resolution: {integrity: sha512-DPdfPUIrBumWff8JdE2oLqnOIN1DwxXt48juV+tB6zaonufQR1QImtUGEhIFIqRWJU7zErtQ1eKfkwjLY0MYDg==}
     dev: false
@@ -3301,6 +3171,7 @@ packages:
     cpu: [ppc64]
     os: [aix]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/aix-ppc64@0.24.2:
@@ -3370,6 +3241,7 @@ packages:
     cpu: [arm64]
     os: [android]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/android-arm64@0.24.2:
@@ -3439,6 +3311,7 @@ packages:
     cpu: [arm]
     os: [android]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/android-arm@0.24.2:
@@ -3508,6 +3381,7 @@ packages:
     cpu: [x64]
     os: [android]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/android-x64@0.24.2:
@@ -3577,6 +3451,7 @@ packages:
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/darwin-arm64@0.24.2:
@@ -3646,6 +3521,7 @@ packages:
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/darwin-x64@0.24.2:
@@ -3715,6 +3591,7 @@ packages:
     cpu: [arm64]
     os: [freebsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/freebsd-arm64@0.24.2:
@@ -3784,6 +3661,7 @@ packages:
     cpu: [x64]
     os: [freebsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/freebsd-x64@0.24.2:
@@ -3853,6 +3731,7 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-arm64@0.24.2:
@@ -3922,6 +3801,7 @@ packages:
     cpu: [arm]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-arm@0.24.2:
@@ -3991,6 +3871,7 @@ packages:
     cpu: [ia32]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-ia32@0.24.2:
@@ -4060,6 +3941,7 @@ packages:
     cpu: [loong64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-loong64@0.24.2:
@@ -4129,6 +4011,7 @@ packages:
     cpu: [mips64el]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-mips64el@0.24.2:
@@ -4198,6 +4081,7 @@ packages:
     cpu: [ppc64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-ppc64@0.24.2:
@@ -4267,6 +4151,7 @@ packages:
     cpu: [riscv64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-riscv64@0.24.2:
@@ -4336,6 +4221,7 @@ packages:
     cpu: [s390x]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-s390x@0.24.2:
@@ -4405,6 +4291,7 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-x64@0.24.2:
@@ -4482,6 +4369,7 @@ packages:
     cpu: [x64]
     os: [netbsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/netbsd-x64@0.24.2:
@@ -4498,6 +4386,7 @@ packages:
     cpu: [arm64]
     os: [openbsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/openbsd-arm64@0.24.2:
@@ -4567,6 +4456,7 @@ packages:
     cpu: [x64]
     os: [openbsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/openbsd-x64@0.24.2:
@@ -4636,6 +4526,7 @@ packages:
     cpu: [x64]
     os: [sunos]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/sunos-x64@0.24.2:
@@ -4705,6 +4596,7 @@ packages:
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/win32-arm64@0.24.2:
@@ -4774,6 +4666,7 @@ packages:
     cpu: [ia32]
     os: [win32]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/win32-ia32@0.24.2:
@@ -4843,6 +4736,7 @@ packages:
     cpu: [x64]
     os: [win32]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/win32-x64@0.24.2:
@@ -11381,7 +11275,7 @@ packages:
   /@types/conventional-commits-parser@5.0.1:
     resolution: {integrity: sha512-7uz5EHdzz2TqoMfV7ee61Egf5y6NkcO4FB/1iCCQnbeiI1F3xzv3vK5dBCXUCLQgGYS+mUeigK1iKQzvED+QnQ==}
     dependencies:
-      '@types/node': 20.17.19
+      '@types/node': 20.17.30
     dev: true
     optional: true
 
@@ -13389,8 +13283,8 @@ packages:
       get-func-name: 2.0.2
     dev: true
 
-  /checkly@5.2.0(@types/node@20.17.30)(typescript@5.5.3):
-    resolution: {integrity: sha512-y5VEdxuVfI66hEOMQlGKzcQsncCdewtG9ocKyA963MeOTW79v7a9dqHUJQLmBwLtUybaHVFXj7ha1RR57no9SA==}
+  /checkly@5.0.1(@types/node@20.17.30)(typescript@5.5.3):
+    resolution: {integrity: sha512-U7AcRh18IlNozBr+I1bcEUCgZK2mbjsYYiVSMSPmV+bkzxXxr9Uuy14+EjKpa+ZrSxp/Yk0f5qYaBdVFp0gDkA==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     dependencies:
@@ -13899,11 +13793,6 @@ packages:
     resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
 
-  /cookie@1.0.2:
-    resolution: {integrity: sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==}
-    engines: {node: '>=18'}
-    dev: false
-
   /copy-anything@3.0.5:
     resolution: {integrity: sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==}
     engines: {node: '>=12.13'}
@@ -14350,7 +14239,7 @@ packages:
     dependencies:
       is-arguments: 1.2.0
       is-date-object: 1.1.0
-      is-regex: 1.1.4
+      is-regex: 1.2.1
       object-is: 1.1.6
       object-keys: 1.1.1
       regexp.prototype.flags: 1.5.4
@@ -14616,13 +14505,6 @@ packages:
       domhandler: 5.0.3
     dev: false
 
-  /dot-case@3.0.4:
-    resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
-    dependencies:
-      no-case: 3.0.4
-      tslib: 2.8.1
-    dev: false
-
   /dot-prop@6.0.1:
     resolution: {integrity: sha512-tE7ztYzXHIeyvc7N+hR3oi7FIbf/NIjVP9hmAt3yMXzrQ072/fpjGLx2GxNxGxUl5V73MEqYzioOMoVhGMJ5cA==}
     engines: {node: '>=10'}
@@ -14638,10 +14520,12 @@ packages:
       dotenv: 16.4.7
       dotenv-expand: 10.0.0
       minimist: 1.2.8
+    dev: true
 
   /dotenv-expand@10.0.0:
     resolution: {integrity: sha512-GopVGCpVS1UKH75VKHGuQFqS1Gusej0z4FyQkPdwjil2gNIv+LNsqBlboOzpJFZKVT95GkCyWJbBSdFEFUWI2A==}
     engines: {node: '>=12'}
+    dev: true
 
   /dotenv@16.0.3:
     resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
@@ -14962,98 +14846,6 @@ packages:
       '@planetscale/database': 1.19.0
       '@types/react': 18.3.11
       react: 18.3.1
-    dev: false
-
-  /drizzle-orm@0.41.0(@planetscale/database@1.19.0):
-    resolution: {integrity: sha512-7A4ZxhHk9gdlXmTdPj/lREtP+3u8KvZ4yEN6MYVxBzZGex5Wtdc+CWSbu7btgF6TB0N+MNPrvW7RKBbxJchs/Q==}
-    peerDependencies:
-      '@aws-sdk/client-rds-data': '>=3'
-      '@cloudflare/workers-types': '>=4'
-      '@electric-sql/pglite': '>=0.2.0'
-      '@libsql/client': '>=0.10.0'
-      '@libsql/client-wasm': '>=0.10.0'
-      '@neondatabase/serverless': '>=0.10.0'
-      '@op-engineering/op-sqlite': '>=2'
-      '@opentelemetry/api': ^1.4.1
-      '@planetscale/database': '>=1'
-      '@prisma/client': '*'
-      '@tidbcloud/serverless': '*'
-      '@types/better-sqlite3': '*'
-      '@types/pg': '*'
-      '@types/sql.js': '*'
-      '@vercel/postgres': '>=0.8.0'
-      '@xata.io/client': '*'
-      better-sqlite3: '>=7'
-      bun-types: '*'
-      expo-sqlite: '>=14.0.0'
-      gel: '>=2'
-      knex: '*'
-      kysely: '*'
-      mysql2: '>=2'
-      pg: '>=8'
-      postgres: '>=3'
-      prisma: '*'
-      sql.js: '>=1'
-      sqlite3: '>=5'
-    peerDependenciesMeta:
-      '@aws-sdk/client-rds-data':
-        optional: true
-      '@cloudflare/workers-types':
-        optional: true
-      '@electric-sql/pglite':
-        optional: true
-      '@libsql/client':
-        optional: true
-      '@libsql/client-wasm':
-        optional: true
-      '@neondatabase/serverless':
-        optional: true
-      '@op-engineering/op-sqlite':
-        optional: true
-      '@opentelemetry/api':
-        optional: true
-      '@planetscale/database':
-        optional: true
-      '@prisma/client':
-        optional: true
-      '@tidbcloud/serverless':
-        optional: true
-      '@types/better-sqlite3':
-        optional: true
-      '@types/pg':
-        optional: true
-      '@types/sql.js':
-        optional: true
-      '@vercel/postgres':
-        optional: true
-      '@xata.io/client':
-        optional: true
-      better-sqlite3:
-        optional: true
-      bun-types:
-        optional: true
-      expo-sqlite:
-        optional: true
-      gel:
-        optional: true
-      knex:
-        optional: true
-      kysely:
-        optional: true
-      mysql2:
-        optional: true
-      pg:
-        optional: true
-      postgres:
-        optional: true
-      prisma:
-        optional: true
-      sql.js:
-        optional: true
-      sqlite3:
-        optional: true
-    dependencies:
-      '@planetscale/database': 1.19.0
     dev: false
 
   /drizzle-zod@0.5.1(drizzle-orm@0.33.0)(zod@3.23.8):
@@ -15576,6 +15368,7 @@ packages:
       '@esbuild/win32-arm64': 0.23.1
       '@esbuild/win32-ia32': 0.23.1
       '@esbuild/win32-x64': 0.23.1
+    dev: true
 
   /esbuild@0.24.2:
     resolution: {integrity: sha512-+9egpBW8I3CD5XPe0n6BfT5fxLzxrlDzqydF3aviG+9ni1lDC/OvMHcxqEFV0+LANZG5R1bFMWfUrjVsdwxJvA==}
@@ -16924,6 +16717,7 @@ packages:
     resolution: {integrity: sha512-kGzZ3LWWQcGIAmg6iWvXn0ei6WDtV26wzHRMwDSzmAbcXrTEXxHy6IehI6/4eT6VRKyMP1eF1VqwrVUmE/LR7A==}
     dependencies:
       resolve-pkg-maps: 1.0.0
+    dev: true
 
   /get-uri@6.0.4:
     resolution: {integrity: sha512-E1b1lFFLvLgak2whF2xDBcOy6NLVGZBqqjJjsIhvopKfWWEi64pLVTWWehV8KlLerZkfNTA95sTe2OdJKm1OzQ==}
@@ -18943,12 +18737,6 @@ packages:
     resolution: {integrity: sha512-kkIp7XSkP78ZxJEsSxW3712C6teJVoeHHwgo9zJ380de7IYyJ2ISlxojcH2pC5OFLewESmnRi/+XCDIEEVyoug==}
     dev: true
 
-  /lower-case@2.0.2:
-    resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
-    dependencies:
-      tslib: 2.8.1
-    dev: false
-
   /lowercase-keys@3.0.0:
     resolution: {integrity: sha512-ozCC6gdQ+glXOQsveKD0YsDy8DSQFjDTz4zyzEHNV5+JP5D62LmfDZ6o1cycFx9ouG940M5dE8C8CTewdj2YWQ==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
@@ -19024,11 +18812,6 @@ packages:
 
   /make-error@1.3.6:
     resolution: {integrity: sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==}
-
-  /map-obj@4.3.0:
-    resolution: {integrity: sha512-hdN1wVrZbb29eBGiGjJbeP8JbKjq1urkHJ/LIP/NY48MZ1QVXUsQBV1G1zvYFHn1XE06cwjBsOI2K3Ulnj1YXQ==}
-    engines: {node: '>=8'}
-    dev: false
 
   /markdown-extensions@1.1.1:
     resolution: {integrity: sha512-WWC0ZuMzCyDHYCasEGs4IPvLyTGftYwh6wIEOULOF0HXcqZlhwRzrK0w2VUlxWA98xnvb/jszw4ZSkJ6ADpM6Q==}
@@ -20304,6 +20087,7 @@ packages:
   /minipass@6.0.2:
     resolution: {integrity: sha512-MzWSV5nYVT7mVyWCwn2o7JH13w2TBRmmSqSRCKzTw+lmft9X4z+3wjvs06Tzijo5z4W/kahUCDpRXTF+ZrmF/w==}
     engines: {node: '>=16 || 14 >=14.17'}
+    dev: true
 
   /minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
@@ -20727,13 +20511,6 @@ packages:
     dependencies:
       '@types/nlcst': 1.0.4
     dev: true
-
-  /no-case@3.0.4:
-    resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
-    dependencies:
-      lower-case: 2.0.2
-      tslib: 2.8.1
-    dev: false
 
   /node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
@@ -21200,6 +20977,7 @@ packages:
     engines: {node: '>=18'}
     dependencies:
       yocto-queue: 1.2.1
+    dev: true
 
   /p-locate@3.0.0:
     resolution: {integrity: sha512-x+12w/To+4GFfgJhBEpiDcLozRJGegY+Ei7/z0tSLkMmxGZNybVMSfWj9aJn8Z5Fc7dBUNJOOVgPv2H7IwulSQ==}
@@ -21438,7 +21216,7 @@ packages:
     engines: {node: '>=16 || 14 >=14.18'}
     dependencies:
       lru-cache: 10.4.3
-      minipass: 6.0.2
+      minipass: 7.1.2
 
   /path-to-regexp@0.1.12:
     resolution: {integrity: sha512-RA1GjUVMnvYFxuqovrEqZoxxW5NUZqbwKtYz/Tt7nXerk0LbLblQmrsgdeOxV5SFHf0UDggjS/bSeOZwt1pmEQ==}
@@ -22970,6 +22748,7 @@ packages:
 
   /resolve-pkg-maps@1.0.0:
     resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
+    dev: true
 
   /resolve@1.22.10:
     resolution: {integrity: sha512-NPRy+/ncIMeDlTAsuqwKIiferiawhefFJtkNSW0qZJEqMEb+qBt/77B/jGeeek+F0uOeN05CDa6HXbbIgtVX4w==}
@@ -23599,22 +23378,6 @@ packages:
     engines: {node: '>= 18'}
     dev: true
 
-  /snake-case@3.0.4:
-    resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
-    dependencies:
-      dot-case: 3.0.4
-      tslib: 2.8.1
-    dev: false
-
-  /snakecase-keys@8.0.1:
-    resolution: {integrity: sha512-Sj51kE1zC7zh6TDlNNz0/Jn1n5HiHdoQErxO8jLtnyrkJW/M5PrI7x05uDgY3BO7OUQYKCvmeMurW6BPUdwEOw==}
-    engines: {node: '>=18'}
-    dependencies:
-      map-obj: 4.3.0
-      snake-case: 3.0.4
-      type-fest: 4.39.1
-    dev: false
-
   /socket.io-adapter@2.5.5:
     resolution: {integrity: sha512-eLDQas5dzPgOWCk9GuuJC2lBqItuhKI4uxGgo9aIV7MYbk2h9Q6uULEh8WBzThoI7l+qU9Ast9fVUmkqPP9wYg==}
     dependencies:
@@ -23882,6 +23645,7 @@ packages:
 
   /std-env@3.9.0:
     resolution: {integrity: sha512-UGvjygr6F6tpH7o2qyqR6QYpwraIjKSdtzyBdyytFOHmPZY917kwdwLG0RbOjWOnKmnm3PeHjaoLLMie7kPLQw==}
+    dev: true
 
   /stdin-discarder@0.1.0:
     resolution: {integrity: sha512-xhV7w8S+bUwlPTb4bAOUQhv8/cSS5offJuX8GQGq32ONF0ZtDWKfkdomM3HMRA+LhX6um/FZ0COqlwsjD53LeQ==}
@@ -24244,16 +24008,6 @@ packages:
       react: ^16.11.0 || ^17.0.0 || ^18.0.0
     dependencies:
       client-only: 0.0.1
-      react: 18.3.1
-      use-sync-external-store: 1.5.0(react@18.3.1)
-    dev: false
-
-  /swr@2.3.3(react@18.3.1):
-    resolution: {integrity: sha512-dshNvs3ExOqtZ6kJBaAsabhPdHyeY4P2cKwRCniDVifBMoG/SVI7tfLWqPXriVspf2Rg4tPzXJTnwaihIeFw2A==}
-    peerDependencies:
-      react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-    dependencies:
-      dequal: 2.0.3
       react: 18.3.1
       use-sync-external-store: 1.5.0(react@18.3.1)
     dev: false
@@ -24755,37 +24509,6 @@ packages:
       yn: 3.1.1
     dev: true
 
-  /ts-node@10.9.2(@types/node@20.14.9)(typescript@5.5.3):
-    resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}
-    hasBin: true
-    peerDependencies:
-      '@swc/core': '>=1.2.50'
-      '@swc/wasm': '>=1.2.50'
-      '@types/node': '*'
-      typescript: '>=2.7'
-    peerDependenciesMeta:
-      '@swc/core':
-        optional: true
-      '@swc/wasm':
-        optional: true
-    dependencies:
-      '@cspotcode/source-map-support': 0.8.1
-      '@tsconfig/node10': 1.0.11
-      '@tsconfig/node12': 1.0.11
-      '@tsconfig/node14': 1.0.3
-      '@tsconfig/node16': 1.0.4
-      '@types/node': 20.14.9
-      acorn: 8.14.1
-      acorn-walk: 8.3.4
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      typescript: 5.5.3
-      v8-compile-cache-lib: 3.0.1
-      yn: 3.1.1
-    dev: true
-
   /ts-node@10.9.2(@types/node@20.17.19)(typescript@5.7.3):
     resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}
     hasBin: true
@@ -24827,10 +24550,6 @@ packages:
 
   /tslib@1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
-    dev: false
-
-  /tslib@2.4.1:
-    resolution: {integrity: sha512-tGyy4dAjRIEwI7BzsB0lynWgOpfqjUdq91XXAlIWD2OwKBH7oCl/GZG/HT4BOHrTlPMOASlMQ7veyTqpmRcrNA==}
     dev: false
 
   /tslib@2.6.2:
@@ -24927,6 +24646,7 @@ packages:
       get-tsconfig: 4.10.0
     optionalDependencies:
       fsevents: 2.3.3
+    dev: true
 
   /tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
@@ -26550,6 +26270,7 @@ packages:
   /yocto-queue@1.2.1:
     resolution: {integrity: sha512-AyeEbWOu/TAXdxlV9wmGcR0+yh2j3vYPGOECcIj2S7MkrLyC7ne+oye2BKTItt0ii2PHk4cDy+95+LshzbXnGg==}
     engines: {node: '>=12.20'}
+    dev: true
 
   /yoctocolors-cjs@2.1.2:
     resolution: {integrity: sha512-cYVsTjKl8b+FrnidjibDWskAv7UKOfcwaVZdp/it9n1s9fU3IkgDbhdIRKCW4JDsAlECJY0ytoVPT3sK6kideA==}
