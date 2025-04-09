@@ -11,7 +11,7 @@
     "test:benchmark": "vitest run -c vitest.benchmark.ts"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.4.1",
+    "@cloudflare/vitest-pool-workers": "^0.8.12",
     "@cloudflare/workers-types": "^4.20240603.0",
     "@unkey/api": "workspace:^",
     "@unkey/tsconfig": "workspace:^",

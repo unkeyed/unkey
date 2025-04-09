@@ -33,7 +33,7 @@ export const DialogContainer = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0",
+          "drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0 ",
           className,
         )}
         onOpenAutoFocus={(e) => {

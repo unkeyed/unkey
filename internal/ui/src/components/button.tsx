@@ -42,7 +42,7 @@ const buttonVariants = cva(
       },
       size: {
         // TODO: Remove "icon" this in the following iterations. This is only needed for backward compatability
-        icon: "h-6",
+        icon: "size-6",
         sm: "h-7",
         md: "h-8",
         lg: "h-9",
@@ -421,7 +421,7 @@ if (typeof document !== "undefined") {
         transition: none !important;
       }
     }
-    
+
     @keyframes spin-slow {
       from {
         transform: rotate(0deg);
@@ -430,7 +430,7 @@ if (typeof document !== "undefined") {
         transform: rotate(360deg);
       }
     }
-    
+
     .animate-spin-slow {
       animation: spin-slow 1.5s linear infinite;
     }

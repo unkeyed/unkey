@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/routes"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
@@ -130,8 +131,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	srv, err := zen.New(zen.Config{
-		InstanceID: cfg.InstanceID,
-		Logger:     logger,
+		Logger: logger,
 		Flags: &zen.Flags{
 			TestMode: cfg.TestMode,
 		},
@@ -148,10 +148,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		Logger:   logger,
-		DB:       db,
-		Clock:    clk,
-		KeyCache: caches.KeyByHash,
+		Logger:         logger,
+		DB:             db,
+		Clock:          clk,
+		KeyCache:       caches.KeyByHash,
+		WorkspaceCache: caches.WorkspaceByID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -192,7 +193,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Validator:   validator,
 		Ratelimit:   rlSvc,
 		Permissions: p,
-		Caches:      caches,
+		Auditlogs: auditlogs.New(auditlogs.Config{
+			Logger: logger,
+			DB:     db,
+		}),
+		Caches: caches,
 	})
 
 	go func() {
