@@ -1,5 +1,5 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { CircleCarretRight } from "@unkey/icons";
+import { CircleCaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 
@@ -29,7 +29,7 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
           <div className="absolute inset-0 bg-info-6 rounded opacity-15 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]" />
         </div>
       )}
-      <CircleCarretRight className="size-4 relative z-10" />
+      <CircleCaretRight className="size-4 relative z-10" />
       <span className="font-medium text-[13px]">Live</span>
     </Button>
   );

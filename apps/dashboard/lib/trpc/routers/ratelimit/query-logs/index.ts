@@ -10,6 +10,7 @@ import { transformFilters } from "./utils";
 const RatelimitLogsResponse = z.object({
   ratelimitLogs: z.array(ratelimitLogs),
   hasMore: z.boolean(),
+  total: z.number(),
   nextCursor: z
     .object({
       time: z.number().int(),
@@ -58,7 +59,7 @@ export const queryRatelimitLogs = t.procedure
     }
 
     const transformedInputs = transformFilters(input);
-    const result = await clickhouse.ratelimits.logs({
+    const { countQuery, logsQuery } = await clickhouse.ratelimits.logs({
       ...transformedInputs,
       cursorRequestId: input.cursor?.requestId ?? null,
       cursorTime: input.cursor?.time ?? null,
@@ -66,17 +67,19 @@ export const queryRatelimitLogs = t.procedure
       namespaceId: ratelimitNamespaces[0].id,
     });
 
-    if (result.err) {
+    const [countResult, logsResult] = await Promise.all([countQuery, logsQuery]);
+
+    if (countResult.err || logsResult.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
       });
     }
 
-    const logs = result.val;
-
+    const logs = logsResult.val;
     const response: RatelimitLogsResponse = {
       ratelimitLogs: logs,
+      total: countResult.val[0].total_count,
       hasMore: logs.length === input.limit,
       nextCursor:
         logs.length > 0

@@ -11,39 +11,33 @@
  */
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
-export const Book2: React.FC<IconProps> = ({ size = "xl-thin", filled, ...props }) => {
+
+export const Laptop2: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
+
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
+      {...props}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
+      <g fill="currentColor">
         <path
-          d="M2.63 14.63a2.25 2.25 0 0 0 2.25 2.24h10.5"
+          d="M4.25,12.75c-1.105,0-2-.895-2-2V4.75c0-1.105,.895-2,2-2H13.75c1.105,0,2,.895,2,2v6c0,1.105-.895,2-2,2"
           fill="none"
           stroke="currentColor"
-          strokeLinecap="butt"
-          strokeLinejoin="miter"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
         <path
-          d="M2.63 14.63v-11.26a2.25 2.25 0 0 1 2.25-2.25h8.25a2.25 2.25 0 0 1 2.25 2.25v9h-10.5a2.25 2.25 0 0 0-2.25 2.25z"
+          d="M17.25,12.75H.75v.5c0,1.105,.895,2,2,2H15.25c1.105,0,2-.895,2-2v-.5Z"
           fill="none"
           stroke="currentColor"
-          strokeLinecap="butt"
-          strokeLinejoin="miter"
-          strokeWidth={strokeWidth}
-        />
-        <path
-          d="M10.88 6.38h-3.76"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="butt"
-          strokeLinejoin="miter"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
       </g>
