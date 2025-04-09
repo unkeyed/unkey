@@ -1,4 +1,5 @@
 import type { Subscriptions } from "@unkey/billing";
+import { newId } from "@unkey/id";
 import { relations } from "drizzle-orm";
 import { boolean, datetime, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
@@ -14,6 +15,7 @@ import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
 export const workspaces = mysqlTable("workspaces", {
   id: varchar("id", { length: 256 }).primaryKey(),
+  __toBeDeleted: varchar("tenant_id", { length: 256 }).$defaultFn(() => newId("fake")),
 
   orgId: varchar("org_id", { length: 256 }).notNull().unique(),
   name: varchar("name", { length: 256 }).notNull(),
