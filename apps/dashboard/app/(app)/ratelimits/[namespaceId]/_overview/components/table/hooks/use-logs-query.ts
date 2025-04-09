@@ -12,6 +12,7 @@ type UseLogsQueryParams = {
 };
 
 export function useRatelimitOverviewLogsQuery({ namespaceId, limit = 50 }: UseLogsQueryParams) {
+  const [totalCount, setTotalCount] = useState(0);
   const [historicalLogsMap, setHistoricalLogsMap] = useState(
     () => new Map<string, RatelimitOverviewLog>(),
   );
@@ -109,6 +110,9 @@ export function useRatelimitOverviewLogsQuery({ namespaceId, limit = 50 }: UseLo
           newMap.set(log.identifier, log);
         });
       });
+      if (initialData.pages.length > 0) {
+        setTotalCount(initialData.pages[0].total);
+      }
       setHistoricalLogsMap(newMap);
     }
   }, [initialData]);
@@ -117,6 +121,7 @@ export function useRatelimitOverviewLogsQuery({ namespaceId, limit = 50 }: UseLo
     historicalLogs,
     isLoading: isLoadingInitial,
     hasMore: hasNextPage,
+    totalCount,
     loadMore: fetchNextPage,
     isLoadingMore: isFetchingNextPage,
   };

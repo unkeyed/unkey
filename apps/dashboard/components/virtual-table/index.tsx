@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
-import { LoadingIndicator } from "./components/loading-indicator";
+import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
@@ -48,6 +48,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       selectedClassName,
       selectedItem,
       isFetchingNextPage,
+      loadMoreFooterProps,
     }: VirtualTableProps<TTableData>,
     ref: Ref<unknown> | undefined,
   ) {
@@ -55,7 +56,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const parentRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const fixedHeight = useTableHeight(containerRef, config.headerHeight, config.tableBorder);
+    const fixedHeight = useTableHeight(containerRef);
     const tableData = useTableData<TTableData>(realtimeData, historicData);
 
     const virtualizer = useVirtualData({
@@ -276,7 +277,13 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
             </tbody>
           </table>
-          {isFetchingNextPage && <LoadingIndicator />}
+          <LoadMoreFooter
+            {...loadMoreFooterProps}
+            onLoadMore={onLoadMore}
+            isFetchingNextPage={isFetchingNextPage}
+            totalVisible={virtualizer.getVirtualItems().length}
+            totalCount={tableData.getTotalLength()}
+          />
         </div>
       </div>
     );
