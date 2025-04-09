@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -103,9 +102,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.IdentityId)
+		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.IdentityId)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 	})
@@ -114,8 +113,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 	t.Run("create identity with metadata", func(t *testing.T) {
 		externalTestID := uid.New("test_external_id")
 
-		var someMetaValue interface{} = "example"
-		meta := &map[string]*interface{}{"key": ptr.P(someMetaValue)}
+		meta := &map[string]interface{}{"key": "example"}
 		req := handler.Request{
 			ExternalId: externalTestID,
 			Meta:       meta,
@@ -124,16 +122,16 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.IdentityId)
+		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.IdentityId)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
-		var dbMeta *map[string]*interface{}
+		var dbMeta map[string]interface{}
 		err = json.Unmarshal(identity.Meta, &dbMeta)
 		require.NoError(t, err)
-		require.Equal(t, dbMeta, meta)
+		require.Equal(t, *meta, dbMeta)
 	})
 
 	// Test creating a identity with ratelimits
@@ -142,12 +140,12 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		identityRateLimits := []openapi.V2Ratelimit{
 			{
-				Duration: int(time.Minute.Milliseconds()),
+				Duration: time.Minute.Milliseconds(),
 				Limit:    100,
 				Name:     "test",
 			},
 			{
-				Duration: int(time.Minute.Milliseconds()),
+				Duration: time.Minute.Milliseconds(),
 				Limit:    200,
 				Name:     "test2",
 			},
@@ -161,13 +159,13 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.IdentityId)
+		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.IdentityId)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
-		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: res.Body.IdentityId, Valid: true})
+		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: res.Body.Data.IdentityId, Valid: true})
 		require.NoError(t, err)
 		require.Len(t, rateLimits, len(identityRateLimits))
 
@@ -175,8 +173,8 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 			idx := slices.IndexFunc(rateLimits, func(c db.FindRatelimitsByIdentityIDRow) bool { return c.Name == ratelimit.Name })
 
 			require.True(t, idx >= 0 && idx < len(rateLimits), "Rate limit with name %s not found in the database", ratelimit.Name)
-			require.Equal(t, int(rateLimits[idx].Duration), ratelimit.Duration)
-			require.Equal(t, int(rateLimits[idx].Limit), ratelimit.Limit)
+			require.Equal(t, rateLimits[idx].Duration, ratelimit.Duration)
+			require.Equal(t, int64(rateLimits[idx].Limit), ratelimit.Limit)
 			require.Equal(t, rateLimits[idx].Name, ratelimit.Name)
 		}
 	})

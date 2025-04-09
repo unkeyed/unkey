@@ -117,7 +117,7 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
                       console.error("Error removing member:", error);
                     }
                   }}
-                  trigger={<Button>Remove</Button>}
+                  trigger={(onClick) => <Button onClick={onClick}>Remove</Button>}
                 />
               ) : null}
             </TableCell>

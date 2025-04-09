@@ -23,15 +23,15 @@ type Caches struct {
 
 	// KeyByHash caches API key lookups by their hash.
 	// Keys are string (hash) and values are db.Key.
-	KeyByHash cache.Cache[string, db.FindKeyByHashRow]
+	KeyByHash cache.Cache[string, db.Key]
 
 	// PermissionsByKeyId caches permission strings for a given key ID.
 	// Keys are string (key ID) and values are slices of string representing permissions.
 	PermissionsByKeyId cache.Cache[string, []string]
 
-	// BucketCache caches audit log bucket IDs by workspace ID and name.
-	// Keys are string (workspace ID+ bucket name) and values are string (bucket ID).
-	BucketCache cache.Cache[string, string]
+	// WorkspaceByID caches workspace lookups by their ID.
+	// Keys are string (workspace ID) and values are db.Workspace.
+	WorkspaceByID cache.Cache[string, db.Workspace]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -98,26 +98,13 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	keyByHash, err := cache.New(cache.Config[string, db.FindKeyByHashRow]{
+	keyByHash, err := cache.New(cache.Config[string, db.Key]{
 		Fresh:   10 * time.Second,
 		Stale:   24 * time.Hour,
 		Logger:  config.Logger,
 		MaxSize: 1_000_000,
 
 		Resource: "key_by_hash",
-		Clock:    config.Clock,
-	})
-	if err != nil {
-		return Caches{}, err
-	}
-
-	bucketCache, err := cache.New(cache.Config[string, string]{
-		Fresh:   1 * time.Minute,
-		Stale:   24 * time.Hour,
-		Logger:  config.Logger,
-		MaxSize: 1_000_000,
-
-		Resource: "bucket_id_by_workspace_id_name",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -137,11 +124,24 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	workspaceByID, err := cache.New(cache.Config[string, db.Workspace]{
+		Fresh:   10 * time.Second,
+		Stale:   24 * time.Hour,
+		Logger:  config.Logger,
+		MaxSize: 1_000_000,
+
+		Resource: "workspace_by_id",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
 		RatelimitNamespaceByName: middleware.WithTracing(ratelimitNamespace),
 		RatelimitOverridesMatch:  middleware.WithTracing(ratelimitOverridesMatch),
 		KeyByHash:                middleware.WithTracing(keyByHash),
 		PermissionsByKeyId:       middleware.WithTracing(permissionsByKeyId),
-		BucketCache:              middleware.WithTracing(bucketCache),
+		WorkspaceByID:            middleware.WithTracing(workspaceByID),
 	}, nil
 }

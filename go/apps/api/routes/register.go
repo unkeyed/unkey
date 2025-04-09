@@ -48,6 +48,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Permissions:                   svc.Permissions,
 			RatelimitNamespaceByNameCache: svc.Caches.RatelimitNamespaceByName,
 			RatelimitOverrideMatchesCache: svc.Caches.RatelimitOverridesMatch,
+			TestMode:                      srv.Flags().TestMode,
 		}),
 	)
 
@@ -59,6 +60,7 @@ func Register(srv *zen.Server, svc *Services) {
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
 		}),
 	)
 
@@ -81,6 +83,7 @@ func Register(srv *zen.Server, svc *Services) {
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
 		}),
 	)
 

@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/assert"
-	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/hash"
@@ -14,7 +14,7 @@ import (
 )
 
 func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, error) {
-	ctx, span := tracing.Start(ctx, "keys.Verify")
+	ctx, span := tracing.Start(ctx, "keys.VerifyRootKey")
 	defer span.End()
 
 	err := assert.NotEmpty(rawKey)
@@ -23,21 +23,9 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	}
 	h := hash.Sha256(rawKey)
 
-	key, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.FindKeyByHashRow, error) {
+	key, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.Key, error) {
 		return db.Query.FindKeyByHash(ctx, s.db.RO(), h)
-	}, func(err error) cache.Op {
-		if err == nil {
-			// everything went well and we have a key response
-			return cache.WriteValue
-		}
-		if errors.Is(err, sql.ErrNoRows) {
-			// the response is empty, we need to store that the key does not exist
-			return cache.WriteNull
-		}
-		// this is a noop in the cache
-		return cache.Noop
-
-	})
+	}, caches.DefaultFindFirstOp)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -78,38 +66,33 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 		)
 	}
 
-	if key.WsDeletedAtM.Valid {
-		return VerifyResponse{}, fault.New(
-			"key is deleted",
-			fault.WithDesc("ws_deleted_at is non-zero", "The key has been deleted."),
-		)
-	}
-
-	if !key.WsEnabled.Valid || !key.WsEnabled.Bool {
-		return VerifyResponse{}, fault.New(
-			"key is disabled",
-			fault.WithDesc("Workspace is disabled or not found", "The key is disabled."),
-		)
-	}
-
+	authorizedWorkspaceID := key.WorkspaceID
 	if key.ForWorkspaceID.Valid {
-		if key.ForWorkspaceDeletedAtM.Valid {
-			return VerifyResponse{}, fault.New(
-				"key is deleted",
-				fault.WithDesc("for_workspace_deleted_at is non-zero", "The key has been deleted."),
-			)
-		}
+		authorizedWorkspaceID = key.ForWorkspaceID.String
+	}
 
-		if !key.ForWorkspaceEnabled.Valid || !key.ForWorkspaceEnabled.Bool {
-			return VerifyResponse{}, fault.New(
-				"key is disabled",
-				fault.WithDesc("Workspace is disabled or not found", "The key is disabled."),
-			)
-		}
+	ws, err := s.workspaceCache.SWR(ctx, authorizedWorkspaceID, func(ctx context.Context) (db.Workspace, error) {
+		return db.Query.FindWorkspaceByID(ctx, s.db.RW(), authorizedWorkspaceID)
+	}, caches.DefaultFindFirstOp)
+
+	if err != nil {
+		s.logger.Error("unable to load workspace",
+			"error", err.Error())
+		return VerifyResponse{}, fault.Wrap(
+			err,
+			fault.WithDesc("unable to load workspace", "We could not load the requested workspace."),
+		)
+	}
+
+	if !ws.Enabled {
+		return VerifyResponse{}, fault.New(
+			"workspace is disabled",
+			fault.WithDesc("workspace disabled", "The workspace is disabled."),
+		)
 	}
 
 	res := VerifyResponse{
-		AuthorizedWorkspaceID: key.WorkspaceID,
+		AuthorizedWorkspaceID: authorizedWorkspaceID,
 		KeyID:                 key.ID,
 	}
 	// Root keys store the user's workspace id in `ForWorkspaceID` and we're

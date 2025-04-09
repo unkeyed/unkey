@@ -63,7 +63,7 @@ func (s *Session) UserAgent() string {
 }
 
 func (s *Session) Location() string {
-	location := s.r.Header.Get("True-Client-IP")
+	location := s.r.Header.Get("True-Client-Ip")
 	// Fall back to RemoteAddr
 	if location == "" {
 		host, _, err := net.SplitHostPort(s.r.RemoteAddr)

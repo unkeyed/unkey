@@ -31,7 +31,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	}
 
 	req := handler.Request{ExternalId: "external_test_id"}
-	res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusForbidden, res.Status, "got: %s", res.RawBody)
 	require.NotNil(t, res.Body)
 }

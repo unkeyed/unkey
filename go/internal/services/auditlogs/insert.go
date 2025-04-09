@@ -3,12 +3,11 @@ package auditlogs
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
-	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -52,20 +51,20 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 			l.Bucket = DEFAULT_BUCKET
 		}
 
-		bucketID, err := s.findBucketID(ctx, l.WorkspaceID, l.Bucket)
-		if err != nil {
-			continue
-		}
-
 		now := time.Now().UnixMilli()
 
+		actorMeta, err := json.Marshal(l.ActorMeta)
+		if err != nil {
+			return err
+		}
 		auditLogs = append(auditLogs, db.InsertAuditLogParams{
 			ID:          auditLogID,
 			WorkspaceID: l.WorkspaceID,
-			BucketID:    bucketID,
+			BucketID:    "dummy",
+			Bucket:      DEFAULT_BUCKET,
 			Event:       string(l.Event),
 			Display:     l.Display,
-			ActorMeta:   l.ActorMeta,
+			ActorMeta:   actorMeta,
 			ActorType:   string(l.ActorType),
 			ActorID:     l.ActorID,
 			ActorName:   sql.NullString{String: l.ActorName, Valid: l.ActorName != ""},
@@ -76,15 +75,23 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 		})
 
 		for _, resource := range l.Resources {
+
+			meta, err := json.Marshal(resource.Meta)
+			if err != nil {
+				return err
+			}
+
 			auditLogTargets = append(auditLogTargets, db.InsertAuditLogTargetParams{
 				ID:          resource.ID,
 				AuditLogID:  auditLogID,
 				WorkspaceID: l.WorkspaceID,
-				BucketID:    bucketID,
+				BucketID:    "dummy",
+				Bucket:      DEFAULT_BUCKET,
+
 				Type:        string(resource.Type),
 				DisplayName: resource.DisplayName,
 				Name:        sql.NullString{String: resource.DisplayName, Valid: resource.DisplayName != ""},
-				Meta:        resource.Meta,
+				Meta:        meta,
 				CreatedAt:   now,
 			})
 		}
@@ -110,55 +117,4 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 	}
 
 	return nil
-}
-
-// This handles finding the bucket ID for a given workspace and bucket name
-// It will create a new bucket if it doesn't already exist
-func (s *service) findBucketID(ctx context.Context, workspaceID, bucket string) (string, error) {
-	cacheKey := fmt.Sprintf("%s:%s", workspaceID, bucket)
-	bucketID, err := s.bucketCache.SWR(
-		ctx,
-		cacheKey,
-		func(ctx context.Context) (string, error) {
-			return db.Query.FindAuditLogBucketIDByWorkspaceIDAndName(ctx, s.db.RO(), db.FindAuditLogBucketIDByWorkspaceIDAndNameParams{
-				WorkspaceID: workspaceID,
-				Name:        bucket,
-			})
-		},
-		func(err error) cache.Op {
-			if err == nil {
-				return cache.WriteValue
-			}
-
-			if errors.Is(err, sql.ErrNoRows) {
-				return cache.WriteNull
-			}
-
-			return cache.Noop
-		},
-	)
-
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		s.logger.Error("Failed to fetch audit log bucket", "workspaceID", workspaceID, "bucket", bucket, "error", err)
-		return "", err
-	}
-
-	if errors.Is(err, sql.ErrNoRows) {
-		bucketID = uid.New(uid.AuditLogBucketPrefix)
-		err = db.Query.InsertAuditLogBucket(ctx, s.db.RW(), db.InsertAuditLogBucketParams{
-			ID:            bucketID,
-			WorkspaceID:   workspaceID,
-			Name:          bucket,
-			CreatedAt:     time.Now().UnixMilli(),
-			RetentionDays: sql.NullInt32{Int32: 90, Valid: true},
-		})
-		if err != nil {
-			s.logger.Error("Failed to insert audit log bucket", "workspaceID", workspaceID, "bucket", bucket, "error", err)
-			return "", err
-		}
-
-		s.bucketCache.Set(ctx, cacheKey, bucketID)
-	}
-
-	return bucketID, nil
 }

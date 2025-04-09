@@ -33,7 +33,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("negative cost", func(t *testing.T) {
 		req := openapi.V2RatelimitLimitRequestBody{
-			Namespace:  "test_namespace",
+			Namespace:  uid.New("test"),
 			Identifier: "user_123",
 			Limit:      100,
 			Duration:   60000,
@@ -59,18 +59,18 @@ func TestBadRequests(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "POST request body for '/v2/ratelimit.limit' failed to validate schema", res.Body.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Status)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Greater(t, len(res.Body.Errors), 0)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.limit' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	// Uncomment and adapt these tests if needed
@@ -129,14 +129,14 @@ func TestMissingAuthorizationHeader(t *testing.T) {
 			Duration:   60000,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("malformed authorization header", func(t *testing.T) {
@@ -152,14 +152,14 @@ func TestMissingAuthorizationHeader(t *testing.T) {
 			Duration:   60000,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Type)
-		require.Equal(t, "Bad Request", res.Body.Title)
-		require.NotEmpty(t, res.Body.RequestId)
-		require.Nil(t, res.Body.Instance)
+		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("missing authorization header", func(t *testing.T) {

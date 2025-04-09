@@ -147,20 +147,26 @@ func New(svc Services) zen.Route {
 				Event:       auditlog.RatelimitDeleteOverrideEvent,
 				Display:     fmt.Sprintf("Deleted override %s.", override.ID),
 				ActorID:     auth.KeyID,
+				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorType:   auditlog.RootKeyActor,
+				ActorName:   "root key",
+				ActorMeta:   nil,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          override.ID,
+						Name:        override.Identifier,
 						DisplayName: override.Identifier,
 						Type:        auditlog.RatelimitOverrideResourceType,
+						Meta:        nil,
 					},
 					{
 						ID:          namespace.ID,
-						Name:        override.Identifier,
+						Name:        namespace.Name,
 						DisplayName: namespace.Name,
 						Type:        auditlog.RatelimitNamespaceResourceType,
+						Meta:        nil,
 					},
 				},
 			},
@@ -180,7 +186,12 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		return s.JSON(http.StatusOK, Response{})
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.RatelimitDeleteOverrideResponseData{},
+		})
 	})
 }
 

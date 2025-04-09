@@ -135,14 +135,20 @@ func New(svc Services) zen.Route {
 				Event:       auditlog.RatelimitSetOverrideEvent,
 				ActorID:     auth.KeyID,
 				ActorType:   auditlog.RootKeyActor,
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
-				Display:     fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
+				ActorName:   "root key",
+				ActorMeta:   nil,
+				Bucket:      auditlogs.DEFAULT_BUCKET,
+
+				RemoteIP:  s.Location(),
+				UserAgent: s.UserAgent(),
+				Display:   fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type: auditlog.RatelimitOverrideResourceType,
-						ID:   overrideID,
-						Name: req.Identifier,
+						Type:        auditlog.RatelimitOverrideResourceType,
+						ID:          overrideID,
+						Name:        req.Identifier,
+						DisplayName: req.Identifier,
+						Meta:        nil,
 					},
 				},
 			},
@@ -162,7 +168,14 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		return s.JSON(http.StatusOK, Response{OverrideId: overrideID})
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.RatelimitSetOverrideResponseData{
+				OverrideId: overrideID,
+			},
+		})
 	})
 }
 

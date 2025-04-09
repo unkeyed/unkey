@@ -4,54 +4,103 @@ title: Rate Limiting Architecture
 
 Rate limiting is a critical component of our infrastructure, ensuring accurate and robust rate limiting for our customers. This document provides an in-depth look at our rate limiting architecture, explaining each component and concept in detail.
 
-## Cluster Formation
+## Overview
 
-### Redis for Initial Discovery:
+The Unkey API implements a distributed rate limiting system using a sliding window algorithm with Redis-backed coordination. This architecture provides high accuracy while maintaining low latency and horizontal scalability across multiple nodes and regions.
 
-Redis serves as a temporary storage solution to facilitate the initial discovery of nodes. Each node writes its unique identifier and network address to Redis with a 60-second Time-To-Live (TTL), ensuring information is refreshed and stale data is removed. This allows for quick cluster formation without pre-configuring nodes with peer addresses.
+## Architectural Components
 
-### Memberlist for Cluster Management:
+### Sliding Window Algorithm
 
-After discovery through Redis, nodes switch to using HashiCorp’s memberlist library, which handles node joining, leaving, and failure detection via a gossip protocol. This protocol allows for decentralized communication and efficient scaling with the number of nodes.
+The rate limiting system uses a sliding window algorithm that provides more accurate rate limiting than fixed window approaches:
 
-## Load Balancing
+1. **Time Windows**: Time is divided into fixed-duration windows (e.g., 1-minute intervals)
+2. **Weighted Calculation**: For each request, the system calculates an effective count by combining:
+   - 100% of the current window's count
+   - A decreasing portion of the previous window's count based on how far we are into the current window
+3. **Smooth Transitions**: This approach prevents the "cliff effect" at window boundaries, where all counters reset at once
 
-Our architecture employs both global and regional load balancers. The global load balancer directs traffic to regional load balancers, which then distribute traffic randomly across nodes within a region. This random distribution requires coordination among nodes to ensure accurate rate limiting.
+### Redis as Centralized Counter Store
 
-## Rate Limit Coordination Strategies
+Redis serves as the authoritative source of truth for rate limit counters across all API nodes:
 
-### Full Replication:
+1. **Distributed Counters**: Redis maintains atomic counters for each rate limit window
+2. **TTL Management**: Counters automatically expire after their relevant window passes
+3. **Atomic Operations**: Redis' atomic operations ensure consistent counting across nodes
 
-Every request is replicated to all nodes, providing high accuracy but resulting in high network overhead.
+### Local In-Memory State
 
-### Limit Exceeded Notification:
+Each API node maintains local in-memory state for fast decision making:
 
-Nodes notify others only when a rate limit is exceeded, minimizing communication but reducing accuracy.
+1. **Buckets**: Track rate limit state for each unique identifier+limit+duration combination
+2. **Windows**: Time-based counters that maintain accurate request counts
+3. **Memory Management**: Background processes clean up expired windows to prevent memory leaks
 
-### Hybrid Approach:
+## Request Flow
 
-Origin Node Concept: Consistent hashing determines a specific "origin node" for each client identifier. The origin node acts as the source of truth for rate limiting data.
+### 1. Initial Rate Limit Check
 
-Nodes cache rate limit data locally and asynchronously update the origin node, reducing latency. When a node detects a limit exceedance, it broadcasts this information to all nodes to prevent further requests.
+When a rate limit request arrives:
+
+1. The node validates the request parameters (identifier, limit, duration)
+2. It retrieves or creates local buckets and windows for the current and previous time periods
+3. For new windows or after limit exceedance, it synchronizes state with Redis
+4. It calculates the effective count using the sliding window algorithm
+5. It makes a local decision (allow/deny) based on this calculation
+
+### 2. Asynchronous Synchronization
+
+After making a local decision:
+
+1. The node buffers the request for asynchronous processing
+2. Background workers send counter updates to Redis
+3. This ensures eventual consistency without adding latency to API responses
+
+### 3. Redis Synchronization
+
+The system synchronizes with Redis in these scenarios:
+
+1. When a new time window is encountered
+2. After a rate limit has been exceeded (strict mode)
+3. Periodically through background processes
 
 ## Implementation Details
 
-### Consistent Hashing:
+### Bucket and Window Management
 
-Maps each client identifier to a point on a hash ring, with nodes also assigned points. The node closest to the client identifier is the origin node, ensuring even load distribution and minimizing consultation needs.
+- **Buckets**: Maintain rate limit state for each identifier+limit+duration
+- **Windows**: Aligned to time boundaries (e.g., minute start) for consistent behavior
+- **Sequence Numbers**: Monotonically increasing numbers identify windows across nodes
 
-### Async Updates and Broadcast Mechanism:
+### Resilience Features
 
-Nodes handle requests locally and asynchronously update the origin node, reducing client latency. A broadcast is triggered when the origin node count exceeds a limit, quickly informing all nodes to maintain rate limit integrity.
+- **Circuit Breaker**: Prevents cascading failures during Redis communication issues
+- **Eventual Consistency**: System remains operational even during temporary Redis unavailability
+- **Memory Management**: Automatic cleanup of expired windows prevents memory leaks
 
-## Future Considerations
+### Performance Optimizations
 
-### Global Coordination:
+- **Local Decision Making**: Most decisions made locally avoid Redis round trips
+- **Asynchronous Updates**: Background synchronization minimizes latency
+- **Batched Operations**: Multiple counters retrieved in a single Redis operation
+- **Multiple Replay Workers**: Parallel processing of synchronization tasks
 
-We aim to extend cluster coordination beyond regional boundaries using a global gossip protocol for consistent rate limiting across regions.
+## Deployment Considerations
 
-### Service Discovery Transition:
+### Redis Configuration
 
-We plan to move from Redis to AWS Cloud Map for service discovery, providing a more integrated and scalable solution within AWS infrastructure.
+For production deployments:
 
-This architecture strikes a balance between accuracy and efficiency, offering a robust solution for managing rate limiting across a distributed system.
+1. Use Redis with appropriate persistence settings
+2. Consider Redis Cluster for high availability
+3. Position Redis instances close to API nodes to minimize latency
+
+### Scaling
+
+The system scales horizontally with minimal coordination overhead:
+
+1. Add more API nodes to handle increased request volume
+2. Scale Redis independently based on counter volume
+3. Each API node operates independently with eventual consistency
+
+This architecture strikes a balance between accuracy, performance, and operational simplicity, providing robust rate limiting across a distributed system without complex clustering mechanisms.

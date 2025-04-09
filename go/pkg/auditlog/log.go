@@ -10,7 +10,9 @@ type AuditLog struct {
 	ActorID   string
 	ActorType AuditLogActor
 	ActorName string
-	ActorMeta []byte
+
+	// json encoded metadata
+	ActorMeta map[string]any
 
 	// There can be multiple resources affected by the action
 	Resources []AuditLogResource
@@ -24,6 +26,7 @@ type AuditLogResource struct {
 	ID          string
 	DisplayName string
 	Name        string
-	Meta        []byte
-	Type        AuditLogResourceType
+	// json encoded metadata
+	Meta map[string]any
+	Type AuditLogResourceType
 }

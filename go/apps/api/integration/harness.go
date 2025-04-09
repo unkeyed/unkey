@@ -40,7 +40,7 @@ func New(t *testing.T, config Config) *Harness {
 
 	containerMgr := containers.New(t)
 
-	containerMgr.RunOtel(true)
+	//containerMgr.RunOtel(true)
 
 	hostDSN, dockerDSN := containerMgr.RunMySQL()
 	db, err := db.New(db.Config{

@@ -147,13 +147,19 @@ func New(svc Services) zen.Route {
 				Event:       auditlog.IdentityCreateEvent,
 				Display:     fmt.Sprintf("Created identity %s.", identityID),
 				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				ActorMeta:   nil,
+				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorType:   auditlog.RootKeyActor,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						ID:   identityID,
-						Type: auditlog.IdentityResourceType,
+						ID:          identityID,
+						Type:        auditlog.IdentityResourceType,
+						Meta:        nil,
+						Name:        req.ExternalId,
+						DisplayName: req.ExternalId,
 					},
 				},
 			},
@@ -167,8 +173,8 @@ func New(svc Services) zen.Route {
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					IdentityID:  sql.NullString{String: identityID, Valid: true},
 					Name:        ratelimit.Name,
-					Limit:       int32(ratelimit.Limit),
-					Duration:    int64(ratelimit.Duration),
+					Limit:       int32(ratelimit.Limit), // nolint:gosec
+					Duration:    ratelimit.Duration,
 					CreatedAt:   time.Now().UnixMilli(),
 				})
 				if err != nil {
@@ -183,18 +189,26 @@ func New(svc Services) zen.Route {
 					Event:       auditlog.RatelimitCreateEvent,
 					Display:     fmt.Sprintf("Created ratelimit %s.", ratelimitID),
 					ActorID:     auth.KeyID,
+					Bucket:      auditlogs.DEFAULT_BUCKET,
 					ActorType:   auditlog.RootKeyActor,
+					ActorName:   "root key",
+					ActorMeta:   nil,
 					RemoteIP:    s.Location(),
 					UserAgent:   s.UserAgent(),
 					Resources: []auditlog.AuditLogResource{
 						{
-							Type: auditlog.IdentityResourceType,
-							ID:   identityID,
+							Type:        auditlog.IdentityResourceType,
+							ID:          identityID,
+							Name:        req.ExternalId,
+							Meta:        nil,
+							DisplayName: req.ExternalId,
 						},
 						{
 							Type:        auditlog.RatelimitResourceType,
 							ID:          ratelimitID,
 							DisplayName: ratelimit.Name,
+							Name:        ratelimit.Name,
+							Meta:        nil,
 						},
 					},
 				})
@@ -217,6 +231,13 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		return s.JSON(http.StatusOK, Response{IdentityId: identityID})
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.IdentitiesCreateIdentityResponseData{
+				IdentityId: identityID,
+			},
+		})
 	})
 }

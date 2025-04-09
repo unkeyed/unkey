@@ -181,6 +181,9 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
       rowClassName={(log) => getRowClassName(log, selectedLog as KeysOverviewLog)}
+      loadMoreFooterProps={{
+        hide: true,
+      }}
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">

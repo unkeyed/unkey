@@ -37,11 +37,11 @@ func TestCreateIdentityDuplicate(t *testing.T) {
 		successRes := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, successRes.Status, "expected 200, received: %#v", successRes.Body)
 		require.NotNil(t, successRes.Body)
-		require.NotEmpty(t, successRes.Body.IdentityId, successRes.Body)
+		require.NotEmpty(t, successRes.Body.Data.IdentityId, successRes.Body)
 
-		errorRes := testutil.CallRoute[handler.Request, openapi.ConflictError](h, route, headers, req)
+		errorRes := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, headers, req)
 		require.Equal(t, 409, errorRes.Status, "expected 409, received: %#v", errorRes)
 		require.NotNil(t, errorRes.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/conflict", errorRes.Body.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/conflict", errorRes.Body.Error.Type)
 	})
 }

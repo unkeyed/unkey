@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -34,6 +35,7 @@ type Services struct {
 	Ratelimit                     ratelimit.Service
 	RatelimitNamespaceByNameCache cache.Cache[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]
 	RatelimitOverrideMatchesCache cache.Cache[db.FindRatelimitOverrideMatchesParams, []db.RatelimitOverride]
+	TestMode                      bool
 }
 
 // New creates a new route handler for ratelimits.limit
@@ -173,6 +175,18 @@ func New(svc Services) zen.Route {
 			Duration:   time.Duration(duration) * time.Millisecond,
 			Limit:      limit,
 			Cost:       cost,
+			Time:       time.Time{},
+		}
+		if svc.TestMode {
+			header := s.Request().Header.Get("X-Test-Time")
+			if header != "" {
+				i, parseErr := strconv.ParseInt(header, 10, 64)
+				if parseErr != nil {
+					svc.Logger.Warn("invalid test time", "header", header)
+				} else {
+					limitReq.Time = time.UnixMilli(i)
+				}
+			}
 		}
 
 		result, err := svc.Ratelimit.Ratelimit(ctx, limitReq)
@@ -194,14 +208,20 @@ func New(svc Services) zen.Route {
 			})
 		}
 		res := Response{
-			Success:    result.Success,
-			Limit:      limit,
-			Remaining:  result.Remaining,
-			Reset:      result.Reset,
-			OverrideId: nil,
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.RatelimitLimitResponseData{
+
+				Success:    result.Success,
+				Limit:      limit,
+				Remaining:  result.Remaining,
+				Reset:      result.Reset.UnixMilli(),
+				OverrideId: nil,
+			},
 		}
 		if overrideId != "" {
-			res.OverrideId = &overrideId
+			res.Data.OverrideId = &overrideId
 		}
 		// Return success response
 		return s.JSON(http.StatusOK, res)

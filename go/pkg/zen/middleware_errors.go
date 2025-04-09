@@ -35,11 +35,6 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				return nil
 			}
 
-			logger.Error("api error",
-				"error", err.Error(),
-				"publicMessage", fault.UserFacingMessage(err),
-			)
-
 			//	errorSteps := fault.Flatten(err)
 			//	if len(errorSteps) > 0 {
 
@@ -74,70 +69,104 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 
 			switch fault.GetTag(err) {
 			case fault.NOT_FOUND:
-				return s.JSON(http.StatusNotFound, openapi.NotFoundError{
-					Title:     "Not Found",
-					Type:      "https://unkey.com/docs/errors/not_found",
-					Detail:    fault.UserFacingMessage(err),
-					RequestId: s.requestID,
-					Status:    http.StatusNotFound,
-					Instance:  nil,
+				return s.JSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:    "Not Found",
+						Type:     "https://unkey.com/docs/errors/not_found",
+						Detail:   fault.UserFacingMessage(err),
+						Status:   http.StatusNotFound,
+						Instance: nil,
+					},
 				})
 
 			case fault.BAD_REQUEST:
-				return s.JSON(http.StatusBadRequest, openapi.BadRequestError{
-					Title:     "Bad Request",
-					Type:      "https://unkey.com/docs/errors/bad_request",
-					Detail:    fault.UserFacingMessage(err),
-					RequestId: s.requestID,
-					Status:    http.StatusBadRequest,
-					Instance:  nil,
-					Errors:    []openapi.ValidationError{},
+				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+
+						Title:    "Bad Request",
+						Type:     "https://unkey.com/docs/errors/bad_request",
+						Detail:   fault.UserFacingMessage(err),
+						Status:   http.StatusBadRequest,
+						Instance: nil,
+						Errors:   []openapi.ValidationError{},
+					},
 				})
 
 			case fault.UNAUTHORIZED:
-				return s.JSON(http.StatusUnauthorized, openapi.UnauthorizedError{
-					Title:     "Unauthorized",
-					Type:      "https://unkey.com/docs/errors/unauthorized",
-					Detail:    fault.UserFacingMessage(err),
-					RequestId: s.requestID,
-					Status:    http.StatusUnauthorized,
-					Instance:  nil,
+				return s.JSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+
+						Title:    "Unauthorized",
+						Type:     "https://unkey.com/docs/errors/unauthorized",
+						Detail:   fault.UserFacingMessage(err),
+						Status:   http.StatusUnauthorized,
+						Instance: nil,
+					},
 				})
 			case fault.FORBIDDEN:
-				return s.JSON(http.StatusForbidden, openapi.ForbiddenError{
-					Title:     "Forbidden",
-					Type:      "https://unkey.com/docs/errors/forbidden",
-					Detail:    fault.UserFacingMessage(err),
-					RequestId: s.requestID,
-					Status:    http.StatusForbidden,
-					Instance:  nil,
+				return s.JSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+
+						Title:    "Forbidden",
+						Type:     "https://unkey.com/docs/errors/forbidden",
+						Detail:   fault.UserFacingMessage(err),
+						Status:   http.StatusForbidden,
+						Instance: nil,
+					},
 				})
 			case fault.INSUFFICIENT_PERMISSIONS:
-				return s.JSON(http.StatusForbidden, openapi.ForbiddenError{
-					Title:     "Insufficient Permissions",
-					Type:      "https://unkey.com/docs/errors/insufficient_permissions",
-					Detail:    fault.UserFacingMessage(err),
-					RequestId: s.requestID,
-					Status:    http.StatusForbidden,
-					Instance:  nil,
+				return s.JSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+
+						Title:    "Insufficient Permissions",
+						Type:     "https://unkey.com/docs/errors/insufficient_permissions",
+						Detail:   fault.UserFacingMessage(err),
+						Status:   http.StatusForbidden,
+						Instance: nil,
+					},
 				})
 			case fault.PROTECTED_RESOURCE:
-				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedError{
-					Title:     "Resource is protected",
-					Type:      "https://unkey.com/docs/errors/deletion_prevented",
-					Detail:    fault.UserFacingMessage(err),
-					RequestId: s.requestID,
-					Status:    http.StatusPreconditionFailed,
-					Instance:  nil,
+				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+
+						Title:    "Resource is protected",
+						Type:     "https://unkey.com/docs/errors/deletion_prevented",
+						Detail:   fault.UserFacingMessage(err),
+						Status:   http.StatusPreconditionFailed,
+						Instance: nil,
+					},
 				})
 			case fault.CONFLICT:
-				return s.JSON(http.StatusConflict, openapi.ConflictError{
-					Title:     "Another resource already uses this identifier",
-					Type:      "https://unkey.com/docs/errors/conflict",
-					Detail:    fault.UserFacingMessage(err),
-					RequestId: s.requestID,
-					Status:    http.StatusConflict,
-					Instance:  nil,
+				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+
+						Title:    "Another resource already uses this identifier",
+						Type:     "https://unkey.com/docs/errors/conflict",
+						Detail:   fault.UserFacingMessage(err),
+						Status:   http.StatusConflict,
+						Instance: nil,
+					},
 				})
 
 			case fault.DATABASE_ERROR:
@@ -152,13 +181,23 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				break
 			}
 
-			return s.JSON(http.StatusInternalServerError, openapi.InternalServerError{
-				Title:     "Internal Server Error",
-				Type:      "https://unkey.com/docs/errors/internal_server_error",
-				Detail:    fault.UserFacingMessage(err),
-				RequestId: s.requestID,
-				Status:    http.StatusInternalServerError,
-				Instance:  nil,
+			logger.Error("api error",
+				"error", err.Error(),
+				"requestId", s.RequestID(),
+				"publicMessage", fault.UserFacingMessage(err),
+			)
+			return s.JSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
+				Meta: openapi.Meta{
+					RequestId: s.RequestID(),
+				},
+				Error: openapi.BaseError{
+
+					Title:    "Internal Server Error",
+					Type:     "https://unkey.com/docs/errors/internal_server_error",
+					Detail:   fault.UserFacingMessage(err),
+					Status:   http.StatusInternalServerError,
+					Instance: nil,
+				},
 			})
 		}
 	}

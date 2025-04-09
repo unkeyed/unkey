@@ -31,7 +31,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 		}
 
 		req := handler.Request{ExternalId: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
 	})
