@@ -47,7 +47,7 @@ export const queryLogs = t.procedure
     const transformedInputs = transformFilters(input);
     const { logsQuery, totalQuery } = await clickhouse.api.logs({
       ...transformedInputs,
-      cursorTime: input.cursor?.time ?? null,
+      cursorTime: input.cursor ?? null,
       workspaceId: workspace.id,
     });
 
