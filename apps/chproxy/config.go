@@ -29,7 +29,7 @@ func LoadConfig() (*Config, error) {
 		ListenerPort:      "7123",
 		LogDebug:          false,
 		ServiceName:       "chproxy",
-		ServiceVersion:    "1.3.1",
+		ServiceVersion:    "1.3.2",
 		TraceMaxBatchSize: 512,
 		TraceSampleRate:   0.25, // Sample 25%
 	}
