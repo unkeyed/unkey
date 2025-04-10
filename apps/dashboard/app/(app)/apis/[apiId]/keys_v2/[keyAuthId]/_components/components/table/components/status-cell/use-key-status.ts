@@ -18,36 +18,72 @@ type AggregatedData = {
   rate_limited: number;
 };
 
-// Helper to aggregate timeseries data
 const aggregateTimeseries = (timeseries: ProcessedTimeseriesDataPoint[]): AggregatedData => {
   return timeseries.reduce(
     (acc, point) => {
       acc.total += point.total;
       acc.error += point.error;
-      acc.rate_limited += point.rate_limited ?? 0; // Handle potential undefined
-      // Add other aggregations if necessary
+      acc.rate_limited += point.rate_limited ?? 0;
       return acc;
     },
     { total: 0, error: 0, rate_limited: 0 },
   );
 };
 
-interface UseKeyStatusResult {
+type UseKeyStatusResult = {
   primary: {
     label: string;
     color: string;
     icon: React.ReactNode;
   };
   count: number;
-  tooltips: string[];
+  statuses: StatusInfo[];
   isLoading: boolean;
   isError: boolean;
-}
+};
+
+const LOADING_PRIMARY = {
+  label: "Loading",
+  color: "bg-grayA-3",
+  icon: null,
+};
 
 export const useKeyStatus = (keyAuthId: string, keyData: KeyDetails): UseKeyStatusResult => {
   const { timeseries, isError, isLoading } = useFetchVerificationTimeseries(keyAuthId, keyData.id);
 
   const statusResult = useMemo(() => {
+    // Handle case where keyData might not be loaded yet
+    if (!keyData) {
+      return {
+        primary: LOADING_PRIMARY,
+        count: 0,
+        statuses: [],
+      };
+    }
+
+    if (isLoading && timeseries.length === 0) {
+      return {
+        primary: LOADING_PRIMARY,
+        count: 0,
+        statuses: [],
+      };
+    }
+
+    if (isError) {
+      const fallbackStatus = keyData.enabled
+        ? STATUS_DEFINITIONS.operational
+        : STATUS_DEFINITIONS.disabled;
+      return {
+        primary: {
+          label: fallbackStatus.label,
+          color: fallbackStatus.color,
+          icon: fallbackStatus.icon,
+        },
+        count: 0,
+        statuses: [fallbackStatus],
+      };
+    }
+
     if (!keyData.enabled) {
       const disabledStatus = STATUS_DEFINITIONS.disabled;
       return {
@@ -57,7 +93,7 @@ export const useKeyStatus = (keyAuthId: string, keyData: KeyDetails): UseKeyStat
           icon: disabledStatus.icon,
         },
         count: 0,
-        tooltips: [disabledStatus.tooltip],
+        statuses: [disabledStatus],
       };
     }
 
@@ -95,11 +131,13 @@ export const useKeyStatus = (keyAuthId: string, keyData: KeyDetails): UseKeyStat
     // Check Expiry
     if (keyData.expires) {
       const hoursToExpiry = (keyData.expires * 1000 - Date.now()) / (1000 * 60 * 60);
+      // Ensure current time used is consistent if needed, Date.now() is fine here
       if (hoursToExpiry > 0 && hoursToExpiry <= EXPIRY_THRESHOLD_HOURS) {
         applicableStatuses.push(STATUS_DEFINITIONS["expires-soon"]);
       }
     }
 
+    // Handle Operational state (if no issues found)
     if (applicableStatuses.length === 0) {
       const operationalStatus = STATUS_DEFINITIONS.operational;
       return {
@@ -109,27 +147,27 @@ export const useKeyStatus = (keyAuthId: string, keyData: KeyDetails): UseKeyStat
           icon: operationalStatus.icon,
         },
         count: 0,
-        tooltips: [operationalStatus.tooltip],
+        statuses: [operationalStatus], // Return array with the single operational status
       };
     }
 
-    applicableStatuses.sort((a, b) => a.priority - b.priority);
+    applicableStatuses.sort((a, b) => a.priority - b.priority); // Sort by priority
 
-    const primaryStatus = applicableStatuses[0];
+    const primaryStatus = applicableStatuses[0]; // Highest priority is the first element
     return {
       primary: {
         label: primaryStatus.label,
         color: primaryStatus.color,
         icon: primaryStatus.icon,
       },
-      count: applicableStatuses.length - 1, // Don't count the primary one
-      tooltips: applicableStatuses.map((s) => s.tooltip),
+      count: applicableStatuses.length - 1, // Count of *other* statuses besides primary
+      statuses: applicableStatuses, // Return the full sorted array of applicable statuses
     };
-  }, [keyData, timeseries]);
+  }, [keyData, timeseries, isLoading, isError]);
 
   return {
     ...statusResult,
-    isLoading,
+    isLoading: isLoading || !keyData,
     isError,
   };
 };

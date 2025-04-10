@@ -59,6 +59,7 @@ export const STATUS_DEFINITIONS: Record<StatusType, StatusInfo> = {
     tooltip: "This key has a high error rate. Please check its logs to debug potential issues.",
     priority: 3,
   },
+  //TODO: Add a way to enable this through tooltip
   disabled: {
     type: "disabled",
     label: "Disabled",
