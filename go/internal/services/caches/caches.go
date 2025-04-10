@@ -28,6 +28,10 @@ type Caches struct {
 	// PermissionsByKeyId caches permission strings for a given key ID.
 	// Keys are string (key ID) and values are slices of string representing permissions.
 	PermissionsByKeyId cache.Cache[string, []string]
+
+	// WorkspaceByID caches workspace lookups by their ID.
+	// Keys are string (workspace ID) and values are db.Workspace.
+	WorkspaceByID cache.Cache[string, db.Workspace]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -120,11 +124,24 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	workspaceByID, err := cache.New(cache.Config[string, db.Workspace]{
+		Fresh:   10 * time.Second,
+		Stale:   24 * time.Hour,
+		Logger:  config.Logger,
+		MaxSize: 1_000_000,
+
+		Resource: "workspace_by_id",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
 		RatelimitNamespaceByName: middleware.WithTracing(ratelimitNamespace),
 		RatelimitOverridesMatch:  middleware.WithTracing(ratelimitOverridesMatch),
 		KeyByHash:                middleware.WithTracing(keyByHash),
 		PermissionsByKeyId:       middleware.WithTracing(permissionsByKeyId),
+		WorkspaceByID:            middleware.WithTracing(workspaceByID),
 	}, nil
-
 }

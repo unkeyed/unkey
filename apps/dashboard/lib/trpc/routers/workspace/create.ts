@@ -31,20 +31,14 @@ export const createWorkspace = t.procedure
     const workspace: Workspace = {
       id: newId("workspace"),
       orgId: orgId,
-      // dumb hack to keep the unique property but also clearly mark it as a workos identifier
-      clerkTenantId: `workos_${orgId}`,
       name: input.name,
-      plan: "pro",
+      plan: "free",
       tier: "Free",
       stripeCustomerId: null,
       stripeSubscriptionId: null,
-      trialEnds: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14), // 2 weeks
       features: {},
       betaFeatures: {},
-      planLockedUntil: null,
-      planChanged: null,
       subscriptions: {},
-      planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
       createdAtM: Date.now(),

@@ -10,18 +10,12 @@ import (
 )
 
 const findKeyByHash = `-- name: FindKeyByHash :one
-SELECT
-    id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
-FROM ` + "`" + `keys` + "`" + `
-WHERE hash = ?
+SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM ` + "`" + `keys` + "`" + ` WHERE hash = ?
 `
 
 // FindKeyByHash
 //
-//	SELECT
-//	    id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
-//	FROM `keys`
-//	WHERE hash = ?
+//	SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` WHERE hash = ?
 func (q *Queries) FindKeyByHash(ctx context.Context, db DBTX, hash string) (Key, error) {
 	row := db.QueryRowContext(ctx, findKeyByHash, hash)
 	var i Key

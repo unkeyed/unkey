@@ -16,6 +16,7 @@ import (
 //   - BAD_REQUEST: 400 Bad Request
 //   - UNAUTHORIZED: 401 Unauthorized
 //   - FORBIDDEN: 403 Forbidden
+//   - CONFLICT: 409 Conflict
 //   - PROTECTED_RESOURCE: 412 Precondition Failed
 //   - Other errors: 500 Internal Server Error
 //
@@ -33,11 +34,6 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			if err == nil {
 				return nil
 			}
-
-			logger.Error("api error",
-				"error", err.Error(),
-				"publicMessage", fault.UserFacingMessage(err),
-			)
 
 			//	errorSteps := fault.Flatten(err)
 			//	if len(errorSteps) > 0 {
@@ -158,6 +154,20 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Instance: nil,
 					},
 				})
+			case fault.CONFLICT:
+				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+
+						Title:    "Another resource already uses this identifier",
+						Type:     "https://unkey.com/docs/errors/conflict",
+						Detail:   fault.UserFacingMessage(err),
+						Status:   http.StatusConflict,
+						Instance: nil,
+					},
+				})
 
 			case fault.DATABASE_ERROR:
 				break // fall through to default 500
@@ -171,6 +181,11 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				break
 			}
 
+			logger.Error("api error",
+				"error", err.Error(),
+				"requestId", s.RequestID(),
+				"publicMessage", fault.UserFacingMessage(err),
+			)
 			return s.JSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: s.RequestID(),

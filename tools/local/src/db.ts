@@ -57,7 +57,6 @@ export async function prepareDatabase(url?: string): Promise<{
       .values({
         id: ROW_IDS.rootWorkspace,
         orgId: "user_REPLACE_ME",
-        clerkTenantId: "tenant_REPLACE_ME",
         name: "Unkey",
         createdAtM: Date.now(),
         betaFeatures: {},

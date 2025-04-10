@@ -5,7 +5,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import type { Workspace } from "@unkey/db";
 import { SidebarLeftShow } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-
+import { HelpButton } from "./help-button";
 export const SidebarMobile = ({ workspace }: { workspace: Workspace }) => {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -20,9 +20,8 @@ export const SidebarMobile = ({ workspace }: { workspace: Workspace }) => {
       </Button>
       <WorkspaceSwitcher workspace={workspace} />
       <div className="flex gap-4 items-center">
+        <HelpButton />
         <UserButton />
-        {/* TODO: Will be used in the next iteration as an indicator for   */}
-        {/* <CircleQuestion size="xl-regular" className="text-gray-9" /> */}
       </div>
     </div>
   );
