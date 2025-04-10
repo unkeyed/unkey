@@ -275,8 +275,10 @@ export class KeyService {
      * through a role.
      */
     const permissions = new Set<string>([
-      ...dbRes.permissions.map((p) => p.permission.name),
-      ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
+      ...dbRes.permissions.filter((p) => p.permission).map((p) => p.permission.name),
+      ...dbRes.roles.flatMap((r) =>
+        r.role.permissions.filter((p) => p.permission).map((p) => p.permission.name),
+      ),
     ]);
 
     /**
