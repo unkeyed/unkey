@@ -4,7 +4,6 @@ import { z } from "zod";
 import { getAllKeys } from "./get-all-keys";
 import { keyDetailsResponseSchema } from "./schema";
 
-// Define the output schema using existing schemas
 const KeysListResponse = z.object({
   keys: z.array(keyDetailsResponseSchema),
   hasMore: z.boolean(),

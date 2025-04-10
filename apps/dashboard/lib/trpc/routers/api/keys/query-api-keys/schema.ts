@@ -47,5 +47,9 @@ export const keyDetailsResponseSchema = z.object({
   identity: identitySchema.nullable(),
   updated_at_m: z.number().nullable(),
   start: z.string(),
+  key: z.object({
+    remaining: z.number().nullable(),
+    refillAmount: z.number().nullable(),
+  }),
 });
 export type KeyDetails = z.infer<typeof keyDetailsResponseSchema>;

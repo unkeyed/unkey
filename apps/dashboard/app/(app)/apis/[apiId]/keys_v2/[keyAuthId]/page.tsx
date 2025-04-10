@@ -1,11 +1,10 @@
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { KeysClient } from "./_components/keys-client";
 import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function APIKeysPage(props: {
   params: {
@@ -13,7 +12,8 @@ export default async function APIKeysPage(props: {
     keyAuthId: string;
   };
 }) {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
+
   const keyAuth = await db.query.keyAuth.findFirst({
     where: (table, { eq, and, isNull }) =>
       and(eq(table.id, props.params.keyAuthId), isNull(table.deletedAtM)),
@@ -22,14 +22,13 @@ export default async function APIKeysPage(props: {
       api: true,
     },
   });
-
-  if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
+  if (!keyAuth || keyAuth.workspace.orgId !== orgId) {
     return notFound();
   }
 
   return (
     <div>
-      <Navigation apiId={props.params.apiId} keyA={keyAuth} />
+      <Navigation apiId={props.params.apiId} keyAuth={keyAuth} />
       <KeysClient keyspaceId={keyAuth.id} />
     </div>
   );

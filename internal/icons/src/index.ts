@@ -98,3 +98,4 @@ export * from "./icons/arrow-dotted-rotate-anticlockwise";
 export * from "./icons/sun";
 export * from "./icons/moon-stars";
 export * from "./icons/laptop-2";
+export * from "./icons/circle-caret-down";

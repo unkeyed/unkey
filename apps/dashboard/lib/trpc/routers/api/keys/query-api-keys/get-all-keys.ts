@@ -37,7 +37,7 @@ export async function getAllKeys({
 }: GetAllKeysInput): Promise<GetAllKeysResult> {
   const { keyIds, names, identities: identityFilters } = filters;
   try {
-    // Step 1: Security verification - ensure the keyspaceId belongs to the workspaceId
+    // Security verification - ensure the keyspaceId belongs to the workspaceId
     const keyAuth = await db.query.keyAuth.findFirst({
       where: (keyAuth, { and, eq }) =>
         and(eq(keyAuth.id, keyspaceId), eq(keyAuth.workspaceId, workspaceId)),
@@ -159,7 +159,7 @@ export async function getAllKeys({
       return and(...conditions);
     };
 
-    // Step 2: Get the total count of keys matching the filters (without pagination)
+    // Get the total count of keys matching the filters (without pagination)
     const countQuery = await db.query.keys.findMany({
       where: buildFilterConditions,
       columns: {
@@ -169,7 +169,7 @@ export async function getAllKeys({
 
     const totalCount = countQuery.length;
 
-    // Step 3: Get the paginated keys with filters and cursor
+    // Get the paginated keys with filters and cursor
     const keysQuery = await db.query.keys.findMany({
       where: (key, helpers) => {
         const { and, lt } = helpers;
@@ -215,6 +215,10 @@ export async function getAllKeys({
         identity: identityData,
         updated_at_m: key.updatedAtM,
         start: key.start,
+        key: {
+          remaining: key.remaining,
+          refillAmount: key.refillAmount,
+        },
       };
     });
 

@@ -14,8 +14,8 @@ export type StatusStyle = {
 
 export const STATUS_STYLES = {
   base: "text-grayA-9",
-  hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
-  selected: "text-accent-12 bg-grayA-3 hover:text-accent-12",
+  hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-2",
+  selected: "text-accent-12 bg-grayA-2 hover:text-accent-12",
   badge: {
     default: "bg-gray-3 text-grayA-11 group-hover:bg-gray-5 border-transparent",
     selected: "bg-gray-5 text-grayA-12 hover:bg-gray-5 border-grayA-3",
@@ -30,7 +30,7 @@ export const getRowClassName = (log: KeyDetails, selectedLog: KeyDetails) => {
   return cn(
     style.base,
     style.hover,
-    "group rounded-md",
+    "group rounded",
     "focus:outline-none focus:ring-1 focus:ring-opacity-40",
     style.focusRing,
     isSelected && style.selected,
