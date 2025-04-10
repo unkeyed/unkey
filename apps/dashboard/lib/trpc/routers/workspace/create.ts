@@ -64,6 +64,7 @@ export const createWorkspace = t.procedure
               {
                 type: "workspace",
                 id: workspace.id,
+                name: input.name,
               },
             ],
             context: {

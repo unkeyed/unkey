@@ -148,10 +148,12 @@ export const rbacRouter = t.router({
           resources: [
             {
               type: "permission",
+              name: permissionRelation.permission.name,
               id: permissionRelation.permissionId,
             },
             {
               type: "key",
+              name: key.name || undefined,
               id: permissionRelation.keyId,
             },
           ],
@@ -226,10 +228,12 @@ export const rbacRouter = t.router({
           resources: [
             {
               type: "permission",
+              name: permission.name,
               id: tuple.permissionId,
             },
             {
               type: "role",
+              name: role.name,
               id: tuple.roleId,
             },
           ],
@@ -357,10 +361,12 @@ export const rbacRouter = t.router({
           resources: [
             {
               type: "key",
+              name: key.name || "",
               id: tuple.keyId,
             },
             {
               type: "role",
+              name: role.name || "",
               id: tuple.roleId,
             },
           ],
@@ -444,6 +450,7 @@ export const rbacRouter = t.router({
           resources: [
             {
               type: "role",
+              name: input.name,
               id: roleId,
             },
           ],
@@ -474,7 +481,7 @@ export const rbacRouter = t.router({
               },
               description: `Connected ${roleId} and ${permissionId}`,
               resources: [
-                { type: "role", id: roleId },
+                { type: "role", id: roleId, name: input.name },
                 {
                   type: "permission",
                   id: permissionId,
@@ -535,7 +542,7 @@ export const rbacRouter = t.router({
             id: ctx.user.id,
           },
           description: `Updated ${input.id}`,
-          resources: [{ type: "role", id: input.id }],
+          resources: [{ type: "role", id: input.id, name: input.name }],
 
           context: {
             userAgent: ctx.audit.userAgent,
@@ -590,7 +597,7 @@ export const rbacRouter = t.router({
             id: ctx.user.id,
           },
           description: `Deleted ${input.roleId}`,
-          resources: [{ type: "role", id: input.roleId }],
+          resources: [{ type: "role", id: input.roleId, name: "" }],
 
           context: {
             userAgent: ctx.audit.userAgent,
@@ -641,6 +648,7 @@ export const rbacRouter = t.router({
             {
               type: "permission",
               id: permissionId,
+              name: input.name,
             },
           ],
 
@@ -708,6 +716,7 @@ export const rbacRouter = t.router({
             {
               type: "permission",
               id: input.id,
+              name: input.name,
             },
           ],
 
@@ -826,6 +835,7 @@ export async function upsertPermissions(
           {
             type: "permission",
             id: permission.id,
+            name: permission.name,
           },
         ],
         context: {

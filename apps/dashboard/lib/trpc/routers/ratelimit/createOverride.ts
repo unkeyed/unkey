@@ -85,10 +85,12 @@ export const createOverride = t.procedure
             {
               type: "ratelimitNamespace",
               id: input.namespaceId,
+              name: namespace.name,
             },
             {
               type: "ratelimitOverride",
               id: existing ? existing.id : id,
+              name: input.identifier,
             },
           ],
           context: {

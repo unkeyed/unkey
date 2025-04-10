@@ -111,6 +111,7 @@ export const createKey = t.procedure
             {
               type: "key",
               id: keyId,
+              name: input.name,
             },
           ],
           context: {

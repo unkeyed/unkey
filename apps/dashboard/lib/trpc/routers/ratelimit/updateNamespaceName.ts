@@ -67,6 +67,7 @@ export const updateNamespaceName = t.procedure
           {
             type: "ratelimitNamespace",
             id: namespace.id,
+            name: input.name,
           },
         ],
         context: {

@@ -54,6 +54,7 @@ export const updatePermission = t.procedure
             {
               type: "permission",
               id: input.id,
+              name: input.name,
             },
           ],
           context: {

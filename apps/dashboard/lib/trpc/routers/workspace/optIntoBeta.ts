@@ -40,6 +40,7 @@ export const optWorkspaceIntoBeta = t.procedure
             {
               type: "workspace",
               id: ctx.workspace.id,
+              name: ctx.workspace.name,
             },
           ],
           context: {

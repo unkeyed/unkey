@@ -65,6 +65,7 @@ export const createRole = t.procedure
             {
               type: "role",
               id: roleId,
+              name: input.name,
             },
           ],
 
@@ -94,7 +95,7 @@ export const createRole = t.procedure
               },
               description: `Connected ${roleId} and ${permissionId}`,
               resources: [
-                { type: "role", id: roleId },
+                { type: "role", id: roleId, name: input.name },
                 {
                   type: "permission",
                   id: permissionId,

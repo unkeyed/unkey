@@ -24,6 +24,7 @@ export const auditLogsDataSchema = z
         .array(
           z.object({
             type: z.string(),
+            name: z.string(),
             id: z.string(),
             meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
           }),
@@ -85,6 +86,7 @@ export type UnkeyAuditLog = {
       | "auditLogBucket";
 
     id: string;
+    name?: string;
     meta?: Record<string, string | number | boolean | null>;
   }>;
   context: {
@@ -130,7 +132,7 @@ export async function insertAuditLogs(
           displayName: "",
           type: r.type,
           id: r.id,
-          name: "",
+          name: r.name,
           meta: r.meta,
         })),
       );
