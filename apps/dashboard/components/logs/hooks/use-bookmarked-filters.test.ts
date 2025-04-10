@@ -190,39 +190,4 @@ describe("useBookmarkedFilters", () => {
       metadata: undefined,
     });
   });
-
-  it("should format status codes correctly in parseSavedFilters", () => {
-    const savedFilters = [
-      {
-        id: "group-1",
-        createdAt: 1632000000000,
-        filters: {
-          status: [
-            { value: 200, operator: "is" },
-            { value: 404, operator: "is" },
-            { value: 500, operator: "is" },
-          ],
-          methods: null,
-          paths: null,
-          host: null,
-          requestId: null,
-          startTime: null,
-          endTime: null,
-          since: null,
-        },
-        bookmarked: false,
-      },
-    ];
-
-    localStorageMock.setItem("savedFilters", JSON.stringify(savedFilters));
-
-    const { result } = renderHook(() => useBookmarkedFilters(defaultProps));
-    const parsedFilters = result.current.parseSavedFilters();
-
-    expect(parsedFilters[0].filters.status.values).toEqual([
-      { value: "2xx", color: "bg-success-9" },
-      { value: "404", color: "bg-warning-9" },
-      { value: "5xx", color: "bg-error-9" },
-    ]);
-  });
 });

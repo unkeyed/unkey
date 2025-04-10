@@ -1,12 +1,11 @@
 name: Unit Tests
 on:
   workflow_call:
-
 jobs:
   test:
     strategy:
-     fail-fast: false
-     matrix:
+      fail-fast: false
+      matrix:
         path:
           - "./internal/billing"
           - "./internal/encryption"
@@ -20,20 +19,17 @@ jobs:
           - "./packages/hono"
           - "./packages/nextjs"
           - "./packages/rbac"
-
+          - "./apps/dashboard"
     name: Test ${{matrix.path}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-
       - name: Install
         uses: ./.github/actions/install
         with:
           ts: true
-
       - name: Build
+        if: ${{ matrix.path != './apps/dashboard' }}
         run: pnpm turbo run build --filter=${{matrix.path}}
-
       - name: Test
         run: pnpm turbo run test --filter=${{matrix.path}}
