@@ -1,4 +1,3 @@
-import { formatFilterValues } from "@/app/(app)/logs/components/controls/components/logs-queries/utils";
 import type { QuerySearchParams } from "@/app/(app)/logs/filters.schema";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
