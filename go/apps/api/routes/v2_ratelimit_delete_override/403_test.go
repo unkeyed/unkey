@@ -21,7 +21,7 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	// Create a namespace in the default workspace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
-	namespaceName := "test_namespace"
+	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID, // Use the default workspace
@@ -49,13 +49,13 @@ func TestWorkspacePermissions(t *testing.T) {
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
 	})
 
 	h.Register(route)
 
 	// Create a key for a different workspace
-	differentWorkspaceID := "ws_different"
-	differentWorkspaceKey := h.CreateRootKey(differentWorkspaceID)
+	differentWorkspaceKey := h.CreateRootKey(h.Resources().DifferentWorkspace.ID)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

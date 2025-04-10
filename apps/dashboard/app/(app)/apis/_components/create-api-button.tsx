@@ -36,6 +36,7 @@ export const CreateApiButton = ({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const router = useRouter();
+  const { api } = trpc.useUtils();
 
   const {
     register,
@@ -50,6 +51,7 @@ export const CreateApiButton = ({
     async onSuccess(res) {
       toast.success("Your API has been created");
       await revalidate("/apis");
+      api.overview.query.invalidate();
       router.push(`/apis/${res.id}`);
       setIsOpen(false);
     },

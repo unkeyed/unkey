@@ -20,7 +20,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 
 	// Create a namespace
 	namespaceID := uid.New("test_ns")
-	namespaceName := "test_namespace"
+	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -34,11 +34,12 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
 	})
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.set_override")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.set_override", namespaceID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -55,7 +56,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
+		require.Equal(t, 200, res.Status, "expected 200, received: %+v", res.Body)
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.OverrideId, "Override ID should not be empty")
 

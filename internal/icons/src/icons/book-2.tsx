@@ -11,8 +11,8 @@
  */
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
-export const Book2: React.FC<IconProps> = ({ size, filled, ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
+export const Book2: React.FC<IconProps> = ({ size = "xl-thin", filled, ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
   return (
     <svg
       {...props}

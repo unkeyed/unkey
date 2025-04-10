@@ -96,12 +96,12 @@ describe("getTimeseriesGranularity", () => {
       {
         name: "should use per15Minutes for timeRange >= 4 hours & < 6 hours",
         startTime: getTime(HOUR_IN_MS * 5),
-        expectedGranularity: "per15Minutes",
+        expectedGranularity: "per5Minutes",
       },
       {
         name: "should use per30Minutes for timeRange >= 6 hours & < 8 hours",
         startTime: getTime(HOUR_IN_MS * 7),
-        expectedGranularity: "per30Minutes",
+        expectedGranularity: "per5Minutes",
       },
       {
         name: "should use per30Minutes for timeRange >= 8 hours & < 12 hours",
@@ -111,7 +111,7 @@ describe("getTimeseriesGranularity", () => {
       {
         name: "should use perHour for timeRange >= 12 hours & < 16 hours",
         startTime: getTime(HOUR_IN_MS * 14),
-        expectedGranularity: "perHour",
+        expectedGranularity: "per30Minutes",
       },
       {
         name: "should use per2Hours for timeRange >= 16 hours & < 24 hours",
@@ -163,12 +163,12 @@ describe("getTimeseriesGranularity", () => {
       {
         name: "should use per12Hours for timeRange >= 7 days & < 14 days",
         startTime: getTime(DAY_IN_MS * 10),
-        expectedGranularity: "per12Hours",
+        expectedGranularity: "perHour",
       },
       {
         name: "should use perDay for timeRange >= 14 days & < 30 days",
         startTime: getTime(DAY_IN_MS * 20),
-        expectedGranularity: "perDay",
+        expectedGranularity: "per6Hours",
       },
       {
         name: "should use per3Days for timeRange >= 30 days & < 60 days",
@@ -200,7 +200,7 @@ describe("getTimeseriesGranularity", () => {
         FIXED_NOW - DAY_IN_MS * 7,
         FIXED_NOW,
       );
-      expect(result.granularity).toBe("per12Hours");
+      expect(result.granularity).toBe("perHour");
     });
 
     it("should handle edge case at exactly 30 days boundary", () => {

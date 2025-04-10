@@ -1,13 +1,11 @@
 package ratelimit
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
 
-	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 // bucket maintains rate limit state for a specific identifier+limit+duration combination.
@@ -23,7 +21,7 @@ import (
 //	b := &bucket{
 //	    limit:    100,
 //	    duration: time.Minute,
-//	    windows:  make(map[int64]*ratelimitv1.Window),
+//	    windows:  make(map[int64]window),
 //	}
 //
 //	b.mu.Lock()
@@ -43,7 +41,7 @@ type bucket struct {
 	// Protected by mu
 	// Key: sequence number (calculated from time)
 	// Value: window containing request counts
-	windows map[int64]*ratelimitv1.Window
+	windows map[int64]*window
 
 	// strictUntil is when this bucket must sync with origin
 	// Used after rate limit exceeded to ensure consistency
@@ -96,21 +94,19 @@ func (b bucketKey) toString() string {
 //   - bool: true if the bucket already existed, false if it was created
 func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 
-	s.bucketsMu.RLock()
+	s.bucketsMu.Lock()
+	defer s.bucketsMu.Unlock()
 	b, exists := s.buckets[key.toString()]
-	s.bucketsMu.RUnlock()
 	if !exists {
-		metrics.Ratelimit.CreatedWindows.Add(context.Background(), 1)
+		metrics.RatelimitBucketsCreated.Inc()
 		b = &bucket{
 			mu:          sync.RWMutex{},
 			limit:       key.limit,
 			duration:    key.duration,
-			windows:     make(map[int64]*ratelimitv1.Window),
+			windows:     make(map[int64]*window),
 			strictUntil: time.Time{},
 		}
-		s.bucketsMu.Lock()
 		s.buckets[key.toString()] = b
-		s.bucketsMu.Unlock()
 	}
 	return b, exists
 }
@@ -124,14 +120,12 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 //   - now: Current time to determine the window
 //
 // Returns:
-//   - *ratelimitv1.Window: The current window
+//   - window: The current window
 //   - bool: True if window existed, false if created
 //
 // Thread Safety:
 //   - Caller MUST hold bucket.mu lock
-//
-// Performance: O(1) time and space complexity
-func (b *bucket) getCurrentWindow(now time.Time) (*ratelimitv1.Window, bool) {
+func (b *bucket) getCurrentWindow(now time.Time) (*window, bool) {
 
 	sequence := calculateSequence(now, b.duration)
 
@@ -150,14 +144,14 @@ func (b *bucket) getCurrentWindow(now time.Time) (*ratelimitv1.Window, bool) {
 //   - now: Current time to determine the previous window
 //
 // Returns:
-//   - *ratelimitv1.Window: The previous window
+//   - window: The previous window
 //   - bool: True if window existed, false if created
 //
 // Thread Safety:
 //   - Caller MUST hold bucket.mu lock
 //
 // Performance: O(1) time and space complexity
-func (b *bucket) getPreviousWindow(now time.Time) (*ratelimitv1.Window, bool) {
+func (b *bucket) getPreviousWindow(now time.Time) (*window, bool) {
 
 	sequence := calculateSequence(now, b.duration) - 1
 
