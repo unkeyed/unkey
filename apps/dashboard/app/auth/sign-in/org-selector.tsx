@@ -1,19 +1,7 @@
 "use client";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DialogContainer } from "@/components/dialog-container";
+
 import type { Organization } from "@/lib/auth/types";
 import { Button } from "@unkey/ui";
 import type React from "react";
@@ -26,8 +14,8 @@ interface OrgSelectorProps {
 }
 
 export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, onError }) => {
-  const [selected, setSelected] = useState<string>();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState<null | string>(null);
   const [clientReady, setClientReady] = useState(false);
 
   // Set client ready after hydration
@@ -37,12 +25,14 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, onError
     setIsOpen(true);
   }, []);
 
-  const handleContinue = async () => {
-    if (!selected) {
+  const submit = async (orgId: string) => {
+    if (isLoading) {
       return;
     }
+
     try {
-      const result = await completeOrgSelection(selected);
+      setIsLoading(orgId);
+      const result = await completeOrgSelection(orgId);
 
       if (!result.success) {
         onError(result.message);
@@ -57,40 +47,41 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, onError
 
       onError(errorMessage);
     } finally {
+      setIsLoading(null);
       setIsOpen(false);
     }
   };
 
   return (
-    <Dialog
-      open={clientReady && isOpen}
+    <DialogContainer
+      className="dark bg-black"
+      isOpen={clientReady && isOpen}
       onOpenChange={(open) => {
         setIsOpen(open);
       }}
+      title="Select a workspace"
+      footer={
+        <div className="flex items-center justify-center text-sm w-full">
+          Select a workspace to sign in.
+        </div>
+      }
     >
-      <DialogContent className="dark border-border w-11/12 bg-black">
-        <DialogHeader className="dark">
-          <DialogTitle className="text-white">Workspace Selection</DialogTitle>
-          <DialogDescription className="dark">
-            Select a workspace to continue authentication:
-          </DialogDescription>
-        </DialogHeader>
-        <Select onValueChange={(orgId) => setSelected(orgId)} value={selected}>
-          <SelectTrigger className="dark">
-            <SelectValue placeholder="Select a Workspace" />
-          </SelectTrigger>
-          <SelectContent className="dark">
-            {organizations.map((org) => (
-              <SelectItem key={org.id} value={org.id}>
-                {org.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button className="dark" variant="primary" onClick={handleContinue} disabled={!selected}>
-          Continue with Sign-In
-        </Button>
-      </DialogContent>
-    </Dialog>
+      <ul className="flex flex-col gap-4 w-full overflow-y-auto max-h-96">
+        {organizations
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((org) => (
+            <Button
+              className="dark"
+              variant="default"
+              size="2xlg"
+              loading={isLoading === org.id}
+              key={org.id}
+              onClick={() => submit(org.id)}
+            >
+              {org.name}
+            </Button>
+          ))}
+      </ul>
+    </DialogContainer>
   );
 };
