@@ -92,7 +92,7 @@ export async function insertVerificationEvents(
 
     process.stdout.write("\n");
 
-    console.log(
+    console.info(
       `\n✅ Successfully inserted ${count.toLocaleString()} verification events with ${
         generateMatchingApiRequests ? "matching API requests" : "no matching API requests"
       }.`,
@@ -175,7 +175,7 @@ export async function insertRatelimitEvents(
     const totalTimeElapsed = Date.now() - progress.startTime;
     const avgRecordsPerSecond = count / (totalTimeElapsed / 1000);
 
-    console.log(
+    console.info(
       `✅ Successfully inserted ${count.toLocaleString()} ratelimit events with ${
         generateMatchingApiRequests ? "matching API requests" : "no matching API requests"
       } (avg: ${Math.round(avgRecordsPerSecond).toLocaleString()} records/sec)`,
