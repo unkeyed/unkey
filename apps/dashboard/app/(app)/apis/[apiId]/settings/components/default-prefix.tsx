@@ -1,13 +1,6 @@
 "use client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { SettingCard } from "@/components/settings-card";
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -69,54 +62,63 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Default Prefix</CardTitle>
-            <CardDescription>
-              Set default prefix for the keys under this API. Don't add a trailing underscore, we'll
-              do that automatically
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col space-y-2">
-              <input type="hidden" name="keyAuthId" value={keyAuth.id} />
-              <label htmlFor="defaultPrefix" className="hidden sr-only">
-                Default Prefix
-              </label>
-              <FormField
-                control={form.control}
-                name="defaultPrefix"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        id="defaultPrefix"
-                        className="max-w-sm"
-                        {...field}
-                        onBlur={(e) => {
-                          if (e.target.value === "") {
-                            return;
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <SettingCard
+          className="py-5"
+          title={
+            <div className=" flex items-center justify-start gap-2.5">
+              <span className="text-sm font-medium text-accent-12">Default Prefix</span>
             </div>
-          </CardContent>
-          <CardFooter className="justify-end">
+          }
+          description={
+            <div className="font-normal text-[13px] max-w-[380px]">
+              Sets the default prefix for keys under this API. A trailing underscore is added
+              automatically.
+            </div>
+          }
+          border="bottom"
+        >
+          <div className="flex flex-row items-end justify-end w-full gap-2 pl-0 ml-0">
+            <input type="hidden" name="keyAuthId" value={keyAuth.id} />
+            <label htmlFor="defaultPrefix" className="hidden sr-only">
+              Default Prefix
+            </label>
+            <FormField
+              control={form.control}
+              name="defaultPrefix"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      id="defaultPrefix"
+                      className="min-w-[257px] h-9"
+                      {...field}
+                      autoComplete="off"
+                      onBlur={(e) => {
+                        if (e.target.value === "") {
+                          return;
+                        }
+                      }}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
             <Button
-              variant="primary"
-              disabled={!form.formState.isValid || form.formState.isSubmitting}
+              className="rounded-lg px-2.5 items-end"
+              size="lg"
+              disabled={
+                !form.formState.isValid ||
+                form.formState.isSubmitting ||
+                keyAuth.defaultPrefix === form.getValues("defaultPrefix")
+              }
               type="submit"
               loading={form.formState.isSubmitting}
             >
               Save
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </SettingCard>
       </form>
     </Form>
   );
