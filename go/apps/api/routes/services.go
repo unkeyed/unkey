@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
@@ -24,5 +25,6 @@ type Services struct {
 	Permissions permissions.PermissionService
 	Validator   *validation.Validator
 	Ratelimit   ratelimit.Service
+	Auditlogs   auditlogs.AuditLogService
 	Caches      caches.Caches
 }

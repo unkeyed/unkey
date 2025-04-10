@@ -1,5 +1,6 @@
 "use client";
 
+import { revalidate } from "@/app/actions";
 import { DialogContainer } from "@/components/dialog-container";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { toast } from "@/components/ui/toaster";
@@ -32,6 +33,8 @@ export const CreateNamespaceButton = ({
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  const { ratelimit } = trpc.useUtils();
+
   const {
     register,
     handleSubmit,
@@ -44,9 +47,11 @@ export const CreateNamespaceButton = ({
   const router = useRouter();
 
   const create = trpc.ratelimit.namespace.create.useMutation({
-    onSuccess(res) {
+    async onSuccess(res) {
       toast.success("Your Namespace has been created");
       router.refresh();
+      await revalidate("/ratelimits");
+      ratelimit.namespace.query.invalidate();
       router.push(`/ratelimits/${res.id}`);
       setIsOpen(false);
     },

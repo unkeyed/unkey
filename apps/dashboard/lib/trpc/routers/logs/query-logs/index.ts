@@ -10,6 +10,7 @@ import { transformFilters } from "./utils";
 const LogsResponse = z.object({
   logs: z.array(log),
   hasMore: z.boolean(),
+  total: z.number(),
   nextCursor: z
     .object({
       time: z.number().int(),
@@ -49,26 +50,29 @@ export const queryLogs = t.procedure
     }
 
     const transformedInputs = transformFilters(input);
-    const result = await clickhouse.api.logs({
+    const { logsQuery, totalQuery } = await clickhouse.api.logs({
       ...transformedInputs,
       cursorRequestId: input.cursor?.requestId ?? null,
       cursorTime: input.cursor?.time ?? null,
       workspaceId: workspace.id,
     });
 
-    if (result.err) {
+    const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);
+
+    if (countResult.err || logsResult.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
       });
     }
 
-    const logs = result.val;
+    const logs = logsResult.val;
 
     // Prepare the response with pagination info
     const response: LogsResponse = {
       logs,
       hasMore: logs.length === input.limit,
+      total: countResult.val[0].total_count,
       nextCursor:
         logs.length > 0
           ? {

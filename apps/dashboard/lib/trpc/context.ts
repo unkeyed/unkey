@@ -1,7 +1,7 @@
 import type { inferAsyncReturnType } from "@trpc/server";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 
-import { getAuth } from "@/lib/auth/get-auth";
+import { getAuth } from "../auth/get-auth";
 import { db } from "../db";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {

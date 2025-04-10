@@ -76,7 +76,7 @@ func setupTelemetry(ctx context.Context, config *Config) (*TelemetryConfig, func
 		sdkmetric.WithReader(
 			sdkmetric.NewPeriodicReader(
 				metricExporter,
-				sdkmetric.WithInterval(10*time.Second),
+				sdkmetric.WithInterval(60*time.Second),
 			),
 		),
 	)

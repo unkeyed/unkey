@@ -15,6 +15,7 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { queryUsage } from "./billing/query-usage";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -46,6 +47,7 @@ import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
 import { searchNamespace } from "./ratelimit/namespace-search";
+import { queryRatelimitNamespaces } from "./ratelimit/query-keys";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
@@ -157,6 +159,7 @@ export const router = t.router({
       }),
     }),
     namespace: t.router({
+      query: queryRatelimitNamespaces,
       search: searchNamespace,
       create: createNamespace,
       update: t.router({
@@ -174,6 +177,9 @@ export const router = t.router({
     queryLogs,
     queryTimeseries,
     llmSearch,
+  }),
+  billing: t.router({
+    queryUsage,
   }),
   audit: t.router({
     logs: fetchAuditLog,
