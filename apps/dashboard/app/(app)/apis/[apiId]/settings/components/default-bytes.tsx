@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { NumberInput } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -69,14 +68,12 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
           className="mt-5 pt-[19px] pb-[20px]"
           title={
             <div className="flex items-center justify-start gap-2.5">
-              <NumberInput size="xl-medium" className="h-full text-brand-10" />
               <span className="text-sm font-medium text-accent-12">Default Bytes</span>
             </div>
           }
           description={
-            <div>
-              Sets the default byte size for keys under this API. <br />
-              Must be between 8 and 255.
+            <div className="font-normal text-[13px] max-w-[380px]">
+              Sets the default byte size for keys under this API. Must be between 8 and 255.
             </div>
           }
           border="top"

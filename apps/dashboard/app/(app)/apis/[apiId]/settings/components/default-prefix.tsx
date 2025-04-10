@@ -1,11 +1,10 @@
 "use client";
 import { SettingCard } from "@/components/settings-card";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InputPasswordSettings } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -67,19 +66,18 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
           className="py-5"
           title={
             <div className=" flex items-center justify-start gap-2.5">
-              <InputPasswordSettings size="xl-medium" className="h-full text-brand-10" />
               <span className="text-sm font-medium text-accent-12">Default Prefix</span>
             </div>
           }
           description={
-            <div>
-              Sets the default prefix for keys under this API. A trailing <br /> underscore is added
+            <div className="font-normal text-[13px] max-w-[380px]">
+              Sets the default prefix for keys under this API. A trailing underscore is added
               automatically.
             </div>
           }
           border="bottom"
         >
-          <div className="items-center justify-center w-full gap-2 lex">
+          <div className="flex flex-row items-end justify-end w-full gap-2 pl-0 ml-0">
             <input type="hidden" name="keyAuthId" value={keyAuth.id} />
             <label htmlFor="defaultPrefix" className="hidden sr-only">
               Default Prefix
@@ -92,8 +90,9 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
                   <FormControl>
                     <Input
                       id="defaultPrefix"
-                      className="h-9 w-[257px]"
+                      className="min-w-[257px] h-9"
                       {...field}
+                      autoComplete="off"
                       onBlur={(e) => {
                         if (e.target.value === "") {
                           return;
@@ -101,24 +100,24 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
                       }}
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
+
+            <Button
+              className="rounded-lg px-2.5 items-end"
+              size="lg"
+              disabled={
+                !form.formState.isValid ||
+                form.formState.isSubmitting ||
+                keyAuth.defaultPrefix === form.getValues("defaultPrefix")
+              }
+              type="submit"
+              loading={form.formState.isSubmitting}
+            >
+              Save
+            </Button>
           </div>
-          <Button
-            className="rounded-lg px-2.5"
-            size="lg"
-            disabled={
-              !form.formState.isValid ||
-              form.formState.isSubmitting ||
-              keyAuth.defaultPrefix === form.getValues("defaultPrefix")
-            }
-            type="submit"
-            loading={form.formState.isSubmitting}
-          >
-            Save
-          </Button>
         </SettingCard>
       </form>
     </Form>

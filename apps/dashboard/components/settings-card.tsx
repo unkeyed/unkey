@@ -33,17 +33,17 @@ export function SettingCard({
   return (
     <div
       className={cn(
-        "px-6 py-3 w-full flex gap-6 justify-between items-center",
+        "px-6 py-3 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row",
         borderRadiusClass,
         borderClass,
         className,
       )}
     >
-      <div className="flex flex-col gap-1 text-sm">
-        <div className="text-accent-12 font-medium">{title}</div>
-        <div className="text-accent-11">{description}</div>
+      <div className="flex flex-col gap-1 text-sm ">
+        <div className="flex flex-row font-medium text-accent-12">{title}</div>
+        <div className="flex flex-row text-accent-11">{description}</div>
       </div>
-      <div className={cn("flex items-center", contentWidth)}>{children}</div>
+      <div className={cn("flex items-center w-full", contentWidth)}>{children}</div>
     </div>
   );
 }

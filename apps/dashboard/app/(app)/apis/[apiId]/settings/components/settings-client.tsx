@@ -18,7 +18,7 @@ export const SettingsClient = ({ api, workspace, keyAuth }: Props) => {
   return (
     <>
       <div className="flex items-center justify-center w-full py-3 ">
-        <div className="w-[760px] flex-col justify-center items-center">
+        <div className="lg:w-[760px] flex-col justify-center items-center">
           <div className="w-full text-accent-12 font-semibold text-lg pt-[22px] pb-[20px] text-left border-b border-gray-4 px-2">
             API Settings
           </div>
@@ -26,6 +26,7 @@ export const SettingsClient = ({ api, workspace, keyAuth }: Props) => {
           <Separator className="bg-gray-4" orientation="horizontal" />
           <CopyApiId apiId={api.id} />
           <DefaultBytes keyAuth={keyAuth} />
+          <Separator className="bg-gray-4" orientation="horizontal" />
           <DefaultPrefix keyAuth={keyAuth} />
           <UpdateIpWhitelist api={api} workspace={workspace} />
           <DeleteProtection api={api} />

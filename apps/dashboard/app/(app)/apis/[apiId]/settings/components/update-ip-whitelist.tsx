@@ -1,13 +1,12 @@
 "use client";
 import { SettingCard } from "@/components/settings-card";
 import { FormField } from "@/components/ui/form";
-import { AnimatedShinyText } from "@/components/ui/shiny-text";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
-import { AdjustContrast3, ArrowUpRight, Lock, Shield } from "@unkey/icons";
+import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -68,19 +67,18 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <SettingCard
-        className="mt-[20px] py-[19px]"
+        className="mt-[20px] py-[19px] w-full"
         title={
           <div className=" flex items-center justify-start gap-2.5">
-            <AdjustContrast3 size="xl-medium" className="h-full text-brand-10" />
             <span className="text-sm font-medium text-accent-12">IP Whitelist</span>
             <Badge />
           </div>
         }
         description={
-          <div className="font-normal text-[13px]">
+          <div className="font-normal text-[13px] max-w-[380px]">
             Want to protect your API keys from unauthorized access? <br />
             Upgrade to our <span className="font-bold">Enterprise plan</span> to enable IP
-            whitelisting <br /> and restrict access to trusted sources.
+            whitelisting and restrict access to trusted sources.
           </div>
         }
         border="both"
@@ -120,19 +118,11 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             </Button>
           </div>
         ) : (
-          <div className="flex items-center justify-end w-full gap-4">
-            <a
-              href="https://cal.com/james-r-perkins/sales"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center px-1 border rounded-lg border-grayA-4 h-9"
-            >
-              <AnimatedShinyText
-                shimmerWidth={50}
-                className="py-1 px-[9px] rounded-lg text-[13px] leading-6 font-medium"
-              >
-                Upgrade to Enterprise...
-              </AnimatedShinyText>
+          <div className="flex w-full gap-4 lg:justify-end lg:items-center ">
+            <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
+              <div className="flex items-center justify-end gap-1 font-medium text-info-11 bg-info-4 leading-4 text-[13px] px-3 h-9 rounded-lg border border-info-5">
+                Upgrade to Enterprise
+              </div>
             </a>
             <a
               href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"

@@ -1,6 +1,6 @@
 import { SettingCard } from "@/components/settings-card";
 import { toast } from "@/components/ui/toaster";
-import { Clone, TextInput } from "@unkey/icons";
+import { Clone } from "@unkey/icons";
 import { Input } from "@unkey/ui";
 
 export const CopyApiId = ({ apiId }: { apiId: string }) => {
@@ -9,17 +9,19 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
       className="pt-8 pb-8 mx-0"
       title={
         <div className="flex items-center justify-start gap-2.5">
-          <TextInput size="xl-medium" className="h-full text-brand-10" />
           <span className="text-sm font-medium text-accent-12">API ID</span>
         </div>
       }
-      description="An identifier for the API, used in some API calls."
+      description={
+        <div className="font-normal text-[13px] max-w-[380px]">
+          An identifier for the API, used in some API calls.
+        </div>
+      }
       border="bottom"
     >
       <Input
-        className="w-[320px]"
+        className="w-[320px] focus:ring-0 focus:ring-offset-0"
         readOnly
-        disabled
         defaultValue={apiId}
         placeholder="API ID"
         rightIcon={
@@ -32,7 +34,7 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
               });
             }}
           >
-            <Clone size="md-regular" className="text-accent-8" />
+            <Clone size="md-regular" className="text-gray-12" />
           </button>
         }
       />

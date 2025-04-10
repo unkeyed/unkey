@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ShieldAlert, TriangleWarning2 } from "@unkey/icons";
+import { TriangleWarning2, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -81,7 +81,6 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       className="py-5 mt-5"
       title={
         <div className=" flex items-center justify-start gap-2.5">
-          <ShieldAlert size="xl-medium" className="h-full text-warning-9" />
           <span className="text-sm font-medium text-accent-12">Delete Protection</span>{" "}
           <StatusBadge
             variant={api.deleteProtection ? "enabled" : "disabled"}
@@ -91,16 +90,23 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
         </div>
       }
       description={
-        <div className="font-normal text-[13px]">
-          Disabling this allows the API, along with all keys and data, <br />
-          to be deleted by any team member.
-        </div>
+        api.deleteProtection ? (
+          <div className="font-normal text-[13px] max-w-[380px]">
+            Disabling this allows the API, along with all keys and data, to be deleted by any team
+            member.
+          </div>
+        ) : (
+          <div className="font-normal text-[13px] max-w-[380px]">
+            Enabling this prevents the API, along with all keys and data, to be deleted by any
+            non-admin team member.
+          </div>
+        )
       }
       border="top"
     >
       <AlertDialog open={open} onOpenChange={(o) => setOpen(o)}>
         <AlertDialogTrigger asChild>
-          <div className="flex items-center justify-end w-full gap-2">
+          <div className="flex w-full gap-2 lg:items-center lg:justify-end">
             {api.deleteProtection ? (
               <Button
                 type="button"
@@ -108,7 +114,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 size="lg"
                 className="rounded-lg text-warning-11 text-[13px] px-4"
               >
-                Disable Delete Protection...
+                Disable Delete Protection
               </Button>
             ) : (
               <Button
@@ -117,34 +123,36 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 size="lg"
                 className="rounded-lg text-success-11 text-[13px]"
               >
-                Enable Delete Protection...
+                Enable Delete Protection
               </Button>
             )}
           </div>
         </AlertDialogTrigger>
-        <AlertDialogContent className="w-[480px] rounded-2xl border border-grayA-4 bg-gray-1 shadow-lg m-0 p-0 overflow-hidden">
+        <AlertDialogContent className="w-[480px] border border-grayA-4 bg-[#FAFAFC] shadow-lg m-0 p-0 sm:rounded-2xl">
           <Form {...form}>
             <form className="flex flex-col" onSubmit={form.handleSubmit(onSubmit)}>
-              <div className="flex flex-row items-center justify-between w-full h-16 px-6 py-4">
+              <div className="flex flex-row items-center justify-between w-full h-16 px-6 py-4 bg-base-12 rounded-t-[16px] border-b border-grayA-4">
                 <div className="flex font-medium leading-8 text-md whitespace-nowrap">
                   {api.deleteProtection ? "Disable" : "Enable"} API Delete Protection
                 </div>
-                <div className="flex justify-end w-full">
-                  <AlertDialogCancel className="text-gray-11">X</AlertDialogCancel>
+                <div className="flex items-center justify-end w-full ">
+                  <AlertDialogCancel className="text-gray-11 mb-[2px] ml-[5px]">
+                    <XMark size="xl-medium" className="w-full h-full text-gray-9 mr-[-3px]" />
+                  </AlertDialogCancel>
                 </div>
               </div>
-              <div className="flex gap-2 bg-grayA-2 py-4 px-6 h-[192px]">
+              <div className="flex bg-grayA-2 py-4 px-6 h-[192px]">
                 <FormField
                   control={form.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="text-sm font-normal leading-6 text-gray-11">
-                        Important: Enabling this prevents the API, along with all keys and data, to
-                        be deleted by any non-admin team member. This setting can be disabled at any
-                        time.
+                      <div className="text-[13px] font-normal leading-6 text-gray-11 pr-2 tracking-wide">
+                        <span className="font-medium text-pretty">Important:</span> Enabling this
+                        prevents the API from being deleted by any non-admin team member. This
+                        setting can be disabled at any time.
                       </div>
-                      <div className="pt-4 text-sm font-normal leading-6 text-gray-11">
+                      <div className="pt-2 text-sm font-normal leading-6 text-gray-11">
                         Type <span className="font-medium text-gray-12">{api.name}</span> name to
                         confirm
                       </div>
@@ -158,7 +166,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 />
               </div>
 
-              <div className="flex flex-col gap-2 px-5 py-4 h-[112px] border-t border-grayA-4 overflow-hidden items-center justify-center">
+              <div className="flex flex-col rounded-b-[16px] gap-2 px-5 py-4 h-[112px] border-t bg-[#FAFAFC] border-grayA-4 overflow-hidden items-center justify-center">
                 <Button
                   type="submit"
                   disabled={!isValid || updateDeleteProtection.isLoading}

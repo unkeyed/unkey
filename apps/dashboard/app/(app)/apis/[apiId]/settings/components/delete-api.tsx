@@ -23,11 +23,11 @@ import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Lock, Trash } from "@unkey/icons";
+import { Lock, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { revalidate } from "../actions";
@@ -45,12 +45,6 @@ type Props = {
 
 export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (!open) {
-      form.reset();
-    }
-  }, [open]);
 
   const intent =
     keys > 0 ? `delete this api and ${keys} key${keys > 1 ? "s" : ""}` : "delete this api";
@@ -98,7 +92,6 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
       className="py-5"
       title={
         <div className=" flex items-center justify-start gap-2.5">
-          <Trash size="xl-medium" className="h-full text-error-9" />
           <span className="text-sm font-medium text-accent-12">Delete API</span>
           {api.deleteProtection && (
             <StatusBadge variant={"locked"} text={"Locked"} icon={<Lock size="sm-thin" />} />
@@ -106,16 +99,16 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
         </div>
       }
       description={
-        <div className="font-normal text-[13px]">
-          Disabling this allows the API, along with all keys and data, <br />
-          to be deleted by any team member.
+        <div className="font-normal text-[13px] max-w-[380px]">
+          Disabling this allows the API, along with all keys and data, to be deleted by any team
+          member.
         </div>
       }
       border="bottom"
     >
       <AlertDialog open={open} onOpenChange={handleDialogOpenChange}>
         <AlertDialogTrigger asChild>
-          <div className="flex items-center justify-end w-full gap-2">
+          <div className="flex w-full gap-2 lg:items-center lg:justify-end">
             <Button
               size="lg"
               disabled={!!api.deleteProtection}
@@ -123,11 +116,11 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
               variant="outline"
               onClick={() => setOpen(!open)}
             >
-              Delete API...
+              Delete API
             </Button>
           </div>
         </AlertDialogTrigger>
-        <AlertDialogContent className="w-[480px] rounded-2xl border border-grayA-4 bg-gray-1 shadow-lg m-0 p-0 overflow-hidden">
+        <AlertDialogContent className="w-[480px] border border-grayA-4 bg-[#FAFAFC] shadow-lg m-0 p-0 sm:rounded-2xl">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <AlertDialogTitle>
@@ -136,7 +129,9 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
                     Delete API
                   </div>
                   <div className="flex justify-end w-full">
-                    <AlertDialogCancel className="text-gray-11">X</AlertDialogCancel>
+                    <AlertDialogCancel className="text-gray-11">
+                      <XMark size="xl-medium" className="w-full h-full text-gray-9 mr-[-3px]" />
+                    </AlertDialogCancel>
                   </div>
                 </div>
               </AlertDialogTitle>
