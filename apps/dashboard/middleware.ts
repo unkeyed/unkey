@@ -25,6 +25,7 @@ export default async function (req: NextRequest, _evt: NextFetchEvent) {
         "/api/webhooks/stripe",
         "/api/v1/workos/webhooks",
         "/api/v1/github/verify",
+        "/api/auth/refresh",
         "/_next",
       ],
     })(req);
