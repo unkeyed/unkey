@@ -32,15 +32,15 @@ export const LogSection = ({
           <pre className="flex flex-col gap-1 leading-relaxed whitespace-pre-wrap">
             {Array.isArray(details)
               ? details.map((header) => {
-                const [key, ...valueParts] = header.split(":");
-                const value = valueParts.join(":").trim();
-                return (
-                  <div className="group flex items-center w-full p-[3px]" key={key}>
-                    <span className="text-left truncate w-28 text-accent-9">{key}:</span>
-                    <span className="ml-2 text-xs text-accent-12 ">{value}</span>
-                  </div>
-                );
-              })
+                  const [key, ...valueParts] = header.split(":");
+                  const value = valueParts.join(":").trim();
+                  return (
+                    <div className="group flex items-center w-full p-[3px]" key={key}>
+                      <span className="text-left truncate w-28 text-accent-9">{key}:</span>
+                      <span className="ml-2 text-xs text-accent-12 ">{value}</span>
+                    </div>
+                  );
+                })
               : details}
           </pre>
           <Button
