@@ -5,7 +5,6 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -14,26 +13,21 @@ import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-const validCharactersRegex = /^[a-zA-Z0-9-_]+$/;
-
 const formSchema = z.object({
   workspaceId: z.string(),
-  name: z.string().trim().min(3).regex(validCharactersRegex, {
-    message: "Workspace can only contain letters, numbers, dashes, and underscores",
-  }),
+  name: z.string().trim().min(3),
 });
 
 type Props = {
   workspace: {
     id: string;
-    tenantId: string;
     name: string;
   };
 };
 
 export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const router = useRouter();
-  const { user } = useUser();
+  const utils = trpc.useUtils();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -47,7 +41,8 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const updateName = trpc.workspace.updateName.useMutation({
     onSuccess() {
       toast.success("Workspace name updated");
-      user?.reload();
+      // invalidate the current user so it refetches
+      utils.user.getCurrentUser.invalidate();
       router.refresh();
     },
     onError(err) {
@@ -55,8 +50,8 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    await updateName.mutateAsync(values);
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    updateName.mutateAsync(values);
   }
   const isDisabled = form.formState.isLoading || !form.formState.isValid || updateName.isLoading;
   return (
@@ -68,7 +63,9 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col space-y-2">
-              <label className="hidden sr-only">Name</label>
+              <label htmlFor="name" className="hidden sr-only">
+                Name
+              </label>
               <FormField
                 control={form.control}
                 name="name"

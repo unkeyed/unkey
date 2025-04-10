@@ -1,7 +1,7 @@
 import { queryLogsPayload } from "@/app/(app)/logs/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { log } from "@unkey/clickhouse/src/logs";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { transformFilters } from "./utils";
 const LogsResponse = z.object({
   logs: z.array(log),
   hasMore: z.boolean(),
+  total: z.number(),
   nextCursor: z
     .object({
       time: z.number().int(),
@@ -20,7 +21,10 @@ const LogsResponse = z.object({
 
 type LogsResponse = z.infer<typeof LogsResponse>;
 
-export const queryLogs = rateLimitedProcedure(ratelimit.read)
+export const queryLogs = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
   .input(queryLogsPayload)
   .output(LogsResponse)
   .query(async ({ ctx, input }) => {
@@ -28,7 +32,7 @@ export const queryLogs = rateLimitedProcedure(ratelimit.read)
     const workspace = await db.query.workspaces
       .findFirst({
         where: (table, { and, eq, isNull }) =>
-          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAtM)),
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -46,26 +50,29 @@ export const queryLogs = rateLimitedProcedure(ratelimit.read)
     }
 
     const transformedInputs = transformFilters(input);
-    const result = await clickhouse.api.logs({
+    const { logsQuery, totalQuery } = await clickhouse.api.logs({
       ...transformedInputs,
       cursorRequestId: input.cursor?.requestId ?? null,
       cursorTime: input.cursor?.time ?? null,
       workspaceId: workspace.id,
     });
 
-    if (result.err) {
+    const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);
+
+    if (countResult.err || logsResult.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
       });
     }
 
-    const logs = result.val;
+    const logs = logsResult.val;
 
     // Prepare the response with pagination info
     const response: LogsResponse = {
       logs,
       hasMore: logs.length === input.limit,
+      total: countResult.val[0].total_count,
       nextCursor:
         logs.length > 0
           ? {

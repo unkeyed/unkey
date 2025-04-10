@@ -28,6 +28,10 @@ type Caches struct {
 	// PermissionsByKeyId caches permission strings for a given key ID.
 	// Keys are string (key ID) and values are slices of string representing permissions.
 	PermissionsByKeyId cache.Cache[string, []string]
+
+	// WorkspaceByID caches workspace lookups by their ID.
+	// Keys are string (workspace ID) and values are db.Workspace.
+	WorkspaceByID cache.Cache[string, db.Workspace]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -72,7 +76,7 @@ func New(config Config) (Caches, error) {
 
 	ratelimitNamespace, err := cache.New(cache.Config[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]{
 		Fresh:    time.Minute,
-		Stale:    time.Hour,
+		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
 		MaxSize:  1_000,
 		Resource: "ratelimit_namespace_by_name",
@@ -84,7 +88,7 @@ func New(config Config) (Caches, error) {
 
 	ratelimitOverridesMatch, err := cache.New(cache.Config[db.FindRatelimitOverrideMatchesParams, []db.RatelimitOverride]{
 		Fresh:    time.Minute,
-		Stale:    time.Hour,
+		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
 		MaxSize:  1_000,
 		Resource: "ratelimit_overrides",
@@ -96,7 +100,7 @@ func New(config Config) (Caches, error) {
 
 	keyByHash, err := cache.New(cache.Config[string, db.Key]{
 		Fresh:   10 * time.Second,
-		Stale:   60 * time.Second,
+		Stale:   24 * time.Hour,
 		Logger:  config.Logger,
 		MaxSize: 1_000_000,
 
@@ -109,11 +113,24 @@ func New(config Config) (Caches, error) {
 
 	permissionsByKeyId, err := cache.New(cache.Config[string, []string]{
 		Fresh:   10 * time.Second,
-		Stale:   60 * time.Second,
+		Stale:   24 * time.Hour,
 		Logger:  config.Logger,
 		MaxSize: 1_000_000,
 
 		Resource: "permissions_by_key_id",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
+	workspaceByID, err := cache.New(cache.Config[string, db.Workspace]{
+		Fresh:   10 * time.Second,
+		Stale:   24 * time.Hour,
+		Logger:  config.Logger,
+		MaxSize: 1_000_000,
+
+		Resource: "workspace_by_id",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -125,6 +142,6 @@ func New(config Config) (Caches, error) {
 		RatelimitOverridesMatch:  middleware.WithTracing(ratelimitOverridesMatch),
 		KeyByHash:                middleware.WithTracing(keyByHash),
 		PermissionsByKeyId:       middleware.WithTracing(permissionsByKeyId),
+		WorkspaceByID:            middleware.WithTracing(workspaceByID),
 	}, nil
-
 }

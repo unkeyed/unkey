@@ -184,7 +184,7 @@ export default async function Page() {
           <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px] w-full xl:w-[calc(100dvw-10rem)]">
             {offsiteImages.map(({ src, label, className }) => {
               return (
-                <div className="image w-full h-[400px] rounded-lg relative">
+                <div key={label} className="image w-full h-[400px] rounded-lg relative">
                   <PhotoLabel
                     className="absolute bottom-[40px] left-1/2 transform -translate-x-1/2"
                     text={label}
@@ -350,7 +350,10 @@ export default async function Page() {
               <div className="grid justify-center w-full grid-cols-2 pt-24 mx-auto md:grid-cols-3 lg:grid-cols-5 ">
                 {investors.map(({ name, firm, image }) => {
                   return (
-                    <div className="flex flex-col items-center justify-center pb-12 text-center md:last:col-span-3 lg:last:col-span-1">
+                    <div
+                      key={name}
+                      className="flex flex-col items-center justify-center pb-12 text-center md:last:col-span-3 lg:last:col-span-1"
+                    >
                       <ImageWithBlur src={image} alt={name} className="w-12 h-12 rounded-full" />
                       <p className="mt-8 text-sm font-bold text-white md:whitespace-nowrap">
                         {name}
@@ -370,8 +373,8 @@ export default async function Page() {
               <div className="flex flex-row w-full mx-auto gap-6 mt-[96px] flex-wrap lg:flex-nowrap">
                 {posts.map((post) => {
                   return (
-                    <div className="flex w-full mx-auto mt-6 ">
-                      <Link key={post.slug} href={`${post.url}`}>
+                    <div key={post.slug} className="flex w-full mx-auto mt-6 ">
+                      <Link href={`${post.url}`}>
                         <BlogCard
                           tags={post.tags}
                           imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}

@@ -1,13 +1,13 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { auth as authProvider } from "@/lib/auth/server";
 import { type Workspace, db, schema } from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
-import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { requireUser, t } from "../../trpc";
 export const createWorkspace = t.procedure
-  .use(auth)
+  .use(requireUser)
   .input(
     z.object({
       name: z.string().min(1).max(50),
@@ -23,27 +23,22 @@ export const createWorkspace = t.procedure
       });
     }
 
-    const org = await clerkClient.organizations.createOrganization({
+    const orgId = await authProvider.createTenant({
       name: input.name,
-      createdBy: userId,
+      userId,
     });
 
     const workspace: Workspace = {
       id: newId("workspace"),
-      tenantId: org.id,
-      orgId: null,
+      orgId: orgId,
       name: input.name,
-      plan: "pro",
+      plan: "free",
       tier: "Free",
       stripeCustomerId: null,
       stripeSubscriptionId: null,
-      trialEnds: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14), // 2 weeks
       features: {},
       betaFeatures: {},
-      planLockedUntil: null,
-      planChanged: null,
       subscriptions: {},
-      planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
       createdAtM: Date.now(),
@@ -59,14 +54,7 @@ export const createWorkspace = t.procedure
           ...freeTierQuotas,
         });
 
-        const auditLogBucketId = newId("auditLogBucket");
-        await tx.insert(schema.auditLogBucket).values({
-          id: auditLogBucketId,
-          workspaceId: workspace.id,
-          name: "unkey_mutations",
-          deleteProtection: true,
-        });
-        await insertAuditLogs(tx, auditLogBucketId, [
+        await insertAuditLogs(tx, [
           {
             workspaceId: workspace.id,
             actor: { type: "user", id: ctx.user.id },
@@ -76,22 +64,6 @@ export const createWorkspace = t.procedure
               {
                 type: "workspace",
                 id: workspace.id,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          },
-          {
-            workspaceId: workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "auditLogBucket.create",
-            description: `Created ${auditLogBucketId}`,
-            resources: [
-              {
-                type: "auditLogBucket",
-                id: auditLogBucketId,
               },
             ],
             context: {
@@ -111,6 +83,6 @@ export const createWorkspace = t.procedure
 
     return {
       workspace,
-      organizationId: org.id,
+      organizationId: orgId,
     };
   });

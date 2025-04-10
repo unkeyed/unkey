@@ -4,12 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
+	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -26,6 +29,7 @@ type Services struct {
 	DB          db.Database
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
+	Auditlogs   auditlogs.AuditLogService
 }
 
 func New(svc Services) zen.Route {
@@ -94,8 +98,22 @@ func New(svc Services) zen.Route {
 			)
 		}
 
+		tx, err := svc.DB.RW().Begin(ctx)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
+			)
+		}
+		defer func() {
+			rollbackErr := tx.Rollback()
+			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
+			}
+		}()
+
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
-		err = db.Query.InsertRatelimitOverride(ctx, svc.DB.RO(), db.InsertRatelimitOverrideParams{
+		err = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
@@ -111,8 +129,52 @@ func New(svc Services) zen.Route {
 			)
 		}
 
+		err = svc.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.RatelimitSetOverrideEvent,
+				ActorID:     auth.KeyID,
+				ActorType:   auditlog.RootKeyActor,
+				ActorName:   "root key",
+				ActorMeta:   nil,
+				Bucket:      auditlogs.DEFAULT_BUCKET,
+
+				RemoteIP:  s.Location(),
+				UserAgent: s.UserAgent(),
+				Display:   fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        auditlog.RatelimitOverrideResourceType,
+						ID:          overrideID,
+						Name:        req.Identifier,
+						DisplayName: req.Identifier,
+						Meta:        nil,
+					},
+				},
+			},
+		})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
+			)
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
+			)
+		}
+
 		return s.JSON(http.StatusOK, Response{
-			OverrideId: overrideID,
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.RatelimitSetOverrideResponseData{
+				OverrideId: overrideID,
+			},
 		})
 	})
 }

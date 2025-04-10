@@ -26,6 +26,6 @@
     "typescript": "^5.5.3"
   },
   "dependencies": {
-    "@unkey/api": "workspace:^"
+    "@unkey/api": "^0.35.0"
   }
 }

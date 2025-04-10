@@ -16,12 +16,13 @@ type Querier interface {
 	//  SET deleted_at_m = ?
 	//  WHERE id = ?
 	DeleteRatelimitNamespace(ctx context.Context, db DBTX, arg DeleteRatelimitNamespaceParams) (sql.Result, error)
+	//FindIdentityByID
+	//
+	//  SELECT external_id, workspace_id, environment, meta, created_at, updated_at FROM identities WHERE id = ?
+	FindIdentityByID(ctx context.Context, db DBTX, id string) (FindIdentityByIDRow, error)
 	//FindKeyByHash
 	//
-	//  SELECT
-	//      id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
-	//  FROM `keys`
-	//  WHERE hash = ?
+	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` WHERE hash = ?
 	FindKeyByHash(ctx context.Context, db DBTX, hash string) (Key, error)
 	//FindKeyByID
 	//
@@ -96,6 +97,11 @@ type Querier interface {
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
 	//  WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	//FindPermissionByWorkspaceAndName
+	//
+	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m FROM `permissions`
+	//  WHERE workspace_id = ? AND name = ?
+	FindPermissionByWorkspaceAndName(ctx context.Context, db DBTX, arg FindPermissionByWorkspaceAndNameParams) (Permission, error)
 	//FindPermissionsForKey
 	//
 	//  WITH direct_permissions AS (
@@ -152,6 +158,10 @@ type Querier interface {
 	//      AND namespace_id = ?
 	//      AND identifier = ?
 	FindRatelimitOverridesByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverridesByIdentifierParams) (RatelimitOverride, error)
+	//FindRatelimitsByIdentityID
+	//
+	//  SELECT id, name, workspace_id, created_at, updated_at, `limit`, duration FROM ratelimits WHERE identity_id = ?
+	FindRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) ([]FindRatelimitsByIdentityIDRow, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, tenant_id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, trial_ends, beta_features, features, plan_locked_until, plan_downgrade_request, plan_changed, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -169,6 +179,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      bucket_id,
+	//      bucket,
 	//      event,
 	//      time,
 	//      display,
@@ -192,6 +203,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
 	//      ?
 	//  )
 	InsertAuditLog(ctx context.Context, db DBTX, arg InsertAuditLogParams) error
@@ -200,6 +212,7 @@ type Querier interface {
 	//  INSERT INTO `audit_log_target` (
 	//      workspace_id,
 	//      bucket_id,
+	//      bucket,
 	//      audit_log_id,
 	//      display_name,
 	//      type,
@@ -216,9 +229,48 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
+	//InsertIdentity
+	//
+	//  INSERT INTO `identities` (
+	//      id,
+	//      external_id,
+	//      workspace_id,
+	//      environment,
+	//      created_at,
+	//      meta
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertIdentity(ctx context.Context, db DBTX, arg InsertIdentityParams) error
+	//InsertIdentityRatelimit
+	//
+	//  INSERT INTO `ratelimits` (
+	//      id,
+	//      workspace_id,
+	//      identity_id,
+	//      name,
+	//      `limit`,
+	//      duration,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
 	//InsertKey
 	//
 	//  INSERT INTO `keys` (

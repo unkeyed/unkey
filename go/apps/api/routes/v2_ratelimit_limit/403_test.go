@@ -21,7 +21,7 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	// Create a namespace in the default workspace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
-	namespaceName := "test_namespace"
+	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID, // Use the default workspace
@@ -43,8 +43,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	h.Register(route)
 
 	// Create a key for a different workspace
-	differentWorkspaceID := "ws_different"
-	differentWorkspaceKey := h.CreateRootKey(differentWorkspaceID)
+	differentWorkspaceKey := h.CreateRootKey(h.Resources().DifferentWorkspace.ID)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -59,7 +58,7 @@ func TestWorkspacePermissions(t *testing.T) {
 		Duration:   60000,
 	}
 
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 
 	// This should return a 404 Not Found (for security reasons we don't reveal if the namespace exists)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d, body: %s", res.Status, res.RawBody)

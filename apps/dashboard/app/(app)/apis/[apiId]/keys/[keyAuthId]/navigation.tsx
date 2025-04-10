@@ -13,25 +13,22 @@ type KeyAuthProps = {
     name: string;
     keyAuthId: string | null;
   };
-  workspace: {
-    tenantId: string;
-  };
 };
 
 interface NavigationProps {
   apiId: string;
-  keyA: KeyAuthProps;
+  keyAuth: KeyAuthProps;
 }
 
-export function Navigation({ apiId, keyA }: NavigationProps) {
+export function Navigation({ apiId, keyAuth }: NavigationProps) {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Nodes />}>
         <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link href={`/apis/${apiId}`} isIdentifier>
-          {keyA.api.name}
+          {keyAuth.api.name}
         </Navbar.Breadcrumbs.Link>
-        <Navbar.Breadcrumbs.Link active href={`/apis/${apiId}/keys/${keyA.id}`}>
+        <Navbar.Breadcrumbs.Link active href={`/apis/${apiId}/keys/${keyAuth.id}`}>
           Keys
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
@@ -41,10 +38,10 @@ export function Navigation({ apiId, keyA }: NavigationProps) {
           variant="secondary"
           className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
         >
-          {keyA.api.id}
-          <CopyButton value={keyA.api.id} />
+          {keyAuth.api.id}
+          <CopyButton value={keyAuth.api.id} />
         </Badge>
-        <CreateKeyButton apiId={keyA.api.id} keyAuthId={keyA.api.keyAuthId!} />
+        <CreateKeyButton apiId={keyAuth.api.id} keyAuthId={keyAuth.api.keyAuthId!} />
       </Navbar.Actions>
     </Navbar>
   );

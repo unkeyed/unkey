@@ -54,7 +54,6 @@ func TestRateLimitAccuracy(t *testing.T) {
 						t.Run(fmt.Sprintf("duration_%dms", duration), func(t *testing.T) {
 							for _, loadFactor := range loadFactors {
 								t.Run(fmt.Sprintf("load_%.1fx", loadFactor), func(t *testing.T) {
-									t.Parallel()
 									h := testutil.NewHarness(t)
 
 									route := handler.New(handler.Services{
@@ -62,6 +61,7 @@ func TestRateLimitAccuracy(t *testing.T) {
 										Keys:                          h.Keys,
 										Logger:                        h.Logger,
 										Permissions:                   h.Permissions,
+										ClickHouse:                    h.ClickHouse,
 										Ratelimit:                     h.Ratelimit,
 										RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
 										RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
@@ -149,7 +149,7 @@ func TestRateLimitAccuracy(t *testing.T) {
 										res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 										require.Equal(t, 200, res.Status, "expected 200 status")
 
-										if res.Body.Success {
+										if res.Body.Data.Success {
 											successCount++
 										}
 									}

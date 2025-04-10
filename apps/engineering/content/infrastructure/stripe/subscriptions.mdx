@@ -92,12 +92,12 @@ The workspace schema includes:
 ```typescript
 workspaces {
   id: string
-  tenantId: string
+  orgId: string
   stripeCustomerId: string | null
   stripeSubscriptionId: string | null
   tier: string
   subscriptions: object | null  // Legacy
-  quota: {
+  quotas: {
     requestsPerMonth: number
     logsRetentionDays: number
     auditLogsRetentionDays: number

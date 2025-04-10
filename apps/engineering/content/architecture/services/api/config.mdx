@@ -81,11 +81,31 @@ These options control the fundamental behavior of the API server.
   - `--platform=docker` - When running in Docker (e.g., local or Docker Compose)
 </Property>
 
+<Property name="--image" type="string" required={false}>
+  Container image identifier for this node. This information is used for logging, metrics, and helps with tracking which version of the application is running.
+
+  **Environment variable:** `UNKEY_IMAGE`
+
+  **Examples:**
+  - `--image=ghcr.io/unkeyed/unkey:latest` - Latest image from GitHub Container Registry
+  - `--image=ghcr.io/unkeyed/unkey:v1.2.3` - Specific version of the image
+</Property>
+
 <Property name="--http-port | UNKEY_HTTP_PORT" type="int" default="7070" required={false}>
   HTTP port for the API server to listen on. This port must be accessible by all clients that will interact with the API. In containerized environments, ensure this port is properly exposed.
 
   **Examples:**
   - `--http-port=7070` - Default port
+</Property>
+
+<Property name="--test-mode | UNKEY_TEST_MODE" type="boolean" defaultValue={false} required={false}>
+  Enable test mode. This option is designed for testing environments and should NOT be used in production. When enabled, the server may trust client inputs blindly, potentially bypassing security checks.
+
+  The server logs a warning when started with this flag enabled.
+  
+  **Examples:**
+  - `--test-mode=true` - Enable test mode for testing environments
+  - `--test-mode=false` - Normal operation mode (default, suitable for production)
 </Property>
 
 <Property name="--region | UNKEY_REGION" type="string" defaultValue="unknown" required={false}>
@@ -96,6 +116,16 @@ These options control the fundamental behavior of the API server.
   - `--region=eu-west-1` - AWS Europe (Ireland)
   - `--region=us-central1` - GCP US Central
   - `--region=dev-local` - For local development environments
+</Property>
+
+<Property name="--instance-id | UNKEY_INSTANCE_ID" type="string" required={false}>
+  Unique identifier for this instance. This identifier is used in logs, metrics, and for identifying this specific instance of the API server. If not provided, a random ID with a unique prefix will be auto-generated.
+  
+  For persistent instances, setting a consistent ID can help with log correlation and tracking instance-specific issues over time.
+
+  **Examples:**
+  - `--instance-id=api-prod-1` - First production API instance
+  - `--instance-id=api-us-east-001` - API instance in US East region
 </Property>
 
 ## Database Configuration
@@ -184,119 +214,40 @@ These options configure analytics storage and observability for the Unkey API.
   **Environment variable:** `UNKEY_OTEL_TRACE_SAMPLING_RATE`
 </Property>
 
-<Property name="--color | UNKEY_COLOR" type="boolean" defaultValue={false} required={false}>
+<Property name="--prometheus-port | UNKEY_PROMETHEUS_PORT" type="number" defaultValue={0} required={false}>
+  Port for exposing Prometheus metrics. When set to a value greater than 0, the API server will expose a `/metrics` endpoint on the specified port for scraping by Prometheus. Setting this to 0 disables the Prometheus metrics endpoint.
+
+  This is useful for monitoring the API server's performance and health in production environments. The metrics include information about HTTP requests, database operations, cache performance, and more.
+
+  **Examples:**
+  - `--prometheus-port=0` - Disable Prometheus metrics endpoint (default)
+  - `--prometheus-port=9090` - Expose metrics on port 9090
+  - `--prometheus-port=9100` - Standard port used by node_exporter
+
+  **Environment variable:** `UNKEY_PROMETHEUS_PORT`
+</Property>
+
+<Property name="--color | UNKEY_COLOR" type="boolean" defaultValue={true} required={false}>
   Enable ANSI color codes in log output. When enabled, log output will include ANSI color escape sequences to highlight different log levels, timestamps, and other components of the log messages.
 
-  This is useful for local development and debugging but should typically be disabled in production environments where logs are collected by systems that may not properly handle ANSI escape sequences.
+  This is useful for local development and debugging but may need to be disabled in production environments where logs are collected by systems that may not properly handle ANSI escape sequences.
 
   **Examples:**
-  - `--color=true` - Enable colored logs (good for local development)
-  - `--color=false` - Disable colored logs (default, best for production)
+  - `--color=true` - Enable colored logs (default)
+  - `--color=false` - Disable colored logs (for environments that don't handle ANSI colors well)
 </Property>
 
-## Clustering Configuration
+## Redis Configuration
 
-Unkey supports clustering for high availability and distributed rate limiting. These options configure how nodes in a cluster discover and communicate with each other.
-
-<Property name="--cluster | UNKEY_CLUSTER" type="boolean" defaultValue={false} required={false}>
-  Enable cluster mode to connect multiple Unkey API nodes together. When enabled, this node will attempt to form or join a cluster with other Unkey nodes. Clustering provides high availability, load distribution, and consistent rate limiting across nodes.
-
-  For production deployments with multiple instances, set this to true. For single-node setups (local development, small deployments), leave this disabled.
-
-  When clustering is enabled, you must also configure:
-  1. An address advertisement method (static or AWS ECS metadata)
-  2. A discovery method (static addresses or Redis)
-  3. Appropriate ports for RPC and gossip protocols
-
+<Property name="--redis-url | UNKEY_REDIS_URL" type="string" required={false}>
+  Redis connection string for rate-limiting and distributed counters. Redis is used to maintain counters for rate limiting and other features that require distributed state.
+  
+  While not strictly required, Redis is recommended for production deployments, especially when running multiple instances of the API server, to ensure consistent rate limiting.
 
   **Examples:**
-  - `--cluster=true` - Enable clustering
-  - `--cluster=false` - Disable clustering (default)
-</Property>
-
-<Property name="--cluster-instance-id | UNKEY_CLUSTER_INSTANCE_ID" type="string" defaultValue="auto-generated" required={false}>
-  Unique identifier for this instance within the cluster. Every instance in a cluster must have a unique identifier. This ID is used in logs, metrics, and for instance-to-node communication within the cluster.
-
-  If not specified, a random id with 'node_' prefix will be automatically generated. For ephemeral nodes (like in auto-scaling groups), automatic generation is appropriate. For stable deployments, consider setting this to a persistent value tied to the instance.
-
-  **Examples:**
-  - `--cluster-instance-id=instance_east1_001` - For a instance in East region, instance 001
-  - `--cluster-instance-id=instance_replica2` - For a second replica instance
-  - `--cluster-instance-id=instance_dev_local` - For local development
-</Property>
-
-### Node Address Advertisement
-
-You must configure exactly one method for advertising this node's address to other nodes in the cluster.
-
-<Property name="--cluster-advertise-addr-static | UNKEY_CLUSTER_ADVERTISE_ADDR_STATIC" type="string" required={false}>
-  Static IP address or hostname that other nodes can use to connect to this node. This is required for clustering when not using AWS ECS discovery. The address must be reachable by all other nodes in the cluster.
-
-  For on-premises or static cloud deployments, use a fixed IP address or DNS name. In Kubernetes environments, this could be the pod's DNS name within the cluster.
-
-  **Examples:**
-  - `--cluster-advertise-addr-static=10.0.1.5` - Direct IP address
-  - `--cluster-advertise-addr-static=node1.unkey.internal` - DNS name
-  - `--cluster-advertise-addr-static=unkey-0.unkey-headless.default.svc.cluster.local` - Kubernetes DNS
-</Property>
-
-<Property name="--cluster-advertise-addr-aws-ecs-metadata | UNKEY_CLUSTER_ADVERTISE_ADDR_AWS_ECS_METADATA" type="boolean" defaultValue={false} required={false}>
-  Enable automatic address discovery using AWS ECS container metadata. When running on AWS ECS, this flag allows the container to automatically determine its private DNS name from the ECS metadata service. This simplifies cluster configuration in AWS ECS deployments with dynamic IP assignments.
-
-  Do not set `cluster-advertise-addr-static` if this option is enabled. This option is specifically designed for AWS ECS and won't work in other environments.
-
-  **Examples:**
-  - `--cluster-advertise-addr-aws-ecs-metadata=true` - Enable AWS ECS metadata-based discovery
-  - `--cluster-advertise-addr-aws-ecs-metadata=false` - Disable (default)
-</Property>
-
-### Communication Ports
-
-<Property name="--cluster-rpc-port | UNKEY_CLUSTER_RPC_PORT" type="number" defaultValue={7071} required={false}>
-  Port used for internal RPC communication between cluster nodes. This port is used for direct node-to-node communication within the cluster for operations like distributed rate limiting and state synchronization.
-
-  The port must be accessible by all other nodes in the cluster and should be different from the HTTP and gossip ports to avoid conflicts. In containerized environments, ensure this port is properly exposed between containers.
-
-
-  **Examples:**
-  - `--cluster-rpc-port=7071` - Default RPC port
-  - `--cluster-rpc-port=9000` - Alternative port if 7071 is unavailable
-</Property>
-
-<Property name="--cluster-gossip-port | UNKEY_CLUSTER_GOSSIP_PORT" type="number" defaultValue={7072} required={false}>
-  Port used for cluster membership and failure detection via gossip protocol. The gossip protocol is used to maintain cluster membership, detect node failures, and distribute information about the cluster state.
-
-  This port must be accessible by all other nodes in the cluster and should be different from the HTTP and RPC ports to avoid conflicts. In containerized environments, ensure this port is properly exposed between containers.
-
-  **Examples:**
-  - `--cluster-gossip-port=7072` - Default gossip port
-  - `--cluster-gossip-port=9001` - Alternative port if 7072 is unavailable
-</Property>
-
-### Node Discovery Methods
-
-You must configure exactly one method for discovering other nodes in the cluster.
-
-<Property name="--cluster-discovery-static-addrs | UNKEY_CLUSTER_DISCOVERY_STATIC_ADDRS" type="string[]" required={false}>
-  List of seed node addresses for static cluster configuration. When using static discovery, these addresses serve as initial contact points for joining the cluster. At least one functioning node address must be provided for initial cluster formation.
-
-  This flag is required for clustering when not using Redis discovery. Each address should be a hostname or IP address that's reachable by this node. It's not necessary to list all nodes - just enough to ensure reliable discovery.
-
-  **Examples:**
-  - `--cluster-discovery-static-addrs=10.0.1.5,10.0.1.6`
-  - `--cluster-discovery-static-addrs=node1.unkey.internal,node2.unkey.internal`
-  - `--cluster-discovery-static-addrs=unkey-0.unkey-headless.default.svc.cluster.local`
-</Property>
-
-<Property name="--cluster-discovery-redis-url | UNKEY_CLUSTER_DISCOVERY_REDIS_URL" type="string" required={false}>
-  Redis connection string for dynamic cluster discovery. Redis-based discovery enables nodes to register themselves and discover other nodes through a shared Redis instance. This is recommended for dynamic environments where nodes may come and go frequently, such as auto-scaling groups in AWS ECS.
-
-  When specified, nodes will register themselves in Redis and discover other nodes automatically. This eliminates the need for static address configuration. The Redis instance should be accessible by all nodes in the cluster and have low latency to ensure timely node discovery.
-
-  **Examples:**
-  - `--cluster-discovery-redis-url=redis://localhost:6379/0`
-  - `--cluster-discovery-redis-url=redis://user:password@redis.example.com:6379/0`
-  - `--cluster-discovery-redis-url=redis://user:password@redis-master.default.svc.cluster.local:6379/0?tls=true`
+  - `--redis-url=redis://localhost:6379/0`
+  - `--redis-url=redis://user:password@redis.example.com:6379/0`
+  - `--redis-url=redis://user:password@redis-master.default.svc.cluster.local:6379/0?tls=true`
 </Property>
 
 ## Deployment Examples
@@ -327,26 +278,26 @@ services:
       - clickhouse
     environment:
       UNKEY_HTTP_PORT: 7070
-      UNKEY_CLUSTER: true
-      UNKEY_CLUSTER_GOSSIP_PORT: 9090
-      UNKEY_CLUSTER_RPC_PORT: 9091
-      UNKEY_CLUSTER_DISCOVERY_REDIS_URL: "redis://redis:6379"
+      UNKEY_PLATFORM: "docker"
+      UNKEY_IMAGE: "ghcr.io/unkeyed/unkey:latest"
+      UNKEY_REDIS_URL: "redis://redis:6379"
       UNKEY_DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey?parseTime=true"
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
+      UNKEY_PROMETHEUS_PORT: 9090
 ```
 
 
-### AWS ECS Production Cluster
+### AWS ECS Production Example
 
 ```bash
 unkey api \
   --platform="aws" \
   --region="us-east-1" \
-  --cluster=true \
-  --cluster-advertise-addr-aws-ecs-metadata=true \
-  --cluster-discovery-redis-url="redis://user:password@redis.example.com:6379" \
+  --image="ghcr.io/unkeyed/unkey:latest" \
+  --redis-url="redis://user:password@redis.example.com:6379" \
   --database-primary="mysql://user:password@primary.mysql.example.com:3306/unkey?parseTime=true" \
   --database-readonly-replica="mysql://readonly:password@replica.mysql.example.com:3306/unkey?parseTime=true" \
   --clickhouse-url="clickhouse://user:password@clickhouse.example.com:9000/unkey" \
-  --otel-otlp-endpoint="https://your-grafana-endpoint.com"
+  --otel=true \
+  --prometheus-port=9090
 ```

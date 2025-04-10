@@ -21,7 +21,7 @@ func TestNotFound(t *testing.T) {
 
 	// Create a namespace but no override
 	namespaceID := uid.New("test_ns")
-	namespaceName := "test_namespace"
+	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -35,6 +35,7 @@ func TestNotFound(t *testing.T) {
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
 	})
 
 	h.Register(route)
@@ -48,16 +49,17 @@ func TestNotFound(t *testing.T) {
 
 	// Test with non-existent identifier
 	t.Run("override not found", func(t *testing.T) {
+
 		req := handler.Request{
 			NamespaceId: &namespaceID,
 			Identifier:  "non_existent_identifier",
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
-		require.Equal(t, http.StatusNotFound, res.Body.Status)
+		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 	})
 
 	// Test with non-existent namespace
@@ -68,23 +70,24 @@ func TestNotFound(t *testing.T) {
 			Identifier:  "some_identifier",
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "Received %s", res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent namespace name
 	t.Run("namespace name not found", func(t *testing.T) {
+
 		nonExistentNamespaceName := "nonexistent_namespace"
 		req := handler.Request{
 			NamespaceName: &nonExistentNamespaceName,
 			Identifier:    "some_identifier",
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
 	})
 }

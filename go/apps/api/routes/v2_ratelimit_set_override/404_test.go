@@ -19,6 +19,7 @@ func TestNamespaceNotFound(t *testing.T) {
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
 	})
 
 	h.Register(route)
@@ -40,10 +41,10 @@ func TestNamespaceNotFound(t *testing.T) {
 			Duration:    1000,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent namespace name
@@ -56,9 +57,9 @@ func TestNamespaceNotFound(t *testing.T) {
 			Duration:      1000,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundError](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
 	})
 }

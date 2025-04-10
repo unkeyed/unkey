@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
+	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 type EventBuffer interface {
@@ -62,28 +62,42 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 				responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
 			}
 
-			metrics.Http.Requests.Add(ctx, 1, metric.WithAttributeSet(attribute.NewSet(
-				attribute.String("host", s.r.Host),
-				attribute.String("method", s.r.Method),
-				attribute.String("path", s.r.URL.Path),
-				attribute.Int("status", s.responseStatus),
-			)))
+			// "method", "path", "status"
+			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
 
-			eventBuffer.BufferApiRequest(schema.ApiRequestV1{
-				WorkspaceID:     s.workspaceID,
-				RequestID:       s.requestID,
-				Time:            start.UnixMilli(),
-				Host:            s.r.Host,
-				Method:          s.r.Method,
-				Path:            s.r.URL.Path,
-				RequestHeaders:  requestHeaders,
-				RequestBody:     string(redact(s.requestBody)),
-				ResponseStatus:  s.responseStatus,
-				ResponseHeaders: responseHeaders,
-				ResponseBody:    string(redact(s.responseBody)),
-				Error:           "",
-				ServiceLatency:  serviceLatency.Milliseconds(),
-			})
+			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
+			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(serviceLatency.Seconds())
+
+			// https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/x-forwarded-headers.html#x-forwarded-for
+			ips := strings.Split(s.r.Header.Get("X-Forwarded-For"), ",")
+			ipAddress := ""
+			if len(ips) > 0 {
+				ipAddress = ips[0]
+			}
+
+			if s.r.Header.Get("X-Unkey-Metrics") != "disabled" {
+				eventBuffer.BufferApiRequest(schema.ApiRequestV1{
+					WorkspaceID:     s.workspaceID,
+					RequestID:       s.requestID,
+					Time:            start.UnixMilli(),
+					Host:            s.r.Host,
+					Method:          s.r.Method,
+					Path:            s.r.URL.Path,
+					RequestHeaders:  requestHeaders,
+					RequestBody:     string(redact(s.requestBody)),
+					ResponseStatus:  s.responseStatus,
+					ResponseHeaders: responseHeaders,
+					ResponseBody:    string(redact(s.responseBody)),
+					Error:           fault.UserFacingMessage(nextErr),
+					ServiceLatency:  serviceLatency.Milliseconds(),
+					UserAgent:       s.r.Header.Get("User-Agent"),
+					IpAddress:       ipAddress,
+					Country:         "",
+					City:            "",
+					Colo:            "",
+					Continent:       "",
+				})
+			}
 			return nextErr
 		}
 	}

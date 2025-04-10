@@ -1,5 +1,5 @@
 import { SettingCard } from "@/components/settings-card";
-import { getTenantId } from "@/lib/auth";
+import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -15,13 +15,12 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function BillingPage() {
-  const tenantId = getTenantId();
+  const orgId = await getOrgId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
-      quota: true,
+      quotas: true,
     },
   });
 
@@ -138,7 +137,7 @@ export default async function BillingPage() {
               name: p.name,
               priceId: price.id,
               dollar: price.unit_amount! / 100,
-              quota: {
+              quotas: {
                 requestsPerMonth: Number.parseInt(p.metadata.quota_requests_per_month),
               },
             };
@@ -166,7 +165,7 @@ export default async function BillingPage() {
       products={products}
       usage={{
         current: usedVerifications + usedRatelimits,
-        max: workspace.quota?.requestsPerMonth ?? 150_000,
+        max: workspace.quotas?.requestsPerMonth ?? 150_000,
       }}
       subscription={
         subscription

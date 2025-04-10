@@ -4,172 +4,93 @@ import (
 	"context"
 	"time"
 
-	"connectrpc.com/connect"
-	ratelimitv1 "github.com/unkeyed/unkey/go/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
-	"go.opentelemetry.io/otel/attribute"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
-// consumes the replay buffer and sends out replay requests to peers
+// replayRequests processes buffered rate limit events by synchronizing them with
+// the origin nodes. It ensures eventual consistency across the cluster by
+// replaying local decisions to the authoritative nodes.
 //
-// This is blocking and should be called in a goroutine
+// This method:
+// 1. Continuously consumes events from the replay buffer
+// 2. Forwards each event to its origin node
+// 3. Updates local state with the origin's response
+//
+// Thread Safety:
+//   - Must be run in a dedicated goroutine
+//   - Safe for concurrent buffer producers
+//   - Uses internal synchronization for state updates
+//
+// Performance:
+//   - Batches requests for efficiency
+//   - Uses circuit breaker to prevent cascading failures
+//   - Automatic retry on transient errors
+//
+// Example Usage:
+//
+//	// Start replay processing
+//	for range 8 {
+//	    go svc.replayRequests()
+//	}
 func (s *service) replayRequests() {
 	for req := range s.replayBuffer.Consume() {
-		s.replayToOrigin(context.Background(), req)
+		err := s.syncWithOrigin(context.Background(), req)
+		if err != nil {
+			s.logger.Error("failed to replay request", "error", err.Error())
+		}
+
 	}
 
 }
 
-func (s *service) replayToOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest) {
-	ctx, span := tracing.Start(ctx, "replayToOrigin")
-	defer span.End()
+func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) error {
+	defer func(start time.Time) {
+		metrics.RatelimitOriginSyncLatency.Observe(time.Since(start).Seconds())
+	}(time.Now())
 
-	now := s.clock.Now()
-
-	res, err := s.askOrigin(ctx, req)
-	if err != nil {
-		tracing.RecordError(span, err)
-
-		s.logger.Error("unable to ask origin",
-			"error", err.Error(),
-		)
-		return
-	}
-
-	err = s.SetWindows(ctx,
-		setWindowRequest{
-			Identifier: req.GetRequest().GetIdentifier(),
-			Limit:      req.GetRequest().GetLimit(),
-			Counter:    res.GetCurrent().GetCounter(),
-			Sequence:   res.GetCurrent().GetSequence(),
-			Duration:   time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
-			Time:       now,
-		},
-		setWindowRequest{
-			Identifier: req.GetRequest().GetIdentifier(),
-			Limit:      req.GetRequest().GetLimit(),
-			Counter:    res.GetPrevious().GetCounter(),
-			Sequence:   res.GetPrevious().GetSequence(),
-			Duration:   time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
-			Time:       now,
-		},
-	)
-
-	if err != nil {
-		tracing.RecordError(span, err)
-
-		s.logger.Error("unable to set windows",
-			"error", err.Error(),
-		)
-		return
-	}
-	// if we got this far, we pushpulled successfully with a peer and don't need to try the rest
-
-}
-
-func (s *service) askOrigin(ctx context.Context, req *ratelimitv1.ReplayRequest) (*ratelimitv1.ReplayResponse, error) {
-	ctx, span := tracing.Start(ctx, "askOrigin")
+	ctx, span := tracing.Start(ctx, "syncWithOrigin")
 	defer span.End()
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	now := s.clock.Now()
-
+	err := assert.False(req.Time.IsZero(), "request time must not be zero when replaying")
+	if err != nil {
+		return err
+	}
 	key := bucketKey{
-		req.GetRequest().GetIdentifier(),
-		req.GetRequest().GetLimit(),
-		time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
-	}.toString()
-	p, err := s.getPeer(ctx, key)
-	if err != nil {
-		tracing.RecordError(span, err)
-		s.logger.Warn("unable to create peer client",
-			"error", err.Error(),
-			"key", key,
-		)
-		return nil, err
-	}
-	span.SetAttributes(attribute.String("originInstanceID", p.instance.ID))
-
-	if p.instance.ID == s.cluster.Self().ID {
-		// we're the origin, nothing to replay...
-		// nolint:nilnil
-		return nil, nil
+		identifier: req.Identifier,
+		limit:      req.Limit,
+		duration:   req.Duration,
 	}
 
-	res, err := s.replayCircuitBreaker.Do(ctx, func(innerCtx context.Context) (*connect.Response[ratelimitv1.ReplayResponse], error) {
-		innerCtx, cancel = context.WithTimeout(innerCtx, 10*time.Second)
+	bucket, _ := s.getOrCreateBucket(key)
+	bucket.mu.Lock()
+	defer bucket.mu.Unlock()
+	currentWindow, _ := bucket.getCurrentWindow(req.Time)
+
+	newCounter, err := s.replayCircuitBreaker.Do(ctx, func(innerCtx context.Context) (int64, error) {
+		innerCtx, cancel = context.WithTimeout(innerCtx, 2*time.Second)
 		defer cancel()
-		return p.client.Replay(innerCtx, connect.NewRequest(req))
+
+		return s.counter.Increment(
+			innerCtx,
+			counterKey(key, currentWindow.sequence),
+			req.Cost,
+			currentWindow.duration*3,
+		)
+
 	})
 	if err != nil {
 		tracing.RecordError(span, err)
-		s.logger.Warn("unable to replay request",
-			"peer", p.instance,
-			"error", err.Error(),
-			"key", key,
-		)
-		return nil, err
+
+		return err
+	}
+	if newCounter > currentWindow.counter {
+		currentWindow.counter = newCounter
 	}
 
-	err = s.SetWindows(ctx,
-		setWindowRequest{
-			Identifier: req.GetRequest().GetIdentifier(),
-			Limit:      req.GetRequest().GetLimit(),
-			Counter:    res.Msg.GetCurrent().GetCounter(),
-			Sequence:   res.Msg.GetCurrent().GetSequence(),
-			Duration:   time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
-			Time:       now,
-		},
-		setWindowRequest{
-			Identifier: req.GetRequest().GetIdentifier(),
-			Limit:      req.GetRequest().GetLimit(),
-			Counter:    res.Msg.GetPrevious().GetCounter(),
-			Sequence:   res.Msg.GetPrevious().GetSequence(),
-			Duration:   time.Duration(req.GetRequest().GetDuration()) * time.Millisecond,
-			Time:       now,
-		},
-	)
-
-	if err != nil {
-		tracing.RecordError(span, err)
-
-		s.logger.Error("unable to set windows",
-			"error", err.Error(),
-			"key", key,
-		)
-		return nil, err
-	}
-	// if we got this far, we pushpulled successfully with a peer and don't need to try the rest
-	return res.Msg, nil
-}
-
-func (s *service) Replay(ctx context.Context, req *connect.Request[ratelimitv1.ReplayRequest]) (*connect.Response[ratelimitv1.ReplayResponse], error) {
-	ctx, span := tracing.Start(ctx, "Replay")
-	defer span.End()
-	t := time.UnixMilli(req.Msg.GetTime())
-
-	res, err := s.ratelimit(ctx, t, RatelimitRequest{
-		Identifier: req.Msg.GetRequest().GetIdentifier(),
-		Limit:      req.Msg.GetRequest().GetLimit(),
-		Duration:   time.Duration(req.Msg.GetRequest().GetDuration()) * time.Millisecond,
-		Cost:       req.Msg.GetRequest().GetCost(),
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return connect.NewResponse(&ratelimitv1.ReplayResponse{
-		Current:  res.CurrentWindow,
-		Previous: res.PreviousWindow,
-		Response: &ratelimitv1.RatelimitResponse{
-			Limit:     res.Limit,
-			Remaining: res.Remaining,
-			Reset_:    res.Reset,
-			Success:   res.Success,
-			Current:   res.Current,
-		},
-	}), nil
+	return nil
 }

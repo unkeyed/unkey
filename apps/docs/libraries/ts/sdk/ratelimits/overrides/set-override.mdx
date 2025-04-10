@@ -4,7 +4,7 @@ description: "Sets an override for a ratelimit"
 ---
 
 ## Request
- 
+
 
  <ParamField body="identifier" type="string" required>
 Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
@@ -47,7 +47,7 @@ Async will return a response immediately, lowering latency at the cost of accura
 <RequestExample>
 
 ```ts
-const override = await unkey.ratelimit.setOverride({
+const override = await unkey.ratelimits.setOverride({
     identifier: "user_123",
     limit: 10,
     duration: 60000,
@@ -56,7 +56,7 @@ const override = await unkey.ratelimit.setOverride({
 })
 ```
 ```ts
-const override = await unkey.ratelimit.setOverride({
+const override = await unkey.ratelimits.setOverride({
     identifier: "user_123",
     limit: 10,
     duration: 60000,
@@ -69,12 +69,11 @@ const override = await unkey.ratelimit.setOverride({
 
 <ResponseExample>
 ```ts
-{ 
+{
   result: {
-     overrideId: 'rlor_12345' 
+     overrideId: 'rlor_12345'
   }
 }
 ```
 
 </ResponseExample>
-

@@ -18,6 +18,7 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { queryUsage } from "./billing/query-usage";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -33,6 +34,15 @@ import { updateRootKeyName } from "./key/updateRootKeyName";
 import { llmSearch } from "./logs/llm-search";
 import { queryLogs } from "./logs/query-logs";
 import { queryTimeseries } from "./logs/query-timeseries";
+import {
+  getInvitationList,
+  getOrg,
+  getOrganizationMemberList,
+  inviteMember,
+  removeMembership,
+  revokeInvitation,
+  updateMembership,
+} from "./org";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
@@ -40,6 +50,7 @@ import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
 import { searchNamespace } from "./ratelimit/namespace-search";
+import { queryRatelimitNamespaces } from "./ratelimit/query-keys";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
@@ -62,6 +73,7 @@ import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateSubscription } from "./stripe/updateSubscription";
+import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
@@ -153,6 +165,7 @@ export const router = t.router({
       }),
     }),
     namespace: t.router({
+      query: queryRatelimitNamespaces,
       search: searchNamespace,
       create: createNamespace,
       update: t.router({
@@ -171,9 +184,30 @@ export const router = t.router({
     queryTimeseries,
     llmSearch,
   }),
+  billing: t.router({
+    queryUsage,
+  }),
   audit: t.router({
     logs: fetchAuditLog,
     llmSearch: auditLogsSearch,
+  }),
+  user: t.router({
+    getCurrentUser,
+    listMemberships,
+    switchOrg,
+  }),
+  org: t.router({
+    getOrg,
+    members: t.router({
+      list: getOrganizationMemberList,
+      remove: removeMembership,
+      update: updateMembership,
+    }),
+    invitations: t.router({
+      list: getInvitationList,
+      create: inviteMember,
+      remove: revokeInvitation,
+    }),
   }),
 });
 

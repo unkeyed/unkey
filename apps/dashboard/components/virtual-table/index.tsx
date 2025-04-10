@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
-import { CaretDown, CaretExpandY, CaretUp, CircleCarretRight } from "@unkey/icons";
+import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
-import { LoadingIndicator } from "./components/loading-indicator";
+import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
@@ -51,6 +51,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       selectedClassName,
       selectedItem,
       isFetchingNextPage,
+      focusClassName,loadMoreFooterProps,
     } = props;
 
     // Merge configs, allowing specific overrides
@@ -59,7 +60,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const parentRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const fixedHeight = useTableHeight(containerRef, config.headerHeight, config.tableBorder);
+    const fixedHeight = useTableHeight(containerRef);
     const tableData = useTableData<TTableData>(realtimeData, historicData);
 
     const virtualizer = useVirtualData({
@@ -196,14 +197,17 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 const separator = item as SeparatorItem;
                 if (separator.isSeparator) {
                   return (
-                    <tr key={`content-${virtualRow.key}`}>
-                      <td colSpan={columns.length} className="p-0">
-                        <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-                          <CircleCarretRight className="size-3" />
-                          Live
-                        </div>
-                      </td>
-                    </tr>
+                    <Fragment key={`row-group-${virtualRow.key}`}>
+                      <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
+                      <tr key={`content-${virtualRow.key}`}>
+                        <td colSpan={columns.length} className="p-0">
+                          <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
+                            <CircleCaretRight className="size-3" />
+                            Live
+                          </div>
+                        </td>
+                      </tr>
+                    </Fragment>
                   );
                 }
 
@@ -350,7 +354,13 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
             </tbody>
           </table>
-          {isFetchingNextPage && <LoadingIndicator />}
+          <LoadMoreFooter
+            {...loadMoreFooterProps}
+            onLoadMore={onLoadMore}
+            isFetchingNextPage={isFetchingNextPage}
+            totalVisible={virtualizer.getVirtualItems().length}
+            totalCount={tableData.getTotalLength()}
+          />
         </div>
       </div>
     );

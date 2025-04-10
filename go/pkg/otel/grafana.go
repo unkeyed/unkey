@@ -6,20 +6,17 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
-	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/contrib/processors/minsev"
-	sdklog "go.opentelemetry.io/otel/sdk/log"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
@@ -110,8 +107,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	}
 	shutdowns.RegisterCtx(logExporter.Shutdown)
 
-	var processor sdklog.Processor = sdklog.NewBatchProcessor(logExporter, sdklog.WithExportBufferSize(512))
-
+	var processor log.Processor = log.NewBatchProcessor(logExporter, log.WithExportBufferSize(512), log.WithExportInterval(15*time.Second))
 	processor = minsev.NewLogProcessor(processor, minsev.SeverityInfo)
 	shutdowns.RegisterCtx(processor.Shutdown)
 
@@ -119,9 +115,9 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	//		processor = minsev.NewLogProcessor(processor, minsev.SeverityDebug)
 	//	}
 
-	logProvider := sdklog.NewLoggerProvider(
-		sdklog.WithResource(res),
-		sdklog.WithProcessor(processor),
+	logProvider := log.NewLoggerProvider(
+		log.WithResource(res),
+		log.WithProcessor(processor),
 	)
 	shutdowns.RegisterCtx(logProvider.Shutdown)
 
@@ -164,7 +160,11 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 
 	// Create and register trace provider with the same batch settings as the old code
 	traceProvider := trace.NewTracerProvider(
-		trace.WithBatcher(traceExporter),
+		trace.WithBatcher(
+			traceExporter,
+			trace.WithMaxExportBatchSize(512),
+			trace.WithBatchTimeout(15*time.Second),
+		),
 		trace.WithResource(res),
 		trace.WithSampler(sampler),
 	)
@@ -179,7 +179,6 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	// Initialize metrics exporter with configuration matching the old implementation
 	metricExporter, err := otlpmetrichttp.New(ctx,
 		otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression),
-	//	otlpmetrichttp.WithInsecure(), // For local development
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create metric exporter: %w", err)
@@ -187,38 +186,6 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 
 	// Register shutdown function for metric exporter
 	shutdowns.RegisterCtx(metricExporter.Shutdown)
-
-	// Create and register meter provider with the same reader settings as the old code
-	meterProvider := metric.NewMeterProvider(
-		metric.WithReader(
-			metric.NewPeriodicReader(
-				metricExporter,
-				metric.WithInterval(10*time.Second), // Match the 10s interval from the old code
-			),
-		),
-		metric.WithResource(res),
-	)
-
-	// Register shutdown function for meter provider
-	shutdowns.RegisterCtx(meterProvider.Shutdown)
-
-	// Set the global meter provider
-	otel.SetMeterProvider(meterProvider)
-
-	// Initialize application metrics
-	err = metrics.Init(meterProvider.Meter(config.Application))
-	if err != nil {
-		return fmt.Errorf("failed to initialize custom metrics: %w", err)
-	}
-
-	// Collect runtime metrics (memory, GC, goroutines, etc.)
-	err = runtime.Start(
-		runtime.WithMeterProvider(meterProvider),
-		runtime.WithMinimumReadMemStatsInterval(time.Second),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to start runtime metrics collection: %w", err)
-	}
 
 	return nil
 }
