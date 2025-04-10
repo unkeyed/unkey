@@ -1,5 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -9,7 +9,9 @@ const lastVerificationTimePayload = z.object({
 });
 
 // tRPC endpoint for getting just the time of the latest verification
-export const keyLastVerificationTime = rateLimitedProcedure(ratelimit.read)
+export const keyLastVerificationTime = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
   .input(lastVerificationTimePayload)
   .query(async ({ ctx, input }) => {
     const result = await clickhouse.verifications.latest({

@@ -51,7 +51,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       selectedClassName,
       selectedItem,
       isFetchingNextPage,
-      focusClassName,loadMoreFooterProps,
+      loadMoreFooterProps,
     } = props;
 
     // Merge configs, allowing specific overrides

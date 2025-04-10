@@ -48,7 +48,6 @@ export type VirtualTableProps<T> = {
   emptyState?: React.ReactNode;
   keyExtractor: (item: T) => string | number;
   rowClassName?: (item: T) => string;
-  focusClassName?: (item: T) => string;
   selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
   isFetchingNextPage?: boolean;

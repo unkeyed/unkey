@@ -1,5 +1,5 @@
 import { keysQueryListPayload } from "@/app/(app)/apis/[apiId]/keys_v2/[keyAuthId]/_components/components/table/query-logs.schema";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { getAllKeys } from "./get-all-keys";
 import { keyDetailsResponseSchema } from "./schema";
@@ -19,7 +19,10 @@ const KeysListResponse = z.object({
 type KeysListResponse = z.infer<typeof KeysListResponse>;
 
 const PAGINATION_LIMIT = 50;
-export const queryKeysList = rateLimitedProcedure(ratelimit.read)
+export const queryKeysList = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
   .input(keysQueryListPayload)
   .output(KeysListResponse)
   .query(async ({ ctx, input }) => {

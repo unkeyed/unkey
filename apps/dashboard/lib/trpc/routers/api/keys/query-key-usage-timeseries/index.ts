@@ -1,8 +1,11 @@
 import { keysListQueryTimeseriesPayload } from "@/app/(app)/apis/[apiId]/keys_v2/[keyAuthId]/_components/components/table/components/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 
-export const keyUsageTimeseries = rateLimitedProcedure(ratelimit.read)
+export const keyUsageTimeseries = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
   .input(keysListQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
     const result = await clickhouse.verifications.timeseries.perHour({
