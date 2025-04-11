@@ -1,5 +1,4 @@
 import { LogsFilters } from "./components/logs-filters";
-import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
 export function KeysListControls({ keyspaceId }: { keyspaceId: string }) {
@@ -13,10 +12,6 @@ export function KeysListControls({ keyspaceId }: { keyspaceId: string }) {
           <div className="flex gap-2 items-center">
             <LogsFilters />
           </div>
-        </div>
-
-        <div className="flex gap-2">
-          <LogsRefresh />
         </div>
       </div>
     </div>
