@@ -4,9 +4,9 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useFilters } from "../../../../hooks/use-filters";
 
-export const LogsSearch = ({ apiId }: { apiId: string }) => {
+export const LogsSearch = ({ apiId: keyAuthId }: { apiId: string }) => {
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.api.keys.llmSearch.useMutation({
+  const queryLLMForStructuredOutput = trpc.api.keys.listLlmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -45,17 +45,17 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
   return (
     <LogsLLMSearch
       exampleQueries={[
-        "Show rate limited outcomes",
-        "Show identity that starts with test_",
-        "Show name that starts with test_ in the last hour",
+        "Find key exactly key_abc123xyz",
+        "Show keys with ID containing 'test'",
+        "Show keys with name 'Temp Key' and ID starting with 'temp_'",
+        "Find keys where identity is 'dev_user' or name contains 'debug'",
       ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({
-          apiId,
+          keyAuthId: keyAuthId,
           query,
-          timestamp: Date.now(),
         })
       }
     />
