@@ -83,7 +83,7 @@ export async function updateCookie(
 }
 
 /**
- * Set cookies on a NextResponse object
+ * Set cookies on a Response object
  * Useful when you need to set cookies during a redirect
  */
 export async function setCookiesOnResponse(

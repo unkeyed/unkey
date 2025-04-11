@@ -2,6 +2,9 @@ import type { Cookie } from "./cookies";
 
 // Core Types
 export const UNKEY_SESSION_COOKIE = "unkey-session";
+export const UNKEY_ACCESS_TOKEN = "unkey-access-token";
+export const UNKEY_ACCESS_MAX_AGE = 5 * 60 * 1000; // 5 minutes
+export const UNKEY_REFRESH_TOKEN = "unkey-refresh-token";
 export const PENDING_SESSION_COOKIE = "sess-temp";
 export const SIGN_IN_URL = "/auth/sign-in";
 export const SIGN_UP_URL = "/auth/sign-up";
@@ -96,16 +99,31 @@ export type MembershipListResponse = ListResponse<Membership>;
 export type InvitationListResponse = ListResponse<Invitation>;
 
 // Session Types
-export interface SessionValidationResult {
+interface BaseSessionValidationResult {
   isValid: boolean;
   shouldRefresh: boolean;
-  token?: string;
-  userId?: string;
-  orgId?: string | null;
 }
 
+// valid sessions
+interface ValidSessionResult extends BaseSessionValidationResult {
+  isValid: true;
+  token: string;
+  userId: string;
+  orgId?: string | null;
+  role?: string | null;
+}
+
+// invalid sessions
+interface InvalidSessionResult extends BaseSessionValidationResult {
+  isValid: false;
+}
+
+export type SessionValidationResult = ValidSessionResult | InvalidSessionResult;
+
 export interface SessionRefreshResult {
-  newToken: string;
+  sessionToken: string;
+  accessToken?: string;
+  refreshToken?: string;
   expiresAt: Date;
   session: SessionData | null;
 }
@@ -113,6 +131,7 @@ export interface SessionRefreshResult {
 export interface SessionData {
   userId: string;
   orgId: string | null;
+  role?: string | null;
 }
 
 // OAuth Types
