@@ -26,11 +26,7 @@ export const LogsClient = ({ apiId }: { apiId: string }) => {
       <KeysOverviewLogsControlCloud />
       <div className="flex flex-col ">
         <KeysOverviewLogsCharts apiId={apiId} onMount={handleDistanceToTop} />
-        <KeysOverviewLogsTable
-          apiId={apiId}
-          setSelectedLog={handleSelectedLog}
-          log={selectedLog}
-        />
+        <KeysOverviewLogsTable apiId={apiId} setSelectedLog={handleSelectedLog} log={selectedLog} />
       </div>
       <KeysOverviewLogDetails
         apiId={apiId}

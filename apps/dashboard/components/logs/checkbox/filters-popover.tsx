@@ -1,10 +1,6 @@
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Drawer } from "@/components/ui/drawer";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -41,8 +37,7 @@ export const FiltersPopover = ({
   activeFilters,
   open,
   onOpenChange,
-  getFilterCount = (field) =>
-    activeFilters.filter((f) => f.field === field).length,
+  getFilterCount = (field) => activeFilters.filter((f) => f.field === field).length,
 }: PropsWithChildren<FiltersPopoverProps>) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -73,16 +68,12 @@ export const FiltersPopover = ({
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setFocusedIndex((prev) =>
-          prev === null ? 0 : (prev + 1) % items.length
-        );
+        setFocusedIndex((prev) => (prev === null ? 0 : (prev + 1) % items.length));
         break;
       case "ArrowUp":
         e.preventDefault();
         setFocusedIndex((prev) =>
-          prev === null
-            ? items.length - 1
-            : (prev - 1 + items.length) % items.length
+          prev === null ? items.length - 1 : (prev - 1 + items.length) % items.length,
         );
         break;
       case "Enter":
@@ -181,13 +172,9 @@ const FilterItem = ({
     }
   };
 
-  useKeyboardShortcut(
-    { key: shortcut || "", meta: true },
-    () => setOpen(true),
-    {
-      preventDefault: true,
-    }
-  );
+  useKeyboardShortcut({ key: shortcut || "", meta: true }, () => setOpen(true), {
+    preventDefault: true,
+  });
 
   useEffect(() => {
     if (isFocused && itemRef.current) {
@@ -201,7 +188,7 @@ const FilterItem = ({
     }
     if (isActive && open && contentRef.current) {
       const focusableElements = contentRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
       if (focusableElements.length > 0) {
         (focusableElements[0] as HTMLElement).focus();
@@ -235,9 +222,7 @@ const FilterItem = ({
                     title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
                   />
                 )}
-                <span className="text-[13px] text-accent-12 font-medium">
-                  {label}
-                </span>
+                <span className="text-[13px] text-accent-12 font-medium">{label}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 {filterCount > 0 && (
@@ -245,12 +230,7 @@ const FilterItem = ({
                     {filterCount}
                   </div>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  tabIndex={-1}
-                  className="size-5 [&_svg]:size-2"
-                >
+                <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
                   <CaretRight className="text-gray-7 group-hover:text-gray-10" />
                 </Button>
               </div>
@@ -282,9 +262,7 @@ const FilterItem = ({
                     title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
                   />
                 )}
-                <span className="text-[13px] text-accent-12 font-medium">
-                  {label}
-                </span>
+                <span className="text-[13px] text-accent-12 font-medium">{label}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 {filterCount > 0 && (
@@ -292,12 +270,7 @@ const FilterItem = ({
                     {filterCount}
                   </div>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  tabIndex={-1}
-                  className="size-5 [&_svg]:size-2"
-                >
+                <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
                   <CaretRight className="text-gray-7 group-hover:text-gray-10" />
                 </Button>
               </div>
