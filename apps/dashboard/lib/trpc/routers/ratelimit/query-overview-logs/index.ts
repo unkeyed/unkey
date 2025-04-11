@@ -11,12 +11,7 @@ const RatelimitOverviewLogsResponse = z.object({
   ratelimitOverviewLogs: z.array(ratelimitOverviewLogs),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z
-    .object({
-      time: z.number().int(),
-      requestId: z.string(),
-    })
-    .optional(),
+  nextCursor: z.number().int().optional(),
 });
 
 type RatelimitOverviewLogsResponse = z.infer<typeof RatelimitOverviewLogsResponse>;
@@ -61,8 +56,7 @@ export const queryRatelimitOverviewLogs = t.procedure
     const transformedInputs = transformFilters(input);
     const { countQuery, logsQuery } = await clickhouse.ratelimits.overview.logs({
       ...transformedInputs,
-      cursorRequestId: input.cursor?.requestId ?? null,
-      cursorTime: input.cursor?.time ?? null,
+      cursorTime: input.cursor ?? null,
       workspaceId: ctx.workspace.id,
       namespaceId: ratelimitNamespaces[0].id,
     });
@@ -84,10 +78,7 @@ export const queryRatelimitOverviewLogs = t.procedure
       hasMore: logsWithOverrides.length === input.limit,
       nextCursor:
         logsWithOverrides.length === input.limit
-          ? {
-              time: logsWithOverrides[logsWithOverrides.length - 1].time,
-              requestId: logsWithOverrides[logsWithOverrides.length - 1].request_id,
-            }
+          ? logsWithOverrides[logsWithOverrides.length - 1].time
           : undefined,
     };
 

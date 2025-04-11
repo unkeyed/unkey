@@ -30,13 +30,7 @@ export const ratelimitQueryOverviewLogsPayload = z.object({
       ),
     })
     .nullable(),
-  cursor: z
-    .object({
-      requestId: z.string().nullable(),
-      time: z.number().nullable(),
-    })
-    .optional()
-    .nullable(),
+  cursor: z.number().nullable().optional().nullable(),
   sorts: z
     .array(
       z.object({

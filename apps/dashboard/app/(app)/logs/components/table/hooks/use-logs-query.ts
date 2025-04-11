@@ -138,7 +138,6 @@ export function useLogsQuery({
     isLoading: isLoadingInitial,
   } = trpc.logs.queryLogs.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialCursor: { requestId: null, time: null },
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,

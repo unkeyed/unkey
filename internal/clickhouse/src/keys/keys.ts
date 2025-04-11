@@ -50,7 +50,6 @@ export const keysOverviewLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
-  cursorRequestId: z.string().nullable(),
   sorts: z
     .array(
       z.object({
@@ -207,34 +206,27 @@ export function getKeysOverviewLogs(ch: Querier) {
     // Remove any existing time sort from the orderBy array
     const orderByWithoutTime = orderBy.filter((clause) => !clause.startsWith("time"));
 
-    // Construct final ORDER BY clause with time and request_id always at the end
+    // Construct final ORDER BY clause with only time at the end
     const orderByClause =
-      [...orderByWithoutTime, `time ${timeDirection}`, `request_id ${timeDirection}`].join(", ") ||
-      "time DESC, request_id DESC"; // Fallback if empty
+      [...orderByWithoutTime, `time ${timeDirection}`].join(", ") || "time DESC"; // Fallback if empty
 
     // Create cursor condition based on time direction
     let cursorCondition: string;
 
     // For first page or no cursor provided
-    if (!args.cursorTime || !args.cursorRequestId) {
+    if (!args.cursorTime) {
       cursorCondition = `
-      AND ({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
+      AND ({cursorTime: Nullable(UInt64)} IS NULL)
       `;
     } else {
       // For subsequent pages, use cursor based on time direction
       if (timeDirection === "ASC") {
         cursorCondition = `
-        AND (
-            (time = {cursorTime: Nullable(UInt64)} AND request_id > {cursorRequestId: Nullable(String)})
-            OR time > {cursorTime: Nullable(UInt64)}
-        )
+        AND (time > {cursorTime: Nullable(UInt64)})
         `;
       } else {
         cursorCondition = `
-        AND (
-            (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
-            OR time < {cursorTime: Nullable(UInt64)}
-        )
+        AND (time < {cursorTime: Nullable(UInt64)})
         `;
       }
     }
@@ -258,7 +250,7 @@ WITH
           AND (${keyIdConditions})
           -- Apply dynamic outcome filtering
           AND (${outcomeCondition})
-          -- Handle pagination using time and request_id as cursor
+          -- Handle pagination using only time as cursor
           ${cursorCondition}
     ),
     -- Second CTE: Calculate per-key aggregated metrics

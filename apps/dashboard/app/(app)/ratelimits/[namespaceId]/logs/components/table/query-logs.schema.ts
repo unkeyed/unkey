@@ -37,13 +37,7 @@ export const ratelimitQueryLogsPayload = z.object({
       ),
     })
     .nullable(),
-  cursor: z
-    .object({
-      requestId: z.string().nullable(),
-      time: z.number().nullable(),
-    })
-    .optional()
-    .nullable(),
+  cursor: z.number().nullable().optional().nullable(),
 });
 
 export type RatelimitQueryLogsPayload = z.infer<typeof ratelimitQueryLogsPayload>;

@@ -11,13 +11,7 @@ export const keysQueryOverviewLogsPayload = z.object({
   endTime: z.number().int(),
   apiId: z.string(),
   since: z.string(),
-  cursor: z
-    .object({
-      requestId: z.string().nullable(),
-      time: z.number().nullable(),
-    })
-    .optional()
-    .nullable(),
+  cursor: z.number().nullable().optional().nullable(),
   outcomes: z
     .array(
       z.object({

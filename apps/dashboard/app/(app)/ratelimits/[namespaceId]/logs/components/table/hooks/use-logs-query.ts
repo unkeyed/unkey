@@ -116,7 +116,6 @@ export function useRatelimitLogsQuery({
     isLoading: isLoadingInitial,
   } = trpc.ratelimit.logs.query.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialCursor: { requestId: null, time: null },
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
