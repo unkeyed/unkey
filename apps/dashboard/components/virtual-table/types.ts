@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 type ColumnWidth =
   | number // Fixed pixel width
   | string // CSS values like "165px", "15%", etc.
@@ -8,12 +10,12 @@ type ColumnWidth =
   | { flex: number }; // Flex grow ratio
 
 export type SortDirection = "asc" | "desc" | null;
-export type Column<T> = {
+export type Column<TTableData> = {
   key: string;
   header?: string;
   width: ColumnWidth;
   headerClassName?: string;
-  render: (item: T) => React.ReactNode;
+  render: (item: TTableData) => React.ReactNode;
   sort?: {
     sortable?: boolean;
     onSort?: (direction: SortDirection) => void;
@@ -21,28 +23,35 @@ export type Column<T> = {
   };
 };
 
-export type TableConfig = {
+export type TableLayoutMode = "classic" | "grid";
+
+export interface TableConfig {
   rowHeight: number;
   loadingRows: number;
   overscan: number;
   throttleDelay: number;
   headerHeight: number;
-};
 
-export type VirtualTableProps<T> = {
-  data: T[];
-  realtimeData?: T[];
-  columns: Column<T>[];
+  // Layout options
+  layoutMode?: TableLayoutMode; // 'classic' or 'grid'
+  rowBorders?: boolean; // Add borders between rows
+  containerPadding?: string; // Custom padding for container (e.g., 'px-0', 'px-4', 'p-2')
+  rowSpacing?: number; // Space between rows in pixels (for classic mode)
+}
+
+export type VirtualTableProps<TTableData> = {
+  data: TTableData[];
+  realtimeData?: TTableData[];
+  columns: Column<TTableData>[];
   isLoading?: boolean;
   config?: Partial<TableConfig>;
-  onRowClick?: (item: T | null) => void;
+  onRowClick?: (item: TTableData | null) => void;
   onLoadMore?: () => void;
   emptyState?: React.ReactNode;
-  keyExtractor: (item: T) => string | number;
-  rowClassName?: (item: T) => string;
-  focusClassName?: (item: T) => string;
-  selectedClassName?: (item: T, isSelected: boolean) => string;
-  selectedItem?: T | null;
+  keyExtractor: (item: TTableData) => string | number;
+  rowClassName?: (item: TTableData) => string;
+  selectedClassName?: (item: TTableData, isSelected: boolean) => string;
+  selectedItem?: TTableData | null;
   isFetchingNextPage?: boolean;
   loadMoreFooterProps?: {
     itemLabel?: string;
@@ -51,6 +60,10 @@ export type VirtualTableProps<T> = {
     hasMore?: boolean;
     hide?: boolean;
   };
+  renderSkeletonRow?: (props: {
+    columns: Column<TTableData>[];
+    rowHeight: number;
+  }) => ReactNode;
 };
 
 export type SeparatorItem = {

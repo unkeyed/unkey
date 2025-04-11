@@ -1,12 +1,12 @@
 import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { Navigation } from "./navigation";
 
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
 import { navigation } from "../../constants";
 import { Keys } from "./keys";
-import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 

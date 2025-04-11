@@ -29,7 +29,7 @@ export default async function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-base-12 lg:flex-row">
+    <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}

@@ -1,0 +1,26 @@
+import { keysListQueryTimeseriesPayload } from "@/app/(app)/apis/[apiId]/keys_v2/[keyAuthId]/_components/components/table/components/bar-chart/query-timeseries.schema";
+import { clickhouse } from "@/lib/clickhouse";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+
+export const keyUsageTimeseries = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
+  .input(keysListQueryTimeseriesPayload)
+  .query(async ({ ctx, input }) => {
+    const result = await clickhouse.verifications.timeseries.perHour({
+      workspaceId: ctx.workspace.id,
+      endTime: input.endTime,
+      startTime: input.startTime,
+      keyspaceId: input.keyAuthId,
+      keyId: input.keyId,
+      identities: null,
+      keyIds: null,
+      names: null,
+      outcomes: null,
+    });
+
+    return {
+      timeseries: result || [],
+    };
+  });

@@ -10,33 +10,43 @@
  * https://nucleoapp.com/license
  */
 import type React from "react";
-import type { IconProps } from "../props";
+import { type IconProps, sizeMap } from "../props";
 
-export const CircleHalfDottedClock: React.FC<IconProps> = (props) => {
+export const CircleHalfDottedClock: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
+
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor">
         <polyline
           fill="none"
-          points="10 7 10 10 12 12"
+          points="9 4.75 9 9 12.25 11.25"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
         <path
-          d="m10,3c3.866,0,7,3.134,7,7s-3.134,7-7,7"
+          d="M9,1.75c4.004,0,7.25,3.246,7.25,7.25s-3.246,7.25-7.25,7.25"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
-        <circle cx="6.5" cy="16.062" fill="currentColor" r="1" strokeWidth="0" />
-        <circle cx="3.938" cy="13.5" fill="currentColor" r="1" strokeWidth="0" />
-        <circle cx="3" cy="10" fill="currentColor" r="1" strokeWidth="0" />
-        <circle cx="3.938" cy="6.5" fill="currentColor" r="1" strokeWidth="0" />
-        <circle cx="6.5" cy="3.938" fill="currentColor" r="1" strokeWidth="0" />
+        <circle cx="3.873" cy="14.127" fill="currentColor" r=".75" stroke="none" />
+        <circle cx="1.75" cy="9" fill="currentColor" r=".75" stroke="none" />
+        <circle cx="3.873" cy="3.873" fill="currentColor" r=".75" stroke="none" />
+        <circle cx="6.226" cy="15.698" fill="currentColor" r=".75" stroke="none" />
+        <circle cx="2.302" cy="11.774" fill="currentColor" r=".75" stroke="none" />
+        <circle cx="2.302" cy="6.226" fill="currentColor" r=".75" stroke="none" />
+        <circle cx="6.226" cy="2.302" fill="currentColor" r=".75" stroke="none" />
       </g>
     </svg>
   );
