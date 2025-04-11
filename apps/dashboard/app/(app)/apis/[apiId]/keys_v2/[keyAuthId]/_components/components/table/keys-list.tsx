@@ -18,11 +18,11 @@ import {
   ValueColumnSkeleton,
 } from "./components/skeletons";
 import { StatusDisplay } from "./components/status-cell";
-import { useKeysListQuery } from "./hooks/use-logs-query";
+import { useKeysListQuery } from "./hooks/use-keys-list-query";
 import { getRowClassName } from "./utils/get-row-class";
 
 export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
-  const { keys, isLoading, isLoadingMore, loadMore } = useKeysListQuery({
+  const { keys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useKeysListQuery({
     keyAuthId: keyspaceId,
   });
   const [selectedKey, setSelectedKey] = useState<KeyDetails | null>(null);
@@ -67,7 +67,7 @@ export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
                         side="right"
                       >
                         This key is associated with the identity:{" "}
-                        <span className="font-mono bg-gray-3 px-1 rounded">{identity}</span>
+                        <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -145,6 +145,19 @@ export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
         selectedItem={selectedKey}
         keyExtractor={(log) => log.id}
         rowClassName={(log) => getRowClassName(log, selectedKey as KeyDetails)}
+        loadMoreFooterProps={{
+          hide: isLoading,
+          buttonText: "Load more logs",
+          hasMore,
+          countInfoText: (
+            <div className="flex gap-2">
+              <span>Showing</span> <span className="text-accent-12">{keys.length}</span>
+              <span>of</span>
+              {totalCount}
+              <span>keys</span>
+            </div>
+          ),
+        }}
         emptyState={
           <div className="w-full flex justify-center items-center h-full">
             <Empty className="w-[400px] flex items-start">
@@ -201,59 +214,3 @@ export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
     </div>
   );
 };
-
-// const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
-//   <TooltipProvider>
-//     <Tooltip>
-//       <TooltipTrigger asChild>
-//         <div className="group relative p-3 cursor-pointer -ml-[5px]">
-//           <div className="absolute inset-0" />
-//           <div
-//             className={cn(
-//               "size-[6px] rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-//               calculateBlockedPercentage(log)
-//                 ? "bg-orange-10 hover:bg-orange-11"
-//                 : "bg-warning-10"
-//             )}
-//           />
-//         </div>
-//       </TooltipTrigger>
-//       <TooltipContent
-//         className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12 w-[265px]"
-//         side="right"
-//       >
-//         <div className="flex gap-3 items-center">
-//           <div
-//             className={cn(
-//               style.badge.default,
-//               "rounded p-1",
-//               "bg-accent-4 text-accent-11 group-hover:bg-accent-5"
-//             )}
-//           >
-//             <ArrowDotAntiClockwise size="md-regular" />
-//           </div>
-//           <div className="flex flex-col gap-1">
-//             <div className="text-sm flex gap-[10px] items-center">
-//               <span className="font-medium text-sm text-accent-12">
-//                 Custom override in effect
-//               </span>
-//               <div className="size-[6px] rounded-full bg-warning-10" />
-//             </div>
-//             {log.override && (
-//               <div className="text-accent-9">
-//                 Limit set to{" "}
-//                 <span className="text-accent-12">
-//                   {formatNumber(log.override.limit)}{" "}
-//                 </span>
-//                 requests per{" "}
-//                 <span className="text-accent-12">
-//                   {ms(log.override.duration)}
-//                 </span>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-//       </TooltipContent>
-//     </Tooltip>
-//   </TooltipProvider>
-// );

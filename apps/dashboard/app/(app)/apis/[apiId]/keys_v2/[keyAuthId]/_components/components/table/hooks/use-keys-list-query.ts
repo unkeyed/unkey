@@ -10,6 +10,7 @@ type UseKeysListQueryParams = {
 };
 
 export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
+  const [totalCount, setTotalCount] = useState(0);
   const [keysMap, setKeysMap] = useState(() => new Map<string, KeyDetails>());
 
   const { filters } = useFilters();
@@ -83,6 +84,10 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
         });
       });
 
+      if (keysData.pages.length > 0) {
+        setTotalCount(keysData.pages[0].totalCount);
+      }
+
       setKeysMap(newMap);
     }
   }, [keysData]);
@@ -93,5 +98,6 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
     hasMore: hasNextPage,
     loadMore: fetchNextPage,
     isLoadingMore: isFetchingNextPage,
+    totalCount,
   };
 }
