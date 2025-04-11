@@ -50,8 +50,7 @@ export const requireOrgAccess = t.middleware(async ({ next, ctx, rawInput: orgId
     });
   }
   try {
-    const memberships = await auth.listMemberships(ctx.user!.id);
-    const hasAccess = memberships.data.some((m) => m.organization.id === orgId);
+    const hasAccess = ctx.tenant?.id === orgId;
 
     if (!hasAccess) {
       throw new TRPCError({
