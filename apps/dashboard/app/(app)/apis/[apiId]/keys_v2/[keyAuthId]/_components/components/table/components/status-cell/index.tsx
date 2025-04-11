@@ -5,12 +5,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey
 import { StatusBadge } from "./components/status-badge";
 import { useKeyStatus } from "./use-key-status";
 
-interface StatusDisplayProps {
+type StatusDisplayProps = {
   keyData: KeyDetails;
   keyAuthId: string;
-}
+};
 
-export const StatusDisplay: React.FC<StatusDisplayProps> = ({ keyAuthId, keyData }) => {
+export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
   const { primary, count, isLoading, statuses, isError } = useKeyStatus(keyAuthId, keyData);
 
   if (isLoading) {

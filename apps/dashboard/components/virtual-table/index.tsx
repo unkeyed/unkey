@@ -73,7 +73,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     });
 
     const tableClassName = cn(
-      "w-full",
+      "w-full bg-white dark:bg-black",
       isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
     );
 
@@ -102,7 +102,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           ref={containerRef}
         >
           <table className={tableClassName}>
-            <thead className="sticky top-0 z-10 bg-transparent">
+            <thead className="sticky top-0 z-10">
               <tr>
                 {columns.map((column) => (
                   <th

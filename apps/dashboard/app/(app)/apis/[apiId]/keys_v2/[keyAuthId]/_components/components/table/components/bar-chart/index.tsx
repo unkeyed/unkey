@@ -89,7 +89,7 @@ export const VerificationBarChart = ({
       <div
         // We need 156px when you calculate the gaps and height but we need some breathing space so its "158px" now
         className={cn(
-          "grid items-end h-[28px] bg-gray-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t-md hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-3 group-hover:border-grayA-3",
+          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
           selected ? "border-grayA-3 rounded-md" : "",
         )}
         style={{
@@ -126,7 +126,7 @@ export const VerificationBarChart = ({
     return (
       <div
         className={cn(
-          "grid items-end h-[28px] bg-gray-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t-md hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-3 group-hover:border-grayA-3",
+          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
           selected ? "border-grayA-3 rounded-md" : "",
         )}
         style={{
@@ -145,7 +145,7 @@ export const VerificationBarChart = ({
     return (
       <div
         className={cn(
-          "grid items-end h-[28px] bg-gray-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t-md hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-3 group-hover:border-grayA-3",
+          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
           selected ? "border-grayA-3 rounded-md" : "",
         )}
         style={{
@@ -164,7 +164,7 @@ export const VerificationBarChart = ({
     <OutcomeExplainer timeseries={timeseries}>
       <div
         className={cn(
-          "grid items-end h-[28px] bg-gray-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t-md hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-3 group-hover:border-grayA-3",
+          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
           selected ? "border-grayA-3 rounded-md" : "",
         )}
         style={{

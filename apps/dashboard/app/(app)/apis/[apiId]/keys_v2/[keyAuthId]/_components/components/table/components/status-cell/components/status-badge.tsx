@@ -12,7 +12,7 @@ type StatusBadgeProps = {
 
 export const StatusBadge = ({ primary, count }: StatusBadgeProps) => {
   return (
-    <div className="flex items-center justify-start gap-0.5 text-xs font-medium">
+    <div className="flex items-center justify-start gap-0.5 text-xs">
       <div
         className={cn(
           primary.color,

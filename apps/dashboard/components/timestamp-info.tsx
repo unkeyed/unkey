@@ -1,8 +1,7 @@
 "use client";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { format, fromUnixTime } from "date-fns";
-import ms from "ms";
+import { format, formatDistanceToNow, fromUnixTime } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 
 const unixMicroToDate = (unix: string | number): Date => {
@@ -27,14 +26,12 @@ const timestampUtcFormatter = (value: string | number) => {
   return format(utcDate, "MMM d,yyyy HH:mm:ss");
 };
 
-const timestampRelativeFormatter = (value: string | number) => {
+const timestampRelativeFormatter = (value: string | number): string => {
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
-  const diffMs = Date.now() - date.getTime();
-  const absDiffMs = Math.abs(diffMs);
-  const formattedTime = ms(absDiffMs);
 
-  // If diffMs is negative, the date is in the future
-  return diffMs > 0 ? `${formattedTime} ago` : `in ${formattedTime}`;
+  return formatDistanceToNow(date, {
+    addSuffix: true,
+  });
 };
 
 type DisplayType = "local" | "utc" | "relative";

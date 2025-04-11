@@ -22,7 +22,7 @@ export const LastUsedCell = ({
   return (
     <Badge
       className={cn(
-        "px-1.5 rounded-md flex gap-2 items-center w-[140px]",
+        "px-1.5 rounded-md flex gap-2 items-center w-[140px] h-[22px] border-none",
         isError
           ? "bg-error-3 text-error-11 border border-error-5"
           : isSelected
@@ -43,7 +43,11 @@ export const LastUsedCell = ({
         ) : isError ? (
           "Failed to load"
         ) : data?.lastVerificationTime ? (
-          <TimestampInfo value={data.lastVerificationTime} className="truncate" />
+          <TimestampInfo
+            displayType="relative"
+            value={data.lastVerificationTime}
+            className="truncate"
+          />
         ) : (
           "Never used"
         )}
