@@ -4,7 +4,6 @@ import { useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import {
   type AllOperatorsUrlValue,
-  type IsContainsUrlValue,
   type KeysListFilterField,
   type KeysListFilterOperator,
   type KeysListFilterValue,
@@ -19,10 +18,8 @@ const parseAsAllOperatorsFilterArray = parseAsFilterValueArray<KeysListFilterOpe
   "endsWith",
 ]);
 
-const parseAsIsContainsFilterArray = parseAsFilterValueArray<"is" | "contains">(["is", "contains"]);
-
 export const queryParamsPayload = {
-  keyIds: parseAsIsContainsFilterArray,
+  keyIds: parseAsAllOperatorsFilterArray,
   names: parseAsAllOperatorsFilterArray,
   identities: parseAsAllOperatorsFilterArray,
 } as const;
@@ -63,7 +60,7 @@ export const useFilters = () => {
         identities: null,
       };
 
-      const keyIdFilters: IsContainsUrlValue[] = [];
+      const keyIdFilters: AllOperatorsUrlValue[] = [];
       const nameFilters: AllOperatorsUrlValue[] = [];
       const identitiesFilters: AllOperatorsUrlValue[] = [];
 
@@ -79,7 +76,7 @@ export const useFilters = () => {
             if (typeof filter.value === "string") {
               keyIdFilters.push({
                 value: filter.value,
-                operator: operator as "is" | "contains",
+                operator: operator as "is" | "contains" | "startsWith" | "endsWith",
               });
             }
             break;

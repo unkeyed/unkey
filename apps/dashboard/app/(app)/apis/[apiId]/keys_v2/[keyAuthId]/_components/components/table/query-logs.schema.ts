@@ -11,7 +11,7 @@ export const keysQueryListPayload = z.object({
   keyIds: z
     .array(
       z.object({
-        operator: z.enum(["is", "contains"]),
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
       }),
     )

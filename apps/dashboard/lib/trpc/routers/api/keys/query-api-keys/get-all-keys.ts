@@ -103,6 +103,12 @@ export async function getAllKeys({
             case "contains":
               keyIdConditions.push(sql`${key.id} LIKE ${`%${value}%`}`);
               break;
+            case "startsWith":
+              keyIdConditions.push(sql`${key.id} LIKE ${`${value}%`}`);
+              break;
+            case "endsWith":
+              keyIdConditions.push(sql`${key.id} LIKE ${`%${value}`}`);
+              break;
           }
         }
         if (keyIdConditions.length > 0) {

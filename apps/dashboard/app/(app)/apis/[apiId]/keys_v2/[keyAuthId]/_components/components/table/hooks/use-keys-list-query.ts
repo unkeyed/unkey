@@ -33,17 +33,8 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
         : validOperators[0];
 
       switch (filter.field) {
-        case "keyIds": {
-          if (typeof filter.value === "string") {
-            const keyIdOperator = operator === "is" || operator === "contains" ? operator : "is";
-            params.keyIds?.push({
-              operator: keyIdOperator,
-              value: filter.value,
-            });
-          }
-          break;
-        }
         case "names":
+        case "keyIds":
         case "identities":
           if (typeof filter.value === "string") {
             params[filter.field]?.push({

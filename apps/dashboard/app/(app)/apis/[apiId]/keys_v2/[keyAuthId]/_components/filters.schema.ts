@@ -5,7 +5,7 @@ import { z } from "zod";
 export const keysListFilterFieldConfig: FilterFieldConfigs = {
   keyIds: {
     type: "string",
-    operators: ["is", "contains"],
+    operators: ["is", "contains", "startsWith", "endsWith"],
   },
   names: {
     type: "string",
@@ -44,11 +44,6 @@ export type IsOnlyUrlValue = {
   operator: "is";
 };
 
-export type IsContainsUrlValue = {
-  value: string;
-  operator: "is" | "contains";
-};
-
 export type AllOperatorsUrlValue = {
   value: string;
   operator: "is" | "contains" | "startsWith" | "endsWith";
@@ -62,7 +57,7 @@ export type KeysListFilterUrlValue = Pick<
 export type KeysListFilterValue = FilterValue<KeysListFilterField, KeysListFilterOperator>;
 
 export type KeysQuerySearchParams = {
-  keyIds: IsContainsUrlValue[] | null;
+  keyIds: AllOperatorsUrlValue[] | null;
   names: AllOperatorsUrlValue[] | null;
   identities: AllOperatorsUrlValue[] | null;
 };
