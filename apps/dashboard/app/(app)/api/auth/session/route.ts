@@ -1,5 +1,6 @@
 import { getAuth } from "@/lib/auth/get-auth";
 
+export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     // Use your robust cached and mutex-protected getAuth function
