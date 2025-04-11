@@ -12,10 +12,13 @@ type TimeseriesChartLoadingProps = {
 /**
  * Enhanced loading component for timeseries area chart displays with fluid, animated waves
  */
-export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps) => {
+export const OverviewAreaChartLoader = ({
+  labels,
+}: TimeseriesChartLoadingProps) => {
   const labelsWithDefaults = {
     ...labels,
-    showRightSide: labels.showRightSide !== undefined ? labels.showRightSide : true,
+    showRightSide:
+      labels.showRightSide !== undefined ? labels.showRightSide : true,
     reverse: labels.reverse !== undefined ? labels.reverse : false,
   };
 
@@ -74,16 +77,20 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
             thirdWave * (0.3 + metricIndex * 0.1);
 
           // Scale the wave to appropriate values with increasing baseline per metric
-          updatedItem[metric.key] = (combinedWave + 2) * 100 * (1 + metricIndex * 0.5);
+          updatedItem[metric.key] =
+            (combinedWave + 2) * 100 * (1 + metricIndex * 0.5);
         });
 
         return updatedItem;
-      }),
+      })
     );
   }, [phase, labelsWithDefaults.metrics]);
 
   const currentTime = Date.now();
-  const timePoints = calculateTimePoints(currentTime - 100 * 60000, currentTime);
+  const timePoints = calculateTimePoints(
+    currentTime - 100 * 60000,
+    currentTime
+  );
 
   return (
     <div className="flex flex-col h-full animate-pulse">
@@ -91,7 +98,7 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
       <div
         className={cn(
           "pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10",
-          labelsWithDefaults.reverse && "flex-row-reverse",
+          labelsWithDefaults.reverse && "flex-row-reverse"
         )}
       >
         <div className="flex flex-col gap-1">
@@ -119,8 +126,13 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
             {labelsWithDefaults.metrics.map((metric) => (
               <div key={metric.key} className="flex flex-col gap-1">
                 <div className="flex gap-2 items-center">
-                  <div className="rounded h-[10px] w-1" style={{ backgroundColor: metric.color }} />
-                  <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+                  <div
+                    className="rounded h-[10px] w-1"
+                    style={{ backgroundColor: metric.color }}
+                  />
+                  <div className="text-accent-10 text-[11px] leading-4">
+                    {metric.label}
+                  </div>
                 </div>
                 <div className="text-accent-12 text-[18px] font-semibold leading-7 bg-accent-4 rounded w-full">
                   &nbsp;
@@ -134,7 +146,10 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
       {/* Chart area */}
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+          <AreaChart
+            data={mockData}
+            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          >
             <defs>
               {labelsWithDefaults.metrics.map((metric) => (
                 <linearGradient
@@ -145,9 +160,21 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
                   x2="0"
                   y2="1"
                 >
-                  <stop offset="0%" stopColor={metric.color} stopOpacity={0.3} />
-                  <stop offset="60%" stopColor={metric.color} stopOpacity={0.1} />
-                  <stop offset="100%" stopColor={metric.color} stopOpacity={0.02} />
+                  <stop
+                    offset="0%"
+                    stopColor={metric.color}
+                    stopOpacity={0.3}
+                  />
+                  <stop
+                    offset="60%"
+                    stopColor={metric.color}
+                    stopOpacity={0.1}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor={metric.color}
+                    stopOpacity={0.02}
+                  />
                 </linearGradient>
               ))}
             </defs>
@@ -170,7 +197,7 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
       </div>
 
       {/* Time labels footer */}
-      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between">
+      <div className="border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between">
         {timePoints.map((time, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
           <div key={i} className="z-10">

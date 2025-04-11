@@ -9,11 +9,10 @@ import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import {
-  ChangeEvent,
-  Dispatch,
+  type Dispatch,
   type KeyboardEvent,
   type PropsWithChildren,
-  SetStateAction,
+  type SetStateAction,
   useEffect,
   useRef,
   useState,
@@ -32,8 +31,8 @@ type FiltersPopoverProps = {
   items: FilterItemConfig[];
   activeFilters: FilterValue[];
   getFilterCount?: (field: string) => number;
-  open: boolean;
-  onOpenChange: Dispatch<SetStateAction<boolean>>;
+  open?: boolean;
+  onOpenChange?: Dispatch<SetStateAction<boolean>>;
 };
 
 export const FiltersPopover = ({
@@ -55,7 +54,7 @@ export const FiltersPopover = ({
   }, [open]);
 
   useKeyboardShortcut("f", () => {
-    onOpenChange((prev) => !prev);
+    onOpenChange?.((prev) => !prev);
   });
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -122,7 +121,7 @@ export const FiltersPopover = ({
           </Drawer.Content>
         </Drawer.Root>
       ) : (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={onOpenChange}>
           <PopoverTrigger asChild>{children}</PopoverTrigger>
           <PopoverContent
             className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg"

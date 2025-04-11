@@ -8,7 +8,10 @@ import { useMemo } from "react";
 import { LogHeader } from "./components/log-header";
 import { OutcomeDistributionSection } from "./components/log-outcome-distribution-section";
 import { LogSection } from "./components/log-section";
-import { PermissionsSection, RolesSection } from "./components/roles-permissions";
+import {
+  PermissionsSection,
+  RolesSection,
+} from "./components/roles-permissions";
 
 type StyleObject = {
   top: string;
@@ -37,7 +40,10 @@ export const KeysOverviewLogDetails = ({
   setSelectedLog,
   apiId,
 }: KeysOverviewLogDetailsProps) => {
-  const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
+  const panelStyle = useMemo(
+    () => createPanelStyle(distanceToTop),
+    [distanceToTop]
+  );
 
   if (!log) {
     return null;
@@ -56,7 +62,9 @@ export const KeysOverviewLogDetails = ({
         style={panelStyle}
       >
         <LogHeader log={log} onClose={handleClose} />
-        <div className="py-4 text-center text-accent-9">No key details available</div>
+        <div className="py-4 text-center text-accent-9">
+          No key details available
+        </div>
       </ResizablePanel>
     );
   }
@@ -79,7 +87,10 @@ export const KeysOverviewLogDetails = ({
   const usage = {
     Created: metaData?.createdAt ? metaData.createdAt : "N/A",
     "Last Used": log.time ? (
-      <TimestampInfo value={log.time} className="font-mono underline decoration-dotted" />
+      <TimestampInfo
+        value={log.time}
+        className="font-mono underline decoration-dotted"
+      />
     ) : (
       "N/A"
     ),
@@ -92,7 +103,9 @@ export const KeysOverviewLogDetails = ({
         ? log.key_details.remaining_requests
         : "Unlimited",
     "Rate Limit": log.key_details.ratelimit_limit
-      ? `${log.key_details.ratelimit_limit} per ${log.key_details.ratelimit_duration || "N/A"}ms`
+      ? `${log.key_details.ratelimit_limit} per ${
+          log.key_details.ratelimit_duration || "N/A"
+        }ms`
       : "No limit",
     Async: log.key_details.ratelimit_async ? "Yes" : "No",
   };
@@ -101,17 +114,21 @@ export const KeysOverviewLogDetails = ({
     ? { "External ID": log.key_details.identity.external_id || "N/A" }
     : { "No identity connected": null };
 
-  const metaString = metaData ? JSON.stringify(metaData, null, 2) : { "No meta available": "" };
+  const metaString = metaData
+    ? JSON.stringify(metaData, null, 2)
+    : { "No meta available": "" };
 
   return (
     <ResizablePanel
       onClose={handleClose}
-      className="absolute right-0 bg-gray-1 dark:bg-black font-mono shadow-2xl overflow-y-auto z-20 p-4"
+      className="absolute max-md:inset-0 max-md:!top-0 max-md:!h-screen max-md:!w-full right-0 bg-gray-1 dark:bg-black font-mono shadow-2xl overflow-y-auto z-20 p-4"
       style={panelStyle}
     >
       <LogHeader log={log} onClose={handleClose} />
       <LogSection title="Usage" details={usage} />
-      {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
+      {log.outcome_counts && (
+        <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />
+      )}
       <LogSection title="Limits" details={limits} />
       <LogSection title="Identifiers" details={identifiers} />
       <LogSection title="Identity" details={identity} />
