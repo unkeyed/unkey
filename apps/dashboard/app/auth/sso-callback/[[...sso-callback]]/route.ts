@@ -4,7 +4,6 @@ import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
 import { type NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   const authResult = await auth.completeOAuthSignIn(request);
-
   if (!authResult.success) {
     if (
       (authResult.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED ||
@@ -25,7 +24,6 @@ export async function GET(request: NextRequest) {
       }
 
       const response = NextResponse.redirect(url);
-
       return await setCookiesOnResponse(response, authResult.cookies);
     }
 
