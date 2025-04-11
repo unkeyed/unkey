@@ -36,7 +36,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     .orderBy(apis.name);
 
   return (
-    <div>
+    <div className="min-h-screen max-md:pb-6">
       <ApisNavbar
         api={currentApi}
         activePage={{

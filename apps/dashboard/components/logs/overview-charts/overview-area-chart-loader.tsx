@@ -170,7 +170,7 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
       </div>
 
       {/* Time labels footer */}
-      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between">
+      <div className="border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between">
         {timePoints.map((time, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
           <div key={i} className="z-10">

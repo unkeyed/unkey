@@ -83,7 +83,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
       return (
         <div
-          className="w-full flex flex-col h-full"
+          className="w-full flex flex-col md:h-full"
           style={{ height: `${fixedHeight}px` }}
           ref={containerRef}
         >
@@ -110,7 +110,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
             </thead>
           </table>
           {emptyState ? (
-            <div className="flex-1 flex items-center justify-center h-full">{emptyState}</div>
+            <div className="flex-1 flex items-center justify-center">{emptyState}</div>
           ) : (
             <EmptyState />
           )}
@@ -119,12 +119,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     }
 
     return (
-      <div className="w-full flex flex-col" ref={containerRef}>
-        <div
-          ref={parentRef}
-          className="overflow-auto relative px-2"
-          style={{ height: `${fixedHeight}px` }}
-        >
+      <div ref={containerRef} className="w-full flex flex-col">
+        <div ref={parentRef} className="overflow-auto relative px-2">
           <table className="w-full border-separate border-spacing-x-0">
             <colgroup>
               {colWidths.map((col, idx) => (

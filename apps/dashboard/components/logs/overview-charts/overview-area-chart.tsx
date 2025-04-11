@@ -139,7 +139,7 @@ export const OverviewAreaChart = ({
           labelsWithDefaults.reverse && "flex-row-reverse",
         )}
       >
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 max-md:w-full">
           <div className="flex items-center gap-2">
             {labelsWithDefaults.reverse &&
               labelsWithDefaults.metrics.map((metric) => (
@@ -158,9 +158,9 @@ export const OverviewAreaChart = ({
               ? `${primaryMetric.formatter(
                   ranges[primaryMetric.key].min,
                 )} - ${primaryMetric.formatter(ranges[primaryMetric.key].max)}`
-              : `${formatNumber(ranges[primaryMetric.key].min)} - ${formatNumber(
-                  ranges[primaryMetric.key].max,
-                )}`}
+              : `${formatNumber(
+                  ranges[primaryMetric.key].min,
+                )} - ${formatNumber(ranges[primaryMetric.key].max)}`}
           </div>
         </div>
 
@@ -272,14 +272,14 @@ export const OverviewAreaChart = ({
         </ResponsiveContainer>
       </div>
 
-      <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
+      <div className="h-max border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
         {data.length > 0
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
               data.at(-1)?.originalTimestamp ?? Date.now(),
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-              <div key={i} className="z-10">
+              <div key={i} className="z-10 text-center">
                 {formatTimestampLabel(time)}
               </div>
             ))
