@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { UNKEY_ACCESS_MAX_AGE } from '@/lib/auth/types';
+import { UNKEY_ACCESS_MAX_AGE } from "@/lib/auth/types";
+import { useRouter } from "next/navigation";
+import { createContext, useCallback, useEffect, useState } from "react";
 
 // Types
 type AuthContextType = {
@@ -18,11 +18,11 @@ const AuthContext = createContext<AuthContextType>({
   refreshSession: async () => false,
 });
 
-export function AuthProvider({ 
+export function AuthProvider({
   children,
   requireAuth = false,
-  redirectTo = '/auth/sign-in'
-}: { 
+  redirectTo = "/auth/sign-in",
+}: {
   children: React.ReactNode;
   requireAuth?: boolean;
   redirectTo?: string;
@@ -32,21 +32,21 @@ export function AuthProvider({
   const router = useRouter();
 
   // Verify authentication status
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       setIsLoading(true);
       // This endpoint will use server-side cached getAuth
-      const response = await fetch('/api/auth/session', {
-        credentials: 'include',
+      const response = await fetch("/api/auth/session", {
+        credentials: "include",
       });
 
       setIsAuthenticated(response.ok);
-      
+
       if (!response.ok && requireAuth) {
         router.push(redirectTo);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error("Auth check failed:", error);
       setIsAuthenticated(false);
       if (requireAuth) {
         router.push(redirectTo);
@@ -54,79 +54,59 @@ export function AuthProvider({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [requireAuth, router, redirectTo]);
 
   // Refresh session - this will use mutex-protected refresh
-  const refreshSession = async (): Promise<boolean> => {
+  const refreshSession = useCallback(async () => {
     try {
-      // This endpoint will trigger mutex-protected refresh function
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'include',
+      const response = await fetch("/api/auth/refresh", {
+        method: "POST",
+        credentials: "include",
       });
 
       setIsAuthenticated(response.ok);
-      
+
       if (!response.ok && requireAuth) {
         router.push(redirectTo);
       }
-      
+
       return response.ok;
     } catch (error) {
-      console.error('Session refresh failed:', error);
+      console.error("Session refresh failed:", error);
       setIsAuthenticated(false);
       if (requireAuth) {
         router.push(redirectTo);
       }
       return false;
     }
-  };
+  }, [requireAuth, router, redirectTo]);
 
   // Set up token refresh interval
   useEffect(() => {
     let refreshInterval: NodeJS.Timeout;
 
     if (isAuthenticated) {
-      // Refresh tokens proactively 1 min before expires
-      const refreshMaxAge = UNKEY_ACCESS_MAX_AGE - 6000;
-      refreshInterval = setInterval(() => {
-        refreshSession();
-      }, refreshMaxAge);
+      refreshInterval = setInterval(refreshSession, UNKEY_ACCESS_MAX_AGE - 6000);
     }
 
     return () => {
-      if (refreshInterval) clearInterval(refreshInterval);
-    };
-  }, [isAuthenticated]);
-
-  // Handle multi-tab logout
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'auth_logout' && isAuthenticated) {
-        setIsAuthenticated(false);
-        if (requireAuth) {
-          router.push(redirectTo);
-        }
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
       }
     };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [isAuthenticated, requireAuth, redirectTo, router]);
+  }, [isAuthenticated, refreshSession]);
 
   // Initial auth check
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
         isLoading,
-        refreshSession
+        refreshSession,
       }}
     >
       {!requireAuth || (requireAuth && isAuthenticated) ? children : null}

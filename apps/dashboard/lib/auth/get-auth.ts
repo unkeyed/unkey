@@ -1,9 +1,8 @@
-import { redirect } from "next/navigation";
 import { cache } from "react";
+import { env } from "../env";
 import { getCookie } from "./cookies";
 import { auth } from "./server";
 import { UNKEY_REFRESH_TOKEN, UNKEY_SESSION_COOKIE } from "./types";
-import { env } from "../env";
 
 type GetAuthResult = {
   userId: string | null;
@@ -12,31 +11,38 @@ type GetAuthResult = {
 };
 
 // Cache session validation based on session token
-export const validateSessionCached = cache(async (sessionToken: string | null): Promise<{
-  isValid: boolean;
-  shouldRefresh: boolean;
-  userId?: string;
-  orgId?: string | null;
-  role?: string | null;
-}> => {
-  if (!sessionToken) {
-    return { isValid: false, shouldRefresh: false };
-  }
+export const validateSessionCached = cache(
+  async (
+    sessionToken: string | null,
+  ): Promise<{
+    isValid: boolean;
+    shouldRefresh: boolean;
+    userId?: string;
+    orgId?: string | null;
+    role?: string | null;
+  }> => {
+    if (!sessionToken) {
+      return { isValid: false, shouldRefresh: false };
+    }
 
-  try {
-    return await auth.validateSession(sessionToken);
-  } catch (error) {
-    console.error("Session validation error:", error);
-    return { isValid: false, shouldRefresh: false };
-  }
-});
+    try {
+      return await auth.validateSession(sessionToken);
+    } catch (error) {
+      console.error("Session validation error:", error);
+      return { isValid: false, shouldRefresh: false };
+    }
+  },
+);
 
 // Global mutex objects to prevent concurrent refresh operations
 let refreshInProgress = false;
 let refreshPromise: Promise<GetAuthResult> | null = null;
 
 // refresh token with mutex protection
-async function refreshTokenWithMutex(refreshToken: string, baseUrl: string): Promise<GetAuthResult> {
+async function refreshTokenWithMutex(
+  refreshToken: string,
+  baseUrl: string,
+): Promise<GetAuthResult> {
   // If refresh is already in progress, wait for it
   if (refreshInProgress && refreshPromise) {
     try {
@@ -49,7 +55,7 @@ async function refreshTokenWithMutex(refreshToken: string, baseUrl: string): Pro
 
   // Set mutex to prevent concurrent refreshes
   refreshInProgress = true;
-  
+
   // Create the refresh promise
   refreshPromise = (async (): Promise<GetAuthResult> => {
     try {
@@ -57,20 +63,20 @@ async function refreshTokenWithMutex(refreshToken: string, baseUrl: string): Pro
         method: "POST",
         credentials: "include",
         headers: {
-          "x-refresh-token": refreshToken
+          "x-refresh-token": refreshToken,
         },
       });
-      
+
       if (!refreshResult.ok) {
         throw new Error("Refresh failed");
       }
 
       const refreshedData = await refreshResult.json();
-      
+
       return {
         userId: refreshedData.session.userId,
         orgId: refreshedData.session.orgId,
-        role: refreshedData.session.role
+        role: refreshedData.session.role,
       };
     } catch (error) {
       console.error("Refresh error:", error);
@@ -107,14 +113,14 @@ export const getAuth = cache(async (_req?: Request): Promise<GetAuthResult> => {
       return {
         userId: validationResult.userId,
         orgId: validationResult.orgId ?? null,
-        role: validationResult.role ?? null
+        role: validationResult.role ?? null,
       };
     }
 
     // If refresh is needed, use mutex-protected refresh
     if (validationResult.shouldRefresh) {
       const refreshResult = await refreshTokenWithMutex(refreshToken, baseUrl);
-      
+
       // // If refresh returned no user, redirect to sign-in
       // if (!refreshResult.userId) {
       //   return {
@@ -123,7 +129,7 @@ export const getAuth = cache(async (_req?: Request): Promise<GetAuthResult> => {
       //     role: null,
       //   };
       // }
-      
+
       return refreshResult;
     }
 

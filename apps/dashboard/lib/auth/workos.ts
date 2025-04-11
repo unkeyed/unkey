@@ -6,7 +6,7 @@ import {
 } from "@workos-inc/node";
 import { getBaseUrl } from "../utils";
 import { BaseAuthProvider } from "./base-provider";
-import { getCookie, setCookie } from "./cookies";
+import { getCookie } from "./cookies";
 import {
   AuthErrorCode,
   type EmailAuthResult,
@@ -21,9 +21,9 @@ import {
   type SessionRefreshResult,
   type SessionValidationResult,
   type SignInViaOAuthOptions,
-  UNKEY_SESSION_COOKIE,
   UNKEY_ACCESS_TOKEN,
   UNKEY_REFRESH_TOKEN,
+  UNKEY_SESSION_COOKIE,
   type UpdateMembershipParams,
   type UpdateOrgParams,
   type User,
@@ -79,9 +79,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       }
 
       // trigger attempt to refresh
-      return { 
-        isValid: false, 
-        shouldRefresh: true
+      return {
+        isValid: false,
+        shouldRefresh: true,
       };
     } catch (error) {
       console.error("Session validation error:", {
@@ -94,21 +94,22 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   async refreshAccessToken(currentRefreshToken: string | null): Promise<SessionRefreshResult> {
     if (!currentRefreshToken) {
-      throw new Error("No refresh token provided")
+      throw new Error("No refresh token provided");
     }
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
     try {
-      const { sealedSession, refreshToken, accessToken, user, organizationId } = await this.provider.userManagement.authenticateWithRefreshToken({
-        clientId: this.clientId,
-        refreshToken: currentRefreshToken,
-        session: {
-          sealSession: true,
-          cookiePassword: this.cookiePassword
-        }
-      });
+      const { sealedSession, refreshToken, accessToken, user, organizationId } =
+        await this.provider.userManagement.authenticateWithRefreshToken({
+          clientId: this.clientId,
+          refreshToken: currentRefreshToken,
+          session: {
+            sealSession: true,
+            cookiePassword: this.cookiePassword,
+          },
+        });
 
       return {
         expiresAt,
@@ -118,17 +119,14 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         session: {
           userId: user.id,
           orgId: organizationId ?? null,
-          role: null // not returned in authenticateWithRefreshToken
-        }
-      }
-
-
+          role: null, // not returned in authenticateWithRefreshToken
+        },
+      };
     } catch (error) {
       console.error("butt", error);
       throw error;
     }
   }
-
 
   // async refreshSession(sessionToken: string | null): Promise<SessionRefreshResult> {
   //   if (!sessionToken) {
@@ -142,7 +140,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   //       sessionData: sessionToken,
   //       cookiePassword: this.cookiePassword,
   //     });
-      
+
   //     const refreshResult = await session.refresh({
   //       cookiePassword: this.cookiePassword,
   //     });
@@ -343,7 +341,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         session: {
           userId: refreshResult.user.id,
           orgId: refreshResult.organizationId ?? null,
-          role: refreshResult.role ?? null
+          role: refreshResult.role ?? null,
         },
       };
     } catch (error) {
@@ -767,7 +765,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     pendingAuthToken: string;
   }): Promise<VerificationResult> {
     try {
-      const { sealedSession,accessToken,refreshToken } =
+      const { sealedSession, accessToken, refreshToken } =
         await this.provider.userManagement.authenticateWithOrganizationSelection({
           pendingAuthenticationToken: params.pendingAuthToken,
           organizationId: params.orgId,
@@ -865,14 +863,15 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      const { sealedSession,accessToken,refreshToken } = await this.provider.userManagement.authenticateWithCode({
-        clientId: this.clientId,
-        code,
-        session: {
-          sealSession: true,
-          cookiePassword: this.cookiePassword,
-        },
-      });
+      const { sealedSession, accessToken, refreshToken } =
+        await this.provider.userManagement.authenticateWithCode({
+          clientId: this.clientId,
+          code,
+          session: {
+            sealSession: true,
+            cookiePassword: this.cookiePassword,
+          },
+        });
 
       if (!sealedSession) {
         throw new Error("No sealed session returned");

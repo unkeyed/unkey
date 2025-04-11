@@ -2,9 +2,9 @@ import type { Cookie } from "./cookies";
 
 // Core Types
 export const UNKEY_SESSION_COOKIE = "unkey-session";
-export const UNKEY_ACCESS_TOKEN = "unkey-access-token"
-export const UNKEY_ACCESS_MAX_AGE = (5 * 60 * 1000); // 5 minutes
-export const UNKEY_REFRESH_TOKEN = "unkey-refresh-token"
+export const UNKEY_ACCESS_TOKEN = "unkey-access-token";
+export const UNKEY_ACCESS_MAX_AGE = 5 * 60 * 1000; // 5 minutes
+export const UNKEY_REFRESH_TOKEN = "unkey-refresh-token";
 export const PENDING_SESSION_COOKIE = "sess-temp";
 export const SIGN_IN_URL = "/auth/sign-in";
 export const SIGN_UP_URL = "/auth/sign-up";

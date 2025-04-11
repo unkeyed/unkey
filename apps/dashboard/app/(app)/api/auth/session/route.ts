@@ -4,7 +4,7 @@ export async function GET() {
   try {
     // Use your robust cached and mutex-protected getAuth function
     const { userId } = await getAuth();
-    
+
     if (!userId) {
       return new Response(null, { status: 401 });
     }
