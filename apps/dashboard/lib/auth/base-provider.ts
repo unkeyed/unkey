@@ -28,7 +28,7 @@ import {
 export abstract class BaseAuthProvider {
   // Session Management
   abstract validateSession(sessionToken: string): Promise<SessionValidationResult>;
-  abstract refreshSession(sessionToken: string): Promise<SessionRefreshResult>;
+  abstract refreshAccessToken(currentRefreshToken: string): Promise<SessionRefreshResult>;
 
   // Authentication
   abstract signInViaEmail(email: string): Promise<EmailAuthResult>;

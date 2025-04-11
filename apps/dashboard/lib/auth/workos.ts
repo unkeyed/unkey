@@ -6,7 +6,7 @@ import {
 } from "@workos-inc/node";
 import { getBaseUrl } from "../utils";
 import { BaseAuthProvider } from "./base-provider";
-import { getCookie } from "./cookies";
+import { getCookie, setCookie } from "./cookies";
 import {
   AuthErrorCode,
   type EmailAuthResult,
@@ -22,6 +22,8 @@ import {
   type SessionValidationResult,
   type SignInViaOAuthOptions,
   UNKEY_SESSION_COOKIE,
+  UNKEY_ACCESS_TOKEN,
+  UNKEY_REFRESH_TOKEN,
   type UpdateMembershipParams,
   type UpdateOrgParams,
   type User,
@@ -68,13 +70,19 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       if (authResult.authenticated) {
         return {
           isValid: true,
+          token: authResult.accessToken,
           shouldRefresh: false,
           userId: authResult.user.id,
           orgId: authResult.organizationId ?? null,
+          role: authResult.role ?? null,
         };
       }
 
-      return { isValid: false, shouldRefresh: true };
+      // trigger attempt to refresh
+      return { 
+        isValid: false, 
+        shouldRefresh: true
+      };
     } catch (error) {
       console.error("Session validation error:", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -84,45 +92,85 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async refreshSession(sessionToken: string | null): Promise<SessionRefreshResult> {
-    if (!sessionToken) {
-      throw new Error("No session token provided");
+  async refreshAccessToken(currentRefreshToken: string | null): Promise<SessionRefreshResult> {
+    if (!currentRefreshToken) {
+      throw new Error("No refresh token provided")
     }
 
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
     try {
-      const session = this.provider.userManagement.loadSealedSession({
-        sessionData: sessionToken,
-        cookiePassword: this.cookiePassword,
+      const { sealedSession, refreshToken, accessToken, user, organizationId } = await this.provider.userManagement.authenticateWithRefreshToken({
+        clientId: this.clientId,
+        refreshToken: currentRefreshToken,
+        session: {
+          sealSession: true,
+          cookiePassword: this.cookiePassword
+        }
       });
 
-      const refreshResult = await session.refresh({
-        cookiePassword: this.cookiePassword,
-      });
-
-      if (refreshResult.authenticated && refreshResult.session) {
-        // Set expiration to 7 days from now
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
-
-        return {
-          newToken: refreshResult.sealedSession!,
-          expiresAt,
-          session: {
-            userId: refreshResult.session.user.id,
-            orgId: refreshResult.session.organizationId ?? null,
-          },
-        };
+      return {
+        expiresAt,
+        sessionToken: sealedSession!,
+        accessToken,
+        refreshToken,
+        session: {
+          userId: user.id,
+          orgId: organizationId ?? null,
+          role: null // not returned in authenticateWithRefreshToken
+        }
       }
 
-      throw new Error("reason" in refreshResult ? refreshResult.reason : "Session refresh failed");
+
     } catch (error) {
-      console.error("Session refresh error:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        token: sessionToken ? `${sessionToken.substring(0, 10)}...` : "no token",
-      });
+      console.error("butt", error);
       throw error;
     }
   }
+
+
+  // async refreshSession(sessionToken: string | null): Promise<SessionRefreshResult> {
+  //   if (!sessionToken) {
+  //     throw new Error("No session token provided");
+  //   }
+
+  //   try {
+  //     const expiresAt = new Date();
+  //       expiresAt.setDate(expiresAt.getDate() + 7);
+  //     const session = this.provider.userManagement.loadSealedSession({
+  //       sessionData: sessionToken,
+  //       cookiePassword: this.cookiePassword,
+  //     });
+      
+  //     const refreshResult = await session.refresh({
+  //       cookiePassword: this.cookiePassword,
+  //     });
+
+  //     if (refreshResult.authenticated && refreshResult.session) {
+  //       // Set expiration to 7 days from now
+  //       const expiresAt = new Date();
+  //       expiresAt.setDate(expiresAt.getDate() + 7);
+  //       return {
+  //         sessionToken: refreshResult.sealedSession!,
+  //         expiresAt,
+  //         session: {
+  //           userId: refreshResult.user.id,
+  //           orgId: refreshResult.organizationId ?? null,
+  //           role: refreshResult.role ?? null
+  //         },
+  //       };
+  //     }
+
+  //     throw new Error("reason" in refreshResult ? refreshResult.reason : "Session refresh failed");
+  //   } catch (error) {
+  //     console.error("Session refresh error:", {
+  //       error: error instanceof Error ? error.message : "Unknown error",
+  //       token: sessionToken ? `${sessionToken.substring(0, 10)}...` : "no token",
+  //     });
+  //     throw error;
+  //   }
+  // }
 
   // User Management
   async getCurrentUser(): Promise<User | null> {
@@ -290,11 +338,12 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       expiresAt.setDate(expiresAt.getDate() + 7);
 
       return {
-        newToken: refreshResult.sealedSession!,
+        sessionToken: refreshResult.sealedSession!,
         expiresAt,
         session: {
-          userId: refreshResult.session.user.id,
-          orgId: newOrgId,
+          userId: refreshResult.user.id,
+          orgId: refreshResult.organizationId ?? null,
+          role: refreshResult.role ?? null
         },
       };
     } catch (error) {
@@ -718,7 +767,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     pendingAuthToken: string;
   }): Promise<VerificationResult> {
     try {
-      const { sealedSession } =
+      const { sealedSession,accessToken,refreshToken } =
         await this.provider.userManagement.authenticateWithOrganizationSelection({
           pendingAuthenticationToken: params.pendingAuthToken,
           organizationId: params.orgId,
@@ -740,6 +789,24 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           {
             name: UNKEY_SESSION_COOKIE,
             value: sealedSession,
+            options: {
+              secure: true,
+              httpOnly: true,
+              sameSite: "lax",
+            },
+          },
+          {
+            name: UNKEY_ACCESS_TOKEN,
+            value: accessToken,
+            options: {
+              secure: true,
+              httpOnly: true,
+              sameSite: "lax",
+            },
+          },
+          {
+            name: UNKEY_REFRESH_TOKEN,
+            value: refreshToken,
             options: {
               secure: true,
               httpOnly: true,
@@ -798,7 +865,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      const { sealedSession } = await this.provider.userManagement.authenticateWithCode({
+      const { sealedSession,accessToken,refreshToken } = await this.provider.userManagement.authenticateWithCode({
         clientId: this.clientId,
         code,
         session: {
@@ -822,6 +889,24 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           {
             name: UNKEY_SESSION_COOKIE,
             value: sealedSession,
+            options: {
+              secure: true,
+              httpOnly: true,
+              sameSite: "lax",
+            },
+          },
+          {
+            name: UNKEY_ACCESS_TOKEN,
+            value: accessToken,
+            options: {
+              secure: true,
+              httpOnly: true,
+              sameSite: "lax",
+            },
+          },
+          {
+            name: UNKEY_REFRESH_TOKEN,
+            value: refreshToken,
             options: {
               secure: true,
               httpOnly: true,

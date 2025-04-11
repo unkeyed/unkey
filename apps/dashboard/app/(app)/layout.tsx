@@ -3,6 +3,7 @@ import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { getIsImpersonator, getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { AuthProvider } from "@/providers/AuthProvider";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -29,6 +30,7 @@ export default async function Layout({ children }: LayoutProps) {
   }
 
   return (
+    <AuthProvider requireAuth={true}>
     <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-base-12 lg:flex-row">
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
@@ -80,5 +82,6 @@ export default async function Layout({ children }: LayoutProps) {
         </div>
       </SidebarProvider>
     </div>
+    </AuthProvider>
   );
 }
