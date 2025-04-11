@@ -1,7 +1,7 @@
 import { cn } from "@unkey/ui/src/lib/utils";
 
 type SettingCardProps = {
-  title: string;
+  title: string | React.ReactNode;
   description: string | React.ReactNode;
   children?: React.ReactNode;
   className?: string;
@@ -40,7 +40,7 @@ export function SettingCard({
       )}
     >
       <div className="flex flex-col gap-1 text-sm">
-        <div className="text-accent-12 font-medium">{title}</div>
+        <div className="font-medium text-accent-12">{title}</div>
         <div className="text-accent-11">{description}</div>
       </div>
       <div className={cn("flex items-center", contentWidth)}>{children}</div>

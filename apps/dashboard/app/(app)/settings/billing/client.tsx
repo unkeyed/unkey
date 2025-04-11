@@ -83,7 +83,7 @@ export const Client: React.FC<Props> = (props) => {
     : -1;
 
   return (
-    <Shell>
+    <Shell workspace={props.workspace}>
       {props.subscription ? (
         <SusbcriptionStatus
           status={props.subscription.status}
@@ -96,7 +96,7 @@ export const Client: React.FC<Props> = (props) => {
       <Usage current={props.usage.current} max={props.usage.max} />
 
       {props.workspace.stripeCustomerId ? (
-        <div className="w-full flex-col flex  ">
+        <div className="flex flex-col w-full ">
           {props.products.map((p, i) => {
             const isSelected = selectedProductIndex === i;
             const isNextSelected = selectedProductIndex === i + 1;
@@ -114,14 +114,14 @@ export const Client: React.FC<Props> = (props) => {
                   },
                 )}
               >
-                <div className=" text-accent-12 font-medium w-4/12">{p.name}</div>
-                <div className="w-4/12 flex justify-end items-center gap-1">
+                <div className="w-4/12 font-medium text-accent-12">{p.name}</div>
+                <div className="flex items-center justify-end w-4/12 gap-1">
                   <span className="text-accent-12 ">{formatNumber(p.quotas.requestsPerMonth)}</span>
                   <span className="text-gray-11 ">requests</span>
                 </div>
-                <div className="flex items-center justify-between gap-4 w-4/12">
-                  <div className="flex items-center justify-end gap-1 w-full">
-                    <span className="font-medium  text-accent-12 ">${p.dollar}</span>
+                <div className="flex items-center justify-between w-4/12 gap-4">
+                  <div className="flex items-center justify-end w-full gap-1">
+                    <span className="font-medium text-accent-12 ">${p.dollar}</span>
                     <span className="text-gray-11 ">/mo</span>
                   </div>
 
@@ -177,7 +177,7 @@ export const Client: React.FC<Props> = (props) => {
           border={props.subscription && allowCancel ? "top" : "both"}
           description="Before starting a trial, you need to add a payment method."
         >
-          <div className="w-full flex justify-end">
+          <div className="flex justify-end w-full">
             <Button variant="primary">
               <Link href="/settings/billing/stripe/checkout">Add payment method</Link>
             </Button>
@@ -191,7 +191,7 @@ export const Client: React.FC<Props> = (props) => {
             border={props.subscription && allowCancel ? "top" : "both"}
             description="Manage Payment methods and see your invoices."
           >
-            <div className="w-full flex justify-end">
+            <div className="flex justify-end w-full">
               <Button variant="outline" size="lg">
                 <Link href="/settings/billing/stripe/portal">Open Portal</Link>
               </Button>
@@ -206,7 +206,7 @@ export const Client: React.FC<Props> = (props) => {
             border="bottom"
             className="border-t"
           >
-            <div className="w-full flex justify-end">
+            <div className="flex justify-end w-full">
               <Confirm
                 title="Cancel plan"
                 description="Canceling your plan will downgrade your workspace to the free tier at the end of the current period. You can resume your subscription until then."
@@ -233,7 +233,7 @@ const FreeTierAlert: React.FC = () => {
         The Free tier includes 150k requests of free usage.
         <br />
         To unlock additional usage and add team members, upgrade to Pro.{" "}
-        <Link href="https://unkey.com/pricing" target="_blank" className="text-info-11 underline">
+        <Link href="https://unkey.com/pricing" target="_blank" className="underline text-info-11">
           See Pricing
         </Link>
       </Empty.Description>
@@ -270,7 +270,7 @@ const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
       border="both"
       className="border-warning-7 bg-warning-2"
     >
-      <div className="flex w-full justify-end">
+      <div className="flex justify-end w-full">
         <Button
           variant="primary"
           loading={uncancelSubscription.isLoading}
@@ -325,7 +325,7 @@ const SusbcriptionStatus: React.FC<{ status: Stripe.Subscription.Status; trialUn
           border="both"
           className="border-error-7 bg-error-3"
         >
-          <div className="w-full flex justify-end">
+          <div className="flex justify-end w-full">
             <Button variant="primary" size="lg">
               <Link href="/settings/billing/stripe/portal">Open Portal</Link>
             </Button>
