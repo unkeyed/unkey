@@ -2,10 +2,11 @@
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { BookBookmark, Key } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { BookBookmark, Focus, Key } from "@unkey/icons";
+import { Button, Empty, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo, useState } from "react";
+import React from "react";
 import { VerificationBarChart } from "./components/bar-chart";
 import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
@@ -33,22 +34,58 @@ export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
         header: "Key",
         width: "10%",
         headerClassName: "pl-[18px]",
-        render: (key) => (
-          <div className="flex flex-col items-start px-[18px] py-[6px]">
-            <div className="flex gap-4 items-center">
-              <div className="bg-grayA-3 size-5 rounded flex items-center justify-center">
-                <Key size="sm-regular" />
-              </div>
-              <div className="flex flex-col gap-1 text-xs">
-                <div className="font-mono font-medium truncate text-brand-12">
-                  {key.id.substring(0, 8)}...
-                  {key.id.substring(key.id.length - 4)}
+        render: (key) => {
+          const identity = key.identity?.external_id ?? key.owner_id;
+          const iconContainer = (
+            <div
+              className={cn(
+                "size-5 rounded flex items-center justify-center",
+                identity ? "bg-successA-3" : "bg-grayA-3",
+              )}
+            >
+              {identity ? (
+                <Focus size="md-regular" className="text-successA-11" />
+              ) : (
+                <Key size="md-regular" />
+              )}
+            </div>
+          );
+
+          return (
+            <div className="flex flex-col items-start px-[18px] py-[6px]">
+              <div className="flex gap-4 items-center">
+                {identity ? (
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {React.cloneElement(iconContainer, {
+                          className: cn(iconContainer.props.className, "cursor-pointer"),
+                        })}
+                      </TooltipTrigger>
+                      <TooltipContent
+                        className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12"
+                        side="right"
+                      >
+                        This key is associated with the identity:{" "}
+                        <span className="font-mono bg-gray-3 px-1 rounded">{identity}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  iconContainer
+                )}
+
+                <div className="flex flex-col gap-1 text-xs">
+                  <div className="font-mono font-medium truncate text-brand-12">
+                    {key.id.substring(0, 8)}...
+                    {key.id.substring(key.id.length - 4)}
+                  </div>
+                  {key.name && <span className="font-sans text-accent-9">{key.name}</span>}
                 </div>
-                {key.name && <span className="font-sans text-accent-9">{key.name}</span>}
               </div>
             </div>
-          </div>
-        ),
+          );
+        },
       },
       {
         key: "value",
@@ -164,3 +201,59 @@ export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
     </div>
   );
 };
+
+// const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
+//   <TooltipProvider>
+//     <Tooltip>
+//       <TooltipTrigger asChild>
+//         <div className="group relative p-3 cursor-pointer -ml-[5px]">
+//           <div className="absolute inset-0" />
+//           <div
+//             className={cn(
+//               "size-[6px] rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+//               calculateBlockedPercentage(log)
+//                 ? "bg-orange-10 hover:bg-orange-11"
+//                 : "bg-warning-10"
+//             )}
+//           />
+//         </div>
+//       </TooltipTrigger>
+//       <TooltipContent
+//         className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12 w-[265px]"
+//         side="right"
+//       >
+//         <div className="flex gap-3 items-center">
+//           <div
+//             className={cn(
+//               style.badge.default,
+//               "rounded p-1",
+//               "bg-accent-4 text-accent-11 group-hover:bg-accent-5"
+//             )}
+//           >
+//             <ArrowDotAntiClockwise size="md-regular" />
+//           </div>
+//           <div className="flex flex-col gap-1">
+//             <div className="text-sm flex gap-[10px] items-center">
+//               <span className="font-medium text-sm text-accent-12">
+//                 Custom override in effect
+//               </span>
+//               <div className="size-[6px] rounded-full bg-warning-10" />
+//             </div>
+//             {log.override && (
+//               <div className="text-accent-9">
+//                 Limit set to{" "}
+//                 <span className="text-accent-12">
+//                   {formatNumber(log.override.limit)}{" "}
+//                 </span>
+//                 requests per{" "}
+//                 <span className="text-accent-12">
+//                   {ms(log.override.duration)}
+//                 </span>
+//               </div>
+//             )}
+//           </div>
+//         </div>
+//       </TooltipContent>
+//     </Tooltip>
+//   </TooltipProvider>
+// );
