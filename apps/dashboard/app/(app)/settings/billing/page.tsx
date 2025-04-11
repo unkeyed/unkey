@@ -8,6 +8,7 @@ import { Button, Empty, Input } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
+import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
 import { Shell } from "./components/shell";
 
@@ -31,12 +32,16 @@ export default async function BillingPage() {
   const e = stripeEnv();
   if (!e) {
     return (
-      <Empty>
-        <Empty.Title>Stripe is not configured</Empty.Title>
-        <Empty.Description>
-          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
-        </Empty.Description>
-      </Empty>
+      <div>
+        <WorkspaceNavbar workspace={workspace} activePage={{ href: "billing", text: "Billing" }} />
+        <Empty>
+          <Empty.Title>Stripe is not configured</Empty.Title>
+          <Empty.Description>
+            If you are selfhosting Unkey, you need to configure Stripe in your environment
+            variables.
+          </Empty.Description>
+        </Empty>
+      </div>
     );
   }
 
@@ -69,7 +74,7 @@ export default async function BillingPage() {
 
   if (isLegacy) {
     return (
-      <Shell>
+      <Shell workspace={workspace}>
         <div className="w-full">
           <SettingCard
             title="Verifications"
@@ -110,7 +115,7 @@ export default async function BillingPage() {
             </>
           }
         >
-          <div className="w-full flex justify-end">
+          <div className="flex justify-end w-full">
             <Button variant="primary" size="lg">
               <Link href="mailto:support@unkey.dev">Contact us</Link>
             </Button>

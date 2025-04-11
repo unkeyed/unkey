@@ -1,7 +1,7 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { SettingCard } from "@/components/settings-card";
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 const formSchema = z.object({
   workspaceId: z.string(),
-  name: z.string().trim().min(3),
+  workspaceName: z.string().trim().min(3),
 });
 
 type Props = {
@@ -35,7 +35,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     delayError: 100,
     defaultValues: {
       workspaceId: workspace.id,
-      name: workspace.name,
+      workspaceName: workspace.name,
     },
   });
   const updateName = trpc.workspace.updateName.useMutation({
@@ -51,43 +51,67 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    updateName.mutateAsync(values);
+    updateName.mutateAsync({ workspaceId: workspace.id, name: values.workspaceName });
   }
-  const isDisabled = form.formState.isLoading || !form.formState.isValid || updateName.isLoading;
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Workspace Name</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col space-y-2">
-              <label htmlFor="name" className="hidden sr-only">
-                Name
-              </label>
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input {...field} className="max-w-sm" defaultValue={workspace.name} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <p className="text-xs text-content-subtle">What should your workspace be called?</p>
+        <SettingCard
+          className="py-[19px] mt-5"
+          title={
+            <div className="flex items-center justify-start gap-2.5">
+              <span className="text-sm font-medium text-accent-12">API Name</span>
             </div>
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button variant="primary" type="submit" disabled={isDisabled}>
-              {updateName.isLoading ? <Loading /> : "Save"}
+          }
+          description={
+            <div className="font-normal text-[13px] max-w-[380px]">
+              Not customer-facing. Choose a name that is easy to recognize.
+            </div>
+          }
+          border="top"
+        >
+          <div className="flex items-center w-full gap-2 sm:justify-start lg:justify-center">
+            <input type="hidden" name="workspaceId" value={workspace.id} />
+            <label htmlFor="workspaceName" className="hidden sr-only">
+              Workspace Name
+            </label>
+            <FormField
+              control={form.control}
+              name="workspaceName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      id="workspaceName"
+                      className="w-[257px] h-9"
+                      {...field}
+                      autoComplete="off"
+                      onBlur={(e) => {
+                        if (e.target.value === "") {
+                          return;
+                        }
+                      }}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <Button
+              size="lg"
+              className="rounded-lg px-2.5 "
+              disabled={
+                !form.formState.isValid ||
+                form.formState.isSubmitting ||
+                workspace.name === form.watch("workspaceName")
+              }
+              loading={form.formState.isSubmitting}
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </SettingCard>
       </form>
     </Form>
   );
