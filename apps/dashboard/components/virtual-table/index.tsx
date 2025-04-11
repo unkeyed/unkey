@@ -52,6 +52,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       selectedItem,
       isFetchingNextPage,
       loadMoreFooterProps,
+      renderSkeletonRow,
     } = props;
 
     // Merge configs, allowing specific overrides
@@ -73,7 +74,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     });
 
     const tableClassName = cn(
-      "w-full bg-white dark:bg-black",
+      "w-full bg-white dark:bg-black ",
       isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
     );
 
@@ -179,8 +180,24 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 if (isLoading) {
+                  if (renderSkeletonRow) {
+                    return (
+                      <tr
+                        key={`skeleton-${virtualRow.key}`}
+                        style={{ height: `${config.rowHeight}px` }}
+                      >
+                        {renderSkeletonRow({
+                          columns,
+                          rowHeight: config.rowHeight,
+                        })}
+                      </tr>
+                    );
+                  }
                   return (
-                    <tr key={virtualRow.key} style={{ height: `${config.rowHeight}px` }}>
+                    <tr
+                      key={`skeleton-${virtualRow.key}`}
+                      style={{ height: `${config.rowHeight}px` }}
+                    >
                       {columns.map((column) => (
                         <td key={column.key} className="pr-4">
                           <div className="h-4 bg-accent-3 rounded animate-pulse" />

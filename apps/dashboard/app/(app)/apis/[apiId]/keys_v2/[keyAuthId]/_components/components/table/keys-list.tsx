@@ -4,10 +4,18 @@ import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Key } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo, useState } from "react";
 import { VerificationBarChart } from "./components/bar-chart";
 import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
+import {
+  KeyColumnSkeleton,
+  LastUsedColumnSkeleton,
+  StatusColumnSkeleton,
+  UsageColumnSkeleton,
+  ValueColumnSkeleton,
+} from "./components/skeletons";
 import { StatusDisplay } from "./components/status-cell";
 import { useKeysListQuery } from "./hooks/use-logs-query";
 import { getRowClassName } from "./utils/get-row-class";
@@ -130,6 +138,28 @@ export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
           rowBorders: true,
           containerPadding: "px-0",
         }}
+        renderSkeletonRow={({ columns, rowHeight }) =>
+          columns.map((column, idx) => (
+            <td
+              key={column.key}
+              className={cn(
+                "text-xs align-middle whitespace-nowrap pr-4",
+                idx === 0 ? "pl-[18px]" : "",
+                column.key === "key" ? "py-[6px]" : "py-1",
+              )}
+              style={{ height: `${rowHeight}px` }}
+            >
+              {column.key === "key" && <KeyColumnSkeleton />}
+              {column.key === "value" && <ValueColumnSkeleton />}
+              {column.key === "usage" && <UsageColumnSkeleton />}
+              {column.key === "last_used" && <LastUsedColumnSkeleton />}
+              {column.key === "status" && <StatusColumnSkeleton />}
+              {!["key", "value", "usage", "last_used", "status"].includes(column.key) && (
+                <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />
+              )}
+            </td>
+          ))
+        }
       />
     </div>
   );
