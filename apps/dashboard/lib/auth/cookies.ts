@@ -87,7 +87,7 @@ export async function updateCookie(
  * Useful when you need to set cookies during a redirect
  */
 export async function setCookiesOnResponse(
-  response: Response,
+  response: NextResponse,
   cookieList: Cookie[],
 ): Promise<NextResponse> {
   for (const cookie of cookieList) {
