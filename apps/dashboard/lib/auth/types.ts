@@ -131,7 +131,7 @@ export interface SessionRefreshResult {
 export interface SessionData {
   userId: string;
   orgId: string | null;
-  role: string | null;
+  role?: string | null;
 }
 
 // OAuth Types

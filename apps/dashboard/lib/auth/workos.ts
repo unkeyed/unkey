@@ -339,9 +339,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         sessionToken: refreshResult.sealedSession!,
         expiresAt,
         session: {
-          userId: refreshResult.user.id,
-          orgId: refreshResult.organizationId ?? null,
-          role: refreshResult.role ?? null,
+          userId: refreshResult.session.user.id,
+          orgId: refreshResult.session.organizationId ?? null,
+          role: null, // doesn't come back on this API call for some reason
         },
       };
     } catch (error) {
