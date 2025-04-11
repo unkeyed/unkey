@@ -1,5 +1,5 @@
-import type { KeysListFilterUrlValue } from "@/app/(app)/apis/[apiId]/keys_v2/[keyAuthId]/_components/filters.schema";
-import { type SQL, db } from "@/lib/db";
+import type { AllOperatorsUrlValue } from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
+import { type SQL, db, like, or } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { identities } from "@unkey/db/src/schema";
 import type { KeyDetails } from "./schema";
@@ -8,9 +8,9 @@ interface GetAllKeysInput {
   keyspaceId: string;
   workspaceId: string;
   filters?: {
-    keyIds?: KeysListFilterUrlValue[] | null;
-    names?: KeysListFilterUrlValue[] | null;
-    identities?: KeysListFilterUrlValue[] | null;
+    keyIds?: AllOperatorsUrlValue[] | null;
+    names?: AllOperatorsUrlValue[] | null;
+    identities?: AllOperatorsUrlValue[] | null;
   };
   limit?: number;
   cursorKeyId?: string | null;
@@ -116,49 +116,62 @@ export async function getAllKeys({
         }
       }
 
-      // Apply identity filters - checking both identities table and ownerId
       if (identityFilters && identityFilters.length > 0) {
-        const allIdentityConditions = [];
+        const individualIdentityFilterConditions = [];
         for (const filter of identityFilters) {
           const value = filter.value;
           if (typeof value !== "string") {
             continue;
           }
-          let condition: SQL<any>;
-          let ownerCondition: SQL<any>;
+
+          let ownerIdCondition: SQL<any>;
           switch (filter.operator) {
             case "is":
-              condition = sql`identities.external_id = ${value}`;
-              ownerCondition = sql`${key.ownerId} = ${value}`;
+              ownerIdCondition = eq(key.ownerId, value);
               break;
             case "contains":
-              condition = sql`identities.external_id LIKE ${`%${value}%`}`;
-              ownerCondition = sql`${key.ownerId} LIKE ${`%${value}%`}`;
+              ownerIdCondition = like(key.ownerId, `%${value}%`);
               break;
             case "startsWith":
-              condition = sql`identities.external_id LIKE ${`${value}%`}`;
-              ownerCondition = sql`${key.ownerId} LIKE ${`${value}%`}`;
+              ownerIdCondition = like(key.ownerId, `${value}%`);
               break;
             case "endsWith":
-              condition = sql`identities.external_id LIKE ${`%${value}`}`;
-              ownerCondition = sql`${key.ownerId} LIKE ${`%${value}`}`;
+              ownerIdCondition = like(key.ownerId, `%${value}`);
               break;
             default:
-              condition = sql`identities.external_id = ${value}`;
-              ownerCondition = sql`${key.ownerId} = ${value}`;
+              ownerIdCondition = eq(key.ownerId, value);
           }
-          // Check for matches in identity external ID via identities table
-          allIdentityConditions.push(sql`
-            EXISTS (
-              SELECT 1 FROM ${identities} 
-              WHERE ${identities.id} = ${key.identityId}
-              AND ${condition}
-            )`);
-          // Also check if it matches the ownerId directly
-          allIdentityConditions.push(ownerCondition);
+
+          const combinedCheckForThisFilter = or(
+            sql`EXISTS (
+                SELECT 1 FROM ${identities} -- Use schema object for table name is fine
+                WHERE ${sql.raw("identities.id")} = ${
+                  key.identityId
+                } -- Use raw 'identities.id'; use schema 'key.identityId' for outer ref
+                  AND ${(() => {
+                    const rawExternalIdColumn = sql.raw("identities.external_id");
+                    switch (filter.operator) {
+                      case "is":
+                        return sql`${rawExternalIdColumn} = ${value}`;
+                      case "contains":
+                        return sql`${rawExternalIdColumn} LIKE ${`%${value}%`}`;
+                      case "startsWith":
+                        return sql`${rawExternalIdColumn} LIKE ${`${value}%`}`;
+                      case "endsWith":
+                        return sql`${rawExternalIdColumn} LIKE ${`%${value}`}`;
+                      default:
+                        return sql`${rawExternalIdColumn} = ${value}`;
+                    }
+                  })()}
+            )`,
+            ownerIdCondition,
+          );
+
+          individualIdentityFilterConditions.push(combinedCheckForThisFilter);
         }
-        if (allIdentityConditions.length > 0) {
-          conditions.push(sql`(${sql.join(allIdentityConditions, sql` OR `)})`);
+
+        if (individualIdentityFilterConditions.length > 0) {
+          conditions.push(...individualIdentityFilterConditions);
         }
       }
 
