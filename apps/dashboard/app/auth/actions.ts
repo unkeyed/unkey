@@ -185,9 +185,9 @@ export async function completeOrgSelection(
 // Used in route handlers, like join
 export async function switchOrg(orgId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { newToken, expiresAt } = await auth.switchOrg(orgId);
+    const { sessionToken, expiresAt } = await auth.switchOrg(orgId);
 
-    await SetSessionCookie({ token: newToken, expiresAt });
+    await SetSessionCookie({ token: sessionToken, expiresAt });
 
     return { success: true };
   } catch (error) {

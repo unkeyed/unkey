@@ -70,7 +70,7 @@ export async function updateCookie(
       options: {
         httpOnly: true,
         secure: true,
-        sameSite: "lax",
+        sameSite: "strict",
       },
     });
     return;
@@ -83,7 +83,7 @@ export async function updateCookie(
 }
 
 /**
- * Set cookies on a NextResponse object
+ * Set cookies on a Response object
  * Useful when you need to set cookies during a redirect
  */
 export async function setCookiesOnResponse(
@@ -112,7 +112,7 @@ export async function SetSessionCookie(params: {
     options: {
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
       maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
     },

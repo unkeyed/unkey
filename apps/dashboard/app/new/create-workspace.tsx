@@ -42,7 +42,7 @@ export const CreateWorkspace: React.FC = () => {
         options: {
           httpOnly: true,
           secure: true,
-          sameSite: "lax",
+          sameSite: "strict",
           path: "/",
           maxAge: Math.floor((sessionData.expiresAt!.getTime() - Date.now()) / 1000),
         },

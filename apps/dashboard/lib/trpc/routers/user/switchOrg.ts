@@ -7,10 +7,10 @@ export const switchOrg = t.procedure
   .input(z.string())
   .mutation(async ({ input: orgId }) => {
     try {
-      const { newToken, expiresAt } = await authProvider.switchOrg(orgId);
+      const { sessionToken, expiresAt } = await authProvider.switchOrg(orgId);
       return {
         success: true,
-        token: newToken,
+        token: sessionToken,
         expiresAt,
       };
     } catch (error) {
