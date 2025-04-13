@@ -574,9 +574,6 @@
           },
           "meta": {
             "type": "object",
-            "additionalProperties": {
-              "nullable": true
-            },
             "description": "Attach metadata to this identity that you need to have access to when verifying a key.\n\nThis will be returned as part of the `verifyKey` response.\n"
           },
           "ratelimits": {
@@ -629,6 +626,45 @@
           },
           "data": {
             "$ref": "#/components/schemas/IdentitiesCreateIdentityResponseData"
+          }
+        }
+      },
+      "V2ApisCreateApiRequestBody": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The name for your API. This is not customer facing.",
+            "example": "my-api"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApisCreateApiResponseData": {
+        "type": "object",
+        "properties": {
+          "apiId": {
+            "description": "The id of the API",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the API",
+            "type": "string"
+          }
+        },
+        "required": ["apiId", "name"]
+      },
+      "V2ApisCreateApiResponseBody": {
+        "type": "object",
+        "required": ["meta", "data"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ApisCreateApiResponseData"
           }
         }
       }
@@ -1131,6 +1167,79 @@
               }
             },
             "description": "Error"
+          }
+        }
+      }
+    },
+    "/v2/apis.createApi": {
+      "post": {
+        "tags": ["apis"],
+        "operationId": "createApi",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2ApisCreateApiRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ApisCreateApiResponseBody"
+                }
+              }
+            },
+            "description": "Successfully created API"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
           }
         }
       }
