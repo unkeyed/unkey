@@ -54,7 +54,7 @@ export const ApisNavbar = ({
                 {
                   id: "keys",
                   label: "Keys",
-                  href: `/apis/${api.id}/keys/${api.keyAuthId}`,
+                  href: `/apis/${api.id}/keys_v2/${api.keyAuthId}`,
                 },
                 {
                   id: "settings",

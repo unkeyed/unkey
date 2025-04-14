@@ -1,8 +1,6 @@
-import { getOrgId } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { notFound } from "next/navigation";
+import { fetchApiAndWorkspaceDataFromDb } from "../../actions";
+import { ApisNavbar } from "../../api-id-navbar";
 import { KeysClient } from "./_components/keys-client";
-import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -12,24 +10,22 @@ export default async function APIKeysPage(props: {
     keyAuthId: string;
   };
 }) {
-  const orgId = await getOrgId();
+  const apiId = props.params.apiId;
+  const keyspaceId = props.params.keyAuthId;
 
-  const keyAuth = await db.query.keyAuth.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.keyAuthId), isNull(table.deletedAtM)),
-    with: {
-      workspace: true,
-      api: true,
-    },
-  });
-  if (!keyAuth || keyAuth.workspace.orgId !== orgId) {
-    return notFound();
-  }
+  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(apiId);
 
   return (
     <div>
-      <Navigation apiId={props.params.apiId} keyAuth={keyAuth} />
-      <KeysClient apiId={props.params.apiId} keyspaceId={keyAuth.id} />
+      <ApisNavbar
+        api={currentApi}
+        activePage={{
+          href: `/apis/${apiId}/keys_v2/${keyspaceId}`,
+          text: "Keys",
+        }}
+        apis={workspaceApis}
+      />
+      <KeysClient apiId={props.params.apiId} keyspaceId={keyspaceId} />
     </div>
   );
 }

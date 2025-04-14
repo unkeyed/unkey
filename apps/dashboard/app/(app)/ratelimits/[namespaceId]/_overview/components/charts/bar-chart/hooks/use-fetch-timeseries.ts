@@ -58,6 +58,11 @@ export const useFetchRatelimitOverviewTimeseries = (namespaceId: string) => {
     queryParams,
     {
       refetchInterval: queryParams.endTime ? false : 10_000,
+      trpc: {
+        context: {
+          skipBatch: true,
+        },
+      },
     },
   );
 
