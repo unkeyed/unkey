@@ -201,10 +201,10 @@ export const KeysList = ({
           <div className="w-full flex justify-center items-center h-full">
             <Empty className="w-[400px] flex items-start">
               <Empty.Icon className="w-auto" />
-              <Empty.Title>Key Verification Logs</Empty.Title>
+              <Empty.Title>No API Keys Found</Empty.Title>
               <Empty.Description className="text-left">
-                No key verification data to show. Once requests are made with API keys, you'll see a
-                summary of successful and failed verification attempts.
+                There are no API keys associated with this service yet. Create your first API key to
+                get started.
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-start">
                 <a
@@ -214,7 +214,7 @@ export const KeysList = ({
                 >
                   <Button size="md">
                     <BookBookmark />
-                    Documentation
+                    Learn about Keys
                   </Button>
                 </a>
               </Empty.Actions>
