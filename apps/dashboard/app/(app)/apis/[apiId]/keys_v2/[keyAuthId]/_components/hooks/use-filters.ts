@@ -1,4 +1,4 @@
-import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
+// src/features/keys/hooks/use-filters.ts (or your path)
 
 import { useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
@@ -9,20 +9,13 @@ import {
   type KeysListFilterValue,
   type KeysQuerySearchParams,
   keysListFilterFieldConfig,
+  keysListFilterFieldNames,
+  parseAsAllOperatorsFilterArray,
 } from "../filters.schema";
 
-const parseAsAllOperatorsFilterArray = parseAsFilterValueArray<KeysListFilterOperator>([
-  "is",
-  "contains",
-  "startsWith",
-  "endsWith",
-]);
-
-export const queryParamsPayload = {
-  keyIds: parseAsAllOperatorsFilterArray,
-  names: parseAsAllOperatorsFilterArray,
-  identities: parseAsAllOperatorsFilterArray,
-} as const;
+export const queryParamsPayload = Object.fromEntries(
+  keysListFilterFieldNames.map((field) => [field, parseAsAllOperatorsFilterArray]),
+) as { [K in KeysListFilterField]: typeof parseAsAllOperatorsFilterArray };
 
 export const useFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
@@ -32,20 +25,23 @@ export const useFilters = () => {
   const filters = useMemo(() => {
     const activeFilters: KeysListFilterValue[] = [];
 
-    for (const [field, value] of Object.entries(searchParams)) {
-      if (!Array.isArray(value) || !["keyIds", "names", "identities"].includes(field)) {
+    for (const field of keysListFilterFieldNames) {
+      const value = searchParams[field];
+
+      if (!Array.isArray(value)) {
         continue;
       }
 
       for (const filterItem of value) {
-        const baseFilter = {
-          id: crypto.randomUUID(),
-          field: field as KeysListFilterField,
-          operator: filterItem.operator,
-          value: filterItem.value,
-        };
-
-        activeFilters.push(baseFilter);
+        if (filterItem && typeof filterItem.value === "string" && filterItem.operator) {
+          const baseFilter: KeysListFilterValue = {
+            id: crypto.randomUUID(),
+            field: field,
+            operator: filterItem.operator,
+            value: filterItem.value,
+          };
+          activeFilters.push(baseFilter);
+        }
       }
     }
 
@@ -54,54 +50,38 @@ export const useFilters = () => {
 
   const updateFilters = useCallback(
     (newFilters: KeysListFilterValue[]) => {
-      const newParams: Partial<KeysQuerySearchParams> = {
-        keyIds: null,
-        names: null,
-        identities: null,
-      };
+      const newParams: Partial<KeysQuerySearchParams> = Object.fromEntries(
+        keysListFilterFieldNames.map((field) => [field, null]),
+      );
 
-      const keyIdFilters: AllOperatorsUrlValue[] = [];
-      const nameFilters: AllOperatorsUrlValue[] = [];
-      const identitiesFilters: AllOperatorsUrlValue[] = [];
+      const filtersByField = new Map<KeysListFilterField, AllOperatorsUrlValue[]>();
+      keysListFilterFieldNames.forEach((field) => filtersByField.set(field, []));
 
       newFilters.forEach((filter) => {
+        if (!keysListFilterFieldNames.includes(filter.field)) {
+          return;
+        }
+
         const fieldConfig = keysListFilterFieldConfig[filter.field];
         const validOperators = fieldConfig.operators;
-        const operator = validOperators.includes(filter.operator)
-          ? filter.operator
-          : validOperators[0];
+        const operator = (
+          validOperators.includes(filter.operator) ? filter.operator : validOperators[0]
+        ) as KeysListFilterOperator;
 
-        switch (filter.field) {
-          case "keyIds":
-            if (typeof filter.value === "string") {
-              keyIdFilters.push({
-                value: filter.value,
-                operator: operator as "is" | "contains" | "startsWith" | "endsWith",
-              });
-            }
-            break;
-          case "names":
-            if (typeof filter.value === "string") {
-              nameFilters.push({
-                value: filter.value,
-                operator: operator as "is" | "contains" | "startsWith" | "endsWith",
-              });
-            }
-            break;
-          case "identities":
-            if (typeof filter.value === "string") {
-              identitiesFilters.push({
-                value: filter.value,
-                operator: operator as "is" | "contains" | "startsWith" | "endsWith",
-              });
-            }
-            break;
+        if (typeof filter.value === "string") {
+          const fieldFilters = filtersByField.get(filter.field);
+          fieldFilters?.push({
+            value: filter.value,
+            operator: operator,
+          });
         }
       });
 
-      newParams.keyIds = keyIdFilters.length > 0 ? keyIdFilters : null;
-      newParams.names = nameFilters.length > 0 ? nameFilters : null;
-      newParams.identities = identitiesFilters.length > 0 ? identitiesFilters : null;
+      filtersByField.forEach((fieldFilters, field) => {
+        if (fieldFilters.length > 0) {
+          newParams[field] = fieldFilters;
+        }
+      });
 
       setSearchParams(newParams);
     },

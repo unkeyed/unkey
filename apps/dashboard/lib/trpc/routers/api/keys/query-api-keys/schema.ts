@@ -1,3 +1,4 @@
+import { keysListFilterOperatorEnum } from "@/app/(app)/apis/[apiId]/keys_v2/[keyAuthId]/_components/filters.schema";
 import { z } from "zod";
 
 export const keysListParams = z.object({
@@ -5,28 +6,28 @@ export const keysListParams = z.object({
   names: z
     .array(
       z.object({
-        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+        operator: keysListFilterOperatorEnum,
         value: z.string(),
       }),
     )
-    .nullable(),
+    .nullish(),
   identities: z
     .array(
       z.object({
-        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+        operator: keysListFilterOperatorEnum,
         value: z.string(),
       }),
     )
-    .nullable(),
+    .nullish(),
   keyIds: z
     .array(
       z.object({
-        operator: z.enum(["is", "contains"]),
+        operator: keysListFilterOperatorEnum,
         value: z.string(),
       }),
     )
-    .nullable(),
-  cursorKeyId: z.string().nullable(),
+    .nullish(),
+  cursorKeyId: z.string().nullish(),
 });
 
 export type KeysListParams = z.infer<typeof keysListParams>;
@@ -52,4 +53,5 @@ export const keyDetailsResponseSchema = z.object({
     refillAmount: z.number().nullable(),
   }),
 });
+
 export type KeyDetails = z.infer<typeof keyDetailsResponseSchema>;

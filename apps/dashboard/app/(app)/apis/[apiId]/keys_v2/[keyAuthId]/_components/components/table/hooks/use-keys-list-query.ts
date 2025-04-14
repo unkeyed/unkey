@@ -1,7 +1,9 @@
+// src/features/keys/hooks/useKeysListQuery.ts (or your path)
+
 import { trpc } from "@/lib/trpc/client";
-import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
+import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema"; // Adjust path
 import { useEffect, useMemo, useState } from "react";
-import { keysListFilterFieldConfig } from "../../../filters.schema";
+import { keysListFilterFieldConfig, keysListFilterFieldNames } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import type { KeysQueryListPayload } from "../query-logs.schema";
 
@@ -19,37 +21,32 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
 
   const queryParams = useMemo(() => {
     const params: KeysQueryListPayload = {
-      keyIds: [],
-      identities: [],
-      names: [],
+      ...Object.fromEntries(keysListFilterFieldNames.map((field) => [field, []])),
       keyAuthId,
     };
 
     filters.forEach((filter) => {
+      if (!keysListFilterFieldNames.includes(filter.field) || !params[filter.field]) {
+        return;
+      }
+
       const fieldConfig = keysListFilterFieldConfig[filter.field];
       const validOperators = fieldConfig.operators;
       const operator = validOperators.includes(filter.operator)
         ? filter.operator
         : validOperators[0];
 
-      switch (filter.field) {
-        case "names":
-        case "keyIds":
-        case "identities":
-          if (typeof filter.value === "string") {
-            params[filter.field]?.push({
-              operator,
-              value: filter.value,
-            });
-          }
-          break;
+      if (typeof filter.value === "string") {
+        params[filter.field]?.push({
+          operator,
+          value: filter.value,
+        });
       }
     });
 
     return params;
   }, [filters, keyAuthId]);
 
-  // Main query for keys data
   const {
     data: keysData,
     hasNextPage,
@@ -63,22 +60,17 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
     refetchOnWindowFocus: false,
   });
 
-  // Update keys map effect
   useEffect(() => {
     if (keysData) {
       const newMap = new Map<string, KeyDetails>();
-
       keysData.pages.forEach((page) => {
         page.keys.forEach((key) => {
-          // Use key.id as the unique identifier
           newMap.set(key.id, key);
         });
       });
-
       if (keysData.pages.length > 0) {
         setTotalCount(keysData.pages[0].totalCount);
       }
-
       setKeysMap(newMap);
     }
   }, [keysData]);

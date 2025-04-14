@@ -1,37 +1,14 @@
+// src/features/keys/filters.schema.ts
+
 import type { FilterValue, StringConfig } from "@/components/logs/validation/filter.types";
+import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 import { z } from "zod";
 
-export const keysListFilterFieldConfig: FilterFieldConfigs = {
-  keyIds: {
-    type: "string",
-    operators: ["is", "contains", "startsWith", "endsWith"],
-  },
-  names: {
-    type: "string",
-    operators: ["is", "contains", "startsWith", "endsWith"],
-  },
-  identities: {
-    type: "string",
-    operators: ["is", "contains", "startsWith", "endsWith"],
-  },
-};
+const commonStringOperators = ["is", "contains", "startsWith", "endsWith"] as const;
 
-// Schemas
-export const keysListFilterOperatorEnum = z.enum(["is", "contains", "startsWith", "endsWith"]);
-
-export const keysListFilterFieldEnum = z.enum(["keyIds", "names", "identities"]);
-
-export const filterOutputSchema = createFilterOutputSchema(
-  keysListFilterFieldEnum,
-  keysListFilterOperatorEnum,
-  keysListFilterFieldConfig,
-);
-
-// Types
+export const keysListFilterOperatorEnum = z.enum(commonStringOperators);
 export type KeysListFilterOperator = z.infer<typeof keysListFilterOperatorEnum>;
-
-export type KeysListFilterField = z.infer<typeof keysListFilterFieldEnum>;
 
 export type FilterFieldConfigs = {
   keyIds: StringConfig<KeysListFilterOperator>;
@@ -39,25 +16,52 @@ export type FilterFieldConfigs = {
   identities: StringConfig<KeysListFilterOperator>;
 };
 
-export type IsOnlyUrlValue = {
-  value: string | number;
-  operator: "is";
+export const keysListFilterFieldConfig: FilterFieldConfigs = {
+  keyIds: {
+    type: "string",
+    operators: [...commonStringOperators],
+  },
+  names: {
+    type: "string",
+    operators: [...commonStringOperators],
+  },
+  identities: {
+    type: "string",
+    operators: [...commonStringOperators],
+  },
 };
+
+const allFilterFieldNames = Object.keys(keysListFilterFieldConfig) as (keyof FilterFieldConfigs)[];
+
+if (allFilterFieldNames.length === 0) {
+  throw new Error("keysListFilterFieldConfig must contain at least one field definition.");
+}
+
+const [firstFieldName, ...restFieldNames] = allFilterFieldNames;
+
+export const keysListFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
+
+export const keysListFilterFieldNames = allFilterFieldNames;
+
+export type KeysListFilterField = z.infer<typeof keysListFilterFieldEnum>;
+
+export const filterOutputSchema = createFilterOutputSchema(
+  keysListFilterFieldEnum,
+  keysListFilterOperatorEnum,
+  keysListFilterFieldConfig,
+);
 
 export type AllOperatorsUrlValue = {
   value: string;
-  operator: "is" | "contains" | "startsWith" | "endsWith";
+  operator: KeysListFilterOperator;
 };
-
-export type KeysListFilterUrlValue = Pick<
-  FilterValue<KeysListFilterField, KeysListFilterOperator>,
-  "value" | "operator"
->;
 
 export type KeysListFilterValue = FilterValue<KeysListFilterField, KeysListFilterOperator>;
 
 export type KeysQuerySearchParams = {
-  keyIds: AllOperatorsUrlValue[] | null;
-  names: AllOperatorsUrlValue[] | null;
-  identities: AllOperatorsUrlValue[] | null;
+  [K in KeysListFilterField]?: AllOperatorsUrlValue[] | null;
 };
+
+export const parseAsAllOperatorsFilterArray = parseAsFilterValueArray<KeysListFilterOperator>([
+  ...commonStringOperators,
+]);
