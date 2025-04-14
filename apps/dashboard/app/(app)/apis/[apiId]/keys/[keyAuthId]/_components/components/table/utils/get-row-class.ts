@@ -34,9 +34,5 @@ export const getRowClassName = (log: KeyDetails, selectedLog: KeyDetails) => {
     "focus:outline-none focus:ring-1 focus:ring-opacity-40",
     style.focusRing,
     isSelected && style.selected,
-    selectedLog && {
-      "opacity-50 z-0": !isSelected,
-      "opacity-100 z-10": isSelected,
-    },
   );
 };

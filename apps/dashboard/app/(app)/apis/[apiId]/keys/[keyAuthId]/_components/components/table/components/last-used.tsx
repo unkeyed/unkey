@@ -22,7 +22,7 @@ export const LastUsedCell = ({
   return (
     <Badge
       className={cn(
-        "px-1.5 rounded-md flex gap-2 items-center w-[140px] h-[22px] border-none",
+        "px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] border-none",
         isError
           ? "bg-error-3 text-error-11 border border-error-5"
           : isSelected

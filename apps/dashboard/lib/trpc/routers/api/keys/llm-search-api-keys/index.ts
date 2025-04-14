@@ -19,7 +19,7 @@ export const apiKeysLlmSearch = t.procedure
   .input(
     z.object({
       query: z.string(),
-      keyAuthId: z.string(),
+      keyspaceId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -28,7 +28,7 @@ export const apiKeysLlmSearch = t.procedure
       .findFirst({
         where: (api, { and, eq, isNull }) =>
           and(
-            eq(api.keyAuthId, input.keyAuthId),
+            eq(api.keyAuthId, input.keyspaceId),
             eq(api.workspaceId, ctx.workspace.id),
             isNull(api.deletedAtM),
           ),

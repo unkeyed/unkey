@@ -1,12 +1,6 @@
-import { getOrgId } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { notFound } from "next/navigation";
-import { Navigation } from "./navigation";
-
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { PageContent } from "@/components/page-content";
-import { navigation } from "../../constants";
-import { Keys } from "./keys";
+import { fetchApiAndWorkspaceDataFromDb } from "../../actions";
+import { ApisNavbar } from "../../api-id-navbar";
+import { KeysClient } from "./_components/keys-client";
 
 export const dynamic = "force-dynamic";
 
@@ -16,31 +10,22 @@ export default async function APIKeysPage(props: {
     keyAuthId: string;
   };
 }) {
-  const orgId = await getOrgId();
+  const apiId = props.params.apiId;
+  const keyspaceId = props.params.keyAuthId;
 
-  const keyAuth = await db.query.keyAuth.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.keyAuthId), isNull(table.deletedAtM)),
-    with: {
-      workspace: true,
-      api: true,
-    },
-  });
-  if (!keyAuth || keyAuth.workspace.orgId !== orgId) {
-    return notFound();
-  }
+  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(apiId);
 
   return (
     <div>
-      <Navigation apiId={props.params.apiId} keyAuth={keyAuth} />
-
-      <PageContent>
-        <SubMenu navigation={navigation(keyAuth.api.id, keyAuth.id!)} segment="keys" />
-
-        <div className="flex flex-col gap-8 mt-8 mb-20">
-          <Keys keyAuthId={keyAuth.id} apiId={props.params.apiId} />
-        </div>
-      </PageContent>
+      <ApisNavbar
+        api={currentApi}
+        activePage={{
+          href: `/apis/${apiId}/keys/${keyspaceId}`,
+          text: "Keys",
+        }}
+        apis={workspaceApis}
+      />
+      <KeysClient apiId={props.params.apiId} keyspaceId={keyspaceId} />
     </div>
   );
 }

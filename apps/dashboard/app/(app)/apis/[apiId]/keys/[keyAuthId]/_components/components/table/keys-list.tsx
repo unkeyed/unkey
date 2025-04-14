@@ -94,7 +94,20 @@ export const KeysList = ({
                         side="right"
                       >
                         This key is associated with the identity:{" "}
-                        <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
+                        {key.identity_id ? (
+                          <Link
+                            title={"View details for identity"}
+                            className="font-mono group-hover:underline decoration-dotted"
+                            href={`/identities/${key.identity_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-disabled={isNavigating}
+                          >
+                            <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
+                          </Link>
+                        ) : (
+                          <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
+                        )}
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -163,9 +176,7 @@ export const KeysList = ({
         header: "Status",
         width: "15%",
         render: (key) => {
-          return (
-            <StatusDisplay keyData={key} keyAuthId={keyspaceId} selectedKeyId={selectedKey?.id} />
-          );
+          return <StatusDisplay keyData={key} keyAuthId={keyspaceId} />;
         },
       },
     ],
@@ -186,7 +197,7 @@ export const KeysList = ({
         rowClassName={(log) => getRowClassName(log, selectedKey as KeyDetails)}
         loadMoreFooterProps={{
           hide: isLoading,
-          buttonText: "Load more logs",
+          buttonText: "Load more keys",
           hasMore,
           countInfoText: (
             <div className="flex gap-2">
@@ -201,10 +212,10 @@ export const KeysList = ({
           <div className="w-full flex justify-center items-center h-full">
             <Empty className="w-[400px] flex items-start">
               <Empty.Icon className="w-auto" />
-              <Empty.Title>Key Verification Logs</Empty.Title>
+              <Empty.Title>No API Keys Found</Empty.Title>
               <Empty.Description className="text-left">
-                No key verification data to show. Once requests are made with API keys, you'll see a
-                summary of successful and failed verification attempts.
+                There are no API keys associated with this service yet. Create your first API key to
+                get started.
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-start">
                 <a
@@ -214,7 +225,7 @@ export const KeysList = ({
                 >
                   <Button size="md">
                     <BookBookmark />
-                    Documentation
+                    Learn about Keys
                   </Button>
                 </a>
               </Empty.Actions>

@@ -14,11 +14,7 @@ export const HiddenValueCell = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   // Show only first 4 characters, then dots
-  const displayValue = isHovered
-    ? value
-    : `${value.substring(0, 2)}${
-        value.length > 2 ? "•".repeat(Math.min(10, value.length - 2)) : ""
-      }`;
+  const displayValue = isHovered ? value : value.padEnd(16, "•");
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -38,7 +34,7 @@ export const HiddenValueCell = ({
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
       <div
         className={cn(
-          "rounded-lg border bg-white dark:bg-base-12 border-accent-4 text-grayA-11 w-[150px] px-2 py-1 flex gap-2 items-center cursor-pointer h-[28px] group-hover:border-grayA-3",
+          "rounded-lg border bg-white dark:bg-base-12 border-accent-4 text-grayA-11 w-[150px] px-2 py-1 flex gap-2 items-center cursor-pointer h-[28px] group-hover:border-grayA-3 font-mono",
           selected && "border-grayA-3",
         )}
         onMouseEnter={() => setIsHovered(true)}
@@ -48,7 +44,7 @@ export const HiddenValueCell = ({
         <div>
           <CircleLock size="sm-regular" className="text-gray-9" />
         </div>
-        <div className="truncate">{displayValue}</div>
+        <div>{displayValue}</div>
       </div>
     </>
   );
