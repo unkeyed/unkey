@@ -119,7 +119,6 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     isLoading: isLoadingInitial,
   } = trpc.api.keys.query.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialCursor: { requestId: null, time: null },
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,

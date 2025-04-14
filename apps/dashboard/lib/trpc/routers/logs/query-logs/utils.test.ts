@@ -28,7 +28,6 @@ describe("transformFilters", () => {
       statusCodes: [],
       requestIds: [],
       cursorTime: null,
-      cursorRequestId: null,
     });
   });
 
@@ -96,6 +95,5 @@ describe("transformFilters", () => {
     const result = transformFilters(payload);
 
     expect(result.cursorTime).toBe(1706024400000);
-    expect(result.cursorRequestId).toBe("req123");
   });
 });

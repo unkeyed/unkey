@@ -1,10 +1,10 @@
 -- name: InsertWorkspace :exec
 INSERT INTO `workspaces` (
     id,
-    tenant_id,
+    org_id,
     name,
     created_at_m,
-    plan,
+    tier,
     beta_features,
     features,
     enabled,
@@ -12,10 +12,10 @@ INSERT INTO `workspaces` (
 )
 VALUES (
     sqlc.arg(id),
-    sqlc.arg(tenant_id),
+    sqlc.arg(org_id),
     sqlc.arg(name),
      sqlc.arg(created_at),
-    'free',
+    'Free',
     '{}',
     '{}',
     true,

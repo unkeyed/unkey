@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -52,7 +53,6 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("invalid request body", "The request body is invalid."),
 			)
 		}
@@ -70,14 +70,13 @@ func New(svc Services) zen.Route {
 		)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
 			)
 		}
 
 		if !permissions.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
 				fault.WithDesc(permissions.Message, permissions.Message),
 			)
 		}
@@ -87,15 +86,15 @@ func New(svc Services) zen.Route {
 			rawMeta, metaErr := json.Marshal(req.Meta)
 			if metaErr != nil {
 				return fault.Wrap(metaErr,
-					fault.WithTag(fault.BAD_REQUEST),
-					fault.WithDesc("unable to marshal metadata", "We're unable to use your meta object."),
+					fault.WithCode(codes.App.Validation.InvalidInput.URN()),
+					fault.WithDesc("unable to marshal metadata", "We're unable to marshal the meta object."),
 				)
 			}
 
 			sizeInMB := float64(len(rawMeta)) / 1024 / 1024
 			if sizeInMB > MAX_META_LENGTH_MB {
 				return fault.New("metadata is too large",
-					fault.WithTag(fault.BAD_REQUEST),
+					fault.WithCode(codes.App.Validation.InvalidInput.URN()),
 					fault.WithDesc("metadata is too large", fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", MAX_META_LENGTH_MB, sizeInMB)),
 				)
 			}
@@ -106,7 +105,7 @@ func New(svc Services) zen.Route {
 		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
 			)
 		}
@@ -130,13 +129,12 @@ func New(svc Services) zen.Route {
 		if err != nil {
 			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 				return fault.Wrap(err,
-					fault.WithTag(fault.CONFLICT),
+					fault.WithCode(codes.Data.Identity.Duplicate.URN()),
 					fault.WithDesc("identity already exists", fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),
 				)
 			}
 
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("unable to create identity", "We're unable to create the identity and its ratelimits."),
 			)
 		}
@@ -179,7 +177,6 @@ func New(svc Services) zen.Route {
 				})
 				if err != nil {
 					return fault.Wrap(err,
-						fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 						fault.WithDesc("unable to create ratelimit", "We're unable to create a ratelimit for the identity."),
 					)
 				}
@@ -218,7 +215,7 @@ func New(svc Services) zen.Route {
 		err = svc.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
 			)
 		}
@@ -226,7 +223,7 @@ func New(svc Services) zen.Route {
 		err = tx.Commit()
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
 			)
 		}

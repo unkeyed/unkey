@@ -67,12 +67,11 @@ We will include data \`where time >= 9 am\``,
         .default(() => Date.now())
         .openapi({
           description: `The end of the period to fetch usage for as unix milliseconds timestamp.
-          To understand how the end filter works, let's look at an example:
+To understand how the end filter works, let's look at an example:
 
-          You specify a timestamp of 5 minutes past 9 am.
-          Your timestamp gets truncated to the start of the hour and then applied as filter.
-          We will include data \`where time <= 10 am\`
-          `,
+You specify a timestamp of 5 minutes past 9 am.
+Your timestamp gets truncated to the start of the hour and then applied as filter.
+We will include data \`where time <= 10 am\``,
           example: 1620000000000,
         }),
       groupBy: validation.groupBy
