@@ -35,10 +35,7 @@ export default async function APIKeyDetailPage(props: {
   const orgId = await getOrgId();
 
   const key = await db.query.keys.findFirst({
-    where: and(
-      eq(schema.keys.id, props.params.keyId),
-      isNull(schema.keys.deletedAtM)
-    ),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAtM)),
     with: {
       keyAuth: true,
       roles: {
@@ -76,13 +73,10 @@ export default async function APIKeyDetailPage(props: {
     return notFound();
   }
 
-  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(
-    props.params.apiId
-  );
+  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(props.params.apiId);
   const interval = props.searchParams.interval ?? "7d";
 
-  const { getVerificationsPerInterval, start, end, granularity } =
-    prepareInterval(interval);
+  const { getVerificationsPerInterval, start, end, granularity } = prepareInterval(interval);
   const query = {
     workspaceId: currentApi.workspaceId,
     keySpaceId: key.keyAuthId,
@@ -96,20 +90,19 @@ export default async function APIKeyDetailPage(props: {
       workspaceId: key.workspaceId,
       keySpaceId: key.keyAuthId,
       keyId: key.id,
+      limit: 50,
     }),
     clickhouse.verifications
       .latest({
         workspaceId: key.workspaceId,
         keySpaceId: key.keyAuthId,
         keyId: key.id,
+        limit: 1,
       })
       .then((res) => res.val?.at(0)?.time ?? 0),
   ]);
 
-  // Sort all verifications by time first
-  const sortedVerifications = verifications.val!.sort(
-    (a, b) => a.time - b.time
-  );
+  const sortedVerifications = verifications.val!.sort((a, b) => a.time - b.time);
 
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
@@ -119,12 +112,8 @@ export default async function APIKeyDetailPage(props: {
   const expiredOverTime: { x: string; y: number }[] = [];
   const forbiddenOverTime: { x: string; y: number }[] = [];
 
-  // Get all unique timestamps
-  const uniqueDates = [...new Set(sortedVerifications.map((d) => d.time))].sort(
-    (a, b) => a - b
-  );
+  const uniqueDates = [...new Set(sortedVerifications.map((d) => d.time))].sort((a, b) => a - b);
 
-  // Ensure each array has entries for all timestamps with zero counts
   for (const timestamp of uniqueDates) {
     const x = new Date(timestamp).toISOString();
     successOverTime.push({ x, y: 0 });
@@ -273,42 +262,26 @@ export default async function APIKeyDetailPage(props: {
               <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:divide-x">
                 <Metric
                   label={
-                    key.expires && key.expires.getTime() < Date.now()
-                      ? "Expired"
-                      : "Expires in"
+                    key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"
                   }
-                  value={
-                    key.expires ? (
-                      ms(key.expires.getTime() - Date.now())
-                    ) : (
-                      <Minus />
-                    )
-                  }
+                  value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
                 />
                 <Metric
                   label="Remaining"
                   value={
-                    typeof key.remaining === "number" ? (
-                      formatNumber(key.remaining)
-                    ) : (
-                      <Minus />
-                    )
+                    typeof key.remaining === "number" ? formatNumber(key.remaining) : <Minus />
                   }
                 />
                 <Metric
                   label="Last Used"
-                  value={
-                    lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />
-                  }
+                  value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
                 />
               </CardContent>
             </Card>
             <Separator className="my-8" />
 
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold leading-none tracking-tight">
-                Verifications
-              </h2>
+              <h2 className="text-2xl font-semibold leading-none tracking-tight">Verifications</h2>
 
               <div>
                 <IntervalSelect defaultSelected={interval} />
@@ -320,30 +293,15 @@ export default async function APIKeyDetailPage(props: {
                 <CardHeader>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 divide-x">
                     <Metric label="Valid" value={formatNumber(stats.valid)} />
-                    <Metric
-                      label="Ratelimited"
-                      value={formatNumber(stats.ratelimited)}
-                    />
-                    <Metric
-                      label="Usage Exceeded"
-                      value={formatNumber(stats.usageExceeded)}
-                    />
-                    <Metric
-                      label="Disabled"
-                      value={formatNumber(stats.disabled)}
-                    />
+                    <Metric label="Ratelimited" value={formatNumber(stats.ratelimited)} />
+                    <Metric label="Usage Exceeded" value={formatNumber(stats.usageExceeded)} />
+                    <Metric label="Disabled" value={formatNumber(stats.disabled)} />
                     <Metric
                       label="Insufficient Permissions"
                       value={formatNumber(stats.insufficientPermissions)}
                     />
-                    <Metric
-                      label="Expired"
-                      value={formatNumber(stats.expired)}
-                    />
-                    <Metric
-                      label="Forbidden"
-                      value={formatNumber(stats.forbidden)}
-                    />
+                    <Metric label="Expired" value={formatNumber(stats.expired)} />
+                    <Metric label="Forbidden" value={formatNumber(stats.forbidden)} />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -354,8 +312,8 @@ export default async function APIKeyDetailPage(props: {
                       granularity >= 1000 * 60 * 60 * 24 * 30
                         ? "month"
                         : granularity >= 1000 * 60 * 60 * 24
-                        ? "day"
-                        : "hour"
+                          ? "day"
+                          : "hour"
                     }
                   />
                 </CardContent>
@@ -364,9 +322,7 @@ export default async function APIKeyDetailPage(props: {
               <Empty>
                 <Empty.Icon />
                 <Empty.Title>Not used</Empty.Title>
-                <Empty.Description>
-                  This key was not used in the last {interval}
-                </Empty.Description>
+                <Empty.Description>This key was not used in the last {interval}</Empty.Description>
               </Empty>
             )}
 

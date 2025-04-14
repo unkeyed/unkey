@@ -16,10 +16,7 @@ import { zodResponseFormat } from "openai/helpers/zod.mjs";
  * @param usersReferenceMS - Reference timestamp in milliseconds
  * @returns Parsed structured search filters or null if OpenAI client is not available
  */
-export async function getKeysStructuredSearchFromLLM(
-  openai: OpenAI | null,
-  userSearchMsg: string
-) {
+export async function getKeysStructuredSearchFromLLM(openai: OpenAI | null, userSearchMsg: string) {
   try {
     if (!openai) {
       return null; // Skip LLM processing in development environment when OpenAI API key is not configured
@@ -63,8 +60,8 @@ export async function getKeysStructuredSearchFromLLM(
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
-        userSearchMsg
-      )}\n Output ${(error as Error).message}}`
+        userSearchMsg,
+      )}\n Output ${(error as Error).message}}`,
     );
     if (error instanceof TRPCError) {
       throw error;
@@ -73,8 +70,7 @@ export async function getKeysStructuredSearchFromLLM(
     if ((error as any).response?.status === 429) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message:
-          "Search rate limit exceeded. Please try again in a few minutes.",
+        message: "Search rate limit exceeded. Please try again in a few minutes.",
       });
     }
 
@@ -100,9 +96,7 @@ export const getKeysSystemPrompt = () => {
           ? config.operators.join(", ")
           : "no specific operators listed"; // Fallback message
       const operatorText = Array.isArray(config?.operators)
-        ? `accepts ${operators} operator${
-            config.operators.length > 1 ? "s" : ""
-          }`
+        ? `accepts ${operators} operator${config.operators.length > 1 ? "s" : ""}`
         : "has specific operator constraints"; // General fallback
       return `- ${field} (${config.type} type) ${operatorText}`;
     })

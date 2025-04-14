@@ -13,9 +13,7 @@ export default async function APIKeysPage(props: {
   const apiId = props.params.apiId;
   const keyspaceId = props.params.keyAuthId;
 
-  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(
-    apiId
-  );
+  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(apiId);
 
   return (
     <div>

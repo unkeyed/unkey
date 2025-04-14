@@ -37,10 +37,9 @@ export const KeysList = ({
   keyspaceId: string;
   apiId: string;
 }) => {
-  const { keys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
-    useKeysListQuery({
-      keyAuthId: keyspaceId,
-    });
+  const { keys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useKeysListQuery({
+    keyAuthId: keyspaceId,
+  });
   const [selectedKey, setSelectedKey] = useState<KeyDetails | null>(null);
   const [navigatingKeyId, setNavigatingKeyId] = useState<string | null>(null);
 
@@ -68,7 +67,7 @@ export const KeysList = ({
             <div
               className={cn(
                 "size-5 rounded flex items-center justify-center",
-                identity ? "bg-successA-3" : "bg-grayA-3"
+                identity ? "bg-successA-3" : "bg-grayA-3",
               )}
             >
               {identity ? (
@@ -87,10 +86,7 @@ export const KeysList = ({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         {React.cloneElement(iconContainer, {
-                          className: cn(
-                            iconContainer.props.className,
-                            "cursor-pointer"
-                          ),
+                          className: cn(iconContainer.props.className, "cursor-pointer"),
                         })}
                       </TooltipTrigger>
                       <TooltipContent
@@ -107,14 +103,10 @@ export const KeysList = ({
                             rel="noopener noreferrer"
                             aria-disabled={isNavigating}
                           >
-                            <span className="font-mono bg-gray-4 p-1 rounded">
-                              {identity}
-                            </span>
+                            <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
                           </Link>
                         ) : (
-                          <span className="font-mono bg-gray-4 p-1 rounded">
-                            {identity}
-                          </span>
+                          <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
                         )}
                       </TooltipContent>
                     </Tooltip>
@@ -138,9 +130,7 @@ export const KeysList = ({
                       {key.id.substring(key.id.length - 4)}
                     </div>
                   </Link>
-                  {key.name && (
-                    <span className="font-sans text-accent-9">{key.name}</span>
-                  )}
+                  {key.name && <span className="font-sans text-accent-9">{key.name}</span>}
                 </div>
               </div>
             </div>
@@ -152,11 +142,7 @@ export const KeysList = ({
         header: "Value",
         width: "15%",
         render: (key) => (
-          <HiddenValueCell
-            value={key.start}
-            title="Value"
-            selected={selectedKey?.id === key.id}
-          />
+          <HiddenValueCell value={key.start} title="Value" selected={selectedKey?.id === key.id} />
         ),
       },
       {
@@ -194,7 +180,7 @@ export const KeysList = ({
         },
       },
     ],
-    [keyspaceId, selectedKey?.id, apiId, navigatingKeyId, handleLinkClick]
+    [keyspaceId, selectedKey?.id, apiId, navigatingKeyId, handleLinkClick],
   );
 
   return (
@@ -215,8 +201,7 @@ export const KeysList = ({
           hasMore,
           countInfoText: (
             <div className="flex gap-2">
-              <span>Showing</span>{" "}
-              <span className="text-accent-12">{keys.length}</span>
+              <span>Showing</span> <span className="text-accent-12">{keys.length}</span>
               <span>of</span>
               {totalCount}
               <span>keys</span>
@@ -229,8 +214,8 @@ export const KeysList = ({
               <Empty.Icon className="w-auto" />
               <Empty.Title>No API Keys Found</Empty.Title>
               <Empty.Description className="text-left">
-                There are no API keys associated with this service yet. Create
-                your first API key to get started.
+                There are no API keys associated with this service yet. Create your first API key to
+                get started.
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-start">
                 <a
@@ -260,7 +245,7 @@ export const KeysList = ({
               className={cn(
                 "text-xs align-middle whitespace-nowrap pr-4",
                 idx === 0 ? "pl-[18px]" : "",
-                column.key === "key" ? "py-[6px]" : "py-1"
+                column.key === "key" ? "py-[6px]" : "py-1",
               )}
               style={{ height: `${rowHeight}px` }}
             >
@@ -269,9 +254,7 @@ export const KeysList = ({
               {column.key === "usage" && <UsageColumnSkeleton />}
               {column.key === "last_used" && <LastUsedColumnSkeleton />}
               {column.key === "status" && <StatusColumnSkeleton />}
-              {!["key", "value", "usage", "last_used", "status"].includes(
-                column.key
-              ) && (
+              {!["key", "value", "usage", "last_used", "status"].includes(column.key) && (
                 <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />
               )}
             </td>
