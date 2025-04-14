@@ -20,6 +20,7 @@
               {
                 "group": "Unkey",
                 "pages": [
+                  "introduction",
                   {
                     "group": "Quickstart",
                     "pages": [
@@ -50,7 +51,9 @@
                       },
                       {
                         "group": "Identities",
-                        "pages": ["quickstart/identities/shared-ratelimits"]
+                        "pages": [
+                          "quickstart/identities/shared-ratelimits"
+                        ]
                       }
                     ]
                   },
@@ -72,7 +75,10 @@
                   {
                     "group": "Identities",
                     "icon": "fingerprint",
-                    "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+                    "pages": [
+                      "concepts/identities/overview",
+                      "concepts/identities/ratelimits"
+                    ]
                   }
                 ]
               },
@@ -124,23 +130,34 @@
                   },
                   {
                     "group": "Audit logs",
-                    "pages": ["audit-log/introduction", "audit-log/types"]
+                    "pages": [
+                      "audit-log/introduction",
+                      "audit-log/types"
+                    ]
                   },
                   {
                     "group": "Analytics",
-                    "pages": ["analytics/overview", "analytics/quickstarts"]
+                    "pages": [
+                      "analytics/overview",
+                      "analytics/quickstarts"
+                    ]
                   }
                 ]
               },
               {
                 "group": "Integrations",
                 "icon": "bolt",
-                "pages": ["integrations/vercel"]
+                "pages": [
+                  "integrations/vercel"
+                ]
               },
               {
                 "group": "Migrations",
                 "icon": "plane-arrival",
-                "pages": ["migrations/introduction", "migrations/keys"]
+                "pages": [
+                  "migrations/introduction",
+                  "migrations/keys"
+                ]
               }
             ]
           },
@@ -285,11 +302,15 @@
                   },
                   {
                     "group": "Analytics",
-                    "pages": ["api-reference/analytics/get_verifications"]
+                    "pages": [
+                      "api-reference/analytics/get_verifications"
+                    ]
                   },
                   {
                     "group": "Migrations",
-                    "pages": ["api-reference/migrations/create-keys"]
+                    "pages": [
+                      "api-reference/migrations/create-keys"
+                    ]
                   }
                 ]
               }
@@ -365,7 +386,9 @@
                   "libraries/ts/cache/overview",
                   {
                     "group": "unkey-go",
-                    "pages": ["libraries/go/overview"]
+                    "pages": [
+                      "libraries/go/overview"
+                    ]
                   },
                   {
                     "group": "unkey.py",
@@ -403,11 +426,15 @@
                   },
                   {
                     "group": "Nuxt",
-                    "pages": ["libraries/nuxt/overview"]
+                    "pages": [
+                      "libraries/nuxt/overview"
+                    ]
                   },
                   {
                     "group": "Rust",
-                    "pages": ["libraries/rs/overview"]
+                    "pages": [
+                      "libraries/rs/overview"
+                    ]
                   },
                   {
                     "group": "Springboot",
@@ -424,16 +451,6 @@
                 ]
               }
             ]
-          }
-        ]
-      },
-      {
-        "anchor": "Home",
-        "icon": "book-open-cover",
-        "groups": [
-          {
-            "group": "Unkey",
-            "pages": ["introduction"]
           }
         ]
       },
