@@ -34,7 +34,7 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
               });
             }}
           >
-            <Clone size="md-regular" className="text-gray-12" />
+            <Clone size="md-regular" className="text-accent-8" />
           </button>
         }
       />
