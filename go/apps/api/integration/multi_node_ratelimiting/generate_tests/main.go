@@ -1,6 +1,6 @@
 package main
 
-//codes.App.Internal.ServiceUnavailable.URN() go run main.go
+//go:generate go run main.go
 
 import (
 	"fmt"
