@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -43,7 +44,6 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("invalid request body", "The request body is invalid."),
 			)
 		}
@@ -62,14 +62,13 @@ func New(svc Services) zen.Route {
 		)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
 			)
 		}
 
 		if !permissions.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
 				fault.WithDesc(permissions.Message, permissions.Message),
 			)
 		}
@@ -77,7 +76,7 @@ func New(svc Services) zen.Route {
 		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
 			)
 		}
@@ -100,7 +99,7 @@ func New(svc Services) zen.Route {
 		})
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("unable to create key auth", "We're unable to create key authentication for the API."),
 			)
 		}
@@ -116,7 +115,7 @@ func New(svc Services) zen.Route {
 		})
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("unable to create api", "We're unable to create the API."),
 			)
 		}
@@ -146,7 +145,7 @@ func New(svc Services) zen.Route {
 		})
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
 			)
 		}
@@ -154,7 +153,7 @@ func New(svc Services) zen.Route {
 		err = tx.Commit()
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
 			)
 		}

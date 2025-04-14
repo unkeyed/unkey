@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 )
 
 func TestNew(t *testing.T) {
@@ -169,7 +170,7 @@ func TestUserFacingMessage(t *testing.T) {
 		err := New("base error")
 		err = Wrap(err,
 			WithDesc("internal detail 1", "Public message 1"),
-			WithTag("ERROR_TAG"),
+			WithCode(codes.Auth.Authentication.KeyNotFound.URN()),
 		)
 		err = Wrap(err, WithDesc("internal detail 2", "Public message 2"))
 
