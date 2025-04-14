@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -43,25 +44,24 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("invalid request body", "The request body is invalid."),
 			)
 		}
 
 		namespace, err := getNamespace(ctx, svc, auth.AuthorizedWorkspaceID, req)
+		if db.IsNotFound(err) {
+			return fault.New("namespace not found",
+				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.WithDesc("namespace not found", "This namespace does not exist."),
+			)
+		}
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return fault.Wrap(err,
-					fault.WithTag(fault.NOT_FOUND),
-					fault.WithDesc("namespace not found", "This namespace does not exist."),
-				)
-			}
 			return err
 		}
 
 		if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
 			return fault.New("namespace not found",
-				fault.WithTag(fault.NOT_FOUND),
+				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
 				fault.WithDesc("wrong workspace, masking as 404", "This namespace does not exist."),
 			)
 		}
@@ -85,14 +85,13 @@ func New(svc Services) zen.Route {
 
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
 			)
 		}
 
 		if !permissions.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
 				fault.WithDesc(permissions.Message, permissions.Message),
 			)
 		}
@@ -100,7 +99,7 @@ func New(svc Services) zen.Route {
 		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
 			)
 		}
@@ -118,16 +117,15 @@ func New(svc Services) zen.Route {
 			Identifier:  req.Identifier,
 		})
 
+		if db.IsNotFound(err) {
+			return fault.New("override not found",
+				fault.WithCode(codes.Data.RatelimitOverride.NotFound.URN()),
+				fault.WithDesc("override not found", "This override does not exist."),
+			)
+		}
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return fault.Wrap(err,
-					fault.WithTag(fault.NOT_FOUND),
-					fault.WithDesc("override not found", "This override does not exist."),
-				)
-			}
 			return err
 		}
-
 		// Perform soft delete by updating the DeletedAt field
 		err = db.Query.SoftDeleteRatelimitOverride(ctx, tx, db.SoftDeleteRatelimitOverrideParams{
 			ID:  override.ID,
@@ -136,7 +134,7 @@ func New(svc Services) zen.Route {
 
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to soft delete ratelimit override", "The database is unavailable."),
 			)
 		}
@@ -173,7 +171,7 @@ func New(svc Services) zen.Route {
 		})
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
 			)
 		}
@@ -181,7 +179,7 @@ func New(svc Services) zen.Route {
 		err = tx.Commit()
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
 			)
 		}
@@ -211,7 +209,7 @@ func getNamespace(ctx context.Context, svc Services, workspaceID string, req Req
 	}
 
 	return db.RatelimitNamespace{}, fault.New("missing namespace id or name",
-		fault.WithTag(fault.BAD_REQUEST),
+		fault.WithCode(codes.App.Validation.InvalidInput.URN()),
 		fault.WithDesc("missing namespace id or name", "You must provide either a namespace ID or name."),
 	)
 }

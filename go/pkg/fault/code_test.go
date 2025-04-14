@@ -5,56 +5,57 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 )
 
-func TestGetTag(t *testing.T) {
+func TestGetCode(t *testing.T) {
 	tests := []struct {
 		name     string
 		err      error
-		expected Tag
+		expected codes.URN
 	}{
 		{
-			name:     "nil error returns UNTAGGED",
+			name:     "nil error returns codes.Nil",
 			err:      nil,
-			expected: UNTAGGED,
+			expected: "",
 		},
 		{
-			name:     "untagged error returns UNTAGGED",
+			name:     "untagged error returns codes.Nil",
 			err:      errors.New("plain error"),
-			expected: UNTAGGED,
+			expected: "",
 		},
 		{
 			name:     "tagged error returns correct tag",
-			err:      WithTag(Tag("CUSTOM_TAG"))(errors.New("tagged error")),
-			expected: Tag("CUSTOM_TAG"),
+			err:      WithCode(codes.URN("CUSTOM_TAG"))(errors.New("tagged error")),
+			expected: codes.URN("CUSTOM_TAG"),
 		},
 		{
 			name: "deeply wrapped error returns first tag encountered when unwrapping",
-			err: WithTag(Tag("OUTER_TAG"))(
-				WithTag(Tag("INNER_TAG"))(errors.New("inner error")),
+			err: WithCode(codes.URN("OUTER_TAG"))(
+				WithCode(codes.URN("INNER_TAG"))(errors.New("inner error")),
 			),
-			expected: Tag("OUTER_TAG"),
+			expected: codes.URN("OUTER_TAG"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tag := GetTag(tt.err)
-			require.Equal(t, tt.expected, tag)
+			code, _ := GetCode(tt.err)
+			require.Equal(t, tt.expected, code)
 		})
 	}
 }
 
-func TestWithTag(t *testing.T) {
+func TestWithCode(t *testing.T) {
 	tests := []struct {
 		name   string
-		tag    Tag
+		tag    codes.URN
 		err    error
 		verify func(*testing.T, error)
 	}{
 		{
 			name: "nil error returns nil",
-			tag:  Tag("TEST"),
+			tag:  codes.URN("TEST"),
 			err:  nil,
 			verify: func(t *testing.T, err error) {
 				require.Nil(t, err)
@@ -62,19 +63,19 @@ func TestWithTag(t *testing.T) {
 		},
 		{
 			name: "adds tag to error",
-			tag:  Tag("TEST_TAG"),
+			tag:  codes.URN("TEST_TAG"),
 			err:  errors.New("base error"),
 			verify: func(t *testing.T, err error) {
 				wrapped, ok := err.(*wrapped)
 				require.True(t, ok)
-				require.Equal(t, Tag("TEST_TAG"), wrapped.tag)
+				require.Equal(t, codes.URN("TEST_TAG"), wrapped.code)
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := WithTag(tt.tag)(tt.err)
+			result := WithCode(tt.tag)(tt.err)
 			tt.verify(t, result)
 		})
 	}
