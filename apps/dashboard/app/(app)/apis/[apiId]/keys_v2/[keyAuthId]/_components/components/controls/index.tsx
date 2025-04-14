@@ -7,7 +7,7 @@ export function KeysListControls({ keyspaceId }: { keyspaceId: string }) {
       <div className="px-3 py-1 w-full justify-between flex items-center">
         <div className="flex gap-2">
           <div className="flex gap-2 items-center">
-            <LogsSearch apiId={keyspaceId} />
+            <LogsSearch keyspaceId={keyspaceId} />
           </div>
           <div className="flex gap-2 items-center">
             <LogsFilters />

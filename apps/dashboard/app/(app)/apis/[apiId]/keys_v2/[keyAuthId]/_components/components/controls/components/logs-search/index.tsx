@@ -4,7 +4,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useFilters } from "../../../../hooks/use-filters";
 
-export const LogsSearch = ({ apiId: keyAuthId }: { apiId: string }) => {
+export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
   const { filters, updateFilters } = useFilters();
   const queryLLMForStructuredOutput = trpc.api.keys.listLlmSearch.useMutation({
     onSuccess(data) {
@@ -54,7 +54,7 @@ export const LogsSearch = ({ apiId: keyAuthId }: { apiId: string }) => {
       searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({
-          keyAuthId: keyAuthId,
+          keyspaceId,
           query,
         })
       }
