@@ -33,7 +33,12 @@ export const ApisNavbar = ({
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
           <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${api.id}`} isIdentifier className="group" noop>
+          <Navbar.Breadcrumbs.Link
+            href={`/apis/${api.id}`}
+            isIdentifier
+            className="group"
+            noop
+          >
             <QuickNavPopover
               items={apis.map((api) => ({
                 id: api.id,
@@ -42,7 +47,9 @@ export const ApisNavbar = ({
               }))}
               shortcutKey="N"
             >
-              <div className="text-accent-10 group-hover:text-accent-12">{api.name}</div>
+              <div className="text-accent-10 group-hover:text-accent-12">
+                {api.name}
+              </div>
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
@@ -56,7 +63,7 @@ export const ApisNavbar = ({
                 {
                   id: "keys",
                   label: "Keys",
-                  href: `/apis/${api.id}/keys_v2/${api.keyAuthId}`,
+                  href: `/apis/${api.id}/keys/${api.keyAuthId}`,
                 },
                 {
                   id: "settings",
@@ -67,8 +74,10 @@ export const ApisNavbar = ({
                   ? [
                       {
                         id: "settings",
-                        label: `${keyId.substring(0, 8)}...${keyId.substring(keyId.length - 4)}`,
-                        href: `/apis/${api.id}/keys_v2/${api.keyAuthId}/${keyId}`,
+                        label: `${keyId.substring(0, 8)}...${keyId.substring(
+                          keyId.length - 4
+                        )}`,
+                        href: `/apis/${api.id}/keys/${api.keyAuthId}/${keyId}`,
                       },
                     ]
                   : []),

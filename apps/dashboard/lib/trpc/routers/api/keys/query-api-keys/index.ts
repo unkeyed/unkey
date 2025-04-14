@@ -1,5 +1,11 @@
-import { keysQueryListPayload } from "@/app/(app)/apis/[apiId]/keys_v2/[keyAuthId]/_components/components/table/query-logs.schema";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { keysQueryListPayload } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/query-logs.schema";
+import {
+  ratelimit,
+  requireUser,
+  requireWorkspace,
+  t,
+  withRatelimit,
+} from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { getAllKeys } from "./get-all-keys";
 import { keyDetailsResponseSchema } from "./schema";
