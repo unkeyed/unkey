@@ -94,7 +94,20 @@ export const KeysList = ({
                         side="right"
                       >
                         This key is associated with the identity:{" "}
-                        <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
+                        {key.identity_id ? (
+                          <Link
+                            title={"View details for identity"}
+                            className="font-mono group-hover:underline decoration-dotted"
+                            href={`/identities/${key.identity_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-disabled={isNavigating}
+                          >
+                            <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
+                          </Link>
+                        ) : (
+                          <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
+                        )}
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -163,9 +176,7 @@ export const KeysList = ({
         header: "Status",
         width: "15%",
         render: (key) => {
-          return (
-            <StatusDisplay keyData={key} keyAuthId={keyspaceId} selectedKeyId={selectedKey?.id} />
-          );
+          return <StatusDisplay keyData={key} keyAuthId={keyspaceId} />;
         },
       },
     ],
@@ -186,7 +197,7 @@ export const KeysList = ({
         rowClassName={(log) => getRowClassName(log, selectedKey as KeyDetails)}
         loadMoreFooterProps={{
           hide: isLoading,
-          buttonText: "Load more logs",
+          buttonText: "Load more keys",
           hasMore,
           countInfoText: (
             <div className="flex gap-2">
