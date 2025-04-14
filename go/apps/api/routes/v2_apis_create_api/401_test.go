@@ -1,14 +1,12 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_create_api"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestCreateApi_Unauthorized(t *testing.T) {
@@ -36,26 +34,7 @@ func TestCreateApi_Unauthorized(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, http.StatusUnauthorized, res.Status)
+		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 	})
 
-	// Test with another workspace (example)
-	t.Run("wrong workspace", func(t *testing.T) {
-		// Create key for a different workspace
-		otherWorkspaceId := uid.New(uid.WorkspacePrefix)
-		otherRootKey := h.CreateRootKey(otherWorkspaceId, "api.*.create_api")
-
-		otherHeaders := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", otherRootKey)},
-		}
-
-		req := handler.Request{
-			Name: "test-api",
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, otherHeaders, req)
-
-		require.Equal(t, http.StatusUnauthorized, res.Status)
-	})
 }

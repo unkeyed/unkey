@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/unkeyed/unkey/go/apps/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/go/apps/api/routes/v2_liveness"
 
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
@@ -104,5 +105,12 @@ func Register(srv *zen.Server, svc *Services) {
 
 	// ---------------------------------------------------------------------------
 	// misc
+
+	srv.RegisterRoute([]zen.Middleware{
+		withTracing,
+		withMetrics,
+		withLogging,
+		withErrorHandling,
+	}, reference.New())
 
 }

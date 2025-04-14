@@ -1,7 +1,6 @@
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { CircleLock } from "@unkey/icons";
-import { useState } from "react";
 
 export const HiddenValueCell = ({
   value,
@@ -12,9 +11,8 @@ export const HiddenValueCell = ({
   title: string;
   selected: boolean;
 }) => {
-  const [isHovered, setIsHovered] = useState(false);
   // Show only first 4 characters, then dots
-  const displayValue = isHovered ? value : value.padEnd(16, "•");
+  const displayValue = value.padEnd(16, "•");
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -37,8 +35,6 @@ export const HiddenValueCell = ({
           "rounded-lg border bg-white dark:bg-base-12 border-accent-4 text-grayA-11 w-[150px] px-2 py-1 flex gap-2 items-center cursor-pointer h-[28px] group-hover:border-grayA-3 font-mono",
           selected && "border-grayA-3",
         )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         onClick={(e) => handleClick(e)}
       >
         <div>

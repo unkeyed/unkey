@@ -155,7 +155,7 @@ if errors.Is(err, sql.ErrNoRows) {
 // When handling permission checks
 if !permissions.Valid {
     return fault.New("insufficient permissions",
-        fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+        	fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
         fault.WithDesc(
             fmt.Sprintf("key '%s' lacks permission on resource '%s'", auth.KeyID, namespace.ID),
             permissions.Message  // User-friendly message from the permission system
@@ -367,7 +367,7 @@ func New(svc Services) zen.Route {
 
 		if !permissions.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+					fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
 				fault.WithDesc(permissions.Message, permissions.Message),
 			)
 		}
