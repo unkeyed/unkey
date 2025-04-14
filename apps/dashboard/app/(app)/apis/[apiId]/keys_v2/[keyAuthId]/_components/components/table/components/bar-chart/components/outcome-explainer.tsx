@@ -11,7 +11,7 @@ type OutcomeExplainerProps = {
 
 type ErrorType = {
   type: string;
-  value: number;
+  value: string;
   color: string;
 };
 
@@ -57,38 +57,46 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
   }, [timeseries]);
 
   const errorTypes = useMemo(() => {
-    return [
+    const potentialErrors = [
       {
         type: "Insufficient Permissions",
-        value: formatNumber(aggregatedData.insufficient_permissions) || 0,
+        rawValue: aggregatedData.insufficient_permissions,
         color: "bg-error-9",
       },
       {
         type: "Rate Limited",
-        value: formatNumber(aggregatedData.rate_limited) || 0,
+        rawValue: aggregatedData.rate_limited,
         color: "bg-error-9",
       },
       {
         type: "Forbidden",
-        value: formatNumber(aggregatedData.forbidden) || 0,
+        rawValue: aggregatedData.forbidden,
         color: "bg-error-9",
       },
       {
         type: "Disabled",
-        value: formatNumber(aggregatedData.disabled) || 0,
+        rawValue: aggregatedData.disabled,
         color: "bg-error-9",
       },
       {
         type: "Expired",
-        value: formatNumber(aggregatedData.expired) || 0,
+        rawValue: aggregatedData.expired,
         color: "bg-error-9",
       },
       {
         type: "Usage Exceeded",
-        value: formatNumber(aggregatedData.usage_exceeded) || 0,
+        rawValue: aggregatedData.usage_exceeded,
         color: "bg-error-9",
       },
-    ].filter((error) => Number(error.value) > 0) as ErrorType[];
+    ];
+
+    const filteredErrors = potentialErrors.filter((error) => error.rawValue > 0);
+
+    return filteredErrors.map((error) => ({
+      type: error.type,
+      value: formatNumber(error.rawValue),
+      color: error.color,
+    })) as ErrorType[];
   }, [aggregatedData]);
 
   return (
