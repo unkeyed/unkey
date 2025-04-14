@@ -51,8 +51,7 @@ export function transformKeysFilters(
     names,
     identities,
     outcomes,
-    cursorTime: params.cursor?.time ?? null,
-    cursorRequestId: params.cursor?.requestId ?? null,
+    cursorTime: params.cursor ?? null,
     sorts,
   };
 }
