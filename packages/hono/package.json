@@ -22,7 +22,7 @@
   "devDependencies": {
     "@types/node": "^20.14.9",
     "hono": "^4.6.3",
-    "msw": "^2.2.13",
+    "msw": "^2.7.4",
     "tsup": "^8.0.2",
     "typescript": "^5.5.3",
     "zod": "^3.23.5"
