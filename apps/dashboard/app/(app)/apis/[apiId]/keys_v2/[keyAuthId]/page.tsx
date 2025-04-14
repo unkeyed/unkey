@@ -29,7 +29,7 @@ export default async function APIKeysPage(props: {
   return (
     <div>
       <Navigation apiId={props.params.apiId} keyAuth={keyAuth} />
-      <KeysClient keyspaceId={keyAuth.id} />
+      <KeysClient apiId={props.params.apiId} keyspaceId={keyAuth.id} />
     </div>
   );
 }

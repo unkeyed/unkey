@@ -217,7 +217,7 @@ const VARIANT_MAP: Record<string, { variant: ButtonVariant; color?: ButtonColor 
 };
 
 // New animated loading spinner component
-const AnimatedLoadingSpinner = () => {
+export const AnimatedLoadingSpinner = () => {
   const [segmentIndex, setSegmentIndex] = React.useState(0);
 
   // Each segment ID in the order they should light up

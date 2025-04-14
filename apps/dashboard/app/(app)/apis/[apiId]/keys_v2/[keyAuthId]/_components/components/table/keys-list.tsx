@@ -3,9 +3,18 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Focus, Key } from "@unkey/icons";
-import { Button, Empty, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import {
+  AnimatedLoadingSpinner,
+  Button,
+  Empty,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useCallback, useMemo, useState } from "react";
 import React from "react";
 import { VerificationBarChart } from "./components/bar-chart";
 import { HiddenValueCell } from "./components/hidden-value";
@@ -21,11 +30,23 @@ import { StatusDisplay } from "./components/status-cell";
 import { useKeysListQuery } from "./hooks/use-keys-list-query";
 import { getRowClassName } from "./utils/get-row-class";
 
-export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
+export const KeysList = ({
+  keyspaceId,
+  apiId,
+}: {
+  keyspaceId: string;
+  apiId: string;
+}) => {
   const { keys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useKeysListQuery({
     keyAuthId: keyspaceId,
   });
   const [selectedKey, setSelectedKey] = useState<KeyDetails | null>(null);
+  const [navigatingKeyId, setNavigatingKeyId] = useState<string | null>(null);
+
+  const handleLinkClick = useCallback((keyId: string) => {
+    setNavigatingKeyId(keyId);
+    setSelectedKey(null);
+  }, []);
 
   const columns: Column<KeyDetails>[] = useMemo(
     () => [
@@ -36,7 +57,13 @@ export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
         headerClassName: "pl-[18px]",
         render: (key) => {
           const identity = key.identity?.external_id ?? key.owner_id;
-          const iconContainer = (
+          const isNavigating = key.id === navigatingKeyId;
+
+          const iconContainer = isNavigating ? (
+            <div className="size-5 rounded flex items-center justify-center">
+              <AnimatedLoadingSpinner />
+            </div>
+          ) : (
             <div
               className={cn(
                 "size-5 rounded flex items-center justify-center",
@@ -76,10 +103,20 @@ export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
                 )}
 
                 <div className="flex flex-col gap-1 text-xs">
-                  <div className="font-mono font-medium truncate text-brand-12">
-                    {key.id.substring(0, 8)}...
-                    {key.id.substring(key.id.length - 4)}
-                  </div>
+                  <Link
+                    title={`View details for ${key.id}`}
+                    className="font-mono group-hover:underline decoration-dotted"
+                    href={`/apis/${apiId}/keys/${keyspaceId}/${key.id}`}
+                    aria-disabled={isNavigating}
+                    onClick={() => {
+                      handleLinkClick(key.id);
+                    }}
+                  >
+                    <div className="font-mono font-medium truncate text-brand-12">
+                      {key.id.substring(0, 8)}...
+                      {key.id.substring(key.id.length - 4)}
+                    </div>
+                  </Link>
                   {key.name && <span className="font-sans text-accent-9">{key.name}</span>}
                 </div>
               </div>
@@ -124,13 +161,15 @@ export const KeysList = ({ keyspaceId }: { keyspaceId: string }) => {
       {
         key: "status",
         header: "Status",
-        width: "auto",
+        width: "15%",
         render: (key) => {
-          return <StatusDisplay keyData={key} keyAuthId={keyspaceId} />;
+          return (
+            <StatusDisplay keyData={key} keyAuthId={keyspaceId} selectedKeyId={selectedKey?.id} />
+          );
         },
       },
     ],
-    [keyspaceId, selectedKey?.id],
+    [keyspaceId, selectedKey?.id, apiId, navigatingKeyId, handleLinkClick],
   );
 
   return (
