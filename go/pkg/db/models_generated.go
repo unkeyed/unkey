@@ -222,47 +222,6 @@ func (ns NullWorkspacesPlan) Value() (driver.Value, error) {
 	return string(ns.WorkspacesPlan), nil
 }
 
-type WorkspacesPlanDowngradeRequest string
-
-const (
-	WorkspacesPlanDowngradeRequestFree WorkspacesPlanDowngradeRequest = "free"
-)
-
-func (e *WorkspacesPlanDowngradeRequest) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = WorkspacesPlanDowngradeRequest(s)
-	case string:
-		*e = WorkspacesPlanDowngradeRequest(s)
-	default:
-		return fmt.Errorf("unsupported scan type for WorkspacesPlanDowngradeRequest: %T", src)
-	}
-	return nil
-}
-
-type NullWorkspacesPlanDowngradeRequest struct {
-	WorkspacesPlanDowngradeRequest WorkspacesPlanDowngradeRequest
-	Valid                          bool // Valid is true if WorkspacesPlanDowngradeRequest is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullWorkspacesPlanDowngradeRequest) Scan(value interface{}) error {
-	if value == nil {
-		ns.WorkspacesPlanDowngradeRequest, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.WorkspacesPlanDowngradeRequest.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullWorkspacesPlanDowngradeRequest) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.WorkspacesPlanDowngradeRequest), nil
-}
-
 type Api struct {
 	ID               string           `db:"id"`
 	Name             string           `db:"name"`
@@ -279,8 +238,8 @@ type Api struct {
 type AuditLog struct {
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
-	BucketID    string         `db:"bucket_id"`
 	Bucket      string         `db:"bucket"`
+	BucketID    string         `db:"bucket_id"`
 	Event       string         `db:"event"`
 	Time        int64          `db:"time"`
 	Display     string         `db:"display"`
@@ -294,11 +253,21 @@ type AuditLog struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
+type AuditLogBucket struct {
+	ID               string        `db:"id"`
+	WorkspaceID      string        `db:"workspace_id"`
+	Name             string        `db:"name"`
+	RetentionDays    sql.NullInt32 `db:"retention_days"`
+	CreatedAt        int64         `db:"created_at"`
+	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+	DeleteProtection sql.NullBool  `db:"delete_protection"`
+}
+
 type AuditLogTarget struct {
 	WorkspaceID string         `db:"workspace_id"`
 	BucketID    string         `db:"bucket_id"`
-	AuditLogID  string         `db:"audit_log_id"`
 	Bucket      string         `db:"bucket"`
+	AuditLogID  string         `db:"audit_log_id"`
 	DisplayName string         `db:"display_name"`
 	Type        string         `db:"type"`
 	ID          string         `db:"id"`
@@ -486,23 +455,19 @@ type VercelIntegration struct {
 }
 
 type Workspace struct {
-	ID                   string                             `db:"id"`
-	TenantID             string                             `db:"tenant_id"`
-	OrgID                sql.NullString                     `db:"org_id"`
-	Name                 string                             `db:"name"`
-	Plan                 NullWorkspacesPlan                 `db:"plan"`
-	Tier                 sql.NullString                     `db:"tier"`
-	StripeCustomerID     sql.NullString                     `db:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString                     `db:"stripe_subscription_id"`
-	TrialEnds            sql.NullTime                       `db:"trial_ends"`
-	BetaFeatures         json.RawMessage                    `db:"beta_features"`
-	Features             json.RawMessage                    `db:"features"`
-	PlanLockedUntil      sql.NullTime                       `db:"plan_locked_until"`
-	PlanDowngradeRequest NullWorkspacesPlanDowngradeRequest `db:"plan_downgrade_request"`
-	PlanChanged          sql.NullTime                       `db:"plan_changed"`
-	Enabled              bool                               `db:"enabled"`
-	DeleteProtection     sql.NullBool                       `db:"delete_protection"`
-	CreatedAtM           int64                              `db:"created_at_m"`
-	UpdatedAtM           sql.NullInt64                      `db:"updated_at_m"`
-	DeletedAtM           sql.NullInt64                      `db:"deleted_at_m"`
+	ID                   string             `db:"id"`
+	OrgID                string             `db:"org_id"`
+	Name                 string             `db:"name"`
+	Plan                 NullWorkspacesPlan `db:"plan"`
+	Tier                 sql.NullString     `db:"tier"`
+	StripeCustomerID     sql.NullString     `db:"stripe_customer_id"`
+	StripeSubscriptionID sql.NullString     `db:"stripe_subscription_id"`
+	BetaFeatures         json.RawMessage    `db:"beta_features"`
+	Features             json.RawMessage    `db:"features"`
+	Subscriptions        []byte             `db:"subscriptions"`
+	Enabled              bool               `db:"enabled"`
+	DeleteProtection     sql.NullBool       `db:"delete_protection"`
+	CreatedAtM           int64              `db:"created_at_m"`
+	UpdatedAtM           sql.NullInt64      `db:"updated_at_m"`
+	DeletedAtM           sql.NullInt64      `db:"deleted_at_m"`
 }
