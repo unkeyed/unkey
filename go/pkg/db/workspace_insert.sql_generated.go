@@ -12,10 +12,10 @@ import (
 const insertWorkspace = `-- name: InsertWorkspace :exec
 INSERT INTO ` + "`" + `workspaces` + "`" + ` (
     id,
-    tenant_id,
+    org_id,
     name,
     created_at_m,
-    plan,
+    tier,
     beta_features,
     features,
     enabled,
@@ -26,7 +26,7 @@ VALUES (
     ?,
     ?,
      ?,
-    'free',
+    'Free',
     '{}',
     '{}',
     true,
@@ -36,7 +36,7 @@ VALUES (
 
 type InsertWorkspaceParams struct {
 	ID        string `db:"id"`
-	TenantID  string `db:"tenant_id"`
+	OrgID     string `db:"org_id"`
 	Name      string `db:"name"`
 	CreatedAt int64  `db:"created_at"`
 }
@@ -45,10 +45,10 @@ type InsertWorkspaceParams struct {
 //
 //	INSERT INTO `workspaces` (
 //	    id,
-//	    tenant_id,
+//	    org_id,
 //	    name,
 //	    created_at_m,
-//	    plan,
+//	    tier,
 //	    beta_features,
 //	    features,
 //	    enabled,
@@ -59,7 +59,7 @@ type InsertWorkspaceParams struct {
 //	    ?,
 //	    ?,
 //	     ?,
-//	    'free',
+//	    'Free',
 //	    '{}',
 //	    '{}',
 //	    true,
@@ -68,7 +68,7 @@ type InsertWorkspaceParams struct {
 func (q *Queries) InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error {
 	_, err := db.ExecContext(ctx, insertWorkspace,
 		arg.ID,
-		arg.TenantID,
+		arg.OrgID,
 		arg.Name,
 		arg.CreatedAt,
 	)
