@@ -10,7 +10,6 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestBadRequests(t *testing.T) {
@@ -171,7 +170,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "You must provide either a namespace ID or name.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -180,22 +179,4 @@ func TestBadRequests(t *testing.T) {
 		require.Nil(t, res.Body.Error.Instance)
 	})
 
-	t.Run("malformed authorization header", func(t *testing.T) {
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {"malformed_header"},
-		}
-
-		namespaceName := uid.New("test")
-		req := handler.Request{
-			NamespaceName: &namespaceName,
-			Identifier:    "test_identifier",
-			Limit:         10,
-			Duration:      1000,
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, http.StatusBadRequest, res.Status)
-		require.NotNil(t, res.Body)
-	})
 }

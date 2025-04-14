@@ -1,15 +1,41 @@
 ---
 title: PRECONDITION_FAILED
 openapi-schema: ErrPreconditionFailed
-
 ---
 
-## Problem
+## Overview
+The PRECONDITION_FAILED error (HTTP 412) occurs when your request doesn't satisfy one or more required conditions. This typically happens when there's a mismatch between the expected state of a resource and its actual state.
 
-The request does not meet one or more preconditions required for fulfillment. For example, that you are not flagged into a beta feature.
+## Common Causes
+- Attempting to use a feature that requires beta access
+- Using an API version that doesn't match the expected version header
+- Modifying a resource that has been updated by another process
+- Conditional requests with If-Match or If-None-Match headers that aren't satisfied
+- Attempting operations that require specific feature flags to be enabled
+- Resources in a state that doesn't allow the requested operation
 
-## Solution
+## Resolution Steps
+1. **Check feature access**: Verify if you have access to the feature you're trying to use, especially for beta features:
+   ```bash
+   # Example: Check workspace features
+   curl -X GET "https://api.unkey.dev/v1/workspaces/{workspaceId}" \
+     -H "Authorization: Bearer your_api_key"
+   ```
 
-Please check if you meet all conditions outlined in the error message.
+2. **Review version requirements**: Check if you're using the correct API version for the operation.
 
-If that doesn't help, ask for help on [Discord](https://unkey.com/discord)
+3. **Verify resource state**: Ensure the resource is in the expected state before trying the operation again:
+   ```bash
+   # Example: Check resource state
+   curl -X GET "https://api.unkey.dev/v1/{resource_type}/{id}" \
+     -H "Authorization: Bearer your_api_key"
+   ```
+
+4. **Request feature access**: Contact Unkey support if you need access to a feature that's currently restricted.
+
+5. **Update client code**: Ensure your application is using the most recent API client and following current best practices.
+
+## Related Resources
+- [API Versioning](/api-reference/authentication)
+- [Feature Flags](/workspaces/feature-flags)
+- [Beta Program](/beta-program)

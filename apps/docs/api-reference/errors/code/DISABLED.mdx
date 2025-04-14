@@ -3,12 +3,48 @@ title: DISABLED
 openapi-schema: ErrDisabled
 ---
 
-## Problem
+## Overview
+The DISABLED error (HTTP 403) occurs when you attempt to use or modify a key that has been explicitly disabled in the system. Disabled keys cannot be used for authentication or API operations until re-enabled.
 
-The key has been disabled.
+## Common Causes
+- Using a key that was disabled by an administrator
+- Attempting to verify a key that has been temporarily suspended
+- The workspace associated with the key has been disabled
+- The key was automatically disabled due to suspicious activity
+- The key was disabled due to billing issues
+- Trying to use a disabled key for authentication
 
-## Solution
+## Resolution Steps
+1. **Enable the key**: If you have appropriate permissions, enable the key using the update endpoint:
+   ```bash
+   # Example: Enable a disabled key
+   curl -X PATCH "https://api.unkey.dev/v1/keys/{keyId}" \
+     -H "Authorization: Bearer your_api_key" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "enabled": true
+     }'
+   ```
 
-Enable this key using the [updateKey endpoint](/api-reference/keys/update) or web interface.
+2. **Use the dashboard**: Enable the key using the [Unkey Dashboard](https://app.unkey.com).
 
-If that doesn't help, ask for help on [Discord](https://unkey.com/discord)
+3. **Check workspace status**: Ensure the workspace associated with the key is active and in good standing.
+
+4. **Create a new key**: If you can't enable the current key, consider creating a new one:
+   ```bash
+   # Example: Create a new key to replace the disabled one
+   curl -X POST "https://api.unkey.dev/v1/keys.createKey" \
+     -H "Authorization: Bearer your_api_key" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "apiId": "api_123",
+       "enabled": true
+     }'
+   ```
+
+5. **Contact administrator**: If you don't have permission to enable keys, contact your workspace administrator.
+
+## Related Resources
+- [Updating Keys](/api-reference/keys/update)
+- [Creating New Keys](/api-reference/keys/create)
+- [Workspace Management](/workspaces/overview)

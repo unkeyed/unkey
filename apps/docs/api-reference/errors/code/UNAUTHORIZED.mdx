@@ -3,12 +3,33 @@ title: UNAUTHORIZED
 openapi-schema: ErrUnauthorized
 ---
 
-## Problem
+## Overview
+The UNAUTHORIZED error (HTTP 403) occurs when the system cannot authenticate your request. This typically means your API key is missing, invalid, or doesn't have the necessary permissions to perform the requested action.
 
-We were unable to authorize your request. Either your key was missing, malformed or does not have the required permissions.
+## Common Causes
+- Missing API key in the request
+- Invalid or expired API key
+- Using a key with insufficient permissions
+- Using a key in the wrong environment (e.g., using a test key in production)
+- Using a key for a different workspace or project
+- Malformed Authorization header
 
-## Solution
+## Resolution Steps
+1. **Check your Authorization header**: Ensure you're including your API key in the request headers correctly:
+   ```bash
+   # Correct format
+   Authorization: Bearer your_api_key
+   ```
 
-Check the `message` field and double check you are sending the key correctly in the `Authorization` header.
+2. **Verify your API key**: Make sure the key you're using is valid and active. You can check this in the Unkey dashboard.
 
-If that doesn't help, ask for help on [Discord](https://unkey.com/discord)
+3. **Check key permissions**: Ensure your key has the necessary permissions for the operation you're trying to perform.
+
+4. **Generate a new key**: If you suspect your key may be compromised or expired, generate a new one in the dashboard.
+
+5. **Verify your environment**: Make sure you're using the correct key for your environment (development, staging, production).
+
+## Related Resources
+- [Authentication Guide](/api-reference/authentication)
+- [Managing API Keys](/api-reference/keys/create)
+- [Understanding Permissions](/api-reference/keys/set-permissions)

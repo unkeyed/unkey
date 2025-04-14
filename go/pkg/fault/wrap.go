@@ -25,7 +25,7 @@ func Wrap(err error, wraps ...Wrapper) error {
 	err = &wrapped{
 		err:      err,
 		location: getLocation(),
-		tag:      "",
+		code:     "",
 		internal: "",
 		public:   "",
 	}
@@ -81,7 +81,7 @@ func WithDesc(internal string, public string) Wrapper {
 
 		return &wrapped{
 			err:      err,
-			tag:      "",
+			code:     "",
 			location: "",
 			internal: internal,
 			public:   public,

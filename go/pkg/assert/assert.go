@@ -4,6 +4,7 @@ package assert
 import (
 	"strings"
 
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
@@ -22,7 +23,7 @@ func Equal[T comparable](a T, b T, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }
@@ -42,7 +43,7 @@ func Nil(t any, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }
@@ -61,7 +62,7 @@ func NotNil(t any, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }
@@ -81,7 +82,7 @@ func True(value bool, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }
@@ -101,7 +102,7 @@ func False(value bool, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }
@@ -121,7 +122,7 @@ func Empty[T ~string | ~[]any | ~map[any]any](value T, message ...string) error 
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }
@@ -141,7 +142,7 @@ func NotEmpty[T ~string | ~[]any | ~map[any]any](value T, message ...string) err
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }
@@ -161,7 +162,7 @@ func Contains(s, substr string, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }
@@ -187,7 +188,7 @@ func Greater[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message ...
 	if len(message) > 0 {
 		errorMsg = message[0]
 	}
-	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+	return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 }
 
 // GreaterOrEqual asserts that value 'a' is greater or equal compared to value 'b'.
@@ -211,7 +212,7 @@ func GreaterOrEqual[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, mess
 	if len(message) > 0 {
 		errorMsg = message[0]
 	}
-	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+	return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 
 }
 
@@ -236,7 +237,7 @@ func LessOrEqual[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message
 	if len(message) > 0 {
 		errorMsg = message[0]
 	}
-	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+	return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 
 }
 
@@ -260,7 +261,7 @@ func Less[T ~int | ~float64](a, b T, message ...string) error {
 	if len(message) > 0 {
 		errorMsg = message[0]
 	}
-	return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+	return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 }
 
 // InRange asserts that a value is within a specified range (inclusive).
@@ -281,7 +282,7 @@ func InRange[T ~int | ~float64](value, minimum, maximum T, message ...string) er
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithTag(fault.ASSERTION_FAILED))
+		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }

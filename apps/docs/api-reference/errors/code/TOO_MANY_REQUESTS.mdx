@@ -3,12 +3,60 @@ title: TOO_MANY_REQUESTS
 openapi-schema: ErrTooManyRequests
 ---
 
-## Problem
+## Overview
+The TOO_MANY_REQUESTS error (HTTP 429) occurs when you exceed the rate limits configured for your API key or IP address. Rate limits help ensure fair usage of the API and protect the system from abuse or excessive load.
 
-You have made too many requests in a short period of time.
+## Common Causes
+- Sending requests faster than the allowed rate limit
+- Using a shared API key across multiple applications or services
+- Burst traffic patterns that temporarily exceed limits
+- Running parallel operations that collectively exceed the rate limit
+- Using an API key with low rate limits for high-volume operations
+- IP-based rate limiting when many requests come from the same source
 
-## Solution
+## Resolution Steps
+1. **Implement backoff and retry**: Add exponential backoff and retry logic to your client:
+   ```javascript
+   // Example: Simple exponential backoff implementation
+   async function fetchWithRetry(url, options, maxRetries = 5) {
+     for (let attempt = 0; attempt < maxRetries; attempt++) {
+       try {
+         const response = await fetch(url, options);
+         if (response.status !== 429) return response;
+         
+         // If rate limited, wait and retry
+         const retryAfter = response.headers.get('Retry-After') || Math.pow(2, attempt);
+         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+       } catch (error) {
+         if (attempt === maxRetries - 1) throw error;
+       }
+     }
+   }
+   ```
 
-Please wait a bit and try again or increase the ratelimit on your API key.
+2. **Increase rate limits**: If you consistently hit the limits, consider upgrading your plan or requesting higher limits:
+   ```bash
+   # Example: Update rate limit settings for an API
+   curl -X PATCH "https://api.unkey.dev/v1/apis/{apiId}" \
+     -H "Authorization: Bearer your_api_key" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "ratelimit": {
+         "type": "fast",
+         "limit": 100,
+         "refillRate": 10,
+         "refillInterval": 1000
+       }
+     }'
+   ```
 
-If that doesn't help, ask for help on [Discord](https://unkey.com/discord)
+3. **Optimize request patterns**: Batch operations when possible and cache responses to reduce API calls.
+
+4. **Monitor usage**: Track your API usage to better understand your patterns and adjust accordingly.
+
+5. **Distribute load**: If you have high-volume needs, consider distributing requests across multiple keys or implementing a queue system.
+
+## Related Resources
+- [Rate Limiting Guide](/api-reference/keys/create)
+- [Handling Rate Limits](/best-practices/rate-limiting)
+- [Upgrading API Limits](/billing/usage-limits)

@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -51,7 +52,6 @@ func New(svc Services) zen.Route {
 		req := new(Request)
 		if bindErr := s.BindBody(req); bindErr != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("invalid request body", "We're unable to parse the request body as JSON."),
 			)
 		}
@@ -84,12 +84,18 @@ func New(svc Services) zen.Route {
 		})
 
 		span.End()
+		if db.IsNotFound(err) {
+			return fault.New("namespace was deleted",
+				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.WithDesc("namespace not found", "This namespace does not exist."),
+			)
+		}
 		if err != nil {
-			return db.HandleErr(err, "namespace")
+			return err
 		}
 		if namespace.DeletedAtM.Valid {
 			return fault.New("namespace was deleted",
-				fault.WithTag(fault.NOT_FOUND),
+				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
 				fault.WithDesc("namespace not found", "This namespace does not exist."),
 			)
 		}
@@ -113,14 +119,13 @@ func New(svc Services) zen.Route {
 		)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
 			)
 		}
 
 		if !permission.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
 				fault.WithDesc(permission.Message, permission.Message),
 			)
 		}
@@ -145,10 +150,15 @@ func New(svc Services) zen.Route {
 		})
 
 		overridesSpan.End()
-		if err != nil {
-			return db.HandleErr(err, "override")
+		if db.IsNotFound(err) {
+			return fault.New("namespace was deleted",
+				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.WithDesc("namespace not found", "This namespace does not exist."),
+			)
 		}
-
+		if err != nil {
+			return err
+		}
 		// Determine limit and duration from override or request
 		var (
 			limit      = req.Limit
@@ -192,7 +202,6 @@ func New(svc Services) zen.Route {
 		result, err := svc.Ratelimit.Ratelimit(ctx, limitReq)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("rate limit failed", "We're unable to process the rate limit request."),
 			)
 		}
