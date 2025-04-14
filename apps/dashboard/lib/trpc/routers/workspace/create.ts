@@ -36,13 +36,9 @@ export const createWorkspace = t.procedure
       tier: "Free",
       stripeCustomerId: null,
       stripeSubscriptionId: null,
-      trialEnds: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14), // 2 weeks
       features: {},
       betaFeatures: {},
-      planLockedUntil: null,
-      planChanged: null,
       subscriptions: {},
-      planDowngradeRequest: null,
       enabled: true,
       deleteProtection: true,
       createdAtM: Date.now(),

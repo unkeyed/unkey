@@ -1,3 +1,4 @@
+import { auth } from "@/lib/auth/server";
 import { stripeEnv } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -9,6 +10,21 @@ export const cancelSubscription = t.procedure
     const e = stripeEnv();
     if (!e) {
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe is not set up" });
+    }
+
+    const memberships = await auth.getOrganizationMemberList(ctx.workspace.orgId).catch((err) => {
+      console.error(err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch organization members",
+      });
+    });
+    if (memberships.data.length > 1) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message:
+          "Workspace has more than one member. You must remove all other members before downgrading to the free tier.",
+      });
     }
 
     const stripe = new Stripe(e.STRIPE_SECRET_KEY, {

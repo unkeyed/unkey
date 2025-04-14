@@ -398,7 +398,7 @@ export async function seedApiAndKeys(workspaceId: string, count: number) {
       );
     }
   } else {
-    console.log(
+    console.info(
       "No keys available for verification events. Skipping verification event generation.",
     );
   }

@@ -12,6 +12,15 @@ const (
 	RootKeyScopes = "rootKey.Scopes"
 )
 
+// ApisCreateApiResponseData defines model for ApisCreateApiResponseData.
+type ApisCreateApiResponseData struct {
+	// ApiId The id of the API
+	ApiId string `json:"apiId"`
+
+	// Name The name of the API
+	Name string `json:"name"`
+}
+
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
 type BadRequestErrorDetails struct {
 	// Detail A human-readable explanation specific to this occurrence of the problem.
@@ -185,15 +194,36 @@ type UnauthorizedErrorResponse struct {
 	Meta  Meta      `json:"meta"`
 }
 
+// V2ApisCreateApiRequestBody defines model for V2ApisCreateApiRequestBody.
+type V2ApisCreateApiRequestBody struct {
+	// Name The name for your API. This is not customer facing.
+	Name string `json:"name"`
+}
+
+// V2ApisCreateApiResponseBody defines model for V2ApisCreateApiResponseBody.
+type V2ApisCreateApiResponseBody struct {
+	Data ApisCreateApiResponseData `json:"data"`
+	Meta Meta                      `json:"meta"`
+}
+
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
 	// ExternalId The id of this identity in your system.
+	//
+	// This usually comes from your authentication provider and could be a userId, organisationId or even an email.
+	// It does not matter what you use, as long as it uniquely identifies something in your application.
+	//
+	// `externalId`s are unique across your workspace and therefore a `CONFLICT` error is returned when you try to create duplicates.
 	ExternalId string `json:"externalId"`
 
 	// Meta Attach metadata to this identity that you need to have access to when verifying a key.
+	//
+	// This will be returned as part of the `verifyKey` response.
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
 	// Ratelimits Attach ratelimits to this identity.
+	//
+	// When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits.
 	Ratelimits *[]V2Ratelimit `json:"ratelimits,omitempty"`
 }
 
@@ -338,6 +368,9 @@ type ValidationError struct {
 	// Message Error message text
 	Message string `json:"message"`
 }
+
+// CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
+type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody
 
 // V2IdentitiesCreateIdentityJSONRequestBody defines body for V2IdentitiesCreateIdentity for application/json ContentType.
 type V2IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

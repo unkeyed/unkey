@@ -51,7 +51,7 @@ async function insertApiRequestLogs(
     const totalTimeElapsed = Date.now() - progress.startTime;
     const avgRecordsPerSecond = count / (totalTimeElapsed / 1000);
 
-    console.log(
+    console.info(
       `✅ Successfully inserted ${count.toLocaleString()} API request logs with realistic 30-day time distribution (avg: ${Math.round(
         avgRecordsPerSecond,
       ).toLocaleString()} records/sec)`,

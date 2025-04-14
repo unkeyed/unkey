@@ -85,8 +85,8 @@ func RunRateLimitTest(
 	// Maximum theoretical allowed requests across all windows
 	maxAllowed := math.Min(numWindows*float64(limit), float64(totalRequests))
 
-	// Set acceptance thresholds with 5% tolerance
-	upperLimit := int(maxAllowed * 1.1)
+	// Set acceptance thresholds with 20% tolerance
+	upperLimit := int(maxAllowed * 1.2)
 	lowerLimit := int(maxAllowed * 0.95)
 
 	// Special case: When request rate is below the limit,

@@ -1,6 +1,6 @@
 import type { Subscriptions } from "@unkey/billing";
 import { relations } from "drizzle-orm";
-import { boolean, datetime, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
@@ -27,9 +27,6 @@ export const workspaces = mysqlTable("workspaces", {
   // stripe
   stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
-
-  // null means there was no trial
-  trialEnds: datetime("trial_ends", { fsp: 3 }),
 
   /**
    * feature flags
@@ -80,15 +77,10 @@ export const workspaces = mysqlTable("workspaces", {
       webhooks?: boolean;
     }>()
     .notNull(),
-  // prevent plan changes for a certain time, should be 1 day
-  // deprecated, use planChanged
-  planLockedUntil: datetime("plan_locked_until", { fsp: 3 }),
+
   /**
-   * If a user requests to downgrade, we mark the workspace and downgrade it after the next
-   * billing happened.
+   * deprecated, most customers are on stripe subscriptions instead
    */
-  planDowngradeRequest: mysqlEnum("plan_downgrade_request", ["free"]),
-  planChanged: datetime("plan_changed", { fsp: 3 }),
   subscriptions: json("subscriptions").$type<Subscriptions>(),
   /**
    * if the workspace is disabled, all API requests will be rejected
