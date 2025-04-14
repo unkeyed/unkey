@@ -38,7 +38,6 @@ export function transformFilters(
     methods,
     paths,
     statusCodes,
-    cursorTime: params.cursor?.time ?? null,
-    cursorRequestId: params.cursor?.requestId ?? null,
+    cursorTime: params.cursor ?? null,
   };
 }

@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "ee1b848f-4a6b-4f2d-ae13-08fb6292a7a2",
+  "id": "b652299c-35af-4024-84c7-13f686c5195d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "apis": {
@@ -1107,18 +1107,11 @@
           "notNull": true,
           "autoincrement": false
         },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "org_id": {
           "name": "org_id",
           "type": "varchar(256)",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "name": {
@@ -1158,13 +1151,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "trial_ends": {
-          "name": "trial_ends",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "beta_features": {
           "name": "beta_features",
           "type": "json",
@@ -1177,27 +1163,6 @@
           "type": "json",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "plan_locked_until": {
-          "name": "plan_locked_until",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "plan_downgrade_request": {
-          "name": "plan_downgrade_request",
-          "type": "enum('free')",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "plan_changed": {
-          "name": "plan_changed",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "subscriptions": {
@@ -1246,13 +1211,7 @@
           "autoincrement": false
         }
       },
-      "indexes": {
-        "tenant_id_idx": {
-          "name": "tenant_id_idx",
-          "columns": ["tenant_id"],
-          "isUnique": true
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "workspaces_id": {
@@ -1260,7 +1219,12 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {
+        "workspaces_org_id_unique": {
+          "name": "workspaces_org_id_unique",
+          "columns": ["org_id"]
+        }
+      }
     },
     "key_migration_errors": {
       "name": "key_migration_errors",
@@ -1554,6 +1518,14 @@
           "notNull": true,
           "autoincrement": false
         },
+        "bucket": {
+          "name": "bucket",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'unkey_mutations'"
+        },
         "bucket_id": {
           "name": "bucket_id",
           "type": "varchar(256)",
@@ -1648,6 +1620,11 @@
         "bucket_id_idx": {
           "name": "bucket_id_idx",
           "columns": ["bucket_id"],
+          "isUnique": false
+        },
+        "bucket_idx": {
+          "name": "bucket_idx",
+          "columns": ["bucket"],
           "isUnique": false
         },
         "event_idx": {
@@ -1762,6 +1739,14 @@
           "notNull": true,
           "autoincrement": false
         },
+        "bucket": {
+          "name": "bucket",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'unkey_mutations'"
+        },
         "audit_log_id": {
           "name": "audit_log_id",
           "type": "varchar(256)",
@@ -1820,6 +1805,11 @@
         }
       },
       "indexes": {
+        "bucket": {
+          "name": "bucket",
+          "columns": ["bucket"],
+          "isUnique": false
+        },
         "audit_log_id": {
           "name": "audit_log_id",
           "columns": ["audit_log_id"],
