@@ -3,34 +3,12 @@ title: NOT_FOUND
 openapi-schema: ErrNotFound
 ---
 
-## Overview
-The NOT_FOUND error (HTTP 404) occurs when the requested resource does not exist in the system. This could be because it was deleted, never existed, or you don't have access to it.
+## Problem
 
-## Common Causes
-- Using an incorrect or non-existent resource ID
-- Attempting to access a key that has been deleted
-- Referencing an API that doesn't exist in your workspace
-- Using the wrong workspace ID
-- Trying to access a resource that belongs to a different account
-- Resource was recently deleted by another user or process
+The requested resource could not be found. It may have been deleted or does not exist.
 
-## Resolution Steps
-1. **Verify the resource ID**: Double-check that you're using the correct ID for the resource you're trying to access.
+## Solution
 
-2. **Check if the resource exists**: Use a GET request to check if the resource exists before trying to modify it:
-   ```bash
-   # Example: Check if a key exists
-   curl -X GET "https://api.unkey.dev/v1/keys/{keyId}" \
-     -H "Authorization: Bearer your_api_key"
-   ```
+Please ensure that you are providing the correct resource identifier or check if the resource has been deleted.
 
-3. **Verify your workspace**: Ensure you're operating in the correct workspace where the resource should exist.
-
-4. **Check access permissions**: Confirm you have permission to access the resource.
-
-5. **Create the resource**: If you're certain the resource should not exist yet, use the appropriate creation endpoint.
-
-## Related Resources
-- [Managing Keys](/api-reference/keys/get)
-- [Working with APIs](/api-reference/apis/get)
-- [Workspaces Overview](/workspaces/overview)
+If that doesn't help, ask for help on [Discord](https://unkey.com/discord)

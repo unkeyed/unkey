@@ -3,32 +3,10 @@ title: INTERNAL_SERVER_ERROR
 openapi-schema: ErrInternalServerError
 ---
 
-## Overview
-The INTERNAL_SERVER_ERROR (HTTP 500) indicates that the server encountered an unexpected condition that prevented it from fulfilling the request. This is a generic server-side error that could be caused by various issues within our systems.
+## Problem
 
-## Common Causes
-- Unexpected server-side exceptions
-- Temporary infrastructure issues
-- Database connectivity problems
-- Resource limitations on our servers
-- Service dependencies that are temporarily unavailable
-- Bugs in our implementation that we haven't caught yet
+Something unexpected happened and we did not handle the error well.
 
-## Resolution Steps
-1. **Check service status**: Visit our [status page](https://status.unkey.dev) to see if there are any ongoing incidents.
+## Solution
 
-2. **Retry the request**: Many internal server errors are temporary. Wait a moment and try your request again.
-
-3. **Provide error details**: When reporting the issue, always include:
-   - The full error response
-   - The request ID (`requestId` field in the error response)
-   - The approximate time when the error occurred
-   - What you were trying to do when the error happened
-
-4. **Contact support**: If the issue persists, please reach out to us with the details above:
-   - [Discord Community](https://unkey.com/discord)
-   - [Email Support](mailto:support@unkey.dev)
-
-## Related Resources
-- [System Status](https://status.unkey.dev)
-- [Contact Support](https://unkey.com/support)
+Please get in touch on [Discord](https://unkey.com/discord) and provide the full error response.

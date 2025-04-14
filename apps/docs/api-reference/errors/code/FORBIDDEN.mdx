@@ -3,34 +3,12 @@ title: FORBIDDEN
 openapi-schema: ErrForbidden
 ---
 
-## Overview
-The FORBIDDEN error (HTTP 403) occurs when you have been successfully authenticated, but your authenticated user or API key does not have sufficient permissions to perform the requested action on the specified resource.
+## Problem
 
-## Common Causes
-- Using an API key with insufficient permissions
-- Trying to access resources owned by a different workspace
-- Attempting to perform an action restricted to specific user roles
-- Accessing a resource that requires additional permissions
-- Working with resources in a workspace where your access has been restricted
-- Attempting to modify system-protected resources
+We were able to authenticate you but you do not have access to the requested resources.
 
-## Resolution Steps
-1. **Check key permissions**: Verify that your API key has the necessary permissions for the operation:
-   ```bash
-   # Example: View your key's permissions
-   curl -X GET "https://api.unkey.dev/v1/keys/{keyId}" \
-     -H "Authorization: Bearer your_api_key"
-   ```
+## Solution
 
-2. **Use a different key**: If possible, use a key with higher privileges or request additional permissions.
+Use the correct key and/or double check you are requesting the correct resources.
 
-3. **Verify workspace access**: Ensure you're using a key that belongs to the correct workspace for the resource you're trying to access.
-
-4. **Check role requirements**: Some actions may be limited to specific user roles (e.g., admin, owner).
-
-5. **Request additional permissions**: Contact your workspace administrator to request additional permissions if needed.
-
-## Related Resources
-- [Understanding Permissions](/api-reference/keys/set-permissions)
-- [Managing API Keys](/api-reference/keys/update)
-- [Workspace Access Controls](/workspaces/overview)
+If that doesn't help, ask for help on [Discord](https://unkey.com/discord)

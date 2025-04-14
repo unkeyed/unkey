@@ -3,45 +3,10 @@ title: DELETE_PROTECTED
 openapi-schema: ErrDeleteProtected
 ---
 
-## Overview
-The DELETE_PROTECTED error (HTTP 412) occurs when you attempt to delete a resource that has been specifically marked as protected from deletion. This protection mechanism prevents accidental deletion of important resources.
+## Problem
 
-## Common Causes
-- Attempting to delete an API that has been marked as protected
-- Trying to delete a workspace that contains protected resources
-- Deleting a key that has been flagged as critical
-- Attempting to remove resources that are essential for system operations
-- Trying to delete resources marked as protected for compliance or security reasons
+The resource you are trying to delete is protected and cannot be deleted.
 
-## Resolution Steps
-1. **Check protection status**: Verify if the resource is indeed protected:
-   ```bash
-   # Example: Check API details including protection status
-   curl -X GET "https://api.unkey.dev/v1/apis/{apiId}" \
-     -H "Authorization: Bearer your_api_key"
-   ```
+## Solution
 
-2. **Remove protection**: If appropriate, remove the deletion protection using the dashboard:
-   - Navigate to the [Unkey Dashboard](https://app.unkey.com)
-   - Find the resource you want to delete
-   - Go to its settings and disable the deletion protection
-
-3. **Update via API**: For some resources, you can update the protection status via API:
-   ```bash
-   # Example: Remove deletion protection from an API
-   curl -X PATCH "https://api.unkey.dev/v1/apis/{apiId}" \
-     -H "Authorization: Bearer your_api_key" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "deleteProtection": false
-     }'
-   ```
-
-4. **Contact administrator**: If you don't have permission to modify protection settings, contact your workspace administrator.
-
-5. **Consider alternatives**: Instead of deleting, consider disabling or archiving the resource if those options are available.
-
-## Related Resources
-- [API Management](/api-reference/apis/delete)
-- [Resource Protection Settings](/workspaces/security)
-- [Workspace Management](/workspaces/overview)
+Go to the [Unkey Dashboard](https://app.unkey.com) and remove the protection from the resource you are trying to delete.

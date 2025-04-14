@@ -3,51 +3,12 @@ title: EXPIRED
 openapi-schema: ErrExpired
 ---
 
-## Overview
-The EXPIRED error (HTTP 403) occurs when you attempt to use a key that has passed its expiration date. Expired keys cannot be used for authentication or API operations.
+## Problem
 
-## Common Causes
-- Using a key that was created with a short expiration time
-- Attempting to use a temporary key after its lifetime has ended
-- The key's expiration date was set and has now passed
-- Trying to verify an expired key
-- Using keys that were automatically expired due to security policies
+The key has expired and can no longer be used.
 
-## Resolution Steps
-1. **Check expiration status**: Verify the key's expiration status:
-   ```bash
-   # Example: Check a key's details including expiration
-   curl -X GET "https://api.unkey.dev/v1/keys/{keyId}" \
-     -H "Authorization: Bearer your_api_key"
-   ```
+## Solution
 
-2. **Update the key's expiration**: If you have appropriate permissions, extend the key's expiration:
-   ```bash
-   # Example: Update a key to extend or remove expiration
-   curl -X PATCH "https://api.unkey.dev/v1/keys/{keyId}" \
-     -H "Authorization: Bearer your_api_key" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "expires": 1672531200000  # Set to a future timestamp (milliseconds since epoch)
-       # Or remove expiration with "expires": null
-     }'
-   ```
+Check the `expires` field and update the key if necessary.
 
-3. **Create a new key**: If you can't update the expired key, create a new one:
-   ```bash
-   # Example: Create a new key to replace the expired one
-   curl -X POST "https://api.unkey.dev/v1/keys.createKey" \
-     -H "Authorization: Bearer your_api_key" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "apiId": "api_123",
-       "expires": 1672531200000  # Optional: Set a future expiration date
-     }'
-   ```
-
-4. **Implement key rotation**: Consider implementing key rotation before expiration to avoid disruption.
-
-## Related Resources
-- [Key Expiration](/api-reference/keys/create)
-- [Updating Keys](/api-reference/keys/update)
-- [Key Rotation Best Practices](/best-practices/key-rotation)
+If that doesn't help, ask for help on [Discord](https://unkey.com/discord)

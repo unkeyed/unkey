@@ -3,39 +3,12 @@ title: CONFLICT
 openapi-schema: ErrConflict
 ---
 
-## Overview
-The CONFLICT error (HTTP 409) occurs when your request conflicts with the current state of the target resource. This typically happens when you're trying to create or update a resource with an identifier that's already in use by another resource.
+## Problem
 
-## Common Causes
-- Creating a resource with a name that's already taken
-- Using a workspace slug that already exists
-- Creating a permission with an identifier that's already in use
-- Attempting to create a unique constraint that would be violated
-- Creating a key with a custom ID that already exists
-- Concurrent updates to the same resource
+Another resource already uses this identifier. For example workspace slugs must be unique globally.
 
-## Resolution Steps
-1. **Choose a different identifier**: Select a unique name, ID, or slug for your resource.
+## Solution
 
-2. **Check existing resources**: List your existing resources to see what names are already in use:
-   ```bash
-   # Example: List existing APIs to check name availability
-   curl -X GET "https://api.unkey.dev/v1/apis" \
-     -H "Authorization: Bearer your_api_key"
-   ```
+Please choose a different name/identifier.
 
-3. **Use update instead of create**: If you're trying to modify an existing resource, use the appropriate update endpoint instead of creating a new one.
-
-4. **Let Unkey generate IDs**: When possible, allow Unkey to generate unique IDs automatically rather than specifying custom identifiers.
-
-5. **Add uniqueness check**: Consider checking if a resource exists before trying to create it:
-   ```bash
-   # Example: Check if an API exists before creating it
-   curl -X GET "https://api.unkey.dev/v1/apis/{apiName}" \
-     -H "Authorization: Bearer your_api_key"
-   ```
-
-## Related Resources
-- [Creating APIs](/api-reference/apis/create)
-- [Managing Workspaces](/workspaces/overview)
-- [Working with Permissions](/api-reference/keys/set-permissions)
+If that doesn't help, ask for help on [Discord](https://unkey.com/discord)

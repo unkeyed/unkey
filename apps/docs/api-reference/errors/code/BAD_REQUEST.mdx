@@ -1,38 +1,12 @@
 ---
-title: BAD_REQUEST
-openapi-schema: ErrBadRequest
+title: INSUFFICIENT_PERMISSIONS
+openapi-schema: ErrInsufficientPermissions
 ---
 
-## Overview
-The BAD_REQUEST error (HTTP 400) occurs when your request is malformed or contains invalid data that prevents the server from processing it correctly.
+## Problem
 
-## Common Causes
-- Missing required fields in the request body
-- Incorrect data types (e.g., sending a string when a number is expected)
-- Invalid JSON format in the request body
-- Query parameters with incorrect values or formats
-- Validation constraints not met (e.g., string length, number range)
-- Malformed request syntax
+You do not have permission to perform this action. In most cases this means the root key you are using, is lacking permissions.
 
-## Resolution Steps
-1. **Check the error message**: The error message often contains specific information about what's wrong with your request.
+## Solution
 
-2. **Verify request structure**: Ensure your request matches the API documentation exactly.
-
-3. **Validate JSON**: If sending JSON data, validate it using a JSON linter to ensure correct formatting.
-
-4. **Review data types**: Make sure all fields have the correct data types as specified in the API documentation.
-
-5. **Check required fields**: Ensure all required fields are included in your request.
-
-6. **Debug with logging**: Log your complete request before sending it to verify its structure.
-   ```javascript
-   // Example debugging in JavaScript
-   console.log(JSON.stringify(requestBody, null, 2));
-   ```
-
-7. **Test with minimal data**: Start with a minimal valid request and gradually add more fields to identify the problematic one.
-
-## Related Resources
-- [API Reference](/api-reference/authentication)
-- [Request Validation](/api-reference/errors/introduction)
+Go to the [Unkey Dashboard](https://app.unkey.com/settings/root-keys) and add the required permissions to your key.
