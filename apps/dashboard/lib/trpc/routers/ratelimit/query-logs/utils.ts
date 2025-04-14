@@ -34,7 +34,6 @@ export function transformFilters(
     identifiers,
     requestIds: params.requestIds?.filters.map((f) => f.value) || [],
     status,
-    cursorTime: params.cursor?.time ?? null,
-    cursorRequestId: params.cursor?.requestId ?? null,
+    cursorTime: params.cursor ?? null,
   };
 }
