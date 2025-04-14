@@ -47,6 +47,7 @@ export const deleteRole = t.procedure
           {
             type: "role",
             id: input.roleId,
+            name: role.name,
           },
         ],
         context: {
