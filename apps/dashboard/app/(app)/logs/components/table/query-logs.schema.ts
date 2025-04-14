@@ -56,11 +56,5 @@ export const queryLogsPayload = z.object({
       ),
     })
     .nullable(),
-  cursor: z
-    .object({
-      requestId: z.string().nullable(),
-      time: z.number().nullable(),
-    })
-    .optional()
-    .nullable(),
+  cursor: z.number().nullable().optional().nullable(),
 });
