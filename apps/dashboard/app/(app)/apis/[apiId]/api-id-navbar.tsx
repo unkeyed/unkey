@@ -11,6 +11,7 @@ export const ApisNavbar = ({
   api,
   apis,
   activePage,
+  keyId,
 }: {
   api: {
     id: string;
@@ -25,6 +26,7 @@ export const ApisNavbar = ({
     href: string;
     text: string;
   };
+  keyId?: string;
 }) => {
   return (
     <>
@@ -61,6 +63,15 @@ export const ApisNavbar = ({
                   label: "Settings",
                   href: `/apis/${api.id}/settings`,
                 },
+                ...(keyId
+                  ? [
+                      {
+                        id: "settings",
+                        label: `${keyId.substring(0, 8)}...${keyId.substring(keyId.length - 4)}`,
+                        href: `/apis/${api.id}/keys_v2/${api.keyAuthId}/${keyId}`,
+                      },
+                    ]
+                  : []),
               ]}
               shortcutKey="M"
             >

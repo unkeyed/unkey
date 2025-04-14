@@ -106,7 +106,7 @@ export const KeysList = ({
                   <Link
                     title={`View details for ${key.id}`}
                     className="font-mono group-hover:underline decoration-dotted"
-                    href={`/apis/${apiId}/keys/${keyspaceId}/${key.id}`}
+                    href={`/apis/${apiId}/keys_v2/${keyspaceId}/${key.id}`}
                     aria-disabled={isNavigating}
                     onClick={() => {
                       handleLinkClick(key.id);
