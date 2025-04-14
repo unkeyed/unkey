@@ -93,6 +93,7 @@ export const updateApiIpWhitelist = t.procedure
             {
               type: "api",
               id: api.id,
+              name: api.name,
             },
           ],
           context: {
