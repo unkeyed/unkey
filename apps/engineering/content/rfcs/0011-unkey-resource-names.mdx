@@ -1,0 +1,260 @@
+---
+title: 0008 URNs
+description: Implementing Uniform Resource Names (URNs) and Structured Error Codes at Unkey
+date: 2025-04-14
+authors:
+  - Andreas Thomas
+---
+
+## 1. Background
+
+As we grow Unkey from a single API authentication product into a comprehensive API infrastructure platform with multiple services, we face increasing complexity in resource identification and error handling. Our current approach lacks a consistent, scalable system for uniquely identifying resources across services and providing structured error information to developers.
+
+I'm proposing two complementary systems:
+1. A hierarchical URN schema for all Unkey resources
+2. A structured error code system that provides detailed, actionable error information
+
+Both systems are designed to scale with our expanding product surface while providing developers with a consistent, intuitive experience.
+
+## 2. Resource Identification: URN Structure
+
+### 2.1 Format
+
+I propose adopting a URN structure for all Unkey resources:
+
+```
+urn:unkey:{service}:{workspace_id}:{environment}:{resource-type}/{resource-id}
+```
+
+Where:
+* `urn:unkey` - Fixed prefix indicating this is a Unkey resource identifier
+* `service` - The Unkey service (auth, ratelimit, deploy, etc.)
+* `workspace_id` - ID of the workspace containing the resource
+* `environment` - Environment within the workspace (production, staging, etc.)
+* `resource-type` - Type of resource (key, api, identity, etc.)
+* `resource-id` - Unique identifier for the specific resource
+
+For customer cloud deployments, we can extend this pattern:
+
+```
+urn:{customer-cloud-id}:{service}:{workspace_id}:{environment}:{resource-type}/{resource-id}
+```
+
+### 2.2 Examples
+
+```
+# API resource
+urn:unkey:auth:ws_123456:production:api/api_abcdef
+
+# Key resource
+urn:unkey:auth:ws_123456:staging:key/key_xyz123
+
+# Rate limit namespace
+urn:unkey:ratelimit:ws_123456:production:namespace/ns_abc123
+
+# Customer cloud deployment
+urn:customer_abc:auth:ws_123456:production:key/key_xyz123
+```
+
+### 2.3 Service Namespace
+
+Based on our product roadmap, I propose the following service namespaces:
+
+* `auth` - Authentication and authorization
+* `ratelimit` - Rate limiting service
+* `identity` - Identity management
+* `deploy` - Deployment service
+* `observe` - Observability platform
+* `audit` - Audit logging service
+* `secrets` - Secrets management
+* `billing` - API monetization/billing
+
+## 3. Error Identification: Error Code Structure
+
+### 3.1 Format
+
+For error codes, I propose a separate namespace with a more concise format:
+
+```
+err:{service}:{category}:{specific-error}
+```
+
+Where:
+* `err` - Fixed prefix indicating this is an error code
+* `service` - The Unkey service where the error occurred
+* `category` - Broad category of the error
+* `specific-error` - Specific error type
+
+### 3.2 Error Categories
+
+I recommend standardizing on the following error categories across all services:
+
+1. `state` - Existence, status, and lifecycle issues
+   - Resource not found
+   - Resource already exists
+   - Resource disabled/expired
+
+2. `validation` - Format and content issues
+   - Invalid formats
+   - Schema violations
+   - Constraint violations
+
+3. `permissions` - Access control issues
+   - Insufficient permissions
+   - Unauthorized access
+   - Role requirements
+
+4. `limits` - Quota and capacity issues
+   - Rate limits exceeded
+   - Storage limits exceeded
+   - Quota limits exceeded
+
+5. `configuration` - Setup problems
+   - Invalid settings
+   - Incompatible configurations
+   - Missing required settings
+
+### 3.3 Error Code Examples
+
+```
+# Authentication error - key not found
+err:auth:state:key_not_found
+
+# Rate limiting error
+err:ratelimit:limits:exceeded
+
+# Deployment error
+err:deploy:validation:schema_violation
+```
+
+## 4. Implementation Strategy
+
+### 4.1 API Version Approach
+
+I propose implementing these systems using a clean API versioning strategy:
+
+* **V1 API (Current)**: Maintains existing ID formats and error responses for complete backward compatibility
+* **V2 API (New)**: Fully implements the URN and error code systems as the standard approach
+
+This creates a clean separation between versions and avoids complex migration paths for existing clients. Developers can choose when to adopt the new systems by migrating to the V2 API.
+
+### 4.2 Implementation Focus
+
+For the V2 API implementation:
+
+* All resources will be identified using the URN schema
+* All errors will follow the structured error code format
+* Documentation will be built around these new systems
+* Client libraries will support the new formats natively
+
+### 4.3 Documentation and Tooling
+
+To support this approach:
+* Clear migration guides for moving from V1 to V2
+* Automatic URN generation for resources created via the V2 API
+* Comprehensive documentation of the new URN and error systems
+* Developer tools to help work with and parse URNs
+
+## 5. API Response Examples
+
+### 5.1 Resource Response with URN
+
+```json
+{
+  "id": "key_xyz123",
+  "urn": "urn:unkey:auth:ws_123456:production:key/key_xyz123",
+  "name": "Production API Key",
+  "enabled": true,
+  "created_at": "2023-01-01T00:00:00Z"
+}
+```
+
+### 5.2 Error Response with Error Code
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMITED",
+    "err": "err:ratelimit:limits:exceeded",
+    "message": "You have exceeded your rate limit of 100 requests per minute",
+    "docs": "https://unkey.dev/docs/errors/ratelimit/limits/exceeded",
+    "requestId": "req_1234567890"
+  }
+}
+```
+
+## 6. Benefits
+
+### 6.1 Technical Benefits
+
+* **Consistency**: Uniform identification across all services
+* **Self-documenting**: Resource identifiers and error codes are descriptive and hierarchical
+* **Future-proof**: Structure scales to accommodate new services and resource types
+* **Improved Debugging**: Detailed error information speeds troubleshooting
+* **Better Logging**: Structured identifiers improve log searchability and correlation
+
+### 6.2 Developer Experience Benefits
+
+* **Intuitive Navigation**: Hierarchical structure makes relationships clear
+* **Better Documentation**: Documentation can be organized to match URN structure
+* **Error Actionability**: Structured errors guide developers to solutions
+* **Consistent Patterns**: Same patterns work across all Unkey services
+* **Familiar Model**: Developers familiar with similar systems will recognize the approach
+
+## 7. Migration Considerations
+
+### 7.1 Database Impact
+
+No schema changes are required to existing resources. URNs will be computed dynamically based on existing IDs, services, workspaces, and environments.
+
+### 7.2 API Impact
+
+All V2 APIs will need to:
+* Include URNs in responses
+* Support the new error code format
+* Be thoroughly documented with examples
+
+### 7.3 Documentation Impact
+
+Documentation will need to be reorganized to:
+* Explain the URN and error code systems
+* Provide examples of both systems in use
+* Possibly reorganize API reference documentation to align with the URN hierarchy
+
+## 8. Conclusion
+
+Implementing standardized URNs and error codes across Unkey's growing product surface will significantly improve both our internal systems and developer experience. These systems provide a foundation for scale as we expand our product offerings while maintaining a consistent, intuitive interface for developers.
+
+This approach balances immediate needs with long-term scalability, ensuring we can grow our platform without introducing inconsistencies or complexity for developers.
+
+## Appendix A: Common Error Codes
+
+Below is an initial set of error codes for key services. This list will expand as new services and features are added.
+
+### Authentication Service (`auth`)
+- `err:auth:credentials:invalid_key` - API key is invalid or malformed
+- `err:auth:credentials:missing_key` - Required API key is not provided
+- `err:auth:permissions:insufficient_scope` - Key lacks required permissions
+- `err:auth:state:key_disabled` - API key exists but is disabled
+- `err:auth:state:key_not_found` - Referenced key doesn't exist
+- `err:auth:state:already_exists` - Resource already exists (conflict)
+
+### Rate Limiting Service (`ratelimit`)
+- `err:ratelimit:limits:exceeded` - Rate limit has been exceeded
+- `err:ratelimit:limits:quota_exceeded` - Monthly quota has been exceeded
+- `err:ratelimit:configuration:invalid_limit` - Invalid rate limit configuration
+- `err:ratelimit:state:namespace_not_found` - Rate limit namespace doesn't exist
+
+### Identity Service (`identity`)
+- `err:identity:validation:invalid_external_id` - External ID format is invalid
+- `err:identity:state:disabled` - Identity is disabled
+- `err:identity:state:not_found` - Identity doesn't exist
+- `err:identity:state:already_exists` - Identity already exists with this external ID
+
+## Appendix B: Related Work
+
+This proposal draws inspiration from several established systems:
+* RFC 8141 (URN Syntax)
+* Amazon Web Services ARNs
+* Azure Resource IDs
+* Google Cloud Resource Names

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 )
 
 func TestWrapNil(t *testing.T) {
@@ -28,7 +29,7 @@ func TestWrapSingleWrapper(t *testing.T) {
 		err            error
 		wrapper        Wrapper
 		expectedErr    error
-		expectedTag    Tag
+		expectedCode   codes.URN
 		expectedPublic string
 		expectedInt    string
 	}{
@@ -37,16 +38,16 @@ func TestWrapSingleWrapper(t *testing.T) {
 			err:            errors.New("base error"),
 			wrapper:        WithDesc("internal message", "public message"),
 			expectedErr:    errors.New("base error"),
-			expectedTag:    "",
+			expectedCode:   "",
 			expectedInt:    "internal message",
 			expectedPublic: "public message",
 		},
 		{
 			name:           "with tag",
 			err:            errors.New("base error"),
-			wrapper:        WithTag(Tag("TEST_TAG")),
+			wrapper:        WithCode(codes.URN("TEST_TAG")),
 			expectedErr:    errors.New("base error"),
-			expectedTag:    Tag("TEST_TAG"),
+			expectedCode:   codes.URN("TEST_TAG"),
 			expectedPublic: "",
 			expectedInt:    "",
 		},
@@ -66,7 +67,7 @@ func TestWrapSingleWrapper(t *testing.T) {
 			require.Equal(t, tt.expectedErr.Error(), wrapped.err.Error())
 			t.Log("GHI")
 
-			require.Equal(t, tt.expectedTag, wrapped.tag)
+			require.Equal(t, tt.expectedCode, wrapped.code)
 			require.Equal(t, tt.expectedInt, wrapped.internal)
 			require.Equal(t, tt.expectedPublic, wrapped.public)
 
@@ -78,7 +79,7 @@ func TestWrapMultipleWrappers(t *testing.T) {
 	err := New("base error")
 	err = Wrap(err,
 		WithDesc("internal 1", "public 1"),
-		WithTag(Tag("TEST_TAG")),
+		WithCode(codes.URN("TEST_TAG")),
 	)
 	err = Wrap(err,
 		WithDesc("internal 2", "public 2"),

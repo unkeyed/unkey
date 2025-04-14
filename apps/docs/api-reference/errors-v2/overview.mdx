@@ -1,0 +1,80 @@
+---
+title: "Overview"
+description: "Understanding Unkey's structured error system"
+---
+
+<Warning>These errors are only for the v2 API, which is not yet GA.</Warning>
+
+
+## Introduction
+
+Unkey's error system uses a structured approach to organize and identify errors across the platform. This system makes it easier to understand, debug, and handle errors consistently.
+
+## Error Code Format
+
+All Unkey error codes follow a consistent URN-like format:
+
+```
+err:system:category:specific
+```
+
+For example: `err:unkey:authentication:missing`
+
+This format breaks down as follows:
+
+- **err**: Standard prefix for all error codes
+- **system**: The service area or responsibility domain (e.g., unkey, user)
+- **category**: The error type or classification (e.g., authentication, data)
+- **specific**: The exact error condition (e.g., missing, malformed)
+
+## Systems
+
+The "system" component identifies where the error originated:
+
+- **unkey**: Errors originating from Unkey's internal systems
+- **github**: Errors related to GitHub integration
+- **aws**: Errors related to AWS integration
+
+## Categories
+
+The "category" component provides a second level of classification, for example:
+
+- **authentication**: Errors related to the authentication process
+- **authorization**: Errors related to permissions and access control
+- **application**: Errors related to application operations and system integrity
+- **data**: Errors related to data operations and resources
+- **limits**: Rate limiting or quota-related errors
+
+## Error Response Format
+
+When an error occurs, the API returns a consistent JSON response format:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Authentication credentials were not provided",
+    "status": 401,
+    "title": "Unauthorized",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/missing"
+  }
+}
+```
+
+Key fields:
+- **requestId**: Unique identifier for the request (important for support)
+- **detail**: Human-readable explanation of the error
+- **status**: HTTP status code
+- **title**: Short summary of the error type
+- **type**: URL to detailed documentation about this error
+
+## Documentation Integration
+
+All error codes have a corresponding documentation page accessible via the `type` URL in the error response. These pages provide detailed information about:
+
+- What caused the error
+- How to fix the issue
+- Common mistakes that lead to this error
+- Related errors you might encounter
