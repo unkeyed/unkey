@@ -1,0 +1,40 @@
+---
+title: METHOD_NOT_ALLOWED
+openapi-schema: ErrMethodNotAllowed
+---
+
+## Overview
+The METHOD_NOT_ALLOWED error (HTTP 405) occurs when you attempt to use an HTTP method (GET, POST, PUT, DELETE, etc.) that is not supported by the endpoint you're trying to access.
+
+## Common Causes
+- Using POST on an endpoint that only accepts GET requests
+- Using DELETE on a resource that doesn't support deletion
+- Using PUT or PATCH on an endpoint that doesn't support updates
+- Attempting to use OPTIONS or HEAD methods on endpoints that don't implement them
+- Misconfigured API client or incorrect API documentation reference
+
+## Resolution Steps
+1. **Verify the correct HTTP method**: Check the API documentation to confirm which HTTP methods are supported for the endpoint you're trying to access.
+
+2. **Check your API client configuration**: Ensure your API client or code is using the correct HTTP method for the operation you want to perform.
+
+3. **Use the correct endpoint**: Different operations often require different endpoints, even for the same resource type:
+   ```
+   # Creating a resource (POST)
+   POST /v1/keys
+   
+   # Retrieving a resource (GET)
+   GET /v1/keys/{keyId}
+   
+   # Updating a resource (PATCH/PUT)
+   PATCH /v1/keys/{keyId}
+   
+   # Deleting a resource (DELETE)
+   DELETE /v1/keys/{keyId}
+   ```
+
+4. **Check for typos in your request**: Make sure you're not accidentally sending a request to the wrong URL with the wrong method.
+
+## Related Resources
+- [API Reference Overview](/api-reference/authentication)
+- [REST API Best Practices](https://docs.unkey.dev/best-practices/api-usage)

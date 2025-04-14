@@ -1,0 +1,42 @@
+---
+title: USAGE_EXCEEDED
+openapi-schema: ErrUsageExceeded
+---
+
+## Overview
+The USAGE_EXCEEDED error (HTTP 403) occurs when a key or account has exceeded its allocated usage limits. This could relate to API call limits, rate limits, or other resource consumption thresholds that have been defined for your key or account.
+
+## Common Causes
+- An API key has reached its maximum number of allowed verifications
+- Your account has reached its maximum number of keys, APIs, or workspaces
+- You've reached the storage limit for your current plan
+- A free tier account attempting to use features limited to paid plans
+- Batch operations that would exceed your current limits
+
+## Resolution Steps
+1. **Check your usage metrics**: Review your current usage in the Unkey dashboard to understand what limit you've exceeded.
+
+2. **Increase key limits**: If a specific key has reached its limit, you can update the key's remaining verifications:
+   ```bash
+   curl -X PUT "https://api.unkey.dev/v1/keys.updateRemaining" \
+     -H "Authorization: Bearer your_api_key" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "keyId": "key_123",
+       "remaining": 1000
+     }'
+   ```
+
+3. **Upgrade your plan**: If you've reached account-level limits, consider upgrading to a higher tier plan with increased limits.
+
+4. **Optimize your usage**: Review your implementation to ensure you're using resources efficiently:
+   - Use batch operations where possible
+   - Implement client-side caching
+   - Avoid unnecessary API calls
+
+5. **Request a temporary limit increase**: Contact Unkey support if you need a temporary increase for a specific use case.
+
+## Related Resources
+- [Usage Limits & Billing](/billing/usage-limits)
+- [Updating Key Verification Limits](/api-reference/keys/update-remaining)
+- [Account Management](/workspaces/overview)
