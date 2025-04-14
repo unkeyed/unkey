@@ -57,6 +57,7 @@ export const updateRootKeyName = t.procedure
             {
               type: "key",
               id: key.id,
+              name: input.name ?? undefined,
             },
           ],
           context: {

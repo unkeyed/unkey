@@ -55,6 +55,7 @@ export const createPermission = t.procedure
             {
               type: "permission",
               id: permissionId,
+              name: input.name,
             },
           ],
 

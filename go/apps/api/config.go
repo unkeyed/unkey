@@ -42,7 +42,7 @@ type Config struct {
 	// --- OpenTelemetry configuration ---
 
 	// OtelOtlpEndpoint specifies the OpenTelemetry collector endpoint for metrics, traces, and logs
-	OtelEnabled           bool
+	OtelSink              string
 	OtelTraceSamplingRate float64
 
 	PrometheusPort int
