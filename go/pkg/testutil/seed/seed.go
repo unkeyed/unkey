@@ -44,7 +44,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	// Insert root workspace
 	insertRootWorkspaceParams := db.InsertWorkspaceParams{
 		ID:        uid.New("test_ws"),
-		TenantID:  uid.New("unkey"),
+		OrgID:     uid.New("unkey"),
 		Name:      "unkey",
 		CreatedAt: time.Now().UnixMilli(),
 	}
@@ -73,7 +73,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	// Insert user workspace
 	insertUserWorkspaceParams := db.InsertWorkspaceParams{
 		ID:        uid.New("test_ws"),
-		TenantID:  uid.New("user"),
+		OrgID:     uid.New("user"),
 		Name:      "user",
 		CreatedAt: time.Now().UnixMilli(),
 	}
@@ -87,7 +87,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	// Insert different workspace for permission tests
 	insertDifferentWorkspaceParams := db.InsertWorkspaceParams{
 		ID:        uid.New("test_ws"),
-		TenantID:  uid.New("alice"),
+		OrgID:     uid.New("alice"),
 		Name:      "alice",
 		CreatedAt: time.Now().UnixMilli(),
 	}
@@ -127,6 +127,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 
 	if len(permissions) > 0 {
 		for _, permission := range permissions {
+			s.t.Logf("creating permission %s for key %s", permission, insertKeyParams.ID)
 			permissionID := uid.New(uid.TestPrefix)
 			err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
 				ID:          permissionID,
@@ -139,15 +140,13 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
 			if errors.As(err, &mysqlErr) {
 				// Error 1062 (23000): Duplicate entry
-				if mysqlErr.Number == 1064 {
-					existing, findErr := db.Query.FindPermissionByWorkspaceAndName(ctx, s.DB.RO(), db.FindPermissionByWorkspaceAndNameParams{
-						WorkspaceID: s.Resources.RootWorkspace.ID,
-						Name:        permission,
-					})
-					require.NoError(s.t, findErr)
-					s.t.Logf("found existing permission: %+v", existing)
-					permissionID = existing.ID
-				}
+				require.Equal(s.t, uint16(1062), mysqlErr.Number)
+				existing, findErr := db.Query.FindPermissionByWorkspaceAndName(ctx, s.DB.RO(), db.FindPermissionByWorkspaceAndNameParams{
+					WorkspaceID: s.Resources.RootWorkspace.ID,
+					Name:        permission,
+				})
+				require.NoError(s.t, findErr)
+				permissionID = existing.ID
 
 			} else {
 				require.NoError(s.t, err)
