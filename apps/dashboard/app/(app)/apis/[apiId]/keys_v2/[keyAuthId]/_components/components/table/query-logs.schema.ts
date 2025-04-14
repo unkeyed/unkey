@@ -1,40 +1,21 @@
 import { z } from "zod";
+import { keysListFilterOperatorEnum } from "../../filters.schema";
 
-export const keysQueryListPayload = z.object({
+const filterItemSchema = z.object({
+  operator: keysListFilterOperatorEnum,
+  value: z.string(),
+});
+const baseFilterArraySchema = z.array(filterItemSchema).nullish();
+
+const baseKeysSchema = z.object({
   keyAuthId: z.string(),
-  cursor: z
-    .object({
-      keyId: z.string().nullable(),
-    })
-    .optional()
-    .nullable(),
-  keyIds: z
-    .array(
-      z.object({
-        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
-        value: z.string(),
-      }),
-    )
-    .optional()
-    .nullable(),
-  names: z
-    .array(
-      z.object({
-        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
-        value: z.string(),
-      }),
-    )
-    .optional()
-    .nullable(),
-  identities: z
-    .array(
-      z.object({
-        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
-        value: z.string(),
-      }),
-    )
-    .optional()
-    .nullable(),
+  names: baseFilterArraySchema,
+  identities: baseFilterArraySchema,
+  keyIds: baseFilterArraySchema,
+});
+
+export const keysQueryListPayload = baseKeysSchema.extend({
+  cursor: z.string().nullish(),
 });
 
 export type KeysQueryListPayload = z.infer<typeof keysQueryListPayload>;

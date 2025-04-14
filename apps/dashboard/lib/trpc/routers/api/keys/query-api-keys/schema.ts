@@ -1,36 +1,4 @@
-import { keysListFilterOperatorEnum } from "@/app/(app)/apis/[apiId]/keys_v2/[keyAuthId]/_components/filters.schema";
 import { z } from "zod";
-
-export const keysListParams = z.object({
-  keyAuthId: z.string(),
-  names: z
-    .array(
-      z.object({
-        operator: keysListFilterOperatorEnum,
-        value: z.string(),
-      }),
-    )
-    .nullish(),
-  identities: z
-    .array(
-      z.object({
-        operator: keysListFilterOperatorEnum,
-        value: z.string(),
-      }),
-    )
-    .nullish(),
-  keyIds: z
-    .array(
-      z.object({
-        operator: keysListFilterOperatorEnum,
-        value: z.string(),
-      }),
-    )
-    .nullish(),
-  cursorKeyId: z.string().nullish(),
-});
-
-export type KeysListParams = z.infer<typeof keysListParams>;
 
 export const identitySchema = z.object({
   external_id: z.string().nullable(),

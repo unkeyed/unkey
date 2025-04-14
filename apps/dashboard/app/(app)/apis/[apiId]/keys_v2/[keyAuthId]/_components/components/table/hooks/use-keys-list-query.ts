@@ -1,7 +1,5 @@
-// src/features/keys/hooks/useKeysListQuery.ts (or your path)
-
 import { trpc } from "@/lib/trpc/client";
-import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema"; // Adjust path
+import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { useEffect, useMemo, useState } from "react";
 import { keysListFilterFieldConfig, keysListFilterFieldNames } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
@@ -32,13 +30,13 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
 
       const fieldConfig = keysListFilterFieldConfig[filter.field];
       const validOperators = fieldConfig.operators;
-      const operator = validOperators.includes(filter.operator)
-        ? filter.operator
-        : validOperators[0];
+      if (!validOperators.includes(filter.operator)) {
+        throw new Error("Invalid operator");
+      }
 
       if (typeof filter.value === "string") {
         params[filter.field]?.push({
-          operator,
+          operator: filter.operator,
           value: filter.value,
         });
       }

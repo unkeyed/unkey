@@ -7,11 +7,7 @@ import { keyDetailsResponseSchema } from "./schema";
 const KeysListResponse = z.object({
   keys: z.array(keyDetailsResponseSchema),
   hasMore: z.boolean(),
-  nextCursor: z
-    .object({
-      keyId: z.string(),
-    })
-    .optional(),
+  nextCursor: z.string().nullish(),
   totalCount: z.number(),
 });
 
@@ -34,7 +30,7 @@ export const queryKeysList = t.procedure
         identities: input.identities,
       },
       limit: PAGINATION_LIMIT,
-      cursorKeyId: input.cursor?.keyId ?? null,
+      cursorKeyId: input.cursor ?? null,
     });
 
     const lastKeyId = keys.length > 0 ? keys[keys.length - 1].id : null;
@@ -43,7 +39,7 @@ export const queryKeysList = t.procedure
       keys: keys,
       hasMore,
       totalCount,
-      nextCursor: hasMore && lastKeyId ? { keyId: lastKeyId } : undefined,
+      nextCursor: hasMore && lastKeyId ? lastKeyId : undefined,
     };
 
     return response;

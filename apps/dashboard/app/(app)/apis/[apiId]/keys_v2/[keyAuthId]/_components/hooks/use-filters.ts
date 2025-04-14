@@ -5,7 +5,6 @@ import { useCallback, useMemo } from "react";
 import {
   type AllOperatorsUrlValue,
   type KeysListFilterField,
-  type KeysListFilterOperator,
   type KeysListFilterValue,
   type KeysQuerySearchParams,
   keysListFilterFieldConfig,
@@ -64,15 +63,16 @@ export const useFilters = () => {
 
         const fieldConfig = keysListFilterFieldConfig[filter.field];
         const validOperators = fieldConfig.operators;
-        const operator = (
-          validOperators.includes(filter.operator) ? filter.operator : validOperators[0]
-        ) as KeysListFilterOperator;
+
+        if (!validOperators.includes(filter.operator)) {
+          throw new Error("Invalid operator");
+        }
 
         if (typeof filter.value === "string") {
           const fieldFilters = filtersByField.get(filter.field);
           fieldFilters?.push({
             value: filter.value,
-            operator: operator,
+            operator: filter.operator,
           });
         }
       });
