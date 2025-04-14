@@ -11,7 +11,7 @@ import (
 
 const listWorkspaces = `-- name: ListWorkspaces :many
 SELECT
-   w.id, w.tenant_id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.trial_ends, w.beta_features, w.features, w.plan_locked_until, w.plan_downgrade_request, w.plan_changed, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+   w.id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
    q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 FROM ` + "`" + `workspaces` + "`" + ` w
 LEFT JOIN quota q ON w.id = q.workspace_id
@@ -28,7 +28,7 @@ type ListWorkspacesRow struct {
 // ListWorkspaces
 //
 //	SELECT
-//	   w.id, w.tenant_id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.trial_ends, w.beta_features, w.features, w.plan_locked_until, w.plan_downgrade_request, w.plan_changed, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+//	   w.id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 //	   q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 //	FROM `workspaces` w
 //	LEFT JOIN quota q ON w.id = q.workspace_id
@@ -46,19 +46,15 @@ func (q *Queries) ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([
 		var i ListWorkspacesRow
 		if err := rows.Scan(
 			&i.Workspace.ID,
-			&i.Workspace.TenantID,
 			&i.Workspace.OrgID,
 			&i.Workspace.Name,
 			&i.Workspace.Plan,
 			&i.Workspace.Tier,
 			&i.Workspace.StripeCustomerID,
 			&i.Workspace.StripeSubscriptionID,
-			&i.Workspace.TrialEnds,
 			&i.Workspace.BetaFeatures,
 			&i.Workspace.Features,
-			&i.Workspace.PlanLockedUntil,
-			&i.Workspace.PlanDowngradeRequest,
-			&i.Workspace.PlanChanged,
+			&i.Workspace.Subscriptions,
 			&i.Workspace.Enabled,
 			&i.Workspace.DeleteProtection,
 			&i.Workspace.CreatedAtM,

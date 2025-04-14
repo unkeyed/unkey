@@ -14,13 +14,13 @@ runs:
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version-file: ./apps/agent/go.mod
-        cache-dependency-path: ./apps/agent/go.sum
+        go-version-file: ./go/go.mod
+        cache-dependency-path: ./go/go.sum
 
     - run: go mod download
       if: ${{ inputs.go == 'true' }}
       shell: bash
-      working-directory: ./apps/agent
+      working-directory: ./go
 
     - name: Install tparse
       run: go install github.com/mfridman/tparse@latest
