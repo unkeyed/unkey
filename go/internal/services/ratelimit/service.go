@@ -228,35 +228,32 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	currentWindow, currentWindowExisted := b.getCurrentWindow(req.Time)
 	previousWindow, previousWindowExisted := b.getPreviousWindow(req.Time)
 
-	refreshKeys := []string{}
-	currentKey := ""
-	previousKey := ""
-
 	if goToOrigin || !currentWindowExisted {
-		currentKey = counterKey(key, currentWindow.sequence)
-		refreshKeys = append(refreshKeys, currentKey)
+		currentKey := counterKey(key, currentWindow.sequence)
+		res, err := s.counter.Get(ctx, currentKey)
+		if err != nil {
+			s.logger.Error("unable to get counter value",
+				"key", currentKey,
+				"error", err.Error(),
+			)
+		} else {
+			currentWindow.counter = max(currentWindow.counter, res)
+
+		}
 
 	}
 	if goToOrigin || !previousWindowExisted {
-		previousKey = counterKey(key, previousWindow.sequence)
-		refreshKeys = append(refreshKeys, previousKey)
-	}
-
-	if len(refreshKeys) > 0 {
-		res, err := s.counter.MultiGet(ctx, refreshKeys)
+		previousKey := counterKey(key, previousWindow.sequence)
+		res, err := s.counter.Get(ctx, previousKey)
 		if err != nil {
-			s.logger.Error("unable to get counter values",
-				"keys", refreshKeys,
+			s.logger.Error("unable to get counter value",
+				"key", previousKey,
 				"error", err.Error(),
 			)
-		}
-		if counter := res[currentKey]; counter > currentWindow.counter {
-			currentWindow.counter = counter
-		}
-		if counter := res[previousKey]; counter > previousWindow.counter {
-			previousWindow.counter = counter
-		}
+		} else {
+			previousWindow.counter = max(previousWindow.counter, res)
 
+		}
 	}
 
 	// Calculate time elapsed in current window (as a fraction)
