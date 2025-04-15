@@ -36,7 +36,7 @@ export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
               });
             }}
           >
-            <Clone size="md-regular" className="text-gray-12" />
+            <Clone size="md-regular" className="text-accent-8" />
           </button>
         }
       />

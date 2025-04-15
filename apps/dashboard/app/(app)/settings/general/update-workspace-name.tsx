@@ -60,7 +60,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
           className="py-[19px] mt-5"
           title={
             <div className="flex items-center justify-start gap-2.5">
-              <span className="text-sm font-medium text-accent-12">API Name</span>
+              <span className="text-sm font-medium text-accent-12">Workspace Name</span>
             </div>
           }
           description={
