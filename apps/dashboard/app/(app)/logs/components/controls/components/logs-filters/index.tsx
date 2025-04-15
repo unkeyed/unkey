@@ -1,5 +1,8 @@
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
-import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
+import {
+  type FilterItemConfig,
+  FiltersPopover,
+} from "@/components/logs/checkbox/filters-popover";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -11,19 +14,22 @@ const FILTER_ITEMS: FilterItemConfig[] = [
   {
     id: "status",
     label: "Status",
-    shortcut: "e",
+    shortcut: "E",
+    shortcutLabel: "E",
     component: <StatusFilter />,
   },
   {
     id: "methods",
     label: "Method",
-    shortcut: "m",
+    shortcut: "M",
+    shortcutLabel: "M",
     component: <MethodsFilter />,
   },
   {
     id: "paths",
     label: "Path",
-    shortcut: "p",
+    shortcut: "P",
+    shortcutLabel: "P",
     component: <PathsFilter />,
   },
 ];
@@ -38,7 +44,7 @@ export const LogsFilters = () => {
           size="md"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
-            filters.length > 0 ? "bg-gray-4" : "",
+            filters.length > 0 ? "bg-gray-4" : ""
           )}
           aria-label="Filter logs"
           aria-haspopup="true"

@@ -1,3 +1,4 @@
+import { KeyboardButton } from "@/components/keyboard-button";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { CircleCaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -9,19 +10,19 @@ type LiveSwitchProps = {
 };
 
 export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
-  useKeyboardShortcut({ meta: true, key: "l" }, onToggle);
+  useKeyboardShortcut("option+shift+l", onToggle);
 
   return (
     <Button
       onClick={onToggle}
       variant="ghost"
       size="md"
-      title="Toggle live updates (Shortcut: ⌘ + L)"
+      title="Toggle live updates (Shortcut: ⌥+⇧+L)"
       className={cn(
         "px-2 relative rounded-lg",
         isLive
           ? "bg-info-3 text-info-11 hover:bg-info-3 hover:text-info-11 border border-solid border-info-7"
-          : "text-accent-12 [&_svg]:text-accent-9",
+          : "text-accent-12 [&_svg]:text-accent-9"
       )}
     >
       {isLive && (
@@ -31,6 +32,7 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
       )}
       <CircleCaretRight className="size-4 relative z-10" />
       <span className="font-medium text-[13px]">Live</span>
+      <KeyboardButton shortcut="⌥+⇧+L" />
     </Button>
   );
 };

@@ -14,13 +14,16 @@ type RefreshButtonProps = {
 
 const REFRESH_TIMEOUT_MS = 1000;
 
-export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButtonProps) => {
+export const RefreshButton = ({
+  onRefresh,
+  isEnabled,
+  isLive,
+  toggleLive,
+}: RefreshButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(null);
-
-  useKeyboardShortcut({ ctrl: true, key: "r" }, () => {
-    isEnabled && handleRefresh();
-  });
+  const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
   const handleRefresh = () => {
     if (isLoading) {
@@ -45,6 +48,11 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
     setRefreshTimeout(timeout);
   };
 
+  useKeyboardShortcut("option+shift+r", handleRefresh, {
+    preventDefault: true,
+    disabled: !isEnabled,
+  });
+
   return (
     <RatelimitOverviewTooltip
       content="Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
@@ -57,14 +65,14 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
           onClick={handleRefresh}
           variant="ghost"
           size="md"
-          title={isEnabled ? "Refresh data (Shortcut: CTRL+R)" : ""}
+          title={isEnabled ? "Refresh data (Shortcut: ⌥+⇧+P)" : ""}
           disabled={!isEnabled || isLoading}
           loading={isLoading}
           className="flex w-full items-center justify-center rounded-lg border border-gray-4"
         >
           <Refresh3 className="size-4" />
           <span className="font-medium text-[13px] relative z-10">Refresh</span>
-          <KeyboardButton shortcut="r" modifierKey="CTRL" />
+          <KeyboardButton shortcut="⌥+⇧+R" />
         </Button>
       </div>
     </RatelimitOverviewTooltip>
