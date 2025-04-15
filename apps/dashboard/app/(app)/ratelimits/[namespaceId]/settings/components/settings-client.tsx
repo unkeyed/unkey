@@ -10,6 +10,7 @@ import { Button, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
+import { Separator } from "@/components/ui/separator";
 
 type Props = {
   namespace: {
@@ -88,7 +89,7 @@ export const SettingsClient = ({ namespace }: Props) => {
                 </Button>
               </div>
             </SettingCard>
-
+            <Separator className="bg-gray-4" orientation="horizontal" />
             <SettingCard
               title="Namespace ID"
               description="An identifier for the namespace, used in some API calls."

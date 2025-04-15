@@ -16,17 +16,14 @@ export default async function SettingTeamPage() {
   const team = workspace?.quotas?.team ?? false;
 
   return workspace ? (
-    <div>
-      <WorkspaceNavbar
-        workspace={{ id: workspace.id, name: workspace.name }}
-        activePage={{ href: "team", text: "Team" }}
-      />
-      <PageContent>
-        <div className="flex flex-col gap-8 mt-8 mb-20">
+    <>
+        <WorkspaceNavbar
+          workspace={{ id: workspace.id, name: workspace.name }}
+          activePage={{ href: "team", text: "Team" }} />
+        <PageContent>
           <TeamPageClient team={team} />
-        </div>
-      </PageContent>
-    </div>
+        </PageContent>
+    </>
   ) : (
     <div>
       <div>Workspace not found</div>

@@ -69,17 +69,15 @@ export default function TeamPageClient({ team }: { team: boolean }) {
 
   if (!team) {
     return (
-      <div className="w-full h-screen -mt-40 flex items-center justify-center">
-        <Empty>
-          <Empty.Title>Upgrade Your Plan to Add Team Members</Empty.Title>
-          <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
-          <Empty.Actions>
-            <Link href="/settings/billing">
-              <Button>Upgrade</Button>
-            </Link>
-          </Empty.Actions>
-        </Empty>
-      </div>
+      <Empty className="xl:mt-96">
+        <Empty.Title>Upgrade Your Plan to Add Team Members</Empty.Title>
+        <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
+        <Empty.Actions>
+          <Link href="/settings/billing">
+            <Button>Upgrade</Button>
+          </Link>
+        </Empty.Actions>
+      </Empty>
     );
   }
 

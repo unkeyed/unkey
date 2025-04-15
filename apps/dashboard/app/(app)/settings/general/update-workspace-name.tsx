@@ -69,8 +69,9 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
             </div>
           }
           border="top"
+          contentWidth="w-full lg:w-[320px]"
         >
-          <div className="flex items-center w-full gap-2 sm:justify-start lg:justify-center">
+          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
             <input type="hidden" name="workspaceId" value={workspace.id} />
             <label htmlFor="workspaceName" className="hidden sr-only">
               Workspace Name
@@ -84,7 +85,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
                     <Input
                       type="text"
                       id="workspaceName"
-                      className="w-[257px] h-9"
+                      className="grow"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {
@@ -99,7 +100,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
             />
             <Button
               size="lg"
-              className="rounded-lg px-2.5 "
+              className="rounded-lg px-2.5 flex-none"
               disabled={
                 !form.formState.isValid ||
                 form.formState.isSubmitting ||

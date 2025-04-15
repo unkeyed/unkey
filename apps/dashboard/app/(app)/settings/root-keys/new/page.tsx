@@ -3,7 +3,7 @@ import { PageContent } from "@/components/page-content";
 import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { Navigation } from "../navigation";
+import { Navigation } from "./navigation";
 import { Client } from "./client";
 
 export const revalidate = 0;

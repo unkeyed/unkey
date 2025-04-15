@@ -20,9 +20,10 @@ export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
         </div>
       }
       border="bottom"
+      contentWidth="w-full lg:w-[320px]"
     >
       <Input
-        className="w-[320px] focus:ring-0 focus:ring-offset-0"
+        className="w-full lg:w-[320px] focus:ring-0 focus:ring-offset-0"
         readOnly
         defaultValue={workspaceId}
         placeholder="Workspace ID"
