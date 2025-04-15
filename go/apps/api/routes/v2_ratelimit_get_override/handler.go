@@ -109,7 +109,7 @@ func New(svc Services) zen.Route {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			Data: openapi.RatelimitGetOverrideResponseData{
+			Data: openapi.RatelimitOverride{
 
 				OverrideId:  override.ID,
 				Duration:    int64(override.Duration),

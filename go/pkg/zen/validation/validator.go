@@ -73,7 +73,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 			Detail:   "One or more fields failed validation",
 			Instance: nil,
 			Status:   http.StatusBadRequest,
-			Type:     "https://unkey.com/docs/errors/bad_request",
+			Type:     "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input",
 			Errors:   []openapi.ValidationError{},
 		},
 	}

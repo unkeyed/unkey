@@ -40,7 +40,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/ratelimit.getOverride' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -59,7 +59,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/ratelimit.getOverride' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -80,7 +80,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/bad_request", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/ratelimit.getOverride' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -101,7 +101,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "You must provide either a namespace ID or name.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -127,4 +127,20 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
+	t.Run("malformed authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"malformed_header"},
+		}
+
+		namespaceName := uid.New("test")
+		req := handler.Request{
+			NamespaceName: &namespaceName,
+			Identifier:    "test_identifier",
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+	})
 }
