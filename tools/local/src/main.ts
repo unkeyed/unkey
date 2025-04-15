@@ -48,12 +48,7 @@ async function main() {
 
   switch (app) {
     case "dashboard": {
-      await startContainers([
-        "planetscale",
-        "clickhouse",
-        "agent",
-        "clickhouse_migrator",
-      ]);
+      await startContainers(["planetscale", "clickhouse", "agent", "clickhouse_migrator"]);
 
       const resources = await prepareDatabase();
       !skipEnv && (await bootstrapDashboard(resources));
@@ -61,24 +56,14 @@ async function main() {
     }
 
     case "api": {
-      await startContainers([
-        "planetscale",
-        "clickhouse",
-        "agent",
-        "clickhouse_migrator",
-      ]);
+      await startContainers(["planetscale", "clickhouse", "agent", "clickhouse_migrator"]);
 
       const resources = await prepareDatabase();
       !skipEnv && (await bootstrapApi(resources));
       break;
     }
     case "seed": {
-      await startContainers([
-        "planetscale",
-        "clickhouse",
-        "agent",
-        "clickhouse_migrator",
-      ]);
+      await startContainers(["planetscale", "clickhouse", "agent", "clickhouse_migrator"]);
       // Extract workspace ID if provided
       const workspaceId = passedOptions.ws as string | undefined;
 
