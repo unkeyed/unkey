@@ -1,6 +1,6 @@
 package db
 
-//codes.App.Internal.ServiceUnavailable.URN() sqlc generate
+//go:generate sqlc generate
 // we copy all of the relevant bits into query.go and don't want the default
 // exports that get generated
-//codes.App.Internal.ServiceUnavailable.URN() rm delete_me.go
+//go:generate rm delete_me.go

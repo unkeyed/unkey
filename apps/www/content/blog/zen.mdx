@@ -195,7 +195,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
             case fault.BAD_REQUEST:
                 return s.JSON(http.StatusBadRequest, api.BadRequestError{
                     Title:     "Bad Request",
-                    Type:      "https://unkey.com/docs/errors/bad_request",
+                    Type:      "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input",
                     Detail:    fault.UserFacingMessage(err),
                     RequestId: s.requestID,
                     Status:    http.StatusBadRequest,

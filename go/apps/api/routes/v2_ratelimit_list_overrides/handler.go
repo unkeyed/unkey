@@ -11,12 +11,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2RatelimitGetOverrideRequestBody
-type Response = openapi.V2RatelimitGetOverrideResponseBody
+type Request = openapi.V2RatelimitListOverridesRequestBody
+type Response = openapi.V2RatelimitListOverridesResponseBody
 
 type Services struct {
 	Logger      logging.Logger
@@ -26,7 +27,7 @@ type Services struct {
 }
 
 func New(svc Services) zen.Route {
-	return zen.NewRoute("POST", "/v2/ratelimit.getOverride", func(ctx context.Context, s *zen.Session) error {
+	return zen.NewRoute("POST", "/v2/ratelimit.listOverrides", func(ctx context.Context, s *zen.Session) error {
 
 		auth, err := svc.Keys.VerifyRootKey(ctx, s)
 		if err != nil {
@@ -90,10 +91,9 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		override, err := db.Query.FindRatelimitOverridesByIdentifier(ctx, svc.DB.RO(), db.FindRatelimitOverridesByIdentifierParams{
+		overrides, err := db.Query.ListRatelimitOverrides(ctx, svc.DB.RO(), db.ListRatelimitOverridesParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
-			Identifier:  req.Identifier,
 		})
 
 		if db.IsNotFound(err) {
@@ -105,19 +105,28 @@ func New(svc Services) zen.Route {
 		if err != nil {
 			return err
 		}
-		return s.JSON(http.StatusOK, Response{
+		response := Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			Data: openapi.RatelimitOverride{
+			Data: make([]openapi.RatelimitOverride, len(overrides)),
+			Pagination: &openapi.Pagination{
+				Cursor:  nil,
+				HasMore: ptr.P(false),
+			},
+		}
 
+		for i, override := range overrides {
+			response.Data[i] = openapi.RatelimitOverride{
 				OverrideId:  override.ID,
 				Duration:    int64(override.Duration),
 				Identifier:  override.Identifier,
 				NamespaceId: override.NamespaceID,
 				Limit:       int64(override.Limit),
-			},
-		})
+			}
+		}
+
+		return s.JSON(http.StatusOK, response)
 	})
 }
 

@@ -59,7 +59,9 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				})
 
 			// Bad Request errors
-			case codes.UnkeyAppErrorsValidationInvalidInput:
+			case codes.UnkeyAppErrorsValidationInvalidInput,
+				codes.UnkeyAuthErrorsAuthenticationMissing,
+				codes.UnkeyAuthErrorsAuthenticationMalformed:
 				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -75,8 +77,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				})
 
 			// Unauthorized errors
-			case codes.UnkeyAuthErrorsAuthenticationMissing,
-				codes.UnkeyAuthErrorsAuthenticationMalformed,
+			case
 				codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
 				return s.JSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
 					Meta: openapi.Meta{

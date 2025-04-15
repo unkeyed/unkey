@@ -54,7 +54,7 @@ func NewHarness(t *testing.T) *Harness {
 
 	cont := containers.New(t)
 
-	dsn, _ := cont.RunMySQL(containers.WithReuse(true), containers.WithPurge(false))
+	dsn, _ := cont.RunMySQL()
 
 	_, redisUrl, _ := cont.RunRedis()
 
