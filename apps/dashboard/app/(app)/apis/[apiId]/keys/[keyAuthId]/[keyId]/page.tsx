@@ -16,8 +16,9 @@ import { Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { fetchApiAndWorkspaceDataFromDb } from "../../../actions";
+import { ApisNavbar } from "../../../api-id-navbar";
 import { RBACButtons } from "./_components/rbac-buttons";
-import { Navigation } from "./navigation";
 import { PermissionList } from "./permission-list";
 import { VerificationTable } from "./verification-table";
 
@@ -72,19 +73,12 @@ export default async function APIKeyDetailPage(props: {
     return notFound();
   }
 
-  const api = await db.query.apis.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.keyAuthId, key.keyAuthId), isNull(table.deletedAtM)),
-  });
-  if (!api) {
-    return notFound();
-  }
-
+  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(props.params.apiId);
   const interval = props.searchParams.interval ?? "7d";
 
   const { getVerificationsPerInterval, start, end, granularity } = prepareInterval(interval);
   const query = {
-    workspaceId: api.workspaceId,
+    workspaceId: currentApi.workspaceId,
     keySpaceId: key.keyAuthId,
     keyId: key.id,
     start,
@@ -96,17 +90,18 @@ export default async function APIKeyDetailPage(props: {
       workspaceId: key.workspaceId,
       keySpaceId: key.keyAuthId,
       keyId: key.id,
+      limit: 50,
     }),
     clickhouse.verifications
       .latest({
         workspaceId: key.workspaceId,
         keySpaceId: key.keyAuthId,
         keyId: key.id,
+        limit: 1,
       })
       .then((res) => res.val?.at(0)?.time ?? 0),
   ]);
 
-  // Sort all verifications by time first
   const sortedVerifications = verifications.val!.sort((a, b) => a.time - b.time);
 
   const successOverTime: { x: string; y: number }[] = [];
@@ -117,10 +112,8 @@ export default async function APIKeyDetailPage(props: {
   const expiredOverTime: { x: string; y: number }[] = [];
   const forbiddenOverTime: { x: string; y: number }[] = [];
 
-  // Get all unique timestamps
   const uniqueDates = [...new Set(sortedVerifications.map((d) => d.time))].sort((a, b) => a - b);
 
-  // Ensure each array has entries for all timestamps with zero counts
   for (const timestamp of uniqueDates) {
     const x = new Date(timestamp).toISOString();
     successOverTime.push({ x, y: 0 });
@@ -235,7 +228,15 @@ export default async function APIKeyDetailPage(props: {
 
   return (
     <div>
-      <Navigation api={api} apiKey={key} />
+      <ApisNavbar
+        api={currentApi}
+        activePage={{
+          href: `/apis/${currentApi.id}/keys/${currentApi.keyAuthId}/${key.id}`,
+          text: "Keys",
+        }}
+        keyId={key.id}
+        apis={workspaceApis}
+      />
 
       <PageContent>
         <div className="flex flex-col">
