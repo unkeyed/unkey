@@ -9,7 +9,9 @@ test(
     timeout: 300_000,
   },
   async (t) => {
-    const container = await ClickHouseContainer.start(t, { keepContainer: true });
+    const container = await ClickHouseContainer.start(t, {
+      keepContainer: true,
+    });
 
     const ch = new ClickHouse({ url: container.url() });
 
@@ -40,6 +42,7 @@ test(
         workspaceId: verification.workspace_id,
         keySpaceId: verification.key_space_id,
         keyId: verification.key_id,
+        limit: 1,
       });
 
       expect(latestVerifications.err).toBeUndefined();
@@ -93,6 +96,7 @@ describe("materialized views", () => {
             workspaceId,
             keySpaceId,
             keyId,
+            limit: 50,
           });
 
           /**
