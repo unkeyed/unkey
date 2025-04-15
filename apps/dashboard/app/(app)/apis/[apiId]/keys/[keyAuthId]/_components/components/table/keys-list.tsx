@@ -147,7 +147,7 @@ export const KeysList = ({
       },
       {
         key: "usage",
-        header: "Usage",
+        header: "Usage in last 36H",
         width: "15%",
         render: (key) => (
           <VerificationBarChart

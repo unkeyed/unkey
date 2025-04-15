@@ -10,7 +10,6 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestBadRequests(t *testing.T) {
