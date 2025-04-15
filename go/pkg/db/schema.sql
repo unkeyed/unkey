@@ -176,26 +176,22 @@ CREATE TABLE `ratelimit_overrides` (
 
 CREATE TABLE `workspaces` (
 	`id` varchar(256) NOT NULL,
-	`tenant_id` varchar(256) NOT NULL,
-	`org_id` varchar(256),
+	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',
 	`stripe_customer_id` varchar(256),
 	`stripe_subscription_id` varchar(256),
-	`trial_ends` datetime(3),
 	`beta_features` json NOT NULL,
 	`features` json NOT NULL,
-	`plan_locked_until` datetime(3),
-	`plan_downgrade_request` enum('free'),
-	`plan_changed` datetime(3),
+	`subscriptions` json,
 	`enabled` boolean NOT NULL DEFAULT true,
 	`delete_protection` boolean DEFAULT false,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
 	CONSTRAINT `workspaces_id` PRIMARY KEY(`id`),
-	CONSTRAINT `tenant_id_idx` UNIQUE(`tenant_id`)
+	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`)
 );
 
 CREATE TABLE `key_migration_errors` (
@@ -245,8 +241,8 @@ CREATE TABLE `quota` (
 CREATE TABLE `audit_log` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
+	`bucket` varchar(256) NOT NULL DEFAULT 'unkey_mutations',
 	`bucket_id` varchar(256) NOT NULL,
-	`bucket` varchar(256) NOT NULL,
 	`event` varchar(256) NOT NULL,
 	`time` bigint NOT NULL,
 	`display` varchar(256) NOT NULL,
@@ -261,11 +257,23 @@ CREATE TABLE `audit_log` (
 	CONSTRAINT `audit_log_id` PRIMARY KEY(`id`)
 );
 
+CREATE TABLE `audit_log_bucket` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`name` varchar(256) NOT NULL,
+	`retention_days` int,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	`delete_protection` boolean DEFAULT false,
+	CONSTRAINT `audit_log_bucket_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`workspace_id`,`name`)
+);
+
 CREATE TABLE `audit_log_target` (
 	`workspace_id` varchar(256) NOT NULL,
 	`bucket_id` varchar(256) NOT NULL,
+	`bucket` varchar(256) NOT NULL DEFAULT 'unkey_mutations',
 	`audit_log_id` varchar(256) NOT NULL,
-	`bucket` varchar(256) NOT NULL,
 	`display_name` varchar(256) NOT NULL,
 	`type` varchar(256) NOT NULL,
 	`id` varchar(256) NOT NULL,
@@ -290,8 +298,10 @@ CREATE INDEX `identity_id_idx` ON `ratelimits` (`identity_id`);
 CREATE INDEX `key_id_idx` ON `ratelimits` (`key_id`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
+CREATE INDEX `bucket_idx` ON `audit_log` (`bucket`);
 CREATE INDEX `event_idx` ON `audit_log` (`event`);
 CREATE INDEX `actor_id_idx` ON `audit_log` (`actor_id`);
 CREATE INDEX `time_idx` ON `audit_log` (`time`);
+CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
 CREATE INDEX `audit_log_id` ON `audit_log_target` (`audit_log_id`);
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);

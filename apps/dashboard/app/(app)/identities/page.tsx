@@ -62,9 +62,11 @@ export default async function Page(props: Props) {
   );
 }
 
-const Results: React.FC<{ search: string; limit: number }> = async (props) => {
-  const orgId = await getOrgId();
+const Results: React.FC<{ search?: string; limit?: number }> = async (props) => {
+  const search = props.search || "";
+  const limit = props.limit || 10;
 
+  const orgId = await getOrgId();
   const getData = cache(
     async () =>
       db.query.workspaces.findFirst({
@@ -73,11 +75,9 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
         with: {
           identities: {
             where: (table, { or, like }) =>
-              or(like(table.externalId, `%${props.search}%`), like(table.id, `%${props.search}%`)),
-
-            limit: props.limit,
+              or(like(table.externalId, `%${search}%`), like(table.id, `%${search}%`)),
+            limit: limit,
             orderBy: (table, { asc }) => asc(table.id),
-
             with: {
               ratelimits: {
                 columns: {
@@ -93,7 +93,7 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
           },
         },
       }),
-    [`${orgId}-${props.search}-${props.limit}`],
+    [`${orgId}-${search}-${limit}`],
   );
 
   const workspace = await getData();

@@ -86,10 +86,12 @@ export const connectPermissionToRole = t.procedure
             {
               type: "role",
               id: role.id,
+              name: role.name,
             },
             {
               type: "permission",
               id: permission.id,
+              name: permission.name,
             },
           ],
           context: {
