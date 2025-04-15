@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";
+import { useRef, useState } from "react";
 import { STATUS_STYLES } from "../utils/get-row-class";
 
 export const LastUsedCell = ({
@@ -18,17 +19,33 @@ export const LastUsedCell = ({
     keyAuthId,
     keyId,
   });
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const handleBadgeClick = () => {
+    if (data?.lastVerificationTime) {
+      setShowTooltip(!showTooltip);
+    }
+  };
 
   return (
     <Badge
+      ref={badgeRef}
       className={cn(
-        "px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] border-none",
+        "px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] border-none cursor-pointer",
         isError
           ? "bg-error-3 text-error-11 border border-error-5"
           : isSelected
             ? STATUS_STYLES.badge.selected
             : STATUS_STYLES.badge.default,
       )}
+      onClick={handleBadgeClick}
+      onMouseOver={() => {
+        setShowTooltip(true);
+      }}
+      onMouseLeave={() => {
+        setShowTooltip(false);
+      }}
     >
       <div>
         <ChartActivity2 size="sm-regular" />
@@ -47,6 +64,10 @@ export const LastUsedCell = ({
             displayType="relative"
             value={data.lastVerificationTime}
             className="truncate"
+            triggerOnClick
+            triggerRef={badgeRef}
+            open={showTooltip}
+            onOpenChange={setShowTooltip}
           />
         ) : (
           "Never used"
