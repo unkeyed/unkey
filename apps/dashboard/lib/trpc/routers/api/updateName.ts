@@ -67,6 +67,7 @@ export const updateApiName = t.procedure
             {
               type: "api",
               id: api.id,
+              name: input.name,
             },
           ],
           context: {

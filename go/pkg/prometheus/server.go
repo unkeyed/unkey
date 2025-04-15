@@ -82,6 +82,7 @@ func New(config Config) (*zen.Server, error) {
 	}
 
 	h := promhttp.Handler()
+
 	// Register the metrics endpoint with the zen server
 	z.RegisterRoute([]zen.Middleware{}, zen.NewRoute("GET", "/metrics", func(ctx context.Context, s *zen.Session) error {
 		h.ServeHTTP(s.ResponseWriter(), s.Request())

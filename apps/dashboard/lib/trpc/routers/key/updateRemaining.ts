@@ -74,6 +74,7 @@ export const updateKeyRemaining = t.procedure
             {
               type: "key",
               id: key.id,
+              name: key.name || undefined,
             },
           ],
           context: {

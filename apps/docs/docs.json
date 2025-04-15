@@ -20,6 +20,7 @@
               {
                 "group": "Unkey",
                 "pages": [
+                  "introduction",
                   {
                     "group": "Quickstart",
                     "pages": [
@@ -424,16 +425,6 @@
                 ]
               }
             ]
-          }
-        ]
-      },
-      {
-        "anchor": "Home",
-        "icon": "book-open-cover",
-        "groups": [
-          {
-            "group": "Unkey",
-            "pages": ["introduction"]
           }
         ]
       },
