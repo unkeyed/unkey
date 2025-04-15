@@ -46,7 +46,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
           active: isExactlyApiRoot || (currentApiActive && !segments.at(2)),
         };
 
-        const subItems: NavItem[] = [overviewItem, settingsItem];
+        const subItems: NavItem[] = [overviewItem];
 
         if (api.keyspaceId) {
           const keysItem: NavItem = {
@@ -58,6 +58,8 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
 
           subItems.push(keysItem);
         }
+
+        subItems.push(settingsItem);
 
         // Create the main API nav item with proper icon setup
         const apiNavItem: NavItem = {
