@@ -128,10 +128,10 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
             )}
           </div>
         </AlertDialogTrigger>
-        <AlertDialogContent className="w-[480px] border border-grayA-4 bg-[#FAFAFC] shadow-lg m-0 p-0 sm:rounded-2xl">
+        <AlertDialogContent className="w-[480px] border border-grayA-4 bg-gray-1 shadow-lg m-0 p-0 sm:rounded-2xl">
           <Form {...form}>
             <form className="flex flex-col" onSubmit={form.handleSubmit(onSubmit)}>
-              <div className="flex flex-row items-center justify-between w-full h-16 px-6 py-4 bg-base-12 rounded-t-[16px] border-b border-grayA-4">
+              <div className="flex flex-row items-center justify-between w-full h-16 px-6 py-4 bg-gray-1 rounded-t-[16px] border-b border-grayA-4">
                 <div className="flex font-medium leading-8 text-md whitespace-nowrap">
                   {api.deleteProtection ? "Disable" : "Enable"} API Delete Protection
                 </div>
@@ -166,7 +166,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 />
               </div>
 
-              <div className="flex flex-col rounded-b-[16px] gap-2 px-5 py-4 h-[112px] border-t bg-[#FAFAFC] border-grayA-4 overflow-hidden items-center justify-center">
+              <div className="flex flex-col rounded-b-[16px] gap-2 px-5 py-4 h-[112px] border-t bg-gray-1 border-grayA-4 overflow-hidden items-center justify-center">
                 <Button
                   type="submit"
                   disabled={!isValid || updateDeleteProtection.isLoading}

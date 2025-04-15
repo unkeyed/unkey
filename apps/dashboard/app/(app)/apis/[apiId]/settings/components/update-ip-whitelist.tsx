@@ -120,17 +120,18 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         ) : (
           <div className="flex w-full gap-4 lg:justify-end lg:items-center ">
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
-              <div className="flex items-center justify-end gap-1 font-medium text-info-11 bg-info-4 leading-4 text-[13px] px-3 h-9 rounded-lg border border-info-5">
+              <Button type="button" variant="primary" className="flex items-center justify-end gap-1 font-medium text-info-11 bg-info-4 leading-4 text-[13px] px-3 h-9 rounded-lg border border-info-5 hover:bg-info-3">
                 Upgrade to Enterprise
-              </div>
+              </Button>
             </a>
             <a
               href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-end gap-1 font-medium text-accent-12 leading-4 text-[13px]"
-            >
-              Learn more <ArrowUpRight size="lg-thin" className="text-accent-9" />
+                className="flex items-center justify-end"
+              ><Button type="button" variant="ghost" className="py-3 gap-1 font-medium text-accent-12 leading-4 text-[13px]">
+                Learn more <ArrowUpRight size="lg-thin" className="text-accent-9" />
+              </Button>
             </a>
           </div>
         )}
