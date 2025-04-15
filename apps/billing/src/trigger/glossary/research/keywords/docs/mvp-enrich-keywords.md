@@ -66,8 +66,9 @@ const KeywordsEverywhereResponseSchema = z.object({
 import { RelatedKeywordSchema } from "./related-keywords";
 
 // Task Output
-{
-  enrichedKeywords: z.array(RelatedKeywordSchema);
+// Task Output
+type TaskOutput = {
+  enrichedKeywords: z.infer<typeof z.array(RelatedKeywordSchema)>;
   metadata: {
     totalProcessed: number;
     creditsUsed: number;
