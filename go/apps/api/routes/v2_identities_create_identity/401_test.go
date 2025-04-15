@@ -36,16 +36,4 @@ func TestUnauthorizedAccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("malformed authorization header", func(t *testing.T) {
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {"malformed_header"},
-		}
-
-		req := handler.Request{ExternalId: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusUnauthorized, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
 }

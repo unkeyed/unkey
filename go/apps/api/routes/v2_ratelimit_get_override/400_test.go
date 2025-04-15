@@ -127,4 +127,20 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
+	t.Run("malformed authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"malformed_header"},
+		}
+
+		namespaceName := uid.New("test")
+		req := handler.Request{
+			NamespaceName: &namespaceName,
+			Identifier:    "test_identifier",
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+	})
 }

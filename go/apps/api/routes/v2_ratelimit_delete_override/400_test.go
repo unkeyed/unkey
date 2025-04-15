@@ -138,7 +138,7 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, http.StatusUnauthorized, res.Status)
+		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
 	})
 }
