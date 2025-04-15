@@ -4,7 +4,6 @@ import * as clack from "@clack/prompts";
 import { bootstrapApi } from "./cmd/api";
 import { bootstrapDashboard } from "./cmd/dashboard";
 import { seed } from "./cmd/seed";
-import { bootstrapWWW } from "./cmd/www";
 import { prepareDatabase } from "./db";
 import { startContainers } from "./docker";
 import { run, task } from "./util";
@@ -34,11 +33,6 @@ async function main() {
           hint: "app.unkey.com",
         },
         {
-          label: "Landing page",
-          value: "www",
-          hint: "unkey.com",
-        },
-        {
           label: "API",
           value: "api",
           hint: "api.unkey.dev",
@@ -53,16 +47,13 @@ async function main() {
   }
 
   switch (app) {
-    case "www": {
-      await startContainers(["mysql", "planetscale"]);
-
-      const resources = await prepareDatabase();
-      !skipEnv && bootstrapWWW(resources);
-
-      break;
-    }
     case "dashboard": {
-      await startContainers(["planetscale", "clickhouse", "agent", "clickhouse_migrator"]);
+      await startContainers([
+        "planetscale",
+        "clickhouse",
+        "agent",
+        "clickhouse_migrator",
+      ]);
 
       const resources = await prepareDatabase();
       !skipEnv && (await bootstrapDashboard(resources));
@@ -70,14 +61,24 @@ async function main() {
     }
 
     case "api": {
-      await startContainers(["planetscale", "clickhouse", "agent", "clickhouse_migrator"]);
+      await startContainers([
+        "planetscale",
+        "clickhouse",
+        "agent",
+        "clickhouse_migrator",
+      ]);
 
       const resources = await prepareDatabase();
       !skipEnv && (await bootstrapApi(resources));
       break;
     }
     case "seed": {
-      await startContainers(["planetscale", "clickhouse", "agent", "clickhouse_migrator"]);
+      await startContainers([
+        "planetscale",
+        "clickhouse",
+        "agent",
+        "clickhouse_migrator",
+      ]);
       // Extract workspace ID if provided
       const workspaceId = passedOptions.ws as string | undefined;
 
