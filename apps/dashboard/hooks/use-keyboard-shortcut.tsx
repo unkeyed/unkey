@@ -37,7 +37,7 @@ const defaultOptions: Required<KeyboardShortcutOptions> = {
  * @param keyName The user-friendly key name from the shortcut string.
  * @returns The corresponding KeyboardEvent.code string, or null if not found.
  */
-const getKeyNameToCode = (keyName: string): string | null => {
+export const getKeyNameToCode = (keyName: string): string | null => {
   const lowerKey = keyName.toLowerCase();
 
   // Basic Letters (A-Z)
@@ -139,7 +139,7 @@ const getKeyNameToCode = (keyName: string): string | null => {
  * @param shortcut The shortcut string to parse.
  * @returns A KeyCombo object or null if parsing fails.
  */
-const parseShortcutString = (shortcut: string): KeyCombo | null => {
+export const parseShortcutString = (shortcut: string): KeyCombo | null => {
   if (!shortcut || typeof shortcut !== "string") {
     return null;
   }
