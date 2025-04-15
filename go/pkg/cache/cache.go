@@ -10,6 +10,7 @@ import (
 	"github.com/maypok86/otter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
@@ -238,7 +239,7 @@ func (c *cache[K, V]) revalidate(
 
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
 	v, err := refreshFromOrigin(ctx)
-	if err != nil {
+	if err != nil && !db.IsNotFound(err) {
 		c.logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
 	}
 	switch op(err) {
