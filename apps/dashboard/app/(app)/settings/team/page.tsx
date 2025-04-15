@@ -17,12 +17,13 @@ export default async function SettingTeamPage() {
 
   return workspace ? (
     <>
-        <WorkspaceNavbar
-          workspace={{ id: workspace.id, name: workspace.name }}
-          activePage={{ href: "team", text: "Team" }} />
-        <PageContent>
-          <TeamPageClient team={team} />
-        </PageContent>
+      <WorkspaceNavbar
+        workspace={{ id: workspace.id, name: workspace.name }}
+        activePage={{ href: "team", text: "Team" }}
+      />
+      <PageContent>
+        <TeamPageClient team={team} />
+      </PageContent>
     </>
   ) : (
     <div>

@@ -5,7 +5,6 @@ import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { WorkspaceNavbar } from "../workspace-navbar";
-import { Navigation } from "./navigation";
 
 export const revalidate = 0;
 
