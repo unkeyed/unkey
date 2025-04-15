@@ -16,7 +16,7 @@ const UnifiedKeywordSchema = z.object({
   volume: z.number(),
   cpc: z.number(),
   competition: z.number(),
-  source: z.enum(["massiveonlinemarketing.nl", "relatedSearch", "autosuggest", "llm_extracted"]),
+  source: z.enum(["massiveonlinemarketing.nl", "related_search", "autosuggest", "llm_extracted"]),
 });
 
 const ParentTaskOutput = z.object({
