@@ -86,6 +86,8 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("version", version.Version))
 	}
 
+	otel.EmitSystemMetrics(logger)
+
 	if cfg.TestMode {
 		logger = logger.With("testmode", true)
 		logger.Warn("TESTMODE IS ENABLED. This is not secure in production!")
