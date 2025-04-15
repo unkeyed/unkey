@@ -55,7 +55,7 @@ const KeywordSchema = z.object({
 {
   inputTerm: string;
   searchResult: z.infer<typeof SerperAutosuggestResultSchema>;
-  keywords: z.array(z.infer<typeof KeywordSchema>>;
+  keywords: z.array(z.infer<typeof KeywordSchema>);
 }
 ```
 
