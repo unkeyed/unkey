@@ -278,21 +278,21 @@ export function useKeyboardShortcut(
         return; // Ignore if focus is on a contentEditable element
       }
 
-      // 1. Match the physical key code (more reliable than e.key with modifiers)
+      // Match the physical key code (more reliable than e.key with modifiers)
       const codeMatch = e.code === requiredCombo.code;
 
-      // 2. Match modifier keys state
+      // Match modifier keys state
       const ctrlMatch = e.ctrlKey === requiredCombo.ctrl;
       const metaMatch = e.metaKey === requiredCombo.meta; // Cmd on Mac, Win key on Windows
       const shiftMatch = e.shiftKey === requiredCombo.shift;
       const altMatch = e.altKey === requiredCombo.alt; // Option on Mac
 
-      // 3. Check if all conditions are met
+      // Check if all conditions are met
       if (codeMatch && ctrlMatch && metaMatch && shiftMatch && altMatch) {
         if (preventDefault) {
           e.preventDefault(); // Prevent default browser action if configured
         }
-        memoizedCallback(); // Execute the provided callback function
+        memoizedCallback();
       }
     };
 

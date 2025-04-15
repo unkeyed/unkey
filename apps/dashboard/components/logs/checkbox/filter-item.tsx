@@ -71,12 +71,6 @@ export const FilterItem = ({
     }
   }, [isActive, open, label]); // Depend on isActive and open
 
-  // --- Removed redundant useKeyboardShortcut ---
-  // Activation is handled by the parent component (FiltersPopover)
-
-  // --- Event Handlers ---
-
-  // KeyDown handler for the PopoverContent (specific to this item's popover)
   const handleItemPopoverKeyDown = useCallback(
     (e: KeyboardEvent) => {
       // No need to check isInputFocused here as parent handles ArrowLeft navigation back
@@ -122,7 +116,6 @@ export const FilterItem = ({
     setActiveFilter(isActive ? null : id);
   }, [isActive, id, setActiveFilter]);
 
-  // --- Render ---
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
