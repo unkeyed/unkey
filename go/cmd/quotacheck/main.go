@@ -156,11 +156,11 @@ func sendSlackNotification(webhookURL string, e db.ListWorkspacesRow, used int64
 					},
 					{
 						"type": "mrkdwn",
-						"text": fmt.Sprintf("*Clerk ID:*\n`%s`", e.Workspace.TenantID),
+						"text": fmt.Sprintf("*Organisation ID:*\n`%s`", e.Workspace.OrgID),
 					},
 					{
 						"type": "mrkdwn",
-						"text": fmt.Sprintf("*Organisation ID:*\n`%s`", e.Workspace.OrgID.String),
+						"text": fmt.Sprintf("*Stripe ID:*\n`%s`", e.Workspace.StripeCustomerID.String),
 					},
 				},
 			},

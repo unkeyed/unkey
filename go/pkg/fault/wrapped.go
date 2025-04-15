@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
+
+	"github.com/unkeyed/unkey/go/pkg/codes"
 )
 
 // wrapped represents an error with additional contextual information.
@@ -22,7 +24,7 @@ type wrapped struct {
 	// location contains the file and line number where the error was link
 	location string
 
-	tag Tag
+	code codes.URN
 
 	// public contains a user-friendly description of the error that is
 	// safe to expose in API responses. It should provide actionable guidance for
@@ -51,7 +53,7 @@ func New(message string, wraps ...Wrapper) error {
 	var err error
 	err = &wrapped{
 		err:      nil,
-		tag:      "",
+		code:     "",
 		location: getLocation(),
 		public:   "",
 		internal: message,

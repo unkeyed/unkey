@@ -11,14 +11,14 @@
     "test:benchmark": "vitest run -c vitest.benchmark.ts"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.4.1",
+    "@cloudflare/vitest-pool-workers": "^0.8.12",
     "@cloudflare/workers-types": "^4.20240603.0",
     "@unkey/api": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
     "@vitest/ui": "^1.6.0",
     "typescript": "^5.5.3",
     "vitest": "^1.6.1",
-    "wrangler": "^3.92.0"
+    "wrangler": "^4.10.0"
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",

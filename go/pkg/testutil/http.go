@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
@@ -40,6 +41,7 @@ type Harness struct {
 	Logger      logging.Logger
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
+	Auditlogs   auditlogs.AuditLogService
 	ClickHouse  clickhouse.ClickHouse
 	Ratelimit   ratelimit.Service
 	seeder      *seed.Seeder
@@ -52,7 +54,7 @@ func NewHarness(t *testing.T) *Harness {
 
 	cont := containers.New(t)
 
-	dsn, _ := cont.RunMySQL(containers.WithReuse(true), containers.WithPurge(false))
+	dsn, _ := cont.RunMySQL()
 
 	_, redisUrl, _ := cont.RunRedis()
 
@@ -78,10 +80,11 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		Logger:   logger,
-		DB:       db,
-		Clock:    clk,
-		KeyCache: caches.KeyByHash,
+		Logger:         logger,
+		DB:             db,
+		Clock:          clk,
+		KeyCache:       caches.KeyByHash,
+		WorkspaceCache: caches.WorkspaceByID,
 	})
 	require.NoError(t, err)
 
@@ -114,6 +117,8 @@ func NewHarness(t *testing.T) *Harness {
 	// Create seeder
 	seeder := seed.New(t, db)
 
+	seeder.Seed(context.Background())
+
 	h := Harness{
 		t:           t,
 		Logger:      logger,
@@ -127,8 +132,11 @@ func NewHarness(t *testing.T) *Harness {
 		DB:          db,
 		seeder:      seeder,
 		Clock:       clk,
-		Caches:      caches,
-
+		Auditlogs: auditlogs.New(auditlogs.Config{
+			DB:     db,
+			Logger: logger,
+		}),
+		Caches: caches,
 		middleware: []zen.Middleware{
 			zen.WithTracing(),
 			zen.WithLogging(logger),

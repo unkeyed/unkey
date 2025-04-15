@@ -19,7 +19,6 @@ export const getLogsClickhousePayload = z.object({
   requestIds: z.array(z.string()).nullable(),
   statusCodes: z.array(z.number().int()).nullable(),
   cursorTime: z.number().int().nullable(),
-  cursorRequestId: z.string().nullable(),
 });
 
 export const log = z.object({
@@ -72,102 +71,103 @@ export function getLogs(ch: Querier) {
 
     const extendedParamsSchema = getLogsClickhousePayload.extend(paramSchemaExtension);
 
-    const query = ch.query({
-      query: `
-        WITH filtered_requests AS (
-          SELECT *
-          FROM metrics.raw_api_requests_v1
-          WHERE workspace_id = {workspaceId: String}
-            AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-            
-            ---------- Apply request ID filter if present (highest priority)
-            AND (
-              CASE
-                WHEN length({requestIds: Array(String)}) > 0 THEN 
-                  request_id IN {requestIds: Array(String)}
-                ELSE TRUE
-              END
-            )
-            
-            ---------- Apply host filter
-            AND (
-              CASE
-                WHEN length({hosts: Array(String)}) > 0 THEN 
-                  host IN {hosts: Array(String)}
-                ELSE TRUE
-              END
-            )
-            
-            ---------- Apply method filter
-            AND (
-              CASE
-                WHEN length({methods: Array(String)}) > 0 THEN 
-                  method IN {methods: Array(String)}
-                ELSE TRUE
-              END
-            )
-            
-            ---------- Apply path filter using pre-generated conditions
-            AND (${pathConditions})
-            
-            ---------- Apply status code filter
-            AND (
-              CASE
-                WHEN length({statusCodes: Array(UInt16)}) > 0 THEN
-                  response_status IN (
-                    SELECT status
-                    FROM (
-                      SELECT multiIf(
-                        code = 200, arrayJoin(range(200, 300)),
-                        code = 400, arrayJoin(range(400, 500)),
-                        code = 500, arrayJoin(range(500, 600)),
-                        code
-                      ) as status
-                      FROM (
-                        SELECT arrayJoin({statusCodes: Array(UInt16)}) as code
-                      )
-                    )
-                  )
-                ELSE TRUE
-              END
-            )
-            
-            -- Apply cursor pagination last
-            AND (
-              CASE
-                WHEN {cursorTime: Nullable(UInt64)} IS NOT NULL 
-                  AND {cursorRequestId: Nullable(String)} IS NOT NULL
-                THEN (time, request_id) < (
-                  {cursorTime: Nullable(UInt64)}, 
-                  {cursorRequestId: Nullable(String)}
+    const filterConditions = `
+      workspace_id = {workspaceId: String}
+      AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      
+      ---------- Apply request ID filter if present (highest priority)
+      AND (
+        CASE
+          WHEN length({requestIds: Array(String)}) > 0 THEN 
+            request_id IN {requestIds: Array(String)}
+          ELSE TRUE
+        END
+      )
+      
+      ---------- Apply host filter
+      AND (
+        CASE
+          WHEN length({hosts: Array(String)}) > 0 THEN 
+            host IN {hosts: Array(String)}
+          ELSE TRUE
+        END
+      )
+      
+      ---------- Apply method filter
+      AND (
+        CASE
+          WHEN length({methods: Array(String)}) > 0 THEN 
+            method IN {methods: Array(String)}
+          ELSE TRUE
+        END
+      )
+      
+      ---------- Apply path filter using pre-generated conditions
+      AND (${pathConditions})
+      
+      ---------- Apply status code filter
+      AND (
+        CASE
+          WHEN length({statusCodes: Array(UInt16)}) > 0 THEN
+            response_status IN (
+              SELECT status
+              FROM (
+                SELECT multiIf(
+                  code = 200, arrayJoin(range(200, 300)),
+                  code = 400, arrayJoin(range(400, 500)),
+                  code = 500, arrayJoin(range(500, 600)),
+                  code
+                ) as status
+                FROM (
+                  SELECT arrayJoin({statusCodes: Array(UInt16)}) as code
                 )
-                ELSE TRUE
-              END
+              )
             )
-        )
-        
+          ELSE TRUE
+        END
+      )
+    `;
+
+    const totalQuery = ch.query({
+      query: `
         SELECT
-          request_id,
-          time,
-          workspace_id,
-          host,
-          method,
-          path,
-          request_headers,
-          request_body,
-          response_status,
-          response_headers,
-          response_body,
-          error,
-          service_latency
-        FROM filtered_requests
-        ORDER BY time DESC, request_id DESC
-        LIMIT {limit: Int}`,
+          count(request_id) as total_count
+        FROM metrics.raw_api_requests_v1
+        WHERE ${filterConditions}`,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.number().int(),
+      }),
+    });
+
+    const logsQuery = ch.query({
+      query: `
+          SELECT
+        request_id,
+        time,
+        workspace_id,
+        host,
+        method,
+        path,
+        request_headers,
+        request_body,
+        response_status,
+        response_headers,
+        response_body,
+        error,
+        service_latency
+      FROM metrics.raw_api_requests_v1
+      WHERE ${filterConditions} AND ({cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)})
+      ORDER BY time DESC
+      LIMIT {limit: Int}`,
       params: extendedParamsSchema,
       schema: log,
     });
 
-    return query(parameters);
+    return {
+      logsQuery: logsQuery(parameters),
+      totalQuery: totalQuery(parameters),
+    };
   };
 }
 

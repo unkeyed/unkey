@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
@@ -35,7 +37,7 @@ var (
 )
 
 type ErrorComponents struct {
-	tags       []fault.Tag
+	code       []codes.URN
 	internals  []string
 	publics    []string
 	baseErrors []string
@@ -86,27 +88,27 @@ func (g *Generator) generateRandomSentence() string {
 	return strings.ToUpper(sentence[:1]) + sentence[1:] + "."
 }
 
-// generateRandomTag creates a random error tag.
-func (g *Generator) generateRandomTag() fault.Tag {
+// generateRandomTag creates a random error code
+func (g *Generator) generateRandomTag() codes.URN {
 	words := []string{
 		g.generateRandomWord(4, 8),
 		g.generateRandomWord(4, 8),
 	}
-	return fault.Tag(strings.ToUpper(strings.Join(words, "_")))
+	return codes.URN(strings.ToUpper(strings.Join(words, "_")))
 }
 
 // generateComponents creates a complete set of random components.
 func (g *Generator) generateComponents() ErrorComponents {
 	components := ErrorComponents{
-		tags:       make([]fault.Tag, numTags),
+		code:       make([]codes.URN, numTags),
 		internals:  make([]string, numInternals),
 		publics:    make([]string, numPublics),
 		baseErrors: make([]string, numBaseErrors),
 	}
 
-	// Generate tags
+	// Generate code
 	for i := 0; i < numTags; i++ {
-		components.tags[i] = g.generateRandomTag()
+		components.code[i] = g.generateRandomTag()
 	}
 
 	// Generate internal messages
@@ -141,9 +143,9 @@ func NewErrorChainGenerator(seed int64) *ErrorChainGenerator {
 	}
 }
 
-func (g *ErrorChainGenerator) generateErrorChain() ([]fault.Tag, []string, error) {
+func (g *ErrorChainGenerator) generateErrorChain() ([]codes.URN, []string, error) {
 	depth := g.rng.Intn(maxDepth) + 1
-	usedTags := make([]fault.Tag, 0, depth)
+	usedTags := make([]codes.URN, 0, depth)
 	usedMsgs := make([]string, 0, depth)
 
 	baseMsg := g.components.baseErrors[g.rng.Intn(len(g.components.baseErrors))]
@@ -154,9 +156,9 @@ func (g *ErrorChainGenerator) generateErrorChain() ([]fault.Tag, []string, error
 		wrappers := make([]fault.Wrapper, 0)
 
 		if g.rng.Float32() < 0.7 {
-			tag := g.components.tags[g.rng.Intn(len(g.components.tags))]
-			wrappers = append(wrappers, fault.WithTag(tag))
-			usedTags = append(usedTags, tag)
+			code := g.components.code[g.rng.Intn(len(g.components.code))]
+			wrappers = append(wrappers, fault.WithCode(code))
+			usedTags = append(usedTags, code)
 		}
 
 		if g.rng.Float32() < 0.8 {
@@ -182,7 +184,7 @@ func TestDST(t *testing.T) {
 
 	// Log some sample components for debugging
 	t.Logf("Sample generated components:")
-	t.Logf("Tags: %v", generator.components.tags[:3])
+	t.Logf("Tags: %v", generator.components.code[:3])
 	t.Logf("Internal messages: %v", generator.components.internals[:3])
 	t.Logf("Public messages: %v", generator.components.publics[:3])
 
@@ -195,9 +197,11 @@ func TestDST(t *testing.T) {
 			}
 
 			if len(expectedTags) > 0 {
-				lastTag := expectedTags[len(expectedTags)-1]
-				if actualTag := fault.GetTag(err); actualTag != lastTag {
-					t.Errorf("expected last tag %v, got %v", lastTag, actualTag)
+				lastCode := expectedTags[len(expectedTags)-1]
+				actualCode, ok := fault.GetCode(err)
+				require.True(t, ok)
+				if actualCode != lastCode {
+					t.Errorf("expected last code%v, got %v", lastCode, actualCode)
 				}
 			}
 
@@ -217,14 +221,14 @@ func TestReproducibility(t *testing.T) {
 	gen2 := NewErrorChainGenerator(seed)
 
 	for i := 0; i < 10; i++ {
-		tags1, msgs1, err1 := gen1.generateErrorChain()
-		tags2, msgs2, err2 := gen2.generateErrorChain()
+		code1, msgs1, err1 := gen1.generateErrorChain()
+		code2, msgs2, err2 := gen2.generateErrorChain()
 
 		if err1.Error() != err2.Error() {
 			t.Errorf("Case %d: Errors not identical with same seed", i)
 		}
 
-		if !reflect.DeepEqual(tags1, tags2) {
+		if !reflect.DeepEqual(code1, code2) {
 			t.Errorf("Case %d: Tags not identical with same seed", i)
 		}
 

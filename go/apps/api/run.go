@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/routes"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
@@ -40,18 +41,34 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns := shutdown.New()
 
-	if cfg.OtelEnabled {
-		grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			Application:     "api",
-			Version:         version.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
-		},
-			shutdowns,
-		)
-		if grafanaErr != nil {
-			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
+	switch cfg.OtelSink {
+	case "grafana":
+		{
+			grafanaErr := otel.InitGrafana(ctx, otel.Config{
+				Application:     "api",
+				Version:         version.Version,
+				InstanceID:      cfg.InstanceID,
+				CloudRegion:     cfg.Region,
+				TraceSampleRate: cfg.OtelTraceSamplingRate,
+			},
+				shutdowns,
+			)
+			if grafanaErr != nil {
+				return fmt.Errorf("unable to init grafana: %w", grafanaErr)
+			}
+		}
+	case "axiom":
+		{
+			axiomErr := otel.InitAxiom(ctx, otel.AxiomConfig{
+
+				Application: "api",
+				Version:     version.Version,
+			},
+				shutdowns,
+			)
+			if axiomErr != nil {
+				return fmt.Errorf("unable to init axiom: %w", axiomErr)
+			}
 		}
 	}
 
@@ -147,10 +164,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		Logger:   logger,
-		DB:       db,
-		Clock:    clk,
-		KeyCache: caches.KeyByHash,
+		Logger:         logger,
+		DB:             db,
+		Clock:          clk,
+		KeyCache:       caches.KeyByHash,
+		WorkspaceCache: caches.WorkspaceByID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -191,7 +209,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Validator:   validator,
 		Ratelimit:   rlSvc,
 		Permissions: p,
-		Caches:      caches,
+		Auditlogs: auditlogs.New(auditlogs.Config{
+			Logger: logger,
+			DB:     db,
+		}),
+		Caches: caches,
 	})
 
 	go func() {

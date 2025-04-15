@@ -14,7 +14,7 @@ async function main() {
     const workspaces = await db.query.workspaces.findMany({
       where: (table, { gt }) => gt(table.id, cursor),
 
-      with: { quota: true },
+      with: { quotas: true },
       limit: 1000,
       orderBy: (table, { asc }) => asc(table.id),
     });

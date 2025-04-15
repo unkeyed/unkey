@@ -16,12 +16,24 @@ type Querier interface {
 	//  SET deleted_at_m = ?
 	//  WHERE id = ?
 	DeleteRatelimitNamespace(ctx context.Context, db DBTX, arg DeleteRatelimitNamespaceParams) (sql.Result, error)
+	//FindApiById
+	//
+	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
+	FindApiById(ctx context.Context, db DBTX, id string) (Api, error)
+	//FindAuditLogTargetById
+	//
+	//  SELECT audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at
+	//  FROM audit_log_target
+	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
+	//  WHERE audit_log_target.id = ?
+	FindAuditLogTargetById(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIdRow, error)
+	//FindIdentityByID
+	//
+	//  SELECT external_id, workspace_id, environment, meta, created_at, updated_at FROM identities WHERE id = ?
+	FindIdentityByID(ctx context.Context, db DBTX, id string) (FindIdentityByIDRow, error)
 	//FindKeyByHash
 	//
-	//  SELECT
-	//      id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
-	//  FROM `keys`
-	//  WHERE hash = ?
+	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` WHERE hash = ?
 	FindKeyByHash(ctx context.Context, db DBTX, hash string) (Key, error)
 	//FindKeyByID
 	//
@@ -157,9 +169,13 @@ type Querier interface {
 	//      AND namespace_id = ?
 	//      AND identifier = ?
 	FindRatelimitOverridesByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverridesByIdentifierParams) (RatelimitOverride, error)
+	//FindRatelimitsByIdentityID
+	//
+	//  SELECT id, name, workspace_id, created_at, updated_at, `limit`, duration FROM ratelimits WHERE identity_id = ?
+	FindRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) ([]FindRatelimitsByIdentityIDRow, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT id, tenant_id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, trial_ends, beta_features, features, plan_locked_until, plan_downgrade_request, plan_changed, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//HardDeleteWorkspace
@@ -168,12 +184,33 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	HardDeleteWorkspace(ctx context.Context, db DBTX, id string) (sql.Result, error)
+	//InsertApi
+	//
+	//  INSERT INTO apis (
+	//      id,
+	//      name,
+	//      workspace_id,
+	//      auth_type,
+	//      key_auth_id,
+	//      created_at_m,
+	//      deleted_at_m
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      NULL
+	//  )
+	InsertApi(ctx context.Context, db DBTX, arg InsertApiParams) error
 	//InsertAuditLog
 	//
 	//  INSERT INTO `audit_log` (
 	//      id,
 	//      workspace_id,
 	//      bucket_id,
+	//      bucket,
 	//      event,
 	//      time,
 	//      display,
@@ -197,6 +234,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
 	//      ?
 	//  )
 	InsertAuditLog(ctx context.Context, db DBTX, arg InsertAuditLogParams) error
@@ -205,6 +243,7 @@ type Querier interface {
 	//  INSERT INTO `audit_log_target` (
 	//      workspace_id,
 	//      bucket_id,
+	//      bucket,
 	//      audit_log_id,
 	//      display_name,
 	//      type,
@@ -221,9 +260,48 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
+	//InsertIdentity
+	//
+	//  INSERT INTO `identities` (
+	//      id,
+	//      external_id,
+	//      workspace_id,
+	//      environment,
+	//      created_at,
+	//      meta
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertIdentity(ctx context.Context, db DBTX, arg InsertIdentityParams) error
+	//InsertIdentityRatelimit
+	//
+	//  INSERT INTO `ratelimits` (
+	//      id,
+	//      workspace_id,
+	//      identity_id,
+	//      name,
+	//      `limit`,
+	//      duration,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
 	//InsertKey
 	//
 	//  INSERT INTO `keys` (
@@ -368,10 +446,10 @@ type Querier interface {
 	//
 	//  INSERT INTO `workspaces` (
 	//      id,
-	//      tenant_id,
+	//      org_id,
 	//      name,
 	//      created_at_m,
-	//      plan,
+	//      tier,
 	//      beta_features,
 	//      features,
 	//      enabled,
@@ -382,17 +460,24 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//       ?,
-	//      'free',
+	//      'Free',
 	//      '{}',
 	//      '{}',
 	//      true,
 	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	//ListRatelimitOverrides
+	//
+	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+	//  WHERE
+	//      workspace_id = ?
+	//      AND namespace_id = ?
+	ListRatelimitOverrides(ctx context.Context, db DBTX, arg ListRatelimitOverridesParams) ([]RatelimitOverride, error)
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.id, w.tenant_id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.trial_ends, w.beta_features, w.features, w.plan_locked_until, w.plan_downgrade_request, w.plan_changed, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     w.id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 	//     q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id

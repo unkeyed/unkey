@@ -155,7 +155,7 @@ if errors.Is(err, sql.ErrNoRows) {
 // When handling permission checks
 if !permissions.Valid {
     return fault.New("insufficient permissions",
-        fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+        	fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
         fault.WithDesc(
             fmt.Sprintf("key '%s' lacks permission on resource '%s'", auth.KeyID, namespace.ID),
             permissions.Message  // User-friendly message from the permission system
@@ -195,7 +195,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
             case fault.BAD_REQUEST:
                 return s.JSON(http.StatusBadRequest, api.BadRequestError{
                     Title:     "Bad Request",
-                    Type:      "https://unkey.com/docs/errors/bad_request",
+                    Type:      "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input",
                     Detail:    fault.UserFacingMessage(err),
                     RequestId: s.requestID,
                     Status:    http.StatusBadRequest,
@@ -367,7 +367,7 @@ func New(svc Services) zen.Route {
 
 		if !permissions.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+					fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
 				fault.WithDesc(permissions.Message, permissions.Message),
 			)
 		}

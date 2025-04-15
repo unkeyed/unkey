@@ -9,14 +9,15 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -28,6 +29,7 @@ type Services struct {
 	DB          db.Database
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
+	Auditlogs   auditlogs.AuditLogService
 }
 
 func New(svc Services) zen.Route {
@@ -42,25 +44,24 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("invalid request body", "The request body is invalid."),
 			)
 		}
 
 		namespace, err := getNamespace(ctx, svc, auth.AuthorizedWorkspaceID, req)
+		if db.IsNotFound(err) {
+			return fault.New("namespace not found",
+				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.WithDesc("namespace not found", "This namespace does not exist."),
+			)
+		}
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return fault.Wrap(err,
-					fault.WithTag(fault.NOT_FOUND),
-					fault.WithDesc("namespace not found", "This namespace does not exist."),
-				)
-			}
 			return err
 		}
 
 		if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
 			return fault.New("namespace not found",
-				fault.WithTag(fault.NOT_FOUND),
+				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
 				fault.WithDesc("wrong workspace, masking as 404", "This namespace does not exist."),
 			)
 		}
@@ -84,14 +85,13 @@ func New(svc Services) zen.Route {
 
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.INTERNAL_SERVER_ERROR),
 				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
 			)
 		}
 
 		if !permissions.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithTag(fault.INSUFFICIENT_PERMISSIONS),
+				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
 				fault.WithDesc(permissions.Message, permissions.Message),
 			)
 		}
@@ -99,14 +99,14 @@ func New(svc Services) zen.Route {
 		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
 			)
 		}
 		defer func() {
 			rollbackErr := tx.Rollback()
 			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-				svc.Logger.Error("rollback failed", "requestId", s.RequestID())
+				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
 			}
 		}()
 
@@ -117,16 +117,15 @@ func New(svc Services) zen.Route {
 			Identifier:  req.Identifier,
 		})
 
+		if db.IsNotFound(err) {
+			return fault.New("override not found",
+				fault.WithCode(codes.Data.RatelimitOverride.NotFound.URN()),
+				fault.WithDesc("override not found", "This override does not exist."),
+			)
+		}
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return fault.Wrap(err,
-					fault.WithTag(fault.NOT_FOUND),
-					fault.WithDesc("override not found", "This override does not exist."),
-				)
-			}
 			return err
 		}
-
 		// Perform soft delete by updating the DeletedAt field
 		err = db.Query.SoftDeleteRatelimitOverride(ctx, tx, db.SoftDeleteRatelimitOverrideParams{
 			ID:  override.ID,
@@ -135,73 +134,52 @@ func New(svc Services) zen.Route {
 
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to soft delete ratelimit override", "The database is unavailable."),
 			)
 		}
 
-		auditLogID := uid.New(uid.AuditLogPrefix)
-		err = db.Query.InsertAuditLog(ctx, tx, db.InsertAuditLogParams{
-			ID:          auditLogID,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			BucketID:    "",
-			Event:       string(auditlog.RatelimitDeleteOverrideEvent),
-			Time:        time.Now().UnixMilli(),
-			Display:     fmt.Sprintf("Deleted override %s.", override.ID),
-			RemoteIp:    sql.NullString{String: "", Valid: false},
-			UserAgent:   sql.NullString{String: "", Valid: false},
-			ActorType:   string(auditlog.RootKeyActor),
-			ActorID:     auth.KeyID,
-			ActorName:   sql.NullString{String: "", Valid: false},
-			ActorMeta:   nil,
-			CreatedAt:   time.Now().UnixMilli(),
-		})
-		if err != nil {
-			svc.Logger.Error(err.Error())
-			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
-				fault.WithDesc("database failed to insert audit log", "Failed to insert audit log."),
-			)
-		}
-		err = db.Query.InsertAuditLogTarget(ctx, tx, db.InsertAuditLogTargetParams{
-			ID:          override.ID,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			BucketID:    "",
-			AuditLogID:  auditLogID,
-			DisplayName: override.Identifier,
-			Type:        "ratelimit_override",
-			Name:        sql.NullString{String: "", Valid: false},
-			Meta:        nil,
-			CreatedAt:   time.Now().UnixMilli(),
+		err = svc.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.RatelimitDeleteOverrideEvent,
+				Display:     fmt.Sprintf("Deleted override %s.", override.ID),
+				ActorID:     auth.KeyID,
+				Bucket:      auditlogs.DEFAULT_BUCKET,
+				ActorType:   auditlog.RootKeyActor,
+				ActorName:   "root key",
+				ActorMeta:   nil,
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          override.ID,
+						Name:        override.Identifier,
+						DisplayName: override.Identifier,
+						Type:        auditlog.RatelimitOverrideResourceType,
+						Meta:        nil,
+					},
+					{
+						ID:          namespace.ID,
+						Name:        namespace.Name,
+						DisplayName: namespace.Name,
+						Type:        auditlog.RatelimitNamespaceResourceType,
+						Meta:        nil,
+					},
+				},
+			},
 		})
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
-				fault.WithDesc("database failed to insert audit log target namespace", "Failed to insert audit log target."),
-			)
-		}
-		err = db.Query.InsertAuditLogTarget(ctx, tx, db.InsertAuditLogTargetParams{
-			ID:          namespace.ID,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			BucketID:    "",
-			AuditLogID:  auditLogID,
-			DisplayName: namespace.Name,
-			Type:        "ratelimit_namespacee",
-			Name:        sql.NullString{String: override.Identifier, Valid: true},
-			Meta:        nil,
-			CreatedAt:   time.Now().UnixMilli(),
-		})
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
-				fault.WithDesc("database failed to insert audit log target override", "Failed to insert audit log target."),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
 			)
 		}
 
 		err = tx.Commit()
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithTag(fault.DATABASE_ERROR),
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
 			)
 		}
@@ -231,7 +209,7 @@ func getNamespace(ctx context.Context, svc Services, workspaceID string, req Req
 	}
 
 	return db.RatelimitNamespace{}, fault.New("missing namespace id or name",
-		fault.WithTag(fault.BAD_REQUEST),
+		fault.WithCode(codes.App.Validation.InvalidInput.URN()),
 		fault.WithDesc("missing namespace id or name", "You must provide either a namespace ID or name."),
 	)
 }

@@ -2,9 +2,14 @@ import { t } from "../trpc";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
 import { keysLlmSearch } from "./api/keys/llm-search";
+import { apiKeysLlmSearch } from "./api/keys/llm-search-api-keys";
 import { activeKeysTimeseries } from "./api/keys/query-active-keys-timeseries";
+import { queryKeysList } from "./api/keys/query-api-keys";
+import { keyUsageTimeseries } from "./api/keys/query-key-usage-timeseries";
+import { keyLastVerificationTime } from "./api/keys/query-latest-verification";
 import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
+import { enableKey } from "./api/keys/toggle-key-enabled";
 import { overviewApiSearch } from "./api/overview-api-search";
 import { queryApisOverview } from "./api/overview/query-overview";
 import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
@@ -15,6 +20,7 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { queryUsage } from "./billing/query-usage";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -109,6 +115,11 @@ export const router = t.router({
       activeKeysTimeseries: activeKeysTimeseries,
       query: queryKeysOverviewLogs,
       llmSearch: keysLlmSearch,
+      list: queryKeysList,
+      listLlmSearch: apiKeysLlmSearch,
+      enableKey: enableKey,
+      usageTimeseries: keyUsageTimeseries,
+      latestVerification: keyLastVerificationTime,
     }),
     overview: t.router({
       timeseries: queryVerificationTimeseries,
@@ -176,6 +187,9 @@ export const router = t.router({
     queryLogs,
     queryTimeseries,
     llmSearch,
+  }),
+  billing: t.router({
+    queryUsage,
   }),
   audit: t.router({
     logs: fetchAuditLog,

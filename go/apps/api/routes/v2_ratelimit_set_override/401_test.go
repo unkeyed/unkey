@@ -18,6 +18,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
 	})
 
 	h.Register(route)
@@ -37,7 +38,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, http.StatusUnauthorized, res.Status)
+		require.Equal(t, http.StatusUnauthorized, res.Status, "expected status code to be 401, got: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 	})
 

@@ -4,7 +4,6 @@ import { UserButton } from "@/components/navigation/sidebar/user-button";
 import {
   type NavItem,
   createWorkspaceNavigation,
-  resourcesNavigation,
 } from "@/components/navigation/sidebar/workspace-navigations";
 import {
   Sidebar,
@@ -15,11 +14,13 @@ import {
   SidebarMenu,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { Workspace } from "@/lib/db";
+import type { Quotas, Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import { HelpButton } from "../help-button";
+import { UsageBanner } from "../usage-banner";
 import { NavItems } from "./components/nav-items";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
 import { useApiNavigation } from "./hooks/use-api-navigation";
@@ -27,7 +28,7 @@ import { useRatelimitNavigation } from "./hooks/use-ratelimit-navigation";
 
 export function AppSidebar({
   ...props
-}: React.ComponentProps<typeof Sidebar> & { workspace: Workspace }) {
+}: React.ComponentProps<typeof Sidebar> & { workspace: Workspace & { quotas?: Quotas } }) {
   const segments = useSelectedLayoutSegments() ?? [];
 
   // Create base navigation items
@@ -88,12 +89,10 @@ export function AppSidebar({
     [isCollapsed, props.workspace, state, isMobile, toggleSidebar],
   );
 
-  const resourceNavItems = useMemo(() => resourcesNavigation, []);
-
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader className="px-4 items-center pt-4">{headerContent}</SidebarHeader>
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2 flex flex-col justify-between">
         <SidebarGroup>
           <SidebarMenu className="gap-2">
             {/* Toggle button as NavItem */}
@@ -107,14 +106,24 @@ export function AppSidebar({
                 onLoadMore={() => handleLoadMore(item)}
               />
             ))}
-            {resourceNavItems.map((item) => (
-              <NavItems key={item.label as string} item={item} />
-            ))}
           </SidebarMenu>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <UsageBanner quotas={props.workspace.quotas!} />
+        </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className={cn("px-4", !isMobile && "items-center")}>
-        <UserButton />
+      <SidebarFooter>
+        <div
+          className={cn("flex items-center justify-between gap-2", {
+            "flex-col-reverse": state === "collapsed",
+            "flex-row": state === "expanded",
+          })}
+        >
+          <UserButton />
+
+          <HelpButton />
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

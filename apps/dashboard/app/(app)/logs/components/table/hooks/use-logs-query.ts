@@ -22,6 +22,7 @@ export function useLogsQuery({
 }: UseLogsQueryParams = {}) {
   const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, Log>());
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, Log>());
+  const [totalCount, setTotalCount] = useState(0);
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
@@ -137,7 +138,6 @@ export function useLogsQuery({
     isLoading: isLoadingInitial,
   } = trpc.logs.queryLogs.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialCursor: { requestId: null, time: null },
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -213,6 +213,10 @@ export function useLogsQuery({
         });
       });
       setHistoricalLogsMap(newMap);
+
+      if (initialData.pages.length > 0) {
+        setTotalCount(initialData.pages[0].total);
+      }
     }
   }, [initialData]);
 
@@ -231,6 +235,7 @@ export function useLogsQuery({
     loadMore: fetchNextPage,
     isLoadingMore: isFetchingNextPage,
     isPolling: startPolling,
+    total: totalCount,
   };
 }
 

@@ -29,8 +29,6 @@ export default async function Page() {
       id,
       name: "Personal Workspace",
       orgId,
-      // dumb hack to keep the unique property but also clearly mark it as a workos identifier
-      clerkTenantId: `workos_${orgId}`,
       betaFeatures: {},
       features: {},
     });

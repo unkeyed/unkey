@@ -33,7 +33,7 @@ type Props = {
     name: string;
     priceId: string;
     dollar: number;
-    quota: {
+    quotas: {
       requestsPerMonth: number;
     };
   }>;
@@ -116,7 +116,7 @@ export const Client: React.FC<Props> = (props) => {
               >
                 <div className=" text-accent-12 font-medium w-4/12">{p.name}</div>
                 <div className="w-4/12 flex justify-end items-center gap-1">
-                  <span className="text-accent-12 ">{formatNumber(p.quota.requestsPerMonth)}</span>
+                  <span className="text-accent-12 ">{formatNumber(p.quotas.requestsPerMonth)}</span>
                   <span className="text-gray-11 ">requests</span>
                 </div>
                 <div className="flex items-center justify-between gap-4 w-4/12">
@@ -131,7 +131,7 @@ export const Client: React.FC<Props> = (props) => {
                       description={`Changing to ${
                         p.name
                       } updates your request quota to ${formatNumber(
-                        p.quota.requestsPerMonth,
+                        p.quotas.requestsPerMonth,
                       )} per month immediately.`}
                       onConfirm={async () =>
                         updateSubscription.mutateAsync({
@@ -151,7 +151,7 @@ export const Client: React.FC<Props> = (props) => {
                       description={`Changing to ${
                         p.name
                       } updates your request quota to ${formatNumber(
-                        p.quota.requestsPerMonth,
+                        p.quotas.requestsPerMonth,
                       )} per month immediately.`}
                       onConfirm={() => createSubscription.mutateAsync({ productId: p.id })}
                       fineprint={

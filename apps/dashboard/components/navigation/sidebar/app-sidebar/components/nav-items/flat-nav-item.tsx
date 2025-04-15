@@ -35,7 +35,7 @@ export const FlatNavItem = ({
   };
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem className="list-none">
       <NavLink
         href={item.href}
         external={item.external}

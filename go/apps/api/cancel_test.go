@@ -40,7 +40,7 @@ func TestContextCancellation(t *testing.T) {
 		ClickhouseURL:           "",
 		DatabasePrimary:         dbDsn,
 		DatabaseReadonlyReplica: "",
-		OtelEnabled:             false,
+		OtelSink:                "",
 	}
 
 	// Create a channel to receive the result of the Run function

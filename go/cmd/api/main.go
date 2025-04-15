@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -94,15 +95,24 @@ var Cmd = &cli.Command{
 		},
 
 		// Observability
-		&cli.BoolFlag{
-			Name:     "otel",
-			Usage:    "Enable OpenTelemetry tracing and metrics. Uses standard OTEL_* environment variables for configuration.",
+		&cli.StringFlag{
+			Name:  "otel",
+			Usage: "Enable OpenTelemetry tracing and metrics. Valid values: \"grafana\" or \"axiom\"",
+			Validator: func(s string) error {
+				for _, v := range []string{"grafana", "axiom"} {
+					if s == v {
+						return nil
+					}
+				}
+				return fmt.Errorf("invalid value %q", s)
+			},
 			Sources:  cli.EnvVars("UNKEY_OTEL"),
 			Required: false,
 		},
+
 		&cli.FloatFlag{
 			Name:     "otel-trace-sampling-rate",
-			Usage:    "Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel=true. Default: 0.25",
+			Usage:    "Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25",
 			Sources:  cli.EnvVars("UNKEY_OTEL_TRACE_SAMPLING_RATE"),
 			Value:    0.25,
 			Required: false,
@@ -120,7 +130,6 @@ var Cmd = &cli.Command{
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
-
 	config := api.Config{
 		// Basic configuration
 		Platform: cmd.String("platform"),
@@ -136,7 +145,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		ClickhouseURL: cmd.String("clickhouse-url"),
 
 		// OpenTelemetry configuration
-		OtelEnabled:           cmd.Bool("otel"),
+		OtelSink:              cmd.String("otel"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 
 		InstanceID:     cmd.String("instance-id"),

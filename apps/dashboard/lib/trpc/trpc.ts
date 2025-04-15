@@ -42,34 +42,6 @@ export const requireSelf = t.middleware(({ next, ctx, rawInput: userId }) => {
   return next();
 });
 
-export const requireOrgAccess = t.middleware(async ({ next, ctx, rawInput: orgId }) => {
-  if (!orgId) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Organization ID is required",
-    });
-  }
-  try {
-    const memberships = await auth.listMemberships(ctx.user!.id);
-    const hasAccess = memberships.data.some((m) => m.organization.id === orgId);
-
-    if (!hasAccess) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "You do not have access to this organization",
-      });
-    }
-
-    return next();
-  } catch (error) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to verify organization access",
-      cause: error,
-    });
-  }
-});
-
 export const requireOrgAdmin = t.middleware(async ({ next, ctx, rawInput }) => {
   let orgId: string | undefined;
 
