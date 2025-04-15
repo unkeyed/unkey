@@ -5,9 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_list_overrides"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestUnauthorizedAccess(t *testing.T) {
@@ -18,7 +17,6 @@ func TestUnauthorizedAccess(t *testing.T) {
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
 	})
 
 	h.Register(route)
@@ -29,16 +27,13 @@ func TestUnauthorizedAccess(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		namespaceName := uid.New("test")
+		namespaceName := "test_namespace"
 		req := handler.Request{
 			NamespaceName: &namespaceName,
-			Identifier:    "test_identifier",
-			Limit:         10,
-			Duration:      1000,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, http.StatusUnauthorized, res.Status, "expected status code to be 401, got: %s", res.RawBody)
+		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
