@@ -1,9 +1,5 @@
 import { KeyboardButton } from "@/components/keyboard-button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import React, {
   type KeyboardEvent,
@@ -50,7 +46,7 @@ const ShortcutActivator = React.memo(
       ignoreContentEditable: true,
     });
     return null; // Render nothing
-  }
+  },
 );
 ShortcutActivator.displayName = "ShortcutActivator";
 
@@ -58,8 +54,7 @@ export const FiltersPopover = ({
   children,
   items = [],
   activeFilters = [],
-  getFilterCount = (field) =>
-    activeFilters.filter((f) => f?.field === field).length,
+  getFilterCount = (field) => activeFilters.filter((f) => f?.field === field).length,
 }: PropsWithChildren<FiltersPopoverProps>) => {
   const [open, setOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -92,7 +87,7 @@ export const FiltersPopover = ({
         return newState;
       });
     },
-    { preventDefault: true, ignoreInputs: true }
+    { preventDefault: true, ignoreInputs: true },
   );
 
   const handleActivateFilter = useCallback(
@@ -107,7 +102,7 @@ export const FiltersPopover = ({
         }
       }, 0);
     },
-    [items]
+    [items],
   );
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -140,8 +135,7 @@ export const FiltersPopover = ({
     switch (e.key) {
       case "ArrowDown": {
         e.preventDefault();
-        const newIndex =
-          focusedIndex === null ? 0 : (focusedIndex + 1) % items.length;
+        const newIndex = focusedIndex === null ? 0 : (focusedIndex + 1) % items.length;
         setFocusedIndex(newIndex);
         setLastFocusedIndex(newIndex); // Keep track for potential activation
         break;
@@ -188,7 +182,7 @@ export const FiltersPopover = ({
             id={item.id}
             onActivate={handleActivateFilter}
           />
-        ) : null
+        ) : null,
       )}
 
       <PopoverTrigger asChild ref={triggerRef}>

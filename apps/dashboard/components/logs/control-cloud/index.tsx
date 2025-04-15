@@ -55,7 +55,7 @@ export const ControlCloud = <TFilter extends FilterValue>({
         }
       }
     },
-    [removeFilter, filters.length, focusedIndex]
+    [removeFilter, filters.length, focusedIndex],
   );
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -99,17 +99,13 @@ export const ControlCloud = <TFilter extends FilterValue>({
       case "ArrowRight":
       case "l":
         e.preventDefault();
-        setFocusedIndex((prev) =>
-          prev === null ? 0 : (prev + 1) % filters.length
-        );
+        setFocusedIndex((prev) => (prev === null ? 0 : (prev + 1) % filters.length));
         break;
       case "ArrowLeft":
       case "h":
         e.preventDefault();
         setFocusedIndex((prev) =>
-          prev === null
-            ? filters.length - 1
-            : (prev - 1 + filters.length) % filters.length
+          prev === null ? filters.length - 1 : (prev - 1 + filters.length) % filters.length,
         );
         break;
       case "ArrowDown":

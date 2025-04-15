@@ -14,16 +14,9 @@ type RefreshButtonProps = {
 
 const REFRESH_TIMEOUT_MS = 1000;
 
-export const RefreshButton = ({
-  onRefresh,
-  isEnabled,
-  isLive,
-  toggleLive,
-}: RefreshButtonProps) => {
+export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(
-    null
-  );
+  const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const handleRefresh = () => {
     if (isLoading) {

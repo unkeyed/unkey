@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 /**
  * Represents the parsed details of a keyboard shortcut.
@@ -84,10 +84,7 @@ const getKeyNameToCode = (keyName: string): string | null => {
       return "ArrowRight";
   }
 
-  if (
-    lowerKey.startsWith("f") &&
-    !Number.isNaN(Number.parseInt(lowerKey.substring(1), 10))
-  ) {
+  if (lowerKey.startsWith("f") && !Number.isNaN(Number.parseInt(lowerKey.substring(1), 10))) {
     const fNum = Number.parseInt(lowerKey.substring(1), 10);
     if (fNum >= 1 && fNum <= 12) {
       return `F${fNum}`;
@@ -131,7 +128,7 @@ const getKeyNameToCode = (keyName: string): string | null => {
   }
 
   console.warn(
-    `[useKeyboardShortcut] Could not map key name "${keyName}" to a standard KeyboardEvent.code. You might need to use the code directly in the shortcut definition or expand the mapping.`
+    `[useKeyboardShortcut] Could not map key name "${keyName}" to a standard KeyboardEvent.code. You might need to use the code directly in the shortcut definition or expand the mapping.`,
   );
   return null; // Indicate failure to map
 };
@@ -180,20 +177,20 @@ const parseShortcutString = (shortcut: string): KeyCombo | null => {
             combo.code = getKeyNameToCode(part); // Attempt to get the code
             if (!combo.code) {
               console.warn(
-                `[useKeyboardShortcut] Failed to map key "${part}" to code for shortcut: "${shortcut}". Please check spelling or expand getKeyNameToCode mapping.`
+                `[useKeyboardShortcut] Failed to map key "${part}" to code for shortcut: "${shortcut}". Please check spelling or expand getKeyNameToCode mapping.`,
               );
               return null; // Fail parsing if code cannot be determined
             }
             keyAssigned = true;
           } else {
             console.warn(
-              `[useKeyboardShortcut] Multiple non-modifier keys detected in shortcut: "${shortcut}"`
+              `[useKeyboardShortcut] Multiple non-modifier keys detected in shortcut: "${shortcut}"`,
             );
             return null;
           }
         } else {
           console.warn(
-            `[useKeyboardShortcut] Empty part detected in shortcut string: "${shortcut}"`
+            `[useKeyboardShortcut] Empty part detected in shortcut string: "${shortcut}"`,
           );
           return null;
         }
@@ -202,9 +199,7 @@ const parseShortcutString = (shortcut: string): KeyCombo | null => {
 
   // Final validation: Ensure a key and code were actually assigned
   if (!keyAssigned || !combo.key || !combo.code) {
-    console.warn(
-      `[useKeyboardShortcut] No valid key/code identified for shortcut: "${shortcut}"`
-    );
+    console.warn(`[useKeyboardShortcut] No valid key/code identified for shortcut: "${shortcut}"`);
     return null;
   }
 
@@ -232,14 +227,14 @@ const parseShortcutString = (shortcut: string): KeyCombo | null => {
 export function useKeyboardShortcut(
   shortcut: string | KeyCombo | null | undefined,
   callback: () => void,
-  options?: KeyboardShortcutOptions
+  options?: KeyboardShortcutOptions,
 ): void {
   const mergedOptions = { ...defaultOptions, ...options };
 
-  const { preventDefault, ignoreInputs, ignoreContentEditable, disabled } =
-    mergedOptions;
+  const { preventDefault, ignoreInputs, ignoreContentEditable, disabled } = mergedOptions;
 
   // Memoize callback for stability in the useEffect dependency array
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   const memoizedCallback = useCallback(callback, [callback]);
 
   useEffect(() => {
@@ -259,10 +254,7 @@ export function useKeyboardShortcut(
       };
     } else if (shortcut) {
       // Handle potentially invalid KeyCombo objects passed directly
-      console.warn(
-        "[useKeyboardShortcut] Invalid KeyCombo object provided:",
-        shortcut
-      );
+      console.warn("[useKeyboardShortcut] Invalid KeyCombo object provided:", shortcut);
     }
 
     // Exit if the hook is disabled or the shortcut definition is invalid/unparsed
@@ -309,12 +301,5 @@ export function useKeyboardShortcut(
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [
-    shortcut,
-    memoizedCallback,
-    preventDefault,
-    ignoreInputs,
-    ignoreContentEditable,
-    disabled,
-  ]);
+  }, [shortcut, memoizedCallback, preventDefault, ignoreInputs, ignoreContentEditable, disabled]);
 }

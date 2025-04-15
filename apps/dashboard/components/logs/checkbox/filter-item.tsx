@@ -1,21 +1,10 @@
 import { KeyboardButton } from "@/components/keyboard-button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
-import {
-  // Import React
-  type KeyboardEvent,
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-} from "react";
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 export type FilterItemConfig = {
   id: string;
@@ -41,7 +30,7 @@ export const FilterItem = ({
   isFocused,
   isActive,
   filterCount,
-  setActiveFilter, // Receive setter from parent
+  setActiveFilter,
 }: FilterItemProps) => {
   // Internal open state, primarily controlled by 'isActive' prop effect
   const [open, setOpen] = useState(isActive ?? false);
@@ -54,6 +43,7 @@ export const FilterItem = ({
   }, [isActive]);
 
   // Focus the trigger div when parent indicates it's focused in the main list
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (isFocused && !isActive && itemRef.current) {
       // Only focus trigger if not active
@@ -63,14 +53,14 @@ export const FilterItem = ({
   }, [isFocused, isActive, label]); // Depend on isActive too
 
   // Focus content when popover becomes active and open
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (isActive && open && contentRef.current) {
       // console.log(`Attempting to focus content for: ${label}`);
       // Find and focus the first focusable element within the content
-      const focusableElements =
-        contentRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
+      const focusableElements = contentRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
       if (focusableElements.length > 0) {
         // console.log(`Focusing first element:`, focusableElements[0]);
         focusableElements[0].focus({ preventScroll: true });
@@ -103,10 +93,11 @@ export const FilterItem = ({
       }
       // Allow other keys (like arrows in inputs) to behave normally
     },
-    [setActiveFilter] // Depend on the callback from parent
+    [setActiveFilter], // Depend on the callback from parent
   );
 
   // Handler for Popover's open state changes (e.g., clicking outside)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   const handleOpenChange = useCallback(
     (newOpenState: boolean) => {
       // This function is called by Radix when the popover intends to close
@@ -122,7 +113,7 @@ export const FilterItem = ({
       // If it opened via interaction (shouldn't happen if controlled),
       // or closed when parent already knew, do nothing extra.
     },
-    [isActive, setActiveFilter, label]
+    [isActive, setActiveFilter, label],
   );
 
   // Handler for clicking the trigger element
@@ -143,7 +134,7 @@ export const FilterItem = ({
             "hover:bg-gray-3 data-[state=open]:bg-gray-3",
             "focus:outline-none",
             isFocused && !isActive ? "bg-gray-4" : "",
-            isActive ? "bg-gray-3" : ""
+            isActive ? "bg-gray-3" : "",
           )}
           tabIndex={-1}
           role="menuitem"
@@ -164,9 +155,7 @@ export const FilterItem = ({
                 title={`Shortcut: ${shortcut}`}
               />
             )}
-            <span className="text-[13px] text-accent-12 font-medium select-none">
-              {label}
-            </span>
+            <span className="text-[13px] text-accent-12 font-medium select-none">{label}</span>
           </div>
           <div className="flex items-center gap-1.5 pointer-events-none">
             {filterCount > 0 && (
