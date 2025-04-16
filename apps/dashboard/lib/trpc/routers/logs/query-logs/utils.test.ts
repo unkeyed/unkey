@@ -49,10 +49,7 @@ describe("transformFilters", () => {
       requestId: {
         filters: [{ operator: "is" as const, value: "req123" }],
       },
-      cursor: {
-        time: 1706024400000,
-        requestId: "cursor123",
-      },
+      cursor: 1706024400000,
     };
 
     const result = transformFilters(payload);
@@ -67,7 +64,6 @@ describe("transformFilters", () => {
       statusCodes: [200],
       requestIds: ["req123"],
       cursorTime: 1706024400000,
-      cursorRequestId: "cursor123",
     });
   });
 
@@ -86,10 +82,7 @@ describe("transformFilters", () => {
   it("should handle cursor values", () => {
     const payload = {
       ...basePayload,
-      cursor: {
-        time: 1706024400000,
-        requestId: "req123",
-      },
+      cursor: 1706024400000,
     };
 
     const result = transformFilters(payload);
