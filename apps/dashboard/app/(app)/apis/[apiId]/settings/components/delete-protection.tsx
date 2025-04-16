@@ -103,6 +103,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
         )
       }
       border="top"
+      contentWidth="w-full lg:w-[320px]"
     >
       <AlertDialog open={open} onOpenChange={(o) => setOpen(o)}>
         <AlertDialogTrigger asChild>
@@ -112,7 +113,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 type="button"
                 variant="outline"
                 size="lg"
-                className="rounded-lg text-warning-11 text-[13px] px-4"
+                className="rounded-lg text-warning-11 text-[13px] w-[24rem] lg:w-[12rem] h-9"
               >
                 Disable Delete Protection
               </Button>
@@ -121,7 +122,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 type="button"
                 variant="outline"
                 size="lg"
-                className="rounded-lg text-success-11 text-[13px]"
+                className="rounded-lg text-success-11 text-[13px] w-[24rem] lg:w-[12rem] h-9"
               >
                 Enable Delete Protection
               </Button>

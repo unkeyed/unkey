@@ -1,5 +1,4 @@
 "use client";
-
 import { Loading } from "@/components/dashboard/loading";
 import { SettingCard } from "@/components/settings-card";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
@@ -9,10 +8,10 @@ import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { revalidateTag } from "../../../../../actions";
+export const dynamic = "force-dynamic";
 
 const formSchema = z.object({
   apiName: z.string().trim().min(3, "Name is required and should be at least 3 characters"),
@@ -29,7 +28,8 @@ type Props = {
 };
 
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
-  const router = useRouter();
+  const utils = trpc.useUtils();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
       return zodResolver(formSchema)(data, context, options);
@@ -48,7 +48,9 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     onSuccess() {
       toast.success("Your API name has been renamed!");
       revalidateTag(tags.api(api.id));
-      router.refresh();
+      // Invalidate only the API overview query to update the sidebar
+      utils.api.overview.query.invalidate();
+      // No need for a full page reload
     },
     onError(err) {
       console.error(err);
@@ -83,8 +85,9 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
             </div>
           }
           border="top"
+          contentWidth="w-full lg:w-[320px]"
         >
-          <div className="flex items-center w-full gap-2 sm:justify-start lg:justify-center">
+          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
             <input type="hidden" name="workspaceId" value={api.workspaceId} />
             <input type="hidden" name="apiId" value={api.id} />
             <label htmlFor="apiName" className="hidden sr-only">
@@ -99,7 +102,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
                     <Input
                       type="text"
                       id="apiName"
-                      className="w-[257px] h-9"
+                      className="w-[20rem] lg:w-[16rem] h-9"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {

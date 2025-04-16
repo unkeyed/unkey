@@ -100,11 +100,12 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
       }
       description={
         <div className="font-normal text-[13px] max-w-[380px]">
-          Disabling this allows the API, along with all keys and data, to be deleted by any team
-          member.
+          Permanently deletes this API, including all keys and data. This action is locked by the{" "}
+          <span className="font-medium text-accent-12">Delete Protection</span> feature.
         </div>
       }
       border="bottom"
+      contentWidth="w-full lg:w-[320px]"
     >
       <AlertDialog open={open} onOpenChange={handleDialogOpenChange}>
         <AlertDialogTrigger asChild>
@@ -112,7 +113,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
             <Button
               size="lg"
               disabled={!!api.deleteProtection}
-              className="rounded-lg justify-end items-end px-3 text-error-9 font-medium text-[13px] leading-6"
+              className="rounded-lg justify-end items-end px-3 text-error-9 font-medium text-[13px] leading-6 w-[24rem] lg:w-[8rem]"
               variant="outline"
               onClick={() => setOpen(!open)}
             >

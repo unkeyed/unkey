@@ -82,9 +82,10 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
           </div>
         }
         border="both"
+        contentWidth="w-full lg:w-[320px]"
       >
         {isEnabled ? (
-          <div className="flex flex-row items-start justify-end w-full gap-2">
+          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
             <input type="hidden" name="workspaceId" value={api.workspaceId} />
             <input type="hidden" name="apiId" value={api.id} />
             <label htmlFor="ipWhitelist" className="hidden sr-only">
@@ -120,7 +121,11 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         ) : (
           <div className="flex w-full gap-4 lg:justify-end lg:items-center ">
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
-              <Button type="button" variant="primary" className="flex items-center justify-end gap-1 font-medium text-info-11 bg-info-4 leading-4 text-[13px] px-3 h-9 rounded-lg border border-info-5 hover:bg-info-3">
+              <Button
+                type="button"
+                variant="primary"
+                className="flex items-center justify-end gap-1 font-medium text-info-11 bg-info-4 leading-4 text-[13px] px-3 h-9 rounded-lg border border-info-5 hover:bg-info-3 w-[16rem] lg:w-[12rem]"
+              >
                 Upgrade to Enterprise
               </Button>
             </a>
@@ -128,8 +133,13 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
               href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
               target="_blank"
               rel="noreferrer"
-                className="flex items-center justify-end"
-              ><Button type="button" variant="ghost" className="py-3 gap-1 font-medium text-accent-12 leading-4 text-[13px]">
+              className="flex items-center justify-end"
+            >
+              <Button
+                type="button"
+                variant="ghost"
+                className="py-3 gap-1 font-medium text-accent-12 leading-4 text-[13px]"
+              >
                 Learn more <ArrowUpRight size="lg-thin" className="text-accent-9" />
               </Button>
             </a>

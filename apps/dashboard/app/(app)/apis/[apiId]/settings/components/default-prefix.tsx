@@ -77,7 +77,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
           }
           border="bottom"
         >
-          <div className="flex flex-row items-end justify-end w-full gap-2 pl-0 ml-0">
+          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
             <input type="hidden" name="keyAuthId" value={keyAuth.id} />
             <label htmlFor="defaultPrefix" className="hidden sr-only">
               Default Prefix
@@ -90,7 +90,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
                   <FormControl>
                     <Input
                       id="defaultPrefix"
-                      className="min-w-[257px] h-9"
+                      className="w-[20rem] lg:w-[16rem] h-9"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {

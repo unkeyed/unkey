@@ -77,8 +77,9 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
             </div>
           }
           border="top"
+          contentWidth="w-full lg:w-[320px]"
         >
-          <div className="flex flex-row items-end justify-end w-full gap-2 pl-0 ml-0">
+          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
             <input type="hidden" name="keyAuthId" value={keyAuth.id} />
             <label htmlFor="defaultBytes" className="hidden sr-only">
               Default Bytes
@@ -91,7 +92,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
                   <FormControl>
                     <Input
                       id="defaultBytes"
-                      className="h-9 w-[257px]"
+                      className="w-[20rem] lg:w-[16rem] h-9"
                       {...field}
                       autoComplete="off"
                       onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}

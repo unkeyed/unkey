@@ -39,11 +39,13 @@ export function SettingCard({
         className,
       )}
     >
-      <div className="flex flex-col gap-1 text-sm ">
-        <div className="flex flex-row font-medium text-accent-12">{title}</div>
-        <div className="flex flex-row text-accent-11">{description}</div>
+      <div className="flex flex-col gap-1 text-sm w-full">
+        <div className="font-medium text-accent-12 leading-5 tracking-normal">{title}</div>
+        <div className="font-normal text-accent-11 text-[13px] leading-5 tracking-normal">
+          {description}
+        </div>
       </div>
-      <div className={cn("flex items-center w-full", contentWidth)}>{children}</div>
+      <div className={cn("flex items-center", contentWidth)}>{children}</div>
     </div>
   );
 }
