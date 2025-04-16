@@ -7,9 +7,9 @@ import {
   UNKEY_SESSION_COOKIE,
 } from "@/lib/auth/types";
 
-// Global mutex for refresh operations
-let refreshInProgress = false;
-let refreshPromise: Promise<Response> | null = null;
+// Per-user mutex tracking for refresh operations
+// maps refresh tokens to their refresh operation promises
+const refreshOperations = new Map<string, Promise<Response>>();
 
 export async function POST(request: Request) {
   try {
@@ -25,25 +25,19 @@ export async function POST(request: Request) {
       );
     }
 
-    // Handle concurrent refresh attempts with mutex pattern
-    if (refreshInProgress && refreshPromise) {
+    // Handle concurrent refresh attempts with per-user mutex pattern
+    if (refreshOperations.has(currentRefreshToken)) {
       try {
-        // Wait for existing refresh to complete
-        return await refreshPromise;
+        // Wait for existing refresh to complete for this specific token
+        return await refreshOperations.get(currentRefreshToken)!;
       } catch (error) {
         console.error("Error while waiting for refresh:", error);
-        return Response.json(
-          { success: false, error: "Failed to refresh access token" },
-          { status: 401 },
-        );
+        // fall-through to continue with a new refresh attempt
       }
     }
 
-    // Set mutex to prevent concurrent refreshes
-    refreshInProgress = true;
-
-    // Create refresh promise
-    refreshPromise = (async () => {
+    // Create refresh promise for this specific token
+    const refreshPromise = (async () => {
       try {
         // Call refreshAccessToken to get new tokens
         const { sessionToken, accessToken, refreshToken, expiresAt, session } =
@@ -79,11 +73,13 @@ export async function POST(request: Request) {
           { status: 401 },
         );
       } finally {
-        // Clear mutex
-        refreshInProgress = false;
-        refreshPromise = null;
+        // Clean up this token's refresh operation when done
+        refreshOperations.delete(currentRefreshToken);
       }
     })();
+
+    // Store this token's refresh promise in the map
+    refreshOperations.set(currentRefreshToken, refreshPromise);
 
     // Return the promise result
     return await refreshPromise;

@@ -34,30 +34,27 @@ export const validateSessionCached = cache(
   },
 );
 
-// Global mutex objects to prevent concurrent refresh operations
-let refreshInProgress = false;
-let refreshPromise: Promise<GetAuthResult> | null = null;
+// Per-user mutex tracking for refresh operations
+// maps user tokens to their refresh operation promises
+const refreshOperations = new Map<string, Promise<GetAuthResult>>();
 
-// refresh token with mutex protection
-async function refreshTokenWithMutex(
+// Refresh token with per-user mutex protection
+async function refreshTokenWithUserMutex(
   refreshToken: string,
   baseUrl: string,
 ): Promise<GetAuthResult> {
-  // If refresh is already in progress, wait for it
-  if (refreshInProgress && refreshPromise) {
+  // If refresh is already in progress for this specific user, wait for it
+  if (refreshOperations.has(refreshToken)) {
     try {
-      return await refreshPromise;
+      return await refreshOperations.get(refreshToken)!;
     } catch (error) {
       console.error("Error while waiting for refresh:", error);
-      return { userId: null, orgId: null, role: null };
+      // fall-through to continue with a new refresh attempt if the existing one fails
     }
   }
 
-  // Set mutex to prevent concurrent refreshes
-  refreshInProgress = true;
-
-  // Create the refresh promise
-  refreshPromise = (async (): Promise<GetAuthResult> => {
+  // Create a refresh promise for this specific user
+  const refreshPromise = (async (): Promise<GetAuthResult> => {
     try {
       const refreshResult = await fetch(`${baseUrl}/api/auth/refresh`, {
         method: "POST",
@@ -68,7 +65,7 @@ async function refreshTokenWithMutex(
       });
 
       if (!refreshResult.ok) {
-        throw new Error("Refresh failed");
+        throw new Error(`Refresh failed: ${refreshResult.status}`);
       }
 
       const refreshedData = await refreshResult.json();
@@ -82,20 +79,22 @@ async function refreshTokenWithMutex(
       console.error("Refresh error:", error);
       return { userId: null, orgId: null, role: null };
     } finally {
-      // Always clear the mutex when done
-      refreshInProgress = false;
-      refreshPromise = null;
+      // only remove this user's refresh operation when done
+      refreshOperations.delete(refreshToken);
     }
   })();
 
-  // Wait for the refresh to complete
+  // store this user's refresh promise in the map
+  refreshOperations.set(refreshToken, refreshPromise);
+
+  // wait for the refresh to complete
   return await refreshPromise;
 }
 
-// Main getAuth function using both caching and mutex
+// main getAuth function using both caching and per-user mutex
 export const getAuth = cache(async (_req?: Request): Promise<GetAuthResult> => {
   const VERCEL_URL = env().VERCEL_URL;
-  const baseUrl = VERCEL_URL || "http://localhost:3000/";
+  const baseUrl = VERCEL_URL || "http://localhost:3000";
 
   try {
     const sessionToken = await getCookie(UNKEY_SESSION_COOKIE);
@@ -105,7 +104,6 @@ export const getAuth = cache(async (_req?: Request): Promise<GetAuthResult> => {
       return { userId: null, orgId: null, role: null };
     }
 
-    // Use cached validation
     const validationResult = await validateSessionCached(sessionToken);
 
     // If session is valid, return user data
@@ -117,9 +115,20 @@ export const getAuth = cache(async (_req?: Request): Promise<GetAuthResult> => {
       };
     }
 
-    // If refresh is needed, use mutex-protected refresh
+    // If refresh is needed, use per-user mutex-protected refresh
     if (validationResult.shouldRefresh) {
-      const refreshResult = await refreshTokenWithMutex(refreshToken, baseUrl);
+      const refreshResult = await refreshTokenWithUserMutex(refreshToken, baseUrl);
+
+      // security check: if we know the expected userId,
+      // verify the refresh returned the correct user
+      if (
+        validationResult.userId &&
+        refreshResult.userId &&
+        refreshResult.userId !== validationResult.userId
+      ) {
+        console.error("User ID mismatch after refresh");
+        return { userId: null, orgId: null, role: null };
+      }
 
       return refreshResult;
     }
@@ -131,3 +140,16 @@ export const getAuth = cache(async (_req?: Request): Promise<GetAuthResult> => {
     return { userId: null, orgId: null, role: null };
   }
 });
+
+// Export a function to clear a specific user's refresh operation
+// useful to forcibly clear a stuck refresh operation
+export function clearUserRefreshOperation(refreshToken: string): boolean {
+  const hadOperation = refreshOperations.has(refreshToken);
+  refreshOperations.delete(refreshToken);
+  return hadOperation;
+}
+
+// for debugging: get count of ongoing refresh operations
+export function getOngoingRefreshCount(): number {
+  return refreshOperations.size;
+}
