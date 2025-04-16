@@ -61,7 +61,7 @@ var Cmd = &cli.Command{
 			Name:     "instance-id",
 			Usage:    "Unique identifier for this instance. Auto-generated if not provided.",
 			Sources:  cli.EnvVars("UNKEY_INSTANCE_ID"),
-			Value:    uid.New(uid.InstancePrefix),
+			Value:    uid.New(uid.InstancePrefix, 4),
 			Required: false,
 		},
 
