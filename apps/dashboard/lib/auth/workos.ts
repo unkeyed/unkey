@@ -78,7 +78,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         };
       }
 
-      // trigger attempt to refresh
+      // signal attempt to refresh
       return {
         isValid: false,
         shouldRefresh: true,
@@ -111,9 +111,16 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           },
         });
 
+      if (!sealedSession) {
+        // ensure that the sealedSession boolean is true
+        // otherwise WorkOS messed up
+        // make typescript happy with additional guard
+        throw new Error("Missing sealed session.");
+      }
+
       return {
         expiresAt,
-        sessionToken: sealedSession!,
+        sessionToken: sealedSession,
         accessToken,
         refreshToken,
         session: {
@@ -127,47 +134,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       throw error;
     }
   }
-
-  //   if (!sessionToken) {
-  //     throw new Error("No session token provided");
-  //   }
-
-  //   try {
-  //     const expiresAt = new Date();
-  //       expiresAt.setDate(expiresAt.getDate() + 7);
-  //     const session = this.provider.userManagement.loadSealedSession({
-  //       sessionData: sessionToken,
-  //       cookiePassword: this.cookiePassword,
-  //     });
-
-  //     const refreshResult = await session.refresh({
-  //       cookiePassword: this.cookiePassword,
-  //     });
-
-  //     if (refreshResult.authenticated && refreshResult.session) {
-  //       // Set expiration to 7 days from now
-  //       const expiresAt = new Date();
-  //       expiresAt.setDate(expiresAt.getDate() + 7);
-  //       return {
-  //         sessionToken: refreshResult.sealedSession!,
-  //         expiresAt,
-  //         session: {
-  //           userId: refreshResult.user.id,
-  //           orgId: refreshResult.organizationId ?? null,
-  //           role: refreshResult.role ?? null
-  //         },
-  //       };
-  //     }
-
-  //     throw new Error("reason" in refreshResult ? refreshResult.reason : "Session refresh failed");
-  //   } catch (error) {
-  //     console.error("Session refresh error:", {
-  //       error: error instanceof Error ? error.message : "Unknown error",
-  //       token: sessionToken ? `${sessionToken.substring(0, 10)}...` : "no token",
-  //     });
-  //     throw error;
-  //   }
-  // }
 
   // User Management
   async getCurrentUser(): Promise<User | null> {
@@ -330,17 +296,23 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         throw new Error(`Organization switch failed ${errMsg}`);
       }
 
+      if (!refreshResult.sealedSession) {
+        // WorkOS messed up, it should always come back if authenticated
+        // make typescript happy with guard anyway
+        throw new Error("Missing sealed session");
+      }
+
       // Set expiration to 7 days from now
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
 
       return {
-        sessionToken: refreshResult.sealedSession!,
+        sessionToken: refreshResult.sealedSession,
         expiresAt,
         session: {
           userId: refreshResult.session.user.id,
           orgId: refreshResult.session.organizationId ?? null,
-          role: null, // doesn't come back on this API call for some reason
+          role: null, // doesn't come back on this session helper for some reason, but it comes back in others that use this return type
         },
       };
     } catch (error) {
@@ -664,7 +636,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             options: {
               secure: true,
               httpOnly: true,
-              sameSite: "lax",
+              sameSite: "strict",
             },
           },
         ],
@@ -685,7 +657,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
               options: {
                 secure: true,
                 httpOnly: true,
-                sameSite: "lax",
+                sameSite: "strict",
               },
             },
           ],
@@ -727,7 +699,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             options: {
               secure: true,
               httpOnly: true,
-              sameSite: "lax",
+              sameSite: "strict",
             },
           },
         ],
@@ -749,7 +721,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
               options: {
                 secure: true,
                 httpOnly: true,
-                sameSite: "lax",
+                sameSite: "strict",
               },
             },
           ],
@@ -789,7 +761,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             options: {
               secure: true,
               httpOnly: true,
-              sameSite: "lax",
+              sameSite: "strict",
             },
           },
           {
@@ -798,7 +770,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             options: {
               secure: true,
               httpOnly: true,
-              sameSite: "lax",
+              sameSite: "strict",
             },
           },
           {
@@ -807,7 +779,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             options: {
               secure: true,
               httpOnly: true,
-              sameSite: "lax",
+              sameSite: "strict",
             },
           },
         ],
@@ -890,7 +862,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             options: {
               secure: true,
               httpOnly: true,
-              sameSite: "lax",
+              sameSite: "strict",
             },
           },
           {
@@ -899,7 +871,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             options: {
               secure: true,
               httpOnly: true,
-              sameSite: "lax",
+              sameSite: "strict",
             },
           },
           {
@@ -908,7 +880,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             options: {
               secure: true,
               httpOnly: true,
-              sameSite: "lax",
+              sameSite: "strict",
             },
           },
         ],
@@ -928,7 +900,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
               options: {
                 secure: true,
                 httpOnly: true,
-                sameSite: "lax",
+                sameSite: "strict",
                 maxAge: 60, // user has 60 seconds to select an org before the cookie expires
               },
             },
@@ -952,7 +924,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
               options: {
                 secure: true,
                 httpOnly: true,
-                sameSite: "lax",
+                sameSite: "strict",
                 maxAge: 60 * 10, // user has 10 mins seconds to verify their email before the cookie expires
               },
             },

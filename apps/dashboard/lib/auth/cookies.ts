@@ -70,7 +70,7 @@ export async function updateCookie(
       options: {
         httpOnly: true,
         secure: true,
-        sameSite: "lax",
+        sameSite: "strict",
       },
     });
     return;
@@ -112,7 +112,7 @@ export async function SetSessionCookie(params: {
     options: {
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
       maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
     },

@@ -58,17 +58,17 @@ export async function POST(request: Request) {
         // Set all cookies on the response
         response.headers.append(
           "Set-Cookie",
-          `${UNKEY_SESSION_COOKIE}=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${sessionMaxAge}`,
+          `${UNKEY_SESSION_COOKIE}=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${sessionMaxAge}`,
         );
 
         response.headers.append(
           "Set-Cookie",
-          `${UNKEY_ACCESS_TOKEN}=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${UNKEY_ACCESS_MAX_AGE}`,
+          `${UNKEY_ACCESS_TOKEN}=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${UNKEY_ACCESS_MAX_AGE}`,
         );
 
         response.headers.append(
           "Set-Cookie",
-          `${UNKEY_REFRESH_TOKEN}=${refreshToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${sessionMaxAge}`,
+          `${UNKEY_REFRESH_TOKEN}=${refreshToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${sessionMaxAge}`,
         );
 
         return response;
