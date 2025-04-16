@@ -3,13 +3,19 @@ package otel
 import (
 	"context"
 	"fmt"
+	"runtime"
+	"time"
 
 	adapter "github.com/axiomhq/axiom-go/adapters/slog"
 
 	axiomOtel "github.com/axiomhq/axiom-go/axiom/otel"
 
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/load"
+	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/repeat"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 
 	"go.opentelemetry.io/otel"
@@ -83,4 +89,48 @@ func InitAxiom(ctx context.Context, config AxiomConfig, shutdowns *shutdown.Shut
 	tracing.SetGlobalTraceProvider(traceProvider)
 
 	return nil
+}
+
+// temporary function to get some cpu and memory metrics into axiom until we have prometheus
+// this already starts a new goroutine
+func EmitSystemMetrics(logger logging.Logger) {
+
+	repeat.Every(15*time.Second, func() {
+
+		vm, err := mem.VirtualMemory()
+		if err != nil {
+			logger.Error("failed to get virtual memory metrics", "error", err)
+			return
+		}
+
+		cpuPercentage, err := cpu.Percent(time.Second, false)
+		if err != nil {
+			logger.Error("failed to get cpu metrics", "error", err)
+			return
+		}
+		if len(cpuPercentage) == 0 {
+			logger.Error("cpu metrics returned empty")
+			return
+		}
+
+		loadAvg, err := load.Avg()
+		if err != nil {
+			logger.Error("failed to get load avg", "error", err)
+			return
+		}
+
+		logger.Info("system_metrics",
+			"goroutines", runtime.NumGoroutine(),
+			"memory_total", vm.Total,
+			"memory_used", vm.Used,
+			"memory_free", vm.Free,
+			"memory_available", vm.Available,
+			"memory_percent", vm.UsedPercent,
+			"cpu_percent", cpuPercentage[0],
+			"load_1", loadAvg.Load1,
+			"load_5", loadAvg.Load5,
+			"load_15", loadAvg.Load15,
+		)
+	})
+
 }
