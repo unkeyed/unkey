@@ -98,8 +98,9 @@ export default async function RootKeyPage(props: {
       workspaceId: UNKEY_WORKSPACE_ID,
       keySpaceId: key.keyAuthId,
       keyId: key.id,
+      limit: 50,
     })
-    .then((res) => res.val!);
+    .then((res) => res.val);
 
   const apis = workspace.apis.map((api) => {
     const apiPermissionsStructure = apiPermissions(api.id);
@@ -166,7 +167,7 @@ export default async function RootKeyPage(props: {
 
             <UsageHistoryCard
               accessTableProps={{
-                verifications: history,
+                verifications: history ?? [],
               }}
             />
           </div>
