@@ -9,9 +9,7 @@ export function Navigation() {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Gear />}>
-        <Navbar.Breadcrumbs.Link href="/settings/general">
-          Settings
-        </Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href="/settings/general">Settings</Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link href="/settings/root-keys" active>
           Root Keys
         </Navbar.Breadcrumbs.Link>

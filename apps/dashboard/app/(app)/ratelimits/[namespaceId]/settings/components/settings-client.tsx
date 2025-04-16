@@ -2,6 +2,7 @@
 
 import { revalidateTag } from "@/app/actions";
 import { SettingCard } from "@/components/settings-card";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
@@ -10,7 +11,6 @@ import { Button, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
-import { Separator } from "@/components/ui/separator";
 
 type Props = {
   namespace: {

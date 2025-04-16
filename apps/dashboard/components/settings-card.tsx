@@ -41,7 +41,9 @@ export function SettingCard({
     >
       <div className="flex flex-col gap-1 text-sm w-full">
         <div className="font-medium text-accent-12 leading-5 tracking-normal">{title}</div>
-        <div className="font-normal text-accent-11 text-[13px] leading-5 tracking-normal">{description}</div>
+        <div className="font-normal text-accent-11 text-[13px] leading-5 tracking-normal">
+          {description}
+        </div>
       </div>
       <div className={cn("flex items-center", contentWidth)}>{children}</div>
     </div>

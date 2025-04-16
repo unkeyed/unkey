@@ -41,10 +41,9 @@ export const WorkspaceNavbar = ({
   };
   activePage: {
     href: string;
-    text: string;   
+    text: string;
   };
 }) => {
-  
   return (
     <div className="flex flex-col w-full h-full">
       <Navbar>
@@ -57,7 +56,7 @@ export const WorkspaceNavbar = ({
                   id: setting.href,
                   label: setting.text,
                   href: `/settings/${setting.href}`,
-                }
+                },
               ])}
               shortcutKey="M"
             >
@@ -83,7 +82,6 @@ export const WorkspaceNavbar = ({
             <Link key="create-root-key" href="/settings/root-keys/new">
               <Button variant="primary">Create New Root Key</Button>
             </Link>
-
           )}
           {activePage.href === "billing" && (
             <Navbar.Actions>

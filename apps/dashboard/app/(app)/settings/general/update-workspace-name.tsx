@@ -85,7 +85,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
                     <Input
                       type="text"
                       id="workspaceName"
-                      className="grow"
+                      className="w-[20rem] lg:w-[16rem] h-9"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {
@@ -100,7 +100,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
             />
             <Button
               size="lg"
-              className="rounded-lg px-2.5 flex-none"
+              className="rounded-lg px-2.5 flex-none h-9"
               disabled={
                 !form.formState.isValid ||
                 form.formState.isSubmitting ||
