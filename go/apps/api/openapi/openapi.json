@@ -651,8 +651,8 @@
     "/v2/ratelimit.limit": {
       "post": {
         "tags": ["ratelimit"],
-        "operationId": "v1.ratelimit.limit",
-        "summary": "TODO",
+        "operationId": "ratelimit.limit",
+        "x-speakeasy-name-override": "limit",
         "security": [
           {
             "rootKey": []
@@ -736,6 +736,7 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.setOverride",
+        "x-speakeasy-name-override": "setOverride",
         "security": [
           {
             "rootKey": []
@@ -819,6 +820,7 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.getOverride",
+        "x-speakeasy-name-override": "getOverride",
         "security": [
           {
             "rootKey": []
@@ -902,6 +904,7 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.listOverrides",
+        "x-speakeasy-name-override": "listOverrides",
         "security": [
           {
             "rootKey": []
@@ -985,6 +988,7 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.deleteOverride",
+        "x-speakeasy-name-override": "deleteOverride",
         "security": [
           {
             "rootKey": []
@@ -1067,7 +1071,8 @@
     "/v2/identities.createIdentity": {
       "post": {
         "tags": ["identities"],
-        "operationId": "v2.identities.createIdentity",
+        "operationId": "identities.createIdentity",
+        "x-speakeasy-name-override": "createIdentity",
         "security": [
           {
             "rootKey": []
@@ -1151,6 +1156,7 @@
       "post": {
         "tags": ["apis"],
         "operationId": "createApi",
+        "x-speakeasy-name-override": "createApi",
         "security": [
           {
             "rootKey": []
@@ -1222,6 +1228,7 @@
     },
     "/v2/liveness": {
       "get": {
+        "x-speakeasy-ignore": "true",
         "tags": ["liveness"],
         "operationId": "liveness",
         "description": "This endpoint checks if the service is alive.",
