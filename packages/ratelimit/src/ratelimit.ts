@@ -1,4 +1,5 @@
 import { Unkey } from "@unkey/api";
+import { APIError } from "@unkey/api/models/errors";
 import { type Duration, ms } from "./duration";
 import type { Ratelimiter } from "./interface";
 import type { Limit, LimitOptions, RatelimitResponse } from "./types";
@@ -124,7 +125,7 @@ export class Ratelimit implements Ratelimiter {
   constructor(config: RatelimitConfig) {
     this.config = config;
     this.unkey = new Unkey({
-      baseUrl: config.baseUrl,
+      serverURL: config.baseUrl,
       rootKey: config.rootKey,
     });
   }
@@ -168,7 +169,7 @@ export class Ratelimit implements Ratelimiter {
     let timeoutId: any = null;
     try {
       const ps: Promise<RatelimitResponse>[] = [
-        this.unkey.ratelimits
+        this.unkey.ratelimit
           .limit({
             namespace: this.config.namespace,
             identifier,
@@ -177,13 +178,16 @@ export class Ratelimit implements Ratelimiter {
             cost: opts?.cost,
           })
           .then(async (res) => {
-            if (res.error) {
+            return res.data;
+          })
+          .catch((err) => {
+            if (err instanceof APIError) {
               throw new Error(
-                `Ratelimit failed: [${res.error.code} - ${res.error.requestId}]: ${res.error.message}`,
+                `Ratelimit failed: [${err.statusCode} - ${err.message}]: ${err.body}`,
               );
             }
 
-            return res.result;
+            throw new Error(`Ratelimit failed: ${err}`);
           }),
       ];
       if (timeout) {
