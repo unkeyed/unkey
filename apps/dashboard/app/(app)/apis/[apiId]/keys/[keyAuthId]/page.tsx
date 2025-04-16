@@ -1,3 +1,6 @@
+import { fetchApiAndWorkspaceDataFromDb } from "../../actions";
+import { ApisNavbar } from "../../api-id-navbar";
+import { KeysClient } from "./_components/keys-client";
 import { PageContent } from "@/components/page-content";
 import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -13,22 +16,22 @@ export default async function APIKeysPage(props: {
     keyAuthId: string;
   };
 }) {
-  const orgId = await getOrgId();
+  const apiId = props.params.apiId;
+  const keyspaceId = props.params.keyAuthId;
 
-  const keyAuth = await db.query.keyAuth.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.keyAuthId), isNull(table.deletedAtM)),
-    with: {
-      workspace: true,
-      api: true,
-    },
-  });
-  if (!keyAuth || keyAuth.workspace.orgId !== orgId) {
-    return notFound();
-  }
+  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(apiId);
 
   return (
     <div>
+      <ApisNavbar
+        api={currentApi}
+        activePage={{
+          href: `/apis/${apiId}/keys/${keyspaceId}`,
+          text: "Keys",
+        }}
+        apis={workspaceApis}
+      />
+      <KeysClient apiId={props.params.apiId} keyspaceId={keyspaceId} />
       <Navigation apiId={props.params.apiId} keyAuth={keyAuth} />
       <PageContent>
         <div className="flex flex-col gap-8 mt-8 mb-20">

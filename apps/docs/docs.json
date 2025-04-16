@@ -206,11 +206,9 @@
                         "group": "Data",
                         "pages": [
                           "api-reference/errors-v2/unkey/data/api_not_found",
-                          "api-reference/errors-v2/unkey/data/assertion_failed",
                           "api-reference/errors-v2/unkey/data/audit_log_not_found",
                           "api-reference/errors-v2/unkey/data/identity_already_exists",
                           "api-reference/errors-v2/unkey/data/identity_not_found",
-                          "api-reference/errors-v2/unkey/data/invalid_input",
                           "api-reference/errors-v2/unkey/data/key_auth_not_found",
                           "api-reference/errors-v2/unkey/data/key_not_found",
                           "api-reference/errors-v2/unkey/data/permission_not_found",

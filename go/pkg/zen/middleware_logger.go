@@ -28,7 +28,7 @@ func WithLogging(logger logging.Logger) Middleware {
 				slog.String("method", s.r.Method),
 				slog.String("path", s.r.URL.Path),
 				slog.Int("status", s.responseStatus),
-				slog.String("latency", serviceLatency.String()),
+				slog.Int64("latency", serviceLatency.Milliseconds()),
 			)
 
 			if nextErr != nil {

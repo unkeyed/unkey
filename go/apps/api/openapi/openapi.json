@@ -40,7 +40,7 @@
             "type": "string"
           }
         },
-        "additionalProperties": true
+        "additionalProperties": false
       },
       "Pagination": {
         "type": "object",
@@ -56,7 +56,7 @@
             "type": "boolean"
           }
         },
-        "additionalProperties": true
+        "additionalProperties": false
       },
       "BaseError": {
         "properties": {
@@ -321,42 +321,6 @@
         "required": ["identifier"],
         "type": "object"
       },
-      "RatelimitGetOverrideResponseData": {
-        "type": "object",
-        "properties": {
-          "namespaceId": {
-            "description": "The id of the namespace.",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255
-          },
-          "overrideId": {
-            "description": "The id of the override.",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255
-          },
-          "duration": {
-            "description": "The duration in milliseconds for the rate limit window.",
-            "format": "int64",
-            "type": "integer",
-            "minimum": 1000
-          },
-          "identifier": {
-            "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255
-          },
-          "limit": {
-            "description": "The maximum number of requests allowed.",
-            "format": "int64",
-            "type": "integer",
-            "minimum": 0
-          }
-        },
-        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"]
-      },
       "V2RatelimitGetOverrideResponseBody": {
         "type": "object",
         "required": ["meta", "data"],
@@ -365,7 +329,7 @@
             "$ref": "#/components/schemas/Meta"
           },
           "data": {
-            "$ref": "#/components/schemas/RatelimitGetOverrideResponseData"
+            "$ref": "#/components/schemas/RatelimitOverride"
           }
         }
       },
@@ -396,34 +360,10 @@
         },
         "type": "object"
       },
-      "RatelimitOverrideItem": {
-        "type": "object",
-        "properties": {
-          "overrideId": {
-            "description": "The id of the override.",
-            "type": "string"
-          },
-          "identifier": {
-            "description": "Identifier of your user",
-            "type": "string"
-          },
-          "limit": {
-            "description": "The maximum number of requests allowed.",
-            "format": "int64",
-            "type": "integer"
-          },
-          "duration": {
-            "description": "The duration in milliseconds for the rate limit window.",
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": ["overrideId", "identifier", "limit", "duration"]
-      },
       "RatelimitListOverridesResponseData": {
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/RatelimitOverrideItem"
+          "$ref": "#/components/schemas/RatelimitOverride"
         }
       },
       "V2RatelimitListOverridesResponseBody": {
@@ -667,6 +607,43 @@
             "$ref": "#/components/schemas/ApisCreateApiResponseData"
           }
         }
+      },
+      "RatelimitOverride": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "namespaceId": {
+            "description": "The id of the namespace.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "overrideId": {
+            "description": "The id of the override.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "duration": {
+            "description": "The duration in milliseconds for the rate limit window.",
+            "format": "int64",
+            "type": "integer",
+            "minimum": 1000
+          },
+          "identifier": {
+            "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "limit": {
+            "description": "The maximum number of requests allowed.",
+            "format": "int64",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"]
       }
     }
   },
@@ -674,8 +651,8 @@
     "/v2/ratelimit.limit": {
       "post": {
         "tags": ["ratelimit"],
-        "operationId": "v1.ratelimit.limit",
-        "summary": "TODO",
+        "operationId": "ratelimit.limit",
+        "x-speakeasy-name-override": "limit",
         "security": [
           {
             "rootKey": []
@@ -759,6 +736,7 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.setOverride",
+        "x-speakeasy-name-override": "setOverride",
         "security": [
           {
             "rootKey": []
@@ -842,6 +820,7 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.getOverride",
+        "x-speakeasy-name-override": "getOverride",
         "security": [
           {
             "rootKey": []
@@ -925,7 +904,7 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.listOverrides",
-        "summary": "List rate limit overrides",
+        "x-speakeasy-name-override": "listOverrides",
         "security": [
           {
             "rootKey": []
@@ -1009,6 +988,7 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.deleteOverride",
+        "x-speakeasy-name-override": "deleteOverride",
         "security": [
           {
             "rootKey": []
@@ -1091,7 +1071,8 @@
     "/v2/identities.createIdentity": {
       "post": {
         "tags": ["identities"],
-        "operationId": "v2.identities.createIdentity",
+        "operationId": "identities.createIdentity",
+        "x-speakeasy-name-override": "createIdentity",
         "security": [
           {
             "rootKey": []
@@ -1175,6 +1156,7 @@
       "post": {
         "tags": ["apis"],
         "operationId": "createApi",
+        "x-speakeasy-name-override": "createApi",
         "security": [
           {
             "rootKey": []
@@ -1246,6 +1228,7 @@
     },
     "/v2/liveness": {
       "get": {
+        "x-speakeasy-ignore": "true",
         "tags": ["liveness"],
         "operationId": "liveness",
         "description": "This endpoint checks if the service is alive.",

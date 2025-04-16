@@ -467,6 +467,13 @@ type Querier interface {
 	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	//ListRatelimitOverrides
+	//
+	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+	//  WHERE
+	//      workspace_id = ?
+	//      AND namespace_id = ?
+	ListRatelimitOverrides(ctx context.Context, db DBTX, arg ListRatelimitOverridesParams) ([]RatelimitOverride, error)
 	//ListWorkspaces
 	//
 	//  SELECT
