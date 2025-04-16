@@ -1,9 +1,6 @@
 import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
 
-import type {
-  ApiOverview,
-  ApisOverviewResponse,
-} from "@/lib/trpc/routers/api/overview/query-overview/schemas";
+import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { ChevronDown } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import type { Dispatch, SetStateAction } from "react";
@@ -11,17 +8,15 @@ import { ApiListCard } from "./api-list-card";
 import { useFetchApiOverview } from "./hooks/use-fetch-api-overview";
 
 export const ApiListGrid = ({
-  initialData,
   setApiList,
   apiList,
   isSearching,
 }: {
-  initialData: ApisOverviewResponse;
   apiList: ApiOverview[];
   setApiList: Dispatch<SetStateAction<ApiOverview[]>>;
   isSearching?: boolean;
 }) => {
-  const { total, loadMore, isLoading, hasMore } = useFetchApiOverview(initialData, setApiList);
+  const { total, loadMore, isLoading, hasMore } = useFetchApiOverview(setApiList);
 
   if (apiList.length === 0) {
     return (

@@ -11,6 +11,19 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
     ? await db.query.workspaces.findFirst({
         where: (table, { eq, and, isNull }) =>
           and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+        with: {
+          apis: {
+            where: (table, { isNull }) => isNull(table.deletedAtM),
+          },
+          quotas: true,
+          ratelimitNamespaces: {
+            where: (table, { isNull }) => isNull(table.deletedAtM),
+            columns: {
+              id: true,
+              name: true,
+            },
+          },
+        },
       })
     : undefined;
 

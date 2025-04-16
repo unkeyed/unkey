@@ -1,29 +1,24 @@
-import { getOrgId } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { redirect } from "next/navigation";
+"use client";
 
+import { trpc } from "@/lib/trpc/client";
 import { RatelimitClient } from "./_components/ratelimit-client";
 import { Navigation } from "./navigation";
 
-export const dynamic = "force-dynamic";
+export default function RatelimitOverviewPage() {
+  const workspaceQuery = trpc.workspace.getWorkspace.useQuery();
 
-export default async function RatelimitOverviewPage() {
-  const orgId = await getOrgId();
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-    with: {
-      ratelimitNamespaces: {
-        where: (table, { isNull }) => isNull(table.deletedAtM),
-        columns: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-  });
+  if (workspaceQuery.isLoading) {
+    return <div>Loading workspace info...</div>;
+  }
+
+  if (workspaceQuery.error) {
+    return <div>Error: {workspaceQuery.error.message}</div>;
+  }
+
+  const workspace = workspaceQuery.data;
 
   if (!workspace) {
-    return redirect("/new");
+    return <div>Workspace data not available.</div>;
   }
 
   return (

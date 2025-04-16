@@ -2,10 +2,11 @@ import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { getIsImpersonator, getOrgId } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getRequiredWorkspaceByOrgId } from "./actions";
+import { WorkspaceClientProvider } from "./workspace-client-provider";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,16 +15,8 @@ interface LayoutProps {
 export default async function Layout({ children }: LayoutProps) {
   const orgId = await getOrgId();
   const isImpersonator = await getIsImpersonator();
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-    with: {
-      apis: {
-        where: (table, { isNull }) => isNull(table.deletedAtM),
-      },
-      quotas: true,
-    },
-  });
 
+  const workspace = await getRequiredWorkspaceByOrgId(orgId);
   if (!workspace) {
     return redirect("/new");
   }
@@ -49,7 +42,9 @@ export default async function Layout({ children }: LayoutProps) {
 
               <div className="w-full">
                 {workspace.enabled ? (
-                  children
+                  <WorkspaceClientProvider initialWorkspace={workspace}>
+                    {children}
+                  </WorkspaceClientProvider>
                 ) : (
                   <div className="flex items-center justify-center w-full h-full">
                     <Empty>
