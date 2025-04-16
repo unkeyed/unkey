@@ -37,13 +37,15 @@ export default async function SettingsKeysPage(_props: {
         activePage={{ href: "root-keys", text: "Root Keys" }}
       />
       <PageContent>
-        <PageHeader
-          className="mt-8"
-          title="Root Keys"
-          description="Root keys are used to interact with the Unkey API."
-        />
-        <div className="grid w-full grid-cols-1 gap-8 mb-20">
-          <RootKeyTable data={keys} />
+        <div className="flex flex-col items-center justify-center w-full px-12 gap-4">
+          <PageHeader
+            className="mt-6"
+            title="Root Keys"
+            description="Root keys are used to interact with the Unkey API."
+          />
+          <div className="grid w-full grid-cols-1 gap-8 mb-20">
+            <RootKeyTable data={keys} />
+          </div>
         </div>
       </PageContent>
     </div>

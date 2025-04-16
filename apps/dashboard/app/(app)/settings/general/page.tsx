@@ -27,7 +27,7 @@ export default async function SettingsPage() {
     <div>
       <WorkspaceNavbar workspace={workspace} activePage={{ href: "general", text: "General" }} />
       <PageContent>
-        <div className="flex items-center justify-center w-full py-3 ">
+        <div className="flex items-center justify-center w-full py-3">
           <div className="lg:w-[760px] flex-col justify-center items-center">
             <div className="w-full text-accent-12 font-semibold text-lg pt-[22px] pb-[20px] text-left border-b border-gray-4 px-2">
               Workspace Settings

@@ -96,7 +96,7 @@ export const Client: React.FC<Props> = (props) => {
       <Usage current={props.usage.current} max={props.usage.max} />
 
       {props.workspace.stripeCustomerId ? (
-        <div className="flex flex-col w-full ">
+        <div className="flex flex-col w-full">
           {props.products.map((p, i) => {
             const isSelected = selectedProductIndex === i;
             const isNextSelected = selectedProductIndex === i + 1;
@@ -176,8 +176,8 @@ export const Client: React.FC<Props> = (props) => {
           title="Add payment method"
           border={props.subscription && allowCancel ? "top" : "both"}
           description="Before starting a trial, you need to add a payment method."
-          className="sm:w-full"
-          contentWidth="w-full lg:w-[320px]"
+          className="sm:w-full text-wrap"
+          contentWidth="w-full"
         >
           <div className="flex justify-end w-full">
             <Button variant="primary">
