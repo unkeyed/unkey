@@ -3,15 +3,22 @@
     <h5>`@unkey/api` is a TypeScript client for Unkey. If you prefer a typed experience over calling HTTP endpoints directly, this SDK is for you.</h5>
 </div>
 
+
+
 <div align="center">
   <a href="https://www.unkey.com/docs/libraries/ts/sdk/overview">Documentation</a>
 </div>
 <br/>
 
+
+Currently the latest version on npm is v2.0.0-alpha.x, which was released on the main channel by accident. Due to npm’s policy, we can not take it back down.
+
+v2 is coming, but it’s not ready yet and lacks some api methods. Please install @unkey/api@0.35 for now.
+
 ## Installation
 
 ```bash
-npm install @unkey/api
+npm install @unkey/api@0.35
 ```
 
 ## Quickstart
