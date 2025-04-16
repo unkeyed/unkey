@@ -1,12 +1,10 @@
-// lib/workspace.ts (or wherever you keep data fetching logic)
 import { cache } from "react";
-import "server-only"; // Ensure this only runs on the server
+import "server-only";
 import { type Quotas, type Workspace, db } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 export type WorkspaceWithQuota = (Workspace & { quotas: Quotas | null }) | null;
 
-// Define the function that fetches the workspace
 const getWorkspaceByOrgIdUncached = async (orgId: string | null): Promise<WorkspaceWithQuota> => {
   if (!orgId) {
     return null;
