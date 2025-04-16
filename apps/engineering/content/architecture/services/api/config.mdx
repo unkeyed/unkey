@@ -139,7 +139,7 @@ The Unkey API requires a MySQL database for storing keys and configuration. For 
 
   **Examples:**
   - `--database-primary=root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
-  - `--database-primary=username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
+  - `--database-primary=nx...4c:pscale_pw_...va@tcp(aws.connect.psdb.cloud)/unkey?tls=true&interpolateParams=true&parseTime=true` - PlanetScale connection
 </Property>
 
 <Property name="--database-replica | UNKEY_DATABASE_REPLICA" type="string" required={false}>
@@ -151,7 +151,7 @@ The Unkey API requires a MySQL database for storing keys and configuration. For 
 
   **Examples:**
   - `--database-replica=root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
-  - `--database-replica=username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
+  - `--database-replica=nx...4c:pscale_pw_...va@tcp(aws.connect.psdb.cloud)/unkey?tls=true&interpolateParams=true&parseTime=true` - PlanetScale connection
 </Property>
 
 ## Analytics & Monitoring
