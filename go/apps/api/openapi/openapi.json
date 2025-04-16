@@ -902,7 +902,6 @@
       "post": {
         "tags": ["ratelimit"],
         "operationId": "ratelimit.listOverrides",
-        "summary": "List rate limit overrides",
         "security": [
           {
             "rootKey": []
