@@ -31,6 +31,7 @@ test(
       workspaceId: verification.workspace_id,
       keySpaceId: verification.key_space_id,
       keyId: verification.key_id,
+      limit: 1,
     });
 
     expect(latestVerifications.err).toBeUndefined();
