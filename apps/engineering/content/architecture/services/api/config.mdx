@@ -102,7 +102,7 @@ These options control the fundamental behavior of the API server.
   Enable test mode. This option is designed for testing environments and should NOT be used in production. When enabled, the server may trust client inputs blindly, potentially bypassing security checks.
 
   The server logs a warning when started with this flag enabled.
-  
+
   **Examples:**
   - `--test-mode=true` - Enable test mode for testing environments
   - `--test-mode=false` - Normal operation mode (default, suitable for production)
@@ -120,7 +120,7 @@ These options control the fundamental behavior of the API server.
 
 <Property name="--instance-id | UNKEY_INSTANCE_ID" type="string" required={false}>
   Unique identifier for this instance. This identifier is used in logs, metrics, and for identifying this specific instance of the API server. If not provided, a random ID with a unique prefix will be auto-generated.
-  
+
   For persistent instances, setting a consistent ID can help with log correlation and tracking instance-specific issues over time.
 
   **Examples:**
@@ -132,17 +132,17 @@ These options control the fundamental behavior of the API server.
 
 The Unkey API requires a MySQL database for storing keys and configuration. For global deployments, a read replica endpoint can be configured to offload read operations.
 
-<Property name="--database-primary | UNKEY_DATABASE_PRIMARY_DSN" type="string" required={true}>
+<Property name="--database-primary | UNKEY_DATABASE_PRIMARY" type="string" required={true}>
   Primary database connection string for read and write operations. This MySQL database stores all persistent data including API keys, workspaces, and configuration. It is required for all deployments.
 
   For production use, ensure the database has proper backup procedures in place. Unkey is using [PlanetScale](https://planetscale.com/)
 
   **Examples:**
-  - `--database-primary=mysql://root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
-  - `--database-primary=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
+  - `--database-primary=root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
+  - `--database-primary=username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
 </Property>
 
-<Property name="--database-readonly-replica | UNKEY_DATABASE_READONLY_DSN" type="string" required={false}>
+<Property name="--database-replica | UNKEY_DATABASE_REPLICA" type="string" required={false}>
   Optional read-replica database connection string for read operations. When provided, most read operations will be directed to this read replica, reducing load on the primary database and latency for users.
 
   This is recommended for high-traffic deployments to improve performance and scalability. The read replica must be a valid MySQL read replica of the primary database.
@@ -150,8 +150,8 @@ The Unkey API requires a MySQL database for storing keys and configuration. For 
   Unkey is using [PlanetScales](https://planetscale.com/) global read replica endpoint.
 
   **Examples:**
-  - `--database-readonly-replica=mysql://root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
-  - `--database-readonly-replica=mysql://username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
+  - `--database-replica=root:password@localhost:3306/unkey?parseTime=true` - Local MySQL for development
+  - `--database-replica=username:pscale_pw_...@aws.connect.psdb.cloud/unkey?sslmode=require` - PlanetScale connection
 </Property>
 
 ## Analytics & Monitoring
@@ -241,7 +241,7 @@ These options configure analytics storage and observability for the Unkey API.
 
 <Property name="--redis-url | UNKEY_REDIS_URL" type="string" required={false}>
   Redis connection string for rate-limiting and distributed counters. Redis is used to maintain counters for rate limiting and other features that require distributed state.
-  
+
   While not strictly required, Redis is recommended for production deployments, especially when running multiple instances of the API server, to ensure consistent rate limiting.
 
   **Examples:**
