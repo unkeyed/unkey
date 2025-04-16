@@ -24,7 +24,7 @@ export default function RatelimitOverviewPage() {
   return (
     <div>
       <Navigation />
-      <RatelimitClient ratelimitNamespaces={workspace.ratelimitNamespaces} />
+      <RatelimitClient ratelimitNamespaces={(workspace as any).ratelimitNamespaces} />
     </div>
   );
 }
