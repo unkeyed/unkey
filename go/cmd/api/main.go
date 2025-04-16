@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -95,17 +94,9 @@ var Cmd = &cli.Command{
 		},
 
 		// Observability
-		&cli.StringFlag{
-			Name:  "otel",
-			Usage: "Enable OpenTelemetry tracing and metrics. Valid values: \"grafana\" or \"axiom\"",
-			Validator: func(s string) error {
-				for _, v := range []string{"grafana", "axiom"} {
-					if s == v {
-						return nil
-					}
-				}
-				return fmt.Errorf("invalid value %q", s)
-			},
+		&cli.BoolFlag{
+			Name:     "otel",
+			Usage:    "Enable OpenTelemetry tracing and metrics",
 			Sources:  cli.EnvVars("UNKEY_OTEL"),
 			Required: false,
 		},
@@ -145,7 +136,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		ClickhouseURL: cmd.String("clickhouse-url"),
 
 		// OpenTelemetry configuration
-		OtelSink:              cmd.String("otel"),
+		OtelEnabled:           cmd.Bool("otel"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 
 		InstanceID:     cmd.String("instance-id"),
