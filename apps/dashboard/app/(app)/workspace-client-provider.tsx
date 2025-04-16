@@ -12,7 +12,7 @@ export function WorkspaceClientProvider({
   children,
 }: WorkspaceClientProviderProps) {
   trpc.workspace.getWorkspace.useQuery(undefined, {
-    initialData: initialWorkspace,
+    initialData: initialWorkspace as any, //WARN: we'll fix this when we do the actual refactor,
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnMount: false, // Don't refetch immediately on mount
     refetchOnWindowFocus: false,
