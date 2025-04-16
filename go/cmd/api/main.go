@@ -68,14 +68,14 @@ var Cmd = &cli.Command{
 		// Database Configuration
 		&cli.StringFlag{
 			Name:     "database-primary",
-			Usage:    "MySQL connection string for primary database. Required for all deployments. Example: mysql://user:pass@host:3306/unkey?parseTime=true",
-			Sources:  cli.EnvVars("UNKEY_DATABASE_PRIMARY_DSN"),
+			Usage:    "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
+			Sources:  cli.EnvVars("UNKEY_DATABASE_PRIMARY"),
 			Required: true,
 		},
 		&cli.StringFlag{
-			Name:     "database-readonly-replica",
+			Name:     "database-replica",
 			Usage:    "MySQL connection string for read-replica. Reduces load on primary database. Format same as database-primary.",
-			Sources:  cli.EnvVars("UNKEY_DATABASE_READONLY_DSN"),
+			Sources:  cli.EnvVars("UNKEY_DATABASE_REPLICA"),
 			Required: false,
 		},
 
