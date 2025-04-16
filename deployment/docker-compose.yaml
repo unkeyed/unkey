@@ -62,7 +62,7 @@ services:
       UNKEY_OTEL: true
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4318"
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
-      UNKEY_PROMETHEUS_PORT: 2112
+      # UNKEY_PROMETHEUS_PORT: 2112
 
   redis:
     image: redis:latest
