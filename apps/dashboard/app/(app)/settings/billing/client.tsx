@@ -176,7 +176,7 @@ export const Client: React.FC<Props> = (props) => {
           title="Add payment method"
           border={props.subscription && allowCancel ? "top" : "both"}
           description="Before starting a trial, you need to add a payment method."
-          className="sm:w-full text-wrap"
+          className="sm:w-full text-wrap w-full"
           contentWidth="w-full"
         >
           <div className="flex justify-end w-full">
