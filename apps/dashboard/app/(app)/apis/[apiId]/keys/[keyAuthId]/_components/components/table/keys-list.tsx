@@ -184,83 +184,81 @@ export const KeysList = ({
   );
 
   return (
-    <div className="flex flex-col gap-8 mb-20">
-      <VirtualTable
-        data={keys}
-        isLoading={isLoading}
-        isFetchingNextPage={isLoadingMore}
-        onLoadMore={loadMore}
-        columns={columns}
-        onRowClick={setSelectedKey}
-        selectedItem={selectedKey}
-        keyExtractor={(log) => log.id}
-        rowClassName={(log) => getRowClassName(log, selectedKey as KeyDetails)}
-        loadMoreFooterProps={{
-          hide: isLoading,
-          buttonText: "Load more keys",
-          hasMore,
-          countInfoText: (
-            <div className="flex gap-2">
-              <span>Showing</span> <span className="text-accent-12">{keys.length}</span>
-              <span>of</span>
-              {totalCount}
-              <span>keys</span>
-            </div>
-          ),
-        }}
-        emptyState={
-          <div className="w-full flex justify-center items-center h-full">
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>No API Keys Found</Empty.Title>
-              <Empty.Description className="text-left">
-                There are no API keys associated with this service yet. Create your first API key to
-                get started.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 justify-start">
-                <a
-                  href="https://www.unkey.com/docs/introduction"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="md">
-                    <BookBookmark />
-                    Learn about Keys
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
+    <VirtualTable
+      data={keys}
+      isLoading={isLoading}
+      isFetchingNextPage={isLoadingMore}
+      onLoadMore={loadMore}
+      columns={columns}
+      onRowClick={setSelectedKey}
+      selectedItem={selectedKey}
+      keyExtractor={(log) => log.id}
+      rowClassName={(log) => getRowClassName(log, selectedKey as KeyDetails)}
+      loadMoreFooterProps={{
+        hide: isLoading,
+        buttonText: "Load more keys",
+        hasMore,
+        countInfoText: (
+          <div className="flex gap-2">
+            <span>Showing</span> <span className="text-accent-12">{keys.length}</span>
+            <span>of</span>
+            {totalCount}
+            <span>keys</span>
           </div>
-        }
-        config={{
-          rowHeight: 52,
-          layoutMode: "grid",
-          rowBorders: true,
-          containerPadding: "px-0",
-        }}
-        renderSkeletonRow={({ columns, rowHeight }) =>
-          columns.map((column, idx) => (
-            <td
-              key={column.key}
-              className={cn(
-                "text-xs align-middle whitespace-nowrap pr-4",
-                idx === 0 ? "pl-[18px]" : "",
-                column.key === "key" ? "py-[6px]" : "py-1",
-              )}
-              style={{ height: `${rowHeight}px` }}
-            >
-              {column.key === "key" && <KeyColumnSkeleton />}
-              {column.key === "value" && <ValueColumnSkeleton />}
-              {column.key === "usage" && <UsageColumnSkeleton />}
-              {column.key === "last_used" && <LastUsedColumnSkeleton />}
-              {column.key === "status" && <StatusColumnSkeleton />}
-              {!["key", "value", "usage", "last_used", "status"].includes(column.key) && (
-                <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />
-              )}
-            </td>
-          ))
-        }
-      />
-    </div>
+        ),
+      }}
+      emptyState={
+        <div className="w-full flex justify-center items-center h-full">
+          <Empty className="w-[400px] flex items-start">
+            <Empty.Icon className="w-auto" />
+            <Empty.Title>No API Keys Found</Empty.Title>
+            <Empty.Description className="text-left">
+              There are no API keys associated with this service yet. Create your first API key to
+              get started.
+            </Empty.Description>
+            <Empty.Actions className="mt-4 justify-start">
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button size="md">
+                  <BookBookmark />
+                  Learn about Keys
+                </Button>
+              </a>
+            </Empty.Actions>
+          </Empty>
+        </div>
+      }
+      config={{
+        rowHeight: 52,
+        layoutMode: "grid",
+        rowBorders: true,
+        containerPadding: "px-0",
+      }}
+      renderSkeletonRow={({ columns, rowHeight }) =>
+        columns.map((column, idx) => (
+          <td
+            key={column.key}
+            className={cn(
+              "text-xs align-middle whitespace-nowrap pr-4",
+              idx === 0 ? "pl-[18px]" : "",
+              column.key === "key" ? "py-[6px]" : "py-1",
+            )}
+            style={{ height: `${rowHeight}px` }}
+          >
+            {column.key === "key" && <KeyColumnSkeleton />}
+            {column.key === "value" && <ValueColumnSkeleton />}
+            {column.key === "usage" && <UsageColumnSkeleton />}
+            {column.key === "last_used" && <LastUsedColumnSkeleton />}
+            {column.key === "status" && <StatusColumnSkeleton />}
+            {!["key", "value", "usage", "last_used", "status"].includes(column.key) && (
+              <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />
+            )}
+          </td>
+        ))
+      }
+    />
   );
 };
