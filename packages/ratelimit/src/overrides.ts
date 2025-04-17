@@ -7,7 +7,7 @@ export type OverrideConfig = {
   baseUrl?: string;
 
   /**
-   * The unkey root key. You can create one at https://unkey.dev/app/settings/root-keys
+   * The unkey root key. You can create one at https://app.unkey.com/settings/root-keys
    *
    * Make sure the root key has permissions to use overrides.
    */
@@ -19,21 +19,21 @@ export class Overrides {
 
   constructor(config: OverrideConfig) {
     this.unkey = new Unkey({
-      baseUrl: config.baseUrl,
+      serverURL: config.baseUrl,
       rootKey: config.rootKey,
     });
   }
 
   public get getOverride() {
-    return this.unkey.ratelimits.getOverride;
+    return this.unkey.ratelimit.getOverride;
   }
   public get setOverride() {
-    return this.unkey.ratelimits.setOverride;
+    return this.unkey.ratelimit.setOverride;
   }
   public get deleteOverride() {
-    return this.unkey.ratelimits.deleteOverride;
+    return this.unkey.ratelimit.deleteOverride;
   }
   public get listOverrides() {
-    return this.unkey.ratelimits.listOverrides;
+    return this.unkey.ratelimit.listOverrides;
   }
 }

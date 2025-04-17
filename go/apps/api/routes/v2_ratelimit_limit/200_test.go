@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -126,6 +127,46 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.Equal(t, overrideID, *res.Body.Data.OverrideId)
 	})
 
+	// Test with rate limit override
+	t.Run("with wildcard override", func(t *testing.T) {
+		// Create an override
+
+		identifier := uid.New("prefix")
+
+		override := strings.Replace(identifier, "prefix", "p*", 1)
+		overrideID := uid.New(uid.RatelimitOverridePrefix)
+		limit := int32(200)
+		duration := int32(120000) // 2 minutes
+
+		err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
+			ID:          overrideID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			NamespaceID: namespaceID,
+			Identifier:  override,
+			Limit:       limit,
+			Duration:    duration,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		req := handler.Request{
+			Namespace:  namespaceName,
+			Identifier: identifier,
+			Limit:      100,   // Different from override
+			Duration:   60000, // Different from override
+		}
+
+		// The override should take precedence over the request values
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Data.OverrideId)
+		require.Equal(t, overrideID, *res.Body.Data.OverrideId)
+		require.True(t, res.Body.Data.Success)
+		require.Equal(t, int64(limit), res.Body.Data.Limit) // Should use override limit
+		require.Equal(t, int64(199), res.Body.Data.Remaining)
+		require.NotNil(t, res.Body.Data.OverrideId)
+	})
 	// Test rate limit exceeded
 	t.Run("rate limit exceeded", func(t *testing.T) {
 		// Create a small limit
