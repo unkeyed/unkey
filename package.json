@@ -6,7 +6,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "local": "pnpm --dir=packages/error build && pnpm --dir=tools/local local",
+    "local": "pnpm --dir=tools/local local",
     "dev": "turbo run dev",
     "build": "pnpm turbo run build",
     "fmt": "pnpm biome format . --write && pnpm biome check . --write",
