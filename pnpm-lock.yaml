@@ -10340,12 +10340,6 @@ packages:
       '@types/node': 20.14.9
     dev: false
 
-  /@types/acorn@4.0.6:
-    resolution: {integrity: sha512-veQTnWP+1D/xbxVrPC3zHnCZRjSrKfhbMUlEA43iMZLu7EsnTtkJklIuwrCPbOi8YkvDQAiW05VQQFvvz9oieQ==}
-    dependencies:
-      '@types/estree': 1.0.7
-    dev: false
-
   /@types/aria-query@5.0.4:
     resolution: {integrity: sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==}
     dev: true
@@ -10566,12 +10560,6 @@ packages:
       '@types/keygrip': 1.0.6
       '@types/koa-compose': 3.2.8
       '@types/node': 20.14.9
-    dev: false
-
-  /@types/mdast@3.0.15:
-    resolution: {integrity: sha512-LnwD+mUEfxWMa1QpDraczIn6k0Ee3SMicuYSSzS6ZYl2gKS09EClnJYGd8Du6rfc5r/GZEk5o1mRb8TaTj03sQ==}
-    dependencies:
-      '@types/unist': 2.0.11
     dev: false
 
   /@types/mdast@4.0.4:
@@ -10803,12 +10791,6 @@ packages:
   /@ungap/structured-clone@1.3.0:
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
 
-  /@unkey/api@0.19.5:
-    resolution: {integrity: sha512-eGER+FWFpZcyTUuVVNG6YyTLQSzuqwrU2vS2nA5l1Jfpv3E5+eJQ4DSQZI3aBBAjWVnx5DkL0pvb4QKv+34VgQ==}
-    dependencies:
-      '@unkey/rbac': 0.1.13
-    dev: false
-
   /@unkey/api@2.0.0-alpha.7(zod@3.23.8):
     resolution: {integrity: sha512-iiA+PVXn5T3dlZT8woKrnr0kB15XLtmkFWHV2+ox+980W/7vQLP1gdgcU/lrX/qA09Z+0w0wN+n0C88RLd4nvw==}
     hasBin: true
@@ -10819,20 +10801,6 @@ packages:
       '@modelcontextprotocol/sdk':
         optional: true
     dependencies:
-      zod: 3.23.8
-    dev: false
-
-  /@unkey/error@0.0.2:
-    resolution: {integrity: sha512-E4/2PClLeZ/X9nGUqe36xy/tX2KFwBsOrqCMZbG3mscAUsHtnjSLzV8xa9TVQlfH4tXt2mfgAqxLqEwr1ayZDA==}
-    dependencies:
-      zod: 3.23.8
-      zod-error: 1.5.0
-    dev: false
-
-  /@unkey/rbac@0.1.13:
-    resolution: {integrity: sha512-BUuKQb7xoI2e+UtuDvr5U0ShZkG1gG8UxG5VzL6tonmoxGVC1vP0ZS5TKMLbhjYD6Dh5SDeak95qGDsQdaX7Ew==}
-    dependencies:
-      '@unkey/error': 0.0.2
       zod: 3.23.8
     dev: false
 
