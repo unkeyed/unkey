@@ -41,34 +41,18 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns := shutdown.New()
 
-	switch cfg.OtelSink {
-	case "grafana":
-		{
-			grafanaErr := otel.InitGrafana(ctx, otel.Config{
-				Application:     "api",
-				Version:         version.Version,
-				InstanceID:      cfg.InstanceID,
-				CloudRegion:     cfg.Region,
-				TraceSampleRate: cfg.OtelTraceSamplingRate,
-			},
-				shutdowns,
-			)
-			if grafanaErr != nil {
-				return fmt.Errorf("unable to init grafana: %w", grafanaErr)
-			}
-		}
-	case "axiom":
-		{
-			axiomErr := otel.InitAxiom(ctx, otel.AxiomConfig{
-
-				Application: "api",
-				Version:     version.Version,
-			},
-				shutdowns,
-			)
-			if axiomErr != nil {
-				return fmt.Errorf("unable to init axiom: %w", axiomErr)
-			}
+	if cfg.OtelEnabled {
+		grafanaErr := otel.InitGrafana(ctx, otel.Config{
+			Application:     "api",
+			Version:         version.Version,
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
+		},
+			shutdowns,
+		)
+		if grafanaErr != nil {
+			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
 		}
 	}
 

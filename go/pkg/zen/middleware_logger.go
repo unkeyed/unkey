@@ -24,7 +24,7 @@ func WithLogging(logger logging.Logger) Middleware {
 			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
 
-			logger.InfoContext(ctx, "request",
+			logger.DebugContext(ctx, "request",
 				slog.String("method", s.r.Method),
 				slog.String("path", s.r.URL.Path),
 				slog.Int("status", s.responseStatus),

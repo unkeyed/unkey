@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -62,21 +61,21 @@ var Cmd = &cli.Command{
 			Name:     "instance-id",
 			Usage:    "Unique identifier for this instance. Auto-generated if not provided.",
 			Sources:  cli.EnvVars("UNKEY_INSTANCE_ID"),
-			Value:    uid.New(uid.InstancePrefix),
+			Value:    uid.New(uid.InstancePrefix, 4),
 			Required: false,
 		},
 
 		// Database Configuration
 		&cli.StringFlag{
 			Name:     "database-primary",
-			Usage:    "MySQL connection string for primary database. Required for all deployments. Example: mysql://user:pass@host:3306/unkey?parseTime=true",
-			Sources:  cli.EnvVars("UNKEY_DATABASE_PRIMARY_DSN"),
+			Usage:    "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
+			Sources:  cli.EnvVars("UNKEY_DATABASE_PRIMARY"),
 			Required: true,
 		},
 		&cli.StringFlag{
-			Name:     "database-readonly-replica",
+			Name:     "database-replica",
 			Usage:    "MySQL connection string for read-replica. Reduces load on primary database. Format same as database-primary.",
-			Sources:  cli.EnvVars("UNKEY_DATABASE_READONLY_DSN"),
+			Sources:  cli.EnvVars("UNKEY_DATABASE_REPLICA"),
 			Required: false,
 		},
 
@@ -95,17 +94,9 @@ var Cmd = &cli.Command{
 		},
 
 		// Observability
-		&cli.StringFlag{
-			Name:  "otel",
-			Usage: "Enable OpenTelemetry tracing and metrics. Valid values: \"grafana\" or \"axiom\"",
-			Validator: func(s string) error {
-				for _, v := range []string{"grafana", "axiom"} {
-					if s == v {
-						return nil
-					}
-				}
-				return fmt.Errorf("invalid value %q", s)
-			},
+		&cli.BoolFlag{
+			Name:     "otel",
+			Usage:    "Enable OpenTelemetry tracing and metrics",
 			Sources:  cli.EnvVars("UNKEY_OTEL"),
 			Required: false,
 		},
@@ -145,7 +136,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		ClickhouseURL: cmd.String("clickhouse-url"),
 
 		// OpenTelemetry configuration
-		OtelSink:              cmd.String("otel"),
+		OtelEnabled:           cmd.Bool("otel"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 
 		InstanceID:     cmd.String("instance-id"),
