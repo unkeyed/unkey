@@ -1,7 +1,8 @@
 import { cn } from "@unkey/ui/src/lib/utils";
 
 export const KeyColumnSkeleton = () => (
-  <div className="flex flex-col items-start w-[225px]">
+  // INFO: Oddly specific 236px is required to prevent layout shift. I've no idea how to make this better at the moment.
+  <div className="flex flex-col items-start w-[236px]">
     <div className="flex gap-4 items-center">
       <div className="bg-grayA-3 size-5 rounded animate-pulse" />
       <div className="flex flex-col gap-1">
@@ -38,11 +39,11 @@ export const UsageColumnSkeleton = ({ maxBars = 30 }: { maxBars?: number }) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
             index
           }`}
-          className="flex flex-col justify-end"
+          className="flex flex-col"
         >
           <div
-            className="w-[3px] bg-grayA-5"
-            style={{ height: `${5 + Math.floor(Math.random() * (28 - 5))}px` }}
+            className="w-[3px] bg-grayA-5 animate-pulse"
+            style={{ height: `${2 + Math.floor(Math.random() * 20)}px` }}
           />
         </div>
       ))}
