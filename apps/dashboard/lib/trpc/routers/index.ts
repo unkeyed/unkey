@@ -79,6 +79,7 @@ import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
+import { getWorkspace } from "./workspace/get-workspace";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
 export const router = t.router({
@@ -130,6 +131,7 @@ export const router = t.router({
   workspace: t.router({
     create: createWorkspace,
     updateName: changeWorkspaceName,
+    getWorkspace: getWorkspace,
     optIntoBeta: optWorkspaceIntoBeta,
   }),
   stripe: t.router({

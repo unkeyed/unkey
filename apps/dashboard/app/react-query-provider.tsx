@@ -2,6 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { httpBatchLink } from "@trpc/client";
 import type React from "react";
 import { type PropsWithChildren, useState } from "react";
@@ -36,8 +37,15 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
   );
 
   return (
+    // The tRPC Provider should wrap the QueryClientProvider
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        {/* Render the main application content */}
+        {children}
+
+        {/* Render React Query DevTools only in development */}
+        {process.env.NODE_ENV === "development" && <ReactQueryDevtools initialIsOpen={false} />}
+      </QueryClientProvider>
     </trpc.Provider>
   );
 };

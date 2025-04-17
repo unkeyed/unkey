@@ -99,6 +99,7 @@
   },
   "devDependencies": {
     "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tanstack/react-query-devtools": "^5.74.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/react-hooks": "^8.0.1",
     "@types/d3-array": "^3.2.1",

@@ -23,7 +23,7 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
     user: {
       id: user.id,
     },
-    workspace: props.workspace,
+    workspace: props.workspace as any,
     tenant: {
       id: user.orgId!, // if you have a workspace, you will have an orgId
     },
