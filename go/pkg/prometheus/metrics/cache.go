@@ -16,29 +16,14 @@ var (
 	//
 	// Example usage:
 	//   metrics.CacheHits.WithLabelValues("user_profile").Inc()
-	//   metrics.CacheHits.WithLabelValues("user_profile").Set(float64(hitCount))
-	CacheHits = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
+	//   metrics.CacheHits.WithLabelValues("user_profile")
+	CacheReads = promauto.NewCounterVec(
+		prometheus.CounterOpts{
 			Subsystem: "cache",
-			Name:      "hits",
-			Help:      "Number of cache hits by resource type.",
+			Name:      "reads_total",
+			Help:      "Number of cache reads by resource type and hit status.",
 		},
-		[]string{"resource"},
-	)
-
-	// CacheMisses tracks the number of cache read operations that did not find the requested item,
-	// labeled by resource type. Use this to monitor cache efficiency and identify improvement opportunities.
-	//
-	// Example usage:
-	//   metrics.CacheMisses.WithLabelValues("user_profile").Inc()
-	//   metrics.CacheMisses.WithLabelValues("user_profile").Set(float64(missCount))
-	CacheMisses = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Subsystem: "cache",
-			Name:      "misses",
-			Help:      "Number of cache misses by resource type.",
-		},
-		[]string{"resource"},
+		[]string{"resource", "hit"},
 	)
 
 	// CacheWrites tracks the number of cache write operations, labeled by resource type.
