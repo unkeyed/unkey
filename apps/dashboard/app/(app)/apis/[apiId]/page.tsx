@@ -9,7 +9,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(apiId);
 
   return (
-    <div>
+    <div className="min-h-screen">
       <ApisNavbar
         api={currentApi}
         activePage={{

@@ -124,17 +124,17 @@ export const LogsLLMSearch = ({
   }, []);
 
   return (
-    <div className="group relative" data-testid="logs-llm-search">
+    <div className="group relative flex-1" data-testid="logs-llm-search">
       <div
         className={cn(
-          "group-data-[state=open]:bg-gray-4 px-2 flex items-center w-80 gap-2 border rounded-lg py-1 h-8 border-none cursor-pointer hover:bg-gray-3",
+          "group-data-[state=open]:bg-gray-4 px-2 flex items-center flex-1 md:w-80 gap-2 border rounded-lg py-1 h-8 border-none cursor-pointer hover:bg-gray-3",
           "focus-within:bg-gray-4",
           "transition-all duration-200",
           searchText.length > 0 ? "bg-gray-4" : "",
           isProcessing ? "bg-gray-4" : "",
         )}
       >
-        <div className="flex items-center gap-2 w-80">
+        <div className="flex items-center gap-2 w-full flex-1 md:w-80">
           <div className="flex-shrink-0">
             <SearchIcon isProcessing={isProcessing} />
           </div>

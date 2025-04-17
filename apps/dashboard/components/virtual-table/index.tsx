@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
+import { useMediaQuery } from "usehooks-ts";
 import { EmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
@@ -60,6 +61,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const isGridLayout = config.layoutMode === "grid";
     const parentRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const isMobile = useMediaQuery("(min-width: 768px)");
 
     const hasPadding = config.containerPadding !== "px-0";
 
@@ -81,9 +83,11 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     );
 
     const containerClassName = cn(
-      "overflow-auto relative",
+      "overflow-auto relative pb-4",
       config.containerPadding || "px-2", // Default to px-2 if containerPadding is not specified
     );
+
+    const containerStyle = isMobile ? { height: `${fixedHeight}px` } : {};
 
     // Expose refs and methods to parent components. Primarily used for anchoring log details.
     useImperativeHandle(
@@ -100,7 +104,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
       return (
         <div
-          className="w-full flex flex-col h-full"
+          className="w-full flex flex-col h-[400px] md:h-full"
           style={{ height: `${fixedHeight}px` }}
           ref={containerRef}
         >
@@ -136,8 +140,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     }
 
     return (
-      <div className="w-full flex flex-col" ref={containerRef}>
-        <div ref={parentRef} className={containerClassName} style={{ height: `${fixedHeight}px` }}>
+      <div className="w-full flex flex-col h-[400px] md:h-full" ref={containerRef}>
+        <div ref={parentRef} className={containerClassName} style={containerStyle}>
           <table className={tableClassName}>
             <colgroup>
               {colWidths.map((col, idx) => (

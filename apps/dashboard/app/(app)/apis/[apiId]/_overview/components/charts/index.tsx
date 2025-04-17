@@ -82,8 +82,8 @@ export const KeysOverviewLogsCharts = ({
   };
 
   return (
-    <div className="flex w-full h-[320px]">
-      <div className="w-1/2 border-r border-gray-4">
+    <div className="flex flex-col md:flex-row w-full md:h-[320px]">
+      <div className="w-full md:w-1/2 border-r border-gray-4 max-md:h-72">
         <OverviewBarChart
           data={verificationTimeseries}
           isLoading={verificationIsLoading}
@@ -102,7 +102,7 @@ export const KeysOverviewLogsCharts = ({
           tooltipItems={[{ label: "Invalid", dataKey: "error" }]}
         />
       </div>
-      <div className="w-1/2">
+      <div className="w-full md:w-1/2 max-md:h-72">
         <OverviewAreaChart
           data={activeKeysTimeseries}
           isLoading={activeKeysIsLoading}

@@ -41,8 +41,8 @@ export const FilterOperatorInput = <T extends string>({
   };
 
   return (
-    <div className="flex w-[500px]">
-      <div className="flex flex-col gap-2 p-2 w-[180px] border-r border-gray-4 items-center">
+    <div className="flex max-md:flex-col w-full md:w-[500px]">
+      <div className="flex flex-col gap-2 p-2 w-full md:w-[180px] md:border-r border-gray-4 items-center">
         {options.map((option) => (
           <div
             key={option.id}
@@ -71,7 +71,7 @@ export const FilterOperatorInput = <T extends string>({
           </div>
         ))}
       </div>
-      <div className="flex flex-col gap-[14px] py-3 w-[320px] px-3">
+      <div className="flex flex-col gap-[14px] py-3 w-full md:w-[320px] px-3">
         <div className="space-y-2">
           <p className="text-gray-9 text-xs">
             {label}{" "}
