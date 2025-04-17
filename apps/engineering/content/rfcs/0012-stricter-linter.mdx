@@ -8,18 +8,16 @@ authors:
 
 ## Summary
 
-Our current linter rules are a bit loose, allowing us to make mistakes like using as `as any`, non-null assertions `(shouldntBeNull!)`, and redundant conditionals `(true ? true : false)`. 
+Our current linter rules are a bit loose, allowing us to make mistakes like using `as any`, non-null assertions (`shouldntBeNull!`), and redundant conditionals (`true ? true : false`).
 Although we are careful when reviewing PRs, these things can still slip through. Therefore, we need to introduce a few more rules to make our configuration stricter.
 
-## Motivation 
+## Motivation
 
-To improve code predictability and maintainability using stricter, automated lint rules. This will also make PR reviews more efficient by automatically catching issues like as any, saving developers from repeatedly providing the same feedback manually.
-
+To improve code predictability and maintainability using stricter, automated lint rules. This will also make PR reviews more efficient by automatically catching issues like `as any`, saving developers from repeatedly providing the same feedback manually.
 
 ## Solution
 
 To achieve the goals, we need some new rules. Warnings will highlight potential issues without blocking commits initially, allowing for gradual adoption.
-
 
 ```json
   "linter": {
@@ -35,14 +33,16 @@ To achieve the goals, we need some new rules. Warnings will highlight potential 
         "noUnusedVariables": "error",
         "useExhaustiveDependencies": "warn",
         "noUnusedImports": "warn",
-        "noChildrenProp": "off"
+        "noChildrenProp": "off",
+        "useJsxKeyInIterable": "warn",
+        "noUnsafeOptionalChaining": "warn"
       },
       "security": {
-        "noDangerouslySetInnerHtml": "warn" -> Changed from "off" to "warn"
+        "noDangerouslySetInnerHtml": "warn" // -> Changed from "off" to "warn"
       },
       "style": {
         "useConst": "warn",
-        "useBlockStatements": "error", -> "Old"
+        "useBlockStatements": "error", // -> "Old"
         "noNonNullAssertion": "warn",
         "noUselessElse": "warn",
         "useImportType": "warn",
@@ -50,17 +50,15 @@ To achieve the goals, we need some new rules. Warnings will highlight potential 
         "useDefaultSwitchClause": "warn",
         "useAsConstAssertion": "warn",
         "useTemplate": "warn",
-
         "useNamingConvention": "warn",
         "noYodaExpression": "warn",
         "noUnusedTemplateLiteral": "warn",
         "noNegationElse": "warn",
-        "noImplicitBoolean": "warn",
         "useSelfClosingElements": "warn",
         "useShorthandAssign": "warn"
       },
       "performance": {
-        "noDelete": "off" -> "Old"
+        "noDelete": "off" // -> "Old"
       },
       "suspicious": {
         "recommended": true,
@@ -72,7 +70,7 @@ To achieve the goals, we need some new rules. Warnings will highlight potential 
         "noConsoleLog": "warn"
       },
       "complexity": {
-        "noForEach": "off", -> "Old"
+        "noForEach": "off", // -> "Old"
         "noUselessTernary": "warn",
         "noUselessTypeConstraint": "warn",
         "useSimplifiedLogicExpression": "warn",
@@ -81,21 +79,156 @@ To achieve the goals, we need some new rules. Warnings will highlight potential 
         "useDateNow": "warn",
         "noExtraBooleanCast": "warn"
       }
-    },
-
+    }
+  }
 ```
+
+### Accessibility Rules (Making Web Content Usable for Everyone)
+
+* **`useSemanticElements`** (`warn`)
+    * **Why:** Enforces the use of HTML elements that convey meaning (like `<nav>`, `<article>`, `<button>`) over generic `<div>` or `<span>` elements for accessibility and SEO benefits. Screen readers and other assistive technologies rely on semantic markup.
+    * **Problematic Example:**
+        ```jsx
+        <div onClick={handleClick}>Click Me</div> // Is it a button? A link?
+        ```
+    * **Preferred:**
+        ```jsx
+        <button onClick={handleClick}>Click Me</button> // Clear semantic meaning
+        // or if navigating:
+        <a href="/path" onClick={handleNav}>Click Me</a>
+        ```
+    * **Docs:** [Biome: useSemanticElements](https://biomejs.dev/linter/rules/use-semantic-elements/)
+* **`useFocusableInteractive`** (`warn`)
+    * **Why:** Ensures that interactive elements that are focusable (can receive keyboard focus) are accessible via keyboard navigation. Elements with click handlers should generally be focusable or contained within focusable elements.
+    * **Problematic Example:**
+        ```jsx
+        <div onClick={doSomething} tabIndex={-1}>Action</div> // Interactive but not easily keyboard accessible
+        ```
+    * **Preferred:** Use inherently focusable elements like `<button>` or ensure custom interactive elements have appropriate `tabIndex` (usually `0`) and ARIA roles if needed.
+        ```jsx
+        <button onClick={doSomething}>Action</button>
+        // Or for custom elements (simplified):
+        <div onClick={doSomething} tabIndex={0} role="button">Action</div>
+        ```
+    * **Docs:** [Biome: useFocusableInteractive](https://biomejs.dev/linter/rules/use-focusable-interactive/)
+
+### Correctness Rules (Avoiding Errors & Improving Reliability)
+
+* **`noUnusedVariables`** (`error`)
+    * **Why:** Prevents declaring variables that are never used, which clutters the code and can sometimes indicate incomplete logic or typos.
+    * **Problematic Example:**
+        ```typescript
+        function greet(name: string) {
+          const message = "Hello"; // Unused variable
+          return `Hi ${name}`;
+        }
+        ```
+    * **Preferred:** Remove the unused variable.
+        ```typescript
+        function greet(name: string) {
+          return `Hi ${name}`;
+        }
+        ```
+    * **Docs:** [Biome: noUnusedVariables](https://biomejs.dev/linter/rules/no-unused-variables/)
+* **`useExhaustiveDependencies`** (`warn`)
+    * **Why:** Specifically for React's Hooks (`useEffect`, `useCallback`, etc.), this rule checks that all variables from the surrounding scope used inside the hook are included in the dependency array. Missing dependencies can lead to stale closures and unexpected behavior.
+    * **Problematic Example:**
+        ```jsx
+        function Counter({ step }) {
+          const [count, setCount] = useState(0);
+          useEffect(() => {
+            const id = setInterval(() => {
+              setCount(c => c + step); // Uses 'step' but not listed below
+            }, 1000);
+            return () => clearInterval(id);
+          }, []); // Missing 'step'
+        }
+        ```
+    * **Preferred:** Include all dependencies identified by the linter.
+        ```jsx
+        // ...
+          useEffect(() => {
+            const id = setInterval(() => {
+              setCount(c => c + step);
+            }, 1000);
+            return () => clearInterval(id);
+          }, [step]); // Added 'step'
+        // ...
+        ```
+    * **Docs:** [Biome: useExhaustiveDependencies](https://biomejs.dev/linter/rules/use-exhaustive-dependencies/)
+* **`noUnusedImports`** (`warn`)
+    * **Why:** Flags imported variables, types, or modules that are not used anywhere in the file. This keeps the import list clean and avoids unnecessary dependencies.
+    * **Problematic Example:**
+        ```typescript
+        import { useState, useEffect } from 'react'; // useEffect is not used
+        function MyComponent() {
+          const [value, setValue] = useState(0);
+          return <div>{value}</div>;
+        }
+        ```
+    * **Preferred:** Remove the unused import.
+        ```typescript
+        import { useState } from 'react'; // Removed useEffect
+        // ...
+        ```
+    * **Docs:** [Biome: noUnusedImports](https://biomejs.dev/linter/rules/no-unused-imports/)
+* **`useJsxKeyInIterable`** (`warn`)
+    * **Why:** Requires a unique `key` prop when rendering lists of elements in JSX using iterators like `map`. React uses these keys to efficiently update the list and maintain component state.
+    * **Problematic Example:**
+        ```jsx
+        <ul>
+          {items.map(item => <li>{item.name}</li>)} {/* Missing key prop */}
+        </ul>
+        ```
+    * **Preferred:** Add a unique and stable `key` to the outermost element returned by the map.
+        ```jsx
+        <ul>
+          {items.map(item => <li key={item.id}>{item.name}</li>)} {/* Added key */}
+        </ul>
+        ```
+    * **Docs:** [Biome: useJsxKeyInIterable](https://biomejs.dev/linter/rules/use-jsx-key-in-iterable/)
+* **`noUnsafeOptionalChaining`** (`warn`)
+    * **Why:** Prevents optional chaining (`?.`) in contexts where it doesn't provide safety, such as arithmetic operations or assignments, where a `null` or `undefined` result would likely cause a runtime error anyway.
+    * **Problematic Example:**
+        ```typescript
+        const length = data?.array?.length * 2; // TypeError if data?.array is null/undefined
+        let count = 0;
+        count += obj?.value; // TypeError if obj?.value is null/undefined
+        ```
+    * **Preferred:** Use nullish coalescing (`??`) or explicit checks to handle potential `null`/`undefined` before the operation.
+        ```typescript
+        const length = (data?.array?.length ?? 0) * 2;
+        let count = 0;
+        count += obj?.value ?? 0;
+        ```
+    * **Docs:** [Biome: noUnsafeOptionalChaining](https://biomejs.dev/linter/rules/no-unsafe-optional-chaining/)
 
 ### Security Rules
 
 * **`noDangerouslySetInnerHtml`** (`warn`)
     * **Why:** Prevents the use of `dangerouslySetInnerHTML` in JSX, which can expose your application to cross-site scripting (XSS) attacks if the injected HTML comes from user input.
-    * **Problematic Example:** `jsx <div dangerouslySetInnerHTML={{ __html: untrustedHtml }} /> `
+    * **Problematic Example:**
+        ```jsx
+        <div dangerouslySetInnerHTML={{ __html: untrustedHtml }} />
+        ```
     * **Preferred:** Use safer methods to render dynamic content, like directly rendering text or using libraries that sanitize HTML.
     * **Docs:** [Biome: noDangerouslySetInnerHtml](https://biomejs.dev/linter/rules/no-dangerously-set-inner-html/)
 
 ### Style Rules (Code Consistency & Readability)
 
-
+* **`useConst`** (`warn`)
+    * **Why:** Encourages using `const` for variables that are never reassigned after their initial declaration. This improves readability by signaling the variable's immutability.
+    * **Problematic Example:**
+        ```javascript
+        let userId = fetchUserId(); // userId is never reassigned
+        console.log(userId);
+        ```
+    * **Preferred:**
+        ```javascript
+        const userId = fetchUserId();
+        console.log(userId);
+        ```
+    * **Docs:** [Biome: useConst](https://biomejs.dev/linter/rules/use-const/)
 * **`noNonNullAssertion`** (`warn`)
     * **Why:** Discourages the use of the non-null assertion operator (`!`), which tells TypeScript a value is not `null` or `undefined` without actual checks. Overuse can hide potential runtime errors. This relates to the `shouldntBeNull!` example mentioned earlier.
     * **Problematic Example:**
@@ -222,17 +355,6 @@ To achieve the goals, we need some new rules. Warnings will highlight potential 
         if (isActive) { handleActive(); } else { handleInactive(); }
         ```
     * **Docs:** [Biome: noNegationElse](https://biomejs.dev/linter/rules/no-negation-else/)
-* **`noImplicitBoolean`** (`warn`)
-    * **Why:** Enforces explicit boolean values for boolean attributes in JSX, improving clarity.
-    * **Problematic Example:**
-        ```jsx
-        <MyComponent disabled />
-        ```
-    * **Preferred:**
-        ```jsx
-        <MyComponent disabled={true} />
-        ```
-    * **Docs:** [Biome: noImplicitBoolean](https://biomejs.dev/linter/rules/no-implicit-boolean/)
 * **`useSelfClosingElements`** (`warn`)
     * **Why:** Requires using self-closing tags for JSX elements with no children.
     * **Problematic Example:**
@@ -401,6 +523,3 @@ To achieve the goals, we need some new rules. Warnings will highlight potential 
 
 ---
 By enabling these rules, we aim to catch more potential errors and enforce stylistic consistency automatically.
-
-
-
