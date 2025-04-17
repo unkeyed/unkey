@@ -70,9 +70,9 @@ export const WorkspaceNavbar = ({
         <Navbar.Actions>
           {activePage.href === "general" && (
             <Badge
-              key="namespaceId"
               variant="secondary"
-              className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+              className="max-w-[160px] truncate whitespace-nowrap"
+              title={workspace.id}
             >
               {workspace.id}
               <CopyButton value={workspace.id} />
@@ -84,17 +84,16 @@ export const WorkspaceNavbar = ({
             </Link>
           )}
           {activePage.href === "billing" && (
-            <Navbar.Actions>
-              <Button variant="outline">
-                <Button asChild variant="outline">
-                  <Link href="https://cal.com/james-r-perkins/sales" target="_blank">
-                    Schedule a call
-                  </Link>
-                </Button>
+            <>
+              <Button asChild variant="outline">
+                <Link href="https://cal.com/james-r-perkins/sales" target="_blank">
+                  Schedule a call
+                </Link>
+              </Button>
               <Button variant="primary">
                 <Link href="mailto:support@unkey.dev">Contact us</Link>
               </Button>
-            </Navbar.Actions>
+            </>
           )}
         </Navbar.Actions>
       </Navbar>
