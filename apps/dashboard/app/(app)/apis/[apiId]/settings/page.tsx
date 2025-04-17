@@ -1,17 +1,15 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getOrgId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
-import { navigation } from "../constants";
+import { ApisNavbar } from "../api-id-navbar";
 import { DefaultBytes } from "./default-bytes";
 import { DefaultPrefix } from "./default-prefix";
 import { DeleteApi } from "./delete-api";
 import { DeleteProtection } from "./delete-protection";
-import { Navigation } from "./navigation";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
 
@@ -53,11 +51,15 @@ export default async function SettingsPage(props: Props) {
 
   return (
     <div>
-      <Navigation api={api} />
-
+      <ApisNavbar
+        api={api}
+        activePage={{
+          href: `/apis/${api.id}/settings`,
+          text: "Settings",
+        }}
+        apis={workspace.apis}
+      />
       <PageContent>
-        <SubMenu navigation={navigation(api.id, api.keyAuthId!)} segment="settings" />
-
         <div className="flex flex-col gap-8 mb-20 mt-8">
           <UpdateApiName api={api} />
           <DefaultBytes keyAuth={keyAuth} />

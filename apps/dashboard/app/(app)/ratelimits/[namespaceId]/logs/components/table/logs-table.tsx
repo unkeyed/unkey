@@ -66,7 +66,7 @@ const getSelectedClassName = (log: RatelimitLog, isSelected: boolean) => {
 
 export const RatelimitLogsTable = () => {
   const { setSelectedLog, selectedLog, isLive, namespaceId } = useRatelimitLogsContext();
-  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore } =
+  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
     useRatelimitLogsQuery({
       namespaceId,
       startPolling: isLive,
@@ -218,6 +218,19 @@ export const RatelimitLogsTable = () => {
       keyExtractor={(log) => log.request_id}
       rowClassName={getRowClassName}
       selectedClassName={getSelectedClassName}
+      loadMoreFooterProps={{
+        buttonText: "Load more logs",
+        hasMore,
+        hide: isLoading,
+        countInfoText: (
+          <div className="flex gap-2">
+            <span>Showing</span> <span className="text-accent-12">{historicalLogs.length}</span>
+            <span>of</span>
+            {totalCount}
+            <span>ratelimit requests</span>
+          </div>
+        ),
+      }}
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">

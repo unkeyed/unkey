@@ -28,6 +28,7 @@ export const updateOverride = t.procedure
           namespace: {
             columns: {
               id: true,
+              name: true,
             },
           },
         },
@@ -78,10 +79,12 @@ export const updateOverride = t.procedure
             {
               type: "ratelimitNamespace",
               id: override.namespace.id,
+              name: override.namespace.name,
             },
             {
               type: "ratelimitOverride",
               id: override.id,
+              name: override.identifier,
             },
           ],
           context: {

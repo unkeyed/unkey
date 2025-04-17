@@ -25,10 +25,6 @@ type Config struct {
 
 	// Enable TestMode
 	TestMode bool
-	// --- Logs configuration ---
-
-	// LogsColor enables ANSI color codes in log output
-	LogsColor bool
 
 	// --- ClickHouse configuration ---
 
@@ -45,7 +41,7 @@ type Config struct {
 
 	// --- OpenTelemetry configuration ---
 
-	// OtelOtlpEndpoint specifies the OpenTelemetry collector endpoint for metrics, traces, and logs
+	// Enable sending otel data to the  collector endpoint for metrics, traces, and logs
 	OtelEnabled           bool
 	OtelTraceSamplingRate float64
 

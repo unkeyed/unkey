@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 type EventBuffer interface {
@@ -63,14 +62,11 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 				responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
 			}
 
-			attributes := attribute.NewSet(
-				attribute.String("host", s.r.Host),
-				attribute.String("method", s.r.Method),
-				attribute.String("path", s.r.URL.Path),
-				attribute.Int("status", s.responseStatus),
-			)
-			metrics.Http.Requests.Add(ctx, 1, metric.WithAttributeSet(attributes))
-			metrics.Http.Latency.Record(ctx, serviceLatency.Milliseconds(), metric.WithAttributeSet(attributes))
+			// "method", "path", "status"
+			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
+
+			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
+			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(serviceLatency.Seconds())
 
 			// https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/x-forwarded-headers.html#x-forwarded-for
 			ips := strings.Split(s.r.Header.Get("X-Forwarded-For"), ",")

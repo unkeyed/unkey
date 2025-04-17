@@ -21,7 +21,7 @@ func TestOverrideNotFound(t *testing.T) {
 
 	// Create a namespace but no override
 	namespaceID := uid.New("test_ns")
-	namespaceName := "test_namespace"
+	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -38,7 +38,7 @@ func TestOverrideNotFound(t *testing.T) {
 	})
 
 	h.Register(route)
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.read_override")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -55,7 +55,7 @@ func TestOverrideNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 	})
 
@@ -70,7 +70,7 @@ func TestOverrideNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent namespace name
@@ -84,6 +84,6 @@ func TestOverrideNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 }

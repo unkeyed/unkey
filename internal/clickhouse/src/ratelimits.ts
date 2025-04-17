@@ -263,7 +263,6 @@ export const ratelimitLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
-  cursorRequestId: z.string().nullable(),
 });
 
 export const ratelimitLogs = z.object({
@@ -338,7 +337,7 @@ export function getRatelimitLogs(ch: Querier) {
 
     const extendedParamsSchema = ratelimitLogsParams.extend(paramSchemaExtension);
 
-    const query = ch.query({
+    const logsQuery = ch.query({
       query: `
 WITH filtered_ratelimits AS (
     SELECT
@@ -355,8 +354,9 @@ WITH filtered_ratelimits AS (
         ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
         AND (${identifierConditions})
         AND (${statusCondition})
-        AND (({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL) 
-             OR (time, request_id) < ({cursorTime: Nullable(UInt64)}, {cursorRequestId: Nullable(String)}))
+        AND (
+            {cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)}
+        )
 )
 SELECT 
     fr.request_id,
@@ -395,17 +395,36 @@ LEFT JOIN (
     WHERE workspace_id = {workspaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
 ) m ON fr.request_id = m.request_id
-ORDER BY fr.time DESC, fr.request_id DESC
+ORDER BY fr.time DESC
 LIMIT {limit: Int}`,
       params: extendedParamsSchema,
       schema: ratelimitLogs,
     });
 
-    return query(parameters);
+    const countQuery = ch.query({
+      query: `
+SELECT
+    count(*) as total_count
+FROM ratelimits.raw_ratelimits_v1 r
+WHERE workspace_id = {workspaceId: String}
+    AND namespace_id = {namespaceId: String}
+    AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+    ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
+    AND (${identifierConditions})
+    AND (${statusCondition})`,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.number().int(),
+      }),
+    });
+
+    return {
+      logsQuery: logsQuery(parameters),
+      countQuery: countQuery(parameters),
+    };
   };
 }
 
-// ## OVERVIEWS
 export const ratelimitOverviewLogsParams = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
@@ -429,7 +448,6 @@ export const ratelimitOverviewLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
-  cursorRequestId: z.string().nullable(),
 
   sorts: z
     .array(
@@ -561,32 +579,26 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         ...orderByWithoutTime,
         `last_request_time ${timeDirection}`,
         `request_id ${timeDirection}`,
-      ].join(", ") || "last_request_time DESC, request_id DESC"; // Fallback if empty
+      ].join(", ") || "last_request_time DESC"; // Fallback if empty
 
     // Create cursor condition based on time direction
     let cursorCondition: string;
 
     // For first page or no cursor provided
-    if (!args.cursorTime || !args.cursorRequestId) {
+    if (!args.cursorTime) {
       cursorCondition = `
-      AND ({cursorTime: Nullable(UInt64)} IS NULL AND {cursorRequestId: Nullable(String)} IS NULL)
-      `;
+  AND ({cursorTime: Nullable(UInt64)} IS NULL)
+  `;
     } else {
       // For subsequent pages, use cursor based on time direction
       if (timeDirection === "ASC") {
         cursorCondition = `
-        AND (
-            (time = {cursorTime: Nullable(UInt64)} AND request_id > {cursorRequestId: Nullable(String)})
-            OR time > {cursorTime: Nullable(UInt64)}
-        )
-        `;
+    AND (time > {cursorTime: Nullable(UInt64)})
+    `;
       } else {
         cursorCondition = `
-        AND (
-            (time = {cursorTime: Nullable(UInt64)} AND request_id < {cursorRequestId: Nullable(String)})
-            OR time < {cursorTime: Nullable(UInt64)}
-        )
-        `;
+    AND (time < {cursorTime: Nullable(UInt64)})
+    `;
       }
     }
 
@@ -629,7 +641,26 @@ LIMIT {limit: Int}`,
       schema: ratelimitOverviewLogs,
     });
 
-    return query(parameters);
+    const countQuery = ch.query({
+      query: `
+SELECT
+    count(DISTINCT identifier) as total_count
+FROM ratelimits.raw_ratelimits_v1
+WHERE workspace_id = {workspaceId: String}
+    AND namespace_id = {namespaceId: String}
+    AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+    AND (${identifierConditions})
+    AND (${statusCondition})`,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.number().int(),
+      }),
+    });
+
+    return {
+      logsQuery: query(parameters),
+      countQuery: countQuery(parameters),
+    };
   };
 }
 

@@ -28,8 +28,9 @@ describe("getStructuredSearchFromLLM", () => {
   };
 
   it("should return TRPCError if openai is not configured", async () => {
-    const result = await getStructuredSearchFromLLM(null as any, "test query", 1706024400000);
-    expect(result).rejects.toThrowError(
+    await expect(
+      getStructuredSearchFromLLM(null as any, "test query", 1706024400000),
+    ).rejects.toThrowError(
       new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "OpenAI isn't configured correctly, please check your API key",

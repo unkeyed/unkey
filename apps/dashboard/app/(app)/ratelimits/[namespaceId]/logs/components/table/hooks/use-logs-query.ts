@@ -21,6 +21,7 @@ export function useRatelimitLogsQuery({
 }: UseLogsQueryParams) {
   const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, RatelimitLog>());
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, RatelimitLog>());
+  const [totalCount, setTotalCount] = useState(0);
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
@@ -115,7 +116,6 @@ export function useRatelimitLogsQuery({
     isLoading: isLoadingInitial,
   } = trpc.ratelimit.logs.query.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialCursor: { requestId: null, time: null },
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -193,6 +193,9 @@ export function useRatelimitLogsQuery({
           newMap.set(log.request_id, log);
         });
       });
+      if (initialData.pages.length > 0) {
+        setTotalCount(initialData.pages[0].total);
+      }
       setHistoricalLogsMap(newMap);
     }
   }, [initialData]);
@@ -212,6 +215,7 @@ export function useRatelimitLogsQuery({
     loadMore: fetchNextPage,
     isLoadingMore: isFetchingNextPage,
     isPolling: startPolling,
+    totalCount,
   };
 }
 

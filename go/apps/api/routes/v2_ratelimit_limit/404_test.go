@@ -59,7 +59,7 @@ func TestNamespaceNotFound(t *testing.T) {
 	// Test with deleted namespace
 	t.Run("deleted namespace", func(t *testing.T) {
 		// Create a namespace and then delete it
-		deletedNamespace := "deleted_namespace"
+		deletedNamespace := uid.New("test")
 		ctx := context.Background()
 
 		// Create namespace
@@ -89,6 +89,6 @@ func TestNamespaceNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 }

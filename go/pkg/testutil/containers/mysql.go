@@ -75,9 +75,7 @@ func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
 			"MYSQL_USER=unkey",
 			"MYSQL_PASSWORD=password",
 		},
-		Networks: []*dockertest.Network{
-			c.network,
-		},
+		Networks: []*dockertest.Network{c.network},
 	})
 	require.NoError(c.t, err)
 
@@ -111,9 +109,10 @@ func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
 		return nil
 	}))
 
-	c.t.Cleanup(func() {
+	defer func() {
 		require.NoError(c.t, conn.Close())
-	})
+	}()
+
 	// Creating the database tables
 	queries := strings.Split(string(db.Schema), ";")
 	for _, query := range queries {
@@ -128,7 +127,6 @@ func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
 		require.NoError(c.t, err)
 
 	}
-
 	hostDsn = cfg.FormatDSN()
 	cfg.Addr = fmt.Sprintf("%s:3306", resource.GetIPInNetwork(c.network))
 	dockerDsn = cfg.FormatDSN()

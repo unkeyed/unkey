@@ -41,5 +41,4 @@ func TestUnauthorizedAccess(t *testing.T) {
 		require.Equal(t, http.StatusUnauthorized, res.Status)
 		require.NotNil(t, res.Body)
 	})
-
 }

@@ -6,14 +6,12 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/otel/metrics"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
-	"go.opentelemetry.io/contrib/instrumentation/runtime"
+	"go.opentelemetry.io/contrib/bridges/prometheus"
 	"go.opentelemetry.io/contrib/processors/minsev"
-
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
@@ -182,44 +180,23 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	// Initialize metrics exporter with configuration matching the old implementation
 	metricExporter, err := otlpmetrichttp.New(ctx,
 		otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression),
+	//	otlpmetrichttp.WithInsecure(), // For local development
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create metric exporter: %w", err)
 	}
 
-	// Register shutdown function for metric exporter
 	shutdowns.RegisterCtx(metricExporter.Shutdown)
 
-	meterProvider := metric.NewMeterProvider(
-		metric.WithReader(
-			metric.NewPeriodicReader(
-				metricExporter,
-				metric.WithInterval(15*time.Second),
-			),
-		),
-		metric.WithResource(res),
-	)
+	bridge := prometheus.NewMetricProducer()
 
-	// Register shutdown function for meter provider
+	reader := metric.NewPeriodicReader(metricExporter, metric.WithProducer(bridge), metric.WithInterval(60*time.Second))
+	shutdowns.RegisterCtx(reader.Shutdown)
+
+	// Create and register the metric provider globally
+	meterProvider := metric.NewMeterProvider(metric.WithReader(reader), metric.WithResource(res))
 	shutdowns.RegisterCtx(meterProvider.Shutdown)
-
-	// Set the global meter provider
 	otel.SetMeterProvider(meterProvider)
-
-	// Initialize application metrics
-	err = metrics.Init(meterProvider.Meter(config.Application))
-	if err != nil {
-		return fmt.Errorf("failed to initialize custom metrics: %w", err)
-	}
-
-	// Collect runtime metrics (memory, GC, goroutines, etc.)
-	err = runtime.Start(
-		runtime.WithMeterProvider(meterProvider),
-		runtime.WithMinimumReadMemStatsInterval(5*time.Second),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to start runtime metrics collection: %w", err)
-	}
 
 	return nil
 }

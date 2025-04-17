@@ -3,9 +3,11 @@ package seed
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
@@ -17,6 +19,8 @@ type Resources struct {
 	RootWorkspace db.Workspace
 	RootKeyring   db.KeyAuth
 	UserWorkspace db.Workspace
+
+	DifferentWorkspace db.Workspace
 }
 
 // Seeder provides methods to seed test data
@@ -40,7 +44,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	// Insert root workspace
 	insertRootWorkspaceParams := db.InsertWorkspaceParams{
 		ID:        uid.New("test_ws"),
-		TenantID:  "unkey",
+		OrgID:     uid.New("unkey"),
 		Name:      "unkey",
 		CreatedAt: time.Now().UnixMilli(),
 	}
@@ -69,7 +73,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	// Insert user workspace
 	insertUserWorkspaceParams := db.InsertWorkspaceParams{
 		ID:        uid.New("test_ws"),
-		TenantID:  "user",
+		OrgID:     uid.New("user"),
 		Name:      "user",
 		CreatedAt: time.Now().UnixMilli(),
 	}
@@ -80,6 +84,18 @@ func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.UserWorkspace, err = db.Query.FindWorkspaceByID(ctx, s.DB.RW(), insertUserWorkspaceParams.ID)
 	require.NoError(s.t, err)
 
+	// Insert different workspace for permission tests
+	insertDifferentWorkspaceParams := db.InsertWorkspaceParams{
+		ID:        uid.New("test_ws"),
+		OrgID:     uid.New("alice"),
+		Name:      "alice",
+		CreatedAt: time.Now().UnixMilli(),
+	}
+
+	err = db.Query.InsertWorkspace(ctx, s.DB.RW(), insertDifferentWorkspaceParams)
+	require.NoError(s.t, err)
+	s.Resources.DifferentWorkspace, err = db.Query.FindWorkspaceByID(ctx, s.DB.RW(), insertDifferentWorkspaceParams.ID)
+	require.NoError(s.t, err)
 }
 
 // CreateRootKey creates a root key with optional permissions
@@ -111,6 +127,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 
 	if len(permissions) > 0 {
 		for _, permission := range permissions {
+			s.t.Logf("creating permission %s for key %s", permission, insertKeyParams.ID)
 			permissionID := uid.New(uid.TestPrefix)
 			err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
 				ID:          permissionID,
@@ -119,7 +136,21 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				Description: sql.NullString{String: "", Valid: false},
 				CreatedAt:   time.Now().UnixMilli(),
 			})
-			require.NoError(s.t, err)
+
+			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
+			if errors.As(err, &mysqlErr) {
+				// Error 1062 (23000): Duplicate entry
+				require.Equal(s.t, uint16(1062), mysqlErr.Number)
+				existing, findErr := db.Query.FindPermissionByWorkspaceAndName(ctx, s.DB.RO(), db.FindPermissionByWorkspaceAndNameParams{
+					WorkspaceID: s.Resources.RootWorkspace.ID,
+					Name:        permission,
+				})
+				require.NoError(s.t, findErr)
+				permissionID = existing.ID
+
+			} else {
+				require.NoError(s.t, err)
+			}
 
 			err = db.Query.InsertKeyPermission(ctx, s.DB.RW(), db.InsertKeyPermissionParams{
 				PermissionID: permissionID,
@@ -130,6 +161,8 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			require.NoError(s.t, err)
 		}
 	}
+
+	s.t.Logf("created root key: %s", insertKeyParams.ID)
 
 	return key
 }

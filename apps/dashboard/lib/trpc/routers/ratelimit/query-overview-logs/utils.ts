@@ -36,9 +36,8 @@ export function transformFilters(
     startTime,
     endTime,
     identifiers,
-    cursorTime: params.cursor?.time ?? null,
+    cursorTime: params.cursor ?? null,
     status,
-    cursorRequestId: params.cursor?.requestId ?? null,
     sorts, // Add sorts to the returned params
   };
 }

@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
@@ -17,7 +17,7 @@ func TestBearer(t *testing.T) {
 		headerValue string
 		wantToken   string
 		wantErr     bool
-		errTag      fault.Tag
+		code        codes.URN
 	}{
 		{
 			name:        "valid bearer token",
@@ -29,13 +29,13 @@ func TestBearer(t *testing.T) {
 			name:        "empty authorization header",
 			headerValue: "",
 			wantErr:     true,
-			errTag:      fault.BAD_REQUEST,
+			code:        codes.Auth.Authentication.Missing.URN(),
 		},
 		{
 			name:        "missing bearer prefix",
 			headerValue: "abc123xyz",
 			wantErr:     true,
-			errTag:      fault.BAD_REQUEST,
+			code:        codes.Auth.Authentication.Malformed.URN(),
 		},
 		{
 			name:        "bearer with extra spaces",
@@ -47,13 +47,13 @@ func TestBearer(t *testing.T) {
 			name:        "empty token",
 			headerValue: "Bearer ",
 			wantErr:     true,
-			errTag:      fault.BAD_REQUEST,
+			code:        codes.Auth.Authentication.Malformed.URN(),
 		},
 		{
 			name:        "non-bearer auth type",
 			headerValue: "Basic YWxhZGRpbjpvcGVuc2VzYW1l",
 			wantErr:     true,
-			errTag:      fault.BAD_REQUEST,
+			code:        codes.Auth.Authentication.Malformed.URN(),
 		},
 	}
 
@@ -76,15 +76,22 @@ func TestBearer(t *testing.T) {
 			// Check error conditions
 			if tt.wantErr {
 				require.Error(t, err)
-				if tt.errTag != "" {
-					assert.Equal(t, tt.errTag, fault.GetTag(err))
+
+				code, ok := fault.GetCode(err)
+				if tt.code != "" {
+					require.True(t, ok)
+
+					require.Equal(t, tt.code, code)
+				} else {
+					require.False(t, ok)
+					require.Equal(t, "", code)
 				}
 				return
 			}
 
 			// Verify no error for positive cases
 			require.NoError(t, err)
-			assert.Equal(t, tt.wantToken, token)
+			require.Equal(t, tt.wantToken, token)
 		})
 	}
 }
@@ -101,5 +108,5 @@ func TestBearer_Integration(t *testing.T) {
 
 	token, err := Bearer(sess)
 	require.NoError(t, err)
-	assert.Equal(t, "token123", token)
+	require.Equal(t, "token123", token)
 }

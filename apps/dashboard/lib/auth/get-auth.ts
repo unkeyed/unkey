@@ -50,14 +50,6 @@ export async function getAuth(_req?: Request): Promise<GetAuthResult> {
       return { userId: null, orgId: null };
     }
 
-    // fetch org from memberships if we have an org
-    if (orgId) {
-      return {
-        userId,
-        orgId,
-      };
-    }
-
     return {
       userId,
       orgId: orgId ?? null,

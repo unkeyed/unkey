@@ -10,12 +10,8 @@ import { transformFilters } from "./utils";
 const LogsResponse = z.object({
   logs: z.array(log),
   hasMore: z.boolean(),
-  nextCursor: z
-    .object({
-      time: z.number().int(),
-      requestId: z.string(),
-    })
-    .optional(),
+  total: z.number(),
+  nextCursor: z.number().int().optional(),
 });
 
 type LogsResponse = z.infer<typeof LogsResponse>;
@@ -49,33 +45,29 @@ export const queryLogs = t.procedure
     }
 
     const transformedInputs = transformFilters(input);
-    const result = await clickhouse.api.logs({
+    const { logsQuery, totalQuery } = await clickhouse.api.logs({
       ...transformedInputs,
-      cursorRequestId: input.cursor?.requestId ?? null,
-      cursorTime: input.cursor?.time ?? null,
+      cursorTime: input.cursor ?? null,
       workspaceId: workspace.id,
     });
 
-    if (result.err) {
+    const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);
+
+    if (countResult.err || logsResult.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
       });
     }
 
-    const logs = result.val;
+    const logs = logsResult.val;
 
     // Prepare the response with pagination info
     const response: LogsResponse = {
       logs,
       hasMore: logs.length === input.limit,
-      nextCursor:
-        logs.length > 0
-          ? {
-              time: logs[logs.length - 1].time,
-              requestId: logs[logs.length - 1].request_id,
-            }
-          : undefined,
+      total: countResult.val[0].total_count,
+      nextCursor: logs.length > 0 ? logs[logs.length - 1].time : undefined,
     };
 
     return response;
