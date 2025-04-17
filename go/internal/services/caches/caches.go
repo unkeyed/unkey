@@ -78,7 +78,7 @@ func New(config Config) (Caches, error) {
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
-		MaxSize:  1_000,
+		MaxSize:  1_000_000,
 		Resource: "ratelimit_namespace_by_name",
 		Clock:    config.Clock,
 	})
@@ -90,7 +90,7 @@ func New(config Config) (Caches, error) {
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
-		MaxSize:  1_000,
+		MaxSize:  1_000_000,
 		Resource: "ratelimit_overrides",
 		Clock:    config.Clock,
 	})
