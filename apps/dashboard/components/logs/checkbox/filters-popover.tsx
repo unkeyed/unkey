@@ -190,7 +190,7 @@ export const FiltersPopover = ({
       </PopoverTrigger>
 
       <PopoverContent
-        className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg outline-none" // Added outline-none
+        className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg outline-none"
         align="start"
         onKeyDown={handleKeyDown} // Attach main navigation handler
       >

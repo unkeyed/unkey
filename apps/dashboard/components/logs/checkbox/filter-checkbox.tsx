@@ -130,24 +130,6 @@ export const FilterCheckbox = <
     [selectionMode, handleCheckboxChange, handleSingleSelection],
   );
 
-  // Handle keyboard event
-  const handleKeyboardEvent = useCallback(
-    (event: React.KeyboardEvent<HTMLLabelElement>, index?: number) => {
-      if (event.key === " " || event.key === "Enter") {
-        event.preventDefault();
-        if (index !== undefined) {
-          handleCheckboxClick(index);
-        } else if (selectionMode === "multiple") {
-          handleSelectAll();
-        }
-      }
-
-      // Use the handleKeyDown from the hook for other keyboard navigation
-      handleKeyDown(event, index);
-    },
-    [handleCheckboxClick, handleSelectAll, handleKeyDown, selectionMode],
-  );
-
   // Handle applying the filter
   const handleApplyFilter = useCallback(() => {
     const selectedCheckboxes = checkboxes.filter((c) => c.checked);
@@ -185,6 +167,28 @@ export const FilterCheckbox = <
     }
   }, [checkboxes, filterField, operator, filters, updateFilters, createFilterValue, selectionMode]);
 
+  const handleDirectKeyboardToggle = useCallback(
+    (e: React.KeyboardEvent<HTMLLabelElement>, index?: number) => {
+      e.stopPropagation();
+
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+
+        if (index !== undefined) {
+          handleCheckboxClick(index);
+        } else if (selectionMode === "multiple") {
+          handleSelectAll();
+        }
+
+        e.currentTarget.focus();
+        return;
+      }
+
+      handleKeyDown(e, index);
+    },
+    [handleCheckboxClick, handleSelectAll, handleKeyDown, selectionMode],
+  );
+
   return (
     <div className={cn("flex flex-col p-2", className)}>
       <div
@@ -203,13 +207,17 @@ export const FilterCheckbox = <
               // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
               role="checkbox"
               aria-checked={checkboxes.every((checkbox) => checkbox.checked)}
-              onKeyDown={handleKeyboardEvent}
               tabIndex={0}
+              onKeyDown={(e) => handleDirectKeyboardToggle(e)}
             >
               <Checkbox
+                id="select-all-checkbox"
                 checked={checkboxes.every((checkbox) => checkbox.checked)}
                 className="size-4 rounded border-gray-4 [&_svg]:size-3"
-                onClick={handleSelectAll}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelectAll();
+                }}
               />
               <span className="text-xs text-accent-12">
                 {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
@@ -226,13 +234,17 @@ export const FilterCheckbox = <
             // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
             role="checkbox"
             aria-checked={checkbox.checked}
-            onKeyDown={(e) => handleKeyboardEvent(e, index)}
             tabIndex={0}
+            onKeyDown={(e) => handleDirectKeyboardToggle(e, index)}
           >
             <Checkbox
+              id={`checkbox-${checkbox.id}`}
               checked={checkbox.checked}
               className="size-4 rounded border-gray-4 [&_svg]:size-3"
-              onClick={() => handleCheckboxClick(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCheckboxClick(index);
+              }}
             />
             {renderOptionContent ? renderOptionContent(checkbox) : null}
           </label>
