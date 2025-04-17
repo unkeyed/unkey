@@ -350,8 +350,8 @@ type ValidationError struct {
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
 type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody
 
-// V2IdentitiesCreateIdentityJSONRequestBody defines body for V2IdentitiesCreateIdentity for application/json ContentType.
-type V2IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody
+// IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
+type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody
 
 // RatelimitDeleteOverrideJSONRequestBody defines body for RatelimitDeleteOverride for application/json ContentType.
 type RatelimitDeleteOverrideJSONRequestBody = V2RatelimitDeleteOverrideRequestBody
@@ -359,8 +359,8 @@ type RatelimitDeleteOverrideJSONRequestBody = V2RatelimitDeleteOverrideRequestBo
 // RatelimitGetOverrideJSONRequestBody defines body for RatelimitGetOverride for application/json ContentType.
 type RatelimitGetOverrideJSONRequestBody = V2RatelimitGetOverrideRequestBody
 
-// V1RatelimitLimitJSONRequestBody defines body for V1RatelimitLimit for application/json ContentType.
-type V1RatelimitLimitJSONRequestBody = V2RatelimitLimitRequestBody
+// RatelimitLimitJSONRequestBody defines body for RatelimitLimit for application/json ContentType.
+type RatelimitLimitJSONRequestBody = V2RatelimitLimitRequestBody
 
 // RatelimitListOverridesJSONRequestBody defines body for RatelimitListOverrides for application/json ContentType.
 type RatelimitListOverridesJSONRequestBody = V2RatelimitListOverridesRequestBody

@@ -14,7 +14,11 @@ SELECT id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, 
 WHERE
     workspace_id = ?
     AND namespace_id = ?
-    AND identifier LIKE ?
+    AND ? LIKE
+          REPLACE(
+            REPLACE(identifier, '*', '%'), -- Replace * with % wildcard
+            '_', '\\_'                              -- Escape underscore literals
+          )
 `
 
 type FindRatelimitOverrideMatchesParams struct {
@@ -29,7 +33,11 @@ type FindRatelimitOverrideMatchesParams struct {
 //	WHERE
 //	    workspace_id = ?
 //	    AND namespace_id = ?
-//	    AND identifier LIKE ?
+//	    AND ? LIKE
+//	          REPLACE(
+//	            REPLACE(identifier, '*', '%'), -- Replace * with % wildcard
+//	            '_', '\\_'                              -- Escape underscore literals
+//	          )
 func (q *Queries) FindRatelimitOverrideMatches(ctx context.Context, db DBTX, arg FindRatelimitOverrideMatchesParams) ([]RatelimitOverride, error) {
 	rows, err := db.QueryContext(ctx, findRatelimitOverrideMatches, arg.WorkspaceID, arg.NamespaceID, arg.Identifier)
 	if err != nil {
