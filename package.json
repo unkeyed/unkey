@@ -28,7 +28,7 @@
     "@vitest/ui": "^1.6.1",
     "cz-conventional-changelog": "^3.3.0",
     "is-ci": "^3.0.1",
-    "knip": "^5.45.0",
+    "knip": "^5.50.5",
     "lint-staged": "^15.4.3",
     "ts-node": "latest",
     "turbo": "^2.4.3",
