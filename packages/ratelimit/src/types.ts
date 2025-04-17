@@ -29,6 +29,11 @@ export type RatelimitResponse = {
    * Unix timestamp in milliseconds when the limits are reset.
    */
   reset: number;
+
+  /**
+   * The override id for the request that was used to override the limit.
+   */
+  overrideId?: string;
 };
 
 export type LimitOptions = {

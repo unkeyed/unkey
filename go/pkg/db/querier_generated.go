@@ -159,7 +159,11 @@ type Querier interface {
 	//  WHERE
 	//      workspace_id = ?
 	//      AND namespace_id = ?
-	//      AND identifier LIKE ?
+	//      AND ? LIKE
+	//            REPLACE(
+	//              REPLACE(identifier, '*', '%'), -- Replace * with % wildcard
+	//              '_', '\\_'                              -- Escape underscore literals
+	//            )
 	FindRatelimitOverrideMatches(ctx context.Context, db DBTX, arg FindRatelimitOverrideMatchesParams) ([]RatelimitOverride, error)
 	//FindRatelimitOverridesByIdentifier
 	//

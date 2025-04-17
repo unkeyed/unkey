@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { UsageColumnSkeleton } from "../skeletons";
 import { OutcomeExplainer } from "./components/outcome-explainer";
 import { useFetchVerificationTimeseries } from "./use-fetch-timeseries";
 
@@ -85,40 +86,7 @@ export const VerificationBarChart = ({
 
   // Loading state - animated pulse effect for bars with grid layout
   if (isLoading) {
-    return (
-      <div
-        // We need 156px when you calculate the gaps and height but we need some breathing space so its "158px" now
-        className={cn(
-          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
-          selected ? "border-grayA-3 rounded-md" : "",
-        )}
-        style={{
-          gridTemplateColumns: `repeat(${maxBars}, 3px)`,
-          gap: "2px",
-        }}
-      >
-        {Array(maxBars)
-          .fill(0)
-          .map((_, index) => (
-            <div
-              key={`loading-${
-                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-                index
-              }`}
-              className="flex flex-col"
-            >
-              <div
-                className="w-[3px] bg-error-9 animate-pulse"
-                style={{ height: `${2 + Math.floor(Math.random() * 10)}px` }}
-              />
-              <div
-                className="w-[3px] bg-grayA-5 animate-pulse"
-                style={{ height: `${3 + Math.floor(Math.random() * 12)}px` }}
-              />
-            </div>
-          ))}
-      </div>
-    );
+    return <UsageColumnSkeleton />;
   }
 
   // Error state with grid layout
