@@ -64,7 +64,6 @@ export const LastUsedCell = ({
             displayType="relative"
             value={data.lastVerificationTime}
             className="truncate"
-            triggerOnClick
             triggerRef={badgeRef}
             open={showTooltip}
             onOpenChange={setShowTooltip}
