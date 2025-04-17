@@ -4,6 +4,7 @@ import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryLogsPayload } from "../query-logs.schema";
+import { useQueryTimestamp } from "./utils";
 
 type UseLogsQueryParams = {
   limit?: number;
@@ -23,6 +24,8 @@ export function useRatelimitLogsQuery({
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, RatelimitLog>());
   const [totalCount, setTotalCount] = useState(0);
 
+  const timestamp = useQueryTimestamp();
+
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
 
@@ -32,13 +35,11 @@ export function useRatelimitLogsQuery({
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
-  //Required for preventing double trpc call during initial render
-  const dateNow = useMemo(() => Date.now(), []);
   const queryParams = useMemo(() => {
     const params: RatelimitQueryLogsPayload = {
       limit,
-      startTime: dateNow - HISTORICAL_DATA_WINDOW,
-      endTime: dateNow,
+      startTime: timestamp - HISTORICAL_DATA_WINDOW,
+      endTime: timestamp,
       requestIds: { filters: [] },
       identifiers: { filters: [] },
       status: { filters: [] },
@@ -105,7 +106,7 @@ export function useRatelimitLogsQuery({
     });
 
     return params;
-  }, [filters, limit, dateNow, namespaceId]);
+  }, [filters, limit, namespaceId, timestamp]);
 
   // Main query for historical data
   const {
