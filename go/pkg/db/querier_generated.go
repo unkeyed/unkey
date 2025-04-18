@@ -28,10 +28,6 @@ type Querier interface {
 	//
 	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiById(ctx context.Context, db DBTX, id string) (Api, error)
-	//FindAuditLogBucketIDByWorkspaceIDAndName
-	//
-	//  SELECT id FROM audit_log_bucket WHERE workspace_id = ? AND name = ?
-	FindAuditLogBucketIDByWorkspaceIDAndName(ctx context.Context, db DBTX, arg FindAuditLogBucketIDByWorkspaceIDAndNameParams) (string, error)
 	//FindAuditLogTargetById
 	//
 	//  SELECT audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at
@@ -258,22 +254,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAuditLog(ctx context.Context, db DBTX, arg InsertAuditLogParams) error
-	//InsertAuditLogBucket
-	//
-	//  INSERT INTO `audit_log_bucket` (
-	//      id,
-	//      workspace_id,
-	//      name,
-	//      retention_days,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertAuditLogBucket(ctx context.Context, db DBTX, arg InsertAuditLogBucketParams) error
 	//InsertAuditLogTarget
 	//
 	//  INSERT INTO `audit_log_target` (
