@@ -120,10 +120,6 @@ export const getFieldsFromSchema = (schema: any, prefix = ""): string[] => {
   return Object.keys(schema.shape).flatMap((key) => {
     const fullPath = prefix ? `${prefix}.${key}` : key;
 
-    if (key === "_sectionValid") {
-      return [];
-    }
-
     // Handle nested objects recursively
     if (schema.shape[key]?._def?.typeName === "ZodObject") {
       return getFieldsFromSchema(schema.shape[key], fullPath);

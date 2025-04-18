@@ -7,6 +7,7 @@ import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { ExpirationSetup } from "./components/expiration-setup";
 import { GeneralSetup } from "./components/general-setup";
+import { MetadataSetup } from "./components/metadata-setup";
 import { RatelimitSetup } from "./components/ratelimit-setup";
 import { UsageSetup } from "./components/usage-setup";
 import {
@@ -57,6 +58,7 @@ export const CreateKeyDialog = () => {
     if (fieldsToValidate.length === 0) {
       return true;
     }
+
     // Trigger validation for the fields
     const result = await methods.trigger(fieldsToValidate as any);
     setValidSteps((prevState) => ({
@@ -135,7 +137,7 @@ export const CreateKeyDialog = () => {
       id: "metadata",
       label: "Metadata",
       icon: Code,
-      content: <div>Metadata Component</div>,
+      content: <MetadataSetup />,
     },
   ];
 
