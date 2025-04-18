@@ -1,9 +1,10 @@
 config:
   target: https://api.unkey.com
   phases:
-    - name: Sustain
+    - name: Ramp
       duration: 10m
-      arrivalRate: 1000
+      arrivalRate: 10
+      rampTo: 1000
   payload:
     path: "./.identifiers.csv"
     fields:
@@ -26,7 +27,7 @@ scenarios:
       - post:
           url: "/v2/ratelimit.limit"
           headers:
-            Authorization: "Bearer unkey_REPLACEME"
+            Authorization: "Bearer unkey_XXXX"
             Content-Type: application/json
           json:
             namespace: artillery-aws
@@ -34,7 +35,7 @@ scenarios:
             limit: 1000
             duration: 60000
           capture:
-            - json: "$.success"
+            - json: "$.data.success"
               as: success
           expect:
             - statusCode: 200

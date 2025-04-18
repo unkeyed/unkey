@@ -19,9 +19,10 @@ var (
 	//   metrics.CacheHits.WithLabelValues("user_profile")
 	CacheReads = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Subsystem: "cache",
-			Name:      "reads_total",
-			Help:      "Number of cache reads by resource type and hit status.",
+			Subsystem:   "cache",
+			Name:        "reads_total",
+			Help:        "Number of cache reads by resource type and hit status.",
+			ConstLabels: constLabels,
 		},
 		[]string{"resource", "hit"},
 	)
@@ -34,9 +35,10 @@ var (
 	//   metrics.CacheWrites.WithLabelValues("user_profile").Set(float64(writeCount))
 	CacheWrites = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Subsystem: "cache",
-			Name:      "writes",
-			Help:      "Number of cache writes by resource type.",
+			Subsystem:   "cache",
+			Name:        "writes",
+			Help:        "Number of cache writes by resource type.",
+			ConstLabels: constLabels,
 		},
 		[]string{"resource"},
 	)
@@ -50,30 +52,12 @@ var (
 	//   metrics.CacheDeleted.WithLabelValues("user_profile", "capacity").Set(float64(evictionCount))
 	CacheDeleted = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Subsystem: "cache",
-			Name:      "deleted_total",
-			Help:      "Number of cache entries deleted by resource type and reason.",
+			Subsystem:   "cache",
+			Name:        "deleted_total",
+			Help:        "Number of cache entries deleted by resource type and reason.",
+			ConstLabels: constLabels,
 		},
 		[]string{"resource", "reason"},
-	)
-
-	// CacheReadLatency measures the duration of cache read operations in seconds,
-	// labeled by resource type and result (hit/miss).
-	// This histogram helps track cache performance and identify slowdowns.
-	//
-	// Example usage:
-	//   timer := prometheus.NewTimer(prometheus.ObserverFunc(func(v float64) {
-	//       metrics.CacheReadLatency.WithLabelValues("user_profile", "hit").Observe(v)
-	//   }))
-	//   defer timer.ObserveDuration()
-	CacheReadLatency = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Subsystem: "cache",
-			Name:      "read_latency_seconds",
-			Help:      "Histogram of cache read latencies in seconds.",
-			Buckets:   latencyBuckets,
-		},
-		[]string{"resource"},
 	)
 
 	// CacheSize tracks the current number of items in the cache, labeled by resource type.
@@ -83,9 +67,10 @@ var (
 	//   metrics.CacheSize.WithLabelValues("user_profile").Set(float64(cacheSize))
 	CacheSize = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Subsystem: "cache",
-			Name:      "size",
-			Help:      "Current number of entries in the cache by resource type.",
+			Subsystem:   "cache",
+			Name:        "size",
+			Help:        "Current number of entries in the cache by resource type.",
+			ConstLabels: constLabels,
 		},
 		[]string{"resource"},
 	)
@@ -97,9 +82,10 @@ var (
 	//   metrics.CacheCapacity.WithLabelValues("user_profile").Set(float64(cacheCapacity))
 	CacheCapacity = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Subsystem: "cache",
-			Name:      "capacity",
-			Help:      "Maximum capacity of the cache by resource type.",
+			Subsystem:   "cache",
+			Name:        "capacity",
+			Help:        "Maximum capacity of the cache by resource type.",
+			ConstLabels: constLabels,
 		},
 		[]string{"resource"},
 	)
@@ -111,9 +97,10 @@ var (
 	//   metrics.CacheRevalidations.WithLabelValues("user_profile").Inc()
 	CacheRevalidations = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Subsystem: "cache",
-			Name:      "revalidations_total",
-			Help:      "Total number of cache revalidations by resource type.",
+			Subsystem:   "cache",
+			Name:        "revalidations_total",
+			Help:        "Total number of cache revalidations by resource type.",
+			ConstLabels: constLabels,
 		},
 		[]string{"resource"},
 	)
