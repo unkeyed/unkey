@@ -107,7 +107,7 @@ export const getDefaultValues = (): Partial<FormValues> => {
 export const sectionSchemaMap = {
   general: generalSchema,
   ratelimit: ratelimitSchema,
-  "usage-limit": limitSchema,
+  credits: limitSchema,
   expiration: expirationSchema,
   metadata: metadataSchema,
 };

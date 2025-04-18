@@ -26,11 +26,12 @@ import {
 import { type FormValues, formSchema } from "./schema";
 import { RatelimitSetup } from "./components/ratelimit-setup";
 import { UsageSetup } from "./components/usage-setup";
+import { ExpirationSetup } from "./components/expiration-setup";
 
 type SectionName =
   | "general"
   | "ratelimit"
-  | "usage-limit"
+  | "credits"
   | "expiration"
   | "metadata";
 
@@ -42,7 +43,7 @@ export const CreateKeyDialog = () => {
     metadata: "initial",
     expiration: "initial",
     ratelimit: "initial",
-    "usage-limit": "initial",
+    credits: "initial",
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -124,13 +125,12 @@ export const CreateKeyDialog = () => {
       content: <RatelimitSetup />,
     },
     {
-      id: "usage-limit",
+      id: "credits",
       label: (
         <div className="w-full justify-between flex items-center">
-          Usage Limit
-          {validSteps["usage-limit"] === "initial" ? null : validSteps[
-              "usage-limit"
-            ] === "valid" ? (
+          Credits
+          {validSteps.credits === "initial" ? null : validSteps.credits ===
+            "valid" ? (
             <div className="text-success-9 ml-auto">
               <Check className="text-success-9 " size="md-regular" />
             </div>
@@ -148,7 +148,7 @@ export const CreateKeyDialog = () => {
       id: "expiration",
       label: "Expiration",
       icon: CalendarClock,
-      content: <div>Expiration Component</div>,
+      content: <ExpirationSetup />,
     },
     {
       id: "metadata",
