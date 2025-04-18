@@ -13,16 +13,17 @@ import {
 export const processFormData = (data: FormValues) => {
   const processedData: Record<string, any> = {
     // Include the base fields
-    prefix: data.prefix || undefined,
+    prefix: data.prefix || null,
     bytes: data.bytes,
-    ownerId: data.ownerId?.trim() || undefined,
-    name: data.name?.trim() || undefined,
-    environment: data.environment || undefined,
+    ownerId: data.ownerId?.trim() || null,
+    name: data.name?.trim() || null,
+    environment: data.environment || null,
   };
 
   // Only include enabled features
   if (data.metadata?.enabled && data.metadata.data) {
     try {
+      processedData.metaEnabled = true;
       processedData.meta = JSON.parse(data.metadata.data);
     } catch (error) {
       console.error("Failed to parse metadata JSON:", error);
@@ -30,15 +31,13 @@ export const processFormData = (data: FormValues) => {
   }
 
   if (data.limit?.enabled && data.limit.data) {
+    processedData.limitEnabled = true;
     processedData.limit = {
       remaining: data.limit.data.remaining,
     };
 
     // Only include refill if interval is not 'none'
-    if (
-      data.limit.data.refill?.interval !== "none" &&
-      data.limit.data.refill?.amount
-    ) {
+    if (data.limit.data.refill?.interval !== "none" && data.limit.data.refill?.amount) {
       processedData.limit.refill = {
         interval: data.limit.data.refill.interval,
         amount: data.limit.data.refill.amount,
@@ -46,51 +45,26 @@ export const processFormData = (data: FormValues) => {
 
       // Only include refill day for monthly intervals
       if (data.limit.data.refill.interval === "monthly") {
-        processedData.limit.refill.refillDay =
-          data.limit.data.refill.refillDay || 1;
+        processedData.limit.refill.refillDay = data.limit.data.refill.refillDay || 1;
       }
     }
   }
 
   if (data.expiration?.enabled && data.expiration.data) {
+    processedData.expireEnabled = true;
     processedData.expires = data.expiration.data.getTime();
   }
 
   if (data.ratelimit?.enabled && data.ratelimit.data) {
+    processedData.ratelimitEnabled = true;
     processedData.ratelimit = {
+      async: false,
       duration: data.ratelimit.data.refillInterval,
       limit: data.ratelimit.data.limit,
     };
   }
 
   return processedData;
-};
-
-/**
- * Resets sections of the form based on toggles
- */
-export const getResetFieldsForSection = (sectionName: string) => {
-  switch (sectionName) {
-    case "metadata":
-      return ["metadata.data"];
-    case "limit":
-      return [
-        "limit.data.remaining",
-        "limit.data.refill.amount",
-        "limit.data.refill.interval",
-        "limit.data.refill.refillDay",
-      ];
-    case "ratelimit":
-      return [
-        "ratelimit.data.refillInterval",
-        "ratelimit.data.limit",
-        "ratelimit.data.async",
-      ];
-    case "expiration":
-      return ["expiration.data"];
-    default:
-      return [];
-  }
 };
 
 export const getDefaultValues = (): Partial<FormValues> => {
@@ -113,6 +87,10 @@ export const getDefaultValues = (): Partial<FormValues> => {
     },
     ratelimit: {
       enabled: false,
+      data: {
+        limit: 10,
+        refillInterval: 1000,
+      },
     },
     expiration: {
       enabled: false,

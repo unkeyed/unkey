@@ -146,7 +146,6 @@ export const expirationSchema = z.object({
     .default({ enabled: false }),
 });
 
-// Combined form schema with validation
 export const formSchema = z
   .object({
     ...generalSchema.shape,
@@ -157,8 +156,12 @@ export const formSchema = z
   })
   .superRefine((data, ctx) => {
     // Validate ratelimit fields when ratelimit.enabled is true
-    if (data.ratelimit.enabled) {
-      if (!data.ratelimit.data?.limit) {
+    if (data.ratelimit?.enabled) {
+      // Default values should be set when enabling
+      const limit = data.ratelimit.data?.limit;
+      const refillInterval = data.ratelimit.data?.refillInterval;
+
+      if (!limit || limit <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Limit is required when ratelimit is enabled",
@@ -166,7 +169,7 @@ export const formSchema = z
         });
       }
 
-      if (!data.ratelimit.data?.refillInterval) {
+      if (!refillInterval || refillInterval <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Refill interval is required when ratelimit is enabled",
@@ -176,8 +179,10 @@ export const formSchema = z
     }
 
     // Validate limit fields when limit.enabled is true
-    if (data.limit.enabled) {
-      if (!data.limit.data?.remaining) {
+    if (data.limit?.enabled) {
+      const remaining = data.limit.data?.remaining;
+
+      if (!remaining || remaining <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Number of uses is required when limit is enabled",
@@ -207,7 +212,7 @@ export const formSchema = z
     }
 
     // Validate metadata.data field when metadata.enabled is true
-    if (data.metadata.enabled && !data.metadata.data) {
+    if (data.metadata?.enabled && !data.metadata.data) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Metadata is required when metadata is enabled",
@@ -216,7 +221,7 @@ export const formSchema = z
     }
 
     // Validate expiration.data field when expiration.enabled is true
-    if (data.expiration.enabled && !data.expiration.data) {
+    if (data.expiration?.enabled && !data.expiration.data) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Expiry date is required when expiration is enabled",

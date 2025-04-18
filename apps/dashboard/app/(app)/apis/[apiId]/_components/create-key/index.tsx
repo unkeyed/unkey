@@ -41,9 +41,16 @@ export const CreateKeyDialog = () => {
   });
 
   const onSubmit = (data: FormValues) => {
-    const processedData = processFormData(data);
-    console.log({ processedData });
+    processFormData(data);
+    methods.reset(getDefaultValues());
     setIsSettingsOpen(false);
+    setValidSteps({
+      general: "initial",
+      metadata: "initial",
+      expiration: "initial",
+      ratelimit: "initial",
+      credits: "initial",
+    });
   };
 
   const isFeatureEnabled = (sectionId: SectionName): boolean => {

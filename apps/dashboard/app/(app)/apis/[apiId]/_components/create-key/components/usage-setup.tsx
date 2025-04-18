@@ -9,7 +9,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { ChartPie, CircleInfo } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
-import { useEffect, useState } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { LimitFormValues } from "../schema";
 
@@ -19,32 +18,12 @@ export const UsageSetup = () => {
     formState: { errors },
     control,
     setValue,
-    getValues,
   } = useFormContext<LimitFormValues>();
-
-  // Store the last used values in component state
-  const [lastRemaining, setLastRemaining] = useState<number | null>(null);
-  const [lastRefillAmount, setLastRefillAmount] = useState<number | null>(null);
-  const [lastRefillInterval, setLastRefillInterval] = useState<"none" | "daily" | "monthly">(
-    "none",
-  );
-  const [lastRefillDay, setLastRefillDay] = useState<number | null>(null);
 
   const limitEnabled = useWatch({
     control,
     name: "limit.enabled",
     defaultValue: false,
-  });
-
-  // Watch values to store when changed
-  const currentRemaining = useWatch({
-    control,
-    name: "limit.data.remaining",
-  });
-
-  const currentRefillAmount = useWatch({
-    control,
-    name: "limit.data.refill.amount",
   });
 
   const currentRefillInterval = useWatch({
@@ -53,83 +32,12 @@ export const UsageSetup = () => {
     defaultValue: "none",
   });
 
-  const currentRefillDay = useWatch({
-    control,
-    name: "limit.data.refill.refillDay",
-  });
-
-  // Store values when they change and limit is enabled
-  useEffect(() => {
-    if (limitEnabled && currentRemaining) {
-      setLastRemaining(currentRemaining);
-    }
-  }, [limitEnabled, currentRemaining]);
-
-  useEffect(() => {
-    if (limitEnabled && currentRefillAmount) {
-      setLastRefillAmount(currentRefillAmount);
-    }
-  }, [limitEnabled, currentRefillAmount]);
-
-  useEffect(() => {
-    if (limitEnabled && currentRefillInterval) {
-      setLastRefillInterval(currentRefillInterval);
-    }
-  }, [limitEnabled, currentRefillInterval]);
-
-  useEffect(() => {
-    if (limitEnabled && currentRefillDay) {
-      setLastRefillDay(currentRefillDay);
-    }
-  }, [limitEnabled, currentRefillDay]);
-
   const handleSwitchChange = (checked: boolean) => {
     setValue("limit.enabled", checked);
-
-    if (checked) {
-      // When enabling, restore last used values if they exist
-      if (lastRemaining) {
-        setValue("limit.data.remaining", lastRemaining);
-      } else if (!getValues("limit.data.remaining")) {
-        setValue("limit.data.remaining", 100);
-      }
-
-      if (lastRefillInterval) {
-        setValue("limit.data.refill.interval", lastRefillInterval);
-      } else {
-        setValue("limit.data.refill.interval", "none");
-      }
-
-      if (lastRefillAmount && lastRefillInterval !== "none") {
-        setValue("limit.data.refill.amount", lastRefillAmount);
-      }
-
-      if (lastRefillDay && lastRefillInterval === "monthly") {
-        setValue("limit.data.refill.refillDay", lastRefillDay);
-      } else if (lastRefillInterval === "monthly" && !getValues("limit.data.refill.refillDay")) {
-        setValue("limit.data.refill.refillDay", 1);
-      }
-    } else {
-      // When disabling, set limit.data to undefined but keep our saved values
-      setValue("limit.data", undefined);
-    }
   };
 
   const handleRefillIntervalChange = (value: "none" | "daily" | "monthly") => {
     setValue("limit.data.refill.interval", value);
-
-    if (value === "none") {
-      setValue("limit.data.refill.amount", undefined);
-      setValue("limit.data.refill.refillDay", undefined);
-    } else if (value === "monthly") {
-      if (lastRefillDay) {
-        setValue("limit.data.refill.refillDay", lastRefillDay);
-      } else if (!getValues("limit.data.refill.refillDay")) {
-        setValue("limit.data.refill.refillDay", 1);
-      }
-    } else if (value === "daily") {
-      setValue("limit.data.refill.refillDay", undefined);
-    }
   };
 
   return (

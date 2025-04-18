@@ -4,7 +4,6 @@ import { toast } from "@/components/ui/toaster";
 import { Code } from "@unkey/icons";
 import { FormTextarea } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { useEffect, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { FormValues } from "../schema";
 
@@ -31,11 +30,8 @@ export const MetadataSetup = () => {
     formState: { errors },
     control,
     setValue,
-    getValues,
     trigger,
   } = useFormContext<FormValues>();
-
-  const [lastMetadata, setLastMetadata] = useState<string | null>(null);
 
   const metadataEnabled = useWatch({
     control,
@@ -48,22 +44,8 @@ export const MetadataSetup = () => {
     name: "metadata.data",
   });
 
-  // Update last metadata when content changes while enabled
-  useEffect(() => {
-    if (metadataEnabled && currentMetadata) {
-      setLastMetadata(currentMetadata);
-    }
-  }, [metadataEnabled, currentMetadata]);
-
   const handleSwitchChange = (checked: boolean) => {
     setValue("metadata.enabled", checked);
-    if (checked) {
-      if (lastMetadata) {
-        setValue("metadata.data", lastMetadata);
-      } else if (!getValues("metadata.data")) {
-        setValue("metadata.data", "{}");
-      }
-    }
   };
 
   const formatJSON = () => {

@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Clock } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { addDays, addMinutes, format } from "date-fns";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { ExpirationFormValues } from "../schema";
 
@@ -53,11 +53,8 @@ export const ExpirationSetup = () => {
     formState: { errors },
     control,
     setValue,
-    getValues,
   } = useFormContext<ExpirationFormValues>();
 
-  // Store the last used values in component state
-  const [lastExpiryDate, setLastExpiryDate] = useState<Date | null>(null);
   const [selectedTitle, setSelectedTitle] = useState<string>("1 day");
 
   const expirationEnabled = useWatch({
@@ -71,29 +68,8 @@ export const ExpirationSetup = () => {
     name: "expiration.data",
   });
 
-  // Store values when they change and expiration is enabled
-  useEffect(() => {
-    if (expirationEnabled && currentExpiryDate) {
-      setLastExpiryDate(currentExpiryDate);
-    }
-  }, [expirationEnabled, currentExpiryDate]);
-
   const handleSwitchChange = (checked: boolean) => {
     setValue("expiration.enabled", checked);
-
-    if (checked) {
-      // When enabling, restore last used values if they exist
-      if (lastExpiryDate) {
-        setValue("expiration.data", lastExpiryDate);
-      } else if (!getValues("expiration.data")) {
-        // Default to 1 day from now if no existing value
-        setValue("expiration.data", addDays(new Date(), 1));
-        setSelectedTitle("1 day");
-      }
-    } else {
-      // When disabling, set expires to undefined but keep our saved value
-      setValue("expiration.data", undefined);
-    }
   };
 
   // Handle date and time selection from DatetimePopover

@@ -2,7 +2,6 @@
 import { Switch } from "@/components/ui/switch";
 import { Gauge } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
-import { useEffect, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { RatelimitFormValues } from "../schema";
 
@@ -12,57 +11,15 @@ export const RatelimitSetup = () => {
     formState: { errors },
     control,
     setValue,
-    getValues,
   } = useFormContext<RatelimitFormValues>();
-
-  const [lastLimit, setLastLimit] = useState<number | null>(null);
-  const [lastInterval, setLastInterval] = useState<number | null>(null);
 
   const ratelimitEnabled = useWatch({
     control,
     name: "ratelimit.enabled",
     defaultValue: false,
   });
-
-  const currentLimit = useWatch({
-    control,
-    name: "ratelimit.data.limit",
-  });
-
-  const currentInterval = useWatch({
-    control,
-    name: "ratelimit.data.refillInterval",
-  });
-
-  useEffect(() => {
-    if (ratelimitEnabled && currentLimit) {
-      setLastLimit(currentLimit);
-    }
-  }, [ratelimitEnabled, currentLimit]);
-
-  useEffect(() => {
-    if (ratelimitEnabled && currentInterval) {
-      setLastInterval(currentInterval);
-    }
-  }, [ratelimitEnabled, currentInterval]);
-
   const handleSwitchChange = (checked: boolean) => {
     setValue("ratelimit.enabled", checked);
-    if (checked) {
-      if (lastLimit) {
-        setValue("ratelimit.data.limit", lastLimit);
-      } else if (!getValues("ratelimit.data.limit")) {
-        setValue("ratelimit.data.limit", 10);
-      }
-
-      if (lastInterval) {
-        setValue("ratelimit.data.refillInterval", lastInterval);
-      } else if (!getValues("ratelimit.data.refillInterval")) {
-        setValue("ratelimit.data.refillInterval", 1000);
-      }
-    } else {
-      setValue("ratelimit.data", undefined);
-    }
   };
 
   return (
