@@ -9,7 +9,7 @@ export const identities = mysqlTable(
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     /**
-     * The extenral id is used to create a reference to the user's existing data.
+     * The external id is used to create a reference to the user's existing data.
      * They likely have an organization or user id at hand
      */
     externalId: varchar("external_id", { length: 256 }).notNull(),
@@ -19,10 +19,9 @@ export const identities = mysqlTable(
     meta: json("meta").$type<Record<string, unknown>>(),
   },
   (table) => ({
-    workspaceId: index("workspace_id_idx").on(table.workspaceId),
-    uniqueExternalIdPerWorkspace: uniqueIndex("external_id_workspace_id_idx").on(
-      table.externalId,
+    uniqueExternalIdPerWorkspace: uniqueIndex("workspace_id_external_id_idx").on(
       table.workspaceId,
+      table.externalId,
     ),
   }),
 );
