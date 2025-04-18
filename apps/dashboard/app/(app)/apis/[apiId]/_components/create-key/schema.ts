@@ -29,8 +29,6 @@ export const generalSchema = z.object({
   environment: z.string().optional(),
 });
 
-export type GeneralFormValues = z.infer<typeof generalSchema>;
-
 export const metadataSchema = z.object({
   metaEnabled: z.boolean().default(false),
   meta: z
@@ -129,8 +127,6 @@ export const ratelimitSchema = z.object({
     .optional(),
 });
 
-// Define the type based on the schema
-export type RatelimitFormValues = z.infer<typeof ratelimitSchema>;
 export const expirationSchema = z.object({
   expireEnabled: z.boolean().default(false),
   expires: z.coerce
@@ -139,12 +135,94 @@ export const expirationSchema = z.object({
     .optional(),
 });
 
-export const formSchema = z.object({
-  ...generalSchema.shape,
-  ...metadataSchema.shape,
-  ...limitSchema.shape,
-  ...ratelimitSchema.shape,
-  ...expirationSchema.shape,
-});
+// Combined form schema with validation
+export const formSchema = z
+  .object({
+    ...generalSchema.shape,
+    ...metadataSchema.shape,
+    ...limitSchema.shape,
+    ...ratelimitSchema.shape,
+    ...expirationSchema.shape,
+  })
+  .superRefine((data, ctx) => {
+    // Validate ratelimit fields when ratelimitEnabled is true
+    if (data.ratelimitEnabled) {
+      if (!data.ratelimit?.limit) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Limit is required when ratelimit is enabled",
+          path: ["ratelimit", "limit"],
+        });
+      }
+
+      if (!data.ratelimit?.refillInterval) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Refill interval is required when ratelimit is enabled",
+          path: ["ratelimit", "refillInterval"],
+        });
+      }
+    }
+
+    // Validate limit fields when limitEnabled is true
+    if (data.limitEnabled) {
+      if (!data.limit?.remaining) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Number of uses is required when limit is enabled",
+          path: ["limit", "remaining"],
+        });
+      }
+
+      // If refill interval is not "none", refill amount is required
+      if (
+        data.limit?.refill?.interval &&
+        data.limit.refill.interval !== "none"
+      ) {
+        if (!data.limit.refill.amount) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Refill amount is required when interval is selected",
+            path: ["limit", "refill", "amount"],
+          });
+        }
+
+        // If refill interval is "monthly", refill day is required
+        if (
+          data.limit.refill.interval === "monthly" &&
+          !data.limit.refill.refillDay
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Refill day is required for monthly interval",
+            path: ["limit", "refill", "refillDay"],
+          });
+        }
+      }
+    }
+
+    // Validate meta field when metaEnabled is true
+    if (data.metaEnabled && !data.meta) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Metadata is required when metadata is enabled",
+        path: ["meta"],
+      });
+    }
+
+    // Validate expires field when expireEnabled is true
+    if (data.expireEnabled && !data.expires) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Expiry date is required when expiration is enabled",
+        path: ["expires"],
+      });
+    }
+  });
 
 export type FormValues = z.infer<typeof formSchema>;
+export type RatelimitFormValues = Pick<
+  FormValues,
+  "ratelimitEnabled" | "ratelimit"
+>;
+export type LimitFormValues = Pick<FormValues, "limitEnabled" | "limit">;

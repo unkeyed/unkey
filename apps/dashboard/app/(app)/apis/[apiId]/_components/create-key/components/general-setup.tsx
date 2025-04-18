@@ -1,13 +1,13 @@
 "use client";
 import { FormInput } from "@unkey/ui";
 import { useFormContext } from "react-hook-form";
-import type { GeneralFormValues } from "../schema";
+import type { FormValues } from "../schema";
 
 export const GeneralSetup = () => {
   const {
     register,
     formState: { errors },
-  } = useFormContext<GeneralFormValues>();
+  } = useFormContext<FormValues>();
 
   return (
     <div className="space-y-5 px-2 py-1 ">

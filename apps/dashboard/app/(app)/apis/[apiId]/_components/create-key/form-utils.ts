@@ -54,8 +54,7 @@ export const processFormData = (data: FormValues) => {
 
   if (data.ratelimitEnabled && data.ratelimit) {
     processedData.ratelimit = {
-      async: data.ratelimit.async || false,
-      duration: data.ratelimit.duration,
+      duration: data.ratelimit.refillInterval,
       limit: data.ratelimit.limit,
     };
   }

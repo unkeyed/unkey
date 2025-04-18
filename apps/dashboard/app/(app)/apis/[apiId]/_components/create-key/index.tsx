@@ -24,8 +24,8 @@ import {
   sectionSchemaMap,
 } from "./form-utils";
 import { type FormValues, formSchema } from "./schema";
-import { Ratelimit } from "@unkey/ratelimit";
 import { RatelimitSetup } from "./components/ratelimit-setup";
+import { UsageSetup } from "./components/usage-setup";
 
 type SectionName =
   | "general"
@@ -125,9 +125,24 @@ export const CreateKeyDialog = () => {
     },
     {
       id: "usage-limit",
-      label: "Usage limit",
+      label: (
+        <div className="w-full justify-between flex items-center">
+          Usage Limit
+          {validSteps["usage-limit"] === "initial" ? null : validSteps[
+              "usage-limit"
+            ] === "valid" ? (
+            <div className="text-success-9 ml-auto">
+              <Check className="text-success-9 " size="md-regular" />
+            </div>
+          ) : (
+            <div className="text-success-9 ml-auto">
+              <XMark className="text-error-9 " size="md-regular" />
+            </div>
+          )}
+        </div>
+      ),
       icon: ChartPie,
-      content: <div>Usage Limit Component</div>,
+      content: <UsageSetup />,
     },
     {
       id: "expiration",
