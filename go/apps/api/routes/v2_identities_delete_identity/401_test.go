@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestCreateApi_Unauthorized(t *testing.T) {
+func TestDeleteIdentityUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{

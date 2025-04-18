@@ -15,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestWorkspacePermissions(t *testing.T) {
+func TestNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -52,7 +52,7 @@ func TestWorkspacePermissions(t *testing.T) {
 			CreatedAt:   time.Now().Unix(),
 			Meta:        nil,
 		})
-		require.NoError(t, err)
+		require.Nil(t, err)
 
 		rootKey := h.CreateRootKey(h.Resources().DifferentWorkspace.ID, "identity.*.delete_identity")
 		headers := http.Header{

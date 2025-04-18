@@ -3,22 +3,68 @@ package handler_test
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
-	"slices"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_delete_identity"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestCreateIdentitySuccessfully(t *testing.T) {
+type Identity struct {
+	ID           string
+	ExternalID   string
+	RatelimitIds []string
+}
+
+// Helper function that creates a new identity with rate-limits and returns it
+func newIdentity(t *testing.T, h *testutil.Harness, numberOfRatelimits int) Identity {
+	identityID := uid.New(uid.IdentityPrefix)
+	externalID := uid.New("test_external_id")
+
+	err := db.Query.InsertIdentity(t.Context(), h.DB.RW(), db.InsertIdentityParams{
+		ID:          identityID,
+		ExternalID:  externalID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		Meta:        nil,
+		CreatedAt:   time.Now().UnixMilli(),
+		Environment: "default",
+	})
+	require.NoError(t, err)
+
+	ratelimitIds := make([]string, 0)
+	for range numberOfRatelimits {
+		rateLimitID := uid.New(uid.RatelimitPrefix)
+		err = db.Query.InsertIdentityRatelimit(t.Context(), h.DB.RW(), db.InsertIdentityRatelimitParams{
+			ID:          rateLimitID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			IdentityID:  sql.NullString{String: identityID, Valid: true},
+			Name:        "Requests",
+			Limit:       15,
+			Duration:    (time.Minute * 15).Milliseconds(),
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+
+		require.NoError(t, err)
+		ratelimitIds = append(ratelimitIds, rateLimitID)
+	}
+
+	log.Printf("Created identity with %d rate limits", len(ratelimitIds))
+
+	return Identity{
+		ID:           identityID,
+		ExternalID:   externalID,
+		RatelimitIds: ratelimitIds,
+	}
+}
+
+func TestDeleteIdentitySuccessfully(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -32,150 +78,91 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.delete_identity")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Create a identity via DB
-	t.Run("insert identity via DB", func(t *testing.T) {
-		identityID := uid.New(uid.IdentityPrefix)
-		externalTestID := uid.New("test_external_id")
-		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-			ID:          identityID,
-			ExternalID:  externalTestID,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Meta:        nil,
-			CreatedAt:   time.Now().UnixMilli(),
-			Environment: "default",
-		})
+	// Create a identity via DB and delete it again
+	t.Run("delete identity via db and identity id", func(t *testing.T) {
+		newIdentity := newIdentity(t, h, 0)
+
+		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
 		require.NoError(t, err)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), identityID)
+		err = db.Query.DeleteIdentity(ctx, h.DB.RW(), newIdentity.ID)
 		require.NoError(t, err)
-		require.Equal(t, identity.ExternalID, externalTestID)
+
+		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		require.Equal(t, sql.ErrNoRows, err)
 	})
 
-	// Create a identity with ratelimits via DB
-	t.Run("insert identity via DB and add ratelimits", func(t *testing.T) {
-		identityID := uid.New(uid.IdentityPrefix)
-		externalTestID := uid.New("test_external_id")
-		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-			ID:          identityID,
-			ExternalID:  externalTestID,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Meta:        nil,
-			CreatedAt:   time.Now().UnixMilli(),
-			Environment: "default",
-		})
+	// Create a identity via DB and delete it again
+	t.Run("delete identity ratelimits via db", func(t *testing.T) {
+		numberOfRatelimits := 2
+		newIdentity := newIdentity(t, h, numberOfRatelimits)
+
+		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
 		require.NoError(t, err)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), identityID)
+		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: newIdentity.ID, Valid: true})
 		require.NoError(t, err)
-		require.Equal(t, identity.ExternalID, externalTestID)
+		require.Len(t, rateLimits, numberOfRatelimits)
 
-		err = db.Query.InsertIdentityRatelimit(ctx, h.DB.RW(), db.InsertIdentityRatelimitParams{
-			ID:          uid.New(uid.RatelimitPrefix),
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			IdentityID:  sql.NullString{String: identityID, Valid: true},
-			Name:        "Requests",
-			Limit:       15,
-			Duration:    (time.Minute * 15).Milliseconds(),
-			CreatedAt:   time.Now().UnixMilli(),
-		})
+		err = db.Query.DeleteIdentity(ctx, h.DB.RW(), newIdentity.ID)
 		require.NoError(t, err)
 
-		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identityID, Valid: true})
+		err = db.Query.DeleteManyRatelimitsByIDs(ctx, h.DB.RW(), newIdentity.RatelimitIds)
 		require.NoError(t, err)
-		require.Len(t, rateLimits, 1)
-		require.Equal(t, rateLimits[0].Name, "Requests")
-		require.Equal(t, rateLimits[0].Limit, int32(15))
-		require.Equal(t, rateLimits[0].Duration, (time.Minute * 15).Milliseconds())
+
+		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		require.Equal(t, sql.ErrNoRows, err)
+
+		ratelimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: newIdentity.ID, Valid: true})
+		require.NoError(t, err)
+		require.Len(t, ratelimits, 0)
 	})
 
-	// Test creating a identity with no other information
-	t.Run("create identity", func(t *testing.T) {
-		externalTestID := uid.New("test_external_id")
-		req := handler.Request{ExternalId: externalTestID}
+	t.Run("delete identity via identityID", func(t *testing.T) {
+		newIdentity := newIdentity(t, h, 0)
+
+		req := handler.Request{IdentityId: ptr.P(newIdentity.ID)}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
-		require.NoError(t, err)
-		require.Equal(t, identity.ExternalID, req.ExternalId)
+		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		require.Equal(t, sql.ErrNoRows, err)
 	})
 
-	// Test creating a identity with metadata
-	t.Run("create identity with metadata", func(t *testing.T) {
-		externalTestID := uid.New("test_external_id")
+	t.Run("delete identity via identityID", func(t *testing.T) {
+		newIdentity := newIdentity(t, h, 0)
 
-		meta := &map[string]interface{}{"key": "example"}
-		req := handler.Request{
-			ExternalId: externalTestID,
-			Meta:       meta,
-		}
+		req := handler.Request{ExternalId: ptr.P(newIdentity.ExternalID)}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+
+		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		require.Equal(t, sql.ErrNoRows, err)
+	})
+
+	t.Run("delete identity with ratelimits", func(t *testing.T) {
+		newIdentity := newIdentity(t, h, 2)
+
+		req := handler.Request{IdentityId: ptr.P(newIdentity.ID)}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
+		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		require.Equal(t, sql.ErrNoRows, err)
+
+		ratelimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: newIdentity.ID, Valid: true})
 		require.NoError(t, err)
-		require.Equal(t, identity.ExternalID, req.ExternalId)
-
-		var dbMeta map[string]interface{}
-		err = json.Unmarshal(identity.Meta, &dbMeta)
-		require.NoError(t, err)
-		require.Equal(t, *meta, dbMeta)
-	})
-
-	// Test creating a identity with ratelimits
-	t.Run("create identity with ratelimits", func(t *testing.T) {
-		externalTestID := uid.New("test_external_id")
-
-		identityRateLimits := []openapi.V2Ratelimit{
-			{
-				Duration: time.Minute.Milliseconds(),
-				Limit:    100,
-				Name:     "test",
-			},
-			{
-				Duration: time.Minute.Milliseconds(),
-				Limit:    200,
-				Name:     "test2",
-			},
-		}
-
-		req := handler.Request{
-			ExternalId: externalTestID,
-			Ratelimits: &identityRateLimits,
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.IdentityId)
-
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
-		require.NoError(t, err)
-		require.Equal(t, identity.ExternalID, req.ExternalId)
-
-		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: res.Body.Data.IdentityId, Valid: true})
-		require.NoError(t, err)
-		require.Len(t, rateLimits, len(identityRateLimits))
-
-		for _, ratelimit := range identityRateLimits {
-			idx := slices.IndexFunc(rateLimits, func(c db.FindRatelimitsByIdentityIDRow) bool { return c.Name == ratelimit.Name })
-
-			require.True(t, idx >= 0 && idx < len(rateLimits), "Rate limit with name %s not found in the database", ratelimit.Name)
-			require.Equal(t, rateLimits[idx].Duration, ratelimit.Duration)
-			require.Equal(t, int64(rateLimits[idx].Limit), ratelimit.Limit)
-			require.Equal(t, rateLimits[idx].Name, ratelimit.Name)
-		}
+		require.Len(t, ratelimits, 0)
 	})
 }
