@@ -65,4 +65,17 @@ func TestNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 	})
+
+	t.Run("delete identity that doesn't exist", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.delete_identity")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		req := handler.Request{IdentityId: ptr.P(uid.New(uid.IdentityPrefix))}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
+		require.NotNil(t, res.Body)
+	})
 }
