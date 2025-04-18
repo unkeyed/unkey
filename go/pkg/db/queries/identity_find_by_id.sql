@@ -1,2 +1,2 @@
 -- name: FindIdentityByID :one
-SELECT external_id, workspace_id, environment, meta, created_at, updated_at FROM identities WHERE id = sqlc.arg(id)
+SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta FROM identities WHERE id = sqlc.arg(id)
