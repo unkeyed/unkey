@@ -2,15 +2,12 @@
 
 import { PageContent } from "@/components/page-content";
 import type { PropsWithChildren } from "react";
-import { WorkspaceNavbar } from "../../workspace-navbar";
 
 export const Shell: React.FC<PropsWithChildren<{ workspace: { id: string; name: string } }>> = ({
-  workspace,
   children,
 }) => {
   return (
     <div>
-      <WorkspaceNavbar workspace={workspace} activePage={{ href: "billing", text: "Billing" }} />
       <PageContent>
         <div className="flex items-center justify-center w-full py-3 ">
           <div className="w-[760px] mt-4 flex flex-col justify-center items-center gap-5">

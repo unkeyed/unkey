@@ -75,6 +75,7 @@ export default async function BillingPage() {
   if (isLegacy) {
     return (
       <Shell workspace={workspace}>
+        <WorkspaceNavbar workspace={workspace} activePage={{ href: "billing", text: "Billing" }} />
         <div className="w-full">
           <SettingCard
             title="Verifications"

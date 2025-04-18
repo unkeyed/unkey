@@ -85,14 +85,16 @@ export const WorkspaceNavbar = ({
           )}
           {activePage.href === "billing" && (
             <>
-              <Button asChild variant="outline">
-                <Link href="https://cal.com/james-r-perkins/sales" target="_blank">
+              <Link href="https://cal.com/james-r-perkins/sales" target="_blank">
+                <Button type="button" variant="outline">
                   Schedule a call
-                </Link>
-              </Button>
-              <Button variant="primary">
-                <Link href="mailto:support@unkey.dev">Contact us</Link>
-              </Button>
+                </Button>
+              </Link>
+              <Link href="mailto:support@unkey.dev">
+                <Button type="button" variant="primary">
+                  Contact us
+                </Button>
+              </Link>
             </>
           )}
         </Navbar.Actions>
