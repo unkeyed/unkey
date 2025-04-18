@@ -17,7 +17,7 @@ import (
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.delete_identity")
 	route := handler.New(handler.Services{
 		DB:          h.DB,
 		Keys:        h.Keys,
@@ -64,7 +64,7 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("external id too short", func(t *testing.T) {
-		req := handler.Request{ExternalId: ptr.P("")}
+		req := handler.Request{ExternalId: ptr.P("id")}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)

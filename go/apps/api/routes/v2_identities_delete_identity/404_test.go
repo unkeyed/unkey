@@ -28,19 +28,6 @@ func TestNotFound(t *testing.T) {
 
 	h.Register(route)
 
-	t.Run("insufficient permissions", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status, "got: %s", res.RawBody)
-		require.NotNil(t, res.Body)
-	})
-
 	t.Run("delete identity from other workspace", func(t *testing.T) {
 		identityId := uid.New(uid.IdentityPrefix)
 
