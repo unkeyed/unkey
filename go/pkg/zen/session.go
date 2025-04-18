@@ -34,7 +34,7 @@ type Session struct {
 	// The workspace making the request.
 	// We extract this from the root key or regular key
 	// and must set it before the metrics middleware finishes.
-	workspaceID string
+	WorkspaceID string
 
 	requestBody    []byte
 	responseStatus int
@@ -46,7 +46,7 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 	s.w = w
 	s.r = r
 
-	s.workspaceID = ""
+	s.WorkspaceID = ""
 	return nil
 }
 
@@ -55,7 +55,7 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 //
 // Returns an empty string if no authenticated workspace ID is available.
 func (s *Session) AuthorizedWorkspaceID() string {
-	return s.workspaceID
+	return s.WorkspaceID
 }
 
 func (s *Session) UserAgent() string {

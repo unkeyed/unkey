@@ -24,6 +24,7 @@ func (s *service) VerifyRootKey(ctx context.Context, sess *zen.Session) (VerifyR
 		return VerifyResponse{}, fault.Wrap(err,
 			fault.WithDesc("invalid root key", "The provided root key is invalid."))
 	}
+	sess.WorkspaceID = res.AuthorizedWorkspaceID
 
 	return res, nil
 
