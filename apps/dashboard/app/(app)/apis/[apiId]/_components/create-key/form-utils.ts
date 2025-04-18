@@ -1,4 +1,11 @@
-import type { FormValues } from "./schema";
+import {
+  expirationSchema,
+  generalSchema,
+  limitSchema,
+  metadataSchema,
+  ratelimitSchema,
+  type FormValues,
+} from "./schema";
 
 /**
  * Processes form data to create the final API payload
@@ -96,4 +103,33 @@ export const getDefaultValues = (): Partial<FormValues> => {
       },
     },
   };
+};
+
+export const sectionSchemaMap = {
+  general: generalSchema,
+  ratelimit: ratelimitSchema,
+  "usage-limit": limitSchema,
+  expiration: expirationSchema,
+  metadata: metadataSchema,
+};
+
+export const getFieldsFromSchema = (schema: any, prefix = ""): string[] => {
+  if (!schema?.shape) {
+    return [];
+  }
+
+  return Object.keys(schema.shape).flatMap((key) => {
+    const fullPath = prefix ? `${prefix}.${key}` : key;
+
+    if (key === "_sectionValid") {
+      return [];
+    }
+
+    // Handle nested objects recursively
+    if (schema.shape[key]?._def?.typeName === "ZodObject") {
+      return getFieldsFromSchema(schema.shape[key], fullPath);
+    }
+
+    return [fullPath];
+  });
 };

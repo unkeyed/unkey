@@ -1,18 +1,47 @@
 "use client";
-import { CalendarClock, ChartPie, Code, Gauge, Key2 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
-import { useState } from "react";
 import {
   type NavItem,
   NavigableDialog,
 } from "@/components/dialog-container/navigable-dialog";
-import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getDefaultValues, processFormData } from "./form-utils";
-import { type FormValues, formSchema } from "./schema";
+import {
+  CalendarClock,
+  ChartPie,
+  XMark,
+  Check,
+  Code,
+  Gauge,
+  Key2,
+} from "@unkey/icons";
+import { Button } from "@unkey/ui";
+import { useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import { GeneralSetup } from "./components/general-setup";
+import {
+  getDefaultValues,
+  getFieldsFromSchema,
+  processFormData,
+  sectionSchemaMap,
+} from "./form-utils";
+import { type FormValues, formSchema } from "./schema";
+
+type SectionName =
+  | "general"
+  | "ratelimit"
+  | "usage-limit"
+  | "expiration"
+  | "metadata";
 
 export const CreateKeyDialog = () => {
+  const [validSteps, setValidSteps] = useState<
+    Record<SectionName, boolean | "initial" | "valid" | "invalid">
+  >({
+    general: "initial",
+    metadata: "initial",
+    expiration: "initial",
+    ratelimit: "initial",
+    "usage-limit": "initial",
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const methods = useForm<FormValues>({
@@ -28,10 +57,45 @@ export const CreateKeyDialog = () => {
     setIsSettingsOpen(false);
   };
 
-  const settingsNavItems: NavItem[] = [
+  const handleSectionNavigation = async (fromId: SectionName) => {
+    // Skip validation for non-existent sections
+    if (!sectionSchemaMap[fromId]) {
+      return true;
+    }
+    // Get the schema for the section
+    const schema = sectionSchemaMap[fromId];
+    // Get fields from the schema
+    const fieldsToValidate = getFieldsFromSchema(schema);
+    // Skip validation if no fields to validate
+    if (fieldsToValidate.length === 0) {
+      return true;
+    }
+    // Trigger validation for the fields
+    const result = await methods.trigger(fieldsToValidate as any);
+    setValidSteps((prevState) => ({
+      ...prevState,
+      [fromId]: result ? "valid" : "invalid",
+    }));
+    // Always allow navigation
+    return true;
+  };
+
+  const settingsNavItems: NavItem<SectionName>[] = [
     {
       id: "general",
-      label: "General Setup",
+      label: (
+        <div className="w-full justify-between flex items-center">
+          General Setup{" "}
+          {validSteps.general === "initial" ? null : validSteps.general ===
+            "valid" ? (
+            <div className="text-success-9 pl-6">
+              <Check className="text-success-9 " size="md-regular" />
+            </div>
+          ) : (
+            <XMark className="text-error-9 " size="md-regular" />
+          )}
+        </div>
+      ),
       icon: Key2,
       content: <GeneralSetup />,
     },
@@ -39,34 +103,29 @@ export const CreateKeyDialog = () => {
       id: "ratelimit",
       label: "Ratelimit",
       icon: Gauge,
-      content: <div>Asdsad</div>,
+      content: <div>Ratelimit Component</div>,
     },
     {
       id: "usage-limit",
       label: "Usage limit",
       icon: ChartPie,
-      content: <div>Asdsad</div>,
+      content: <div>Usage Limit Component</div>,
     },
     {
       id: "expiration",
       label: "Expiration",
       icon: CalendarClock,
-      content: <div>Asdsad</div>,
+      content: <div>Expiration Component</div>,
     },
     {
       id: "metadata",
       label: "Metadata",
       icon: Code,
-      content: <div>Asdsad</div>,
+      content: <div>Metadata Component</div>,
     },
   ];
 
-  // Handle dialog open/close
   const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      // Reset form when closing without submission
-      methods.reset();
-    }
     setIsSettingsOpen(open);
   };
 
@@ -75,7 +134,6 @@ export const CreateKeyDialog = () => {
       <Button className="rounded-lg" onClick={() => setIsSettingsOpen(true)}>
         New Key
       </Button>
-
       <FormProvider {...methods}>
         <form id="new-key-form" onSubmit={methods.handleSubmit(onSubmit)}>
           <NavigableDialog
@@ -84,6 +142,7 @@ export const CreateKeyDialog = () => {
             title="New Key"
             subTitle="Create a custom API key with your own settings"
             items={settingsNavItems}
+            onNavigate={handleSectionNavigation}
             footer={
               <div className="flex justify-center items-center w-full">
                 <div className="flex flex-col items-center justify-center w-2/3 gap-2">
@@ -93,9 +152,7 @@ export const CreateKeyDialog = () => {
                     variant="primary"
                     size="xlg"
                     className="w-full rounded-lg"
-                    disabled={
-                      !methods.formState.isValid && methods.formState.isDirty
-                    }
+                    disabled={!methods.formState.isValid}
                   >
                     Create new key
                   </Button>

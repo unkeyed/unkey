@@ -1,4 +1,3 @@
-// schemas/index.ts
 import { z } from "zod";
 
 export const generalSchema = z.object({
