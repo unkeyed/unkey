@@ -20,18 +20,18 @@ export const RatelimitSetup = () => {
 
   const ratelimitEnabled = useWatch({
     control,
-    name: "ratelimitEnabled",
+    name: "ratelimit.enabled",
     defaultValue: false,
   });
 
   const currentLimit = useWatch({
     control,
-    name: "ratelimit.limit",
+    name: "ratelimit.data.limit",
   });
 
   const currentInterval = useWatch({
     control,
-    name: "ratelimit.refillInterval",
+    name: "ratelimit.data.refillInterval",
   });
 
   useEffect(() => {
@@ -47,22 +47,21 @@ export const RatelimitSetup = () => {
   }, [ratelimitEnabled, currentInterval]);
 
   const handleSwitchChange = (checked: boolean) => {
-    setValue("ratelimitEnabled", checked);
-
+    setValue("ratelimit.enabled", checked);
     if (checked) {
       if (lastLimit) {
-        setValue("ratelimit.limit", lastLimit);
-      } else if (!getValues("ratelimit.limit")) {
-        setValue("ratelimit.limit", 10);
+        setValue("ratelimit.data.limit", lastLimit);
+      } else if (!getValues("ratelimit.data.limit")) {
+        setValue("ratelimit.data.limit", 10);
       }
 
       if (lastInterval) {
-        setValue("ratelimit.refillInterval", lastInterval);
-      } else if (!getValues("ratelimit.refillInterval")) {
-        setValue("ratelimit.refillInterval", 1000);
+        setValue("ratelimit.data.refillInterval", lastInterval);
+      } else if (!getValues("ratelimit.data.refillInterval")) {
+        setValue("ratelimit.data.refillInterval", 1000);
       }
     } else {
-      setValue("ratelimit", undefined);
+      setValue("ratelimit.data", undefined);
     }
   };
 
@@ -94,7 +93,7 @@ export const RatelimitSetup = () => {
             data-[state=unchecked]:ring-grayA-3
             [&>span]:h-3.5 [&>span]:w-3.5
           "
-          {...register("ratelimitEnabled")}
+          {...register("ratelimit.enabled")}
         />
       </div>
       <FormInput
@@ -104,10 +103,10 @@ export const RatelimitSetup = () => {
         type="number"
         label="Limit"
         description="The maximum number of requests in the given fixed window."
-        error={errors.ratelimit?.limit?.message}
+        error={errors.ratelimit?.data?.limit?.message}
         disabled={!ratelimitEnabled}
         readOnly={!ratelimitEnabled}
-        {...register("ratelimit.limit")}
+        {...register("ratelimit.data.limit")}
       />
       <FormInput
         className="[&_input:first-of-type]:h-[36px]"
@@ -116,10 +115,10 @@ export const RatelimitSetup = () => {
         inputMode="numeric"
         type="number"
         description="The time window in milliseconds for the rate limit to reset."
-        error={errors.ratelimit?.refillInterval?.message}
+        error={errors.ratelimit?.data?.refillInterval?.message}
         disabled={!ratelimitEnabled}
         readOnly={!ratelimitEnabled}
-        {...register("ratelimit.refillInterval")}
+        {...register("ratelimit.data.refillInterval")}
       />
     </div>
   );

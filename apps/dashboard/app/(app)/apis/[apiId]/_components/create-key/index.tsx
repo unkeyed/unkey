@@ -41,8 +41,27 @@ export const CreateKeyDialog = () => {
   });
 
   const onSubmit = (data: FormValues) => {
-    processFormData(data);
+    const processedData = processFormData(data);
+    console.log({ processedData });
     setIsSettingsOpen(false);
+  };
+
+  const isFeatureEnabled = (sectionId: SectionName): boolean => {
+    const values = methods.getValues();
+    switch (sectionId) {
+      case "metadata":
+        return values.metadata?.enabled || false;
+      case "ratelimit":
+        return values.ratelimit?.enabled || false;
+      case "credits":
+        return values.limit?.enabled || false;
+      case "expiration":
+        return values.expiration?.enabled || false;
+      case "general":
+        return true;
+      default:
+        return false;
+    }
   };
 
   const handleSectionNavigation = async (fromId: SectionName) => {
@@ -50,6 +69,16 @@ export const CreateKeyDialog = () => {
     if (!sectionSchemaMap[fromId]) {
       return true;
     }
+
+    // Skip validation if the feature is not enabled
+    if (fromId !== "general" && !isFeatureEnabled(fromId)) {
+      setValidSteps((prevState) => ({
+        ...prevState,
+        [fromId]: "initial",
+      }));
+      return true;
+    }
+
     // Get the schema for the section
     const schema = sectionSchemaMap[fromId];
     // Get fields from the schema

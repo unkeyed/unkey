@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { FormValues } from "../schema";
 
-export type MetadataFormValues = Pick<FormValues, "metaEnabled" | "meta">;
+export type MetadataFormValues = Pick<FormValues, "metadata">;
 
 const exampleJSON = {
   user: {
@@ -37,39 +37,39 @@ export const MetadataSetup = () => {
 
   const [lastMetadata, setLastMetadata] = useState<string | null>(null);
 
-  const metaEnabled = useWatch({
+  const metadataEnabled = useWatch({
     control,
-    name: "metaEnabled",
+    name: "metadata.enabled",
     defaultValue: false,
   });
 
-  const currentMeta = useWatch({
+  const currentMetadata = useWatch({
     control,
-    name: "meta",
+    name: "metadata.data",
   });
 
   // Update last metadata when content changes while enabled
   useEffect(() => {
-    if (metaEnabled && currentMeta) {
-      setLastMetadata(currentMeta);
+    if (metadataEnabled && currentMetadata) {
+      setLastMetadata(currentMetadata);
     }
-  }, [metaEnabled, currentMeta]);
+  }, [metadataEnabled, currentMetadata]);
 
   const handleSwitchChange = (checked: boolean) => {
-    setValue("metaEnabled", checked);
+    setValue("metadata.enabled", checked);
     if (checked) {
       if (lastMetadata) {
-        setValue("meta", lastMetadata);
-      } else if (!getValues("meta")) {
-        setValue("meta", "{}");
+        setValue("metadata.data", lastMetadata);
+      } else if (!getValues("metadata.data")) {
+        setValue("metadata.data", "{}");
       }
     }
   };
 
   const formatJSON = () => {
     try {
-      const parsed = JSON.parse(currentMeta || "{}");
-      setValue("meta", JSON.stringify(parsed, null, 2));
+      const parsed = JSON.parse(currentMetadata || "{}");
+      setValue("metadata.data", JSON.stringify(parsed, null, 2));
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -80,8 +80,8 @@ export const MetadataSetup = () => {
   };
 
   const loadExample = () => {
-    setValue("meta", JSON.stringify(exampleJSON, null, 2));
-    trigger("meta");
+    setValue("metadata.data", JSON.stringify(exampleJSON, null, 2));
+    trigger("metadata.data");
   };
 
   const validateJSON = (jsonString: string): boolean => {
@@ -109,7 +109,7 @@ export const MetadataSetup = () => {
           </div>
         </div>
         <Switch
-          checked={metaEnabled}
+          checked={metadataEnabled}
           onCheckedChange={handleSwitchChange}
           className="
             h-4 w-7
@@ -121,20 +121,20 @@ export const MetadataSetup = () => {
             data-[state=unchecked]:ring-grayA-3
             [&>span]:h-3.5 [&>span]:w-3.5
           "
-          {...register("metaEnabled")}
+          {...register("metadata.enabled")}
         />
       </div>
 
       <div
         className="space-y-2 h-fit transition-opacity duration-300"
-        style={{ opacity: metaEnabled ? 1 : 0.5 }}
+        style={{ opacity: metadataEnabled ? 1 : 0.5 }}
       >
         <div className="flex justify-end mb-2">
           <Button
             size="sm"
             variant="outline"
             onClick={loadExample}
-            disabled={!metaEnabled}
+            disabled={!metadataEnabled}
             type="button"
             className="mr-2"
           >
@@ -151,20 +151,20 @@ export const MetadataSetup = () => {
               size="sm"
               variant="outline"
               onClick={formatJSON}
-              disabled={Boolean(errors.meta?.message)}
+              disabled={!metadataEnabled || Boolean(errors.metadata?.data?.message)}
               type="button"
             >
               <div className="text-[13px]">Format</div>
             </Button>
           }
           description="Add structured JSON data to this key. Must be valid JSON format."
-          error={errors.meta?.message}
-          disabled={!metaEnabled}
-          readOnly={!metaEnabled}
+          error={errors.metadata?.data?.message}
+          disabled={!metadataEnabled}
+          readOnly={!metadataEnabled}
           rows={15}
-          {...register("meta", {
+          {...register("metadata.data", {
             validate: (value) => {
-              if (metaEnabled && (!value || !validateJSON(value))) {
+              if (metadataEnabled && (!value || !validateJSON(value))) {
                 return "Must be valid JSON";
               }
               return true;

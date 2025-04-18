@@ -6,6 +6,7 @@ import { FormInput } from "@unkey/ui";
 import { addDays, addMinutes, format } from "date-fns";
 import { useEffect, useState } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
+import type { ExpirationFormValues } from "../schema";
 
 const ExpirationHeader = () => {
   return (
@@ -13,11 +14,6 @@ const ExpirationHeader = () => {
       <span className="text-gray-9 text-[13px] w-full">Choose expiration date</span>
     </div>
   );
-};
-
-export type ExpirationFormValues = {
-  expireEnabled: boolean;
-  expires?: Date;
 };
 
 const EXPIRATION_OPTIONS = [
@@ -64,39 +60,39 @@ export const ExpirationSetup = () => {
   const [lastExpiryDate, setLastExpiryDate] = useState<Date | null>(null);
   const [selectedTitle, setSelectedTitle] = useState<string>("1 day");
 
-  const expireEnabled = useWatch({
+  const expirationEnabled = useWatch({
     control,
-    name: "expireEnabled",
+    name: "expiration.enabled",
     defaultValue: false,
   });
 
   const currentExpiryDate = useWatch({
     control,
-    name: "expires",
+    name: "expiration.data",
   });
 
-  // Store values when they change and expire is enabled
+  // Store values when they change and expiration is enabled
   useEffect(() => {
-    if (expireEnabled && currentExpiryDate) {
+    if (expirationEnabled && currentExpiryDate) {
       setLastExpiryDate(currentExpiryDate);
     }
-  }, [expireEnabled, currentExpiryDate]);
+  }, [expirationEnabled, currentExpiryDate]);
 
   const handleSwitchChange = (checked: boolean) => {
-    setValue("expireEnabled", checked);
+    setValue("expiration.enabled", checked);
 
     if (checked) {
       // When enabling, restore last used values if they exist
       if (lastExpiryDate) {
-        setValue("expires", lastExpiryDate);
-      } else if (!getValues("expires")) {
+        setValue("expiration.data", lastExpiryDate);
+      } else if (!getValues("expiration.data")) {
         // Default to 1 day from now if no existing value
-        setValue("expires", addDays(new Date(), 1));
+        setValue("expiration.data", addDays(new Date(), 1));
         setSelectedTitle("1 day");
       }
     } else {
       // When disabling, set expires to undefined but keep our saved value
-      setValue("expires", undefined);
+      setValue("expiration.data", undefined);
     }
   };
 
@@ -116,7 +112,7 @@ export const ExpirationSetup = () => {
           newDate = addDays(newDate, 30);
           break;
       }
-      setValue("expires", newDate);
+      setValue("expiration.data", newDate);
     } else if (startTime) {
       // Handle custom date selection
       const newDate = new Date(startTime);
@@ -126,9 +122,9 @@ export const ExpirationSetup = () => {
 
       if (newDate < minValidDate) {
         // If date is too soon, set it to minimum valid date
-        setValue("expires", minValidDate);
+        setValue("expiration.data", minValidDate);
       } else {
-        setValue("expires", newDate);
+        setValue("expiration.data", newDate);
       }
     }
   };
@@ -176,7 +172,7 @@ export const ExpirationSetup = () => {
           </div>
         </div>
         <Switch
-          checked={expireEnabled}
+          checked={expirationEnabled}
           onCheckedChange={handleSwitchChange}
           className="
             h-4 w-7
@@ -188,13 +184,13 @@ export const ExpirationSetup = () => {
             data-[state=unchecked]:ring-grayA-3
             [&>span]:h-3.5 [&>span]:w-3.5
           "
-          {...register("expireEnabled")}
+          {...register("expiration.enabled")}
         />
       </div>
 
       <Controller
         control={control}
-        name="expires"
+        name="expiration.data"
         render={({ field }) => (
           <DatetimePopover
             initialTitle={selectedTitle}
@@ -208,11 +204,11 @@ export const ExpirationSetup = () => {
               label="Expiry Date"
               description={getExpiryDescription()}
               readOnly
-              disabled={!expireEnabled}
+              disabled={!expirationEnabled}
               value={formatExpiryDate(field.value)}
               className="cursor-pointer"
               variant={isExpiringVerySoon ? "warning" : undefined}
-              error={errors.expires?.message}
+              error={errors.expiration?.data?.message}
             />
           </DatetimePopover>
         )}
