@@ -27,7 +27,6 @@ type Services struct {
 
 func New(svc Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/ratelimit.getOverride", func(ctx context.Context, s *zen.Session) error {
-
 		auth, err := svc.Keys.VerifyRootKey(ctx, s)
 		if err != nil {
 			return err
@@ -51,7 +50,10 @@ func New(svc Services) zen.Route {
 			)
 		}
 		if err != nil {
-			return err
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to find the ratelimit namespace", "Error finding the ratelimit namespace."),
+			)
 		}
 
 		if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
@@ -103,8 +105,12 @@ func New(svc Services) zen.Route {
 			)
 		}
 		if err != nil {
-			return err
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to find the override", "Error finding the ratelimit override."),
+			)
 		}
+
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
@@ -122,12 +128,10 @@ func New(svc Services) zen.Route {
 }
 
 func getNamespace(ctx context.Context, svc Services, workspaceID string, req Request) (db.RatelimitNamespace, error) {
-
 	switch {
 	case req.NamespaceId != nil:
 		{
 			return db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
-
 		}
 	case req.NamespaceName != nil:
 		{
@@ -142,5 +146,4 @@ func getNamespace(ctx context.Context, svc Services, workspaceID string, req Req
 		fault.WithCode(codes.App.Validation.InvalidInput.URN()),
 		fault.WithDesc("missing namespace id or name", "You must provide either a namespace ID or name."),
 	)
-
 }
