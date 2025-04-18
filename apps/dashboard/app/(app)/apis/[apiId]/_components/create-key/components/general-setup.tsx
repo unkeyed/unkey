@@ -10,7 +10,7 @@ export const GeneralSetup = () => {
   } = useFormContext<GeneralFormValues>();
 
   return (
-    <div className="space-y-5 px6 py-1">
+    <div className="space-y-5 px-2 py-1 ">
       <FormInput
         className="[&_input:first-of-type]:h-[36px]"
         placeholder="Enter name"

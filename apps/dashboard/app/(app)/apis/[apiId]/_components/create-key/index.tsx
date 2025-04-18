@@ -24,6 +24,8 @@ import {
   sectionSchemaMap,
 } from "./form-utils";
 import { type FormValues, formSchema } from "./schema";
+import { Ratelimit } from "@unkey/ratelimit";
+import { RatelimitSetup } from "./components/ratelimit-setup";
 
 type SectionName =
   | "general"
@@ -88,11 +90,13 @@ export const CreateKeyDialog = () => {
           General Setup{" "}
           {validSteps.general === "initial" ? null : validSteps.general ===
             "valid" ? (
-            <div className="text-success-9 pl-6">
+            <div className="text-success-9 ml-auto">
               <Check className="text-success-9 " size="md-regular" />
             </div>
           ) : (
-            <XMark className="text-error-9 " size="md-regular" />
+            <div className="text-success-9 ml-auto">
+              <XMark className="text-error-9 " size="md-regular" />
+            </div>
           )}
         </div>
       ),
@@ -101,9 +105,23 @@ export const CreateKeyDialog = () => {
     },
     {
       id: "ratelimit",
-      label: "Ratelimit",
+      label: (
+        <div className="w-full justify-between flex items-center">
+          Ratelimit
+          {validSteps.ratelimit === "initial" ? null : validSteps.ratelimit ===
+            "valid" ? (
+            <div className="text-success-9 ml-auto">
+              <Check className="text-success-9 " size="md-regular" />
+            </div>
+          ) : (
+            <div className="text-success-9 ml-auto">
+              <XMark className="text-error-9 " size="md-regular" />
+            </div>
+          )}
+        </div>
+      ),
       icon: Gauge,
-      content: <div>Ratelimit Component</div>,
+      content: <RatelimitSetup />,
     },
     {
       id: "usage-limit",
@@ -163,6 +181,7 @@ export const CreateKeyDialog = () => {
                 </div>
               </div>
             }
+            contentClassName="min-h-[600px]"
             dialogClassName="!min-w-[720px]"
           />
         </form>

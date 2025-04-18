@@ -105,8 +105,7 @@ export const ratelimitSchema = z.object({
   ratelimitEnabled: z.boolean().default(false),
   ratelimit: z
     .object({
-      async: z.boolean().default(false),
-      duration: z.coerce
+      refillInterval: z.coerce
         .number({
           errorMap: (issue, { defaultError }) => ({
             message:
@@ -130,6 +129,8 @@ export const ratelimitSchema = z.object({
     .optional(),
 });
 
+// Define the type based on the schema
+export type RatelimitFormValues = z.infer<typeof ratelimitSchema>;
 export const expirationSchema = z.object({
   expireEnabled: z.boolean().default(false),
   expires: z.coerce
