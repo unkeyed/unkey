@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -228,7 +229,11 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	currentWindow, currentWindowExisted := b.getCurrentWindow(req.Time)
 	previousWindow, previousWindowExisted := b.getPreviousWindow(req.Time)
 
+	// track whether we were able to handle the request locally or if we had to call redis
+	decisionSource := "local"
+
 	if goToOrigin || !currentWindowExisted {
+		decisionSource = "origin"
 		currentKey := counterKey(key, currentWindow.sequence)
 		res, err := s.counter.Get(ctx, currentKey)
 		if err != nil {
@@ -243,6 +248,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 	}
 	if goToOrigin || !previousWindowExisted {
+		decisionSource = "origin"
 		previousKey := counterKey(key, previousWindow.sequence)
 		res, err := s.counter.Get(ctx, previousKey)
 		if err != nil {
@@ -276,6 +282,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		b.strictUntil = req.Time.Add(req.Duration)
 
 		span.SetAttributes(attribute.Bool("passed", false))
+		metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
 		return RatelimitResponse{
 			Success:   false,
 			Remaining: remaining,
@@ -292,10 +299,11 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	if remaining < 0 {
 		remaining = 0
 	}
-	span.SetAttributes(attribute.Bool("passed", true))
 
 	s.replayBuffer.Buffer(req)
 
+	span.SetAttributes(attribute.Bool("passed", true))
+	metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
 	return RatelimitResponse{
 		Success:   true,
 		Remaining: remaining,
