@@ -1,10 +1,10 @@
 import {
+  type FormValues,
   expirationSchema,
   generalSchema,
   limitSchema,
   metadataSchema,
   ratelimitSchema,
-  type FormValues,
 } from "./schema";
 
 /**

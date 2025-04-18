@@ -1,18 +1,9 @@
 import { KeyboardButton } from "@/components/keyboard-button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { processTimeFilters } from "@/lib/utils";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
-import {
-  type PropsWithChildren,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { type PropsWithChildren, type ReactNode, useEffect, useState } from "react";
 import { CUSTOM_OPTION_ID, DEFAULT_OPTIONS } from "./constants";
 import { DateTimeSuggestions } from "./suggestions";
 import type { OptionsType } from "./types";
@@ -23,11 +14,7 @@ interface DatetimePopoverProps extends PropsWithChildren {
   initialTitle: string;
   initialTimeValues: { startTime?: number; endTime?: number; since?: string };
   onSuggestionChange: (title: string) => void;
-  onDateTimeChange: (
-    startTime?: number,
-    endTime?: number,
-    since?: string
-  ) => void;
+  onDateTimeChange: (startTime?: number, endTime?: number, since?: string) => void;
   customOptions?: OptionsType;
   customHeader?: ReactNode;
 }
@@ -67,8 +54,8 @@ export const DatetimePopover = ({
     const matchingSuggestion = since
       ? OPTIONS.find((s) => s.value === since)
       : startTime
-      ? OPTIONS.find((s) => s.id === CURRENT_CUSTOM_OPTION_ID)
-      : null;
+        ? OPTIONS.find((s) => s.id === CURRENT_CUSTOM_OPTION_ID)
+        : null;
 
     return OPTIONS.map((s) => ({
       ...s,
@@ -78,10 +65,10 @@ export const DatetimePopover = ({
 
   useEffect(() => {
     const newTitle = since
-      ? OPTIONS.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER
+      ? (OPTIONS.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER)
       : startTime
-      ? CUSTOM_PLACEHOLDER
-      : initialTitle;
+        ? CUSTOM_PLACEHOLDER
+        : initialTitle;
 
     onSuggestionChange(newTitle);
   }, [since, startTime, initialTitle, onSuggestionChange, OPTIONS]);
@@ -101,16 +88,12 @@ export const DatetimePopover = ({
     onDateTimeChange(undefined, undefined, selectedValue);
   };
 
-  const handleDateTimeChange = (
-    newRange?: Range,
-    newStart?: TimeUnit,
-    newEnd?: TimeUnit
-  ) => {
+  const handleDateTimeChange = (newRange?: Range, newStart?: TimeUnit, newEnd?: TimeUnit) => {
     setSuggestions(
       suggestions.map((s) => ({
         ...s,
         checked: s.id === CURRENT_CUSTOM_OPTION_ID,
-      }))
+      })),
     );
 
     setTime({
@@ -120,8 +103,7 @@ export const DatetimePopover = ({
   };
 
   const isTimeChanged =
-    time.startTime !== lastAppliedTime.startTime ||
-    time.endTime !== lastAppliedTime.endTime;
+    time.startTime !== lastAppliedTime.startTime || time.endTime !== lastAppliedTime.endTime;
 
   const handleApplyFilter = () => {
     if (!isTimeChanged) {
@@ -145,10 +127,7 @@ export const DatetimePopover = ({
       >
         <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
           {customHeader || <DefaultPopoverHeader />}
-          <DateTimeSuggestions
-            options={suggestions}
-            onChange={handleSuggestionChange}
-          />
+          <DateTimeSuggestions options={suggestions} onChange={handleSuggestionChange} />
         </div>
         <DateTime
           onChange={handleDateTimeChange}
@@ -183,9 +162,7 @@ export const DatetimePopover = ({
 const DefaultPopoverHeader = () => {
   return (
     <div className="flex justify-between w-full h-8 px-2">
-      <span className="text-gray-9 text-[13px] w-full">
-        Filter by time range
-      </span>
+      <span className="text-gray-9 text-[13px] w-full">Filter by time range</span>
       <KeyboardButton shortcut="T" className="w-5 h-5 p-0 m-0 min-w-5" />
     </div>
   );

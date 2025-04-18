@@ -1,22 +1,14 @@
 "use client";
-import {
-  type NavItem,
-  NavigableDialog,
-} from "@/components/dialog-container/navigable-dialog";
+import { type NavItem, NavigableDialog } from "@/components/dialog-container/navigable-dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  CalendarClock,
-  ChartPie,
-  XMark,
-  Check,
-  Code,
-  Gauge,
-  Key2,
-} from "@unkey/icons";
+import { CalendarClock, ChartPie, Check, Code, Gauge, Key2, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+import { ExpirationSetup } from "./components/expiration-setup";
 import { GeneralSetup } from "./components/general-setup";
+import { RatelimitSetup } from "./components/ratelimit-setup";
+import { UsageSetup } from "./components/usage-setup";
 import {
   getDefaultValues,
   getFieldsFromSchema,
@@ -24,16 +16,8 @@ import {
   sectionSchemaMap,
 } from "./form-utils";
 import { type FormValues, formSchema } from "./schema";
-import { RatelimitSetup } from "./components/ratelimit-setup";
-import { UsageSetup } from "./components/usage-setup";
-import { ExpirationSetup } from "./components/expiration-setup";
 
-type SectionName =
-  | "general"
-  | "ratelimit"
-  | "credits"
-  | "expiration"
-  | "metadata";
+type SectionName = "general" | "ratelimit" | "credits" | "expiration" | "metadata";
 
 export const CreateKeyDialog = () => {
   const [validSteps, setValidSteps] = useState<
@@ -89,8 +73,7 @@ export const CreateKeyDialog = () => {
       label: (
         <div className="w-full justify-between flex items-center">
           General Setup{" "}
-          {validSteps.general === "initial" ? null : validSteps.general ===
-            "valid" ? (
+          {validSteps.general === "initial" ? null : validSteps.general === "valid" ? (
             <div className="text-success-9 ml-auto">
               <Check className="text-success-9 " size="md-regular" />
             </div>
@@ -109,8 +92,7 @@ export const CreateKeyDialog = () => {
       label: (
         <div className="w-full justify-between flex items-center">
           Ratelimit
-          {validSteps.ratelimit === "initial" ? null : validSteps.ratelimit ===
-            "valid" ? (
+          {validSteps.ratelimit === "initial" ? null : validSteps.ratelimit === "valid" ? (
             <div className="text-success-9 ml-auto">
               <Check className="text-success-9 " size="md-regular" />
             </div>
@@ -129,8 +111,7 @@ export const CreateKeyDialog = () => {
       label: (
         <div className="w-full justify-between flex items-center">
           Credits
-          {validSteps.credits === "initial" ? null : validSteps.credits ===
-            "valid" ? (
+          {validSteps.credits === "initial" ? null : validSteps.credits === "valid" ? (
             <div className="text-success-9 ml-auto">
               <Check className="text-success-9 " size="md-regular" />
             </div>
@@ -190,8 +171,7 @@ export const CreateKeyDialog = () => {
                     Create new key
                   </Button>
                   <div className="text-xs text-gray-9">
-                    This key will be created immediately and ready-to-use right
-                    away
+                    This key will be created immediately and ready-to-use right away
                   </div>
                 </div>
               </div>

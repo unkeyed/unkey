@@ -11,7 +11,7 @@
  */
 import type React from "react";
 
-import { sizeMap, type IconProps } from "../props";
+import { type IconProps, sizeMap } from "../props";
 export const Gauge: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
   return (

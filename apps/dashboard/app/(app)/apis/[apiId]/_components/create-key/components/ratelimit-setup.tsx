@@ -1,10 +1,10 @@
 "use client";
-import { FormInput } from "@unkey/ui";
-import { useFormContext, useWatch } from "react-hook-form";
-import { useState, useEffect } from "react";
-import type { RatelimitFormValues } from "../schema";
 import { Switch } from "@/components/ui/switch";
 import { Gauge } from "@unkey/icons";
+import { FormInput } from "@unkey/ui";
+import { useEffect, useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+import type { RatelimitFormValues } from "../schema";
 
 export const RatelimitSetup = () => {
   const {
@@ -77,8 +77,8 @@ export const RatelimitSetup = () => {
             <div className="text-sm font-medium text-gray-12">Ratelimit</div>
           </div>
           <div className="text-gray-9 text-xs">
-            Turn on to restrict how frequently this key can be used. Requests
-            beyond the limit will be blocked.
+            Turn on to restrict how frequently this key can be used. Requests beyond the limit will
+            be blocked.
           </div>
         </div>
         <Switch

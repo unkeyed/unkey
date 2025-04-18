@@ -5,9 +5,7 @@ export const generalSchema = z.object({
     .number({
       errorMap: (issue, { defaultError }) => ({
         message:
-          issue.code === "invalid_type"
-            ? "Key must be between 8 and 255 bytes long"
-            : defaultError,
+          issue.code === "invalid_type" ? "Key must be between 8 and 255 bytes long" : defaultError,
       }),
     })
     .min(8, { message: "Key must be between 8 and 255 bytes long" })
@@ -20,8 +18,7 @@ export const generalSchema = z.object({
       message: "Prefixes cannot contain spaces.",
     })
     .refine((prefix) => !prefix.endsWith("_"), {
-      message:
-        "Prefixes cannot end with an underscore. We'll add that automatically.",
+      message: "Prefixes cannot end with an underscore. We'll add that automatically.",
     })
     .optional(),
   ownerId: z.string().trim().optional(),
@@ -44,7 +41,7 @@ export const metadataSchema = z.object({
       },
       {
         message: "Must be valid json",
-      }
+      },
     )
     .optional(),
 });
@@ -107,9 +104,7 @@ export const ratelimitSchema = z.object({
         .number({
           errorMap: (issue, { defaultError }) => ({
             message:
-              issue.code === "invalid_type"
-                ? "Duration must be greater than 0"
-                : defaultError,
+              issue.code === "invalid_type" ? "Duration must be greater than 0" : defaultError,
           }),
         })
         .positive({ message: "Refill interval must be greater than 0" }),
@@ -117,9 +112,7 @@ export const ratelimitSchema = z.object({
         .number({
           errorMap: (issue, { defaultError }) => ({
             message:
-              issue.code === "invalid_type"
-                ? "Refill limit must be greater than 0"
-                : defaultError,
+              issue.code === "invalid_type" ? "Refill limit must be greater than 0" : defaultError,
           }),
         })
         .positive({ message: "Limit must be greater than 0" }),
@@ -175,10 +168,7 @@ export const formSchema = z
       }
 
       // If refill interval is not "none", refill amount is required
-      if (
-        data.limit?.refill?.interval &&
-        data.limit.refill.interval !== "none"
-      ) {
+      if (data.limit?.refill?.interval && data.limit.refill.interval !== "none") {
         if (!data.limit.refill.amount) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -188,10 +178,7 @@ export const formSchema = z
         }
 
         // If refill interval is "monthly", refill day is required
-        if (
-          data.limit.refill.interval === "monthly" &&
-          !data.limit.refill.refillDay
-        ) {
+        if (data.limit.refill.interval === "monthly" && !data.limit.refill.refillDay) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "Refill day is required for monthly interval",
@@ -221,8 +208,5 @@ export const formSchema = z
   });
 
 export type FormValues = z.infer<typeof formSchema>;
-export type RatelimitFormValues = Pick<
-  FormValues,
-  "ratelimitEnabled" | "ratelimit"
->;
+export type RatelimitFormValues = Pick<FormValues, "ratelimitEnabled" | "ratelimit">;
 export type LimitFormValues = Pick<FormValues, "limitEnabled" | "limit">;

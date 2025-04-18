@@ -1,18 +1,16 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useFormContext, useWatch, Controller } from "react-hook-form";
-import { Switch } from "@/components/ui/switch";
-import { FormInput } from "@unkey/ui";
-import { Clock } from "@unkey/icons";
-import { addMinutes, format, addDays } from "date-fns";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
+import { Switch } from "@/components/ui/switch";
+import { Clock } from "@unkey/icons";
+import { FormInput } from "@unkey/ui";
+import { addDays, addMinutes, format } from "date-fns";
+import { useEffect, useState } from "react";
+import { Controller, useFormContext, useWatch } from "react-hook-form";
 
 const ExpirationHeader = () => {
   return (
     <div className="flex justify-between w-full h-8 px-2">
-      <span className="text-gray-9 text-[13px] w-full">
-        Choose expiration date
-      </span>
+      <span className="text-gray-9 text-[13px] w-full">Choose expiration date</span>
     </div>
   );
 };
@@ -103,11 +101,7 @@ export const ExpirationSetup = () => {
   };
 
   // Handle date and time selection from DatetimePopover
-  const handleDateTimeChange = (
-    startTime?: number,
-    _?: number,
-    since?: string
-  ) => {
+  const handleDateTimeChange = (startTime?: number, _?: number, since?: string) => {
     if (since) {
       // Handle predefined time ranges
       let newDate = new Date();
@@ -158,8 +152,7 @@ export const ExpirationSetup = () => {
 
   // Calculate date for showing warning about close expiry (less than 1 hour)
   const isExpiringVerySoon =
-    currentExpiryDate &&
-    currentExpiryDate.getTime() - new Date().getTime() < 60 * 60 * 1000;
+    currentExpiryDate && currentExpiryDate.getTime() - new Date().getTime() < 60 * 60 * 1000;
 
   const getExpiryDescription = () => {
     if (isExpiringVerySoon) {
@@ -179,8 +172,7 @@ export const ExpirationSetup = () => {
             <div className="text-sm font-medium text-gray-12">Expiration</div>
           </div>
           <div className="text-gray-9 text-xs">
-            Turn on to set an expiration date. When reached, the key will be
-            automatically disabled.
+            Turn on to set an expiration date. When reached, the key will be automatically disabled.
           </div>
         </div>
         <Switch

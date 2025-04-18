@@ -3,13 +3,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import type { IconProps } from "@unkey/icons/src/props";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { FC, ReactNode } from "react";
-import {
-  DefaultDialogContentArea,
-  DefaultDialogFooter,
-  DefaultDialogHeader,
-} from "./dialog-parts";
+import { DefaultDialogContentArea, DefaultDialogFooter, DefaultDialogHeader } from "./dialog-parts";
 
 export type NavItem<TStepName extends string> = {
   id: TStepName;
@@ -50,7 +46,7 @@ export const NavigableDialog = <TStepName extends string>({
   onNavigate,
 }: NavigableDialogProps<TStepName>) => {
   const [activeId, setActiveId] = useState<TStepName | undefined>(
-    initialSelectedId ?? items[0]?.id
+    initialSelectedId ?? items[0]?.id,
   );
 
   const handleNavigation = useCallback(
@@ -71,7 +67,7 @@ export const NavigableDialog = <TStepName extends string>({
         setActiveId(newId);
       }
     },
-    [activeId, onNavigate]
+    [activeId, onNavigate],
   );
 
   return (
@@ -79,7 +75,7 @@ export const NavigableDialog = <TStepName extends string>({
       <DialogContent
         className={cn(
           "drop-shadow-2xl border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0",
-          dialogClassName
+          dialogClassName,
         )}
         onOpenAutoFocus={(e) => {
           if (preventAutoFocus) {
@@ -94,7 +90,7 @@ export const NavigableDialog = <TStepName extends string>({
               "border-r border-grayA-4 bg-white dark:bg-black p-6 flex flex-col items-start justify-start gap-3",
               "flex-shrink-0",
               navWidthClass,
-              navClassName
+              navClassName,
             )}
           >
             {items.map((item) => {
@@ -106,9 +102,7 @@ export const NavigableDialog = <TStepName extends string>({
                   variant={isActive ? "outline" : "ghost"}
                   className={cn(
                     "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0 [&_svg]:size-auto",
-                    isActive
-                      ? "bg-grayA-2 focus:border-grayA-6"
-                      : "border border-transparent"
+                    isActive ? "bg-grayA-2 focus:border-grayA-6" : "border border-transparent",
                   )}
                   size="md"
                   onClick={() => handleNavigation(item.id)}
@@ -117,15 +111,13 @@ export const NavigableDialog = <TStepName extends string>({
                     <div>
                       <IconComponent
                         size="md-regular"
-                        className={cn(
-                          isActive ? "text-gray-12" : "text-gray-9"
-                        )}
+                        className={cn(isActive ? "text-gray-12" : "text-gray-9")}
                       />
                     </div>
                   )}
                   <span
                     className={cn(
-                      "font-medium text-[13px] leading-[24px] text-gray-12 w-full text-start"
+                      "font-medium text-[13px] leading-[24px] text-gray-12 w-full text-start",
                     )}
                   >
                     {item.label}
@@ -138,10 +130,7 @@ export const NavigableDialog = <TStepName extends string>({
           <div className="flex-1 min-w-0 overflow-y-auto">
             <DefaultDialogContentArea className={cn(contentClassName)}>
               {items.map((item) => (
-                <div
-                  key={item.id}
-                  className={cn("w-full", item.id !== activeId && "hidden")}
-                >
+                <div key={item.id} className={cn("w-full", item.id !== activeId && "hidden")}>
                   {item.content}
                 </div>
               ))}

@@ -1,9 +1,4 @@
 "use client";
-import { FormInput } from "@unkey/ui";
-import { Controller, useFormContext, useWatch } from "react-hook-form";
-import { useState, useEffect } from "react";
-import type { LimitFormValues } from "../schema";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -11,7 +6,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { ChartPie, CircleInfo } from "@unkey/icons";
+import { FormInput } from "@unkey/ui";
+import { useEffect, useState } from "react";
+import { Controller, useFormContext, useWatch } from "react-hook-form";
+import type { LimitFormValues } from "../schema";
 
 export const UsageSetup = () => {
   const {
@@ -25,9 +25,9 @@ export const UsageSetup = () => {
   // Store the last used values in component state
   const [lastRemaining, setLastRemaining] = useState<number | null>(null);
   const [lastRefillAmount, setLastRefillAmount] = useState<number | null>(null);
-  const [lastRefillInterval, setLastRefillInterval] = useState<
-    "none" | "daily" | "monthly"
-  >("none");
+  const [lastRefillInterval, setLastRefillInterval] = useState<"none" | "daily" | "monthly">(
+    "none",
+  );
   const [lastRefillDay, setLastRefillDay] = useState<number | null>(null);
 
   const limitEnabled = useWatch({
@@ -106,10 +106,7 @@ export const UsageSetup = () => {
 
       if (lastRefillDay && lastRefillInterval === "monthly") {
         setValue("limit.refill.refillDay", lastRefillDay);
-      } else if (
-        lastRefillInterval === "monthly" &&
-        !getValues("limit.refill.refillDay")
-      ) {
+      } else if (lastRefillInterval === "monthly" && !getValues("limit.refill.refillDay")) {
         setValue("limit.refill.refillDay", 1);
       }
     } else {
@@ -146,8 +143,8 @@ export const UsageSetup = () => {
             <div className="text-sm font-medium text-gray-12">Limited Use</div>
           </div>
           <div className="text-gray-9 text-xs">
-            Turn on to limit how many times this key can be used. Once the limit
-            is reached, the key will be disabled.
+            Turn on to limit how many times this key can be used. Once the limit is reached, the key
+            will be disabled.
           </div>
         </div>
         <Switch
@@ -185,15 +182,11 @@ export const UsageSetup = () => {
         name="limit.refill.interval"
         render={({ field }) => (
           <div className="space-y-1.5">
-            <div className="text-gray-11 text-[13px] flex items-center">
-              Refill Rate
-            </div>
+            <div className="text-gray-11 text-[13px] flex items-center">Refill Rate</div>
             <Select
               onValueChange={(value) => {
                 field.onChange(value);
-                handleRefillIntervalChange(
-                  value as "none" | "daily" | "monthly"
-                );
+                handleRefillIntervalChange(value as "none" | "daily" | "monthly");
               }}
               value={field.value || "none"}
               disabled={!limitEnabled}
