@@ -49,6 +49,7 @@ export * from "./icons/gear";
 export * from "./icons/grid";
 export * from "./icons/input-search";
 export * from "./icons/key";
+export * from "./icons/key-2";
 export * from "./icons/laptop-2";
 export * from "./icons/layers-2";
 export * from "./icons/layers-3";
