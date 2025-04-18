@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { ChartPie, CircleInfo } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
-import type { LimitFormValues } from "../schema";
+import type { CreditsFormValues } from "../schema";
 
 export const UsageSetup = () => {
   const {
@@ -18,7 +18,7 @@ export const UsageSetup = () => {
     formState: { errors },
     control,
     setValue,
-  } = useFormContext<LimitFormValues>();
+  } = useFormContext<CreditsFormValues>();
 
   const limitEnabled = useWatch({
     control,

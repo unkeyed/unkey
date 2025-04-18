@@ -1,18 +1,18 @@
 import {
   type FormValues,
+  creditsSchema,
   expirationSchema,
   generalSchema,
-  limitSchema,
   metadataSchema,
   ratelimitSchema,
 } from "./schema";
+import type { ProcessedFormData, SectionName } from "./types";
 
 /**
  * Processes form data to create the final API payload
  */
 export const processFormData = (data: FormValues) => {
-  const processedData: Record<string, any> = {
-    // Include the base fields
+  const processedData: ProcessedFormData = {
     prefix: data.prefix || null,
     bytes: data.bytes,
     ownerId: data.ownerId?.trim() || null,
@@ -98,10 +98,27 @@ export const getDefaultValues = (): Partial<FormValues> => {
   };
 };
 
+export const isFeatureEnabled = (sectionId: SectionName, values: FormValues): boolean => {
+  switch (sectionId) {
+    case "metadata":
+      return values.metadata?.enabled || false;
+    case "ratelimit":
+      return values.ratelimit?.enabled || false;
+    case "credits":
+      return values.limit?.enabled || false;
+    case "expiration":
+      return values.expiration?.enabled || false;
+    case "general":
+      return true;
+    default:
+      return false;
+  }
+};
+
 export const sectionSchemaMap = {
   general: generalSchema,
   ratelimit: ratelimitSchema,
-  credits: limitSchema,
+  credits: creditsSchema,
   expiration: expirationSchema,
   metadata: metadataSchema,
 };

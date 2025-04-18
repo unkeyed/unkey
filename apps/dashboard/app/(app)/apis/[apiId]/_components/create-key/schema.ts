@@ -80,7 +80,7 @@ export const refillSchema = z.object({
     .optional(),
 });
 
-export const limitSchema = z.object({
+export const creditsSchema = z.object({
   limit: z
     .object({
       enabled: z.boolean().default(false),
@@ -150,7 +150,7 @@ export const formSchema = z
   .object({
     ...generalSchema.shape,
     ...metadataSchema.shape,
-    ...limitSchema.shape,
+    ...creditsSchema.shape,
     ...ratelimitSchema.shape,
     ...expirationSchema.shape,
   })
@@ -232,6 +232,6 @@ export const formSchema = z
 
 export type FormValues = z.infer<typeof formSchema>;
 export type RatelimitFormValues = Pick<FormValues, "ratelimit">;
-export type LimitFormValues = Pick<FormValues, "limit">;
+export type CreditsFormValues = Pick<FormValues, "limit">;
 export type MetadataFormValues = Pick<FormValues, "metadata">;
 export type ExpirationFormValues = Pick<FormValues, "expiration">;

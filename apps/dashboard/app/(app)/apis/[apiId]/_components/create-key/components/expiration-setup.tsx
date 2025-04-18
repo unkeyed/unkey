@@ -182,7 +182,7 @@ export const ExpirationSetup = () => {
               readOnly
               disabled={!expirationEnabled}
               value={formatExpiryDate(field.value)}
-              className="cursor-pointer"
+              className="cursor-pointer w-full"
               variant={isExpiringVerySoon ? "warning" : undefined}
               error={errors.expiration?.data?.message}
             />

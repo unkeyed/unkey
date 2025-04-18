@@ -1,35 +1,37 @@
 "use client";
 import { type NavItem, NavigableDialog } from "@/components/dialog-container/navigable-dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarClock, ChartPie, Check, Code, Gauge, Key2, XMark } from "@unkey/icons";
+import { CalendarClock, ChartPie, Code, Gauge, Key2 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+import { UsageSetup } from "./components/credits-setup";
 import { ExpirationSetup } from "./components/expiration-setup";
 import { GeneralSetup } from "./components/general-setup";
 import { MetadataSetup } from "./components/metadata-setup";
 import { RatelimitSetup } from "./components/ratelimit-setup";
-import { UsageSetup } from "./components/usage-setup";
+import { SectionLabel } from "./components/section-label";
 import {
   getDefaultValues,
   getFieldsFromSchema,
+  isFeatureEnabled,
   processFormData,
   sectionSchemaMap,
 } from "./form-utils";
 import { type FormValues, formSchema } from "./schema";
+import type { SectionName, SectionState } from "./types";
 
-type SectionName = "general" | "ratelimit" | "credits" | "expiration" | "metadata";
+const DEFAULT_STEP_STATES: Record<SectionName, SectionState> = {
+  general: "initial",
+  metadata: "initial",
+  expiration: "initial",
+  ratelimit: "initial",
+  credits: "initial",
+};
 
 export const CreateKeyDialog = () => {
-  const [validSteps, setValidSteps] = useState<
-    Record<SectionName, boolean | "initial" | "valid" | "invalid">
-  >({
-    general: "initial",
-    metadata: "initial",
-    expiration: "initial",
-    ratelimit: "initial",
-    credits: "initial",
-  });
+  const [validSteps, setValidSteps] =
+    useState<Record<SectionName, SectionState>>(DEFAULT_STEP_STATES);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const methods = useForm<FormValues>({
@@ -44,31 +46,7 @@ export const CreateKeyDialog = () => {
     processFormData(data);
     methods.reset(getDefaultValues());
     setIsSettingsOpen(false);
-    setValidSteps({
-      general: "initial",
-      metadata: "initial",
-      expiration: "initial",
-      ratelimit: "initial",
-      credits: "initial",
-    });
-  };
-
-  const isFeatureEnabled = (sectionId: SectionName): boolean => {
-    const values = methods.getValues();
-    switch (sectionId) {
-      case "metadata":
-        return values.metadata?.enabled || false;
-      case "ratelimit":
-        return values.ratelimit?.enabled || false;
-      case "credits":
-        return values.limit?.enabled || false;
-      case "expiration":
-        return values.expiration?.enabled || false;
-      case "general":
-        return true;
-      default:
-        return false;
-    }
+    setValidSteps(DEFAULT_STEP_STATES);
   };
 
   const handleSectionNavigation = async (fromId: SectionName) => {
@@ -78,7 +56,7 @@ export const CreateKeyDialog = () => {
     }
 
     // Skip validation if the feature is not enabled
-    if (fromId !== "general" && !isFeatureEnabled(fromId)) {
+    if (fromId !== "general" && !isFeatureEnabled(fromId, methods.getValues())) {
       setValidSteps((prevState) => ({
         ...prevState,
         [fromId]: "initial",
@@ -108,70 +86,31 @@ export const CreateKeyDialog = () => {
   const settingsNavItems: NavItem<SectionName>[] = [
     {
       id: "general",
-      label: (
-        <div className="w-full justify-between flex items-center">
-          General Setup{" "}
-          {validSteps.general === "initial" ? null : validSteps.general === "valid" ? (
-            <div className="text-success-9 ml-auto">
-              <Check className="text-success-9 " size="md-regular" />
-            </div>
-          ) : (
-            <div className="text-success-9 ml-auto">
-              <XMark className="text-error-9 " size="md-regular" />
-            </div>
-          )}
-        </div>
-      ),
+      label: <SectionLabel label="General Setup" validState={validSteps.general} />,
       icon: Key2,
       content: <GeneralSetup />,
     },
     {
       id: "ratelimit",
-      label: (
-        <div className="w-full justify-between flex items-center">
-          Ratelimit
-          {validSteps.ratelimit === "initial" ? null : validSteps.ratelimit === "valid" ? (
-            <div className="text-success-9 ml-auto">
-              <Check className="text-success-9 " size="md-regular" />
-            </div>
-          ) : (
-            <div className="text-success-9 ml-auto">
-              <XMark className="text-error-9 " size="md-regular" />
-            </div>
-          )}
-        </div>
-      ),
+      label: <SectionLabel label="Ratelimit" validState={validSteps.ratelimit} />,
       icon: Gauge,
       content: <RatelimitSetup />,
     },
     {
       id: "credits",
-      label: (
-        <div className="w-full justify-between flex items-center">
-          Credits
-          {validSteps.credits === "initial" ? null : validSteps.credits === "valid" ? (
-            <div className="text-success-9 ml-auto">
-              <Check className="text-success-9 " size="md-regular" />
-            </div>
-          ) : (
-            <div className="text-success-9 ml-auto">
-              <XMark className="text-error-9 " size="md-regular" />
-            </div>
-          )}
-        </div>
-      ),
+      label: <SectionLabel label="Credits" validState={validSteps.credits} />,
       icon: ChartPie,
       content: <UsageSetup />,
     },
     {
       id: "expiration",
-      label: "Expiration",
+      label: <SectionLabel label="Expiration" validState={validSteps.expiration} />,
       icon: CalendarClock,
       content: <ExpirationSetup />,
     },
     {
       id: "metadata",
-      label: "Metadata",
+      label: <SectionLabel label="Metadata" validState={validSteps.metadata} />,
       icon: Code,
       content: <MetadataSetup />,
     },
