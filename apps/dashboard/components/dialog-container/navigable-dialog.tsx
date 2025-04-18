@@ -1,22 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import type { IconProps } from "@unkey/icons/src/props";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import type { ReactNode } from "react";
-import {
-  DefaultDialogContentArea,
-  DefaultDialogFooter,
-  DefaultDialogHeader,
-} from "./dialog-parts";
+import { useState } from "react";
+import type { FC, ReactNode } from "react";
+import { DefaultDialogContentArea, DefaultDialogFooter, DefaultDialogHeader } from "./dialog-parts";
 
-// Define the structure for a navigation item (same as before)
 export type NavItem = {
   id: string;
   label: string;
-  icon?: React.ElementType<{ size?: string | number; className?: string }>;
-  content: ReactNode; // The content component/JSX for this item
+  icon?: FC<IconProps>;
+  content: ReactNode;
 };
 
 type NavigableDialogProps = {
@@ -29,7 +25,7 @@ type NavigableDialogProps = {
   initialSelectedId?: string;
   dialogClassName?: string;
   navClassName?: string;
-  contentClassName?: string; // Applied to DefaultDialogContentArea
+  contentClassName?: string;
   preventAutoFocus?: boolean;
   navWidthClass?: string;
 };
@@ -48,9 +44,7 @@ export const NavigableDialog = ({
   preventAutoFocus = true,
   navWidthClass = "w-[220px]",
 }: NavigableDialogProps) => {
-  const [activeId, setActiveId] = useState<string | undefined>(
-    initialSelectedId ?? items[0]?.id
-  );
+  const [activeId, setActiveId] = useState<string | undefined>(initialSelectedId ?? items[0]?.id);
 
   // No longer finding just the activeItem here for rendering content
 
@@ -59,7 +53,7 @@ export const NavigableDialog = ({
       <DialogContent
         className={cn(
           "drop-shadow-2xl border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0",
-          dialogClassName
+          dialogClassName,
         )}
         onOpenAutoFocus={(e) => {
           if (preventAutoFocus) {
@@ -70,13 +64,12 @@ export const NavigableDialog = ({
         <DefaultDialogHeader title={title} subTitle={subTitle} />
 
         <div className="flex overflow-hidden">
-          {/* Left Navigation Pane (Same as before) */}
           <div
             className={cn(
               "border-r border-grayA-4 bg-white dark:bg-black p-6 flex flex-col items-start justify-start gap-3",
               "flex-shrink-0",
               navWidthClass,
-              navClassName
+              navClassName,
             )}
           >
             {items.map((item) => {
@@ -85,18 +78,21 @@ export const NavigableDialog = ({
               return (
                 <Button
                   key={item.id}
-                  variant={isActive ? "primary" : "ghost"}
+                  variant={isActive ? "outline" : "ghost"}
                   className={cn(
-                    "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start",
-                    isActive ? "bg-accent-2 dark:bg-grayA-3" : ""
+                    "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0",
+                    isActive ? "bg-grayA-2 focus:border-grayA-6" : "border border-transparent",
                   )}
                   size="md"
                   onClick={() => setActiveId(item.id)} // Only updates the activeId state
                 >
                   {IconComponent && (
-                    <IconComponent size={16} className="mr-2 text-gray-11" />
+                    <IconComponent
+                      size="sm-regular"
+                      className={cn(isActive ? "text-gray-12" : "text-gray-9")}
+                    />
                   )}
-                  <span className="font-medium text-[13px] leading-[24px] text-gray-12">
+                  <span className={cn("font-medium text-[13px] leading-[24px] text-gray-12")}>
                     {item.label}
                   </span>
                 </Button>
@@ -107,18 +103,13 @@ export const NavigableDialog = ({
           {/* Right Content Pane Wrapper */}
           <div className="flex-1 min-w-0 overflow-y-auto">
             {" "}
-            {/* Added overflow-y-auto */}
-            {/* DefaultDialogContentArea wraps the whole switchable area */}
             <DefaultDialogContentArea className={cn(contentClassName)}>
-              {/* Render ALL item contents, hide inactive ones with CSS */}
               {items.map((item) => (
                 <div
                   key={item.id}
                   className={cn(
-                    // Basic styling for the container if needed
                     "w-full",
-                    // Hide the div if its item is not the active one
-                    item.id !== activeId && "hidden" // "hidden" applies `display: none`
+                    item.id !== activeId && "hidden", // "hidden" applies `display: none`
                   )}
                 >
                   {item.content}
@@ -133,6 +124,3 @@ export const NavigableDialog = ({
     </Dialog>
   );
 };
-
-// Export the parts if needed from here too
-export { DefaultDialogContentArea, DefaultDialogFooter, DefaultDialogHeader };

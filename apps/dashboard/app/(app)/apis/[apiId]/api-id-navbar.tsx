@@ -1,11 +1,11 @@
 "use client";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
 import { ChevronExpandY, Gauge } from "@unkey/icons";
+import { CreateKeyDialog } from "./_components/create-key";
 
 export const ApisNavbar = ({
   api,
@@ -86,13 +86,13 @@ export const ApisNavbar = ({
           <Badge
             key="namespaceId"
             variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture rounded-lg h-7"
           >
             {api.id}
             <CopyButton value={api.id} />
           </Badge>
 
-          <CreateKeyButton apiId={api.id} keyAuthId={api.keyAuthId!} />
+          <CreateKeyDialog />
         </Navbar.Actions>
       </Navbar>
     </>

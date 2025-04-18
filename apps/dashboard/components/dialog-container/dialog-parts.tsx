@@ -14,21 +14,13 @@ type DefaultDialogHeaderProps = {
   className?: string;
 };
 
-export const DefaultDialogHeader = ({
-  title,
-  subTitle,
-  className,
-}: DefaultDialogHeaderProps) => {
+export const DefaultDialogHeader = ({ title, subTitle, className }: DefaultDialogHeaderProps) => {
   return (
-    <ShadcnDialogHeader
-      className={cn("border-b border-gray-4 bg-white dark:bg-black", className)}
-    >
+    <ShadcnDialogHeader className={cn("border-b border-gray-4 bg-white dark:bg-black", className)}>
       <ShadcnDialogTitle className="px-6 py-4 text-gray-12 font-medium text-base flex flex-col">
         <span className="leading-[32px]">{title}</span>
         {subTitle && ( // Conditionally render subtitle span only if it exists
-          <span className="text-gray-9 leading-[20px] text-[13px] font-normal">
-            {subTitle}
-          </span>
+          <span className="text-gray-9 leading-[20px] text-[13px] font-normal">{subTitle}</span>
         )}
       </ShadcnDialogTitle>
     </ShadcnDialogHeader>
@@ -44,12 +36,7 @@ export const DefaultDialogContentArea = ({
   className,
 }: DefaultDialogContentAreaProps) => {
   return (
-    <div
-      className={cn(
-        "bg-grayA-2 flex flex-col gap-4 py-4 px-6 text-gray-11",
-        className
-      )}
-    >
+    <div className={cn("bg-grayA-2 flex flex-col gap-4 py-4 px-6 text-gray-11", className)}>
       {children}
     </div>
   );
@@ -59,16 +46,10 @@ type DefaultDialogFooterProps = PropsWithChildren<{
   className?: string;
 }>;
 
-export const DefaultDialogFooter = ({
-  children,
-  className,
-}: DefaultDialogFooterProps) => {
+export const DefaultDialogFooter = ({ children, className }: DefaultDialogFooterProps) => {
   return (
     <ShadcnDialogFooter
-      className={cn(
-        "p-6 border-t border-grayA-4 bg-white dark:bg-black text-gray-9",
-        className
-      )}
+      className={cn("p-6 border-t border-grayA-4 bg-white dark:bg-black text-gray-9", className)}
     >
       {children}
     </ShadcnDialogFooter>

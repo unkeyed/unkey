@@ -2,11 +2,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { PropsWithChildren, ReactNode } from "react";
-import {
-  DefaultDialogHeader,
-  DefaultDialogContentArea,
-  DefaultDialogFooter,
-} from "./dialog-parts";
+import { DefaultDialogContentArea, DefaultDialogFooter, DefaultDialogHeader } from "./dialog-parts";
 
 type DialogContainerProps = PropsWithChildren<{
   className?: string;
@@ -35,7 +31,7 @@ export const DialogContainer = ({
       <DialogContent
         className={cn(
           "drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0",
-          className
+          className,
         )}
         onOpenAutoFocus={(e) => {
           if (preventAutoFocus) {
@@ -45,9 +41,7 @@ export const DialogContainer = ({
       >
         <DefaultDialogHeader title={title} subTitle={subTitle} />
 
-        <DefaultDialogContentArea className={contentClassName}>
-          {children}
-        </DefaultDialogContentArea>
+        <DefaultDialogContentArea className={contentClassName}>{children}</DefaultDialogContentArea>
 
         {footer && <DefaultDialogFooter>{footer}</DefaultDialogFooter>}
       </DialogContent>
