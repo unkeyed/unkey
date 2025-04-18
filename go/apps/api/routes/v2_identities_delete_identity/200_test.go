@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -54,8 +53,6 @@ func newIdentity(t *testing.T, h *testutil.Harness, numberOfRatelimits int) Iden
 		require.NoError(t, err)
 		ratelimitIds = append(ratelimitIds, rateLimitID)
 	}
-
-	log.Printf("Created identity with %d rate limits", len(ratelimitIds))
 
 	return Identity{
 		ID:           identityID,
