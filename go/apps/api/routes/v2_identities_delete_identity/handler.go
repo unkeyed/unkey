@@ -47,16 +47,26 @@ func New(svc Services) zen.Route {
 			)
 		}
 
+		checks := []rbac.PermissionQuery{
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   "*",
+				Action:       rbac.DeleteIdentity,
+			}),
+		}
+
+		if req.IdentityId != nil {
+			checks = append(checks, rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   *req.IdentityId,
+				Action:       rbac.DeleteIdentity,
+			}))
+		}
+
 		permissions, err := svc.Permissions.Check(
 			ctx,
 			auth.KeyID,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Identity,
-					ResourceID:   "*",
-					Action:       rbac.DeleteIdentity,
-				}),
-			),
+			rbac.Or(checks...),
 		)
 		if err != nil {
 			return fault.Wrap(err,
