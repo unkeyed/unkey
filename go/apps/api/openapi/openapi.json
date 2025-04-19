@@ -532,6 +532,7 @@
           "name": {
             "description": "The name of this limit. You will need to use this again when verifying a key.",
             "type": "string",
+            "example": "api",
             "minLength": 3,
             "maxLength": 128
           },
