@@ -2,6 +2,7 @@
 
 import { revalidateTag } from "@/app/actions";
 import { SettingCard } from "@/components/settings-card";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
@@ -88,7 +89,7 @@ export const SettingsClient = ({ namespace }: Props) => {
                 </Button>
               </div>
             </SettingCard>
-
+            <Separator className="bg-gray-4" orientation="horizontal" />
             <SettingCard
               title="Namespace ID"
               description="An identifier for the namespace, used in some API calls."
