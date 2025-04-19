@@ -92,7 +92,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	// Create a resource with common attributes
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
-			semconv.ServiceNamespace(config.Application),
+			semconv.ServiceNamespace("unkey"),
 			semconv.ServiceName(config.Application),
 			semconv.ServiceVersion(config.Version),
 			semconv.ServiceInstanceID(config.InstanceID),
