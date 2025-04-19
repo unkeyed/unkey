@@ -10,6 +10,7 @@ import (
 	v2RatelimitSetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 
 	v2IdentitiesCreateIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
+	v2IdentitiesDeleteIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_delete_identity"
 
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -95,6 +96,18 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2IdentitiesCreateIdentity.New(v2IdentitiesCreateIdentity.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
+		}),
+	)
+
+	// v2/identities.deleteIdentity
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2IdentitiesDeleteIdentity.New(v2IdentitiesDeleteIdentity.Services{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,

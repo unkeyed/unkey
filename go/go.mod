@@ -10,6 +10,7 @@ require (
 	github.com/lmittmann/tint v1.0.7
 	github.com/maypok86/otter v1.2.4
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
+	github.com/oapi-codegen/runtime v1.1.1
 	github.com/ory/dockertest/v3 v3.11.0
 	github.com/pb33f/libopenapi v0.21.8
 	github.com/pb33f/libopenapi-validator v0.4.0
@@ -44,6 +45,7 @@ require (
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect

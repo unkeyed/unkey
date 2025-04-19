@@ -5,11 +5,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_create_api"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_delete_identity"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestCreateApi_Unauthorized(t *testing.T) {
+func TestDeleteIdentityUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -29,10 +31,7 @@ func TestCreateApi_Unauthorized(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		req := handler.Request{
-			Name: "test-api",
-		}
-
+		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 	})
