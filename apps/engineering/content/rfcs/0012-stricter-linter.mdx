@@ -1,0 +1,525 @@
+---
+title: 0012 Stricter Linter
+description: Adding more strict lint rules to minimize issues in our codebase.
+date: 2025-04-16
+authors:
+  - Oguzhan Olguncu
+---
+
+## Summary
+
+Our current linter rules are a bit loose, allowing us to make mistakes like using `as any`, non-null assertions (`shouldntBeNull!`), and redundant conditionals (`true ? true : false`).
+Although we are careful when reviewing PRs, these things can still slip through. Therefore, we need to introduce a few more rules to make our configuration stricter.
+
+## Motivation
+
+To improve code predictability and maintainability using stricter, automated lint rules. This will also make PR reviews more efficient by automatically catching issues like `as any`, saving developers from repeatedly providing the same feedback manually.
+
+## Solution
+
+To achieve the goals, we need some new rules. Warnings will highlight potential issues without blocking commits initially, allowing for gradual adoption.
+
+```json
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        "noSvgWithoutTitle": "off",
+        "useSemanticElements": "warn",
+        "useFocusableInteractive": "warn"
+      },
+      "correctness": {
+        "noUnusedVariables": "error",
+        "useExhaustiveDependencies": "warn",
+        "noUnusedImports": "warn",
+        "noChildrenProp": "off",
+        "useJsxKeyInIterable": "warn",
+        "noUnsafeOptionalChaining": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn" // -> Changed from "off" to "warn"
+      },
+      "style": {
+        "useConst": "warn",
+        "useBlockStatements": "error", // -> "Old"
+        "noNonNullAssertion": "warn",
+        "noUselessElse": "warn",
+        "useImportType": "warn",
+        "useFragmentSyntax": "warn",
+        "useDefaultSwitchClause": "warn",
+        "useAsConstAssertion": "warn",
+        "useTemplate": "warn",
+        "useNamingConvention": "warn",
+        "noYodaExpression": "warn",
+        "noUnusedTemplateLiteral": "warn",
+        "noNegationElse": "warn",
+        "useSelfClosingElements": "warn",
+        "useShorthandAssign": "warn"
+      },
+      "performance": {
+        "noDelete": "off" // -> "Old"
+      },
+      "suspicious": {
+        "recommended": true,
+        "noDoubleEquals": "warn",
+        "useIsArray": "warn",
+        "useAwait": "warn",
+        "noFallthroughSwitchClause": "warn",
+        "noExplicitAny": "warn",
+        "noConsoleLog": "warn"
+      },
+      "complexity": {
+        "noForEach": "off", // -> "Old"
+        "noUselessTernary": "warn",
+        "noUselessTypeConstraint": "warn",
+        "useSimplifiedLogicExpression": "warn",
+        "noUselessStringConcat": "warn",
+        "useOptionalChain": "warn",
+        "useDateNow": "warn",
+        "noExtraBooleanCast": "warn"
+      }
+    }
+  }
+```
+
+### Accessibility Rules (Making Web Content Usable for Everyone)
+
+* **`useSemanticElements`** (`warn`)
+    * **Why:** Enforces the use of HTML elements that convey meaning (like `<nav>`, `<article>`, `<button>`) over generic `<div>` or `<span>` elements for accessibility and SEO benefits. Screen readers and other assistive technologies rely on semantic markup.
+    * **Problematic Example:**
+        ```jsx
+        <div onClick={handleClick}>Click Me</div> // Is it a button? A link?
+        ```
+    * **Preferred:**
+        ```jsx
+        <button onClick={handleClick}>Click Me</button> // Clear semantic meaning
+        // or if navigating:
+        <a href="/path" onClick={handleNav}>Click Me</a>
+        ```
+    * **Docs:** [Biome: useSemanticElements](https://biomejs.dev/linter/rules/use-semantic-elements/)
+* **`useFocusableInteractive`** (`warn`)
+    * **Why:** Ensures that interactive elements that are focusable (can receive keyboard focus) are accessible via keyboard navigation. Elements with click handlers should generally be focusable or contained within focusable elements.
+    * **Problematic Example:**
+        ```jsx
+        <div onClick={doSomething} tabIndex={-1}>Action</div> // Interactive but not easily keyboard accessible
+        ```
+    * **Preferred:** Use inherently focusable elements like `<button>` or ensure custom interactive elements have appropriate `tabIndex` (usually `0`) and ARIA roles if needed.
+        ```jsx
+        <button onClick={doSomething}>Action</button>
+        // Or for custom elements (simplified):
+        <div onClick={doSomething} tabIndex={0} role="button">Action</div>
+        ```
+    * **Docs:** [Biome: useFocusableInteractive](https://biomejs.dev/linter/rules/use-focusable-interactive/)
+
+### Correctness Rules (Avoiding Errors & Improving Reliability)
+
+* **`noUnusedVariables`** (`error`)
+    * **Why:** Prevents declaring variables that are never used, which clutters the code and can sometimes indicate incomplete logic or typos.
+    * **Problematic Example:**
+        ```typescript
+        function greet(name: string) {
+          const message = "Hello"; // Unused variable
+          return `Hi ${name}`;
+        }
+        ```
+    * **Preferred:** Remove the unused variable.
+        ```typescript
+        function greet(name: string) {
+          return `Hi ${name}`;
+        }
+        ```
+    * **Docs:** [Biome: noUnusedVariables](https://biomejs.dev/linter/rules/no-unused-variables/)
+* **`useExhaustiveDependencies`** (`warn`)
+    * **Why:** Specifically for React's Hooks (`useEffect`, `useCallback`, etc.), this rule checks that all variables from the surrounding scope used inside the hook are included in the dependency array. Missing dependencies can lead to stale closures and unexpected behavior.
+    * **Problematic Example:**
+        ```jsx
+        function Counter({ step }) {
+          const [count, setCount] = useState(0);
+          useEffect(() => {
+            const id = setInterval(() => {
+              setCount(c => c + step); // Uses 'step' but not listed below
+            }, 1000);
+            return () => clearInterval(id);
+          }, []); // Missing 'step'
+        }
+        ```
+    * **Preferred:** Include all dependencies identified by the linter.
+        ```jsx
+        // ...
+          useEffect(() => {
+            const id = setInterval(() => {
+              setCount(c => c + step);
+            }, 1000);
+            return () => clearInterval(id);
+          }, [step]); // Added 'step'
+        // ...
+        ```
+    * **Docs:** [Biome: useExhaustiveDependencies](https://biomejs.dev/linter/rules/use-exhaustive-dependencies/)
+* **`noUnusedImports`** (`warn`)
+    * **Why:** Flags imported variables, types, or modules that are not used anywhere in the file. This keeps the import list clean and avoids unnecessary dependencies.
+    * **Problematic Example:**
+        ```typescript
+        import { useState, useEffect } from 'react'; // useEffect is not used
+        function MyComponent() {
+          const [value, setValue] = useState(0);
+          return <div>{value}</div>;
+        }
+        ```
+    * **Preferred:** Remove the unused import.
+        ```typescript
+        import { useState } from 'react'; // Removed useEffect
+        // ...
+        ```
+    * **Docs:** [Biome: noUnusedImports](https://biomejs.dev/linter/rules/no-unused-imports/)
+* **`useJsxKeyInIterable`** (`warn`)
+    * **Why:** Requires a unique `key` prop when rendering lists of elements in JSX using iterators like `map`. React uses these keys to efficiently update the list and maintain component state.
+    * **Problematic Example:**
+        ```jsx
+        <ul>
+          {items.map(item => <li>{item.name}</li>)} {/* Missing key prop */}
+        </ul>
+        ```
+    * **Preferred:** Add a unique and stable `key` to the outermost element returned by the map.
+        ```jsx
+        <ul>
+          {items.map(item => <li key={item.id}>{item.name}</li>)} {/* Added key */}
+        </ul>
+        ```
+    * **Docs:** [Biome: useJsxKeyInIterable](https://biomejs.dev/linter/rules/use-jsx-key-in-iterable/)
+* **`noUnsafeOptionalChaining`** (`warn`)
+    * **Why:** Prevents optional chaining (`?.`) in contexts where it doesn't provide safety, such as arithmetic operations or assignments, where a `null` or `undefined` result would likely cause a runtime error anyway.
+    * **Problematic Example:**
+        ```typescript
+        const length = data?.array?.length * 2; // TypeError if data?.array is null/undefined
+        let count = 0;
+        count += obj?.value; // TypeError if obj?.value is null/undefined
+        ```
+    * **Preferred:** Use nullish coalescing (`??`) or explicit checks to handle potential `null`/`undefined` before the operation.
+        ```typescript
+        const length = (data?.array?.length ?? 0) * 2;
+        let count = 0;
+        count += obj?.value ?? 0;
+        ```
+    * **Docs:** [Biome: noUnsafeOptionalChaining](https://biomejs.dev/linter/rules/no-unsafe-optional-chaining/)
+
+### Security Rules
+
+* **`noDangerouslySetInnerHtml`** (`warn`)
+    * **Why:** Prevents the use of `dangerouslySetInnerHTML` in JSX, which can expose your application to cross-site scripting (XSS) attacks if the injected HTML comes from user input.
+    * **Problematic Example:**
+        ```jsx
+        <div dangerouslySetInnerHTML={{ __html: untrustedHtml }} />
+        ```
+    * **Preferred:** Use safer methods to render dynamic content, like directly rendering text or using libraries that sanitize HTML.
+    * **Docs:** [Biome: noDangerouslySetInnerHtml](https://biomejs.dev/linter/rules/no-dangerously-set-inner-html/)
+
+### Style Rules (Code Consistency & Readability)
+
+* **`useConst`** (`warn`)
+    * **Why:** Encourages using `const` for variables that are never reassigned after their initial declaration. This improves readability by signaling the variable's immutability.
+    * **Problematic Example:**
+        ```javascript
+        let userId = fetchUserId(); // userId is never reassigned
+        console.log(userId);
+        ```
+    * **Preferred:**
+        ```javascript
+        const userId = fetchUserId();
+        console.log(userId);
+        ```
+    * **Docs:** [Biome: useConst](https://biomejs.dev/linter/rules/use-const/)
+* **`noNonNullAssertion`** (`warn`)
+    * **Why:** Discourages the use of the non-null assertion operator (`!`), which tells TypeScript a value is not `null` or `undefined` without actual checks. Overuse can hide potential runtime errors. This relates to the `shouldntBeNull!` example mentioned earlier.
+    * **Problematic Example:**
+        ```typescript
+        const name = user!.name; // Assumes user is not null/undefined
+        ```
+    * **Preferred:** Use type guards, default values, or optional chaining (`user?.name`).
+    * **Docs:** [Biome: noNonNullAssertion](https://biomejs.dev/linter/rules/no-non-null-assertion/)
+* **`noUselessElse`** (`warn`)
+    * **Why:** Prevents `else` blocks when the `if` block contains a `return`, `throw`, `continue`, or `break` statement, making the code less nested and easier to read.
+    * **Problematic Example:**
+        ```typescript
+        if (condition) { return value1; } else { return value2; }
+        ```
+    * **Preferred:**
+        ```typescript
+        if (condition) { return value1; } return value2;
+        ```
+    * **Docs:** [Biome: noUselessElse](https://biomejs.dev/linter/rules/no-useless-else/)
+* **`useImportType`** (`warn`)
+    * **Why:** Encourages using `import type` for importing only types. This clearly signals intent and can sometimes help build tools optimize imports.
+    * **Problematic Example:**
+        ```typescript
+        import { User, getUser } from "./user";
+        ```
+    * **Preferred:**
+        ```typescript
+        import type { User } from "./user";
+        import { getUser } from "./user";
+        ```
+    * **Docs:** [Biome: useImportType](https://biomejs.dev/linter/rules/use-import-type/)
+* **`useFragmentSyntax`** (`warn`)
+    * **Why:** Promotes the shorter `<>` syntax for React Fragments over `<React.Fragment>`.
+    * **Problematic Example:**
+        ```jsx
+        <React.Fragment><td>...</td></React.Fragment>
+        ```
+    * **Preferred:**
+        ```jsx
+        <><td>...</td></>
+        ```
+    * **Docs:** [Biome: useFragmentSyntax](https://biomejs.dev/linter/rules/use-fragment-syntax/)
+* **`useDefaultSwitchClause`** (`warn`)
+    * **Why:** Enforces that `switch` statements have a `default` case, preventing potential errors if an unexpected value is encountered.
+    * **Problematic Example:**
+        ```typescript
+        switch (status) { case "PENDING": handlePending(); break; }
+        ```
+    * **Preferred:**
+        ```typescript
+        switch (status) {
+          case "PENDING":
+            handlePending();
+            break;
+          default:
+            handleDefault(); // Or throw error
+            break;
+        }
+        ```
+    * **Docs:** [Biome: useDefaultSwitchClause](https://biomejs.dev/linter/rules/use-default-switch-clause/)
+* **`useAsConstAssertion`** (`warn`)
+    * **Why:** Suggests using `as const` assertions for object and array literals when you want their properties/elements to be treated as specific literal types rather than general types (e.g., `string` instead of `"ACTIVE"`).
+    * **Problematic Example:**
+        ```typescript
+        const config = { theme: 'dark', version: 1 }; // Type: { theme: string, version: number }
+        ```
+    * **Preferred:**
+        ```typescript
+        const config = { theme: 'dark', version: 1 } as const; // Type: { readonly theme: 'dark', readonly version: 1 }
+        ```
+    * **Docs:** [Biome: useAsConstAssertion](https://biomejs.dev/linter/rules/use-as-const-assertion/)
+* **`useTemplate`** (`warn`)
+    * **Why:** Prefers template literals (backticks `` ` ``) over string concatenation (`+`) for readability when embedding expressions.
+    * **Problematic Example:**
+        ```javascript
+        const message = 'User ' + userId + ' logged in.';
+        ```
+    * **Preferred:**
+        ```javascript
+        const message = `User ${userId} logged in.`;
+        ```
+    * **Docs:** [Biome: useTemplate](https://biomejs.dev/linter/rules/use-template/)
+* **`useNamingConvention`** (`warn`)
+    * **Why:** Enforces consistent naming conventions (e.g., camelCase for variables, PascalCase for classes/types) across the codebase, improving readability. Configuration might be needed to match team style.
+    * **Problematic Example (depends on config):**
+        ```typescript
+        const user_id = 1; class my_class {}
+        ```
+    * **Preferred (typical JS/TS):**
+        ```typescript
+        const userId = 1; class MyClass {}
+        ```
+    * **Docs:** [Biome: useNamingConvention](https://biomejs.dev/linter/rules/use-naming-convention/)
+* **`noYodaExpression`** (`warn`)
+    * **Why:** Prevents "Yoda" conditions where the literal/constant comes before the variable (e.g., `if (5 === count)`). These can be less intuitive to read.
+    * **Problematic Example:**
+        ```javascript
+        if (null == value) { /* ... */ }
+        ```
+    * **Preferred:**
+        ```javascript
+        if (value == null) { /* ... */ }
+        ```
+    * **Docs:** [Biome: noYodaExpression](https://biomejs.dev/linter/rules/no-yoda-expression/)
+* **`noUnusedTemplateLiteral`** (`warn`)
+    * **Why:** Flags template literals that don't contain any expressions, as regular string literals are simpler.
+    * **Problematic Example:**
+        ```javascript
+        const greeting = `Hello World`;
+        ```
+    * **Preferred:**
+        ```javascript
+        const greeting = 'Hello World';
+        ```
+    * **Docs:** [Biome: noUnusedTemplateLiteral](https://biomejs.dev/linter/rules/no-unused-template-literal/)
+* **`noNegationElse`** (`warn`)
+    * **Why:** Suggests refactoring `if`/`else` statements where the `if` condition is negated, often improving readability by handling the positive case first.
+    * **Problematic Example:**
+        ```javascript
+        if (!isActive) { handleInactive(); } else { handleActive(); }
+        ```
+    * **Preferred:**
+        ```javascript
+        if (isActive) { handleActive(); } else { handleInactive(); }
+        ```
+    * **Docs:** [Biome: noNegationElse](https://biomejs.dev/linter/rules/no-negation-else/)
+* **`useSelfClosingElements`** (`warn`)
+    * **Why:** Requires using self-closing tags for JSX elements with no children.
+    * **Problematic Example:**
+        ```jsx
+        <Icon></Icon>
+        ```
+    * **Preferred:**
+        ```jsx
+        <Icon />
+        ```
+    * **Docs:** [Biome: useSelfClosingElements](https://biomejs.dev/linter/rules/use-self-closing-elements/)
+* **`useShorthandAssign`** (`warn`)
+    * **Why:** Encourages using shorthand assignment operators (`+=`, `-=`, `*=`, etc.) for brevity.
+    * **Problematic Example:**
+        ```javascript
+        count = count + 1;
+        ```
+    * **Preferred:**
+        ```javascript
+        count += 1;
+        ```
+    * **Docs:** [Biome: useShorthandAssign](https://biomejs.dev/linter/rules/use-shorthand-assign/)
+
+### Suspicious Rules (Potential Logic Errors)
+
+* **`noDoubleEquals`** (`warn`)
+    * **Why:** Discourages `==` and `!=` in favor of the type-safe `===` and `!==` to avoid unexpected type coercion issues.
+    * **Problematic Example:**
+        ```javascript
+        if (count == '0') { /* Might be true for count = 0 */ }
+        ```
+    * **Preferred:**
+        ```javascript
+        if (count === 0) { /* ... */ } // Or === '0' depending on intent
+        ```
+    * **Docs:** [Biome: noDoubleEquals](https://biomejs.dev/linter/rules/no-double-equals/)
+* **`useIsArray`** (`warn`)
+    * **Why:** Enforces the use of `Array.isArray()` to check for arrays instead of `instanceof Array`, which can fail across different JavaScript execution contexts (e.g., iframes).
+    * **Problematic Example:**
+        ```javascript
+        if (maybeArray instanceof Array) { /* ... */ }
+        ```
+    * **Preferred:**
+        ```javascript
+        if (Array.isArray(maybeArray)) { /* ... */ }
+        ```
+    * **Docs:** [Biome: useIsArray](https://biomejs.dev/linter/rules/use-is-array/)
+* **`useAwait`** (`warn`)
+    * **Why:** Flags `async` functions that don't use `await`, as the `async` keyword might be unnecessary or indicate a missed `await`.
+    * **Problematic Example:**
+        ```typescript
+        async function fetchData() { return syncOperation(); }
+        ```
+    * **Preferred:**
+        ```typescript
+        async function fetchData() { return await asyncOperation(); } // Or remove 'async' if not needed
+        ```
+    * **Docs:** [Biome: useAwait](https://biomejs.dev/linter/rules/use-await/)
+* **`noFallthroughSwitchClause`** (`warn`)
+    * **Why:** Prevents accidental fall-through in `switch` statements by requiring `break`, `return`, `throw`, or `continue` at the end of non-empty `case` blocks (unless explicitly commented `// biome-ignore lint/suspicious/noFallthroughSwitchClause: <explanation>`).
+    * **Problematic Example:**
+        ```javascript
+        switch(val) { case 1: doOne(); case 2: doTwo(); } // Falls through from 1 to 2
+        ```
+    * **Preferred:**
+        ```javascript
+        switch(val) { case 1: doOne(); break; case 2: doTwo(); break; }
+        ```
+    * **Docs:** [Biome: noFallthroughSwitchClause](https://biomejs.dev/linter/rules/no-fallthrough-switch-clause/)
+* **`noExplicitAny`** (`warn`)
+    * **Why:** Discourages the explicit use of `any` as a type, as it effectively disables TypeScript's type checking for that variable. This relates to the `as any` example mentioned earlier.
+    * **Problematic Example:**
+        ```typescript
+        let response: any;
+        ```
+    * **Preferred:** Use specific types, generics, or `unknown` (which requires type checking before use).
+    * **Docs:** [Biome: noExplicitAny](https://biomejs.dev/linter/rules/no-explicit-any/)
+* **`noConsoleLog`** (`warn`)
+    * **Why:** Flags `console.log` (and other `console` methods) to prevent debug statements from being accidentally committed to production code. Consider using a dedicated logger or removing logs before merging.
+    * **Problematic Example:**
+        ```javascript
+        console.log("Debugging value:", data);
+        ```
+    * **Preferred:** Remove the log or use a proper logging library.
+    * **Docs:** [Biome: noConsoleLog](https://biomejs.dev/linter/rules/no-console-log/)
+
+### Complexity Rules (Simplifying Code)
+
+* **`noUselessTernary`** (`warn`)
+    * **Why:** Prevents ternary operators that directly return boolean literals (`true`/`false`) based on a condition, as the condition itself can be used. This relates to the `true ? true : false` example.
+    * **Problematic Example:**
+        ```javascript
+        const isEnabled = value > 10 ? true : false;
+        ```
+    * **Preferred:**
+        ```javascript
+        const isEnabled = value > 10;
+        ```
+    * **Docs:** [Biome: noUselessTernary](https://biomejs.dev/linter/rules/no-useless-ternary/)
+* **`noUselessTypeConstraint`** (`warn`)
+    * **Why:** Flags redundant type constraints in generics like `T extends any` or `T extends unknown`, which provide no additional limitation.
+    * **Problematic Example:**
+        ```typescript
+        function process<T extends any>(data: T): T { /* ... */ }
+        ```
+    * **Preferred:**
+        ```typescript
+        function process<T>(data: T): T { /* ... */ }
+        ```
+    * **Docs:** [Biome: noUselessTypeConstraint](https://biomejs.dev/linter/rules/no-useless-type-constraint/)
+* **`useSimplifiedLogicExpression`** (`warn`)
+    * **Why:** Encourages simplifying boolean expressions, such as removing double negations (`!!`).
+    * **Problematic Example:**
+        ```javascript
+        const hasAccess = !!user.permissions;
+        ```
+    * **Preferred:**
+        ```javascript
+        const hasAccess = Boolean(user.permissions); // Or specific check
+        ```
+    * **Docs:** [Biome: useSimplifiedLogicExpression](https://biomejs.dev/linter/rules/use-simplified-logic-expression/)
+* **`noUselessStringConcat`** (`warn`)
+    * **Why:** Prevents concatenating two string literals, which should just be combined into a single literal.
+    * **Problematic Example:**
+        ```javascript
+        const path = '/api' + '/users';
+        ```
+    * **Preferred:**
+        ```javascript
+        const path = '/api/users';
+        ```
+    * **Docs:** [Biome: noUselessStringConcat](https://biomejs.dev/linter/rules/no-useless-string-concat/)
+* **`useOptionalChain`** (`warn`)
+    * **Why:** Promotes using the optional chaining operator (`?.`) instead of longer logical AND (`&&`) chains for accessing nested properties safely.
+    * **Problematic Example:**
+        ```javascript
+        const street = user && user.address && user.address.street;
+        ```
+    * **Preferred:**
+        ```javascript
+        const street = user?.address?.street;
+        ```
+    * **Docs:** [Biome: useOptionalChain](https://biomejs.dev/linter/rules/use-optional-chain/)
+* **`useDateNow`** (`warn`)
+    * **Why:** Suggests using `Date.now()` which is slightly more performant and concise than `new Date().getTime()` or `+new Date()` for getting a timestamp.
+    * **Problematic Example:**
+        ```javascript
+        const timestamp = new Date().getTime();
+        ```
+    * **Preferred:**
+        ```javascript
+        const timestamp = Date.now();
+        ```
+    * **Docs:** [Biome: useDateNow](https://biomejs.dev/linter/rules/use-date-now/)
+* **`noExtraBooleanCast`** (`warn`)
+    * **Why:** Prevents unnecessary boolean casts (using `Boolean()` or `!!`) in contexts where the value is already treated as a boolean (like `if` statements or logical operators).
+    * **Problematic Example:**
+        ```javascript
+        if (!!isValid) { /* ... */ }
+        ```
+    * **Preferred:**
+        ```javascript
+        if (isValid) { /* ... */ }
+        ```
+    * **Docs:** [Biome: noExtraBooleanCast](https://biomejs.dev/linter/rules/no-extra-boolean-cast/)
+
+---
+By enabling these rules, we aim to catch more potential errors and enforce stylistic consistency automatically.
