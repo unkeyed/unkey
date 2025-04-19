@@ -40,17 +40,29 @@ export const TimestampInfo = ({
   value,
   className,
   displayType = "local",
+  triggerRef: externalTriggerRef,
+  open,
+  onOpenChange,
 }: {
   className?: string;
   value: string | number;
   displayType?: DisplayType;
+  triggerRef?: React.RefObject<HTMLElement>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) => {
   const local = timestampLocalFormatter(value);
   const utc = timestampUtcFormatter(value);
   const relative = timestampRelativeFormatter(value);
   const [align, setAlign] = useState<"start" | "end">("start");
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const internalTriggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = externalTriggerRef || internalTriggerRef;
   const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use either controlled open state or internal state
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
 
   useEffect(() => {
     const updateAlignment = () => {
@@ -67,7 +79,7 @@ export const TimestampInfo = ({
       window.removeEventListener("scroll", updateAlignment);
       window.removeEventListener("resize", updateAlignment);
     };
-  }, []);
+  }, [triggerRef]);
 
   const getDisplayValue = () => {
     switch (displayType) {
@@ -104,10 +116,20 @@ export const TimestampInfo = ({
   };
 
   return (
-    <Tooltip>
-      <TooltipTrigger ref={triggerRef} className={cn("text-xs", className)}>
-        <span>{getDisplayValue()}</span>
-      </TooltipTrigger>
+    <Tooltip open={isOpen} onOpenChange={setIsOpen}>
+      {externalTriggerRef ? (
+        // If external trigger is provided, use a span and the external trigger
+        <>
+          <TooltipTrigger asChild>
+            <span className={cn("text-xs", className)}>{getDisplayValue()}</span>
+          </TooltipTrigger>
+        </>
+      ) : (
+        // Otherwise use the internal trigger ref for the button
+        <TooltipTrigger ref={internalTriggerRef} className={cn("text-xs", className)}>
+          <span>{getDisplayValue()}</span>
+        </TooltipTrigger>
+      )}
       <TooltipContent
         align={align}
         side="right"
