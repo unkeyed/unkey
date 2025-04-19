@@ -586,7 +586,7 @@
             "example": "id_123"
           }
         },
-        "anyOf": [
+        "oneOf": [
           {
             "required": ["externalId"]
           },
