@@ -1,4 +1,4 @@
-import { getAuth as noCacheGetAuth } from "@/lib/auth/get-auth";
+import { getAuth as baseGetAuth } from "@/lib/auth/get-auth";
 import { auth } from "@/lib/auth/server";
 import type { User } from "@/lib/auth/types";
 import { redirect } from "next/navigation";
@@ -7,6 +7,7 @@ import { cache } from "react";
 type GetAuthResult = {
   userId: string | null;
   orgId: string | null;
+  role: string | null;
 };
 
 export async function getIsImpersonator(): Promise<boolean> {
@@ -27,7 +28,7 @@ export async function getIsImpersonator(): Promise<boolean> {
  * @throws Redirects to sign-in or organization/workspace creation pages if requirements aren't met
  */
 export const getAuth = cache(async (_req?: Request): Promise<GetAuthResult> => {
-  const authResult = await noCacheGetAuth();
+  const authResult = await baseGetAuth();
   if (!authResult.userId) {
     redirect("/auth/sign-in");
   }
