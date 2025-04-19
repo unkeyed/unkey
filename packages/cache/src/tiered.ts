@@ -108,4 +108,28 @@ export class TieredStore<TNamespace extends string, TValue> implements Store<TNa
         ),
       );
   }
+
+  public async setMany(
+    namespace: TNamespace,
+    entries: Record<string, Entry<TValue>>,
+  ): Promise<Result<void, CacheError>> {
+    return Promise.all(this.tiers.map((t) => t.setMany(namespace, entries)))
+      .then(() => Ok())
+      .catch((err) =>
+        Err(
+          new CacheError({
+            key: "unknown",
+            tier: this.name,
+            message: (err as Error).message,
+          }),
+        ),
+      );
+  }
+
+  public async getMany(
+    namespace: TNamespace,
+    keys: string[],
+  ): Promise<Result<Record<string, Entry<TValue> | undefined>, CacheError>> {
+    return Ok();
+  }
 }
