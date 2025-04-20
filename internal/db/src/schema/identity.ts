@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, int, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, int, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -15,13 +15,15 @@ export const identities = mysqlTable(
     externalId: varchar("external_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     environment: varchar("environment", { length: 256 }).notNull().default("default"),
-    ...lifecycleDates,
     meta: json("meta").$type<Record<string, unknown>>(),
+    deleted: boolean("deleted").default(false),
+    ...lifecycleDates,
   },
   (table) => ({
-    uniqueExternalIdPerWorkspace: uniqueIndex("workspace_id_external_id_idx").on(
+    uniqueDeletedExternalIdPerWorkspace: uniqueIndex("workspace_id_external_id_deleted_idx").on(
       table.workspaceId,
       table.externalId,
+      table.deleted,
     ),
   }),
 );
