@@ -138,7 +138,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 	t.Run("create identity with ratelimits", func(t *testing.T) {
 		externalTestID := uid.New("test_external_id")
 
-		identityRateLimits := []openapi.V2Ratelimit{
+		identityRateLimits := []openapi.Ratelimit{
 			{
 				Duration: time.Minute.Milliseconds(),
 				Limit:    100,

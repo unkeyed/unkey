@@ -519,13 +519,13 @@
           "ratelimits": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/V2Ratelimit"
+              "$ref": "#/components/schemas/Ratelimit"
             },
             "description": "Attach ratelimits to this identity.\n\nWhen verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits."
           }
         }
       },
-      "V2Ratelimit": {
+      "Ratelimit": {
         "type": "object",
         "required": ["name", "limit", "duration"],
         "properties": {

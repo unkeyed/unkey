@@ -125,6 +125,18 @@ type PreconditionFailedErrorResponse struct {
 	Meta  Meta      `json:"meta"`
 }
 
+// Ratelimit defines model for Ratelimit.
+type Ratelimit struct {
+	// Duration The duration for each ratelimit window in milliseconds.
+	Duration int64 `json:"duration"`
+
+	// Limit How many requests may pass within a given window before requests are rejected.
+	Limit int64 `json:"limit"`
+
+	// Name The name of this limit. You will need to use this again when verifying a key.
+	Name string `json:"name"`
+}
+
 // RatelimitDeleteOverrideResponseData defines model for RatelimitDeleteOverrideResponseData.
 type RatelimitDeleteOverrideResponseData = map[string]interface{}
 
@@ -209,7 +221,7 @@ type V2IdentitiesCreateIdentityRequestBody struct {
 	// Ratelimits Attach ratelimits to this identity.
 	//
 	// When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits.
-	Ratelimits *[]V2Ratelimit `json:"ratelimits,omitempty"`
+	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
 }
 
 // V2IdentitiesCreateIdentityResponseBody defines model for V2IdentitiesCreateIdentityResponseBody.
@@ -244,18 +256,6 @@ type V2IdentitiesDeleteIdentityResponseBody = map[string]interface{}
 type V2LivenessResponseBody struct {
 	Data LivenessResponseData `json:"data"`
 	Meta Meta                 `json:"meta"`
-}
-
-// V2Ratelimit defines model for V2Ratelimit.
-type V2Ratelimit struct {
-	// Duration The duration for each ratelimit window in milliseconds.
-	Duration int64 `json:"duration"`
-
-	// Limit How many requests may pass within a given window before requests are rejected.
-	Limit int64 `json:"limit"`
-
-	// Name The name of this limit. You will need to use this again when verifying a key.
-	Name string `json:"name"`
 }
 
 // V2RatelimitDeleteOverrideRequestBody Deletes an existing override.
