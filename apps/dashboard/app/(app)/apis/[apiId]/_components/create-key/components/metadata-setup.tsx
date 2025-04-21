@@ -1,15 +1,15 @@
 "use client";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { Code } from "@unkey/icons";
 import { FormTextarea } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { FormValues } from "../schema";
+import { ProtectionSwitch } from "./protection-switch";
 
 export type MetadataFormValues = Pick<FormValues, "metadata">;
 
-const exampleJSON = {
+const EXAMPLE_JSON = {
   user: {
     id: "user_123456",
     role: "admin",
@@ -62,7 +62,7 @@ export const MetadataSetup = () => {
   };
 
   const loadExample = () => {
-    setValue("metadata.data", JSON.stringify(exampleJSON, null, 2));
+    setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
     trigger("metadata.data");
   };
 
@@ -77,40 +77,16 @@ export const MetadataSetup = () => {
 
   return (
     <div className="space-y-5 px-2 py-1">
-      <div className="flex flex-row py-5 pl-5 pr-[26px] gap-14 justify-between border rounded-xl border-grayA-5 bg-white dark:bg-black items-center">
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-3">
-            <div className="p-1.5 bg-grayA-3 rounded-md border border-grayA-3">
-              <Code className="text-gray-12" size="sm-regular" />
-            </div>
-            <div className="text-sm font-medium text-gray-12">Metadata</div>
-          </div>
-          <div className="text-gray-9 text-xs">
-            Add custom metadata to your API key as a JSON object. This metadata will be available
-            when verifying the key.
-          </div>
-        </div>
-        <Switch
-          checked={metadataEnabled}
-          onCheckedChange={handleSwitchChange}
-          className="
-            h-4 w-7
-            data-[state=checked]:bg-success-9
-            data-[state=checked]:ring-2
-            data-[state=checked]:ring-successA-5
-            data-[state=unchecked]:bg-gray-3
-            data-[state=unchecked]:ring-2
-            data-[state=unchecked]:ring-grayA-3
-            [&>span]:h-3.5 [&>span]:w-3.5
-          "
-          {...register("metadata.enabled")}
-        />
-      </div>
+      <ProtectionSwitch
+        description="Add custom metadata to your API key as a JSON object. This metadata will be available when verifying the key."
+        title="Metadata"
+        icon={<Code className="text-gray-12" size="sm-regular" />}
+        checked={metadataEnabled}
+        onCheckedChange={handleSwitchChange}
+        {...register("metadata.enabled")}
+      />
 
-      <div
-        className="space-y-2 h-fit transition-opacity duration-300"
-        style={{ opacity: metadataEnabled ? 1 : 0.5 }}
-      >
+      <div className="space-y-2 h-fit duration-300">
         <div className="flex justify-end mb-2">
           <Button
             size="sm"

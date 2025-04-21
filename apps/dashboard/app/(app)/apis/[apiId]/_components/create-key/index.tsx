@@ -1,16 +1,19 @@
 "use client";
-import { type NavItem, NavigableDialog } from "@/components/dialog-container/navigable-dialog";
+import {
+  NavigableDialogBody,
+  NavigableDialogContent,
+  NavigableDialogFooter,
+  NavigableDialogHeader,
+  NavigableDialogNav,
+  NavigableDialogRoot,
+} from "@/components/dialog-container/navigable-dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarClock, ChartPie, Code, Gauge, Key2 } from "@unkey/icons";
+import type { IconProps } from "@unkey/icons/src/props";
 import { Button } from "@unkey/ui";
-import { useState } from "react";
+import { type FC, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { UsageSetup } from "./components/credits-setup";
-import { ExpirationSetup } from "./components/expiration-setup";
-import { GeneralSetup } from "./components/general-setup";
-import { MetadataSetup } from "./components/metadata-setup";
-import { RatelimitSetup } from "./components/ratelimit-setup";
 import { SectionLabel } from "./components/section-label";
+import { DEFAULT_STEP_STATES, type DialogSectionName, SECTIONS } from "./constants";
 import {
   getDefaultValues,
   getFieldsFromSchema,
@@ -21,17 +24,9 @@ import {
 import { type FormValues, formSchema } from "./schema";
 import type { SectionName, SectionState } from "./types";
 
-const DEFAULT_STEP_STATES: Record<SectionName, SectionState> = {
-  general: "initial",
-  metadata: "initial",
-  expiration: "initial",
-  ratelimit: "initial",
-  credits: "initial",
-};
-
 export const CreateKeyDialog = () => {
   const [validSteps, setValidSteps] =
-    useState<Record<SectionName, SectionState>>(DEFAULT_STEP_STATES);
+    useState<Record<DialogSectionName, SectionState>>(DEFAULT_STEP_STATES);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const methods = useForm<FormValues>({
@@ -42,21 +37,23 @@ export const CreateKeyDialog = () => {
     defaultValues: getDefaultValues(),
   });
 
+  const { handleSubmit, formState, getValues, reset, trigger } = methods;
+
   const onSubmit = (data: FormValues) => {
     processFormData(data);
-    methods.reset(getDefaultValues());
+    reset(getDefaultValues());
     setIsSettingsOpen(false);
     setValidSteps(DEFAULT_STEP_STATES);
   };
 
-  const handleSectionNavigation = async (fromId: SectionName) => {
+  const handleSectionNavigation = async (fromId: DialogSectionName) => {
     // Skip validation for non-existent sections
-    if (!sectionSchemaMap[fromId]) {
+    if (!sectionSchemaMap[fromId as SectionName]) {
       return true;
     }
 
     // Skip validation if the feature is not enabled
-    if (fromId !== "general" && !isFeatureEnabled(fromId, methods.getValues())) {
+    if (fromId !== "general" && !isFeatureEnabled(fromId as SectionName, getValues())) {
       setValidSteps((prevState) => ({
         ...prevState,
         [fromId]: "initial",
@@ -65,7 +62,7 @@ export const CreateKeyDialog = () => {
     }
 
     // Get the schema for the section
-    const schema = sectionSchemaMap[fromId];
+    const schema = sectionSchemaMap[fromId as SectionName];
     // Get fields from the schema
     const fieldsToValidate = getFieldsFromSchema(schema);
     // Skip validation if no fields to validate
@@ -74,7 +71,7 @@ export const CreateKeyDialog = () => {
     }
 
     // Trigger validation for the fields
-    const result = await methods.trigger(fieldsToValidate as any);
+    const result = await trigger(fieldsToValidate as any);
     setValidSteps((prevState) => ({
       ...prevState,
       [fromId]: result ? "valid" : "invalid",
@@ -83,42 +80,42 @@ export const CreateKeyDialog = () => {
     return true;
   };
 
-  const settingsNavItems: NavItem<SectionName>[] = [
-    {
-      id: "general",
-      label: <SectionLabel label="General Setup" validState={validSteps.general} />,
-      icon: Key2,
-      content: <GeneralSetup />,
-    },
-    {
-      id: "ratelimit",
-      label: <SectionLabel label="Ratelimit" validState={validSteps.ratelimit} />,
-      icon: Gauge,
-      content: <RatelimitSetup />,
-    },
-    {
-      id: "credits",
-      label: <SectionLabel label="Credits" validState={validSteps.credits} />,
-      icon: ChartPie,
-      content: <UsageSetup />,
-    },
-    {
-      id: "expiration",
-      label: <SectionLabel label="Expiration" validState={validSteps.expiration} />,
-      icon: CalendarClock,
-      content: <ExpirationSetup />,
-    },
-    {
-      id: "metadata",
-      label: <SectionLabel label="Metadata" validState={validSteps.metadata} />,
-      icon: Code,
-      content: <MetadataSetup />,
-    },
-  ];
+  // Convert sections to nav items with section labels
+  const navItems = SECTIONS.map((section) => ({
+    id: section.id,
+    label: <SectionLabel label={section.label} validState={validSteps[section.id]} />,
+    icon: section.icon as FC<IconProps>,
+  }));
+
+  // Convert sections to content items
+  const contentItems = SECTIONS.map((section) => ({
+    id: section.id,
+    content: section.content(),
+  }));
 
   const handleOpenChange = (open: boolean) => {
     setIsSettingsOpen(open);
   };
+
+  const footerContent = (
+    <div className="flex justify-center items-center w-full">
+      <div className="flex flex-col items-center justify-center w-2/3 gap-2">
+        <Button
+          type="submit"
+          form="new-key-form"
+          variant="primary"
+          size="xlg"
+          className="w-full rounded-lg"
+          disabled={!formState.isValid}
+        >
+          Create new key
+        </Button>
+        <div className="text-xs text-gray-9">
+          This key will be created immediately and ready-to-use right away
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -126,36 +123,22 @@ export const CreateKeyDialog = () => {
         New Key
       </Button>
       <FormProvider {...methods}>
-        <form id="new-key-form" onSubmit={methods.handleSubmit(onSubmit)}>
-          <NavigableDialog
+        <form id="new-key-form" onSubmit={handleSubmit(onSubmit)}>
+          <NavigableDialogRoot
             isOpen={isSettingsOpen}
             onOpenChange={handleOpenChange}
-            title="New Key"
-            subTitle="Create a custom API key with your own settings"
-            items={settingsNavItems}
-            onNavigate={handleSectionNavigation}
-            footer={
-              <div className="flex justify-center items-center w-full">
-                <div className="flex flex-col items-center justify-center w-2/3 gap-2">
-                  <Button
-                    type="submit"
-                    form="new-key-form"
-                    variant="primary"
-                    size="xlg"
-                    className="w-full rounded-lg"
-                    disabled={!methods.formState.isValid}
-                  >
-                    Create new key
-                  </Button>
-                  <div className="text-xs text-gray-9">
-                    This key will be created immediately and ready-to-use right away
-                  </div>
-                </div>
-              </div>
-            }
-            contentClassName="min-h-[600px]"
-            dialogClassName="!min-w-[720px]"
-          />
+            dialogClassName="!min-w-[760px]"
+          >
+            <NavigableDialogHeader
+              title="New Key"
+              subTitle="Create a custom API key with your own settings"
+            />
+            <NavigableDialogBody>
+              <NavigableDialogNav items={navItems} onNavigate={handleSectionNavigation} />
+              <NavigableDialogContent items={contentItems} className="min-h-[600px]" />
+            </NavigableDialogBody>
+            <NavigableDialogFooter>{footerContent}</NavigableDialogFooter>
+          </NavigableDialogRoot>
         </form>
       </FormProvider>
     </>

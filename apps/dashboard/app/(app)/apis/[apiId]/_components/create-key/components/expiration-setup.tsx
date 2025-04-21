@@ -1,20 +1,12 @@
 "use client";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
-import { Switch } from "@/components/ui/switch";
 import { Clock } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { addDays, addMinutes, format } from "date-fns";
 import { useState } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { ExpirationFormValues } from "../schema";
-
-const ExpirationHeader = () => {
-  return (
-    <div className="flex justify-between w-full h-8 px-2">
-      <span className="text-gray-9 text-[13px] w-full">Choose expiration date</span>
-    </div>
-  );
-};
+import { ProtectionSwitch } from "./protection-switch";
 
 const EXPIRATION_OPTIONS = [
   {
@@ -135,34 +127,14 @@ export const ExpirationSetup = () => {
 
   return (
     <div className="space-y-5 px-2 py-1">
-      <div className="flex flex-row py-5 pl-5 pr-[26px] gap-14 justify-between border rounded-xl border-grayA-5 bg-white dark:bg-black items-center">
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-3">
-            <div className="p-1.5 bg-grayA-3 rounded-md border border-grayA-3">
-              <Clock className="text-gray-12" size="sm-regular" />
-            </div>
-            <div className="text-sm font-medium text-gray-12">Expiration</div>
-          </div>
-          <div className="text-gray-9 text-xs">
-            Turn on to set an expiration date. When reached, the key will be automatically disabled.
-          </div>
-        </div>
-        <Switch
-          checked={expirationEnabled}
-          onCheckedChange={handleSwitchChange}
-          className="
-            h-4 w-7
-            data-[state=checked]:bg-success-9
-            data-[state=checked]:ring-2
-            data-[state=checked]:ring-successA-5
-            data-[state=unchecked]:bg-gray-3
-            data-[state=unchecked]:ring-2
-            data-[state=unchecked]:ring-grayA-3
-            [&>span]:h-3.5 [&>span]:w-3.5
-          "
-          {...register("expiration.enabled")}
-        />
-      </div>
+      <ProtectionSwitch
+        description="Turn on to set an expiration date. When reached, the key will be automatically disabled."
+        title="Expiration"
+        icon={<Clock className="text-gray-12" size="sm-regular" />}
+        checked={expirationEnabled}
+        onCheckedChange={handleSwitchChange}
+        {...register("expiration.enabled")}
+      />
 
       <Controller
         control={control}
@@ -189,6 +161,14 @@ export const ExpirationSetup = () => {
           </DatetimePopover>
         )}
       />
+    </div>
+  );
+};
+
+const ExpirationHeader = () => {
+  return (
+    <div className="flex justify-between w-full h-8 px-2">
+      <span className="text-gray-9 text-[13px] w-full">Choose expiration date</span>
     </div>
   );
 };

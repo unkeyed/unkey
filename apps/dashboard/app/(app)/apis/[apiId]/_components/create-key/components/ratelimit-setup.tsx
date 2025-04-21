@@ -1,9 +1,9 @@
 "use client";
-import { Switch } from "@/components/ui/switch";
 import { Gauge } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { RatelimitFormValues } from "../schema";
+import { ProtectionSwitch } from "./protection-switch";
 
 export const RatelimitSetup = () => {
   const {
@@ -24,35 +24,15 @@ export const RatelimitSetup = () => {
 
   return (
     <div className="space-y-5 px-2 py-1">
-      <div className="flex flex-row py-5 pl-5 pr-[26px] gap-14 justify-between border rounded-xl border-grayA-5 bg-white dark:bg-black items-center">
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-3">
-            <div className="p-1.5 bg-grayA-3 rounded-md border border-grayA-3">
-              <Gauge className="text-gray-12" size="sm-regular" />
-            </div>
-            <div className="text-sm font-medium text-gray-12">Ratelimit</div>
-          </div>
-          <div className="text-gray-9 text-xs">
-            Turn on to restrict how frequently this key can be used. Requests beyond the limit will
-            be blocked.
-          </div>
-        </div>
-        <Switch
-          checked={ratelimitEnabled}
-          onCheckedChange={handleSwitchChange}
-          className="
-            h-4 w-7
-            data-[state=checked]:bg-success-9
-            data-[state=checked]:ring-2
-            data-[state=checked]:ring-successA-5
-            data-[state=unchecked]:bg-gray-3
-            data-[state=unchecked]:ring-2
-            data-[state=unchecked]:ring-grayA-3
-            [&>span]:h-3.5 [&>span]:w-3.5
-          "
-          {...register("ratelimit.enabled")}
-        />
-      </div>
+      <ProtectionSwitch
+        description="Turn on to restrict how frequently this key can be used. Requests
+            beyond the limit will be blocked."
+        title="Ratelimit"
+        icon={<Gauge className="text-gray-12" size="sm-regular" />}
+        checked={ratelimitEnabled}
+        onCheckedChange={handleSwitchChange}
+        {...register("ratelimit.enabled")}
+      />
       <FormInput
         className="[&_input:first-of-type]:h-[36px]"
         placeholder="10"

@@ -40,9 +40,7 @@ export const DialogContainer = ({
         }}
       >
         <DefaultDialogHeader title={title} subTitle={subTitle} />
-
         <DefaultDialogContentArea className={contentClassName}>{children}</DefaultDialogContentArea>
-
         {footer && <DefaultDialogFooter>{footer}</DefaultDialogFooter>}
       </DialogContent>
     </Dialog>

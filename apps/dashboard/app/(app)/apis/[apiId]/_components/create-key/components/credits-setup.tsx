@@ -6,11 +6,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { ChartPie, CircleInfo } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { CreditsFormValues } from "../schema";
+import { ProtectionSwitch } from "./protection-switch";
 
 export const UsageSetup = () => {
   const {
@@ -42,36 +42,15 @@ export const UsageSetup = () => {
 
   return (
     <div className="space-y-5 px-2 py-1">
-      <div className="flex flex-row py-5 pl-5 pr-[26px] gap-14 justify-between border rounded-xl border-grayA-5 bg-white dark:bg-black items-center">
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-3">
-            <div className="p-1.5 bg-grayA-3 rounded-md border border-grayA-3">
-              <ChartPie className="text-gray-12" size="sm-regular" />
-            </div>
-            <div className="text-sm font-medium text-gray-12">Limited Use</div>
-          </div>
-          <div className="text-gray-9 text-xs">
-            Turn on to limit how many times this key can be used. Once the limit is reached, the key
-            will be disabled.
-          </div>
-        </div>
-        <Switch
-          checked={limitEnabled}
-          onCheckedChange={handleSwitchChange}
-          className="
-            h-4 w-7
-            data-[state=checked]:bg-success-9
-            data-[state=checked]:ring-2
-            data-[state=checked]:ring-successA-5
-            data-[state=unchecked]:bg-gray-3
-            data-[state=unchecked]:ring-2
-            data-[state=unchecked]:ring-grayA-3
-            [&>span]:h-3.5 [&>span]:w-3.5
-          "
-          {...register("limit.enabled")}
-        />
-      </div>
-
+      <ProtectionSwitch
+        description="Turn on to limit how many times this key can be used. Once the limit
+            is reached, the key will be disabled."
+        title="Credits"
+        icon={<ChartPie className="text-gray-12" size="sm-regular" />}
+        checked={limitEnabled}
+        onCheckedChange={handleSwitchChange}
+        {...register("limit.enabled")}
+      />
       <FormInput
         className="[&_input:first-of-type]:h-[36px]"
         placeholder="100"
