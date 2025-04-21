@@ -23,7 +23,6 @@ export const UsageSetup = () => {
   const limitEnabled = useWatch({
     control,
     name: "limit.enabled",
-    defaultValue: false,
   });
 
   const currentRefillInterval = useWatch({

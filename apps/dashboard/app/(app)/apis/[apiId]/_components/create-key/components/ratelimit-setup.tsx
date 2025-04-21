@@ -16,8 +16,8 @@ export const RatelimitSetup = () => {
   const ratelimitEnabled = useWatch({
     control,
     name: "ratelimit.enabled",
-    defaultValue: false,
   });
+
   const handleSwitchChange = (checked: boolean) => {
     setValue("ratelimit.enabled", checked);
   };

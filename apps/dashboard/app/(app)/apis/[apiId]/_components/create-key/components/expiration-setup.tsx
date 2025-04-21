@@ -52,7 +52,6 @@ export const ExpirationSetup = () => {
   const expirationEnabled = useWatch({
     control,
     name: "expiration.enabled",
-    defaultValue: false,
   });
 
   const currentExpiryDate = useWatch({

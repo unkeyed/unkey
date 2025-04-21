@@ -36,7 +36,6 @@ export const MetadataSetup = () => {
   const metadataEnabled = useWatch({
     control,
     name: "metadata.enabled",
-    defaultValue: false,
   });
 
   const currentMetadata = useWatch({
