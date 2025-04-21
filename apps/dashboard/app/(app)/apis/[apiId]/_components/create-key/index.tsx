@@ -13,6 +13,7 @@ import { Button } from "@unkey/ui";
 import { type FC, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { toast } from "sonner";
+import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
 import { SectionLabel } from "./components/section-label";
 import { type DialogSectionName, SECTIONS } from "./constants";
 import { getDefaultValues, processFormData } from "./form-utils";
@@ -26,10 +27,18 @@ const FORM_STORAGE_KEY = "unkey_create_key_form_state";
 
 export const CreateKeyDialog = ({
   keyspaceId,
+  apiId,
 }: {
   keyspaceId: string | null;
+  apiId: string;
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [createdKeyData, setCreatedKeyData] = useState<{
+    key: string;
+    id: string;
+    name?: string;
+  } | null>(null);
 
   const methods = usePersistedForm<FormValues>(FORM_STORAGE_KEY, {
     resolver: zodResolver(formSchema),
@@ -57,7 +66,17 @@ export const CreateKeyDialog = ({
     getValues,
   );
 
-  const key = useCreateKey(() => {
+  const key = useCreateKey((data) => {
+    if (data?.key && data?.keyId) {
+      setCreatedKeyData({
+        key: data.key,
+        id: data.keyId,
+        name: data.name,
+      });
+      setSuccessDialogOpen(true);
+    }
+
+    // Clean up form state
     clearPersistedData();
     reset(getDefaultValues());
     setIsSettingsOpen(false);
@@ -94,6 +113,15 @@ export const CreateKeyDialog = ({
   const handleSectionNavigation = async (fromId: DialogSectionName) => {
     await validateSection(fromId);
     return true;
+  };
+
+  const handleSuccessDialogClose = () => {
+    setSuccessDialogOpen(false);
+    setCreatedKeyData(null);
+  };
+
+  const openNewKeyDialog = () => {
+    setIsSettingsOpen(true);
   };
 
   return (
@@ -152,6 +180,15 @@ export const CreateKeyDialog = ({
           </NavigableDialogRoot>
         </form>
       </FormProvider>
+
+      {/* Success Dialog */}
+      <KeyCreatedSuccessDialog
+        apiId={apiId}
+        isOpen={successDialogOpen}
+        onClose={handleSuccessDialogClose}
+        keyData={createdKeyData}
+        onCreateAnother={openNewKeyDialog}
+      />
     </>
   );
 };

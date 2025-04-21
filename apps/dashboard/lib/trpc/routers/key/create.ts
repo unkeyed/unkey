@@ -128,5 +128,5 @@ export const createKey = t.procedure
         });
       });
 
-    return { keyId, key };
+    return { keyId, key, name: input.name };
   });

@@ -92,7 +92,7 @@ export const ApisNavbar = ({
             <CopyButton value={api.id} />
           </Badge>
 
-          <CreateKeyDialog keyspaceId={api.keyAuthId} />
+          <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
         </Navbar.Actions>
       </Navbar>
     </>

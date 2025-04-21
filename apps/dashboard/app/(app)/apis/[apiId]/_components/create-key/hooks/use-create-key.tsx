@@ -1,7 +1,13 @@
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 
-export const useCreateKey = (onSuccess: () => void) => {
+export const useCreateKey = (
+  onSuccess: (data: {
+    keyId: `key_${string}`;
+    key: string;
+    name?: string;
+  }) => void,
+) => {
   const trpcUtils = trpc.useUtils();
   const key = trpc.key.create.useMutation({
     onSuccess(data) {
@@ -10,7 +16,7 @@ export const useCreateKey = (onSuccess: () => void) => {
         duration: 5000,
       });
       trpcUtils.api.keys.list.invalidate();
-      onSuccess();
+      onSuccess(data);
     },
     onError(err) {
       if (err.data?.code === "NOT_FOUND") {

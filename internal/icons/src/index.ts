@@ -1,6 +1,7 @@
 export * from "./icons/arrow-dot-anti-clockwise";
 export * from "./icons/arrow-dotted-rotate-anticlockwise";
 export * from "./icons/arrow-opposite-direction-y";
+export * from "./icons/arrow-right";
 export * from "./icons/ban";
 export * from "./icons/bars-filter";
 export * from "./icons/bolt";
@@ -44,6 +45,8 @@ export * from "./icons/clone";
 export * from "./icons/code";
 export * from "./icons/conversion";
 export * from "./icons/dots";
+export * from "./icons/eye-slash";
+export * from "./icons/eye";
 export * from "./icons/fingerprint";
 export * from "./icons/focus";
 export * from "./icons/folder-cloud";
