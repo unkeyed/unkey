@@ -5,7 +5,7 @@ import { type FieldValues, type UseFormProps, type UseFormReturn, useForm } from
 export type UsePersistedFormReturn<TFormValues extends FieldValues> = UseFormReturn<TFormValues> & {
   clearPersistedData: () => void;
   saveCurrentValues: () => void;
-  loadSavedValues: () => void;
+  loadSavedValues: () => Promise<boolean>;
 };
 
 /**
@@ -18,8 +18,7 @@ export function usePersistedForm<TFormValues extends Record<string, any>>(
   const methods = useForm<TFormValues>(formOptions);
   const { reset, getValues } = methods;
 
-  // Load saved form data
-  const loadSavedValues = useCallback(() => {
+  const loadSavedValues = useCallback(async () => {
     try {
       const savedState = sessionStorage.getItem(storageKey);
       if (savedState) {

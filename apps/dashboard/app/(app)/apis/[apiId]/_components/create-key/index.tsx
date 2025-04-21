@@ -52,12 +52,48 @@ export const CreateKeyDialog = () => {
     saveCurrentValues,
   } = methods;
 
-  // Load saved form state when dialog opens
+  // Load saved form state when dialog opens and validate all sections
   useEffect(() => {
     if (isSettingsOpen) {
-      loadSavedValues();
+      const loadAndValidate = async () => {
+        const loaded = await loadSavedValues();
+
+        if (loaded) {
+          // Validate all sections after loading
+          const newValidSteps = { ...DEFAULT_STEP_STATES };
+
+          for (const section of SECTIONS) {
+            // Skip validating non-existent sections
+            if (!sectionSchemaMap[section.id as SectionName]) {
+              continue;
+            }
+
+            // Skip validation if the feature is not enabled
+            if (
+              section.id !== "general" &&
+              !isFeatureEnabled(section.id as SectionName, getValues())
+            ) {
+              newValidSteps[section.id] = "initial";
+              continue;
+            }
+
+            // Get fields from the schema and validate
+            const schema = sectionSchemaMap[section.id as SectionName];
+            const fieldsToValidate = getFieldsFromSchema(schema);
+
+            if (fieldsToValidate.length > 0) {
+              const result = await trigger(fieldsToValidate as any);
+              newValidSteps[section.id] = result ? "valid" : "invalid";
+            }
+          }
+
+          setValidSteps(newValidSteps);
+        }
+      };
+
+      loadAndValidate();
     }
-  }, [isSettingsOpen, loadSavedValues]);
+  }, [isSettingsOpen, loadSavedValues, trigger, getValues]);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
