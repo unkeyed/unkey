@@ -13,11 +13,11 @@ import type { ProcessedFormData, SectionName } from "./types";
  */
 export const processFormData = (data: FormValues) => {
   const processedData: ProcessedFormData = {
-    prefix: data.prefix || null,
+    prefix: data.prefix || undefined,
     bytes: data.bytes,
-    ownerId: data.ownerId?.trim() || null,
-    name: data.name?.trim() || null,
-    environment: data.environment || null,
+    ownerId: data.ownerId?.trim() || undefined,
+    name: data.name?.trim() || undefined,
+    environment: data.environment || undefined,
   };
 
   // Only include enabled features

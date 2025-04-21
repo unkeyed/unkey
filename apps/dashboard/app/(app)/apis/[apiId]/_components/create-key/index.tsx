@@ -12,6 +12,7 @@ import type { IconProps } from "@unkey/icons/src/props";
 import { Button } from "@unkey/ui";
 import { type FC, useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
+import { toast } from "sonner";
 import { SectionLabel } from "./components/section-label";
 import { DEFAULT_STEP_STATES, type DialogSectionName, SECTIONS } from "./constants";
 import {
@@ -21,6 +22,7 @@ import {
   processFormData,
   sectionSchemaMap,
 } from "./form-utils";
+import { useCreateKey } from "./hooks/use-create-key";
 import { usePersistedForm } from "./hooks/use-persisted-form";
 import { type FormValues, formSchema } from "./schema";
 import type { SectionName, SectionState } from "./types";
@@ -28,7 +30,11 @@ import type { SectionName, SectionState } from "./types";
 // Storage key for saving form state
 const FORM_STORAGE_KEY = "unkey_create_key_form_state";
 
-export const CreateKeyDialog = () => {
+export const CreateKeyDialog = ({
+  keyspaceId,
+}: {
+  keyspaceId: string | null;
+}) => {
   const [validSteps, setValidSteps] =
     useState<Record<DialogSectionName, SectionState>>(DEFAULT_STEP_STATES);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -51,6 +57,13 @@ export const CreateKeyDialog = () => {
     loadSavedValues,
     saveCurrentValues,
   } = methods;
+
+  const key = useCreateKey(() => {
+    clearPersistedData();
+    reset(getDefaultValues());
+    setIsSettingsOpen(false);
+    setValidSteps(DEFAULT_STEP_STATES);
+  });
 
   // Load saved form state when dialog opens and validate all sections
   useEffect(() => {
@@ -103,12 +116,24 @@ export const CreateKeyDialog = () => {
     setIsSettingsOpen(open);
   };
 
-  const onSubmit = (data: FormValues) => {
-    processFormData(data);
-    clearPersistedData();
-    reset(getDefaultValues());
-    setIsSettingsOpen(false);
-    setValidSteps(DEFAULT_STEP_STATES);
+  const onSubmit = async (data: FormValues) => {
+    const finalData = processFormData(data);
+    if (!keyspaceId) {
+      toast.error("Failed to Create Key", {
+        description: "An unexpected error occurred. Please try again later.",
+        action: {
+          label: "Contact Support",
+          onClick: () => window.open("https://support.unkey.dev", "_blank"),
+        },
+      });
+      return;
+    }
+
+    await key.mutateAsync({
+      keyAuthId: keyspaceId,
+      enabled: true,
+      ...finalData,
+    });
   };
 
   const handleSectionNavigation = async (fromId: DialogSectionName) => {
@@ -188,6 +213,7 @@ export const CreateKeyDialog = () => {
                     size="xlg"
                     className="w-full rounded-lg"
                     disabled={!formState.isValid}
+                    loading={key.isLoading}
                   >
                     Create new key
                   </Button>

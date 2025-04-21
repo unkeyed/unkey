@@ -1,9 +1,9 @@
 export type ProcessedFormData = {
-  prefix: string | null;
+  prefix: string | undefined;
   bytes: number;
-  ownerId: string | null;
-  name: string | null;
-  environment: string | null;
+  ownerId: string | undefined;
+  name: string | undefined;
+  environment: string | undefined;
   metaEnabled?: boolean;
   meta?: Record<string, unknown>;
   limitEnabled?: boolean;
