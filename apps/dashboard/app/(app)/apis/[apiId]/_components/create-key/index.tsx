@@ -10,22 +10,16 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { IconProps } from "@unkey/icons/src/props";
 import { Button } from "@unkey/ui";
-import { type FC, useEffect, useState } from "react";
+import { type FC, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { toast } from "sonner";
 import { SectionLabel } from "./components/section-label";
-import { DEFAULT_STEP_STATES, type DialogSectionName, SECTIONS } from "./constants";
-import {
-  getDefaultValues,
-  getFieldsFromSchema,
-  isFeatureEnabled,
-  processFormData,
-  sectionSchemaMap,
-} from "./form-utils";
+import { type DialogSectionName, SECTIONS } from "./constants";
+import { getDefaultValues, processFormData } from "./form-utils";
 import { useCreateKey } from "./hooks/use-create-key";
 import { usePersistedForm } from "./hooks/use-persisted-form";
+import { useValidateSteps } from "./hooks/use-validate-steps";
 import { type FormValues, formSchema } from "./schema";
-import type { SectionName, SectionState } from "./types";
 
 // Storage key for saving form state
 const FORM_STORAGE_KEY = "unkey_create_key_form_state";
@@ -35,8 +29,6 @@ export const CreateKeyDialog = ({
 }: {
   keyspaceId: string | null;
 }) => {
-  const [validSteps, setValidSteps] =
-    useState<Record<DialogSectionName, SectionState>>(DEFAULT_STEP_STATES);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const methods = usePersistedForm<FormValues>(FORM_STORAGE_KEY, {
@@ -58,59 +50,22 @@ export const CreateKeyDialog = ({
     saveCurrentValues,
   } = methods;
 
+  const { validSteps, validateSection, resetValidSteps } = useValidateSteps(
+    isSettingsOpen,
+    loadSavedValues,
+    trigger,
+    getValues,
+  );
+
   const key = useCreateKey(() => {
     clearPersistedData();
     reset(getDefaultValues());
     setIsSettingsOpen(false);
-    setValidSteps(DEFAULT_STEP_STATES);
+    resetValidSteps();
   });
-
-  // Load saved form state when dialog opens and validate all sections
-  useEffect(() => {
-    if (isSettingsOpen) {
-      const loadAndValidate = async () => {
-        const loaded = await loadSavedValues();
-
-        if (loaded) {
-          // Validate all sections after loading
-          const newValidSteps = { ...DEFAULT_STEP_STATES };
-
-          for (const section of SECTIONS) {
-            // Skip validating non-existent sections
-            if (!sectionSchemaMap[section.id as SectionName]) {
-              continue;
-            }
-
-            // Skip validation if the feature is not enabled
-            if (
-              section.id !== "general" &&
-              !isFeatureEnabled(section.id as SectionName, getValues())
-            ) {
-              newValidSteps[section.id] = "initial";
-              continue;
-            }
-
-            // Get fields from the schema and validate
-            const schema = sectionSchemaMap[section.id as SectionName];
-            const fieldsToValidate = getFieldsFromSchema(schema);
-
-            if (fieldsToValidate.length > 0) {
-              const result = await trigger(fieldsToValidate as any);
-              newValidSteps[section.id] = result ? "valid" : "invalid";
-            }
-          }
-
-          setValidSteps(newValidSteps);
-        }
-      };
-
-      loadAndValidate();
-    }
-  }, [isSettingsOpen, loadSavedValues, trigger, getValues]);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      // Dialog closing - save current state
       saveCurrentValues();
     }
     setIsSettingsOpen(open);
@@ -137,36 +92,7 @@ export const CreateKeyDialog = ({
   };
 
   const handleSectionNavigation = async (fromId: DialogSectionName) => {
-    // Skip validation for non-existent sections
-    if (!sectionSchemaMap[fromId as SectionName]) {
-      return true;
-    }
-
-    // Skip validation if the feature is not enabled
-    if (fromId !== "general" && !isFeatureEnabled(fromId as SectionName, getValues())) {
-      setValidSteps((prevState) => ({
-        ...prevState,
-        [fromId]: "initial",
-      }));
-      return true;
-    }
-
-    // Get the schema for the section
-    const schema = sectionSchemaMap[fromId as SectionName];
-    // Get fields from the schema
-    const fieldsToValidate = getFieldsFromSchema(schema);
-    // Skip validation if no fields to validate
-    if (fieldsToValidate.length === 0) {
-      return true;
-    }
-
-    // Trigger validation for the fields
-    const result = await trigger(fieldsToValidate as any);
-    setValidSteps((prevState) => ({
-      ...prevState,
-      [fromId]: result ? "valid" : "invalid",
-    }));
-    // Always allow navigation
+    await validateSection(fromId);
     return true;
   };
 
