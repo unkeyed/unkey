@@ -140,12 +140,26 @@ export const FilterCheckbox = <
         } else if (selectionMode === "multiple") {
           handleSelectAll();
         }
+        return;
       }
 
       // Use the handleKeyDown from the hook for other keyboard navigation
       handleKeyDown(event, index);
     },
     [handleCheckboxClick, handleSelectAll, handleKeyDown, selectionMode],
+  );
+
+  //Handle click event
+  const handleClickEvent = useCallback(
+    (event: React.MouseEvent<HTMLLabelElement>, index?: number) => {
+      event.preventDefault();
+      if (index !== undefined) {
+        handleCheckboxClick(index);
+      } else if (selectionMode === "multiple") {
+        handleSelectAll();
+      }
+    },
+    [handleCheckboxClick, handleSelectAll, selectionMode],
   );
 
   // Handle applying the filter
@@ -204,12 +218,12 @@ export const FilterCheckbox = <
               role="checkbox"
               aria-checked={checkboxes.every((checkbox) => checkbox.checked)}
               onKeyDown={handleKeyboardEvent}
+              onClick={handleClickEvent}
               tabIndex={0}
             >
               <Checkbox
                 checked={checkboxes.every((checkbox) => checkbox.checked)}
                 className="size-4 rounded border-gray-4 [&_svg]:size-3"
-                onClick={handleSelectAll}
               />
               <span className="text-xs text-accent-12">
                 {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
@@ -227,12 +241,12 @@ export const FilterCheckbox = <
             role="checkbox"
             aria-checked={checkbox.checked}
             onKeyDown={(e) => handleKeyboardEvent(e, index)}
+            onClick={(e) => handleClickEvent(e, index)}
             tabIndex={0}
           >
             <Checkbox
               checked={checkbox.checked}
               className="size-4 rounded border-gray-4 [&_svg]:size-3"
-              onClick={() => handleCheckboxClick(index)}
             />
             {renderOptionContent ? renderOptionContent(checkbox) : null}
           </label>
