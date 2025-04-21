@@ -63,6 +63,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const containerRef = useRef<HTMLDivElement>(null);
     const isMobile = useMediaQuery("(min-width: 768px)");
 
+    const hasPadding = config.containerPadding !== "px-0";
+
     const fixedHeight = useTableHeight(containerRef);
     const tableData = useTableData<TTableData>(realtimeData, historicData);
 
@@ -151,7 +153,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
             <thead className="sticky top-0 z-10">
               <tr>
                 <th colSpan={columns.length} className="p-0">
-                  <div className="absolute inset-x-[-8px] top-0 bottom-[0px] bg-gray-1" />
+                  <div
+                    className={cn(
+                      "absolute top-0 bottom-0 bg-gray-1",
+                      hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                    )}
+                  />
                 </th>
               </tr>
               <tr>
@@ -170,7 +177,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               <tr>
                 <th colSpan={columns.length} className="p-0">
                   <div className="relative w-full">
-                    <div className="absolute inset-x-[-8px] border-t border-gray-4" />
+                    <div
+                      className={cn(
+                        "absolute border-t border-gray-4",
+                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                      )}
+                    />
                   </div>
                 </th>
               </tr>

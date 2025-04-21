@@ -43,10 +43,11 @@ var (
 	//   defer timer.ObserveDuration()
 	HTTPRequestLatency = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Subsystem: "http",
-			Name:      "request_latency_seconds",
-			Help:      "Histogram of HTTP request latencies in seconds.",
-			Buckets:   latencyBuckets,
+			Subsystem:   "http",
+			Name:        "request_latency_seconds",
+			Help:        "Histogram of HTTP request latencies in seconds.",
+			Buckets:     latencyBuckets,
+			ConstLabels: constLabels,
 		},
 		[]string{"method", "path", "status"},
 	)
@@ -58,9 +59,10 @@ var (
 	//   metrics.HTTPRequestTotal.WithLabelValues("GET", "/users", "200").Inc()
 	HTTPRequestTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Subsystem: "http",
-			Name:      "requests_total",
-			Help:      "Total number of HTTP requests processed.",
+			Subsystem:   "http",
+			Name:        "requests_total",
+			Help:        "Total number of HTTP requests processed.",
+			ConstLabels: constLabels,
 		},
 		[]string{"method", "path", "status"},
 	)
