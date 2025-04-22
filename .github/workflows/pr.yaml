@@ -13,12 +13,10 @@ concurrency:
 
 jobs:
   detect_changes:
-    needs: [wait_for_autofix]
     uses: ./.github/workflows/job_detect_changes.yaml
 
   test_packages:
     name: Test Packages
-    needs: [wait_for_autofix]
     uses: ./.github/workflows/job_test_unit.yaml
 
   build:
@@ -62,6 +60,6 @@ jobs:
 
   test_go_api_local:
     name: Test Go API Local
-    if: needs.detect_changes.outputs.agent == 'true'
+    if: needs.detect_changes.outputs.api == 'true'
     needs: [detect_changes]
     uses: ./.github/workflows/job_test_go_api_local.yaml
