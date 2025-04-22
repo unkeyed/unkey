@@ -99,10 +99,21 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
         </div>
       }
       description={
-        <div className="font-normal text-[13px] max-w-[380px]">
-          Permanently deletes this API, including all keys and data. This action is locked by the{" "}
-          <span className="font-medium text-accent-12">Delete Protection</span> feature.
-        </div>
+        api.deleteProtection ? (
+          <div className="font-normal text-[13px] max-w-[380px]">
+            Permanently deletes this API, including all keys and data. This action is locked by the{" "}
+            <span className="font-medium text-accent-12">Delete Protection</span> feature.
+          </div>
+        ) : (
+          <div className="font-normal text-[13px] max-w-[380px]">
+            <div className="font-normal text-[13px] max-w-[380px]">
+              <div className="font-normal text-[13px] max-w-[380px]">
+                Permanently deletes this API, including all keys and data. This action cannot be
+                undone.
+              </div>
+            </div>
+          </div>
+        )
       }
       border="bottom"
       contentWidth="w-full lg:w-[320px]"
@@ -121,7 +132,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
             </Button>
           </div>
         </AlertDialogTrigger>
-        <AlertDialogContent className="w-[480px] border border-grayA-4 bg-[#FAFAFC] shadow-lg m-0 p-0 sm:rounded-2xl">
+        <AlertDialogContent className="w-[480px] border border-grayA-4 bg-gray-1 shadow-lg m-0 p-0 sm:rounded-2xl">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <AlertDialogTitle>

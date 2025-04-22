@@ -149,9 +149,10 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                   render={({ field }) => (
                     <FormItem>
                       <div className="text-[13px] font-normal leading-6 text-gray-11 pr-2 tracking-wide">
-                        <span className="font-medium text-pretty">Important:</span> Enabling this
-                        prevents the API from being deleted by any non-admin team member. This
-                        setting can be disabled at any time.
+                        <span className="font-medium text-pretty">Important: </span>
+                        {api.deleteProtection
+                          ? "Enabling this prevents the API from being deleted. This setting can be disabled at any time."
+                          : "Disabling this allows API deletion. This setting can be enabled at any time."}
                       </div>
                       <div className="pt-2 text-sm font-normal leading-6 text-gray-11">
                         Type <span className="font-medium text-gray-12">{api.name}</span> name to
