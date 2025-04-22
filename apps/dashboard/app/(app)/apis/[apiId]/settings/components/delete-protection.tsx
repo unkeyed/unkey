@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TriangleWarning2, XMark } from "@unkey/icons";
+import { ArrowUpRight, TriangleWarning2, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -151,8 +151,18 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                         {api.deleteProtection
                           ? "Enabling this prevents the API from being deleted. This setting can be disabled at any time."
                           : "Disabling this allows API deletion. This setting can be enabled at any time."}
+                        <a href="https://www.unkey.com/docs/security/delete-protection">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="py-3 gap-1 font-medium text-accent-12 leading-4 text-[13px]"
+                          >
+                            Learn more <ArrowUpRight size="lg-thin" className="text-accent-9" />
+                          </Button>
+                        </a>
                       </div>
-                      <div className="pt-8 text-sm font-normal leading-6 text-gray-11">
+
+                      <div className="pt-6 text-sm font-normal leading-6 text-gray-11">
                         Type <span className="font-medium text-gray-12">{api.name}</span> name to
                         confirm
                       </div>
