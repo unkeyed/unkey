@@ -8,9 +8,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  detect_changes:
-    uses: ./.github/workflows/job_detect_changes.yaml
-
   agent_local_test:
     uses: ./.github/workflows/test_agent_local.yaml
 
@@ -31,12 +28,9 @@ jobs:
 
   api_local_test:
     name: Test API
-    if: needs.detect_changes.outputs.api == 'true'
-    needs: [detect_changes]
     uses: ./.github/workflows/job_test_api_local.yaml
 
   api_preview_deployment:
-    if: needs.detect_changes.outputs.api == 'true'
     needs:
       - api_local_test
     uses: ./.github/workflows/job_deploy_api_staging.yaml
@@ -50,24 +44,20 @@ jobs:
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-
   api_preview_test:
-    if: needs.detect_changes.outputs.api == 'true'
     needs:
       - agent_staging_deployment
       - api_preview_deployment
     uses: ./.github/workflows/job_test_api_staging.yaml
     with:
-       UNKEY_BASE_URL: https://preview-api.unkey.dev
+      UNKEY_BASE_URL: https://preview-api.unkey.dev
     secrets:
       DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
       DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
       DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
 
-
   api_canary_deployment:
-    if: needs.detect_changes.outputs.api == 'true'
     needs:
       - api_local_test
       - api_preview_test
@@ -76,7 +66,6 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   api_canary_test:
-    if: needs.detect_changes.outputs.api == 'true'
     needs:
       - api_canary_deployment
       - agent_production_deployment
@@ -88,7 +77,6 @@ jobs:
       DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
       DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-
 
   # api_canary_benchmark:
   #   if: ${{false}}
@@ -138,7 +126,6 @@ jobs:
   #         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   api_production_deployment:
-    if: needs.detect_changes.outputs.api == 'true'
     needs:
       - api_canary_test
       - agent_production_deployment
@@ -147,9 +134,7 @@ jobs:
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-
   mintlify_deployment:
-    if: needs.detect_changes.outputs.api == 'true'
     needs:
       - api_production_deployment
 
@@ -165,15 +150,12 @@ jobs:
           --header 'Authorization: Bearer ${{secrets.MINTLIFY_API_KEY}}'
 
   logdrain_production_deployment:
-    if: needs.detect_changes.outputs.api == 'true'
     needs:
       - api_production_deployment
     uses: ./.github/workflows/job_deploy_logdrain_production.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-    
   workflows_deployment:
-    if: needs.detect_changes.outputs.api == 'true'
     needs:
       - api_local_test
     uses: ./.github/workflows/job_deploy_workflows.yaml
@@ -184,25 +166,27 @@ jobs:
   #   uses: ./.github/workflows/deploy_trigger.yaml
 
   deploy-enterprise-worker:
-    if: needs.detect_changes.outputs.api == 'true'
     needs: api_production_deployment
     uses: ./.github/workflows/job_deploy_api_enterprise.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
+  changes:
+    uses: ./.github/workflows/job_changes.yaml
+
   clickhouse_migration_preview:
-    if: needs.detect_changes.outputs.clickhouse == 'true'
+    if: needs.changes.outputs.clickhouse == 'true'
     needs:
-      - detect_changes
+      - changes
       - api_local_test
     uses: ./.github/workflows/job_clickhouse_migration_preview.yaml
     secrets:
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
 
   clickhouse_migration_production:
-    if: needs.detect_changes.outputs.clickhouse == 'true'
+    if: needs.changes.outputs.clickhouse == 'true'
     needs:
-      - detect_changes
+      - changes
       - api_preview_test
       - agent_staging_deployment
       - clickhouse_migration_preview

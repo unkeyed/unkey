@@ -8,20 +8,29 @@ on:
   workflow_dispatch:
 
 jobs:
+  detect_changes:
+    uses: ./.github/workflows/job_detect_changes.yaml
+
   test_packages:
     name: Test Packages
     uses: ./.github/workflows/job_test_unit.yaml
 
   build:
     name: Build
+    if: needs.detect_changes.outputs.api == 'true'
+    needs: [detect_changes]
     uses: ./.github/workflows/build.yaml
 
   test_api:
     name: Test API
+    if: needs.detect_changes.outputs.api == 'true'
+    needs: [detect_changes]
     uses: ./.github/workflows/job_test_api_local.yaml
 
   test_agent_local:
     name: Test Agent Local
+    if: needs.detect_changes.outputs.agent == 'true'
+    needs: [detect_changes]
     uses: ./.github/workflows/job_test_agent_local.yaml
   # test_agent_integration:
   #   name: Test Agent Integration
@@ -47,4 +56,6 @@ jobs:
 
   test_go_api_local:
     name: Test Go API Local
+    if: needs.detect_changes.outputs.agent == 'true'
+    needs: [detect_changes]
     uses: ./.github/workflows/job_test_go_api_local.yaml
