@@ -92,13 +92,11 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       description={
         api.deleteProtection ? (
           <div className="font-normal text-[13px] max-w-[380px]">
-            Disabling this allows the API, along with all keys and data, to be deleted by any team
-            member.
+            Disabling this allows the API, along with all keys and data, to be deleted.
           </div>
         ) : (
           <div className="font-normal text-[13px] max-w-[380px]">
-            Enabling this prevents the API, along with all keys and data, to be deleted by any
-            non-admin team member.
+            Enabling this prevents the API from being deleted.
           </div>
         )
       }
