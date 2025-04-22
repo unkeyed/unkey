@@ -43,8 +43,6 @@ export const SearchInput = ({
       className="text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6 w-full"
       disabled={isProcessing && searchMode !== "allowTypeDuringSearch"}
       data-testid="search-input"
-      // biome-ignore lint/a11y/noAutofocus: we need to keep the focus locked in while we do search
-      autoFocus
     />
   );
 };
