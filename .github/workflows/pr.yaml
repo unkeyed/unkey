@@ -12,13 +12,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Wait for autofix to complete to prevent duplicate test runs
-  wait_for_autofix:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Wait for autofix
-        run: echo "Waiting for autofix to complete..."
-
   detect_changes:
     needs: [wait_for_autofix]
     uses: ./.github/workflows/job_detect_changes.yaml
