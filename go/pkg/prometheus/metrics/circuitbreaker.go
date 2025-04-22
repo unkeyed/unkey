@@ -12,8 +12,9 @@ var (
 	// Example usage:
 	//   metrics.CircuitBreakerRequests.WithLabelValues("my_circuit_breaker", "open").Inc()
 	CircuitBreakerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Subsystem: "circuitbreaker",
-		Name:      "requests_total",
-		Help:      "Tracks the number of requests made to the circuitbreaker by state.",
+		Subsystem:   "circuitbreaker",
+		Name:        "requests_total",
+		Help:        "Tracks the number of requests made to the circuitbreaker by state.",
+		ConstLabels: constLabels,
 	}, []string{"name", "state"})
 )
