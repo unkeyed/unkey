@@ -1,14 +1,21 @@
 name: Changes
 on:
   workflow_call:
-
-
-
+    outputs:
+      clickhouse:
+        description: "Whether ClickHouse schema has changed"
+        value: ${{ jobs.build.outputs.clickhouse }}
+      api:
+        description: "Whether API code has changed"
+        value: ${{ jobs.build.outputs.api }}
 
 jobs:
   build:
     name: Build Agent
     runs-on: ubuntu-latest
+    outputs:
+      clickhouse: ${{ steps.changes.outputs.clickhouse }}
+      api: ${{ steps.changes.outputs.api }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -17,3 +24,5 @@ jobs:
           filters: |
             clickhouse:
               - 'internal/clickhouse/schema/**'
+            api:
+              - 'apps/api/**'
