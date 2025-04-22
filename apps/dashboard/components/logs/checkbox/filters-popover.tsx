@@ -2,6 +2,7 @@ import { KeyboardButton } from "@/components/keyboard-button";
 import { Drawer } from "@/components/ui/drawer";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { useResponsive } from "@/hooks/use-responsive";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import {
@@ -14,7 +15,6 @@ import {
   useState,
 } from "react";
 import type { FilterValue } from "../validation/filter.types";
-import { useResponsive } from "@/hooks/use-responsive";
 
 export type FilterItemConfig = {
   id: string;
@@ -39,7 +39,7 @@ export const FiltersPopover = ({
   onOpenChange,
   getFilterCount = (field) => activeFilters.filter((f) => f.field === field).length,
 }: PropsWithChildren<FiltersPopoverProps>) => {
-  const { isMobile } = useResponsive()
+  const { isMobile } = useResponsive();
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 

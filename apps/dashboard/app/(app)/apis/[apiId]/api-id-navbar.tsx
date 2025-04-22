@@ -29,7 +29,7 @@ export const ApisNavbar = ({
   };
   keyId?: string;
 }) => {
-  const { isMobile } = useResponsive()
+  const { isMobile } = useResponsive();
   return (
     <div className="w-full">
       <Navbar className="w-full flex justify-between">

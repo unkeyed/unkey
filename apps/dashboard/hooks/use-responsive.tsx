@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
 
-type DeviceType = 'mobile' | 'tablet' | 'desktop';
+type DeviceType = "mobile" | "tablet" | "desktop";
 
 const BREAKPOINTS = {
   mobile: 768,
@@ -11,35 +11,39 @@ const BREAKPOINTS = {
 
 export function useResponsive() {
   const [device, setDevice] = useState<DeviceType>(() => {
-    if (typeof window === 'undefined') { return 'desktop'; }
+    if (typeof window === "undefined") {
+      return "desktop";
+    }
     const w = window.innerWidth;
-    if (w <= BREAKPOINTS.mobile) { return 'mobile'; }
-    if (w <= BREAKPOINTS.tablet) { return 'tablet'; }
-    return 'desktop';
+    if (w <= BREAKPOINTS.mobile) {
+      return "mobile";
+    }
+    if (w <= BREAKPOINTS.tablet) {
+      return "tablet";
+    }
+    return "desktop";
   });
 
   useEffect(() => {
     const onResize = () => {
       const w = window.innerWidth;
       const newDevice: DeviceType =
-        w <= BREAKPOINTS.mobile ? 'mobile' :
-        w <= BREAKPOINTS.tablet ? 'tablet' :
-        'desktop';
+        w <= BREAKPOINTS.mobile ? "mobile" : w <= BREAKPOINTS.tablet ? "tablet" : "desktop";
       setDevice(newDevice);
     };
 
-    window.addEventListener('resize', onResize);
+    window.addEventListener("resize", onResize);
     onResize();
 
     return () => {
-      window.removeEventListener('resize', onResize);
+      window.removeEventListener("resize", onResize);
     };
   }, []);
 
   return {
-    isMobile: device === 'mobile',
-    isTablet: device === 'tablet',
-    isDesktop: device === 'desktop',
+    isMobile: device === "mobile",
+    isTablet: device === "tablet",
+    isDesktop: device === "desktop",
     device,
   };
 }

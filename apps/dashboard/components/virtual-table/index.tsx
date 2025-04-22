@@ -1,3 +1,4 @@
+import { useResponsive } from "@/hooks/use-responsive";
 import { cn } from "@/lib/utils";
 import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
@@ -8,7 +9,6 @@ import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
-import { useResponsive } from "@/hooks/use-responsive";
 
 const calculateTableLayout = (columns: Column<any>[]) => {
   return columns.map((column) => {
