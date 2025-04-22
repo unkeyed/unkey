@@ -121,11 +121,10 @@ func (c *Containers) RunClickHouse() (hostDsn, dockerDsn string) {
 		return conn.Ping(ctx)
 	}))
 
-	require.NoError(c.t, conn.Close())
-
 	err = runClickHouseMigrations(conn)
 	require.NoError(c.t, err)
 
+	require.NoError(c.t, conn.Close())
 	return hostDsn, dockerDsn
 }
 
