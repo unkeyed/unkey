@@ -1,7 +1,6 @@
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Drover } from "@/components/ui/drover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { useResponsive } from "@/hooks/use-responsive";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import {
