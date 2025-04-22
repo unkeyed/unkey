@@ -124,7 +124,7 @@ type CloseProps = PrimitiveButtonProps & {
 const CLOSE_NAME = "Close";
 
 const Close = React.forwardRef<PrimitiveButtonElement, CloseProps>((props, ref) => {
-  const { children, asChild = "false", ...closeProps } = props;
+  const { children, asChild = false, ...closeProps } = props;
   const { onOpenChange } = useDroverContext(CLOSE_NAME);
   const Comp = asChild ? Slot : "button";
 
