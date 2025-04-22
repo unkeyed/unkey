@@ -1,10 +1,10 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryTime } from "@/providers/query-time-provider";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryLogsPayload } from "../query-logs.schema";
-import { useQueryTimestamp } from "./utils";
 
 type UseLogsQueryParams = {
   limit?: number;
@@ -24,7 +24,7 @@ export function useRatelimitLogsQuery({
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, RatelimitLog>());
   const [totalCount, setTotalCount] = useState(0);
 
-  const timestamp = useQueryTimestamp();
+  const { queryTime: timestamp } = useQueryTime();
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
