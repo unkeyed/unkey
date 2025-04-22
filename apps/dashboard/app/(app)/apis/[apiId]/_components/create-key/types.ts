@@ -1,29 +1,24 @@
 export type ProcessedFormData = {
-  prefix: string | undefined;
+  prefix?: string;
   bytes: number;
-  ownerId: string | undefined;
-  name: string | undefined;
-  environment: string | undefined;
-  metaEnabled?: boolean;
+  ownerId?: string;
+  name?: string;
+  environment?: string;
   meta?: Record<string, unknown>;
-  limitEnabled?: boolean;
-  limit?: {
-    remaining: number;
-    refill?: {
-      interval: "daily" | "monthly";
-      amount: number;
-      refillDay?: number;
-    };
+  remaining?: number;
+  refill?: {
+    amount: number;
+    refillDay: number | null;
   };
-  expireEnabled?: boolean;
   expires?: number;
-  ratelimitEnabled?: boolean;
   ratelimit?: {
     async: boolean;
     duration: number;
     limit: number;
   };
+  enabled: boolean;
 };
 
 export type SectionName = "general" | "ratelimit" | "credits" | "expiration" | "metadata";
+
 export type SectionState = "valid" | "invalid" | "initial";

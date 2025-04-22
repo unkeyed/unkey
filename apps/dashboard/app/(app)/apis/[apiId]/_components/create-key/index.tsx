@@ -105,7 +105,6 @@ export const CreateKeyDialog = ({
 
     await key.mutateAsync({
       keyAuthId: keyspaceId,
-      enabled: true,
       ...finalData,
     });
   };

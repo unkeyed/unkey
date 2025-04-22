@@ -18,45 +18,41 @@ export const processFormData = (data: FormValues) => {
     ownerId: data.ownerId?.trim() || undefined,
     name: data.name?.trim() || undefined,
     environment: data.environment || undefined,
+    enabled: true,
   };
 
-  // Only include enabled features
+  // Handle metadata
   if (data.metadata?.enabled && data.metadata.data) {
     try {
-      processedData.metaEnabled = true;
       processedData.meta = JSON.parse(data.metadata.data);
     } catch (error) {
       console.error("Failed to parse metadata JSON:", error);
     }
   }
 
+  // Handle limits and refill
   if (data.limit?.enabled && data.limit.data) {
-    processedData.limitEnabled = true;
-    processedData.limit = {
-      remaining: data.limit.data.remaining,
-    };
+    processedData.remaining = data.limit.data.remaining;
 
     // Only include refill if interval is not 'none'
     if (data.limit.data.refill?.interval !== "none" && data.limit.data.refill?.amount) {
-      processedData.limit.refill = {
-        interval: data.limit.data.refill.interval,
+      processedData.refill = {
         amount: data.limit.data.refill.amount,
+        refillDay:
+          data.limit.data.refill.interval === "monthly"
+            ? data.limit.data.refill.refillDay || 1
+            : null,
       };
-
-      // Only include refill day for monthly intervals
-      if (data.limit.data.refill.interval === "monthly") {
-        processedData.limit.refill.refillDay = data.limit.data.refill.refillDay || 1;
-      }
     }
   }
 
+  // Handle expiration
   if (data.expiration?.enabled && data.expiration.data) {
-    processedData.expireEnabled = true;
     processedData.expires = data.expiration.data.getTime();
   }
 
+  // Handle rate limiting
   if (data.ratelimit?.enabled && data.ratelimit.data) {
-    processedData.ratelimitEnabled = true;
     processedData.ratelimit = {
       async: false,
       duration: data.ratelimit.data.refillInterval,
