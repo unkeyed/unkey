@@ -50,32 +50,47 @@ export const metadataSchema = z.object({
     .default({ enabled: false }),
 });
 
-export const refillSchema = z.object({
-  interval: z.enum(["none", "daily", "monthly"]).default("none").optional(),
-  amount: z.coerce
-    .number({
-      errorMap: (issue, { defaultError }) => ({
-        message:
-          issue.code === "invalid_type"
-            ? "Refill amount must be greater than 0 and a integer"
-            : defaultError,
-      }),
-    })
-    .int()
-    .min(1)
-    .positive()
-    .optional(),
-  refillDay: z.coerce
-    .number({
-      errorMap: () => ({
-        message: "Refill day must be an integer between 1 and 31",
-      }),
-    })
-    .int()
-    .min(1)
-    .max(31)
-    .optional(),
-});
+export const refillSchema = z.discriminatedUnion("interval", [
+  z.object({
+    interval: z.literal("monthly"),
+    amount: z.coerce
+      .number({
+        errorMap: () => ({
+          message: "Refill amount must be a positive whole number",
+        }),
+      })
+      .int({ message: "Refill amount must be a whole number" })
+      .min(1, { message: "Refill amount must be at least 1" })
+      .positive({ message: "Refill amount must be positive" }),
+    refillDay: z.coerce
+      .number({
+        errorMap: () => ({
+          message: "Refill day must be a number between 1 and 31",
+        }),
+      })
+      .int({ message: "Refill day must be a whole number" })
+      .min(1, { message: "Refill day must be at least 1" })
+      .max(31, { message: "Refill day cannot be more than 31" }),
+  }),
+  z.object({
+    interval: z.literal("daily"),
+    amount: z.coerce
+      .number({
+        errorMap: () => ({
+          message: "Refill amount must be a positive whole number",
+        }),
+      })
+      .int({ message: "Refill amount must be a whole number" })
+      .min(1, { message: "Refill amount must be at least 1" })
+      .positive({ message: "Refill amount must be positive" }),
+    refillDay: z.undefined(),
+  }),
+  z.object({
+    interval: z.literal("none"),
+    amount: z.undefined().optional(),
+    refillDay: z.undefined().optional(),
+  }),
+]);
 
 export const creditsSchema = z.object({
   limit: z
@@ -85,20 +100,18 @@ export const creditsSchema = z.object({
         .object({
           remaining: z.coerce
             .number({
-              errorMap: (issue, { defaultError }) => ({
-                message:
-                  issue.code === "invalid_type"
-                    ? "Remaining amount must be greater than 0"
-                    : defaultError,
+              errorMap: () => ({
+                message: "Number of uses must be a positive whole number",
               }),
             })
-            .int()
-            .positive({ message: "Please enter a positive number" }),
-          refill: refillSchema.optional(),
+            .int({ message: "Number of uses must be a whole number" })
+            .positive({ message: "Number of uses must be positive" })
+            .default(100),
+          refill: refillSchema,
         })
         .optional(),
     })
-    .default({ enabled: false }),
+    .optional(),
 });
 
 export const ratelimitSchema = z.object({
@@ -188,7 +201,7 @@ export const formSchema = z
       }
 
       // If refill interval is not "none", refill amount is required
-      if (data.limit.data?.refill?.interval && data.limit.data.refill.interval !== "none") {
+      if (data.limit?.data?.refill?.interval && data.limit.data.refill.interval !== "none") {
         if (!data.limit.data.refill.amount) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -226,6 +239,37 @@ export const formSchema = z
       });
     }
   });
+
+export const getDefaultValues = (): Partial<FormValues> => {
+  return {
+    bytes: 16,
+    prefix: "",
+    metadata: {
+      enabled: false,
+    },
+    limit: {
+      enabled: false,
+      data: {
+        remaining: 100,
+        refill: {
+          interval: "none",
+          amount: undefined,
+          refillDay: undefined,
+        },
+      },
+    },
+    ratelimit: {
+      enabled: false,
+      data: {
+        limit: 10,
+        refillInterval: 1000,
+      },
+    },
+    expiration: {
+      enabled: false,
+    },
+  };
+};
 
 export type FormValues = z.infer<typeof formSchema>;
 export type RatelimitFormValues = Pick<FormValues, "ratelimit">;

@@ -18,6 +18,7 @@ export const UsageSetup = () => {
     formState: { errors },
     control,
     setValue,
+    getValues,
   } = useFormContext<CreditsFormValues>();
 
   const limitEnabled = useWatch({
@@ -32,10 +33,44 @@ export const UsageSetup = () => {
 
   const handleSwitchChange = (checked: boolean) => {
     setValue("limit.enabled", checked);
+
+    // When enabling, ensure refill has the correct structure
+    if (checked && !getValues("limit.data.refill.interval")) {
+      setValue("limit.data.refill.interval", "none", { shouldValidate: true });
+      setValue("limit.data.refill.amount", undefined, { shouldValidate: true });
+      setValue("limit.data.refill.refillDay", undefined, {
+        shouldValidate: true,
+      });
+    }
   };
 
   const handleRefillIntervalChange = (value: "none" | "daily" | "monthly") => {
-    setValue("limit.data.refill.interval", value);
+    setValue("limit.data.refill.interval", value, { shouldValidate: true });
+
+    // Clean up related fields based on the selected interval
+    if (value === "none") {
+      setValue("limit.data.refill.amount", undefined, { shouldValidate: true });
+      setValue("limit.data.refill.refillDay", undefined, {
+        shouldValidate: true,
+      });
+    } else if (value === "daily") {
+      // For daily, ensure refillDay is undefined but keep amount if present
+      setValue("limit.data.refill.refillDay", undefined, {
+        shouldValidate: true,
+      });
+      // If amount is not set, set a default
+      if (!getValues("limit.data.refill.amount")) {
+        setValue("limit.data.refill.amount", 100, { shouldValidate: true });
+      }
+    } else if (value === "monthly") {
+      // For monthly, ensure both amount and refillDay have values
+      if (!getValues("limit.data.refill.amount")) {
+        setValue("limit.data.refill.amount", 100, { shouldValidate: true });
+      }
+      if (!getValues("limit.data.refill.refillDay")) {
+        setValue("limit.data.refill.refillDay", 1, { shouldValidate: true });
+      }
+    }
   };
 
   return (
@@ -70,7 +105,6 @@ export const UsageSetup = () => {
             <div className="text-gray-11 text-[13px] flex items-center">Refill Rate</div>
             <Select
               onValueChange={(value) => {
-                field.onChange(value);
                 handleRefillIntervalChange(value as "none" | "daily" | "monthly");
               }}
               value={field.value || "none"}
@@ -93,30 +127,50 @@ export const UsageSetup = () => {
         )}
       />
 
-      <FormInput
-        className="[&_input:first-of-type]:h-[36px]"
-        placeholder="100"
-        inputMode="numeric"
-        type="number"
-        label="Number of uses per interval"
-        description="Enter the number of uses to refill per interval."
-        error={errors.limit?.data?.refill?.amount?.message}
-        disabled={!limitEnabled || currentRefillInterval === "none"}
-        readOnly={!limitEnabled || currentRefillInterval === "none"}
-        {...register("limit.data.refill.amount")}
+      <Controller
+        control={control}
+        name="limit.data.refill.amount"
+        render={({ field }) => (
+          <FormInput
+            className="[&_input:first-of-type]:h-[36px]"
+            placeholder="100"
+            inputMode="numeric"
+            type="number"
+            label="Number of uses per interval"
+            description="Enter the number of uses to refill per interval."
+            error={errors.limit?.data?.refill?.amount?.message}
+            disabled={!limitEnabled || currentRefillInterval === "none"}
+            readOnly={!limitEnabled || currentRefillInterval === "none"}
+            value={field.value === undefined ? "" : field.value}
+            onChange={(e) => {
+              const value = e.target.value === "" ? undefined : Number(e.target.value);
+              field.onChange(value);
+            }}
+          />
+        )}
       />
 
-      <FormInput
-        className="[&_input:first-of-type]:h-[36px]"
-        placeholder="1"
-        inputMode="numeric"
-        type="number"
-        label="On which day of the month should we refill the key?"
-        description="Enter the day to refill monthly (1-31)."
-        error={errors.limit?.data?.refill?.refillDay?.message}
-        disabled={!limitEnabled || currentRefillInterval !== "monthly"}
-        readOnly={!limitEnabled || currentRefillInterval !== "monthly"}
-        {...register("limit.data.refill.refillDay")}
+      <Controller
+        control={control}
+        name="limit.data.refill.refillDay"
+        render={({ field }) => (
+          <FormInput
+            className="[&_input:first-of-type]:h-[36px]"
+            placeholder="1"
+            inputMode="numeric"
+            type="number"
+            label="On which day of the month should we refill the key?"
+            description="Enter the day to refill monthly (1-31)."
+            error={errors.limit?.data?.refill?.refillDay?.message}
+            disabled={!limitEnabled || currentRefillInterval !== "monthly"}
+            readOnly={!limitEnabled || currentRefillInterval !== "monthly"}
+            value={field.value === undefined ? "" : field.value}
+            onChange={(e) => {
+              const value = e.target.value === "" ? undefined : Number(e.target.value);
+              field.onChange(value);
+            }}
+          />
+        )}
       />
     </div>
   );
