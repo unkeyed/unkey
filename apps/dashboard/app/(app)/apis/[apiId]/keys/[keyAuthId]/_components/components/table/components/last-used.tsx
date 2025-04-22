@@ -22,12 +22,6 @@ export const LastUsedCell = ({
   const badgeRef = useRef<HTMLDivElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const handleBadgeClick = () => {
-    if (data?.lastVerificationTime) {
-      setShowTooltip(!showTooltip);
-    }
-  };
-
   return (
     <Badge
       ref={badgeRef}
@@ -39,7 +33,6 @@ export const LastUsedCell = ({
             ? STATUS_STYLES.badge.selected
             : STATUS_STYLES.badge.default,
       )}
-      onClick={handleBadgeClick}
       onMouseOver={() => {
         setShowTooltip(true);
       }}
