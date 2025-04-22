@@ -195,7 +195,9 @@ export const KeyCreatedSuccessDialog = ({
                       {showKeyInSnippet ? <EyeSlash /> : <Eye />}
                     </Button>
                     <Button variant="outline" size="icon" className="bg-grayA-3">
-                      <CopyButton value={snippet} />
+                      <div className="flex items-center justify-center">
+                        <CopyButton value={snippet} />
+                      </div>
                     </Button>
                   </div>
                 </div>
