@@ -18,6 +18,40 @@ type QueryTimeContextType = {
 
 const QueryTimeContext = createContext<QueryTimeContextType | undefined>(undefined);
 
+/**
+ * Provides a shared timestamp reference for data fetching operations.
+ *
+ * Prevents React Query and other data fetching mechanisms from triggering
+ * unnecessary refetches due to components generating new timestamps on each render.
+ *
+ * Without this utility, each component would:
+ * - Create its own `Date.now()` when mounted or re-rendered
+ * - Cause React Query to treat it as a new dependency and refetch
+ * - Result in different components showing data from inconsistent time windows
+ *
+ *
+ * ```tsx
+ * // In a data fetching hook
+ * const { queryTime } = useQueryTime();
+ *
+ * // Use in query parameters
+ * const params = {
+ *   startTime: queryTime - TIME_WINDOW,
+ *   endTime: queryTime
+ * };
+ *
+ * // Only refetches when explicitly refreshed
+ * const { data } = useQuery(['data', params], fetchData);
+ * ```
+ *
+ * When you need to refresh all queries simultaneously:
+ * ```tsx
+ * const { refreshQueryTime } = useQueryTime();
+ *
+ * // Updates timestamp for ALL components
+ * const handleRefresh = () => refreshQueryTime();
+ * ```
+ */
 export const QueryTimeProvider = ({ children }: { children: ReactNode }) => {
   const [queryTime, setQueryTime] = useState(queryTimestamp);
 
