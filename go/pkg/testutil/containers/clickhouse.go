@@ -3,15 +3,15 @@ package containers
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
+	"io"
+	"io/fs"
 	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 )
 
 // RunClickHouse starts a ClickHouse container and returns a configured ClickHouse connection.
@@ -33,9 +33,6 @@ import (
 //   - Creates database schema by running the provided migrations.
 //   - Registers cleanup functions with the test to remove resources after test completion.
 //
-// Parameters:
-//   - migrationsDir: Path to directory containing SQL migration files (pass empty string to skip migrations)
-//
 // Returns:
 //   - A configured ClickHouse connection (driver.Conn) ready to use for testing
 //   - A DSN string that can be used to create additional connections
@@ -48,7 +45,7 @@ import (
 //
 //	func TestClickHouseOperations(t *testing.T) {
 //	    containers := containers.NewContainers(t)
-//	    conn, dsn := containers.RunClickHouse("./testdata/migrations")
+//	    conn, dsn := containers.RunClickHouse()
 //
 //	    // Use the connection for testing
 //	    ctx := context.Background()
@@ -74,8 +71,11 @@ import (
 // See also:
 //   - [RunMySQL] for starting a MySQL container.
 //   - [RunRedis] for starting a Redis container.
-func (c *Containers) RunClickHouse(migrationsDir string) (driver.Conn, string) {
+func (c *Containers) RunClickHouse() (hostDsn, dockerDsn string) {
 	c.t.Helper()
+	defer func(start time.Time) {
+		c.t.Logf("starting ClickHouse took %s", time.Since(start))
+	}(time.Now())
 	// Start ClickHouse container
 	resource, err := c.pool.Run("bitnami/clickhouse", "latest", []string{
 		"CLICKHOUSE_ADMIN_USER=default",
@@ -83,19 +83,24 @@ func (c *Containers) RunClickHouse(migrationsDir string) (driver.Conn, string) {
 	})
 	require.NoError(c.t, err)
 
+	err = resource.ConnectToNetwork(c.network)
+	require.NoError(c.t, err)
 	c.t.Cleanup(func() {
-		require.NoError(c.t, c.pool.Purge(resource))
+		if !c.t.Failed() {
+			require.NoError(c.t, c.pool.Purge(resource))
+		}
 	})
 
 	// Construct DSN
 	port := resource.GetPort("9000/tcp")
-	dsn := fmt.Sprintf("clickhouse://unkey:password@localhost:%s/unkey?dial_timeout=10s", port)
+	hostDsn = fmt.Sprintf("clickhouse://default:password@localhost:%s?secure=false&skip_verify=true&dial_timeout=10s", port)
+	dockerDsn = fmt.Sprintf("clickhouse://default:password@%s:9000?secure=false&skip_verify=true&dial_timeout=10s", resource.GetIPInNetwork(c.network))
 
 	// Configure ClickHouse connection
 	var conn driver.Conn
 	require.NoError(c.t, c.pool.Retry(func() error {
-		var err error
-		conn, err = clickhouse.Open(&clickhouse.Options{
+		var connErr error
+		conn, connErr = clickhouse.Open(&clickhouse.Options{
 			Addr: []string{fmt.Sprintf("localhost:%s", port)},
 			Auth: clickhouse.Auth{
 				Username: "default",
@@ -106,8 +111,8 @@ func (c *Containers) RunClickHouse(migrationsDir string) (driver.Conn, string) {
 				"max_execution_time": 60,
 			},
 		})
-		if err != nil {
-			return err
+		if connErr != nil {
+			return connErr
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -116,70 +121,60 @@ func (c *Containers) RunClickHouse(migrationsDir string) (driver.Conn, string) {
 		return conn.Ping(ctx)
 	}))
 
-	c.t.Cleanup(func() {
-		conn.Close()
-	})
+	require.NoError(c.t, conn.Close())
 
-	// Run schema migrations if a migrations directory was provided
-	if migrationsDir != "" {
-		err := runClickHouseMigrations(conn, migrationsDir)
-		require.NoError(c.t, err)
-	}
+	err = runClickHouseMigrations(conn)
+	require.NoError(c.t, err)
 
-	return conn, dsn
+	return hostDsn, dockerDsn
 }
 
-// runClickHouseMigrations executes SQL migration files from the specified directory.
+// runClickHouseMigrations executes SQL migration files
 //
-// The function reads all .sql files from the given directory, sorts them alphanumerically,
-// and executes them in order against the provided ClickHouse connection.
+// The function reads all .sql files from the given directory, in lexicographical order,
+// and executes them against the provided ClickHouse connection.
 //
 // Parameters:
 //   - conn: A ClickHouse connection to use for migrations
-//   - migrationsDir: Path to directory containing SQL migration files
 //
 // Returns:
 //   - An error if any part of the migration process fails
-func runClickHouseMigrations(conn driver.Conn, migrationsDir string) error {
-	// Get all SQL files from migrations directory
-	files, err := os.ReadDir(migrationsDir)
-	if err != nil {
-		return fmt.Errorf("failed to read migrations directory: %w", err)
-	}
+func runClickHouseMigrations(conn driver.Conn) error {
 
-	// Filter and sort SQL files
-	var sqlFiles []string
-	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".sql") {
-			sqlFiles = append(sqlFiles, filepath.Join(migrationsDir, file.Name()))
-		}
-	}
-
-	// Sort files alphanumerically to ensure execution order
-	sort.Strings(sqlFiles)
-
-	// Execute each migration file
-	for _, file := range sqlFiles {
-		content, err := os.ReadFile(file)
+	return fs.WalkDir(schema.Migrations, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("failed to read migration file %s: %w", file, err)
+			return err
+		}
+		if d.IsDir() {
+			return nil
 		}
 
-		// Split file content into individual statements
+		f, err := schema.Migrations.Open(path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		content, err := io.ReadAll(f)
+		if err != nil {
+			return err
+		}
+
 		queries := strings.Split(string(content), ";")
 
-		ctx := context.Background()
 		for _, query := range queries {
 			query = strings.TrimSpace(query)
 			if query == "" {
 				continue
 			}
 
-			if err := conn.Exec(ctx, query); err != nil {
-				return fmt.Errorf("failed to execute migration from %s: %w\nQuery: %s", file, err, query)
+			err = conn.Exec(context.Background(), fmt.Sprintf("%s;", query))
+			if err != nil {
+				return err
 			}
 		}
-	}
 
-	return nil
+		return nil
+	})
+
 }
