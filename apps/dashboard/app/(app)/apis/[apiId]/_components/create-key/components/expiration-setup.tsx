@@ -107,7 +107,7 @@ export const ExpirationSetup = () => {
   // Calculate initial time values for DatetimePopover
   const getInitialTimeValues = () => {
     return {
-      startTime: currentExpiryDate?.getTime(),
+      startTime: currentExpiryDate ? new Date(currentExpiryDate)?.getTime() : new Date().getTime(),
       endTime: undefined,
       since: undefined,
     };
@@ -115,7 +115,8 @@ export const ExpirationSetup = () => {
 
   // Calculate date for showing warning about close expiry (less than 1 hour)
   const isExpiringVerySoon =
-    currentExpiryDate && currentExpiryDate.getTime() - new Date().getTime() < 60 * 60 * 1000;
+    currentExpiryDate &&
+    new Date(currentExpiryDate).getTime() - new Date().getTime() < 60 * 60 * 1000;
 
   const getExpiryDescription = () => {
     if (isExpiringVerySoon) {

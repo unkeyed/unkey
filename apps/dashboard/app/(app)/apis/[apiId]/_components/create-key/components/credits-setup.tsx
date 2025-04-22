@@ -28,7 +28,6 @@ export const UsageSetup = () => {
   const currentRefillInterval = useWatch({
     control,
     name: "limit.data.refill.interval",
-    defaultValue: "none",
   });
 
   const handleSwitchChange = (checked: boolean) => {

@@ -75,7 +75,6 @@ export const getDefaultValues = (): Partial<FormValues> => {
       data: {
         remaining: 100,
         refill: {
-          interval: "none",
           amount: undefined,
           refillDay: undefined,
         },

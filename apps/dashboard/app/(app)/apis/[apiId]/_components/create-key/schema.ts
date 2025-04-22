@@ -51,7 +51,7 @@ export const metadataSchema = z.object({
 });
 
 export const refillSchema = z.object({
-  interval: z.enum(["none", "daily", "monthly"]).default("none"),
+  interval: z.enum(["none", "daily", "monthly"]).default("none").optional(),
   amount: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({
@@ -67,11 +67,8 @@ export const refillSchema = z.object({
     .optional(),
   refillDay: z.coerce
     .number({
-      errorMap: (issue, { defaultError }) => ({
-        message:
-          issue.code === "invalid_type"
-            ? "Refill day must be an integer between 1 and 31"
-            : defaultError,
+      errorMap: () => ({
+        message: "Refill day must be an integer between 1 and 31",
       }),
     })
     .int()
