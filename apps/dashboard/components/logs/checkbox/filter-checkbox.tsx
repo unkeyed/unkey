@@ -167,28 +167,6 @@ export const FilterCheckbox = <
     }
   }, [checkboxes, filterField, operator, filters, updateFilters, createFilterValue, selectionMode]);
 
-  const handleDirectKeyboardToggle = useCallback(
-    (e: React.KeyboardEvent<HTMLLabelElement>, index?: number) => {
-      e.stopPropagation();
-
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-
-        if (index !== undefined) {
-          handleCheckboxClick(index);
-        } else if (selectionMode === "multiple") {
-          handleSelectAll();
-        }
-
-        e.currentTarget.focus();
-        return;
-      }
-
-      handleKeyDown(e, index);
-    },
-    [handleCheckboxClick, handleSelectAll, handleKeyDown, selectionMode],
-  );
-
   return (
     <div className={cn("flex flex-col p-2", className)}>
       <div
@@ -202,16 +180,14 @@ export const FilterCheckbox = <
         {selectionMode === "multiple" && (
           <div className="flex justify-between items-center">
             <label
-              htmlFor="select-all-checkbox"
+              // "checkbox-999 required to transfer focus from single checkboxes to this "select" all"
+              htmlFor={"checkbox-999"}
               className="flex items-center gap-[18px] cursor-pointer"
-              // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
-              role="checkbox"
               aria-checked={checkboxes.every((checkbox) => checkbox.checked)}
-              tabIndex={0}
-              onKeyDown={(e) => handleDirectKeyboardToggle(e)}
+              onKeyDown={(e) => handleKeyDown(e)}
             >
               <Checkbox
-                id="select-all-checkbox"
+                id={"checkbox-999"}
                 checked={checkboxes.every((checkbox) => checkbox.checked)}
                 className="size-4 rounded border-gray-4 [&_svg]:size-3"
                 onClick={(e) => {
@@ -231,11 +207,8 @@ export const FilterCheckbox = <
             key={checkbox.id}
             htmlFor={`checkbox-${checkbox.id}`}
             className="flex gap-[18px] items-center py-1 cursor-pointer"
-            // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
-            role="checkbox"
             aria-checked={checkbox.checked}
-            tabIndex={0}
-            onKeyDown={(e) => handleDirectKeyboardToggle(e, index)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
           >
             <Checkbox
               id={`checkbox-${checkbox.id}`}
@@ -256,7 +229,7 @@ export const FilterCheckbox = <
       {renderBottomGradient && <div className="border-t border-gray-4" />}
       <Button
         variant="primary"
-        className="font-sans mt-2 w-full h-9 rounded-md"
+        className="mt-2 w-full h-9 rounded-md focus:ring-4 focus:ring-accent-9 focus:ring-offset-2"
         onClick={handleApplyFilter}
       >
         Apply Filter
