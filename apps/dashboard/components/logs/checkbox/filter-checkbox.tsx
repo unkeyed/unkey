@@ -44,7 +44,7 @@ interface BaseCheckboxFilterProps<
   allowDeselection?: boolean;
   // Optional default selection index - for single selection mode
   defaultSelectionIndex?: number;
-  onOpenChange?: () => void;
+  onDrawerClose?: () => void;
 }
 
 export const FilterCheckbox = <
@@ -67,7 +67,7 @@ export const FilterCheckbox = <
   selectionMode = "multiple",
   allowDeselection = true,
   defaultSelectionIndex,
-  onOpenChange,
+  onDrawerClose,
 }: BaseCheckboxFilterProps<TItem, TFilterValue>) => {
   // Use the provided useCheckboxState hook
   const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState<
@@ -186,7 +186,7 @@ export const FilterCheckbox = <
       updateFilters([...otherFilters, ...newFilters]);
     }
 
-    onOpenChange?.();
+    onDrawerClose?.();
   }, [
     checkboxes,
     filterField,
@@ -195,7 +195,7 @@ export const FilterCheckbox = <
     updateFilters,
     createFilterValue,
     selectionMode,
-    onOpenChange,
+    onDrawerClose,
   ]);
 
   return (

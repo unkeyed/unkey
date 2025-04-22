@@ -9,10 +9,10 @@ import { ChevronDown } from "@unkey/icons";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
 import { motion } from "framer-motion";
 import { type PropsWithChildren, useEffect, useState } from "react";
-import { useMediaQuery } from "usehooks-ts";
 import { CUSTOM_OPTION_ID, DEFAULT_OPTIONS } from "./constants";
 import { DateTimeSuggestions } from "./suggestions";
 import type { OptionsType } from "./types";
+import { useResponsive } from "@/hooks/use-responsive";
 
 const CUSTOM_PLACEHOLDER = "Custom";
 
@@ -37,7 +37,7 @@ export const DatetimePopover = ({
   onDateTimeChange,
   customOptions, // Accept custom options
 }: DatetimePopoverProps) => {
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const { isMobile } = useResponsive();
   const [timeRangeOpen, setTimeRangeOpen] = useState(false);
   const [open, setOpen] = useState(false);
   useKeyboardShortcut("t", () => setOpen((prev) => !prev));

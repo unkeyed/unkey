@@ -13,8 +13,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { useMediaQuery } from "usehooks-ts";
 import type { FilterValue } from "../validation/filter.types";
+import { useResponsive } from "@/hooks/use-responsive";
 
 export type FilterItemConfig = {
   id: string;
@@ -39,7 +39,7 @@ export const FiltersPopover = ({
   onOpenChange,
   getFilterCount = (field) => activeFilters.filter((f) => f.field === field).length,
 }: PropsWithChildren<FiltersPopoverProps>) => {
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const { isMobile } = useResponsive()
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
@@ -105,6 +105,7 @@ export const FiltersPopover = ({
                     filterCount={getFilterCount(item.id)}
                     isFocused={focusedIndex === index}
                     isActive={activeFilter === item.id}
+                    onClose={() => open && onOpenChange?.(false)}
                   />
                 ))}
               </div>
@@ -149,6 +150,7 @@ type FilterItemProps = FilterItemConfig & {
   isFocused?: boolean;
   isActive?: boolean;
   filterCount: number;
+  onClose?: () => void;
 };
 
 const FilterItem = ({
@@ -158,8 +160,9 @@ const FilterItem = ({
   isFocused,
   isActive,
   filterCount,
+  onClose,
 }: FilterItemProps) => {
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const { isMobile } = useResponsive();
   const [open, setOpen] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -201,7 +204,7 @@ const FilterItem = ({
   return (
     <>
       {isMobile ? (
-        <Drawer.Nested>
+        <Drawer.Nested onClose={onClose}>
           <Drawer.Trigger asChild>
             <div
               ref={itemRef}

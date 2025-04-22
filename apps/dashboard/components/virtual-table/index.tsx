@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
 import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
-import { useMediaQuery } from "usehooks-ts";
 import { EmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
@@ -9,6 +8,7 @@ import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
+import { useResponsive } from "@/hooks/use-responsive";
 
 const calculateTableLayout = (columns: Column<any>[]) => {
   return columns.map((column) => {
@@ -61,7 +61,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const isGridLayout = config.layoutMode === "grid";
     const parentRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const isMobile = useMediaQuery("(min-width: 768px)");
+    const { isMobile } = useResponsive();
 
     const hasPadding = config.containerPadding !== "px-0";
 
@@ -104,7 +104,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
       return (
         <div
-          className="w-full flex flex-col h-[400px] md:h-full"
+          className="w-full flex flex-col md:h-full"
           style={{ height: `${fixedHeight}px` }}
           ref={containerRef}
         >
@@ -131,7 +131,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
             </thead>
           </table>
           {emptyState ? (
-            <div className="flex-1 flex items-center justify-center h-full">{emptyState}</div>
+            <div className="flex-1 flex items-center justify-center">{emptyState}</div>
           ) : (
             <EmptyState />
           )}
@@ -140,7 +140,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     }
 
     return (
-      <div className="w-full flex flex-col h-[400px] md:h-full" ref={containerRef}>
+      <div className="w-full flex flex-col max-h-[400px] md:h-full" ref={containerRef}>
         <div ref={parentRef} className={containerClassName} style={containerStyle}>
           <table className={tableClassName}>
             <colgroup>

@@ -185,7 +185,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         hide: true,
       }}
       emptyState={
-        <div className="w-full justify-center items-center h-[344px] md:h-full">
+        <div className="w-full justify-center items-center md:h-full">
           <Empty className="w-full max-w-[400px] flex mx-auto items-center md:items-start">
             <Empty.Icon className="w-auto" />
             <Empty.Title>Key Verification Logs</Empty.Title>

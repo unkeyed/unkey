@@ -76,7 +76,7 @@ export const DateTimeSuggestions = ({ className, options, onChange }: Suggestion
       aria-label="Time range options"
     >
       <ScrollArea
-        className="w-full h-full rounded-md max-h-[438px] md:max-h-[380px]"
+        className="w-full rounded-md md:max-h-[380px]"
         ref={scrollAreaRef}
       >
         <div className="flex flex-col gap-1.5 p-1">

@@ -3,10 +3,11 @@ import { useFilters } from "../../../../hooks/use-filters";
 import { getOutcomeColor, getOutcomeOptions } from "../../../../utils";
 
 type OutcomesFilterProps = {
-  onOpenChange?: () => void;
+  // onDrawerClose is a callback function that will be called when applying the filter
+  onDrawerClose?: () => void;
 };
 
-export const OutcomesFilter = ({ onOpenChange }: OutcomesFilterProps) => {
+export const OutcomesFilter = ({ onDrawerClose }: OutcomesFilterProps) => {
   const { filters, updateFilters } = useFilters();
 
   // Get the options from our centralized utility
@@ -31,7 +32,7 @@ export const OutcomesFilter = ({ onOpenChange }: OutcomesFilterProps) => {
       })}
       filters={filters}
       updateFilters={updateFilters}
-      onOpenChange={onOpenChange}
+      onDrawerClose={onDrawerClose}
     />
   );
 };

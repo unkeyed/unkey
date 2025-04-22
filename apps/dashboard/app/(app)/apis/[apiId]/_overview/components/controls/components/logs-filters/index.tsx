@@ -111,7 +111,7 @@ export const LogsFilters = () => {
           id: "outcomes",
           label: "Outcomes",
           shortcut: "o",
-          component: <OutcomesFilter onOpenChange={() => setOpen(false)} />,
+          component: <OutcomesFilter onDrawerClose={() => setOpen(false)} />,
         },
       ]}
       activeFilters={filters}
