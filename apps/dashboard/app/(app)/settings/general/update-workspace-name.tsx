@@ -1,5 +1,4 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
 import { SettingCard } from "@/components/settings-card";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -109,7 +108,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
               loading={form.formState.isSubmitting}
               type="submit"
             >
-              {form.formState.isSubmitting ? <Loading /> : "Save"}
+              Save
             </Button>
           </div>
         </SettingCard>
