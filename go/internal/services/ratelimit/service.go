@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -155,6 +156,31 @@ func (s *service) Close() error {
 	return s.counter.Close()
 }
 
+// calculateRateLimit evaluates if a request is within rate limits and returns the calculation results
+// This helper function abstracts the rate limit calculation logic
+func (s *service) calculateRateLimit(req RatelimitRequest, currentWindow, previousWindow *window) (bool, int64, int64) {
+	// Calculate time elapsed in current window (as a fraction)
+	windowElapsed := float64(req.Time.Sub(currentWindow.start).Milliseconds()) / float64(req.Duration.Milliseconds())
+
+	// Pure sliding window calculation:
+	// - We count 100% of current window
+	// - We count a decreasing portion of previous window based on how far we are into current window
+	effectiveCount := currentWindow.counter + int64(float64(previousWindow.counter)*(1.0-windowElapsed))
+
+	effectiveCount += req.Cost
+
+	// Calculate remaining (could be negative)
+	remaining := req.Limit - effectiveCount
+	if remaining < 0 {
+		remaining = 0
+	}
+
+	// Check if this request would exceed the limit
+	exceeded := effectiveCount > req.Limit
+
+	return exceeded, effectiveCount, remaining
+}
+
 // Ratelimit checks if a request should be allowed under current rate limit constraints.
 // It implements a sliding window algorithm that considers both the current and previous
 // time windows to provide accurate rate limiting across a cluster of nodes.
@@ -175,7 +201,6 @@ func (s *service) Close() error {
 //
 // Errors:
 //   - Returns validation errors for invalid parameters
-//   - May return errors from cluster communication
 //
 // Thread Safety:
 //   - Safe for concurrent use
@@ -223,12 +248,39 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	goToOrigin := req.Time.UnixMilli() < b.strictUntil.UnixMilli()
 	// Get current and previous windows
 	currentWindow, currentWindowExisted := b.getCurrentWindow(req.Time)
 	previousWindow, previousWindowExisted := b.getPreviousWindow(req.Time)
 
+	// track whether we were able to handle the request locally or if we had to call redis
+	decisionSource := "local"
+
+	// First, try to make a decision based only on local data
+	if currentWindowExisted && previousWindowExisted {
+		// Check if we can reject based on local data alone
+		exceeded, effectiveCount, remaining := s.calculateRateLimit(req, currentWindow, previousWindow)
+		if exceeded {
+
+			b.strictUntil = req.Time.Add(req.Duration)
+
+			// Record the denied request
+			span.SetAttributes(attribute.Bool("passed", false))
+			metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
+
+			return RatelimitResponse{
+				Success:   false,
+				Remaining: remaining,
+				Reset:     currentWindow.start.Add(currentWindow.duration),
+				Limit:     req.Limit,
+				Current:   effectiveCount,
+			}, nil
+		}
+	}
+
+	// If we couldn't make a local rejection decision, proceed with Redis checks if needed
+	goToOrigin := req.Time.UnixMilli() < b.strictUntil.UnixMilli()
 	if goToOrigin || !currentWindowExisted {
+		decisionSource = "origin"
 		currentKey := counterKey(key, currentWindow.sequence)
 		res, err := s.counter.Get(ctx, currentKey)
 		if err != nil {
@@ -238,11 +290,11 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 			)
 		} else {
 			currentWindow.counter = max(currentWindow.counter, res)
-
 		}
-
 	}
+
 	if goToOrigin || !previousWindowExisted {
+		decisionSource = "origin"
 		previousKey := counterKey(key, previousWindow.sequence)
 		res, err := s.counter.Get(ctx, previousKey)
 		if err != nil {
@@ -252,30 +304,19 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 			)
 		} else {
 			previousWindow.counter = max(previousWindow.counter, res)
-
 		}
 	}
 
-	// Calculate time elapsed in current window (as a fraction)
-	windowElapsed := float64(req.Time.Sub(currentWindow.start).Milliseconds()) / float64(req.Duration.Milliseconds())
+	// Now check again with potentially updated data from Redis
+	exceeded, effectiveCount, remaining := s.calculateRateLimit(req, currentWindow, previousWindow)
 
-	// Pure sliding window calculation:
-	// - We count 100% of current window
-	// - We count a decreasing portion of previous window based on how far we are into current window
-	effectiveCount := currentWindow.counter + int64(float64(previousWindow.counter)*(1.0-windowElapsed))
-
-	effectiveCount += req.Cost
-
-	// Check if this request would exceed the limit
-	if effectiveCount > req.Limit {
-		remaining := req.Limit - effectiveCount
-		if remaining < 0 {
-			remaining = 0
-		}
-
+	if exceeded {
+		// Set strictUntil to prevent further requests
 		b.strictUntil = req.Time.Add(req.Duration)
 
 		span.SetAttributes(attribute.Bool("passed", false))
+		metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
+
 		return RatelimitResponse{
 			Success:   false,
 			Remaining: remaining,
@@ -285,16 +326,15 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		}, nil
 	}
 
+	// If we get here, the request is allowed
 	// Increment current window counter
 	currentWindow.counter += req.Cost
 
-	remaining := req.Limit - effectiveCount
-	if remaining < 0 {
-		remaining = 0
-	}
-	span.SetAttributes(attribute.Bool("passed", true))
-
+	// Buffer the request for async propagation
 	s.replayBuffer.Buffer(req)
+
+	span.SetAttributes(attribute.Bool("passed", true))
+	metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
 
 	return RatelimitResponse{
 		Success:   true,

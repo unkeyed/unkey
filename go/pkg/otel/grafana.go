@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
@@ -16,10 +18,12 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/log"
-	"go.opentelemetry.io/otel/sdk/metric"
+	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
+
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
@@ -88,7 +92,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	// Create a resource with common attributes
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
-			semconv.ServiceNamespace(config.Application),
+			semconv.ServiceNamespace("unkey"),
 			semconv.ServiceName(config.Application),
 			semconv.ServiceVersion(config.Version),
 			semconv.ServiceInstanceID(config.InstanceID),
@@ -190,13 +194,53 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 
 	bridge := prometheus.NewMetricProducer()
 
-	reader := metric.NewPeriodicReader(metricExporter, metric.WithProducer(bridge), metric.WithInterval(60*time.Second))
+	reader := metricsdk.NewPeriodicReader(metricExporter, metricsdk.WithProducer(bridge), metricsdk.WithInterval(60*time.Second))
 	shutdowns.RegisterCtx(reader.Shutdown)
 
 	// Create and register the metric provider globally
-	meterProvider := metric.NewMeterProvider(metric.WithReader(reader), metric.WithResource(res))
+	meterProvider := metricsdk.NewMeterProvider(metricsdk.WithReader(reader), metricsdk.WithResource(res))
 	shutdowns.RegisterCtx(meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
+	err = registerSystemMetrics(meterProvider.Meter(config.Application))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func registerSystemMetrics(m metric.Meter) error {
+
+	_, err := m.Float64ObservableGauge("resources_cpu_percent", metric.WithFloat64Callback(func(ctx context.Context, o metric.Float64Observer) error {
+		cpuPcts, cpuErr := cpu.PercentWithContext(ctx, time.Second, false)
+		if cpuErr != nil {
+			return cpuErr
+		}
+		if len(cpuPcts) == 0 {
+			return fmt.Errorf("no cpu data")
+		}
+		o.Observe(cpuPcts[0])
+
+		return nil
+	}))
+	if err != nil {
+		return err
+	}
+
+	_, err = m.Float64ObservableGauge("resources_memory_percent", metric.WithFloat64Callback(func(ctx context.Context, o metric.Float64Observer) error {
+
+		vm, vmErr := mem.VirtualMemoryWithContext(ctx)
+		if vmErr != nil {
+			return vmErr
+		}
+
+		o.Observe(vm.UsedPercent)
+
+		return nil
+	}))
+	if err != nil {
+		return err
+	}
 	return nil
 }
