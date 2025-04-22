@@ -1,6 +1,5 @@
 import { KeyboardButton } from "@/components/keyboard-button";
-import { Drawer } from "@/components/ui/drawer";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Drover } from "@/components/ui/drover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useResponsive } from "@/hooks/use-responsive";
 import { CaretRight } from "@unkey/icons";
@@ -39,7 +38,6 @@ export const FiltersPopover = ({
   onOpenChange,
   getFilterCount = (field) => activeFilters.filter((f) => f.field === field).length,
 }: PropsWithChildren<FiltersPopoverProps>) => {
-  const { isMobile } = useResponsive();
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
@@ -90,59 +88,32 @@ export const FiltersPopover = ({
   };
 
   return (
-    <>
-      {isMobile ? (
-        <Drawer.Root open={open} onOpenChange={onOpenChange}>
-          <Drawer.Trigger asChild>{children}</Drawer.Trigger>
-          <Drawer.Content>
-            <div className="flex flex-col w-full">
-              <span className="text-gray-9 text-sm px-4 pt-3">Filters</span>
-              <div className="p-2">
-                {items.map((item, index) => (
-                  <FilterItem
-                    key={item.id}
-                    {...item}
-                    filterCount={getFilterCount(item.id)}
-                    isFocused={focusedIndex === index}
-                    isActive={activeFilter === item.id}
-                    onClose={() => open && onOpenChange?.(false)}
-                  />
-                ))}
-              </div>
-            </div>
-          </Drawer.Content>
-        </Drawer.Root>
-      ) : (
-        <Popover open={open} onOpenChange={onOpenChange}>
-          <PopoverTrigger asChild>{children}</PopoverTrigger>
-          <PopoverContent
-            className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg"
-            align="start"
-            onKeyDown={handleKeyDown}
-          >
-            <div className="flex flex-col gap-2 w-full">
-              <PopoverHeader />
-              {items.map((item, index) => (
-                <FilterItem
-                  key={item.id}
-                  {...item}
-                  filterCount={getFilterCount(item.id)}
-                  isFocused={focusedIndex === index}
-                  isActive={activeFilter === item.id}
-                />
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-      )}
-    </>
+    <Drover.Root open={open} onOpenChange={onOpenChange}>
+      <Drover.Trigger asChild>{children}</Drover.Trigger>
+      <Drover.Content onKeyDown={handleKeyDown}>
+        <div className="flex flex-col w-full">
+          <DroverHeader />
+          <div className="p-2">
+            {items.map((item, index) => (
+              <FilterItem
+                key={item.id}
+                {...item}
+                filterCount={getFilterCount(item.id)}
+                isFocused={focusedIndex === index}
+                isActive={activeFilter === item.id}
+              />
+            ))}
+          </div>
+        </div>
+      </Drover.Content>
+    </Drover.Root>
   );
 };
 
-const PopoverHeader = () => (
-  <div className="flex w-full justify-between items-center px-2 py-1">
-    <span className="text-gray-9 text-[13px]">Filters...</span>
-    <KeyboardButton shortcut="F" />
+const DroverHeader = () => (
+  <div className="flex w-full justify-between items-center px-4 pt-3 md:px-3 md:py-1">
+    <span className="text-gray-9 text-sm">Filters</span>
+    <KeyboardButton shortcut="F" className="max-md:hidden" />
   </div>
 );
 
@@ -150,7 +121,6 @@ type FilterItemProps = FilterItemConfig & {
   isFocused?: boolean;
   isActive?: boolean;
   filterCount: number;
-  onClose?: () => void;
 };
 
 const FilterItem = ({
@@ -160,9 +130,7 @@ const FilterItem = ({
   isFocused,
   isActive,
   filterCount,
-  onClose,
 }: FilterItemProps) => {
-  const { isMobile } = useResponsive();
   const [open, setOpen] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -202,96 +170,52 @@ const FilterItem = ({
   }, [isActive, open]);
 
   return (
-    <>
-      {isMobile ? (
-        <Drawer.Nested onClose={onClose}>
-          <Drawer.Trigger asChild>
-            <div
-              ref={itemRef}
-              className={`flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer
+    <Drover.Nested>
+      <Drover.Trigger asChild>
+        <div
+          ref={itemRef}
+          className={`flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer
           hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none
           ${isFocused ? "bg-gray-3" : ""}`}
-              tabIndex={0}
-              // biome-ignore lint/a11y/useSemanticElements: its okay
-              role="button"
-            >
-              <div className="flex gap-2 items-center">
-                {shortcut && (
-                  <KeyboardButton
-                    shortcut={shortcut}
-                    modifierKey="⌘"
-                    role="presentation"
-                    aria-haspopup="true"
-                    title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
-                  />
-                )}
-                <span className="text-[13px] text-accent-12 font-medium">{label}</span>
+          tabIndex={0}
+          // biome-ignore lint/a11y/useSemanticElements: its okay
+          role="button"
+        >
+          <div className="flex gap-2 items-center">
+            {shortcut && (
+              <KeyboardButton
+                shortcut={shortcut}
+                modifierKey="⌘"
+                role="presentation"
+                aria-haspopup="true"
+                title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
+              />
+            )}
+            <span className="text-[13px] text-accent-12 font-medium">{label}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {filterCount > 0 && (
+              <div className="bg-gray-6 rounded size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
+                {filterCount}
               </div>
-              <div className="flex items-center gap-1.5">
-                {filterCount > 0 && (
-                  <div className="bg-gray-6 rounded size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
-                    {filterCount}
-                  </div>
-                )}
-                <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
-                  <CaretRight className="text-gray-7 group-hover:text-gray-10" />
-                </Button>
-              </div>
-            </div>
-          </Drawer.Trigger>
-          <Drawer.Content ref={contentRef} onKeyDown={handleKeyDown}>
-            {component}
-          </Drawer.Content>
-        </Drawer.Nested>
-      ) : (
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <div
-              ref={itemRef}
-              className={`flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer
-            hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none
-            ${isFocused ? "bg-gray-3" : ""}`}
-              tabIndex={0}
-              // biome-ignore lint/a11y/useSemanticElements: its okay
-              role="button"
-            >
-              <div className="flex gap-2 items-center">
-                {shortcut && (
-                  <KeyboardButton
-                    shortcut={shortcut}
-                    modifierKey="⌘"
-                    role="presentation"
-                    aria-haspopup="true"
-                    title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
-                  />
-                )}
-                <span className="text-[13px] text-accent-12 font-medium">{label}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {filterCount > 0 && (
-                  <div className="bg-gray-6 rounded size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
-                    {filterCount}
-                  </div>
-                )}
-                <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
-                  <CaretRight className="text-gray-7 group-hover:text-gray-10" />
-                </Button>
-              </div>
-            </div>
-          </PopoverTrigger>
-          <PopoverContent
-            ref={contentRef}
-            className="min-w-60 z-50 w-full bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg"
-            side="right"
-            align="start"
-            sideOffset={12}
-            onKeyDown={handleKeyDown}
-            tabIndex={-1}
-          >
-            {component}
-          </PopoverContent>
-        </Popover>
-      )}
-    </>
+            )}
+            <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
+              <CaretRight className="text-gray-7 group-hover:text-gray-10" />
+            </Button>
+          </div>
+        </div>
+      </Drover.Trigger>
+      <Drover.Content
+        ref={contentRef}
+        className="min-w-60 z-50 w-full bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg"
+        side="right"
+        align="start"
+        sideOffset={12}
+        onKeyDown={handleKeyDown}
+        tabIndex={-1}
+      >
+        {component}
+      </Drover.Content>
+    </Drover.Nested>
   );
 };
