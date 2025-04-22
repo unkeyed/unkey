@@ -1,0 +1,85 @@
+---
+title: Delete Protection
+description: Prevents an API from being deleted when enabled.
+---
+
+# Delete Protection
+
+Delete Protection is a safety feature that prevents accidental or unauthorized deletion of your APIs. When enabled, it blocks all deletion attempts through both the dashboard and API.
+
+## Overview
+
+Delete Protection adds an extra layer of security to your APIs by:
+
+- Preventing accidental deletion of critical APIs
+- Requiring explicit confirmation to disable protection
+- Creating an audit trail of protection changes
+- Blocking deletion attempts through both UI and API
+
+## Enabling Delete Protection
+
+1. Navigate to your API settings in the dashboard
+2. Click "Enable Delete Protecion" to activate protection
+3. Type the API name to confirm
+4. Click "Enable API Delete Protection" to add protection 
+
+Once enabled, the API cannot be deleted until protection is explicitly disabled.
+
+## Disabling Delete Protection
+
+To disable Delete Protection:
+
+1. Navigate to your API settings in the dashboard
+2. Click "Disable Delete Protection"
+3. Type the API name to confirm
+4. Click "Disable API Delete Protection" to remove protection
+
+## API Behavior
+
+When Delete Protection is enabled:
+
+- All deletion attempts are blocked
+- The API returns a `DELETE_PROTECTED` error
+- The error includes a link to this documentation
+
+### Example Error Response
+
+```json
+{
+  "error": {
+    "code": "DELETE_PROTECTED",
+    "docs": "https://unkey.dev/docs/api-reference/errors/code/DELETE_PROTECTED",
+    "message": "api [apiId] is protected from deletions",
+    "requestId": "req_1234"
+  }
+}
+```
+
+## Audit Trail
+
+All changes to Delete Protection are logged in the audit trail, including:
+
+- Who made the change
+- When the change occurred
+- The API name
+- The new protection status
+
+## Best Practices
+
+1. **Enable for Production APIs**: Always enable Delete Protection for APIs in production
+2. **Use for Critical Resources**: Protect APIs that contain important data or configurations
+3. **Regular Review**: Periodically review protection status of your APIs
+4. **Team Communication**: Inform team members about protected APIs
+5. **Documentation**: Document which APIs are protected and why
+
+## Limitations
+
+- Delete Protection only prevents deletion of the API
+- It does not prevent modifications to the API
+- It does not prevent deletion of API keys
+- Protection can be disabled by any user with appropriate permissions
+- Changes to protection status are logged but cannot be prevented
+
+## Related Errors
+
+- [DELETE_PROTECTED](/docs/api-reference/errors/code/DELETE_PROTECTED) - Returned when attempting to delete a protected API
