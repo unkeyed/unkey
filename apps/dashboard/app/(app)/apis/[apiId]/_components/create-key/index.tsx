@@ -103,10 +103,15 @@ export const CreateKeyDialog = ({
       return;
     }
 
-    await key.mutateAsync({
-      keyAuthId: keyspaceId,
-      ...finalData,
-    });
+    try {
+      await key.mutateAsync({
+        keyAuthId: keyspaceId,
+        ...finalData,
+      });
+    } catch {
+      // `useCreateKey` already shows a toast, but we still need to
+      // prevent unhandled‐rejection noise in the console.
+    }
   };
 
   const handleSectionNavigation = async (fromId: DialogSectionName) => {
