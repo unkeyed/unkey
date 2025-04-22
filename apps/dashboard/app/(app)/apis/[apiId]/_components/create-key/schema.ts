@@ -86,7 +86,7 @@ export const refillSchema = z.discriminatedUnion("interval", [
     refillDay: z.undefined(),
   }),
   z.object({
-    interval: z.literal("none"),
+    interval: z.literal("none").optional(),
     amount: z.undefined().optional(),
     refillDay: z.undefined().optional(),
   }),
