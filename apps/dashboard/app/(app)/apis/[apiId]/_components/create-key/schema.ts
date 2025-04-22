@@ -2,14 +2,10 @@ import { z } from "zod";
 
 export const generalSchema = z.object({
   bytes: z.coerce
-    .number({
-      errorMap: (issue, { defaultError }) => ({
-        message:
-          issue.code === "invalid_type" ? "Key must be between 8 and 255 bytes long" : defaultError,
-      }),
-    })
-    .min(8, { message: "Key must be between 8 and 255 bytes long" })
-    .max(255, { message: "Key must be between 8 and 255 bytes long" })
+    .number()
+    .int({ message: "Key length must be a whole number (integer)" })
+    .min(8, { message: "Key length is too short (minimum 8 bytes required)" })
+    .max(255, { message: "Key length is too long (maximum 255 bytes allowed)" })
     .default(16),
   prefix: z
     .string()

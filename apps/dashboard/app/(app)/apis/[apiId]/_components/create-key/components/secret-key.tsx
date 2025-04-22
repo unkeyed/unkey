@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { CircleLock } from "@unkey/icons";
 import { useState } from "react";
 
+const MAX_DOT_COUNT = 80;
 export const SecretKey = ({
   value,
   title = "Value",
@@ -16,9 +17,7 @@ export const SecretKey = ({
   const [isHovering, setIsHovering] = useState(false);
 
   // Show full value on hover, otherwise show partial with dots
-  const displayValue = isHovering
-    ? value
-    : value.slice(0, 4) + "•".repeat(Math.max(80, value.length - 4));
+  const displayValue = isHovering ? value : value.slice(0, 4) + "•".repeat(MAX_DOT_COUNT);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();

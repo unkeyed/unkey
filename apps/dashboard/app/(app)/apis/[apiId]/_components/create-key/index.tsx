@@ -183,6 +183,7 @@ export const CreateKeyDialog = ({
       {/* Success Dialog */}
       <KeyCreatedSuccessDialog
         apiId={apiId}
+        keyspaceId={keyspaceId}
         isOpen={successDialogOpen}
         onClose={handleSuccessDialogClose}
         keyData={createdKeyData}

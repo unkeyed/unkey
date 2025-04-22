@@ -1,5 +1,6 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/toaster";
 import { ArrowRight, Bookmark, Check, CircleInfo, Eye, EyeSlash, Key2, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
@@ -10,12 +11,14 @@ export const KeyCreatedSuccessDialog = ({
   onClose,
   keyData,
   apiId,
+  keyspaceId,
   onCreateAnother,
 }: {
   isOpen: boolean;
   onClose: () => void;
   keyData: { key: string; id: string; name?: string } | null;
   apiId: string;
+  keyspaceId?: string | null;
   onCreateAnother?: () => void;
 }) => {
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
@@ -93,7 +96,23 @@ export const KeyCreatedSuccessDialog = ({
                   <div className="text-accent-12 text-xs font-mono">{keyData.id}</div>
                   <div className="text-accent-9 text-xs">{keyData.name ?? "Unnamed Key"}</div>
                 </div>
-                <Button variant="outline" className="ml-auto font-medium text-[13px] text-gray-12">
+                <Button
+                  variant="outline"
+                  className="ml-auto font-medium text-[13px] text-gray-12"
+                  onClick={() => {
+                    if (!keyspaceId) {
+                      toast.error("Failed to Create Key", {
+                        description: "An unexpected error occurred. Please try again later.",
+                        action: {
+                          label: "Contact Support",
+                          onClick: () => window.open("https://support.unkey.dev", "_blank"),
+                        },
+                      });
+                      return;
+                    }
+                    window.location.href = `/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`;
+                  }}
+                >
                   See key details <ArrowRight size="sm-regular" />
                 </Button>
               </div>
