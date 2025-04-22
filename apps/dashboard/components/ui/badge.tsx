@@ -1,7 +1,7 @@
+import { cn } from "@/lib/utils";
 import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
-
-import { cn } from "@/lib/utils";
+import { forwardRef } from "react";
 
 const badgeVariants = cva("inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs", {
   variants: {
@@ -19,7 +19,6 @@ const badgeVariants = cva("inline-flex items-center rounded-md border px-2.5 py-
       mono: "font-mono",
     },
   },
-
   defaultVariants: {
     variant: "primary",
   },
@@ -29,10 +28,14 @@ export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, size, font, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant, size, font }), className)} {...props} />;
-}
+const Badge = forwardRef<HTMLDivElement, BadgeProps>(
+  ({ className, variant, size, font, ...props }, ref) => {
+    return (
+      <div ref={ref} className={cn(badgeVariants({ variant, size, font }), className)} {...props} />
+    );
+  },
+);
+
+Badge.displayName = "Badge";
 
 export { Badge, badgeVariants };
-
-// font-mono text-sm text-secondary inline-flex rounded-sm bg-gray-50 px-1.5 shadow-[0_0_0_1px,0_1px_0] shadow-gray-200/60
