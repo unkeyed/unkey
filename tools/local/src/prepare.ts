@@ -36,15 +36,7 @@ async function ensureBuild(
 async function prepare() {
   clack.intro("Preparing local environment (checking builds)...");
   await ensureBuild("error", "@unkey/error");
-
-  clack.log.step("Build checks complete. Starting main setup script...");
-
-  try {
-    const args = process.argv.slice(2).join(" ");
-    execSync(`tsx ./main.ts ${args}`, { stdio: "inherit", cwd: __dirname });
-  } catch {
-    clack.log.error("The main setup script finished with an error.");
-  }
+  clack.log.success("Build checks complete.");
 }
 
 prepare().catch((err) => {
