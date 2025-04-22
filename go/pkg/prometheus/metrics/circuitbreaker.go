@@ -1,8 +1,3 @@
-/*
-Package metrics provides Prometheus metric collectors for monitoring application performance.
-
-This file contains rate-limiting metrics for tracking performance and behavior of the rate-limiting system.
-*/
 package metrics
 
 import (
