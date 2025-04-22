@@ -77,8 +77,8 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 
 			if s.r.Header.Get("X-Unkey-Metrics") != "disabled" {
 				eventBuffer.BufferApiRequest(schema.ApiRequestV1{
-					WorkspaceID:     s.workspaceID,
-					RequestID:       s.requestID,
+					WorkspaceID:     s.WorkspaceID,
+					RequestID:       s.RequestID(),
 					Time:            start.UnixMilli(),
 					Host:            s.r.Host,
 					Method:          s.r.Method,

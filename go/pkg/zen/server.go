@@ -98,7 +98,7 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
-					workspaceID:    "",
+					WorkspaceID:    "",
 					requestID:      "",
 					w:              nil,
 					r:              nil,

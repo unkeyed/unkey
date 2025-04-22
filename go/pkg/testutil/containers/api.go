@@ -63,7 +63,7 @@ func (c *Containers) RunAPI(nodes int, mysqlDSN string) Cluster {
 				"OTEL_EXPORTER_OTLP_ENDPOINT=http://otel:4318",
 				"OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf",
 				"UNKEY_TEST_MODE=true",
-				"UNKEY_REGION=us-east-1",
+				"UNKEY_REGION=local_docker",
 				fmt.Sprintf("UNKEY_REDIS_URL=%s", redisUrl),
 				fmt.Sprintf("UNKEY_DATABASE_PRIMARY=%s", mysqlDSN),
 			},
@@ -75,6 +75,7 @@ func (c *Containers) RunAPI(nodes int, mysqlDSN string) Cluster {
 		c.t.Logf("starting %s took %s", instanceId, time.Since(t0))
 
 		c.t.Cleanup(func() {
+			require.NoError(c.t, c.pool.Client.StopContainer(instance.Container.ID, uint(15)))
 			require.NoError(c.t, c.pool.Purge(instance))
 		})
 
