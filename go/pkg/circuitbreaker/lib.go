@@ -280,10 +280,9 @@ func (cb *CB[Res]) postflight(ctx context.Context, err error) {
 		cb.consecutiveFailures = 0
 	}
 
-	metrics.CircuitBreakerRequests.WithLabelValues(cb.config.name, string(cb.state))
+	metrics.CircuitBreakerRequests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
 
 	switch cb.state {
-
 	case Closed:
 		if cb.failures >= cb.config.tripThreshold {
 			cb.state = Open
