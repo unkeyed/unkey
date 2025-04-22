@@ -12,7 +12,7 @@ import (
 const findKeyByID = `-- name: FindKeyByID :one
 SELECT
     k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-    i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta
+    i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta, i.deleted
 FROM ` + "`" + `keys` + "`" + ` k
 LEFT JOIN identities i ON k.identity_id = i.id
 WHERE k.id = ?
@@ -27,7 +27,7 @@ type FindKeyByIDRow struct {
 //
 //	SELECT
 //	    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-//	    i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta
+//	    i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta, i.deleted
 //	FROM `keys` k
 //	LEFT JOIN identities i ON k.identity_id = i.id
 //	WHERE k.id = ?
@@ -65,6 +65,7 @@ func (q *Queries) FindKeyByID(ctx context.Context, db DBTX, id string) (FindKeyB
 		&i.Identity.CreatedAt,
 		&i.Identity.UpdatedAt,
 		&i.Identity.Meta,
+		&i.Identity.Deleted,
 	)
 	return i, err
 }

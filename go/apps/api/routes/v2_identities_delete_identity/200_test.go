@@ -85,13 +85,19 @@ func TestDeleteIdentitySuccessfully(t *testing.T) {
 	t.Run("delete identity via db and identity id", func(t *testing.T) {
 		newIdentity := newIdentity(t, h, 0)
 
-		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      newIdentity.ID,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 
 		err = db.Query.DeleteIdentity(ctx, h.DB.RW(), newIdentity.ID)
 		require.NoError(t, err)
 
-		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      newIdentity.ID,
+			Deleted: false,
+		})
 		require.Equal(t, sql.ErrNoRows, err)
 	})
 
@@ -100,7 +106,10 @@ func TestDeleteIdentitySuccessfully(t *testing.T) {
 		numberOfRatelimits := 2
 		newIdentity := newIdentity(t, h, numberOfRatelimits)
 
-		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      newIdentity.ID,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 
 		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: newIdentity.ID, Valid: true})
@@ -113,7 +122,10 @@ func TestDeleteIdentitySuccessfully(t *testing.T) {
 		err = db.Query.DeleteManyRatelimitsByIDs(ctx, h.DB.RW(), newIdentity.RatelimitIds)
 		require.NoError(t, err)
 
-		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      newIdentity.ID,
+			Deleted: false,
+		})
 		require.Equal(t, sql.ErrNoRows, err)
 
 		ratelimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: newIdentity.ID, Valid: true})
@@ -130,7 +142,10 @@ func TestDeleteIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      newIdentity.ID,
+			Deleted: false,
+		})
 		require.Equal(t, sql.ErrNoRows, err)
 	})
 
@@ -143,7 +158,10 @@ func TestDeleteIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      newIdentity.ID,
+			Deleted: false,
+		})
 		require.Equal(t, sql.ErrNoRows, err)
 	})
 
@@ -155,7 +173,10 @@ func TestDeleteIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), newIdentity.ID)
+		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      newIdentity.ID,
+			Deleted: false,
+		})
 		require.Equal(t, sql.ErrNoRows, err)
 
 		ratelimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: newIdentity.ID, Valid: true})

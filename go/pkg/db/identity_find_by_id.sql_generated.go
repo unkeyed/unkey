@@ -10,14 +10,19 @@ import (
 )
 
 const findIdentityByID = `-- name: FindIdentityByID :one
-SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta FROM identities WHERE id = ?
+SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta, deleted FROM identities WHERE id = ? AND deleted = ?
 `
+
+type FindIdentityByIDParams struct {
+	ID      string `db:"id"`
+	Deleted bool   `db:"deleted"`
+}
 
 // FindIdentityByID
 //
-//	SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta FROM identities WHERE id = ?
-func (q *Queries) FindIdentityByID(ctx context.Context, db DBTX, id string) (Identity, error) {
-	row := db.QueryRowContext(ctx, findIdentityByID, id)
+//	SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta, deleted FROM identities WHERE id = ? AND deleted = ?
+func (q *Queries) FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error) {
+	row := db.QueryRowContext(ctx, findIdentityByID, arg.ID, arg.Deleted)
 	var i Identity
 	err := row.Scan(
 		&i.ID,
@@ -27,6 +32,7 @@ func (q *Queries) FindIdentityByID(ctx context.Context, db DBTX, id string) (Ide
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Meta,
+		&i.Deleted,
 	)
 	return i, err
 }

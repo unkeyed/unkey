@@ -24,6 +24,10 @@ type Querier interface {
 	//  SET deleted_at_m = ?
 	//  WHERE id = ?
 	DeleteRatelimitNamespace(ctx context.Context, db DBTX, arg DeleteRatelimitNamespaceParams) (sql.Result, error)
+	//DeleteRatelimitsByIdentityID
+	//
+	//  DELETE FROM ratelimits WHERE identity_id = ?
+	DeleteRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) error
 	//FindApiById
 	//
 	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
@@ -37,12 +41,12 @@ type Querier interface {
 	FindAuditLogTargetById(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIdRow, error)
 	//FindIdentityByExternalID
 	//
-	//  SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta FROM identities WHERE workspace_id = ? AND external_id = ?
+	//  SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta, deleted FROM identities WHERE workspace_id = ? AND external_id = ? AND deleted = ?
 	FindIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error)
 	//FindIdentityByID
 	//
-	//  SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta FROM identities WHERE id = ?
-	FindIdentityByID(ctx context.Context, db DBTX, id string) (Identity, error)
+	//  SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta, deleted FROM identities WHERE id = ? AND deleted = ?
+	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
 	//FindKeyByHash
 	//
 	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` WHERE hash = ?
@@ -51,7 +55,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-	//      i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta
+	//      i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta, i.deleted
 	//  FROM `keys` k
 	//  LEFT JOIN identities i ON k.identity_id = i.id
 	//  WHERE k.id = ?
@@ -95,7 +99,7 @@ type Querier interface {
 	//  )
 	//  SELECT
 	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-	//      i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta,
+	//      i.id, i.external_id, i.workspace_id, i.environment, i.created_at, i.updated_at, i.meta, i.deleted,
 	//      JSON_ARRAYAGG(
 	//          JSON_OBJECT(
 	//              'target_type', rl.target_type,
@@ -501,6 +505,10 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
+	//SoftDeleteIdentity
+	//
+	//  UPDATE identities set deleted = 1 WHERE id = ?
+	SoftDeleteIdentity(ctx context.Context, db DBTX, id string) error
 	//SoftDeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`

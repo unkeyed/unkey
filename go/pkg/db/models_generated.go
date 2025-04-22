@@ -294,6 +294,7 @@ type Identity struct {
 	CreatedAt   int64         `db:"created_at"`
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 	Meta        []byte        `db:"meta"`
+	Deleted     bool          `db:"deleted"`
 }
 
 type Key struct {

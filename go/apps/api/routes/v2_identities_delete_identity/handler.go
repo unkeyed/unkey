@@ -80,21 +80,6 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		tx, err := svc.DB.RW().Begin(ctx)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
-			)
-		}
-
-		defer func() {
-			rollbackErr := tx.Rollback()
-			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
-			}
-		}()
-
 		identity, err := getIdentity(ctx, svc, req, auth.AuthorizedWorkspaceID)
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -117,35 +102,45 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		ratelimits, err := db.Query.FindRatelimitsByIdentityID(ctx, svc.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
-		if err != nil && !db.IsNotFound(err) {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to load identity ratelimits", "Failed to load Identity ratelimits."),
-			)
-		}
-
-		if len(ratelimits) > 0 {
-			ids := make([]string, 0)
-			for _, ratelimit := range ratelimits {
-				ids = append(ids, ratelimit.ID)
-			}
-
-			err = db.Query.DeleteManyRatelimitsByIDs(ctx, tx, ids)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.WithDesc("database failed to delete identity ratelimits", "Failed to delete Identity ratelimits."),
-				)
-			}
-		}
-
-		err = db.Query.DeleteIdentity(ctx, tx, identity.ID)
+		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to delete identity", "Failed to delete Identity."),
+				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
 			)
+		}
+
+		defer func() {
+			rollbackErr := tx.Rollback()
+			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
+			}
+		}()
+
+		err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
+		if err != nil && !db.IsDuplicateKeyError(err) {
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to soft delete identity", "Failed to delete Identity."),
+			)
+		}
+
+		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
+		// so we can hard delete the "old" deleted version
+		if err != nil && db.IsDuplicateKeyError(err) {
+			err = deleteOldIdentity(ctx, tx, auth.AuthorizedWorkspaceID, identity.ExternalID)
+			if err != nil {
+				return err
+			}
+
+			// Re-apply the soft delete operation
+			err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
+			if err != nil && !db.IsDuplicateKeyError(err) {
+				return fault.Wrap(err,
+					fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.WithDesc("database failed to soft delete identity", "Failed to delete Identity."),
+				)
+			}
 		}
 
 		auditLogs := []auditlog.AuditLog{
@@ -170,6 +165,14 @@ func New(svc Services) zen.Route {
 					},
 				},
 			},
+		}
+
+		ratelimits, err := db.Query.FindRatelimitsByIdentityID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to load identity ratelimits", "Failed to load Identity ratelimits."),
+			)
 		}
 
 		for _, rl := range ratelimits {
@@ -223,14 +226,50 @@ func New(svc Services) zen.Route {
 	})
 }
 
+func deleteOldIdentity(ctx context.Context, tx *sql.Tx, workspaceID, externalID string) error {
+	oldIdentity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+		WorkspaceID: workspaceID,
+		ExternalID:  externalID,
+		Deleted:     true,
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.WithDesc("database failed to load old identity", "Failed to load Identity."),
+		)
+	}
+
+	err = db.Query.DeleteRatelimitsByIdentityID(ctx, tx, sql.NullString{String: oldIdentity.ID, Valid: true})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.WithDesc("database failed to delete identity ratelimits", "Failed to delete Identity ratelimits."),
+		)
+	}
+
+	err = db.Query.DeleteIdentity(ctx, tx, oldIdentity.ID)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.WithDesc("database failed to delete identity", "Failed to delete Identity."),
+		)
+	}
+
+	return nil
+}
+
 func getIdentity(ctx context.Context, svc Services, req Request, workspaceID string) (db.Identity, error) {
 	switch {
 	case req.IdentityId != nil:
-		return db.Query.FindIdentityByID(ctx, svc.DB.RO(), *req.IdentityId)
+		return db.Query.FindIdentityByID(ctx, svc.DB.RO(), db.FindIdentityByIDParams{
+			ID:      *req.IdentityId,
+			Deleted: false,
+		})
 	case req.ExternalId != nil:
 		return db.Query.FindIdentityByExternalID(ctx, svc.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: workspaceID,
 			ExternalID:  *req.ExternalId,
+			Deleted:     false,
 		})
 	}
 

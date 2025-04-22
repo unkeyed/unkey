@@ -10,19 +10,20 @@ import (
 )
 
 const findIdentityByExternalID = `-- name: FindIdentityByExternalID :one
-SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta FROM identities WHERE workspace_id = ? AND external_id = ?
+SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta, deleted FROM identities WHERE workspace_id = ? AND external_id = ? AND deleted = ?
 `
 
 type FindIdentityByExternalIDParams struct {
 	WorkspaceID string `db:"workspace_id"`
 	ExternalID  string `db:"external_id"`
+	Deleted     bool   `db:"deleted"`
 }
 
 // FindIdentityByExternalID
 //
-//	SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta FROM identities WHERE workspace_id = ? AND external_id = ?
+//	SELECT id, external_id, workspace_id, environment, created_at, updated_at, meta, deleted FROM identities WHERE workspace_id = ? AND external_id = ? AND deleted = ?
 func (q *Queries) FindIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error) {
-	row := db.QueryRowContext(ctx, findIdentityByExternalID, arg.WorkspaceID, arg.ExternalID)
+	row := db.QueryRowContext(ctx, findIdentityByExternalID, arg.WorkspaceID, arg.ExternalID, arg.Deleted)
 	var i Identity
 	err := row.Scan(
 		&i.ID,
@@ -32,6 +33,7 @@ func (q *Queries) FindIdentityByExternalID(ctx context.Context, db DBTX, arg Fin
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Meta,
+		&i.Deleted,
 	)
 	return i, err
 }

@@ -52,7 +52,10 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), identityID)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      identityID,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, externalTestID)
 	})
@@ -71,7 +74,10 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), identityID)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      identityID,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, externalTestID)
 
@@ -104,7 +110,10 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      res.Body.Data.IdentityId,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 	})
@@ -113,7 +122,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 	t.Run("create identity with metadata", func(t *testing.T) {
 		externalTestID := uid.New("test_external_id")
 
-		meta := &map[string]interface{}{"key": "example"}
+		meta := &map[string]any{"key": "example"}
 		req := handler.Request{
 			ExternalId: externalTestID,
 			Meta:       meta,
@@ -124,11 +133,14 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      res.Body.Data.IdentityId,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
-		var dbMeta map[string]interface{}
+		var dbMeta map[string]any
 		err = json.Unmarshal(identity.Meta, &dbMeta)
 		require.NoError(t, err)
 		require.Equal(t, *meta, dbMeta)
@@ -161,7 +173,10 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      res.Body.Data.IdentityId,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
