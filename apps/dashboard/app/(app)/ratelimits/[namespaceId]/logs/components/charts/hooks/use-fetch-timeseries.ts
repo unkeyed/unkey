@@ -1,19 +1,20 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryTimeseriesPayload } from "../query-timeseries.schema";
 
 export const useFetchRatelimitTimeseries = (namespaceId: string) => {
   const { filters } = useFilters();
-  const dateNow = useMemo(() => Date.now(), []);
+  const { queryTime: timestamp } = useQueryTime();
 
   const queryParams = useMemo(() => {
     const params: RatelimitQueryTimeseriesPayload = {
       namespaceId,
-      startTime: dateNow - TIMESERIES_DATA_WINDOW,
-      endTime: dateNow,
+      startTime: timestamp - TIMESERIES_DATA_WINDOW,
+      endTime: timestamp,
       identifiers: { filters: [] },
       since: "",
     };
@@ -52,7 +53,7 @@ export const useFetchRatelimitTimeseries = (namespaceId: string) => {
     });
 
     return params;
-  }, [filters, dateNow, namespaceId]);
+  }, [filters, namespaceId, timestamp]);
 
   const { data, isLoading, isError } = trpc.ratelimit.logs.queryRatelimitTimeseries.useQuery(
     queryParams,
