@@ -1,9 +1,17 @@
 import { KeyboardButton } from "@/components/keyboard-button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Drover } from "@/components/ui/drover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { type KeyboardEvent, type PropsWithChildren, useEffect, useRef, useState } from "react";
+import {
+  type Dispatch,
+  type KeyboardEvent,
+  type PropsWithChildren,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { FilterValue } from "../validation/filter.types";
 
 export type FilterItemConfig = {
@@ -17,15 +25,18 @@ type FiltersPopoverProps = {
   items: FilterItemConfig[];
   activeFilters: FilterValue[];
   getFilterCount?: (field: string) => number;
+  open?: boolean;
+  onOpenChange?: Dispatch<SetStateAction<boolean>>;
 };
 
 export const FiltersPopover = ({
   children,
   items,
   activeFilters,
+  open,
+  onOpenChange,
   getFilterCount = (field) => activeFilters.filter((f) => f.field === field).length,
 }: PropsWithChildren<FiltersPopoverProps>) => {
-  const [open, setOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
@@ -35,7 +46,7 @@ export const FiltersPopover = ({
   }, [open]);
 
   useKeyboardShortcut("f", () => {
-    setOpen((prev) => !prev);
+    onOpenChange?.((prev) => !prev);
   });
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -76,34 +87,32 @@ export const FiltersPopover = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent
-        className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg"
-        align="start"
-        onKeyDown={handleKeyDown}
-      >
-        <div className="flex flex-col gap-2 w-full">
-          <PopoverHeader />
-          {items.map((item, index) => (
-            <FilterItem
-              key={item.id}
-              {...item}
-              filterCount={getFilterCount(item.id)}
-              isFocused={focusedIndex === index}
-              isActive={activeFilter === item.id}
-            />
-          ))}
+    <Drover.Root open={open} onOpenChange={onOpenChange}>
+      <Drover.Trigger asChild>{children}</Drover.Trigger>
+      <Drover.Content onKeyDown={handleKeyDown}>
+        <div className="flex flex-col w-full">
+          <DroverHeader />
+          <div className="p-2">
+            {items.map((item, index) => (
+              <FilterItem
+                key={item.id}
+                {...item}
+                filterCount={getFilterCount(item.id)}
+                isFocused={focusedIndex === index}
+                isActive={activeFilter === item.id}
+              />
+            ))}
+          </div>
         </div>
-      </PopoverContent>
-    </Popover>
+      </Drover.Content>
+    </Drover.Root>
   );
 };
 
-const PopoverHeader = () => (
-  <div className="flex w-full justify-between items-center px-2 py-1">
-    <span className="text-gray-9 text-[13px]">Filters...</span>
-    <KeyboardButton shortcut="F" />
+const DroverHeader = () => (
+  <div className="flex w-full justify-between items-center px-4 pt-3 md:px-3 md:py-1">
+    <span className="text-gray-9 text-sm">Filters</span>
+    <KeyboardButton shortcut="F" className="max-md:hidden" />
   </div>
 );
 
@@ -160,13 +169,13 @@ const FilterItem = ({
   }, [isActive, open]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <Drover.Nested>
+      <Drover.Trigger asChild>
         <div
           ref={itemRef}
           className={`flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer
-            hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none
-            ${isFocused ? "bg-gray-3" : ""}`}
+          hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none
+          ${isFocused ? "bg-gray-3" : ""}`}
           tabIndex={0}
           // biome-ignore lint/a11y/useSemanticElements: its okay
           role="button"
@@ -194,10 +203,10 @@ const FilterItem = ({
             </Button>
           </div>
         </div>
-      </PopoverTrigger>
-      <PopoverContent
+      </Drover.Trigger>
+      <Drover.Content
         ref={contentRef}
-        className="min-w-60 w-full bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg"
+        className="min-w-60 z-50 w-full bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg"
         side="right"
         align="start"
         sideOffset={12}
@@ -205,7 +214,7 @@ const FilterItem = ({
         tabIndex={-1}
       >
         {component}
-      </PopoverContent>
-    </Popover>
+      </Drover.Content>
+    </Drover.Nested>
   );
 };
