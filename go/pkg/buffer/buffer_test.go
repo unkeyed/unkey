@@ -140,3 +140,25 @@ func TestCustomTypes(t *testing.T) {
 		}
 	})
 }
+
+func TestBufferTypes(t *testing.T) {
+	type CustomType struct{}
+
+	t.Run("CustomType", func(t *testing.T) {
+		a := New[CustomType](5, true)
+
+		assert.Equal(t, "buffer.CustomType", a.String())
+	})
+
+	t.Run("IntType", func(t *testing.T) {
+		a := New[int](5, true)
+
+		assert.Equal(t, "int", a.String())
+	})
+
+	t.Run("Float64Type", func(t *testing.T) {
+		a := New[float64](5, true)
+
+		assert.Equal(t, "float64", a.String())
+	})
+}

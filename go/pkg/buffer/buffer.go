@@ -2,6 +2,12 @@
 
 package buffer
 
+import (
+	"reflect"
+
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
+)
+
 // Buffer represents a generic buffered channel that can store elements of type T.
 // It provides configuration for capacity and drop behavior when the buffer is full.
 type Buffer[T any] struct {
@@ -52,9 +58,12 @@ func New[T any](capacity int, drop bool) *Buffer[T] {
 //	eventBuffer := buffer.New[Event](1000, false)
 //	eventBuffer.Buffer(Event{ID: "1", Data: "example"})
 func (b *Buffer[T]) Buffer(t T) {
+	metrics.BufferInserts.WithLabelValues(b.String()).Inc()
 	if b.drop && len(b.c) >= b.capacity {
+		metrics.BufferDrops.WithLabelValues(b.String()).Inc()
 		return
 	}
+
 	b.c <- t
 }
 
@@ -74,5 +83,14 @@ func (b *Buffer[T]) Buffer(t T) {
 //	    }
 //	}()
 func (b *Buffer[T]) Consume() <-chan T {
+	metrics.BufferConsumed.WithLabelValues(b.String()).Inc()
 	return b.c
+}
+
+func (b *Buffer[T]) String() string {
+	var zero T
+
+	t := reflect.TypeOf(zero)
+
+	return t.String()
 }
