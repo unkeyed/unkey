@@ -591,6 +591,13 @@ export interface components {
        */
       permissions?: string[];
       /**
+       * @description A list of all the roles this key is connected to.
+       * @example [
+       *   "admin"
+       * ]
+       */
+      roles?: string[];
+      /**
        * @description The environment of the key, this is what what you set when you crated the key
        * @example test
        */
