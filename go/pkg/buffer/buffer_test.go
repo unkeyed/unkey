@@ -162,3 +162,16 @@ func TestBufferTypes(t *testing.T) {
 		assert.Equal(t, "float64", a.String())
 	})
 }
+
+var pres string
+
+func BenchmarkStringNoReflect(b *testing.B) {
+	a := New[int](10, true)
+
+	var res string
+
+	for n := 0; n < b.N; n++ {
+		res = a.String()
+	}
+	pres = res
+}

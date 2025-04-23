@@ -11,49 +11,35 @@ import (
 )
 
 var (
-	// BufferInserts are a counter to track the number of times a buffer is inserted into.
-	// Use this with BufferDrops to establish a % rate of drop
+	// BufferState is a counter to track the number of times a buffer is used and
+	// what state is triggered.
 	//
 	// Example usage:
-	//   metrics.BufferInserts.WithLabelValues(b.String()).Inc()
-	BufferInserts = promauto.NewCounterVec(
+	//   metrics.BufferInserts.WithLabelValues(b.String(), "add").Inc()
+	BufferState = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace:   "unkey",
 			Subsystem:   "api",
-			Name:        "buffer_inserts_total",
+			Name:        "buffer_state_total",
 			Help:        "Number of buffer inserts by type",
 			ConstLabels: constLabels,
 		},
-		[]string{"type"},
+		[]string{"type", "state"},
 	)
 
-	// BufferDrops is a counter to track number of times an item has been dropped from a buffer
+	// BufferSize is a gauge to track the size of buffers and whether or not they
+	// are configured to drop on overflow.
 	//
 	// Example usage:
-	//   metrics.BufferDrops.WithLabelValues(b.String()).Inc()
-	BufferDrops = promauto.NewCounterVec(
-		prometheus.CounterOpts{
+	// 	 metrics.BufferSize.WithLabelValues(b.String(), "true").Set(float64(capacity))
+	BufferSize = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
 			Namespace:   "unkey",
 			Subsystem:   "api",
-			Name:        "buffer_drops_total",
-			Help:        "Number of buffer drops by type",
+			Name:        "buffer_size_total",
+			Help:        "Size of buffers by type and if they're configured to drop",
 			ConstLabels: constLabels,
 		},
-		[]string{"type"},
-	)
-
-	// BufferConsumed
-	//
-	// Example usage:
-	//   metrics.BufferConsumed.WithLabelValues(b.String()).Inc()
-	BufferConsumed = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "api",
-			Name:        "buffer_consumed_total",
-			Help:        "Number of times the buffer has been consumed from by type",
-			ConstLabels: constLabels,
-		},
-		[]string{"type"},
+		[]string{"type", "drop"},
 	)
 )

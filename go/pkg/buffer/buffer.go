@@ -4,6 +4,7 @@ package buffer
 
 import (
 	"reflect"
+	"strconv"
 
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
@@ -11,10 +12,10 @@ import (
 // Buffer represents a generic buffered channel that can store elements of type T.
 // It provides configuration for capacity and drop behavior when the buffer is full.
 type Buffer[T any] struct {
-	c chan T // The underlying channel storing elements
-
-	capacity int  // Maximum number of elements the buffer can hold
-	drop     bool // Whether to drop new elements when buffer is full
+	c        chan T // The underlying channel storing elements
+	capacity int    // Maximum number of elements the buffer can hold
+	drop     bool   // Whether to drop new elements when buffer is full
+	name     string // name of the buffer
 }
 
 // New creates a new Buffer with the specified capacity and drop behavior.
@@ -29,11 +30,17 @@ type Buffer[T any] struct {
 //	// Create a buffer for strings with capacity 500 that drops when full
 //	stringBuffer := buffer.New[string](500, true)
 func New[T any](capacity int, drop bool) *Buffer[T] {
+	var zero T
+	t := reflect.TypeOf(zero)
+
 	b := &Buffer[T]{
 		capacity: capacity,
 		c:        make(chan T, capacity),
 		drop:     drop,
+		name:     t.String(),
 	}
+
+	metrics.BufferSize.WithLabelValues(b.String(), strconv.FormatBool(b.drop)).Set(float64(b.capacity))
 
 	return b
 }
@@ -58,9 +65,9 @@ func New[T any](capacity int, drop bool) *Buffer[T] {
 //	eventBuffer := buffer.New[Event](1000, false)
 //	eventBuffer.Buffer(Event{ID: "1", Data: "example"})
 func (b *Buffer[T]) Buffer(t T) {
-	metrics.BufferInserts.WithLabelValues(b.String()).Inc()
+	metrics.BufferState.WithLabelValues(b.String(), "add").Inc()
 	if b.drop && len(b.c) >= b.capacity {
-		metrics.BufferDrops.WithLabelValues(b.String()).Inc()
+		metrics.BufferState.WithLabelValues(b.String(), "drop").Inc()
 		return
 	}
 
@@ -83,14 +90,10 @@ func (b *Buffer[T]) Buffer(t T) {
 //	    }
 //	}()
 func (b *Buffer[T]) Consume() <-chan T {
-	metrics.BufferConsumed.WithLabelValues(b.String()).Inc()
+	metrics.BufferState.WithLabelValues(b.String(), "consume").Inc()
 	return b.c
 }
 
 func (b *Buffer[T]) String() string {
-	var zero T
-
-	t := reflect.TypeOf(zero)
-
-	return t.String()
+	return b.name
 }
