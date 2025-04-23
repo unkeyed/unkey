@@ -281,6 +281,13 @@ These are validation codes, the HTTP status will be 200.
                   description: "A list of all the permissions this key is connected to.",
                   example: ["dns.record.update", "dns.record.delete"],
                 }),
+              roles: z
+                .array(z.string())
+                .optional()
+                .openapi({
+                  description: "A list of all the roles this key is connected to.",
+                  example: ["admin"],
+                }),
               environment: z.string().optional().openapi({
                 description:
                   "The environment of the key, this is what what you set when you crated the key",
@@ -373,6 +380,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       ratelimit: val.ratelimit ?? undefined,
       enabled: val.key?.enabled,
       permissions: val.permissions,
+      roles: val.roles,
       environment: val.key?.environment ?? undefined,
       code: val.valid ? ("VALID" as const) : val.code,
       identity: val.identity

@@ -176,6 +176,18 @@ describe("with temporary key", () => {
         workspaceId: h.resources.userWorkspace.id,
       });
 
+      const role = {
+        id: newId("test"),
+        workspaceId: h.resources.userWorkspace.id,
+        name: "role",
+      };
+      await h.db.primary.insert(schema.roles).values(role);
+      await h.db.primary.insert(schema.keysRoles).values({
+        keyId: key.id,
+        roleId: role.id,
+        workspaceId: h.resources.userWorkspace.id,
+      });
+
       await new Promise((resolve) => setTimeout(resolve, 2500));
       const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
         url: "/v1/keys.verifyKey",
@@ -196,6 +208,7 @@ describe("with temporary key", () => {
       expect(res.body.name).toBe(key.name);
       expect(res.body.ownerId).toBe(key.ownerId);
       expect(res.body.permissions).toMatchObject([permission.name]);
+      expect(res.body.roles).toMatchObject([role.name]);
     },
     { timeout: 20000 },
   );
