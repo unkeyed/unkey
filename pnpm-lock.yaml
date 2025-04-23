@@ -637,8 +637,8 @@ importers:
   internal/clickhouse:
     dependencies:
       '@clickhouse/client-web':
-        specifier: ^1.6.0
-        version: 1.6.0
+        specifier: ^1.11.1
+        version: 1.11.1
       '@unkey/error':
         specifier: workspace:^
         version: link:../../packages/error
@@ -2062,14 +2062,14 @@ packages:
     bundledDependencies:
       - is-unicode-supported
 
-  /@clickhouse/client-common@1.6.0:
-    resolution: {integrity: sha512-DPdfPUIrBumWff8JdE2oLqnOIN1DwxXt48juV+tB6zaonufQR1QImtUGEhIFIqRWJU7zErtQ1eKfkwjLY0MYDg==}
+  /@clickhouse/client-common@1.11.1:
+    resolution: {integrity: sha512-bme0le2yhDSAh13d2fxhSW5ZrNoVqZ3LTyac8jK6hNH0qkksXnjYkLS6KQalPU6NMpffxHmpI4+/Gi2MnX0NCA==}
     dev: false
 
-  /@clickhouse/client-web@1.6.0:
-    resolution: {integrity: sha512-1N65jzmN7cbAusay6sdy4FJIZpP+z3tW0nhE3KmxDiJDYrcTj5FOailYJKy51vWkqECJezgC8g8FLZSHm1OoOg==}
+  /@clickhouse/client-web@1.11.1:
+    resolution: {integrity: sha512-dRmve4Vh8tdnLo8tt77O+2Ye4FWBR9eBrJ3CsaoNS2Q6aQNwv0JbPUKIrU88ep2sg5kilmNfAXqWaJXehpYVRg==}
     dependencies:
-      '@clickhouse/client-common': 1.6.0
+      '@clickhouse/client-common': 1.11.1
     dev: false
 
   /@cloudflare/kv-asset-handler@0.4.0:
