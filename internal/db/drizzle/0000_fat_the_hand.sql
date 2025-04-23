@@ -208,11 +208,12 @@ CREATE TABLE `identities` (
 	`external_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`environment` varchar(256) NOT NULL DEFAULT 'default',
+	`meta` json,
+	`deleted` boolean NOT NULL DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	`meta` json,
 	CONSTRAINT `identities_id` PRIMARY KEY(`id`),
-	CONSTRAINT `external_id_workspace_id_idx` UNIQUE(`external_id`,`workspace_id`)
+	CONSTRAINT `workspace_id_external_id_deleted_idx` UNIQUE(`workspace_id`,`external_id`,`deleted`)
 );
 --> statement-breakpoint
 CREATE TABLE `ratelimits` (
@@ -292,7 +293,6 @@ CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);--> s
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);--> statement-breakpoint
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);--> statement-breakpoint
 CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);--> statement-breakpoint
-CREATE INDEX `workspace_id_idx` ON `identities` (`workspace_id`);--> statement-breakpoint
 CREATE INDEX `name_idx` ON `ratelimits` (`name`);--> statement-breakpoint
 CREATE INDEX `identity_id_idx` ON `ratelimits` (`identity_id`);--> statement-breakpoint
 CREATE INDEX `key_id_idx` ON `ratelimits` (`key_id`);--> statement-breakpoint

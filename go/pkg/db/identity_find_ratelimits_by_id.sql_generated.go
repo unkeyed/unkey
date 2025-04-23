@@ -11,37 +11,29 @@ import (
 )
 
 const findRatelimitsByIdentityID = `-- name: FindRatelimitsByIdentityID :many
-SELECT id, name, workspace_id, created_at, updated_at, ` + "`" + `limit` + "`" + `, duration FROM ratelimits WHERE identity_id = ?
+SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, ` + "`" + `limit` + "`" + `, duration FROM ratelimits WHERE identity_id = ?
 `
-
-type FindRatelimitsByIdentityIDRow struct {
-	ID          string        `db:"id"`
-	Name        string        `db:"name"`
-	WorkspaceID string        `db:"workspace_id"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
-	Limit       int32         `db:"limit"`
-	Duration    int64         `db:"duration"`
-}
 
 // FindRatelimitsByIdentityID
 //
-//	SELECT id, name, workspace_id, created_at, updated_at, `limit`, duration FROM ratelimits WHERE identity_id = ?
-func (q *Queries) FindRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) ([]FindRatelimitsByIdentityIDRow, error) {
+//	SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration FROM ratelimits WHERE identity_id = ?
+func (q *Queries) FindRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error) {
 	rows, err := db.QueryContext(ctx, findRatelimitsByIdentityID, identityID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FindRatelimitsByIdentityIDRow
+	var items []Ratelimit
 	for rows.Next() {
-		var i FindRatelimitsByIdentityIDRow
+		var i Ratelimit
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.WorkspaceID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.KeyID,
+			&i.IdentityID,
 			&i.Limit,
 			&i.Duration,
 		); err != nil {
