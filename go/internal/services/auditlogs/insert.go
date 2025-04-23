@@ -57,6 +57,7 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 		if err != nil {
 			return err
 		}
+
 		auditLogs = append(auditLogs, db.InsertAuditLogParams{
 			ID:          auditLogID,
 			WorkspaceID: l.WorkspaceID,
@@ -75,7 +76,6 @@ func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditL
 		})
 
 		for _, resource := range l.Resources {
-
 			meta, err := json.Marshal(resource.Meta)
 			if err != nil {
 				return err

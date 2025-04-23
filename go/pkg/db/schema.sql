@@ -208,11 +208,12 @@ CREATE TABLE `identities` (
 	`external_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`environment` varchar(256) NOT NULL DEFAULT 'default',
+	`meta` json,
+	`deleted` boolean NOT NULL DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	`meta` json,
 	CONSTRAINT `identities_id` PRIMARY KEY(`id`),
-	CONSTRAINT `external_id_workspace_id_idx` UNIQUE(`external_id`,`workspace_id`)
+	CONSTRAINT `workspace_id_external_id_deleted_idx` UNIQUE(`workspace_id`,`external_id`,`deleted`)
 );
 
 CREATE TABLE `ratelimits` (
@@ -292,7 +293,6 @@ CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
 CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);
-CREATE INDEX `workspace_id_idx` ON `identities` (`workspace_id`);
 CREATE INDEX `name_idx` ON `ratelimits` (`name`);
 CREATE INDEX `identity_id_idx` ON `ratelimits` (`identity_id`);
 CREATE INDEX `key_id_idx` ON `ratelimits` (`key_id`);
