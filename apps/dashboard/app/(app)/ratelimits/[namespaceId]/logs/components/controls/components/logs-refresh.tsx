@@ -1,15 +1,18 @@
 import { RefreshButton } from "@/components/logs/refresh-button";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryTime } from "@/providers/query-time-provider";
 import { useRatelimitLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
 
 export const LogsRefresh = () => {
   const { toggleLive, isLive } = useRatelimitLogsContext();
+  const { refreshQueryTime } = useQueryTime();
   const { filters } = useFilters();
   const { ratelimit } = trpc.useUtils();
   const hasRelativeFilter = filters.find((f) => f.field === "since");
 
   const handleRefresh = () => {
+    refreshQueryTime();
     ratelimit.logs.query.invalidate();
     ratelimit.logs.queryRatelimitTimeseries.invalidate();
   };
