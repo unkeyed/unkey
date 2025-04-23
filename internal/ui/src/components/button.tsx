@@ -155,8 +155,8 @@ const buttonVariants = cva(
         variant: "primary",
         color: "info",
         className: [
-          "dark:text-white/95 bg-info-9 hover:bg-ingo-10 rounded-md font-medium focus:hover:bg-info-10",
-          "focus:border-ingo-11 focus:ring-4 focus:ring-info-6 focus-visible:outline-none focus:ring-offset-0",
+          "dark:text-white/95 bg-info-9 hover:bg-info-10 rounded-md font-medium focus:hover:bg-info-10",
+          "focus:border-info-11 focus:ring-4 focus:ring-info-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:bg-info-7 disabled:text-white/80  disabled:dark:text-white/80",
           "active:bg-info-11",
         ],
