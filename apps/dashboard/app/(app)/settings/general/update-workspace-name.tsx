@@ -1,10 +1,10 @@
 "use client";
 import { SettingCard } from "@/components/settings-card";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Input } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -56,7 +56,6 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <SettingCard
-          className="py-[19px] mt-5"
           title={
             <div className="flex items-center justify-start gap-2.5">
               <span className="text-sm font-medium text-accent-12">Workspace Name</span>
@@ -99,7 +98,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
             />
             <Button
               size="lg"
-              className="rounded-lg px-2.5 flex-none h-9"
+              variant="primary"
               disabled={
                 !form.formState.isValid ||
                 form.formState.isSubmitting ||
@@ -107,6 +106,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
               }
               loading={form.formState.isSubmitting}
               type="submit"
+              className="justify-self-end"
             >
               Save
             </Button>

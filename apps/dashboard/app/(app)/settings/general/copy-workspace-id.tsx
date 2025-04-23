@@ -8,7 +8,6 @@ import { Input } from "@unkey/ui";
 export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
   return (
     <SettingCard
-      className="pt-8 pb-8 mx-0"
       title={
         <div className="flex items-center justify-start gap-2.5">
           <span className="text-sm font-medium text-accent-12">Workspace ID</span>
@@ -23,7 +22,7 @@ export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
       contentWidth="w-full lg:w-[320px]"
     >
       <Input
-        className="w-full lg:w-[320px] focus:ring-0 focus:ring-offset-0"
+        className="w-full lg:w-[315px] focus:ring-0 focus:ring-offset-0"
         readOnly
         defaultValue={workspaceId}
         placeholder="Workspace ID"
