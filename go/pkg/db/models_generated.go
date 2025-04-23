@@ -291,9 +291,10 @@ type Identity struct {
 	ExternalID  string        `db:"external_id"`
 	WorkspaceID string        `db:"workspace_id"`
 	Environment string        `db:"environment"`
+	Meta        []byte        `db:"meta"`
+	Deleted     bool          `db:"deleted"`
 	CreatedAt   int64         `db:"created_at"`
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
-	Meta        []byte        `db:"meta"`
 }
 
 type Key struct {

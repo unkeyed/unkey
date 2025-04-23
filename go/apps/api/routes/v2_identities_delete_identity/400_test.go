@@ -2,14 +2,13 @@
 package handler_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_delete_identity"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -18,7 +17,7 @@ import (
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.delete_identity")
 	route := handler.New(handler.Services{
 		DB:          h.DB,
 		Keys:        h.Keys,
@@ -34,14 +33,14 @@ func TestBadRequests(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("missing external id", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{}
+	t.Run("missing external id AND missing identity id", func(t *testing.T) {
+		req := handler.Request{}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/identities.deleteIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -50,13 +49,13 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("empty external id", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{ExternalId: ""}
+		req := handler.Request{ExternalId: ptr.P("")}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/identities.deleteIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -65,58 +64,13 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("external id too short", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{ExternalId: "12"}
+		req := handler.Request{ExternalId: ptr.P("id")}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
-		require.Equal(t, "Bad Request", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
-	})
-
-	t.Run("metadata exceeds maximum size limit", func(t *testing.T) {
-		metaData := make(map[string]any)
-		entriesNeeded := (handler.MAX_META_LENGTH_MB * 1024 * 1024) / 15
-		for i := range entriesNeeded + 1000 {
-			metaData[fmt.Sprintf("key_%d", i)] = ptr.P(fmt.Sprintf("some_%d", i))
-		}
-
-		rawMeta, _ := json.Marshal(metaData)
-
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{ExternalId: uid.New("test"), Meta: &metaData}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", handler.MAX_META_LENGTH_MB, float64(len(rawMeta))/1024/1024), res.Body.Error.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
-		require.Equal(t, "Bad Request", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
-	})
-
-	t.Run("invalid ratelimit", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{
-			ExternalId: uid.New("test"),
-			Ratelimits: &[]openapi.Ratelimit{
-				{
-					Duration: 1,
-					Limit:    1,
-				},
-			},
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/identities.deleteIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -130,7 +84,7 @@ func TestBadRequests(t *testing.T) {
 			// No Authorization header
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
@@ -142,7 +96,7 @@ func TestBadRequests(t *testing.T) {
 			"Authorization": {"malformed_header"},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
