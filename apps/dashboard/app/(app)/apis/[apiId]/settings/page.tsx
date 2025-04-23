@@ -31,6 +31,7 @@ export default async function SettingsPage(props: Props) {
   }
 
   const api = workspace.apis.find((api) => api.id === props.params.apiId);
+  console.log({ api });
   if (!api) {
     return notFound();
   }

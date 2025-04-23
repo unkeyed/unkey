@@ -100,10 +100,10 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
                 </FormItem>
               )}
             />
-
             <Button
               size="lg"
-              className="rounded-lg px-2.5 items-end"
+              variant="primary"
+              className="items-end"
               disabled={
                 !form.formState.isValid ||
                 form.formState.isSubmitting ||

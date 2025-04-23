@@ -115,7 +115,8 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
             />
             <Button
               size="lg"
-              className="rounded-lg px-2.5 "
+              className="items-end"
+              variant="primary"
               disabled={
                 !form.formState.isValid ||
                 form.formState.isSubmitting ||

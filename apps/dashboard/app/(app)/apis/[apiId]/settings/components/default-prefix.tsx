@@ -52,6 +52,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
       toast.error(err.message);
     },
   });
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.defaultPrefix === keyAuth.defaultPrefix) {
       return toast.error("Please provide a different prefix than already existing one as default");
@@ -102,9 +103,9 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
                 </FormItem>
               )}
             />
-
             <Button
-              className="rounded-lg px-2.5 items-end"
+              className="items-end"
+              variant="primary"
               size="lg"
               disabled={
                 !form.formState.isValid ||

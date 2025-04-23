@@ -55,15 +55,19 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     },
   });
 
+  const isValid = api.ipWhitelist?.toString() === form.watch("ipWhitelist").toString();
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateIps.mutateAsync(values);
   }
+
   const Badge = () =>
     isEnabled ? (
       <StatusBadge variant="enabled" text="Enabled" icon={<Shield size="sm-thin" />} />
     ) : (
       <StatusBadge variant="locked" text="Locked" icon={<Lock size="sm-thin" />} />
     );
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <SettingCard
@@ -105,12 +109,9 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             />
             <Button
               size="lg"
-              className="rounded-lg px-2.5"
-              disabled={
-                !form.formState.isValid ||
-                form.formState.isSubmitting ||
-                api.ipWhitelist === form.watch("ipWhitelist")
-              }
+              variant="primary"
+              className="items-end"
+              disabled={!form.formState.isValid || form.formState.isSubmitting || isValid}
               type="submit"
               loading={form.formState.isSubmitting}
             >
@@ -120,10 +121,11 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         ) : (
           <div className="flex w-full gap-4 lg:justify-end lg:items-center ">
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
+              {/* //Todo: Add info variant to Button*/}
               <Button
                 type="button"
                 variant="primary"
-                className="flex items-center justify-end gap-1 font-medium text-info-11 bg-info-4 leading-4 text-[13px] px-3 h-9 rounded-lg border border-info-5 hover:bg-info-3 w-[16rem] lg:w-[12rem]"
+                className="flex items-center justify-end text-info-11 bg-info-4 h-9 border border-info-5 hover:bg-info-3 w-[16rem] lg:w-[12rem]"
               >
                 Upgrade to Enterprise
               </Button>

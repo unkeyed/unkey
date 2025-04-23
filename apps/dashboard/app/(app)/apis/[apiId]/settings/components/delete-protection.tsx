@@ -1,23 +1,15 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
+import { DialogContainer } from "@/components/dialog-container";
 import { SettingCard } from "@/components/settings-card";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUpRight, TriangleWarning2, XMark } from "@unkey/icons";
+import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { revalidate } from "../actions";
@@ -35,19 +27,28 @@ type Props = {
 export const DeleteProtection: React.FC<Props> = ({ api }) => {
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (!open) {
-      form.reset();
-    }
-  }, [open]);
   const formSchema = z.object({
     name: z.string().refine((v) => v === api.name, "Please confirm the API name"),
   });
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  type FormValues = z.infer<typeof formSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<FormValues>({
+    mode: "onChange",
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+    },
   });
+
   const router = useRouter();
+  const isValid = watch("name") === api.name;
 
   const updateDeleteProtection = trpc.api.updateDeleteProtection.useMutation({
     async onSuccess(_, { enabled }) {
@@ -55,9 +56,9 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
         `Delete protection for ${api.name} has been ${enabled ? "enabled" : "disabled"}`,
         {},
       );
-
       setOpen(false);
       await revalidate();
+      reset();
 
       router.refresh();
     },
@@ -67,9 +68,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
     },
   });
 
-  const isValid = form.watch("name") === api.name;
-
-  async function onSubmit(_: z.infer<typeof formSchema>) {
+  async function onSubmit(_values: z.infer<typeof formSchema>) {
     updateDeleteProtection.mutate({
       apiId: api.id,
       enabled: !api.deleteProtection,
@@ -79,7 +78,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
   return (
     <SettingCard
       title={
-        <div className=" flex items-center justify-start gap-2.5">
+        <div className="flex items-center justify-start gap-2.5">
           <span className="text-sm font-medium text-accent-12">Delete Protection</span>{" "}
           <StatusBadge
             variant={api.deleteProtection ? "enabled" : "disabled"}
@@ -102,111 +101,83 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       border="top"
       contentWidth="w-full lg:w-[320px]"
     >
-      <AlertDialog open={open} onOpenChange={(o) => setOpen(o)}>
-        <AlertDialogTrigger asChild>
-          <div className="flex w-full gap-2 lg:items-center lg:justify-end">
-            {api.deleteProtection ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="rounded-lg text-warning-11 text-[13px] w-[24rem] lg:w-[12rem] h-9"
-              >
-                Disable Delete Protection
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="rounded-lg text-success-11 text-[13px] w-[24rem] lg:w-[12rem] h-9"
-              >
-                Enable Delete Protection
-              </Button>
-            )}
+      <div className="flex w-full gap-2 lg:items-center lg:justify-end">
+        {api.deleteProtection ? (
+          <Button
+            type="button"
+            variant="outline"
+            color="warning"
+            size="xlg"
+            className="w-[24rem] lg:w-[12rem]"
+            onClick={() => setOpen(true)}
+          >
+            Disable Delete Protection
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            color="success"
+            size="xlg"
+            className="w-[24rem] lg:w-[12rem]"
+            onClick={() => setOpen(true)}
+          >
+            Enable Delete Protection
+          </Button>
+        )}
+      </div>
+      <DialogContainer
+        isOpen={open}
+        onOpenChange={setOpen}
+        title={`${api.deleteProtection ? "Disable" : "Enable"} API Delete Protection`}
+        footer={
+          <div className="flex flex-col gap-2 items-center justify-center w-full">
+            <Button
+              type="submit"
+              form="delete-protection-form" // Connect to form ID
+              variant="primary"
+              color={api.deleteProtection ? "warning" : "success"}
+              size="xlg"
+              disabled={!isValid || updateDeleteProtection.isLoading || isSubmitting}
+              loading={updateDeleteProtection.isLoading || isSubmitting}
+              className="w-full"
+            >
+              {api.deleteProtection
+                ? "Disable API Delete Protection"
+                : "Enable API Delete Protection"}
+            </Button>
+            <div className="font-normal text-[12px] text-gray-9 text-center">
+              This setting can be {!api.deleteProtection ? "disabled" : "re-enabled"} at any time
+            </div>
           </div>
-        </AlertDialogTrigger>
-        <AlertDialogContent className="w-[480px] border border-grayA-4 bg-gray-1 shadow-lg m-0 p-0 sm:rounded-2xl">
-          <Form {...form}>
-            <form className="flex flex-col" onSubmit={form.handleSubmit(onSubmit)}>
-              <div className="flex flex-row items-center justify-between w-full h-16 px-6 py-4 bg-gray-1 rounded-t-[16px] border-b border-grayA-4">
-                <div className="flex font-medium leading-8 text-md whitespace-nowrap">
-                  {api.deleteProtection ? "Disable" : "Enable"} API Delete Protection
-                </div>
-                <div className="flex items-center justify-end w-full ">
-                  <AlertDialogCancel className="text-gray-11 mb-[2px] ml-[5px]">
-                    <XMark size="xl-medium" className="w-full h-full text-gray-9 mr-[-3px]" />
-                  </AlertDialogCancel>
-                </div>
-              </div>
-              <div className="flex bg-grayA-2 py-4 px-6 h-[192px]">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="text-[13px] font-normal leading-6 text-gray-11 pr-2 tracking-wide">
-                        <span className="font-medium text-pretty">Important: </span>
-                        {api.deleteProtection
-                          ? "Enabling this prevents the API from being deleted. This setting can be disabled at any time."
-                          : "Disabling this allows API deletion. This setting can be enabled at any time."}
-                        <a href="https://www.unkey.com/docs/security/delete-protection">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="py-3 gap-1 font-medium text-accent-12 leading-4 text-[13px]"
-                          >
-                            Learn more <ArrowUpRight size="lg-thin" className="text-accent-9" />
-                          </Button>
-                        </a>
-                      </div>
-
-                      <div className="pt-6 text-sm font-normal leading-6 text-gray-11">
-                        Type <span className="font-medium text-gray-12">{api.name}</span> name to
-                        confirm
-                      </div>
-                      <FormControl>
-                        <Input {...field} autoComplete="off" />
-                      </FormControl>
-
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="flex flex-col rounded-b-[16px] gap-2 px-5 py-4 h-[112px] border-t bg-gray-1 border-grayA-4 overflow-hidden items-center justify-center">
-                <Button
-                  type="submit"
-                  disabled={!isValid || updateDeleteProtection.isLoading}
-                  loading={updateDeleteProtection.isLoading}
-                  className={cn(
-                    "rounded-lg text-white bg-warning-9 font-medium text-[13px] leading-6 w-full border-grayA-3 h-10",
-                    api.deleteProtection
-                      ? isValid
-                        ? "bg-warning-9"
-                        : "disabled:bg-warning-6"
-                      : isValid
-                        ? "bg-success-9"
-                        : "disabled:bg-success-6",
-                  )}
-                >
-                  {updateDeleteProtection.isLoading ? (
-                    <Loading />
-                  ) : api.deleteProtection ? (
-                    "Disable API Delete Protection"
-                  ) : (
-                    "Enable API Delete Protection"
-                  )}
-                </Button>
-                <div className="font-normal text-[12px] text-gray-9">
-                  This setting can be disabled at any time
-                </div>
-              </div>
-            </form>
-          </Form>
-        </AlertDialogContent>
-      </AlertDialog>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-gray-11 text-[13px]">
+            <span className="font-medium">Important: </span>
+            {!api.deleteProtection
+              ? "Enabling this prevents the API from being deleted. This setting can be disabled at any time."
+              : "Disabling this allows API deletion. This setting can be re-enabled at any time."}
+            <a href="https://www.unkey.com/docs/security/delete-protection">
+              <Button
+                type="button"
+                variant="ghost"
+                className="py-3 gap-1 font-medium text-accent-12 leading-4 text-[13px]"
+              >
+                Learn more <ArrowUpRight size="lg-thin" className="text-accent-9" />
+              </Button>
+            </a>
+          </p>
+          <form id="delete-protection-form" onSubmit={handleSubmit(onSubmit)}>
+            <div className="space-y-1">
+              <p className="text-gray-11 text-[13px]">
+                Type <span className="text-gray-12 font-medium">{api.name}</span> to confirm
+              </p>
+              <Input {...register("name")} placeholder={`Enter "${api.name}" to confirm`} />
+            </div>
+          </form>
+        </div>
+      </DialogContainer>
     </SettingCard>
   );
 };

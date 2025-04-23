@@ -8,6 +8,7 @@ import { DeleteApi } from "./delete-api";
 import { DeleteProtection } from "./delete-protection";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
+
 type Props = {
   api: Api;
   workspace: Workspace;
