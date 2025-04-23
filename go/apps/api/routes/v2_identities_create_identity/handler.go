@@ -117,14 +117,20 @@ func New(svc Services) zen.Route {
 		}()
 
 		identityID := uid.New(uid.IdentityPrefix)
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+		args := db.InsertIdentityParams{
 			ID:          identityID,
 			ExternalID:  req.ExternalId,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        meta,
-		})
+		}
+		svc.Logger.Warn("inserting identity",
+			"args", args,
+		)
+		err = db.Query.InsertIdentity(ctx, tx, args)
+
+		svc.Logger.Error("insert identity failed", "requestId", s.RequestID(), "error", err)
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {
 				return fault.Wrap(err,

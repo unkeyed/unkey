@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"slices"
 	"testing"
 	"time"
 
@@ -185,7 +184,13 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Len(t, rateLimits, len(identityRateLimits))
 
 		for _, ratelimit := range identityRateLimits {
-			idx := slices.IndexFunc(rateLimits, func(c db.FindRatelimitsByIdentityIDRow) bool { return c.Name == ratelimit.Name })
+			idx := -1
+			for i, limit := range rateLimits {
+				if limit.Name == ratelimit.Name {
+					idx = i
+					break
+				}
+			}
 
 			require.True(t, idx >= 0 && idx < len(rateLimits), "Rate limit with name %s not found in the database", ratelimit.Name)
 			require.Equal(t, rateLimits[idx].Duration, ratelimit.Duration)

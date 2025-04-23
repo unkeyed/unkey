@@ -179,8 +179,9 @@ func TestDeleteIdentitySuccessfully(t *testing.T) {
 		})
 		require.Equal(t, sql.ErrNoRows, err)
 
+		// The old ratelimits still exist, while the identity is soft deleted
 		ratelimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: newIdentity.ID, Valid: true})
 		require.NoError(t, err)
-		require.Len(t, ratelimits, 0)
+		require.Len(t, ratelimits, 2)
 	})
 }

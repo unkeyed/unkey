@@ -1,3 +1,68 @@
+// Package handler implements the API endpoint for deleting an identity in the Unkey system.
+//
+// OVERVIEW:
+// This handler implements the POST /v2/identities.deleteIdentity endpoint which allows
+// authorized users to delete identities from the system. The deletion is performed as a
+// soft delete to maintain data integrity and audit history.
+//
+// FLOW DIAGRAM:
+//
+//	+----------------+     +-------------+     +----------------+     +--------------+
+//	|  Verify Key    |---->| Check Perms |---->| Get Identity   |---->| Begin Tx     |
+//	+----------------+     +-------------+     +----------------+     +--------------+
+//	                                                                         |
+//	                                                                         v
+//	+----------------+     +-------------+     +----------------+     +--------------+
+//	| Return 200    |<----| Commit Tx   |<----| Create Audits  |<----| Soft Delete  |
+//	+----------------+     +-------------+     +----------------+     +--------------+
+//
+// DETAILED PROCESS:
+// 1. Authentication: Verifies the root key for API access
+// 2. Permission Verification: Checks if the key has permission to delete identities
+//   - Checks for general identity deletion permission (*)
+//   - Checks for specific identity deletion permission if ID provided
+//
+// 3. Identity Retrieval: Gets the identity by either:
+//
+//	+---------------+     +-----------------------+
+//	| Identity ID   |---->| FindIdentityByID     |
+//	+---------------+     +-----------------------+
+//	+---------------+     +-----------------------+
+//	| External ID   |---->| FindIdentityByExtID  |
+//	+---------------+     +-----------------------+
+//
+// 4. Soft Deletion Process:
+//
+//	+----------------+
+//	| Soft Delete    |
+//	+--------+-------+
+//	         |
+//	         v
+//	+---------------------------+       +------------------------+
+//	| Duplicate Key Error?      |--Yes->| Delete Old Soft-       |
+//	+-----------------+---------+       | Deleted Identity       |
+//	                |                   +----------+-------------+
+//	                No                            |
+//	                |                             |
+//	                v                             v
+//	+--------------------------+       +------------------------+
+//	| Create Audit Logs         |<-----| Retry Soft Delete      |
+//	+---------------------------+      +------------------------+
+//
+// 5. Audit Logging: Creates logs for:
+//   - The deleted identity
+//   - Any rate limits associated with the identity
+//
+// 6. Transaction Management:
+//   - All database operations are wrapped in a transaction
+//   - Rollback occurs automatically if any operation fails
+//   - Commit only happens after all operations succeed
+//
+// ERROR HANDLING:
+// - Authentication failures result in auth errors
+// - Permission failures result in authorization errors
+// - Database errors are wrapped with appropriate error codes and descriptions
+// - Not Found errors are returned when identity doesn't exist or belongs to wrong workspace
 package handler
 
 import (
@@ -118,16 +183,10 @@ func New(svc Services) zen.Route {
 		}()
 
 		err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
-		if err != nil && !db.IsDuplicateKeyError(err) {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to soft delete identity", "Failed to delete Identity."),
-			)
-		}
 
 		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
 		// so we can hard delete the "old" deleted version
-		if err != nil && db.IsDuplicateKeyError(err) {
+		if db.IsDuplicateKeyError(err) {
 			err = deleteOldIdentity(ctx, tx, auth.AuthorizedWorkspaceID, identity.ExternalID)
 			if err != nil {
 				return err
@@ -135,12 +194,14 @@ func New(svc Services) zen.Route {
 
 			// Re-apply the soft delete operation
 			err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
-			if err != nil && !db.IsDuplicateKeyError(err) {
-				return fault.Wrap(err,
-					fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.WithDesc("database failed to soft delete identity", "Failed to delete Identity."),
-				)
-			}
+
+		}
+		if err != nil {
+
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to soft delete identity", "Failed to delete Identity."),
+			)
 		}
 
 		auditLogs := []auditlog.AuditLog{

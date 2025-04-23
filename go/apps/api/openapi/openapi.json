@@ -673,13 +673,7 @@
             "minimum": 0
           }
         },
-        "required": [
-          "namespaceId",
-          "overrideId",
-          "duration",
-          "identifier",
-          "limit"
-        ]
+        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"]
       }
     }
   },
