@@ -12,9 +12,8 @@ on:
         description: "Whether Agent has changed"
         value: ${{ jobs.build.outputs.agent }}
 
-# Add minimal permissions required for security
 permissions:
-  contents: read # Only needs read access to repository contents
+  contents: read
 
 jobs:
   build:

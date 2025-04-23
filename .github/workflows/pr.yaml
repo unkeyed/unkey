@@ -1,5 +1,4 @@
 name: PR
-
 on:
   pull_request:
     branches: [main]
@@ -10,7 +9,8 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
   cancel-in-progress: true
-
+permissions:
+  contents: read
 jobs:
   detect_changes:
     uses: ./.github/workflows/job_detect_changes.yaml
