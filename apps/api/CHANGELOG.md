@@ -1,5 +1,11 @@
 # api
 
+## 0.4.0
+
+### Minor Changes
+
+- 0e3872b: return roles as part of verifications
+
 ## 0.3.0
 
 ### Minor Changes

@@ -82,6 +82,7 @@ type InvalidResponse = {
   };
   remaining?: number;
   permissions: string[];
+  roles: string[];
   message?: string;
 };
 
@@ -107,6 +108,7 @@ type ValidResponse = {
    */
   authorizedWorkspaceId: string;
   permissions: string[];
+  roles: string[];
 };
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
@@ -434,6 +436,7 @@ export class KeyService {
         valid: false,
         code: "DISABLED",
         permissions: data.permissions,
+        roles: data.roles,
         message: "the key is disabled",
       });
     }
@@ -446,6 +449,7 @@ export class KeyService {
         valid: false,
         code: "FORBIDDEN",
         permissions: data.permissions,
+        roles: data.roles,
         message: `the key does not belong to ${req.apiId}`,
       });
     }
@@ -465,6 +469,7 @@ export class KeyService {
           api: data.api,
           identity: data.identity,
           permissions: data.permissions,
+          roles: data.roles,
           message: `the key has expired on ${new Date(expires).toISOString()}`,
         });
       }
@@ -481,6 +486,7 @@ export class KeyService {
           valid: false,
           code: "FORBIDDEN",
           permissions: data.permissions,
+          roles: data.roles,
         });
       }
 
@@ -493,6 +499,7 @@ export class KeyService {
           valid: false,
           code: "FORBIDDEN",
           permissions: data.permissions,
+          roles: data.roles,
         });
       }
     }
@@ -535,6 +542,7 @@ export class KeyService {
           valid: false,
           code: "INSUFFICIENT_PERMISSIONS",
           permissions: data.permissions,
+          roles: data.roles,
           message: rbacResp.val.message,
         });
       }
@@ -602,6 +610,7 @@ export class KeyService {
         code: "RATE_LIMITED",
         ratelimit,
         permissions: data.permissions,
+        roles: data.roles,
       });
     }
 
@@ -628,6 +637,7 @@ export class KeyService {
           isRootKey: !!data.key.forWorkspaceId,
           authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
           permissions: data.permissions,
+          roles: data.roles,
         });
       }
     }
@@ -646,6 +656,7 @@ export class KeyService {
       isRootKey: !!data.key.forWorkspaceId,
       authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
       permissions: data.permissions,
+      roles: data.roles,
     });
   }
 
