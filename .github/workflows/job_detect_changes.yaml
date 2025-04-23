@@ -30,6 +30,7 @@ jobs:
               - 'apps/api/**'
               - 'internal/**'
               - 'packages/**'
+              - 'go/**'
               - 'pnpm-lock.yaml'
             clickhouse:
               - 'internal/clickhouse/**'
