@@ -4,12 +4,14 @@ import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useState } from "react";
 import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import { OutcomesFilter } from "./outcome-filter";
 
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
+  const [open, setOpen] = useState(false);
 
   const options = keysOverviewFilterFieldConfig.names.operators.map((op) => ({
     id: op,
@@ -24,6 +26,8 @@ export const LogsFilters = () => {
   }));
   return (
     <FiltersPopover
+      open={open}
+      onOpenChange={setOpen}
       items={[
         {
           id: "names",
@@ -46,6 +50,7 @@ export const LogsFilters = () => {
                     value: text,
                   },
                 ]);
+                setOpen(false);
               }}
             />
           ),
@@ -71,6 +76,7 @@ export const LogsFilters = () => {
                     value: text,
                   },
                 ]);
+                setOpen(false);
               }}
             />
           ),
@@ -96,6 +102,7 @@ export const LogsFilters = () => {
                     value: text,
                   },
                 ]);
+                setOpen(false);
               }}
             />
           ),
@@ -104,7 +111,7 @@ export const LogsFilters = () => {
           id: "outcomes",
           label: "Outcomes",
           shortcut: "o",
-          component: <OutcomesFilter />,
+          component: <OutcomesFilter onDrawerClose={() => setOpen(false)} />,
         },
       ]}
       activeFilters={filters}
@@ -122,7 +129,7 @@ export const LogsFilters = () => {
           title="Press 'F' to toggle filters"
         >
           <BarsFilter className="text-accent-9 size-4" />
-          <span className="text-accent-12 font-medium text-[13px]">Filter</span>
+          <span className="text-accent-12 font-medium text-[13px] max-md:hidden">Filter</span>
           {filters.length > 0 && (
             <div className="bg-gray-7 rounded h-4 px-1 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
               {filters.length}

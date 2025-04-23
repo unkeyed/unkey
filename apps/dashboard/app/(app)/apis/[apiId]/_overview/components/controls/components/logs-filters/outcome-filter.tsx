@@ -2,7 +2,12 @@ import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { useFilters } from "../../../../hooks/use-filters";
 import { getOutcomeColor, getOutcomeOptions } from "../../../../utils";
 
-export const OutcomesFilter = () => {
+type OutcomesFilterProps = {
+  // onDrawerClose is a callback function that will be called when applying the filter
+  onDrawerClose?: () => void;
+};
+
+export const OutcomesFilter = ({ onDrawerClose }: OutcomesFilterProps) => {
   const { filters, updateFilters } = useFilters();
 
   // Get the options from our centralized utility
@@ -27,6 +32,7 @@ export const OutcomesFilter = () => {
       })}
       filters={filters}
       updateFilters={updateFilters}
+      onDrawerClose={onDrawerClose}
     />
   );
 };
