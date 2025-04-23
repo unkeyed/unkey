@@ -63,9 +63,8 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <SettingCard
-          className="py-5"
           title={
-            <div className=" flex items-center justify-start gap-2.5">
+            <div className="flex items-center justify-start gap-2.5">
               <span className="text-sm font-medium text-accent-12">Default Prefix</span>
             </div>
           }

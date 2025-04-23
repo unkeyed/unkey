@@ -72,7 +72,6 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <SettingCard
-          className="py-[19px] mt-5"
           title={
             <div className="flex items-center justify-start gap-2.5">
               <span className="text-sm font-medium text-accent-12">API Name</span>

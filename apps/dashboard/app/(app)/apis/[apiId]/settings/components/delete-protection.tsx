@@ -78,7 +78,6 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
 
   return (
     <SettingCard
-      className="py-5 mt-5"
       title={
         <div className=" flex items-center justify-start gap-2.5">
           <span className="text-sm font-medium text-accent-12">Delete Protection</span>{" "}

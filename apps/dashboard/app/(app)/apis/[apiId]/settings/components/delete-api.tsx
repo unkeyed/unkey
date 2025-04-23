@@ -89,7 +89,6 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
 
   return (
     <SettingCard
-      className="py-5"
       title={
         <div className=" flex items-center justify-start gap-2.5">
           <span className="text-sm font-medium text-accent-12">Delete API</span>
@@ -124,7 +123,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
             <Button
               size="lg"
               disabled={!!api.deleteProtection}
-              className="rounded-lg justify-end items-end px-3 text-error-9 font-medium text-[13px] leading-6 w-[24rem] lg:w-[8rem]"
+              color="danger"
               variant="outline"
               onClick={() => setOpen(!open)}
             >

@@ -64,7 +64,6 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <SettingCard
-          className="mt-5 pt-[19px] pb-[20px]"
           title={
             <div className="flex items-center justify-start gap-2.5">
               <span className="text-sm font-medium text-accent-12">Default Bytes</span>

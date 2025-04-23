@@ -22,16 +22,26 @@ export const SettingsClient = ({ api, workspace, keyAuth }: Props) => {
           <div className="w-full text-accent-12 font-semibold text-lg pt-[22px] pb-[20px] text-left border-b border-gray-4 px-2">
             API Settings
           </div>
-          <UpdateApiName api={api} />
-          <Separator className="bg-gray-4" orientation="horizontal" />
-          <CopyApiId apiId={api.id} />
-          <DefaultBytes keyAuth={keyAuth} />
-          <Separator className="bg-gray-4" orientation="horizontal" />
-          <DefaultPrefix keyAuth={keyAuth} />
-          <UpdateIpWhitelist api={api} workspace={workspace} />
-          <DeleteProtection api={api} />
-          <Separator className="bg-gray-4" orientation="horizontal" />
-          <DeleteApi api={api} keys={keyAuth.sizeApprox} />
+          <div className="flex flex-col gap-6">
+            <div>
+              <UpdateApiName api={api} />
+              <Separator className="bg-gray-4" orientation="horizontal" />
+              <CopyApiId apiId={api.id} />
+            </div>
+            <div>
+              <DefaultBytes keyAuth={keyAuth} />
+              <Separator className="bg-gray-4" orientation="horizontal" />
+              <DefaultPrefix keyAuth={keyAuth} />
+            </div>
+            <div>
+              <UpdateIpWhitelist api={api} workspace={workspace} />
+            </div>
+            <div>
+              <DeleteProtection api={api} />
+              <Separator className="bg-gray-4" orientation="horizontal" />
+              <DeleteApi api={api} keys={keyAuth.sizeApprox} />
+            </div>
+          </div>
         </div>
       </div>
     </>

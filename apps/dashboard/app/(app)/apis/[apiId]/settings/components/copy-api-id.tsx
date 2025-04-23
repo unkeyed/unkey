@@ -6,7 +6,6 @@ import { Input } from "@unkey/ui";
 export const CopyApiId = ({ apiId }: { apiId: string }) => {
   return (
     <SettingCard
-      className="pt-8 pb-8 mx-0"
       title={
         <div className="flex items-center justify-start gap-2.5">
           <span className="text-sm font-medium text-accent-12">API ID</span>

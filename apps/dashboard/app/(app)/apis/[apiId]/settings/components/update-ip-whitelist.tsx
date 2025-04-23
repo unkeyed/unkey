@@ -67,7 +67,6 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <SettingCard
-        className="mt-[20px] py-[19px] w-full"
         title={
           <div className=" flex items-center justify-start gap-2.5">
             <span className="text-sm font-medium text-accent-12">IP Whitelist</span>
@@ -76,7 +75,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         }
         description={
           <div className="font-normal text-[13px] max-w-[380px]">
-            Want to protect your API keys from unauthorized access? <br />
+            Want to protect your API from unauthorized access? <br />
             Upgrade to our <span className="font-bold">Enterprise plan</span> to enable IP
             whitelisting and restrict access to trusted sources.
           </div>
@@ -135,11 +134,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
               rel="noreferrer"
               className="flex items-center justify-end"
             >
-              <Button
-                type="button"
-                variant="ghost"
-                className="py-3 gap-1 font-medium text-accent-12 leading-4 text-[13px]"
-              >
+              <Button type="button" variant="ghost" size="lg">
                 Learn more <ArrowUpRight size="lg-thin" className="text-accent-9" />
               </Button>
             </a>
