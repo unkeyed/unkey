@@ -32,7 +32,7 @@ jobs:
               - 'packages/**'
               - 'pnpm-lock.yaml'
             clickhouse:
-              - 'internal/clickhouse/schema/**'
+              - 'internal/clickhouse/**'
             agent:
               - 'apps/agent/**'
               - 'go/**'
