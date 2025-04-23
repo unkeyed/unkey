@@ -31,7 +31,6 @@ export default async function SettingsPage(props: Props) {
   }
 
   const api = workspace.apis.find((api) => api.id === props.params.apiId);
-  console.log({ api });
   if (!api) {
     return notFound();
   }
@@ -51,7 +50,6 @@ export default async function SettingsPage(props: Props) {
         }}
         apis={workspace.apis}
       />
-
       <PageContent>
         <SettingsClient api={api} workspace={workspace} keyAuth={keyAuth} />
       </PageContent>

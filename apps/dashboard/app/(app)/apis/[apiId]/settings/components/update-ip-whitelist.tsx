@@ -119,13 +119,14 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             </Button>
           </div>
         ) : (
-          <div className="flex w-full gap-4 lg:justify-end lg:items-center ">
+          <div className="flex w-full gap-2 lg:justify-end lg:items-center ">
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
-              {/* //Todo: Add info variant to Button*/}
               <Button
                 type="button"
+                size="lg"
                 variant="primary"
-                className="flex items-center justify-end text-info-11 bg-info-4 h-9 border border-info-5 hover:bg-info-3 w-[16rem] lg:w-[12rem]"
+                color="info"
+                className="w-[16rem] lg:w-[12rem]"
               >
                 Upgrade to Enterprise
               </Button>

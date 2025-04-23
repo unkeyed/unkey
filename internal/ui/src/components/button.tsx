@@ -39,6 +39,7 @@ const buttonVariants = cva(
         success: "",
         warning: "",
         danger: "",
+        info: "",
       },
       size: {
         // TODO: Remove "icon" this in the following iterations. This is only needed for backward compatability
@@ -147,6 +148,37 @@ const buttonVariants = cva(
           "focus:border-success-11 focus:ring-4 focus:ring-success-6 focus-visible:outline-none focus:ring-offset-0",
           "disabled:text-success-7",
           "active:bg-success-4",
+        ],
+      },
+      // Success
+      {
+        variant: "primary",
+        color: "info",
+        className: [
+          "dark:text-white/95 bg-info-9 hover:bg-ingo-10 rounded-md font-medium focus:hover:bg-info-10",
+          "focus:border-ingo-11 focus:ring-4 focus:ring-info-6 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:bg-info-7 disabled:text-white/80  disabled:dark:text-white/80",
+          "active:bg-info-11",
+        ],
+      },
+      {
+        variant: "outline",
+        color: "info",
+        className: [
+          "text-info-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
+          "focus:border-info-11 focus:ring-4 focus:ring-info-6 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:text-infoA-7 disabled:border-grayA-5",
+          "active:bg-info-3",
+        ],
+      },
+      {
+        variant: "ghost",
+        color: "info",
+        className: [
+          "text-info-11 bg-transparent hover:bg-info-3 rounded-md",
+          "focus:border-info-11 focus:ring-4 focus:ring-info-6 focus-visible:outline-none focus:ring-offset-0",
+          "disabled:text-info-7",
+          "active:bg-info-4",
         ],
       },
     ],
