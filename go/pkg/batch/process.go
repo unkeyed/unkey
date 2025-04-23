@@ -3,6 +3,8 @@ package batch
 import (
 	"context"
 	"time"
+
+	"github.com/unkeyed/unkey/go/pkg/buffer"
 )
 
 // BatchProcessor provides a more configurable batching implementation compared to
@@ -17,8 +19,7 @@ import (
 // gracefully and to check the current buffer size.
 type BatchProcessor[T any] struct {
 	name   string
-	drop   bool
-	buffer chan T
+	buffer *buffer.Buffer[T]
 	batch  []T
 	config Config[T]
 	flush  func(ctx context.Context, batch []T)
@@ -85,9 +86,12 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 	}
 
 	bp := &BatchProcessor[T]{
-		name:   config.Name,
-		drop:   config.Drop,
-		buffer: make(chan T, config.BufferSize),
+		name: config.Name,
+		buffer: buffer.New[T](buffer.Config{
+			Name:     config.Name,
+			Capacity: config.BufferSize,
+			Drop:     config.Drop,
+		}),
 		batch:  make([]T, 0, config.BatchSize),
 		flush:  config.Flush,
 		config: config,
@@ -113,9 +117,11 @@ func (bp *BatchProcessor[T]) process() {
 		}
 		t.Reset(bp.config.FlushInterval)
 	}
+
+	c := bp.buffer.Consume()
 	for {
 		select {
-		case e, ok := <-bp.buffer:
+		case e, ok := <-c:
 			if !ok {
 				// channel closed
 				t.Stop()
@@ -136,19 +142,6 @@ func (bp *BatchProcessor[T]) process() {
 	}
 }
 
-// Size returns the current number of items queued in the buffer channel.
-// This can be useful for monitoring the processor's load.
-//
-// Example:
-//
-//	if processor.Size() > warningThreshold {
-//	    log.Printf("Warning: batch processor %s has %d pending items",
-//	       processor.Name, processor.Size())
-//	}
-func (bp *BatchProcessor[T]) Size() int {
-	return len(bp.buffer)
-}
-
 // Buffer adds an item to the batch processor.
 // If the Drop option is enabled and the buffer is full, the item will be silently dropped.
 // Otherwise, this method will block until there is room in the buffer.
@@ -162,17 +155,8 @@ func (bp *BatchProcessor[T]) Size() int {
 //	    Message:   "Database connection failed",
 //	})
 func (bp *BatchProcessor[T]) Buffer(t T) {
-	if bp.drop {
+	bp.buffer.Buffer(t)
 
-		select {
-		case bp.buffer <- t:
-		default:
-			// Emit a metric to signal we dropped a message
-
-		}
-	} else {
-		bp.buffer <- t
-	}
 }
 
 // Close gracefully shuts down the batch processor.
@@ -186,5 +170,5 @@ func (bp *BatchProcessor[T]) Buffer(t T) {
 //	// During application shutdown
 //	processor.Close()
 func (bp *BatchProcessor[T]) Close() {
-	close(bp.buffer)
+	bp.buffer.Close()
 }
