@@ -1,5 +1,5 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
-import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useMemo, useState } from "react";
 import type { VerificationQueryTimeseriesPayload } from "./query-timeseries.schema";
@@ -13,7 +13,7 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
   const queryParams = useMemo(() => {
     const params: VerificationQueryTimeseriesPayload = {
       keyspaceId: keyspaceId ?? "",
-      startTime: dateNow - TIMESERIES_DATA_WINDOW * 24,
+      startTime: dateNow - HISTORICAL_DATA_WINDOW,
       endTime: dateNow,
       since: "",
     };
