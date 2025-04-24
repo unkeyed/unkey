@@ -150,7 +150,7 @@ const buttonVariants = cva(
           "active:bg-success-4",
         ],
       },
-      // Success
+      // Info
       {
         variant: "primary",
         color: "info",
