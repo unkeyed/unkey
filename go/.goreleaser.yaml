@@ -18,8 +18,9 @@ before:
 
 dockers:
   - image_templates:
-      - "{{ .ProjectName }}:{{ .Version }}"
-    dockerfile: Dockerfile
+      - "ghcr.io/unkeyed/unkey:{{ .Version }}"
+
+    dockerfile: goreleaser.Dockerfile
     goos: linux
     goarch: amd64
     use: buildx
