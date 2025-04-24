@@ -1,5 +1,5 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
-import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
@@ -13,7 +13,7 @@ export const useFetchRatelimitTimeseries = (namespaceId: string) => {
   const queryParams = useMemo(() => {
     const params: RatelimitQueryTimeseriesPayload = {
       namespaceId,
-      startTime: timestamp - TIMESERIES_DATA_WINDOW,
+      startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
       identifiers: { filters: [] },
       since: "",
