@@ -12,10 +12,6 @@ before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
-    - go get
-    # you may remove this if you don't need go generate
-    - go generate ./...
-    - go fmt ./...
 
 dockers:
   - image_templates:
