@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
@@ -14,6 +15,9 @@ type Buffer[T any] struct {
 	c    chan T // The underlying channel storing elements
 	drop bool   // Whether to drop new elements when buffer is full
 	name string // name of the buffer
+
+	stopMetrics func()
+	closed      atomic.Bool
 }
 
 type Config struct {
@@ -45,12 +49,14 @@ type Config struct {
 func New[T any](config Config) *Buffer[T] {
 
 	b := &Buffer[T]{
-		c:    make(chan T, config.Capacity),
-		drop: config.Drop,
-		name: config.Name,
+		c:           make(chan T, config.Capacity),
+		drop:        config.Drop,
+		name:        config.Name,
+		closed:      atomic.Bool{},
+		stopMetrics: func() {},
 	}
 
-	repeat.Every(time.Minute, func() {
+	b.stopMetrics = repeat.Every(time.Minute, func() {
 		metrics.BufferSize.WithLabelValues(b.name, strconv.FormatBool(b.drop)).Set(float64(len(b.c)) / float64(cap(b.c)))
 	})
 
@@ -85,6 +91,10 @@ func New[T any](config Config) *Buffer[T] {
 //	})
 //	eventBuffer.Buffer(Event{ID: "1", Data: "example"})
 func (b *Buffer[T]) Buffer(t T) {
+	if b.closed.Load() {
+		metrics.BufferState.WithLabelValues(b.name, "closed").Inc()
+		return
+	}
 
 	if b.drop {
 		select {
@@ -139,5 +149,7 @@ func (b *Buffer[T]) Consume() <-chan T {
 //	// Close the buffer when done
 //	b.Close()
 func (b *Buffer[T]) Close() {
+	b.closed.Store(true)
 	close(b.c)
+	b.stopMetrics()
 }

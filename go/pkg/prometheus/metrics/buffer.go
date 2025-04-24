@@ -17,6 +17,7 @@ var (
 	// Possible states are:
 	// - "buffered": The item was added to the buffer.
 	// - "dropped": The buffer was removed from the system.
+	// - "closed": The buffer was closed.
 	//
 	// Example usage:
 	//   metrics.BufferInserts.WithLabelValues(b.String(), "buffered").Inc()
