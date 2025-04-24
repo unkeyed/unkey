@@ -8,7 +8,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn, processTimeFilters } from "@/lib/utils";
 import { ChevronDown } from "@unkey/icons";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
-import { motion } from "framer-motion";
 import { type PropsWithChildren, useEffect, useState } from "react";
 import { CUSTOM_OPTION_ID, DEFAULT_OPTIONS } from "./constants";
 import { DateTimeSuggestions } from "./suggestions";
@@ -130,60 +129,51 @@ export const DatetimePopover = ({
           <Drawer.Trigger asChild>
             <div className="flex flex-row items-center">{children}</div>
           </Drawer.Trigger>
-          <Drawer.Content className="h-[488px]">
-            <div className="overflow-auto w-full">
-              <div className="flex flex-col w-full gap-2 p-2">
-                <button
-                  type="button"
-                  onClick={() => setTimeRangeOpen(!timeRangeOpen)}
-                  className="text-gray-11 h-9  border-border border px-2 text-sm w-full rounded-lg bg-gray-3 flex items-center justify-between"
-                >
-                  <span>Filter by time range</span>
-                  <ChevronDown
-                    className={cn("rotate-0 duration-150 ease-out", {
-                      "rotate-180": timeRangeOpen,
-                    })}
-                  />
-                </button>
-                {timeRangeOpen && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex w-full"
-                  >
-                    <DateTimeSuggestions options={suggestions} onChange={handleSuggestionChange} />
-                  </motion.div>
-                )}
-              </div>
-              <motion.div
-                animate={timeRangeOpen ? { opacity: 0 } : { opacity: 1 }}
-                className="w-full"
+          <Drawer.Content className="max-h-[80vh]">
+            <div className="flex flex-col w-full gap-2 p-2">
+              <button
+                type="button"
+                onClick={() => setTimeRangeOpen(!timeRangeOpen)}
+                className="text-gray-11 h-9 border-border border px-2 text-sm w-full rounded-lg bg-gray-3 flex items-center justify-between"
               >
-                <DateTime
-                  onChange={handleDateTimeChange}
-                  initialRange={{
-                    from: startTime ? new Date(startTime) : undefined,
-                    to: endTime ? new Date(endTime) : undefined,
-                  }}
-                  className={cn("gap-3 h-full w-full flex", timeRangeOpen && "hidden")}
-                >
-                  <DateTime.Calendar
-                    mode="range"
-                    className="px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]"
-                  />
-                  <DateTime.TimeInput type="range" className="px-3.5 h-9 mt-0" />
-                  <DateTime.Actions className="px-3.5 h-full pb-4">
-                    <Button
-                      variant="primary"
-                      className="font-sans w-full h-9 rounded-md"
-                      onClick={handleApplyFilter}
-                      disabled={!isTimeChanged}
-                    >
-                      Apply Filter
-                    </Button>
-                  </DateTime.Actions>
-                </DateTime>
-              </motion.div>
+                <span className="text-gray-9 text-[13px]">Filter by time range</span>
+                <ChevronDown
+                  className={cn("transition-transform duration-150 ease-out", {
+                    "rotate-180": timeRangeOpen,
+                  })}
+                />
+              </button>
+
+              <div className={cn("w-full", !timeRangeOpen && "hidden")}>
+                <DateTimeSuggestions options={suggestions} onChange={handleSuggestionChange} />
+              </div>
+            </div>
+
+            <div className={cn("w-full", timeRangeOpen && "hidden")}>
+              <DateTime
+                onChange={handleDateTimeChange}
+                initialRange={{
+                  from: startTime ? new Date(startTime) : undefined,
+                  to: endTime ? new Date(endTime) : undefined,
+                }}
+                className="gap-3 h-full w-full flex"
+              >
+                <DateTime.Calendar
+                  mode="range"
+                  className="px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]"
+                />
+                <DateTime.TimeInput type="range" className="px-3.5 h-9 mt-0" />
+                <DateTime.Actions className="px-3.5 h-full pb-4">
+                  <Button
+                    variant="primary"
+                    className="font-sans w-full h-9 rounded-md"
+                    onClick={handleApplyFilter}
+                    disabled={!isTimeChanged}
+                  >
+                    Apply Filter
+                  </Button>
+                </DateTime.Actions>
+              </DateTime>
             </div>
           </Drawer.Content>
         </Drawer.Root>
