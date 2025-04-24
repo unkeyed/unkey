@@ -1,13 +1,11 @@
-# .github/workflows/release.yml
-name: goreleaser
+name: Release
 
 on:
   workflow_dispatch:
-  pull_request:
   push:
     # run only against tags
     tags:
-      - "v*"
+      - "v[0-9]+.[0-9]+.[0-9]+*"
 
 permissions:
   contents: write
@@ -31,8 +29,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      # More assembly might be required: Docker logins, GPG, etc.
-      # It all depends on your needs.
+      - name: Extract version from tag
+        run: |
+          # Remove the 'refs/tags/' prefix from the tag to get the version
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Get tags
+        run: echo "TAGS=ghcr.io/${{ github.repository }}:${VERSION}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: "{{defaultContext}}:go"
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.TAGS }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:

@@ -63,9 +63,7 @@ func New(config Config) (*clickhouse, error) {
 		return nil, fault.Wrap(err, fault.WithDesc("parsing clickhouse DSN failed", ""))
 	}
 
-	config.Logger.Info("initializing clickhouse client",
-		"url", config.URL,
-	)
+	config.Logger.Info("initializing clickhouse client")
 	opts.Debug = true
 	opts.Debugf = func(format string, v ...any) {
 		config.Logger.Debug(fmt.Sprintf(format, v...))
