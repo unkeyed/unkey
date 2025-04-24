@@ -90,7 +90,7 @@ export const FilterOperatorInput = <T extends string>({
   return (
     <div className="flex max-md:flex-col w-full md:w-[500px]">
       <div className="flex flex-col gap-2 p-2 w-full md:w-[180px] md:border-r border-gray-4 items-center">
-        {options.map((option,index) => (
+        {options.map((option, index) => (
           <div
             key={option.id}
             className={cn("group relative w-full rounded-lg", "focus-within:outline-none")}
