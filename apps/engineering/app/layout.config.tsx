@@ -14,6 +14,11 @@ export const baseOptions: HomeLayoutProps = {
   githubUrl: "https://github.com/unkeyed/unkey",
   links: [
     {
+      text: "Docs",
+      url: "/docs",
+      active: "nested-url",
+    },
+    {
       text: "Contributing",
       url: "/contributing",
       active: "nested-url",

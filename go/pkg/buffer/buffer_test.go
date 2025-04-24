@@ -10,65 +10,66 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	tests := []struct {
-		name     string
-		capacity int
-		drop     bool
-	}{
+	tests := []Config{
 		{
-			name:     "default_settings",
-			capacity: 10_000,
-			drop:     false,
+			Name:     "default_settings",
+			Capacity: 10_000,
+			Drop:     false,
 		},
 		{
-			name:     "custom_capacity",
-			capacity: 5000,
-			drop:     false,
+			Name:     "custom_capacity",
+			Capacity: 5000,
+			Drop:     false,
 		},
 		{
-			name:     "with_drop_enabled",
-			capacity: 10_000,
-			drop:     true,
+			Name:     "with_drop_enabled",
+			Capacity: 10_000,
+			Drop:     true,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			b := New[int](tt.capacity, tt.drop)
+		t.Run(tt.Name, func(t *testing.T) {
+			b := New[int](tt)
 
-			assert.Equal(t, tt.capacity, cap(b.c), "channel capacity should match")
-			assert.Equal(t, tt.drop, b.drop, "drop behavior should match")
+			assert.Equal(t, tt.Capacity, cap(b.c), "channel capacity should match")
+			assert.Equal(t, tt.Drop, b.drop, "drop behavior should match")
 		})
 	}
 }
 
 func TestBuffer(t *testing.T) {
 	tests := []struct {
-		name     string
-		capacity int
-		drop     bool
-		input    []int
-		wantLen  int
+		config  Config
+		name    string
+		input   []int
+		wantLen int
 	}{
 		{
-			name:     "Should buffer all elements when under capacity",
-			capacity: 5,
-			drop:     false,
-			input:    []int{1, 2, 3},
-			wantLen:  3,
+			config: Config{
+				Name:     "a",
+				Capacity: 5,
+				Drop:     false,
+			},
+			name:    "Should buffer all elements when under capacity",
+			input:   []int{1, 2, 3},
+			wantLen: 3,
 		},
 		{
-			name:     "Should drop elements when buffer is full and drop is enabled",
-			capacity: 3,
-			drop:     true,
-			input:    []int{1, 2, 3, 4, 5},
-			wantLen:  3,
+			config: Config{
+				Name:     "b",
+				Capacity: 3,
+				Drop:     true,
+			},
+			name:    "Should drop elements when buffer is full and drop is enabled",
+			input:   []int{1, 2, 3, 4, 5},
+			wantLen: 3,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := New[int](tt.capacity, tt.drop)
+			b := New[int](tt.config)
 
 			// Buffer elements
 			for _, v := range tt.input {
@@ -98,7 +99,11 @@ func TestBuffer(t *testing.T) {
 
 func TestBlockingBehavior(t *testing.T) {
 	t.Run("blocks_when_full", func(t *testing.T) {
-		b := New[int](2, false)
+		b := New[int](Config{
+			Name:     "a",
+			Capacity: 2,
+			Drop:     false,
+		})
 
 		// Fill the buffer
 		b.Buffer(1)
@@ -127,7 +132,11 @@ func TestCustomTypes(t *testing.T) {
 	}
 
 	t.Run("custom_type_buffering", func(t *testing.T) {
-		b := New[CustomEvent](1000, false)
+		b := New[CustomEvent](Config{
+			Name:     "custom_event",
+			Capacity: 1000,
+			Drop:     false,
+		})
 		event := CustomEvent{ID: "1", Data: "test"}
 
 		b.Buffer(event)
