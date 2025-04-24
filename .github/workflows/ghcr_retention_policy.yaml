@@ -3,7 +3,7 @@ name: Prune old images
 on:
   workflow_dispatch:
   schedule:
-    - cron: "5 * * * *" # every hour
+    - cron: "0 0 * * *" # every day
 
 jobs:
   clean:
