@@ -132,7 +132,7 @@ export const FilterItem = ({
                 shortcut={shortcut}
                 role="presentation"
                 aria-haspopup="true"
-                title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
+                title={`Press '${shortcut?.toUpperCase()}' to toggle ${label} options`}
               />
             )}
             <span className="text-[13px] text-accent-12 font-medium select-none">{label}</span>
