@@ -185,14 +185,14 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         hide: true,
       }}
       emptyState={
-        <div className="w-full justify-center items-center md:h-full">
-          <Empty className="w-full max-w-[400px] flex mx-auto items-center md:items-start">
+        <div className="w-full flex justify-center items-center h-full">
+          <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
             <Empty.Title>Key Verification Logs</Empty.Title>
-            <Empty.Description className="text-center md:text-left">
+            <Empty.Description className="text-left">
               No key verification data to show. Once requests are made with API keys, you'll see a
               summary of successful and failed verification attempts.
-            </Empty.Description>
+            </Empty.Description>{" "}
             <Empty.Actions className="mt-4 justify-center md:justify-start">
               <a
                 href="https://www.unkey.com/docs/introduction"

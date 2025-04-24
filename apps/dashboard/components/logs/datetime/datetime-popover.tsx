@@ -4,7 +4,7 @@ import { KeyboardButton } from "@/components/keyboard-button";
 import { Drawer } from "@/components/ui/drawer";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { useResponsive } from "@/hooks/use-responsive";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn, processTimeFilters } from "@/lib/utils";
 import { ChevronDown } from "@unkey/icons";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
@@ -37,7 +37,7 @@ export const DatetimePopover = ({
   onDateTimeChange,
   customOptions, // Accept custom options
 }: DatetimePopoverProps) => {
-  const { isMobile } = useResponsive();
+  const isMobile = useIsMobile();
   const [timeRangeOpen, setTimeRangeOpen] = useState(false);
   const [open, setOpen] = useState(false);
   useKeyboardShortcut("t", () => setOpen((prev) => !prev));

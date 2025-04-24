@@ -5,7 +5,7 @@ import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
-import { useResponsive } from "@/hooks/use-responsive";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ChevronExpandY, Gauge } from "@unkey/icons";
 
 export const ApisNavbar = ({
@@ -29,7 +29,7 @@ export const ApisNavbar = ({
   };
   keyId?: string;
 }) => {
-  const { isMobile } = useResponsive();
+  const isMobile = useIsMobile();
   return (
     <div className="w-full">
       <Navbar className="w-full flex justify-between">
