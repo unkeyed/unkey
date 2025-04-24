@@ -15,7 +15,7 @@ jobs:
         with:
           account: unkeyed
           token: ${{ secrets.PAT }}
-          image-names: "unkey"
+          image-names: "unkey agent tinybird-proxy"
           image-tags: "!latest"
           cut-off: 4w
-          dry-run: true
+          dry-run: false
