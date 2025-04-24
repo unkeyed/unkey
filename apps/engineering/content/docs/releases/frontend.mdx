@@ -1,0 +1,69 @@
+---
+title: Frontend Deployments
+description: Guide for deploying Unkey's frontend applications via Vercel
+---
+
+
+This document outlines the process for deploying Unkey's frontend applications using Vercel.
+
+## Overview
+
+Unkey's frontend applications are deployed through Vercel's platform, which provides automated builds, previews, and deployments. The deployment process is designed to be automatic and requires minimal manual intervention.
+
+## Frontend Applications
+
+Unkey has several frontend applications deployed via Vercel:
+
+- **Dashboard**: The main user interface for managing Unkey resources
+- **Landing Page (www)**: The public-facing marketing website
+- **Documentation**: The user and developer documentation site
+- **Portal** (upcoming): The customer portal application
+
+While these applications may be in different repositories, they all follow the same deployment pattern on Vercel.
+
+## Deployment Process
+
+### Production Deployments
+
+Production deployments are automatically triggered when:
+
+- Code is pushed directly to the `main` branch
+- A pull request is merged into the `main` branch
+
+The deployment process follows these steps:
+
+1. Code changes are merged to `main`
+2. Vercel automatically detects the change and starts the build process
+3. The application is built according to its build configuration
+4. Once the build succeeds, the new version is deployed to production
+5. No manual approval steps are required
+
+### Preview Deployments
+
+Preview deployments are automatically created for every pull request:
+
+1. When a pull request is opened, Vercel creates a preview deployment
+2. Each commit to the PR triggers a new preview build
+3. Vercel provides a unique URL for each preview deployment
+4. Team members can visit this URL to review and test changes before merging
+5. Preview deployments are useful for:
+   - Visual verification of changes
+   - Sharing with stakeholders for feedback
+   - Testing functionality in an isolated environment
+
+## Rollback Process
+
+If issues are discovered after a deployment, you can roll back to a previous version:
+
+1. Access the Vercel dashboard for the specific project
+2. Navigate to the "Deployments" section
+3. Find the previous successful deployment you want to roll back to
+4. Click the three-dot menu (⋮) next to that deployment
+5. Select "Roll back" to make that version live again
+
+## Best Practices
+
+1. **Test thoroughly in preview deployments** before merging to `main`
+2. **Coordinate frontend and API deployments** when changes depend on each other
+3. **Verify critical user flows** after each production deployment
+4. **Document significant changes** in PR descriptions for better tracking

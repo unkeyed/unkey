@@ -1,0 +1,42 @@
+name: Detect Changes
+on:
+  workflow_call:
+    outputs:
+      api:
+        description: "Whether API has changed"
+        value: ${{ jobs.build.outputs.api }}
+      clickhouse:
+        description: "Whether ClickHouse has changed"
+        value: ${{ jobs.build.outputs.clickhouse }}
+      agent:
+        description: "Whether Agent has changed"
+        value: ${{ jobs.build.outputs.agent }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.changes.outputs.api }}
+      clickhouse: ${{ steps.changes.outputs.clickhouse }}
+      agent: ${{ steps.changes.outputs.agent }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'internal/**'
+              - 'packages/**'
+              - 'go/**'
+              - 'pnpm-lock.yaml'
+            clickhouse:
+              - 'internal/clickhouse/**'
+            agent:
+              - 'apps/agent/**'
+              - 'go/**'
