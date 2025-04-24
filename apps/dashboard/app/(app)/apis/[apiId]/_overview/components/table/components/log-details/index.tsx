@@ -1,7 +1,7 @@
 "use client";
 import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/logs/constants";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
-import { TimestampInfo } from "@/components/timestamp-info";
+import { TimestampInfo } from "@unkey/ui";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import Link from "next/link";
 import { useMemo } from "react";

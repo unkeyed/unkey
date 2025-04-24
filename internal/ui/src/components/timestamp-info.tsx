@@ -1,6 +1,6 @@
 "use client";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
-import React from "react";
+import * as React from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 import { cn } from "../lib/utils";
 import { format, formatDistanceToNow, fromUnixTime } from "date-fns";
@@ -38,7 +38,14 @@ const timestampRelativeFormatter = (value: string | number): string => {
 
 type DisplayType = "local" | "utc" | "relative";
 
-export const TimestampInfo = ({
+export const TimestampInfo: React.FC<{
+  value: string | number;
+  className?: string;
+  displayType?: DisplayType;
+  triggerRef?: React.RefObject<HTMLElement>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}> = ({
   value,
   className,
   displayType = "local",

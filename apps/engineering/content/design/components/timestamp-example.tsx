@@ -1,12 +1,10 @@
 import { RenderComponentWithSnippet } from "@/app/components/render";
-import { Row } from "@/app/components/row";
 import { TimestampInfo } from "@unkey/ui";
 
-export const TimestampExample: React.FC = () => (
+export const TimestampExample = () => {
+  return (
   <RenderComponentWithSnippet>
-    <Row>
       <TimestampInfo value={1745352664}/>
-    </Row>
   </RenderComponentWithSnippet>
-);
+)};
 

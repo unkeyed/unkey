@@ -2,7 +2,7 @@
 import { RED_STATES, YELLOW_STATES } from "@/app/(app)/logs/constants";
 import { extractResponseField, getRequestHeader } from "@/app/(app)/logs/utils";
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
-import { TimestampInfo } from "@/components/timestamp-info";
+import { TimestampInfo } from "@unkey/ui";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";

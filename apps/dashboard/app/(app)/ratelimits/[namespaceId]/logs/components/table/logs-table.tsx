@@ -1,7 +1,7 @@
 "use client";
 
 import { safeParseJson } from "@/app/(app)/logs/utils";
-import { TimestampInfo } from "@/components/timestamp-info";
+import { TimestampInfo } from "@unkey/ui";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";

@@ -1,4 +1,4 @@
-import { TimestampInfo } from "@/components/timestamp-info";
+import { TimestampInfo } from "@unkey/ui";
 import { cn } from "@/lib/utils";
 import { XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";

@@ -1,4 +1,4 @@
-import { TimestampInfo } from "@/components/timestamp-info";
+import { TimestampInfo } from "@unkey/ui";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";

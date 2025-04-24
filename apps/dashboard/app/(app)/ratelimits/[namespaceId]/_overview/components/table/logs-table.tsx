@@ -1,7 +1,7 @@
 "use client";
 
 import { useSort } from "@/components/logs/hooks/use-sort";
-import { TimestampInfo } from "@/components/timestamp-info";
+import { TimestampInfo } from "@unkey/ui";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
