@@ -2,7 +2,6 @@ import { KeyboardButton } from "@/components/keyboard-button";
 import { Drover } from "@/components/ui/drover";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
 import {
   type KeyboardEvent,
@@ -16,7 +15,6 @@ export type FilterItemConfig = {
   id: string;
   label: string;
   shortcut?: string;
-  shortcutLabel?: string;
   component: React.ReactNode;
 };
 
@@ -31,7 +29,6 @@ export const FilterItem = ({
   id,
   label,
   shortcut,
-  shortcutLabel,
   component,
   isFocused,
   isActive,
@@ -120,26 +117,21 @@ export const FilterItem = ({
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
         <div
           ref={itemRef}
-          className={cn(
-            "flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer",
-            "hover:bg-gray-3 data-[state=open]:bg-gray-3",
-            "focus:outline-none focus:ring-2 focus:ring-accent-7",
-            isFocused && !isActive ? "bg-gray-4" : "",
-            isActive ? "bg-gray-3" : ""
-          )}
-          tabIndex={-1}
-          role="menuitem"
-          aria-haspopup="true"
-          aria-expanded={open}
+          className={`flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer
+            hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none
+            ${isFocused ? "bg-gray-3" : ""}`}
+          tabIndex={0}
+          role="button"
           onClick={handleTriggerClick}
         >
           <div className="flex gap-2 items-center pointer-events-none">
             {shortcut && (
               <KeyboardButton
-                shortcut={shortcutLabel ?? shortcut}
+                shortcut={shortcut}
+                modifierKey="⌘"
                 role="presentation"
-                aria-hidden="true"
-                title={`Shortcut: ${shortcut}`}
+                aria-haspopup="true"
+                title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
               />
             )}
             <span className="text-[13px] text-accent-12 font-medium select-none">
@@ -166,12 +158,12 @@ export const FilterItem = ({
       </Drover.Trigger>
       <Drover.Content
         ref={contentRef}
-        className="min-w-60 w-full bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg outline-none"
+        className="min-w-60 w-full bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg"
         side="right"
         align="start"
-        sideOffset={8}
-        onKeyDown={handleItemDroverKeyDown} // Handle Escape within content
-        tabIndex={-1} // Make content container focusable for fallback
+        sideOffset={12}
+        onKeyDown={handleItemDroverKeyDown}
+        tabIndex={-1}
       >
         {component}
       </Drover.Content>

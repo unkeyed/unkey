@@ -1,6 +1,8 @@
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Drover } from "@/components/ui/drover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { CaretRight } from "@unkey/icons";
+import { Button } from "@unkey/ui";
 import React, {
   type KeyboardEvent,
   type PropsWithChildren,
@@ -213,13 +215,13 @@ export const FiltersPopover = ({
       </Drover.Trigger>
 
       <Drover.Content
-        className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg outline-none"
+        className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg"
         align="start"
         onKeyDown={handleKeyDown}
       >
-        <div className="flex flex-col w-full">
-          <DroverHeader />
-          <div className="flex flex-col gap-1 w-full p-2" role="menu">
+        <div className="flex flex-col gap-2 w-full">
+          <PopoverHeader />
+          <div className="flex flex-col gap-2 w-full" role="menu">
             {items.map((item, index) => (
               <FilterItem
                 key={item.id}
@@ -237,9 +239,9 @@ export const FiltersPopover = ({
   );
 };
 
-const DroverHeader = () => (
-  <div className="flex w-full justify-between items-center px-4 pt-3 md:px-3 md:py-1">
-    <span className="text-gray-9 text-sm">Filters</span>
-    <KeyboardButton shortcut="F" className="max-md:hidden" />
+const PopoverHeader = () => (
+  <div className="flex w-full justify-between items-center px-2 py-1">
+    <span className="text-gray-9 text-[13px]">Filters...</span>
+    <KeyboardButton shortcut="F" />
   </div>
 );
