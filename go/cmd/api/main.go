@@ -125,7 +125,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Basic configuration
 		Platform: cmd.String("platform"),
 		Image:    cmd.String("image"),
-		HttpPort: int(cmd.Int("http-port")),
+		HttpPort: cmd.Int("http-port"),
 		Region:   cmd.String("region"),
 
 		// Database configuration
@@ -141,7 +141,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		InstanceID:     cmd.String("instance-id"),
 		RedisUrl:       cmd.String("redis-url"),
-		PrometheusPort: int(cmd.Int("prometheus-port")),
+		PrometheusPort: cmd.Int("prometheus-port"),
 		Clock:          clock.New(),
 		TestMode:       cmd.Bool("test-mode"),
 	}
