@@ -19,7 +19,6 @@ type BatchProcessor[T any] struct {
 	name   string
 	drop   bool
 	buffer chan T
-	batch  []T
 	config Config[T]
 	flush  func(ctx context.Context, batch []T)
 }
@@ -88,7 +87,6 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 		name:   config.Name,
 		drop:   config.Drop,
 		buffer: make(chan T, config.BufferSize),
-		batch:  make([]T, 0, config.BatchSize),
 		flush:  config.Flush,
 		config: config,
 	}
@@ -104,12 +102,15 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 // It reads items from the buffer channel and batches them until
 // either the batch is full or the flush interval elapses.
 func (bp *BatchProcessor[T]) process() {
+
+	batch := make([]T, 0, bp.config.BatchSize)
+
 	t := time.NewTimer(bp.config.FlushInterval)
 	flushAndReset := func() {
-		if len(bp.batch) > 0 {
+		if len(batch) > 0 {
 
-			bp.flush(context.Background(), bp.batch)
-			bp.batch = bp.batch[:0]
+			bp.flush(context.Background(), batch)
+			batch = batch[:0]
 		}
 		t.Reset(bp.config.FlushInterval)
 	}
@@ -119,14 +120,14 @@ func (bp *BatchProcessor[T]) process() {
 			if !ok {
 				// channel closed
 				t.Stop()
-				if len(bp.batch) > 0 {
-					bp.flush(context.Background(), bp.batch)
-					bp.batch = bp.batch[:0]
+				if len(batch) > 0 {
+					bp.flush(context.Background(), batch)
+					batch = batch[:0]
 				}
 				return
 			}
-			bp.batch = append(bp.batch, e)
-			if len(bp.batch) >= bp.config.BatchSize {
+			batch = append(batch, e)
+			if len(batch) >= bp.config.BatchSize {
 				flushAndReset()
 
 			}
