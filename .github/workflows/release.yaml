@@ -1,5 +1,4 @@
-# .github/workflows/release.yml
-name: goreleaser
+name: Release
 
 on:
   workflow_dispatch:
@@ -44,3 +43,26 @@ jobs:
           workdir: ./go
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        run: |
+          # Remove the 'api/' prefix from the tag to get the version
+          VERSION=${GITHUB_REF#refs/tags/api/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Get tags
+        run: echo "TAGS=ghcr.io/${{ github.repository }}:${VERSION}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: "{{defaultContext}}:go"
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.TAGS }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
