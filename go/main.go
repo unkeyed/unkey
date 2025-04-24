@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/unkeyed/unkey/go/cmd/api"
+	"github.com/unkeyed/unkey/go/cmd/dev"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/pkg/version"
@@ -22,6 +23,7 @@ func main() {
 			api.Cmd,
 			healthcheck.Cmd,
 			quotacheck.Cmd,
+			dev.Cmd,
 		},
 	}
 
