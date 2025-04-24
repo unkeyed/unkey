@@ -4,13 +4,7 @@ import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
-import {
-  type KeyboardEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 export type FilterItemConfig = {
   id: string;
@@ -60,10 +54,9 @@ export const FilterItem = ({
   useEffect(() => {
     if (isActive && open && contentRef.current) {
       // Find and focus the first focusable element within the content
-      const focusableElements =
-        contentRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
+      const focusableElements = contentRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
       if (focusableElements.length > 0) {
         focusableElements[0].focus({ preventScroll: true });
       } else {
@@ -87,7 +80,7 @@ export const FilterItem = ({
       }
       // Allow other keys (like arrows in inputs) to behave normally
     },
-    [setActiveFilter] // Depend on the callback from parent
+    [setActiveFilter], // Depend on the callback from parent
   );
 
   // Handler for Drover's open state changes (e.g., clicking outside)
@@ -105,7 +98,7 @@ export const FilterItem = ({
       // If it opened via interaction (shouldn't happen if controlled),
       // or closed when parent already knew, do nothing extra.
     },
-    [isActive, setActiveFilter]
+    [isActive, setActiveFilter],
   );
 
   // Handler for clicking the trigger element
@@ -125,7 +118,7 @@ export const FilterItem = ({
             "hover:bg-gray-3 data-[state=open]:bg-gray-3",
             "focus:outline-none focus:ring-2 focus:ring-accent-7",
             isFocused && !isActive ? "bg-gray-4" : "",
-            isActive ? "bg-gray-3" : ""
+            isActive ? "bg-gray-3" : "",
           )}
           tabIndex={-1}
           role="menuitem"
@@ -142,9 +135,7 @@ export const FilterItem = ({
                 title={`Shortcut: ${shortcut}`}
               />
             )}
-            <span className="text-[13px] text-accent-12 font-medium select-none">
-              {label}
-            </span>
+            <span className="text-[13px] text-accent-12 font-medium select-none">{label}</span>
           </div>
           <div className="flex items-center gap-1.5 pointer-events-none">
             {filterCount > 0 && (

@@ -50,7 +50,7 @@ const ShortcutActivator = React.memo(
       ignoreContentEditable: true,
     });
     return null; // Render nothing
-  }
+  },
 );
 ShortcutActivator.displayName = "ShortcutActivator";
 
@@ -60,8 +60,7 @@ export const FiltersPopover = ({
   activeFilters = [],
   open,
   onOpenChange,
-  getFilterCount = (field) =>
-    activeFilters.filter((f) => f?.field === field).length,
+  getFilterCount = (field) => activeFilters.filter((f) => f?.field === field).length,
 }: PropsWithChildren<FiltersPopoverProps>) => {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -81,7 +80,7 @@ export const FiltersPopover = ({
         setInternalOpen(value);
       }
     },
-    [isControlled, open, onOpenChange]
+    [isControlled, open, onOpenChange],
   );
 
   useEffect(() => {
@@ -109,7 +108,7 @@ export const FiltersPopover = ({
         return newState;
       });
     },
-    { preventDefault: true, ignoreInputs: true }
+    { preventDefault: true, ignoreInputs: true },
   );
 
   const handleActivateFilter = useCallback(
@@ -124,7 +123,7 @@ export const FiltersPopover = ({
         }
       }, 0);
     },
-    [items, setOpen]
+    [items, setOpen],
   );
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -157,8 +156,7 @@ export const FiltersPopover = ({
     switch (e.key) {
       case "ArrowDown": {
         e.preventDefault();
-        const newIndex =
-          focusedIndex === null ? 0 : (focusedIndex + 1) % items.length;
+        const newIndex = focusedIndex === null ? 0 : (focusedIndex + 1) % items.length;
         setFocusedIndex(newIndex);
         setLastFocusedIndex(newIndex); // Keep track for potential activation
         break;
@@ -205,7 +203,7 @@ export const FiltersPopover = ({
             id={item.id}
             onActivate={handleActivateFilter}
           />
-        ) : null
+        ) : null,
       )}
 
       <Drover.Trigger asChild ref={triggerRef}>
