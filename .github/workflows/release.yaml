@@ -2,7 +2,6 @@ name: Release
 
 on:
   workflow_dispatch:
-  pull_request:
   push:
     # run only against tags
     tags:
@@ -30,20 +29,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      # More assembly might be required: Docker logins, GPG, etc.
-      # It all depends on your needs.
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          # either 'goreleaser' (default) or 'goreleaser-pro'
-          distribution: goreleaser
-          # 'latest', 'nightly', or a semver
-          version: "~> v2"
-          args: release --clean
-          workdir: ./go
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract version from tag
         run: |
           # Remove the 'refs/tags/' prefix from the tag to get the version
@@ -66,3 +51,15 @@ jobs:
           tags: ${{ env.TAGS }}
           build-args: |
             VERSION=${{ env.VERSION }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          # either 'goreleaser' (default) or 'goreleaser-pro'
+          distribution: goreleaser
+          # 'latest', 'nightly', or a semver
+          version: "~> v2"
+          args: release --clean
+          workdir: ./go
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
