@@ -32,6 +32,10 @@ builds:
       - linux
       - windows
       - darwin
+    binary: unkey
+
+    ldflags:
+      - -X 'github.com/unkeyed/unkey/go/pkg/version.Version={{.Version}}'
 
 archives:
   - formats: [tar.gz]
@@ -49,6 +53,7 @@ archives:
         formats: [zip]
 
 changelog:
+  use: github
   sort: asc
   filters:
     exclude:
@@ -56,8 +61,4 @@ changelog:
       - "^test:"
 
 release:
-  footer: >-
-
-    ---
-
-    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
+  prerelease: auto
