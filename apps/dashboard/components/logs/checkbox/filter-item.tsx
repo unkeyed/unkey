@@ -41,6 +41,7 @@ export const FilterItem = ({
   }, [isActive]);
 
   // Focus the trigger div when parent indicates it's focused in the main list
+  // biome-ignore lint/correctness/useExhaustiveDependencies:  no need to react for label
   useEffect(() => {
     if (isFocused && !isActive && itemRef.current) {
       // Only focus trigger if not active
@@ -49,6 +50,7 @@ export const FilterItem = ({
   }, [isFocused, isActive, label]); // Depend on isActive too
 
   // Focus content when drover becomes active and open
+  // biome-ignore lint/correctness/useExhaustiveDependencies:  no need to react for label
   useEffect(() => {
     if (isActive && open && contentRef.current) {
       // Find and focus the first focusable element within the content
@@ -128,7 +130,6 @@ export const FilterItem = ({
             {shortcut && (
               <KeyboardButton
                 shortcut={shortcut}
-                modifierKey="⌘"
                 role="presentation"
                 aria-haspopup="true"
                 title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
