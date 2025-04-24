@@ -46,6 +46,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     // Initialize properties after validation
     this.clientId = config.clientId;
     this.cookiePassword = cookiePassword; // TypeScript now knows this is string
+    console.error("CREATING NEW WORKOS PROVIDER")
     this.provider = new WorkOS(config.apiKey, { clientId: config.clientId });
 
     WorkOSAuthProvider.instance = this;
