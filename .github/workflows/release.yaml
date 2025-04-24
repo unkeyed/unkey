@@ -24,6 +24,13 @@ jobs:
         uses: ./.github/actions/install
         with:
           go: true
+      - name: Login to image repository
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
       # More assembly might be required: Docker logins, GPG, etc.
       # It all depends on your needs.
       - name: Run GoReleaser
