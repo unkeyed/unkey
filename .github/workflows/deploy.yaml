@@ -44,20 +44,18 @@ jobs:
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-
   api_preview_test:
     needs:
       - agent_staging_deployment
       - api_preview_deployment
     uses: ./.github/workflows/job_test_api_staging.yaml
     with:
-       UNKEY_BASE_URL: https://preview-api.unkey.dev
+      UNKEY_BASE_URL: https://preview-api.unkey.dev
     secrets:
       DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
       DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
       DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-
 
   api_canary_deployment:
     needs:
@@ -79,7 +77,6 @@ jobs:
       DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
       DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-
 
   # api_canary_benchmark:
   #   if: ${{false}}
@@ -137,7 +134,6 @@ jobs:
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-
   mintlify_deployment:
     needs:
       - api_production_deployment
@@ -177,7 +173,6 @@ jobs:
 
   changes:
     uses: ./.github/workflows/job_changes.yaml
-
 
   clickhouse_migration_preview:
     if: needs.changes.outputs.clickhouse == 'true'
