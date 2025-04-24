@@ -15,7 +15,10 @@ before:
 
 dockers:
   - image_templates:
-      - "ghcr.io/unkeyed/unkey:{{ .Version }}"
+      - "ghcr.io/unkeyed/unkey:v{{ .Version }}"
+      - "ghcr.io/unkeyed/unkey:latest"
+      - "ghcr.io/unkeyed/unkey:v{{.Major}}"
+      - "ghcr.io/unkeyed/unkey:v{{.Major}}.{{.Minor}}"
 
     dockerfile: goreleaser.Dockerfile
     goos: linux
