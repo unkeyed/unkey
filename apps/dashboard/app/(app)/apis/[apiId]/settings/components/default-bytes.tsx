@@ -103,13 +103,13 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
             <Button
               size="lg"
               variant="primary"
-              className="items-end"
               disabled={
                 !form.formState.isValid ||
                 form.formState.isSubmitting ||
                 keyAuth.defaultBytes === form.watch("defaultBytes")
               }
               type="submit"
+              loading={form.formState.isSubmitting}
             >
               Save
             </Button>

@@ -51,7 +51,6 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
       name: "",
     },
   });
-
   const isValid = watch("name") === api.name && watch("intent") === intent;
   const router = useRouter();
 
@@ -112,6 +111,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
             variant="outline"
             color="danger"
             size="lg"
+            disabled={api.deleteProtection === true}
             onClick={() => setOpen(true)}
           >
             Delete API
@@ -130,7 +130,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
               variant="primary"
               color="danger"
               size="xlg"
-              disabled={!isValid || deleteApi.isLoading || isSubmitting}
+              disabled={api.deleteProtection || !isValid || deleteApi.isLoading || isSubmitting}
               loading={deleteApi.isLoading || isSubmitting}
               className="w-full"
             >

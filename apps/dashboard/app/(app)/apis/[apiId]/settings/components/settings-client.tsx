@@ -23,7 +23,7 @@ export const SettingsClient = ({ api, workspace, keyAuth }: Props) => {
           <div className="w-full text-accent-12 font-semibold text-lg pt-[22px] pb-[20px] text-left border-b border-gray-4 px-2">
             API Settings
           </div>
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 mt-6">
             <div>
               <UpdateApiName api={api} />
               <Separator className="bg-gray-4" orientation="horizontal" />
