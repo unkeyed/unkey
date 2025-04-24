@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -118,16 +117,22 @@ func New(svc Services) zen.Route {
 		}()
 
 		identityID := uid.New(uid.IdentityPrefix)
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+		args := db.InsertIdentityParams{
 			ID:          identityID,
 			ExternalID:  req.ExternalId,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        meta,
-		})
+		}
+		svc.Logger.Warn("inserting identity",
+			"args", args,
+		)
+		err = db.Query.InsertIdentity(ctx, tx, args)
+
+		svc.Logger.Error("insert identity failed", "requestId", s.RequestID(), "error", err)
 		if err != nil {
-			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+			if db.IsDuplicateKeyError(err) {
 				return fault.Wrap(err,
 					fault.WithCode(codes.Data.Identity.Duplicate.URN()),
 					fault.WithDesc("identity already exists", fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),

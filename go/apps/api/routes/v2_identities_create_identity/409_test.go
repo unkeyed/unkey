@@ -40,7 +40,7 @@ func TestCreateIdentityDuplicate(t *testing.T) {
 		require.NotEmpty(t, successRes.Body.Data.IdentityId, successRes.Body)
 
 		errorRes := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, headers, req)
-		require.Equal(t, 409, errorRes.Status, "expected 409, received: %#v", errorRes)
+		require.Equal(t, 409, errorRes.Status, "expected 409, received: %s", errorRes.RawBody)
 		require.NotNil(t, errorRes.Body)
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_already_exists", errorRes.Body.Error.Type)
 	})

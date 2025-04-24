@@ -5,6 +5,7 @@ import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
+import { useResponsive } from "@/hooks/use-responsive";
 import { ChevronExpandY, Gauge } from "@unkey/icons";
 
 export const ApisNavbar = ({
@@ -28,23 +29,37 @@ export const ApisNavbar = ({
   };
   keyId?: string;
 }) => {
+  const { isMobile } = useResponsive();
   return (
-    <>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${api.id}`} isIdentifier className="group" noop>
-            <QuickNavPopover
-              items={apis.map((api) => ({
-                id: api.id,
-                label: api.name,
-                href: `/apis/${api.id}`,
-              }))}
-              shortcutKey="N"
-            >
-              <div className="text-accent-10 group-hover:text-accent-12">{api.name}</div>
-            </QuickNavPopover>
-          </Navbar.Breadcrumbs.Link>
+    <div className="w-full">
+      <Navbar className="w-full flex justify-between">
+        <Navbar.Breadcrumbs className="flex-1 w-full" icon={<Gauge />}>
+          {!isMobile && (
+            <>
+              <Navbar.Breadcrumbs.Link href="/apis" className="max-md:hidden">
+                APIs
+              </Navbar.Breadcrumbs.Link>
+
+              <Navbar.Breadcrumbs.Link
+                href={`/apis/${api.id}`}
+                isIdentifier
+                className="group max-md:hidden"
+                noop
+              >
+                <QuickNavPopover
+                  items={apis.map((api) => ({
+                    id: api.id,
+                    label: api.name,
+                    href: `/apis/${api.id}`,
+                  }))}
+                  shortcutKey="N"
+                >
+                  <div className="text-accent-10 group-hover:text-accent-12">{api.name}</div>
+                </QuickNavPopover>
+              </Navbar.Breadcrumbs.Link>
+            </>
+          )}
+
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
             <QuickNavPopover
               items={[
@@ -82,19 +97,19 @@ export const ApisNavbar = ({
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
-        <Navbar.Actions>
+        <Navbar.Actions className="justify-end flex flex-1">
           <Badge
             key="namespaceId"
             variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+            className="flex justify-between gap-2 max-md:w-[120px] font-mono font-medium ph-no-capture"
           >
-            {api.id}
-            <CopyButton value={api.id} />
+            <span className="truncate">{api.id}</span>
+            <CopyButton value={api.id} className="flex-shrink-0" />
           </Badge>
 
           <CreateKeyButton apiId={api.id} keyAuthId={api.keyAuthId!} />
         </Navbar.Actions>
       </Navbar>
-    </>
+    </div>
   );
 };

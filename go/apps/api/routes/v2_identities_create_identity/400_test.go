@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -79,11 +80,10 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("metadata exceeds maximum size limit", func(t *testing.T) {
-		metaData := make(map[string]interface{})
+		metaData := make(map[string]any)
 		entriesNeeded := (handler.MAX_META_LENGTH_MB * 1024 * 1024) / 15
-		for i := 0; i < entriesNeeded+1000; i++ {
-			var data interface{} = fmt.Sprintf("some_%d", i)
-			metaData[fmt.Sprintf("key_%d", i)] = &data
+		for i := range entriesNeeded + 1000 {
+			metaData[fmt.Sprintf("key_%d", i)] = ptr.P(fmt.Sprintf("some_%d", i))
 		}
 
 		rawMeta, _ := json.Marshal(metaData)
@@ -102,10 +102,9 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("invalid ratelimit", func(t *testing.T) {
-
 		req := openapi.V2IdentitiesCreateIdentityRequestBody{
 			ExternalId: uid.New("test"),
-			Ratelimits: &[]openapi.V2Ratelimit{
+			Ratelimits: &[]openapi.Ratelimit{
 				{
 					Duration: 1,
 					Limit:    1,

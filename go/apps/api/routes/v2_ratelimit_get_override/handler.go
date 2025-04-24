@@ -27,7 +27,6 @@ type Services struct {
 
 func New(svc Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/ratelimit.getOverride", func(ctx context.Context, s *zen.Session) error {
-
 		auth, err := svc.Keys.VerifyRootKey(ctx, s)
 		if err != nil {
 			return err
@@ -44,13 +43,8 @@ func New(svc Services) zen.Route {
 
 		namespace, err := getNamespace(ctx, svc, auth.AuthorizedWorkspaceID, req)
 
-		if db.IsNotFound(err) {
-			return fault.New("namespace not found",
-				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.WithDesc("namespace not found", "This namespace does not exist."),
-			)
-		}
 		if err != nil {
+			// already handled correctly in getNamespace
 			return err
 		}
 
@@ -103,8 +97,12 @@ func New(svc Services) zen.Route {
 			)
 		}
 		if err != nil {
-			return err
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to find the override", "Error finding the ratelimit override."),
+			)
 		}
+
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
@@ -121,26 +119,42 @@ func New(svc Services) zen.Route {
 	})
 }
 
-func getNamespace(ctx context.Context, svc Services, workspaceID string, req Request) (db.RatelimitNamespace, error) {
+func getNamespace(ctx context.Context, svc Services, workspaceID string, req Request) (namespace db.RatelimitNamespace, err error) {
 
 	switch {
 	case req.NamespaceId != nil:
 		{
-			return db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
-
+			namespace, err = db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
+			break
 		}
 	case req.NamespaceName != nil:
 		{
-			return db.Query.FindRatelimitNamespaceByName(ctx, svc.DB.RO(), db.FindRatelimitNamespaceByNameParams{
+			namespace, err = db.Query.FindRatelimitNamespaceByName(ctx, svc.DB.RO(), db.FindRatelimitNamespaceByNameParams{
 				WorkspaceID: workspaceID,
 				Name:        *req.NamespaceName,
 			})
+			break
 		}
+	default:
+		return db.RatelimitNamespace{}, fault.New("namespace id or name required",
+			fault.WithCode(codes.App.Validation.InvalidInput.URN()),
+			fault.WithDesc("namespace id or name required", "You must provide either a namespace ID or name."),
+		)
 	}
 
-	return db.RatelimitNamespace{}, fault.New("missing namespace id or name",
-		fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-		fault.WithDesc("missing namespace id or name", "You must provide either a namespace ID or name."),
-	)
+	if err != nil {
 
+		if db.IsNotFound(err) {
+			return db.RatelimitNamespace{}, fault.New("namespace not found",
+				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.WithDesc("namespace not found", "The namespace was not found."),
+			)
+		}
+
+		return db.RatelimitNamespace{}, fault.Wrap(err,
+			fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.WithDesc("database failed to find the namespace", "Error finding the ratelimit namespace."),
+		)
+	}
+	return namespace, nil
 }

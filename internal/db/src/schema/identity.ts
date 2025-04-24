@@ -1,5 +1,14 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, int, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  boolean,
+  index,
+  int,
+  json,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -9,20 +18,21 @@ export const identities = mysqlTable(
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     /**
-     * The extenral id is used to create a reference to the user's existing data.
+     * The external id is used to create a reference to the user's existing data.
      * They likely have an organization or user id at hand
      */
     externalId: varchar("external_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     environment: varchar("environment", { length: 256 }).notNull().default("default"),
-    ...lifecycleDates,
     meta: json("meta").$type<Record<string, unknown>>(),
+    deleted: boolean("deleted").notNull().default(false),
+    ...lifecycleDates,
   },
   (table) => ({
-    workspaceId: index("workspace_id_idx").on(table.workspaceId),
-    uniqueExternalIdPerWorkspace: uniqueIndex("external_id_workspace_id_idx").on(
-      table.externalId,
+    uniqueDeletedExternalIdPerWorkspace: uniqueIndex("workspace_id_external_id_deleted_idx").on(
       table.workspaceId,
+      table.externalId,
+      table.deleted,
     ),
   }),
 );
