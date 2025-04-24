@@ -6,7 +6,7 @@ on:
   push:
     # run only against tags
     tags:
-      - "v*"
+      - "v[0-9]+.[0-9]+.[0-9]+*"
 
 permissions:
   contents: write
@@ -46,8 +46,8 @@ jobs:
 
       - name: Extract version from tag
         run: |
-          # Remove the 'api/' prefix from the tag to get the version
-          VERSION=${GITHUB_REF#refs/tags/api/}
+          # Remove the 'refs/tags/' prefix from the tag to get the version
+          VERSION=${GITHUB_REF#refs/tags/}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Get tags
