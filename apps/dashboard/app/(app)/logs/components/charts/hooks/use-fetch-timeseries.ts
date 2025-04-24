@@ -1,5 +1,5 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
-import { TIMESERIES_DATA_WINDOW } from "@/components/logs/constants";
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 import type { z } from "zod";
@@ -12,7 +12,7 @@ export const useFetchTimeseries = () => {
   const dateNow = useMemo(() => Date.now(), []);
   const queryParams = useMemo(() => {
     const params: z.infer<typeof queryTimeseriesPayload> = {
-      startTime: dateNow - TIMESERIES_DATA_WINDOW,
+      startTime: dateNow - HISTORICAL_DATA_WINDOW,
       endTime: dateNow,
       host: { filters: [] },
       method: { filters: [] },

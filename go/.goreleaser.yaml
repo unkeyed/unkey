@@ -13,15 +13,6 @@ before:
     # You may remove this if you don't use go modules.
     - go mod tidy
 
-dockers:
-  - image_templates:
-      - "ghcr.io/unkeyed/unkey:{{ .Version }}"
-
-    dockerfile: goreleaser.Dockerfile
-    goos: linux
-    goarch: amd64
-    use: buildx
-
 builds:
   - env:
       - CGO_ENABLED=0
