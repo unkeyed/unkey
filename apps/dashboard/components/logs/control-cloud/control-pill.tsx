@@ -1,6 +1,6 @@
-import { TimestampInfo } from "@/components/timestamp-info";
 import { cn } from "@/lib/utils";
 import { XMark } from "@unkey/icons";
+import { TimestampInfo } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { type KeyboardEvent, useEffect, useRef } from "react";
 import type { FilterValue } from "../validation/filter.types";
