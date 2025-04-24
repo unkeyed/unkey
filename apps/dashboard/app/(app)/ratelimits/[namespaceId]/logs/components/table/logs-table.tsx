@@ -1,13 +1,13 @@
 "use client";
 
 import { safeParseJson } from "@/app/(app)/logs/utils";
-import { TimestampInfo } from "@unkey/ui";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { BookBookmark } from "@unkey/icons";
+import { TimestampInfo } from "@unkey/ui";
 import { Button, Empty } from "@unkey/ui";
 import { useMemo } from "react";
 import { DEFAULT_STATUS_FLAG } from "../../constants";

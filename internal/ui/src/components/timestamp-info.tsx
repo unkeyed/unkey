@@ -1,10 +1,10 @@
 "use client";
+import { format, formatDistanceToNow, fromUnixTime } from "date-fns";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
-import { cn } from "../lib/utils";
-import { format, formatDistanceToNow, fromUnixTime } from "date-fns";
 import { useEffect, useRef, useState } from "react";
+import { cn } from "../lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 const unixMicroToDate = (unix: string | number): Date => {
   return fromUnixTime(Number(unix) / 1000 / 1000);

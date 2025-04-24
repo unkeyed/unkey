@@ -3,8 +3,65 @@ title: TimestampInfo
 description: A component that renders a timestamp with a tooltip that displays additional information.
 ---
 
-import { TimestampExample } from "./timestamp-example"
+import { TimestampExampleLocalTime, TimestampExampleUTC, TimestampExampleRelative } from "./timestamp-example"
 
 ## TimestampInfo
 
-<TimestampExample />
+The TimestampInfo component displays a timestamp in a human-readable format with a tooltip showing additional information. It's useful for displaying dates and times in a user-friendly way while maintaining precision.
+
+## Usage
+
+### Local displayType
+
+<TimestampExampleLocalTime />
+
+### UTC displayType
+
+<TimestampExampleUTC />
+
+### Relative displayType
+
+<TimestampExampleRelative />
+
+## Features
+
+- Human-readable date and time display
+- Tooltip with UTC, local time, relative time, and raw timestamp
+- Automatic timezone handling
+- Multiple display formats (local, UTC, relative)
+- Copy to clipboard functionality
+- Responsive design
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| value | string \| number | required | Unix timestamp in seconds or microseconds |
+| displayType | "local" \| "utc" \| "relative" | "local" | How to display the timestamp |
+| className | string | undefined | Additional CSS classes |
+| triggerRef | `React.RefObject<HTMLElement>` | undefined | External trigger reference |
+| open | boolean | undefined | Controlled open state |
+| onOpenChange | (open: boolean) => void | undefined | Callback for open state changes |
+
+## Display Types
+
+- `local`: Shows time in the user's local timezone (e.g., "Jan 1 14:30:45")
+- `utc`: Shows time in UTC (e.g., "Jan 1,2024 14:30:45")
+- `relative`: Shows relative time (e.g., "2 hours ago")
+
+## Tooltip Information
+
+The tooltip shows:
+- UTC time
+- Local time with timezone
+- Relative time
+- Raw timestamp value
+
+Each value can be copied to clipboard by clicking on it.
+
+## Accessibility
+
+- The component is keyboard accessible
+- Tooltips are screen reader friendly
+- Timestamps are machine-readable
+- Copy functionality is available via click
