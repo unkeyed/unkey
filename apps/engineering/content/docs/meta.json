@@ -1,3 +1,6 @@
 {
-  "pages": ["contributing", "api-design", "company", "architecture", "design"]
+  "title": "Docs",
+  "description": "Engineering at Unkey",
+  "icon": "Code",
+  "root": true
 }

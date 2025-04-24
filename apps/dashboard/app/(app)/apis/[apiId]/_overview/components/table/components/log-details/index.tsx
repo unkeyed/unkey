@@ -106,7 +106,7 @@ export const KeysOverviewLogDetails = ({
   return (
     <ResizablePanel
       onClose={handleClose}
-      className="absolute right-0 bg-gray-1 dark:bg-black font-mono shadow-2xl overflow-y-auto z-20 p-4"
+      className="absolute max-md:!h-screen max-md:!w-full max-md:!top-0 right-0 bg-gray-1 dark:bg-black font-mono shadow-2xl overflow-y-auto z-20 p-4"
       style={panelStyle}
     >
       <LogHeader log={log} onClose={handleClose} />

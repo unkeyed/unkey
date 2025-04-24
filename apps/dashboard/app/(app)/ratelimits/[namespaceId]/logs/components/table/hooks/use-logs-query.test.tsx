@@ -1,11 +1,22 @@
 import { trpc } from "@/lib/trpc/client";
+import { QueryTimeProvider } from "@/providers/query-time-provider";
 import { act, renderHook } from "@testing-library/react";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
+// biome-ignore lint/style/useImportType: we need react for mocking
+import * as React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useRatelimitLogsQuery } from "./use-logs-query";
 
 let mockFilters: any[] = [];
 const mockDate = 1706024400000;
+
+vi.mock("@/providers/query-time-provider", () => ({
+  QueryTimeProvider: ({ children }: { children: React.ReactNode }) => children,
+  useQueryTime: () => ({
+    queryTime: new Date(mockDate),
+    refreshQueryTime: vi.fn(),
+  }),
+}));
 
 vi.mock("@/lib/trpc/client", () => {
   const useInfiniteQuery = vi.fn().mockReturnValue({
@@ -76,7 +87,7 @@ describe("useRatelimitLogsQuery filter processing", () => {
       { field: "status", operator: "is", value: {} },
     ];
     renderHook(() => useRatelimitLogsQuery({ namespaceId: "test-namspace" }));
-    expect(consoleMock).toHaveBeenCalledTimes(3);
+    expect(consoleMock).toHaveBeenCalledTimes(6);
   });
 
   it("handles time-based filters", () => {
@@ -146,7 +157,10 @@ describe("useRatelimitLogsQuery realtime logs", () => {
           pollIntervalMs,
           namespaceId: "test-namespace",
         }),
-      { initialProps: { startPolling: true, pollIntervalMs: 1000 } },
+      {
+        initialProps: { startPolling: true, pollIntervalMs: 1000 },
+        wrapper: ({ children }) => <QueryTimeProvider>{children}</QueryTimeProvider>,
+      },
     );
 
     expect(result.current.historicalLogs).toHaveLength(2);

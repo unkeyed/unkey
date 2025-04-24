@@ -1,9 +1,11 @@
 import { KeyboardButton } from "@/components/keyboard-button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Drover } from "@/components/ui/drover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import React, {
   type KeyboardEvent,
   type PropsWithChildren,
+  type Dispatch,
+  type SetStateAction,
   useEffect,
   useRef,
   useState,
@@ -24,6 +26,8 @@ type FiltersPopoverProps = {
   items: FilterItemConfig[];
   activeFilters: FilterValue[];
   getFilterCount?: (field: string) => number;
+  open?: boolean;
+  onOpenChange?: Dispatch<SetStateAction<boolean>>;
 };
 
 // INFO: Workaround for applying hooks dynamically: Render a separate (null)
@@ -46,7 +50,7 @@ const ShortcutActivator = React.memo(
       ignoreContentEditable: true,
     });
     return null; // Render nothing
-  },
+  }
 );
 ShortcutActivator.displayName = "ShortcutActivator";
 
@@ -54,27 +58,45 @@ export const FiltersPopover = ({
   children,
   items = [],
   activeFilters = [],
-  getFilterCount = (field) => activeFilters.filter((f) => f?.field === field).length,
+  open,
+  onOpenChange,
+  getFilterCount = (field) =>
+    activeFilters.filter((f) => f?.field === field).length,
 }: PropsWithChildren<FiltersPopoverProps>) => {
-  const [open, setOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [lastFocusedIndex, setLastFocusedIndex] = useState<number | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
+  // Handle local state if external state isn't provided
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = open !== undefined && onOpenChange !== undefined;
+  const isOpen = isControlled ? open : internalOpen;
+  const setOpen = useCallback(
+    (value: boolean | ((prev: boolean) => boolean)) => {
+      if (isControlled) {
+        const nextValue = typeof value === "function" ? value(!!open) : value;
+        onOpenChange?.(nextValue);
+      } else {
+        setInternalOpen(value);
+      }
+    },
+    [isControlled, open, onOpenChange]
+  );
+
   useEffect(() => {
-    if (!open) {
+    if (!isOpen) {
       setActiveFilter(null);
       setFocusedIndex(null);
       setLastFocusedIndex(null);
     }
-  }, [open]);
+  }, [isOpen]);
 
   useEffect(() => {
-    if (!activeFilter && lastFocusedIndex !== null && open) {
+    if (!activeFilter && lastFocusedIndex !== null && isOpen) {
       setFocusedIndex(lastFocusedIndex);
     }
-  }, [activeFilter, lastFocusedIndex, open]);
+  }, [activeFilter, lastFocusedIndex, isOpen]);
 
   useKeyboardShortcut(
     "f",
@@ -87,7 +109,7 @@ export const FiltersPopover = ({
         return newState;
       });
     },
-    { preventDefault: true, ignoreInputs: true },
+    { preventDefault: true, ignoreInputs: true }
   );
 
   const handleActivateFilter = useCallback(
@@ -102,11 +124,11 @@ export const FiltersPopover = ({
         }
       }, 0);
     },
-    [items],
+    [items, setOpen]
   );
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (!open) {
+    if (!isOpen) {
       return;
     }
 
@@ -135,7 +157,8 @@ export const FiltersPopover = ({
     switch (e.key) {
       case "ArrowDown": {
         e.preventDefault();
-        const newIndex = focusedIndex === null ? 0 : (focusedIndex + 1) % items.length;
+        const newIndex =
+          focusedIndex === null ? 0 : (focusedIndex + 1) % items.length;
         setFocusedIndex(newIndex);
         setLastFocusedIndex(newIndex); // Keep track for potential activation
         break;
@@ -171,7 +194,7 @@ export const FiltersPopover = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Drover.Root open={isOpen} onOpenChange={setOpen}>
       {/* Render Shortcut Activators (these components render null) */}
       {/* These must be rendered for the hooks inside them to be active */}
       {items.map((item) =>
@@ -182,39 +205,41 @@ export const FiltersPopover = ({
             id={item.id}
             onActivate={handleActivateFilter}
           />
-        ) : null,
+        ) : null
       )}
 
-      <PopoverTrigger asChild ref={triggerRef}>
+      <Drover.Trigger asChild ref={triggerRef}>
         {children}
-      </PopoverTrigger>
+      </Drover.Trigger>
 
-      <PopoverContent
+      <Drover.Content
         className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg outline-none"
         align="start"
-        onKeyDown={handleKeyDown} // Attach main navigation handler
+        onKeyDown={handleKeyDown}
       >
-        <div className="flex flex-col gap-1 w-full" role="menu">
-          <PopoverHeader />
-          {items.map((item, index) => (
-            <FilterItem
-              key={item.id}
-              {...item} // Pass item config props (id, label, component, shortcut for display)
-              filterCount={getFilterCount(item.id)}
-              isFocused={focusedIndex === index} // Is this item highlighted in the list?
-              isActive={activeFilter === item.id} // Is this item's popover open?
-              setActiveFilter={setActiveFilter}
-            />
-          ))}
+        <div className="flex flex-col w-full">
+          <DroverHeader />
+          <div className="flex flex-col gap-1 w-full p-2" role="menu">
+            {items.map((item, index) => (
+              <FilterItem
+                key={item.id}
+                {...item} // Pass item config props (id, label, component, shortcut for display)
+                filterCount={getFilterCount(item.id)}
+                isFocused={focusedIndex === index} // Is this item highlighted in the list?
+                isActive={activeFilter === item.id} // Is this item's popover open?
+                setActiveFilter={setActiveFilter}
+              />
+            ))}
+          </div>
         </div>
-      </PopoverContent>
-    </Popover>
+      </Drover.Content>
+    </Drover.Root>
   );
 };
 
-const PopoverHeader = () => (
-  <div className="flex w-full justify-between items-center px-2 py-1 mb-1">
-    <span className="text-gray-9 text-[13px]">Filter by...</span>
-    <KeyboardButton shortcut="F" />{" "}
+const DroverHeader = () => (
+  <div className="flex w-full justify-between items-center px-4 pt-3 md:px-3 md:py-1">
+    <span className="text-gray-9 text-sm">Filters</span>
+    <KeyboardButton shortcut="F" className="max-md:hidden" />
   </div>
 );

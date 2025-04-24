@@ -127,7 +127,6 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 
 	if len(permissions) > 0 {
 		for _, permission := range permissions {
-			s.t.Logf("creating permission %s for key %s", permission, insertKeyParams.ID)
 			permissionID := uid.New(uid.TestPrefix)
 			err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
 				ID:          permissionID,
@@ -161,8 +160,6 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			require.NoError(s.t, err)
 		}
 	}
-
-	s.t.Logf("created root key: %s", insertKeyParams.ID)
 
 	return key
 }

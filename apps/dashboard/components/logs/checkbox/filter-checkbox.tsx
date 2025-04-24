@@ -44,6 +44,7 @@ interface BaseCheckboxFilterProps<
   allowDeselection?: boolean;
   // Optional default selection index - for single selection mode
   defaultSelectionIndex?: number;
+  onDrawerClose?: () => void;
 }
 
 export const FilterCheckbox = <
@@ -66,6 +67,7 @@ export const FilterCheckbox = <
   selectionMode = "multiple",
   allowDeselection = true,
   defaultSelectionIndex,
+  onDrawerClose,
 }: BaseCheckboxFilterProps<TItem, TFilterValue>) => {
   // Use the provided useCheckboxState hook
   const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState<
@@ -165,7 +167,18 @@ export const FilterCheckbox = <
 
       updateFilters([...otherFilters, ...newFilters]);
     }
-  }, [checkboxes, filterField, operator, filters, updateFilters, createFilterValue, selectionMode]);
+
+    onDrawerClose?.();
+  }, [
+    checkboxes,
+    filterField,
+    operator,
+    filters,
+    updateFilters,
+    createFilterValue,
+    selectionMode,
+    onDrawerClose,
+  ]);
 
   return (
     <div className={cn("flex flex-col p-2", className)}>

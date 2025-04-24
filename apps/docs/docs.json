@@ -62,7 +62,8 @@
                       "security/root-keys",
                       "security/recovering-keys",
                       "apis/features/whitelist",
-                      "security/github-scanning"
+                      "security/github-scanning",
+                      "security/delete-protection"
                     ]
                   }
                 ]

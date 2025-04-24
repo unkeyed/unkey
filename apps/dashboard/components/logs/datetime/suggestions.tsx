@@ -72,10 +72,10 @@ export const DateTimeSuggestions = ({ className, options, onChange }: Suggestion
   return (
     <div
       role="radiogroup"
-      className={cn("flex flex-col justify-center", className)}
+      className={cn("flex flex-col justify-center w-full", className)}
       aria-label="Time range options"
     >
-      <ScrollArea className="w-full h-full rounded-md max-h-[390px]" ref={scrollAreaRef}>
+      <ScrollArea className="w-full rounded-md md:max-h-[380px]" ref={scrollAreaRef}>
         <div className="flex flex-col gap-1.5 p-1">
           {options.map(({ id, display, checked }, index) => (
             <div

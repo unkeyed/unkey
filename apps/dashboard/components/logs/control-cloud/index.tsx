@@ -142,7 +142,7 @@ export const ControlCloud = <TFilter extends FilterValue>({
           formatValue={formatValue}
         />
       ))}
-      <div className="flex items-center px-2 py-1 gap-2 ml-auto">
+      <div className="flex items-center px-2 py-1 gap-2 ml-auto max-md:hidden">
         <span className="text-gray-9 text-[13px]">Clear filters</span>
         <KeyboardButton shortcut="⌥+⇧+D" />
         <div className="w-px h-4 bg-gray-4" />
