@@ -1,0 +1,21 @@
+name: Prune old images
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *" # every day
+
+jobs:
+  clean:
+    environment: operations
+    runs-on: ubuntu-latest
+    name: Delete old test images
+    steps:
+      - uses: snok/container-retention-policy@v3.0.0
+        with:
+          account: unkeyed
+          token: ${{ secrets.PAT }}
+          image-names: "unkey agent"
+          image-tags: "!latest"
+          cut-off: 4w
+          dry-run: false

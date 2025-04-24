@@ -519,19 +519,20 @@
           "ratelimits": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/V2Ratelimit"
+              "$ref": "#/components/schemas/Ratelimit"
             },
             "description": "Attach ratelimits to this identity.\n\nWhen verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits."
           }
         }
       },
-      "V2Ratelimit": {
+      "Ratelimit": {
         "type": "object",
         "required": ["name", "limit", "duration"],
         "properties": {
           "name": {
             "description": "The name of this limit. You will need to use this again when verifying a key.",
             "type": "string",
+            "example": "api",
             "minLength": 3,
             "maxLength": 128
           },
@@ -568,6 +569,35 @@
             "$ref": "#/components/schemas/IdentitiesCreateIdentityResponseData"
           }
         }
+      },
+      "V2IdentitiesDeleteIdentityRequestBody": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The id of this identity in your system.\n\nThis usually comes from your authentication provider and could be a userId, organisationId or even an email.\nIt does not matter what you use, as long as it uniquely identifies something in your application.\n",
+            "example": "user_123"
+          },
+          "identityId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The Unkey Identity ID.",
+            "example": "id_123"
+          }
+        },
+        "oneOf": [
+          {
+            "required": ["externalId"]
+          },
+          {
+            "required": ["identityId"]
+          }
+        ]
+      },
+      "V2IdentitiesDeleteIdentityResponseBody": {
+        "type": "object"
       },
       "V2ApisCreateApiRequestBody": {
         "type": "object",
@@ -1135,6 +1165,90 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConflictErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/v2/identities.deleteIdentity": {
+      "post": {
+        "tags": ["identities"],
+        "operationId": "v2.identities.deleteIdentity",
+        "x-speakeasy-name-override": "deleteIdentity",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2IdentitiesDeleteIdentityRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2IdentitiesDeleteIdentityResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
                 }
               }
             }

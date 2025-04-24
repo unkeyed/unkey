@@ -7,33 +7,30 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findIdentityByID = `-- name: FindIdentityByID :one
-SELECT external_id, workspace_id, environment, meta, created_at, updated_at FROM identities WHERE id = ?
+SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at FROM identities WHERE id = ? AND deleted = ?
 `
 
-type FindIdentityByIDRow struct {
-	ExternalID  string        `db:"external_id"`
-	WorkspaceID string        `db:"workspace_id"`
-	Environment string        `db:"environment"`
-	Meta        []byte        `db:"meta"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+type FindIdentityByIDParams struct {
+	ID      string `db:"id"`
+	Deleted bool   `db:"deleted"`
 }
 
 // FindIdentityByID
 //
-//	SELECT external_id, workspace_id, environment, meta, created_at, updated_at FROM identities WHERE id = ?
-func (q *Queries) FindIdentityByID(ctx context.Context, db DBTX, id string) (FindIdentityByIDRow, error) {
-	row := db.QueryRowContext(ctx, findIdentityByID, id)
-	var i FindIdentityByIDRow
+//	SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at FROM identities WHERE id = ? AND deleted = ?
+func (q *Queries) FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error) {
+	row := db.QueryRowContext(ctx, findIdentityByID, arg.ID, arg.Deleted)
+	var i Identity
 	err := row.Scan(
+		&i.ID,
 		&i.ExternalID,
 		&i.WorkspaceID,
 		&i.Environment,
 		&i.Meta,
+		&i.Deleted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

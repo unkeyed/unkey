@@ -3,7 +3,10 @@ import { Button } from "@unkey/ui";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export const CreateKeyButton = (props: { apiId: string; keyAuthId: string }) => {
+export const CreateKeyButton = (props: {
+  apiId: string;
+  keyAuthId: string;
+}) => {
   // Add missing import
 
   const href = `/apis/${props.apiId}/keys/${props.keyAuthId}/new`;

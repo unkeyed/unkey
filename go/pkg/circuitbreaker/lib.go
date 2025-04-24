@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 // CB implements the CircuitBreaker interface with configurable failure detection
@@ -279,8 +280,9 @@ func (cb *CB[Res]) postflight(ctx context.Context, err error) {
 		cb.consecutiveFailures = 0
 	}
 
-	switch cb.state {
+	metrics.CircuitBreakerRequests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
 
+	switch cb.state {
 	case Closed:
 		if cb.failures >= cb.config.tripThreshold {
 			cb.state = Open

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/integration"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
@@ -130,10 +131,10 @@ func RunRateLimitTest(
 		headers.Set("X-Test-Time", fmt.Sprintf("%d", clk.Now().UnixMilli()))
 
 		// Send request to a random node
-		res, err := integration.CallRandomNode[handler.Request, handler.Response](
+		res, callErr := integration.CallRandomNode[handler.Request, handler.Response](
 			lb, "POST", "/v2/ratelimit.limit", headers, req)
 
-		require.NoError(t, err)
+		require.NoError(t, callErr)
 		require.Equal(t, 200, res.Status, "expected 200 status")
 
 		if res.Body.Data.Success {
@@ -161,6 +162,59 @@ func RunRateLimitTest(
 		"Success count should be >= lower limit (%d)", lowerLimit)
 	require.LessOrEqual(t, successCount, upperLimit,
 		"Success count should be <= upper limit (%d)", upperLimit)
+
+	// Step 6: Verify ClickHouse Ratelimit data
+	// -------------------------------
+
+	type aggregatedCounts struct {
+		TotalRequests uint64 `ch:"total_requests"`
+		SuccessCount  uint64 `ch:"success_count"`
+		FailureCount  uint64 `ch:"failure_count"`
+	}
+
+	// check clickhouse
+	var chStats aggregatedCounts
+	require.Eventually(t, func() bool {
+
+		data, selectErr := clickhouse.Select[aggregatedCounts](
+			ctx,
+			h.CH.Conn(),
+			`SELECT count(*) as total_requests, countIf(passed > 0) as success_count, countIf(passed = 0) as failure_count FROM ratelimits.raw_ratelimits_v1 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}`,
+			map[string]string{
+				"workspace_id": h.Resources().UserWorkspace.ID,
+				"namespace_id": namespaceID,
+			},
+		)
+		require.NoError(t, selectErr)
+		if len(data) != 1 {
+			return false
+		}
+		chStats = data[0]
+		// nolint:gosec
+		return int(chStats.TotalRequests) == totalRequests
+
+	}, 15*time.Second, 100*time.Millisecond)
+
+	require.Equal(t, totalRequests, int(chStats.SuccessCount+chStats.FailureCount)) // nolint:gosec
+	require.Equal(t, totalRequests, int(chStats.TotalRequests))                     // nolint:gosec
+	require.Equal(t, successCount, int(chStats.SuccessCount))                       // nolint:gosec
+
+	// Step 6: Verify Clickhouse Metrics Data
+	// ---------------------------------------
+	require.Eventually(t, func() bool {
+
+		metricsCount := uint64(0)
+		uniqueCount := uint64(0)
+		row := h.CH.Conn().QueryRow(ctx, fmt.Sprintf(`SELECT count(*) as total_requests, count(DISTINCT request_id) as unique_requests FROM metrics.raw_api_requests_v1 WHERE workspace_id = '%s';`, h.Resources().UserWorkspace.ID))
+
+		err = row.Scan(&metricsCount, &uniqueCount)
+
+		require.NoError(t, err)
+
+		return metricsCount == uint64(totalRequests) && uniqueCount == uint64(totalRequests) // nolint:gosec
+
+	}, 15*time.Second, 100*time.Millisecond)
+
 }
 
 // calculateRPS determines the requests per second based on the rate limit parameters
