@@ -45,7 +45,7 @@ archives:
         formats: [zip]
 
 kos:
-  - repositories: 
+  - repositories:
       - ghcr.io/unkeyed/unkey
     tags:
       - "v{{.Version}}"
@@ -64,3 +64,15 @@ changelog:
 
 release:
   prerelease: auto
+
+npms:
+  - name: "@chronark/unkey-cli"
+    description: "Unkey on the command line"
+    homepage: "https://unkey.com"
+    keywords:
+      - unkey
+      - api
+    license: AGPLv3
+    author: chronark <andreas@unkey.com>
+    bugs: https://github.com/unkeyed/unkey/issues
+    access: restricted
