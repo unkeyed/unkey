@@ -20,6 +20,10 @@ builds:
       - linux
       - windows
       - darwin
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
     binary: unkey
 
     ldflags:
@@ -40,6 +44,16 @@ archives:
       - goos: windows
         formats: [zip]
 
+kos:
+  - repositories:
+      - ghcr.io/unkeyed/unkey
+    tags:
+      - "v{{.Version}}"
+    bare: true
+    platforms:
+      - linux/amd64
+      - linux/arm64
+
 changelog:
   use: github
   sort: asc
@@ -50,3 +64,15 @@ changelog:
 
 release:
   prerelease: auto
+
+npms:
+  - name: "@chronark/unkey-cli"
+    description: "Unkey on the command line"
+    homepage: "https://unkey.com"
+    keywords:
+      - unkey
+      - api
+    license: AGPLv3
+    author: chronark <andreas@unkey.com>
+    bugs: https://github.com/unkeyed/unkey/issues
+    access: public
