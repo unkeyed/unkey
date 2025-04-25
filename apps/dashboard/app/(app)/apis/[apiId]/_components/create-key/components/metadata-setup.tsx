@@ -13,13 +13,6 @@ const EXAMPLE_JSON = {
     role: "admin",
     permissions: ["read", "write", "delete"],
   },
-  environment: "production",
-  limits: {
-    requestsPerMonth: 10000,
-    dataStorage: "5GB",
-  },
-  created: "2025-04-15T10:30:00Z",
-  tags: ["api", "backend", "critical"],
 };
 
 export const MetadataSetup = () => {
@@ -43,6 +36,7 @@ export const MetadataSetup = () => {
 
   const handleSwitchChange = (checked: boolean) => {
     setValue("metadata.enabled", checked);
+    setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
     trigger("metadata");
   };
 
@@ -57,11 +51,6 @@ export const MetadataSetup = () => {
         toast.error("Please check your JSON syntax");
       }
     }
-  };
-
-  const loadExample = () => {
-    setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
-    trigger("metadata.data");
   };
 
   const validateJSON = (jsonString: string): boolean => {
@@ -85,21 +74,8 @@ export const MetadataSetup = () => {
       />
 
       <div className="space-y-2 h-fit duration-300">
-        <div className="flex justify-end mb-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={loadExample}
-            disabled={!metadataEnabled}
-            type="button"
-            className="mr-2"
-          >
-            Load Example
-          </Button>
-        </div>
-
         <FormTextarea
-          placeholder='{ "example": "value" }'
+          placeholder={JSON.stringify(EXAMPLE_JSON, null, 2)}
           label="Metadata"
           className="[&_textarea:first-of-type]:font-mono h-full"
           rightIcon={

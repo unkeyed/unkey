@@ -163,10 +163,10 @@ export function NavigableDialogNav<TStepName extends string>({
         return (
           <Button
             key={item.id}
-            variant={isActive ? "outline" : "ghost"}
+            variant="outline"
             className={cn(
-              "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0 [&_svg]:size-auto",
-              isActive ? "bg-grayA-2 focus:border-grayA-6" : "border border-transparent",
+              "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0 [&_svg]:size-auto hover:bg-grayA-3 border-none",
+              isActive ? "bg-grayA-3" : "",
               isDisabled && "opacity-50 cursor-not-allowed pointer-events-none",
             )}
             size="md"

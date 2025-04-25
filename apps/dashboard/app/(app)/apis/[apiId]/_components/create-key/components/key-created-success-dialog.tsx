@@ -88,7 +88,7 @@ export const KeyCreatedSuccessDialog = ({
       }}
     >
       <DialogContent
-        className="drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0 min-w-[760px]"
+        className="drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-y-auto"
         showCloseWarning={shouldShowWarning}
         onAttemptClose={shouldShowWarning ? handleAttemptClose : undefined}
         xButtonRef={xButtonRef}
