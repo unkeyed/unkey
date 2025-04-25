@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"slices"
 	"testing"
 	"time"
 
@@ -52,7 +51,10 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), identityID)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      identityID,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, externalTestID)
 	})
@@ -71,7 +73,10 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), identityID)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      identityID,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, externalTestID)
 
@@ -104,7 +109,10 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      res.Body.Data.IdentityId,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 	})
@@ -113,7 +121,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 	t.Run("create identity with metadata", func(t *testing.T) {
 		externalTestID := uid.New("test_external_id")
 
-		meta := &map[string]interface{}{"key": "example"}
+		meta := &map[string]any{"key": "example"}
 		req := handler.Request{
 			ExternalId: externalTestID,
 			Meta:       meta,
@@ -124,11 +132,14 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      res.Body.Data.IdentityId,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
-		var dbMeta map[string]interface{}
+		var dbMeta map[string]any
 		err = json.Unmarshal(identity.Meta, &dbMeta)
 		require.NoError(t, err)
 		require.Equal(t, *meta, dbMeta)
@@ -138,7 +149,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 	t.Run("create identity with ratelimits", func(t *testing.T) {
 		externalTestID := uid.New("test_external_id")
 
-		identityRateLimits := []openapi.V2Ratelimit{
+		identityRateLimits := []openapi.Ratelimit{
 			{
 				Duration: time.Minute.Milliseconds(),
 				Limit:    100,
@@ -161,7 +172,10 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.IdentityId)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), res.Body.Data.IdentityId)
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			ID:      res.Body.Data.IdentityId,
+			Deleted: false,
+		})
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
@@ -170,7 +184,13 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Len(t, rateLimits, len(identityRateLimits))
 
 		for _, ratelimit := range identityRateLimits {
-			idx := slices.IndexFunc(rateLimits, func(c db.FindRatelimitsByIdentityIDRow) bool { return c.Name == ratelimit.Name })
+			idx := -1
+			for i, limit := range rateLimits {
+				if limit.Name == ratelimit.Name {
+					idx = i
+					break
+				}
+			}
 
 			require.True(t, idx >= 0 && idx < len(rateLimits), "Rate limit with name %s not found in the database", ratelimit.Name)
 			require.Equal(t, rateLimits[idx].Duration, ratelimit.Duration)

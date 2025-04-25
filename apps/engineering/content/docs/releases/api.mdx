@@ -1,0 +1,82 @@
+---
+title: API Releases
+description: Guide for releasing Unkey's API as binaries and containers
+---
+
+
+This document outlines the standard process for releasing Unkey's main artifact (the API) as binaries and containers.
+
+## Overview
+
+At Unkey, we use Git tags to trigger our release process. When a tag is pushed to the main branch, a GitHub Action automatically builds the binary and Docker image, pushes the Docker image to GitHub Container Registry (ghcr.io), and creates a GitHub release.
+
+It's important to note that **creating a release does not automatically deploy code**. Deployments are handled manually as a separate process.
+
+## Release Process
+
+### Prerequisites
+
+- Ensure all changes you want to include in the release are merged into the main branch
+- Verify that all automated tests have passed on the PRs that were merged
+
+### Creating a Release
+
+1. Determine the appropriate version number following [Semantic Versioning](https://semver.org/) principles:
+   - **Major version (X.0.0)**: Incompatible API changes
+   - **Minor version (X.Y.0)**: Backwards-compatible functionality additions
+   - **Patch version (X.Y.Z)**: Backwards-compatible bug fixes
+
+2. Create and push a Git tag:
+   ```bash
+   git checkout main
+   git pull
+   git tag vX.Y.Z  # Example: v2.0.1
+   git push --tags
+   ```
+
+3. The [GitHub Action workflow](https://github.com/unkeyed/unkey/blob/main/.github/workflows/release.yaml) will automatically trigger when the tag is pushed to main
+
+4. Once completed, a GitHub release will be created with automatically generated release notes and a message will be posted to `#releases` in slack.
+
+### Creating a Prerelease
+
+For testing changes before an official release, you can create a prerelease using a canary tag:
+
+1. Follow the same process as a standard release, but use a prerelease tag format:
+   ```bash
+   git checkout main
+   git pull
+   git tag vX.Y.Z-canary.N  # Example: v2.0.1-canary.0
+   git push --tags
+   ```
+
+2. The GitHub Action workflow will recognize this as a prerelease and mark it accordingly on GitHub
+
+3. Prereleases are useful for testing changes in a production-like environment without affecting stable releases
+
+## Release Artifacts
+
+Each release produces:
+
+- Binary files for multiple platforms
+- Docker image pushed to GitHub Container Registry (ghcr.io)
+- GitHub release with automatically generated release notes
+
+## Deploying a Release
+
+Deployment is currently a manual process separate from the release workflow. Please refer to the deployment documentation for details on how to deploy a released version.
+
+## Emergency Fixes
+
+We currently don't have a formalized process for emergency fixes or hotfixes. When critical issues are discovered in production, coordinate with the team to determine the best approach for addressing the issue.
+
+## Responsibilities
+
+All team members share responsibility in the release process and can create releases when necessary.
+
+## Best Practices
+
+1. **Communicate releases** to the team before creating a new tag
+2. **Review changes** included in the release before tagging
+3. **Monitor systems** after deployment to catch any issues early
+4. **Document significant changes** in PR descriptions to ensure clear release notes

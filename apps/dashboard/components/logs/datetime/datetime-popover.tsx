@@ -1,7 +1,12 @@
+"use client";
+
 import { KeyboardButton } from "@/components/keyboard-button";
+import { Drawer } from "@/components/ui/drawer";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { processTimeFilters } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn, processTimeFilters } from "@/lib/utils";
+import { ChevronDown } from "@unkey/icons";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
 import { type PropsWithChildren, type ReactNode, useEffect, useState } from "react";
 import { CUSTOM_OPTION_ID, DEFAULT_OPTIONS } from "./constants";
@@ -33,6 +38,8 @@ export const DatetimePopover = ({
   customOptions,
   customHeader, // Accept custom header
 }: DatetimePopoverProps) => {
+  const isMobile = useIsMobile();
+  const [timeRangeOpen, setTimeRangeOpen] = useState(false);
   const [open, setOpen] = useState(false);
   useKeyboardShortcut("t", () => setOpen((prev) => !prev));
 
@@ -86,6 +93,7 @@ export const DatetimePopover = ({
 
     const selectedValue = newSuggestions.find((s) => s.checked)?.value;
     onDateTimeChange(undefined, undefined, selectedValue);
+    setOpen(false);
   };
 
   const handleDateTimeChange = (newRange?: Range, newStart?: TimeUnit, newEnd?: TimeUnit) => {
@@ -117,53 +125,110 @@ export const DatetimePopover = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <div className="flex flex-row items-center">{children}</div>
-      </PopoverTrigger>
-      <PopoverContent
-        className="flex w-full p-0 m-0 rounded-lg shadow-2xl bg-gray-1 dark:bg-black border-gray-6"
-        align="start"
-      >
-        <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
+    <>
+      {isMobile ? (
+        <Drawer.Root open={open} onOpenChange={setOpen}>
+          <Drawer.Trigger asChild>
+            <div className="flex flex-row items-center">{children}</div>
+          </Drawer.Trigger>
+          <Drawer.Content className="max-h-[80vh]">
+            <div className="flex flex-col w-full gap-2 p-2">
+              <button
+                type="button"
+                onClick={() => setTimeRangeOpen(!timeRangeOpen)}
+                className="text-gray-11 h-9 border-border border px-2 text-sm w-full rounded-lg bg-gray-3 flex items-center justify-between"
+              >
+                <span className="text-gray-9 text-[13px]">Filter by time range</span>
+                <ChevronDown
+                  className={cn("transition-transform duration-150 ease-out", {
+                    "rotate-180": timeRangeOpen,
+                  })}
+                />
+              </button>
+
+              <div className={cn("w-full", !timeRangeOpen && "hidden")}>
+                <DateTimeSuggestions options={suggestions} onChange={handleSuggestionChange} />
+              </div>
+            </div>
+
+            <div className={cn("w-full", timeRangeOpen && "hidden")}>
+              <DateTime
+                onChange={handleDateTimeChange}
+                initialRange={{
+                  from: startTime ? new Date(startTime) : undefined,
+                  to: endTime ? new Date(endTime) : undefined,
+                }}
+                className="gap-3 h-full w-full flex"
+              >
+                <DateTime.Calendar
+                  mode="range"
+                  className="px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]"
+                />
+                <DateTime.TimeInput type="range" className="px-3.5 h-9 mt-0" />
+                <DateTime.Actions className="px-3.5 h-full pb-4">
+                  <Button
+                    variant="primary"
+                    className="font-sans w-full h-9 rounded-md"
+                    onClick={handleApplyFilter}
+                    disabled={!isTimeChanged}
+                  >
+                    Apply Filter
+                  </Button>
+                </DateTime.Actions>
+              </DateTime>
+            </div>
+          </Drawer.Content>
+        </Drawer.Root>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <div className="flex flex-row items-center">{children}</div>
+          </PopoverTrigger>
+          <PopoverContent
+            className="flex w-full bg-gray-1 dark:bg-black shadow-2xl p-0 m-0 border-gray-6 rounded-lg"
+            align="start"
+          >
+            <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
           {customHeader || <DefaultPopoverHeader />}
-          <DateTimeSuggestions options={suggestions} onChange={handleSuggestionChange} />
-        </div>
-        <DateTime
-          onChange={handleDateTimeChange}
-          initialRange={{
-            from: startTime ? new Date(startTime) : undefined,
-            to: endTime ? new Date(endTime) : undefined,
-          }}
-          className="h-full gap-3"
-        >
-          <DateTime.Calendar
-            mode="range"
-            className="px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]"
-          />
-          <DateTime.TimeInput type="range" className="px-3.5 h-9 mt-0" />
-          <DateTime.Actions className="px-3.5 h-full pb-4">
-            <Button
-              variant="primary"
-              className="w-full font-sans rounded-md h-9"
-              onClick={handleApplyFilter}
-              disabled={!isTimeChanged}
+              <DateTimeSuggestions options={suggestions} onChange={handleSuggestionChange} />
+            </div>
+            <DateTime
+              onChange={handleDateTimeChange}
+              initialRange={{
+                from: startTime ? new Date(startTime) : undefined,
+                to: endTime ? new Date(endTime) : undefined,
+              }}
+              className="gap-3 h-full"
             >
-              Apply Filter
-            </Button>
-          </DateTime.Actions>
-        </DateTime>
-      </PopoverContent>
-    </Popover>
+              <DateTime.Calendar
+                mode="range"
+                className="px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]"
+              />
+              <DateTime.TimeInput type="range" className="px-3.5 h-9 mt-0" />
+              <DateTime.Actions className="px-3.5 h-full pb-4">
+                <Button
+                  variant="primary"
+                  className="font-sans w-full h-9 rounded-md"
+                  onClick={handleApplyFilter}
+                  disabled={!isTimeChanged}
+                >
+                  Apply Filter
+                </Button>
+              </DateTime.Actions>
+            </DateTime>
+          </PopoverContent>
+        </Popover>
+      )}
+    </>
   );
 };
 
 // Renamed to DefaultPopoverHeader to make it clear this is the default
 const DefaultPopoverHeader = () => {
   return (
-    <div className="flex justify-between w-full h-8 px-2">
+    <div className="flex w-full h-8 justify-between px-2">
       <span className="text-gray-9 text-[13px] w-full">Filter by time range</span>
-      <KeyboardButton shortcut="T" className="w-5 h-5 p-0 m-0 min-w-5" />
+      <KeyboardButton shortcut="T" className="p-0 m-0 min-w-5 w-5 h-5" />
     </div>
   );
 };

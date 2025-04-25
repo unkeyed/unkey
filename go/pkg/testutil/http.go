@@ -54,13 +54,13 @@ func NewHarness(t *testing.T) *Harness {
 
 	cont := containers.New(t)
 
-	dsn, _ := cont.RunMySQL()
+	mysqlDSN, _ := cont.RunMySQL()
 
 	_, redisUrl, _ := cont.RunRedis()
 
 	db, err := db.New(db.Config{
 		Logger:      logger,
-		PrimaryDSN:  dsn,
+		PrimaryDSN:  mysqlDSN,
 		ReadOnlyDSN: "",
 	})
 	require.NoError(t, err)
@@ -88,7 +88,15 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	ch := clickhouse.NewNoop()
+	// Start ClickHouse container with migrations
+	chDSN, _ := cont.RunClickHouse()
+
+	// Create real ClickHouse client
+	ch, err := clickhouse.New(clickhouse.Config{
+		URL:    chDSN,
+		Logger: logger,
+	})
+	require.NoError(t, err)
 
 	validator, err := validation.New()
 	require.NoError(t, err)

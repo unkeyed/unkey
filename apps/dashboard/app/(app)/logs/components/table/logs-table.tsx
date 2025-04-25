@@ -1,12 +1,12 @@
 "use client";
 
-import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
+import { TimestampInfo } from "@unkey/ui";
 import { Button, Empty } from "@unkey/ui";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";

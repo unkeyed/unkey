@@ -20,7 +20,6 @@ export const useCheckboxState = <TItem extends Record<string, any>, TFilter exte
     const activeFilters = filters
       .filter((f) => f.field === filterField)
       .map((f) => String(f.value));
-
     return options.map((checkbox) => ({
       ...checkbox,
       checked: activeFilters.includes(String(checkbox[checkPath])),
@@ -54,40 +53,63 @@ export const useCheckboxState = <TItem extends Record<string, any>, TFilter exte
     });
   };
 
-  const handleToggle = (index?: number) => {
-    if (typeof index === "number") {
-      handleCheckboxChange(index);
-    } else {
-      handleSelectAll();
-    }
-  };
-
   const handleKeyDown = (event: React.KeyboardEvent<HTMLLabelElement>, index?: number) => {
-    // Handle checkbox toggle
-    if (event.key === " " || event.key === "Enter" || event.key === "h" || event.key === "l") {
-      event.preventDefault();
-      handleToggle(index);
+    // Special case for Escape key - let it bubble up naturally
+    if (event.key === "Escape") {
+      return;
     }
 
-    // Handle navigation
-    if (
-      event.key === "ArrowDown" ||
-      event.key === "ArrowUp" ||
-      event.key === "j" ||
-      event.key === "k"
-    ) {
+    // Handle checkbox toggle with Space or Enter
+    if (event.key === " " || event.key === "Enter") {
       event.preventDefault();
-      const elements = document.querySelectorAll('label[role="checkbox"]');
-      const currentIndex = Array.from(elements).findIndex((el) => el === event.currentTarget);
-
-      let nextIndex: number;
-      if (event.key === "ArrowDown" || event.key === "j") {
-        nextIndex = currentIndex < elements.length - 1 ? currentIndex + 1 : 0;
+      if (typeof index === "number") {
+        handleCheckboxChange(index);
       } else {
-        nextIndex = currentIndex > 0 ? currentIndex - 1 : elements.length - 1;
+        handleSelectAll();
+      }
+      return;
+    }
+
+    // Handle arrow navigation
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+
+      // Get the parent container
+      const container = event.currentTarget.closest(".flex-col");
+      if (!container) {
+        return;
       }
 
-      (elements[nextIndex] as HTMLElement).focus();
+      // Get all labels using the 'for' attribute (not 'htmlFor' in the DOM)
+      const checkboxLabels = container.querySelectorAll('label[for^="checkbox-"]');
+      if (!checkboxLabels || checkboxLabels.length === 0) {
+        return;
+      }
+
+      // Convert NodeList to Array for easier manipulation
+      const labelsArray = Array.from(checkboxLabels);
+
+      // Find the current element's index in the array
+      const currentIndex = labelsArray.findIndex((label) => label === event.currentTarget);
+      if (currentIndex === -1) {
+        return;
+      }
+
+      // Calculate the next index based on arrow direction
+      let nextIndex: number;
+      if (event.key === "ArrowDown") {
+        nextIndex = (currentIndex + 1) % labelsArray.length;
+      } else {
+        // ArrowUp
+        nextIndex = (currentIndex - 1 + labelsArray.length) % labelsArray.length;
+      }
+
+      // Focus the next element
+      try {
+        (labelsArray[nextIndex] as HTMLElement).focus();
+      } catch (e) {
+        console.error("Focus error:", e);
+      }
     }
   };
 

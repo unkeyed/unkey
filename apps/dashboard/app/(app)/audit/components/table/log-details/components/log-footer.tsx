@@ -1,9 +1,9 @@
 "use client";
 
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
-import { TimestampInfo } from "@/components/timestamp-info";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { TimestampInfo } from "@unkey/ui";
 import { FunctionSquare, KeySquare } from "lucide-react";
 
 type Props = {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useSort } from "@/components/logs/hooks/use-sort";
-import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
@@ -9,6 +8,7 @@ import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { Ban, BookBookmark } from "@unkey/icons";
+import { TimestampInfo } from "@unkey/ui";
 import { Button, Empty } from "@unkey/ui";
 import { useState } from "react";
 import { InlineFilter } from "./components/inline-filter";

@@ -67,7 +67,7 @@ export const QuickNavPopover = ({
       })
     : null;
 
-  useKeyboardShortcut({ key: shortcutKey, ctrl: true }, () => {
+  useKeyboardShortcut(`option+shift+${shortcutKey}`, () => {
     setOpen((prev) => !prev);
   });
 
@@ -226,7 +226,7 @@ const PopoverHeader = ({
 }) => (
   <div className="flex w-full justify-between items-center px-2 py-1">
     <span className="text-gray-9 text-[13px]">{title}</span>
-    <KeyboardButton shortcut={shortcutKey} modifierKey="CTRL" />
+    <KeyboardButton shortcut={`⌥+⇧+${shortcutKey}`} />
   </div>
 );
 

@@ -7,7 +7,6 @@
     "index",
     "sdk-development",
     "testing",
-    "versions",
     "client-structure",
     "seeding-db-and-clickhouse",
     "pull-request-checks"

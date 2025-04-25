@@ -27,12 +27,6 @@ func (c *Containers) RunOtel(preventPurge ...bool) {
 		Hostname:   "otel",
 		Repository: "grafana/otel-lgtm",
 		Tag:        "latest",
-		Env: []string{
-			"MYSQL_ROOT_PASSWORD=root",
-			"MYSQL_DATABASE=unkey",
-			"MYSQL_USER=unkey",
-			"MYSQL_PASSWORD=password",
-		},
 		ExposedPorts: []string{
 			"3000",
 			"4317",

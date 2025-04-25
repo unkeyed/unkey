@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"context"
 
+	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 )
 
@@ -27,6 +28,9 @@ type Bufferer interface {
 }
 
 type Querier interface {
+	// Conn returns a connection to the ClickHouse database.
+	Conn() ch.Conn
+
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
 }

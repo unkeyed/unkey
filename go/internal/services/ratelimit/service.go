@@ -130,13 +130,17 @@ func New(config Config) (*service, error) {
 	}
 
 	s := &service{
-		clock:                config.Clock,
-		logger:               config.Logger,
-		shutdownCh:           make(chan struct{}),
-		bucketsMu:            sync.RWMutex{},
-		buckets:              make(map[string]*bucket),
-		counter:              config.Counter,
-		replayBuffer:         buffer.New[RatelimitRequest](10_000, true),
+		clock:      config.Clock,
+		logger:     config.Logger,
+		shutdownCh: make(chan struct{}),
+		bucketsMu:  sync.RWMutex{},
+		buckets:    make(map[string]*bucket),
+		counter:    config.Counter,
+		replayBuffer: buffer.New[RatelimitRequest](buffer.Config{
+			Name:     "ratelimit_replays",
+			Capacity: 10_000,
+			Drop:     true,
+		}),
 		replayCircuitBreaker: circuitbreaker.New[int64]("replayRatelimitRequest"),
 	}
 
