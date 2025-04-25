@@ -2,10 +2,10 @@
 import { RED_STATES, YELLOW_STATES } from "@/app/(app)/logs/constants";
 import { extractResponseField, getRequestHeader } from "@/app/(app)/logs/utils";
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
-import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
+import { TimestampInfo } from "@unkey/ui";
 
 type Props = {
   log: RatelimitLog;

@@ -6,3 +6,4 @@ export * from "./components/input";
 export * from "./components/empty";
 export * from "./components/form";
 export * from "./components/textarea";
+export * from "./components/timestamp-info";
