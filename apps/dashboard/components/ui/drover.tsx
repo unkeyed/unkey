@@ -1,6 +1,6 @@
 "use client";
 
-import { useResponsive } from "@/hooks/use-responsive";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { createContext } from "@/lib/create-context";
 import { cn } from "@/lib/utils";
 import { Slot } from "@radix-ui/react-slot";
@@ -35,7 +35,7 @@ const [DroverProvider, useDroverContext] = createContext<DroverContextValue>(ROO
 
 const Root: React.FC<DroverProps> = (props) => {
   const { open: openProp, defaultOpen, onOpenChange, children } = props;
-  const { isMobile } = useResponsive();
+  const isMobile = useIsMobile();
   const [open, setOpen] = useControllableState({
     prop: openProp,
     defaultProp: defaultOpen ?? false,
