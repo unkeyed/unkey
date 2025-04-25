@@ -5,7 +5,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
-import { SettingCard } from "@unkey/ui";
+import { InlineLink, SettingCard } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -156,17 +156,14 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
           <p className="text-gray-11 text-[13px]">
             <span className="font-medium">Important: </span>
             {!api.deleteProtection
-              ? "Enabling this prevents the API from being deleted. This setting can be disabled at any time."
-              : "Disabling this allows API deletion. This setting can be re-enabled at any time."}
-            <a href="https://www.unkey.com/docs/security/delete-protection">
-              <Button
-                type="button"
-                variant="ghost"
-                className="py-3 gap-1 font-medium text-accent-12 leading-4 text-[13px]"
-              >
-                Learn more <ArrowUpRight size="lg-thin" className="text-accent-9" />
-              </Button>
-            </a>
+              ? "Enabling this prevents the API from being deleted. This setting can be disabled at any time. "
+              : "Disabling this allows API deletion. This setting can be re-enabled at any time. "}
+            <InlineLink
+              label="Learn more"
+              href="https://www.unkey.com/docs/security/delete-protection"
+              target={true}
+              icon={<ArrowUpRight size="sm-thin" />}
+            />
           </p>
           <form id="delete-protection-form" onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-1">

@@ -6,8 +6,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
 import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
-import { SettingCard } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import { Button, InlineLink, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -81,11 +80,17 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
           <div className="font-normal text-[13px] max-w-[380px]">
             Want to protect your API from unauthorized access? <br />
             Upgrade to our <span className="font-bold">Enterprise plan</span> to enable IP
-            whitelisting and restrict access to trusted sources.
+            whitelisting and restrict access to trusted sources.{" "}
+            <InlineLink
+              label="Learn more"
+              href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
+              target={true}
+              icon={<ArrowUpRight size="sm-thin" />}
+            />
           </div>
         }
         border="both"
-        contentWidth="w-full lg:w-[320px]"
+        contentWidth="w-full"
       >
         {isEnabled ? (
           <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
@@ -121,24 +126,8 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         ) : (
           <div className="flex w-full gap-2 lg:justify-end lg:items-center ">
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
-              <Button
-                type="button"
-                size="lg"
-                variant="primary"
-                color="info"
-                className="w-[16rem] lg:w-[12rem]"
-              >
+              <Button type="button" size="lg" variant="primary" color="info">
                 Upgrade to Enterprise
-              </Button>
-            </a>
-            <a
-              href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-end"
-            >
-              <Button type="button" variant="ghost" size="lg">
-                Learn more <ArrowUpRight size="lg-thin" className="text-accent-9" />
               </Button>
             </a>
           </div>
