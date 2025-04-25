@@ -1,5 +1,4 @@
 "use client";
-import { SettingCard } from "@/components/settings-card";
 import { FormField } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
@@ -7,6 +6,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
 import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
+import { SettingCard } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";

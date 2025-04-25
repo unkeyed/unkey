@@ -3,9 +3,9 @@ title: SettingCard
 description: A card component for settings options.
 ---
 
-import { SettingsCardBasic, SettingsCardsWithSharedEdge, SettingsCardsWithSquareEdge } from "./settings-card.example"
+import { SettingsCardBasic, SettingsCardsWithSharedEdge, SettingsCardsWithSquareEdge, SettingsCardsWithDivider } from "./settings-card.example"
 
-## SettingCard
+# SettingCard
 
 The SettingCard component provides a consistent layout for settings sections in your application. It includes a title, description, and content area with optional styling options.
 
@@ -17,11 +17,19 @@ The basic SettingCard includes a title, description, and content area.
 
 ## Settings Cards With Shared Edge
 
-Add action buttons to the top of the content area for common operations.
+Two SettingCard components sharing a common edge. Useful when settings might be related or make sense visualy together. 
 
 <SettingsCardsWithSharedEdge />
 
+## Settings Cards With seperating border
+
+Same as above with a border set. 
+
+<SettingsCardsWithDivider />
+
 ## Square Corners
+
+Single SettingCard with no border prop set. 
 
 <SettingsCardsWithSquareEdge />
 
@@ -43,6 +51,5 @@ Add action buttons to the top of the content area for common operations.
 | children | React.ReactNode | required | Card content |
 | className | string | undefined | Additional CSS classes |
 | border | boolean | undefined | Whether to show a border around the card |
-| divider | boolean | undefined | Whether to show a divider between header and content |
 | contentWidth | "default" \| "full" | "default" | Width of the content area |
 

@@ -1,11 +1,11 @@
 "use client";
 
 import { revalidateTag } from "@/app/actions";
-import { SettingCard } from "@unkey/ui";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { Clone } from "@unkey/icons";
+import { SettingCard } from "@unkey/ui";
 import { Button, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
