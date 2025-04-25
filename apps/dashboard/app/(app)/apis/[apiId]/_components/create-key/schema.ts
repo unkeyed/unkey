@@ -115,27 +115,33 @@ export const ratelimitSchema = z.object({
     .object({
       enabled: z.boolean().default(false),
       data: z
-        .object({
-          refillInterval: z.coerce
-            .number({
-              errorMap: (issue, { defaultError }) => ({
-                message:
-                  issue.code === "invalid_type" ? "Duration must be greater than 0" : defaultError,
-              }),
-            })
-            .positive({ message: "Refill interval must be greater than 0" }),
-          limit: z.coerce
-            .number({
-              errorMap: (issue, { defaultError }) => ({
-                message:
-                  issue.code === "invalid_type"
-                    ? "Refill limit must be greater than 0"
-                    : defaultError,
-              }),
-            })
-            .positive({ message: "Limit must be greater than 0" }),
-        })
-        .optional(),
+        .array(
+          z.object({
+            name: z.string().min(1, { message: "Name is required" }),
+            refillInterval: z.coerce
+              .number({
+                errorMap: (issue, { defaultError }) => ({
+                  message:
+                    issue.code === "invalid_type"
+                      ? "Duration must be greater than 0"
+                      : defaultError,
+                }),
+              })
+              .positive({ message: "Refill interval must be greater than 0" }),
+            limit: z.coerce
+              .number({
+                errorMap: (issue, { defaultError }) => ({
+                  message:
+                    issue.code === "invalid_type"
+                      ? "Refill limit must be greater than 0"
+                      : defaultError,
+                }),
+              })
+              .positive({ message: "Limit must be greater than 0" }),
+          }),
+        )
+        .optional()
+        .default([]),
     })
     .default({ enabled: false }),
 });
@@ -161,25 +167,40 @@ export const formSchema = z
     ...expirationSchema.shape,
   })
   .superRefine((data, ctx) => {
-    // Validate ratelimit fields when ratelimit.enabled is true
     if (data.ratelimit?.enabled) {
-      // Default values should be set when enabling
-      const limit = data.ratelimit.data?.limit;
-      const refillInterval = data.ratelimit.data?.refillInterval;
-
-      if (!limit || limit <= 0) {
+      // Check if data array exists and is not empty
+      if (!data.ratelimit.data || data.ratelimit.data.length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Limit is required when ratelimit is enabled",
-          path: ["ratelimit", "data", "limit"],
+          message: "At least one rate limit rule is required when ratelimit is enabled",
+          path: ["ratelimit", "data"],
         });
-      }
+      } else {
+        // Validate each item in the data array
+        data.ratelimit.data.forEach((item, index) => {
+          if (!item.name || item.name.trim() === "") {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Name is required for each rate limit rule",
+              path: ["ratelimit", "data", index, "name"],
+            });
+          }
 
-      if (!refillInterval || refillInterval <= 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Refill interval is required when ratelimit is enabled",
-          path: ["ratelimit", "data", "refillInterval"],
+          if (!item.limit || item.limit <= 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Limit is required and must be greater than 0",
+              path: ["ratelimit", "data", index, "limit"],
+            });
+          }
+
+          if (!item.refillInterval || item.refillInterval <= 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Refill interval is required and must be greater than 0",
+              path: ["ratelimit", "data", index, "refillInterval"],
+            });
+          }
         });
       }
     }
@@ -256,10 +277,13 @@ export const getDefaultValues = (): Partial<FormValues> => {
     },
     ratelimit: {
       enabled: false,
-      data: {
-        limit: 10,
-        refillInterval: 1000,
-      },
+      data: [
+        {
+          name: "default",
+          limit: 10,
+          refillInterval: 1000,
+        },
+      ],
     },
     expiration: {
       enabled: false,

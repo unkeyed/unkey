@@ -19,6 +19,7 @@ export const UsageSetup = () => {
     control,
     setValue,
     getValues,
+    trigger,
   } = useFormContext<CreditsFormValues>();
 
   const limitEnabled = useWatch({
@@ -42,6 +43,8 @@ export const UsageSetup = () => {
         shouldValidate: true,
       });
     }
+
+    trigger("limit");
   };
 
   const handleRefillIntervalChange = (value: "none" | "daily" | "monthly") => {
