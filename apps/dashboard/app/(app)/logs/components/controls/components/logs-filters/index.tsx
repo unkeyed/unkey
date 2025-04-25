@@ -11,19 +11,22 @@ const FILTER_ITEMS: FilterItemConfig[] = [
   {
     id: "status",
     label: "Status",
-    shortcut: "e",
+    shortcut: "E",
+    shortcutLabel: "E",
     component: <StatusFilter />,
   },
   {
     id: "methods",
     label: "Method",
-    shortcut: "m",
+    shortcut: "M",
+    shortcutLabel: "M",
     component: <MethodsFilter />,
   },
   {
     id: "paths",
     label: "Path",
-    shortcut: "p",
+    shortcut: "P",
+    shortcutLabel: "P",
     component: <PathsFilter />,
   },
 ];
