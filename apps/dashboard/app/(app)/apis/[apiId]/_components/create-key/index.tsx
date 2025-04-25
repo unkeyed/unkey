@@ -7,6 +7,7 @@ import {
   NavigableDialogNav,
   NavigableDialogRoot,
 } from "@/components/dialog-container/navigable-dialog";
+import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { IconProps } from "@unkey/icons/src/props";
 import { Button } from "@unkey/ui";
@@ -18,7 +19,6 @@ import { SectionLabel } from "./components/section-label";
 import { type DialogSectionName, SECTIONS } from "./constants";
 import { getDefaultValues, processFormData } from "./form-utils";
 import { useCreateKey } from "./hooks/use-create-key";
-import { usePersistedForm } from "./hooks/use-persisted-form";
 import { useValidateSteps } from "./hooks/use-validate-steps";
 import { type FormValues, formSchema } from "./schema";
 
@@ -40,13 +40,18 @@ export const CreateKeyDialog = ({
     name?: string;
   } | null>(null);
 
-  const methods = usePersistedForm<FormValues>(FORM_STORAGE_KEY, {
-    resolver: zodResolver(formSchema),
-    mode: "onChange",
-    shouldFocusError: true,
-    shouldUnregister: true,
-    defaultValues: getDefaultValues(),
-  });
+  const methods = usePersistedForm<FormValues>(
+    FORM_STORAGE_KEY,
+    {
+      resolver: zodResolver(formSchema),
+      mode: "onChange",
+
+      shouldFocusError: true,
+      shouldUnregister: true,
+      defaultValues: getDefaultValues(),
+    },
+    "memory",
+  );
 
   const {
     handleSubmit,
