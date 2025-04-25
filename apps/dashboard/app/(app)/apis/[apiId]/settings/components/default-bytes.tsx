@@ -1,13 +1,5 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SettingCard } from "@/components/settings-card";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
@@ -71,50 +63,58 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Default Bytes</CardTitle>
-            <CardDescription>
-              Set default Bytes for the keys under this API. Default byte size must be between{" "}
-              <span className="font-bold">8 to 255</span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col space-y-2">
-              <input type="hidden" name="keyAuthId" value={keyAuth.id} />
-              <label htmlFor="defaultBytes" className="hidden sr-only">
-                Default Bytes
-              </label>
-              <FormField
-                control={form.control}
-                name="defaultBytes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        id="defaultBytes"
-                        className="max-w-sm"
-                        {...field}
-                        autoComplete="off"
-                        onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <SettingCard
+          title={
+            <div className="flex items-center justify-start gap-2.5">
+              <span className="text-sm font-medium text-accent-12">Default Bytes</span>
             </div>
-          </CardContent>
-          <CardFooter className="justify-end">
+          }
+          description={
+            <div className="font-normal text-[13px] max-w-[380px]">
+              Sets the default byte size for keys under this API. Must be between 8 and 255.
+            </div>
+          }
+          border="top"
+          contentWidth="w-full lg:w-[320px]"
+        >
+          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
+            <input type="hidden" name="keyAuthId" value={keyAuth.id} />
+            <label htmlFor="defaultBytes" className="hidden sr-only">
+              Default Bytes
+            </label>
+            <FormField
+              control={form.control}
+              name="defaultBytes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      id="defaultBytes"
+                      className="w-[20rem] lg:w-[16rem] h-9"
+                      {...field}
+                      autoComplete="off"
+                      onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <Button
+              size="lg"
               variant="primary"
-              disabled={!form.formState.isValid || form.formState.isSubmitting}
+              disabled={
+                !form.formState.isValid ||
+                form.formState.isSubmitting ||
+                keyAuth.defaultBytes === form.watch("defaultBytes")
+              }
               type="submit"
+              loading={form.formState.isSubmitting}
             >
-              {form.formState.isSubmitting ? <Loading /> : "Save"}
+              Save
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </SettingCard>
       </form>
     </Form>
   );
