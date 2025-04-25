@@ -1,6 +1,7 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
@@ -9,11 +10,11 @@ import type { queryTimeseriesPayload } from "../query-timeseries.schema";
 export const useFetchTimeseries = () => {
   const { filters } = useFilters();
 
-  const dateNow = useMemo(() => Date.now(), []);
+  const { queryTime: timestamp } = useQueryTime();
   const queryParams = useMemo(() => {
     const params: z.infer<typeof queryTimeseriesPayload> = {
-      startTime: dateNow - HISTORICAL_DATA_WINDOW,
-      endTime: dateNow,
+      startTime: timestamp - HISTORICAL_DATA_WINDOW,
+      endTime: timestamp,
       host: { filters: [] },
       method: { filters: [] },
       path: { filters: [] },
@@ -88,7 +89,7 @@ export const useFetchTimeseries = () => {
     });
 
     return params;
-  }, [filters, dateNow]);
+  }, [filters, timestamp]);
 
   const { data, isLoading, isError } = trpc.logs.queryTimeseries.useQuery(queryParams, {
     refetchInterval: queryParams.endTime ? false : 10_000,
