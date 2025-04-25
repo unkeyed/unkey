@@ -150,6 +150,7 @@ const buttonVariants = cva(
           "active:bg-success-4",
         ],
       },
+
       // Info
       {
         variant: "primary",

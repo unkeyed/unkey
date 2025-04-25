@@ -277,8 +277,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/keys
       '@unkey/ratelimit':
-        specifier: workspace:^
-        version: link:../../packages/ratelimit
+        specifier: ^2.0.0-canary.0
+        version: 2.0.0-canary.0(zod@3.23.8)
       '@unkey/rbac':
         specifier: workspace:^
         version: link:../../packages/rbac
@@ -1135,25 +1135,6 @@ importers:
       next:
         specifier: 14.2.15
         version: 14.2.15(@babel/core@7.26.10)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
-      tsup:
-        specifier: ^8.0.2
-        version: 8.0.2(ts-node@10.9.2)(typescript@5.7.3)
-      typescript:
-        specifier: ^5.5.3
-        version: 5.7.3
-
-  packages/ratelimit:
-    dependencies:
-      '@unkey/api':
-        specifier: 2.0.0-alpha.7
-        version: 2.0.0-alpha.7(zod@3.23.8)
-    devDependencies:
-      '@types/node':
-        specifier: ^20.14.9
-        version: 20.14.9
-      '@unkey/tsconfig':
-        specifier: workspace:^
-        version: link:../../internal/tsconfig
       tsup:
         specifier: ^8.0.2
         version: 8.0.2(ts-node@10.9.2)(typescript@5.7.3)
@@ -10709,6 +10690,15 @@ packages:
         optional: true
     dependencies:
       zod: 3.23.8
+    dev: false
+
+  /@unkey/ratelimit@2.0.0-canary.0(zod@3.23.8):
+    resolution: {integrity: sha512-nhrES++wxmho/Onz1b32pwwWrViyeNREuEpad8UGXMtZFeEqpZSyXu9P6GGOQKQrddxEKDpeKba3lgC55MukFQ==}
+    dependencies:
+      '@unkey/api': 2.0.0-alpha.7(zod@3.23.8)
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - zod
     dev: false
 
   /@upstash/redis@1.34.3:
