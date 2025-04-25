@@ -27,6 +27,7 @@ type Props = {
 export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const router = useRouter();
   const utils = trpc.useUtils();
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -37,6 +38,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       workspaceName: workspace.name,
     },
   });
+  
   const updateName = trpc.workspace.updateName.useMutation({
     onSuccess() {
       toast.success("Workspace name updated");
@@ -49,9 +51,10 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    updateName.mutateAsync({ workspaceId: workspace.id, name: values.workspaceName });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    await updateName.mutateAsync({ workspaceId: workspace.id, name: values.workspaceName });
   }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -97,16 +100,14 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
               )}
             />
             <Button
+              type="submit"
               size="lg"
-              variant="primary"
+              loading={form?.formState?.isSubmitting}
               disabled={
                 !form.formState.isValid ||
                 form.formState.isSubmitting ||
                 workspace.name === form.watch("workspaceName")
               }
-              loading={form.formState.isSubmitting}
-              type="submit"
-              className="justify-self-end"
             >
               Save
             </Button>
