@@ -1,5 +1,29 @@
 import { z } from "zod";
 
+// Helper function for creating conditional schemas based on the "enabled" flag
+const createConditionalSchema = <
+  T extends z.ZodObject<any, any, any>,
+  EnabledPath extends string = "enabled",
+>(
+  enabledPath: EnabledPath,
+  schema: T,
+) => {
+  return z.union([
+    //  when enabled is false, don't validate other fields
+    z
+      .object({
+        [enabledPath]: z.literal(false),
+      })
+      .passthrough(),
+
+    //  when enabled is true, apply all validations
+    schema,
+  ]) as z.ZodUnion<
+    [z.ZodObject<{ [K in EnabledPath]: z.ZodLiteral<false> }, "passthrough", z.ZodTypeAny>, T]
+  >;
+};
+
+// Basic schemas
 export const generalSchema = z.object({
   bytes: z.coerce
     .number()
@@ -20,30 +44,6 @@ export const generalSchema = z.object({
   ownerId: z.string().trim().optional(),
   name: z.string().trim().optional(),
   environment: z.string().optional(),
-});
-
-export const metadataSchema = z.object({
-  metadata: z
-    .object({
-      enabled: z.boolean().default(false),
-      data: z
-        .string()
-        .refine(
-          (s) => {
-            try {
-              JSON.parse(s);
-              return true;
-            } catch {
-              return false;
-            }
-          },
-          {
-            message: "Must be valid json",
-          },
-        )
-        .optional(),
-    })
-    .default({ enabled: false }),
 });
 
 export const refillSchema = z.discriminatedUnion("interval", [
@@ -88,76 +88,148 @@ export const refillSchema = z.discriminatedUnion("interval", [
   }),
 ]);
 
-export const creditsSchema = z.object({
-  limit: z
-    .object({
-      enabled: z.boolean().default(false),
-      data: z
-        .object({
-          remaining: z.coerce
-            .number({
-              errorMap: () => ({
-                message: "Number of uses must be a positive whole number",
-              }),
-            })
-            .int({ message: "Number of uses must be a whole number" })
-            .positive({ message: "Number of uses must be positive" })
-            .default(100),
-          refill: refillSchema,
-        })
-        .optional(),
+export const ratelimitItemSchema = z.object({
+  name: z.string().min(1, { message: "Name is required" }),
+  refillInterval: z.coerce
+    .number({
+      errorMap: (issue, { defaultError }) => ({
+        message: issue.code === "invalid_type" ? "Duration must be greater than 0" : defaultError,
+      }),
     })
-    .optional(),
+    .positive({ message: "Refill interval must be greater than 0" }),
+  limit: z.coerce
+    .number({
+      errorMap: (issue, { defaultError }) => ({
+        message:
+          issue.code === "invalid_type" ? "Refill limit must be greater than 0" : defaultError,
+      }),
+    })
+    .positive({ message: "Limit must be greater than 0" }),
+});
+
+const metadataValidationSchema = z.object({
+  enabled: z.literal(true),
+  data: z
+    .string({
+      required_error: "Metadata is required",
+      invalid_type_error: "Metadata must be a JSON",
+    })
+    .refine(
+      (s) => {
+        try {
+          JSON.parse(s);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      {
+        message: "Must be valid a JSON",
+      },
+    ),
+});
+
+const limitDataSchema = z.object({
+  remaining: z.coerce
+    .number({
+      errorMap: () => ({
+        message: "Number of uses must be a positive whole number",
+      }),
+    })
+    .int({ message: "Number of uses must be a whole number" })
+    .positive({ message: "Number of uses must be positive" }),
+  refill: refillSchema,
+});
+
+const limitValidationSchema = z.object({
+  enabled: z.literal(true),
+  data: limitDataSchema,
+});
+
+const ratelimitValidationSchema = z.object({
+  enabled: z.literal(true),
+  data: z.array(ratelimitItemSchema).min(1, { message: "At least one rate limit is required" }),
+});
+
+const expirationValidationSchema = z.object({
+  enabled: z.literal(true),
+  data: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === "") {
+        return null; // This will trigger the required_error
+      }
+
+      if (val instanceof Date) {
+        return val;
+      }
+
+      try {
+        const date = new Date(val as any);
+        return date;
+      } catch {
+        return null; // Invalid date will be caught by the next validation
+      }
+    },
+    z
+      .date({
+        required_error: "Expiry date is required when enabled",
+        invalid_type_error: "Expiry date must be a valid date",
+      })
+      .refine((date) => !Number.isNaN(date.getTime()), {
+        message: "Please enter a valid date",
+      })
+      .refine(
+        (date) => {
+          const minDate = new Date(new Date().getTime() + 2 * 60000);
+          return date >= minDate;
+        },
+        {
+          message: "Expiry date must be at least 2 minutes in the future",
+        },
+      ),
+  ),
+});
+
+export const metadataSchema = z.object({
+  metadata: createConditionalSchema("enabled", metadataValidationSchema).default({
+    enabled: false,
+  }),
+});
+
+export const creditsSchema = z.object({
+  limit: createConditionalSchema("enabled", limitValidationSchema)
+    .optional()
+    .default({
+      enabled: false,
+      data: {
+        remaining: 100,
+        refill: {
+          interval: "none",
+        },
+      },
+    }),
 });
 
 export const ratelimitSchema = z.object({
-  ratelimit: z
-    .object({
-      enabled: z.boolean().default(false),
-      data: z
-        .array(
-          z.object({
-            name: z.string().min(1, { message: "Name is required" }),
-            refillInterval: z.coerce
-              .number({
-                errorMap: (issue, { defaultError }) => ({
-                  message:
-                    issue.code === "invalid_type"
-                      ? "Duration must be greater than 0"
-                      : defaultError,
-                }),
-              })
-              .positive({ message: "Refill interval must be greater than 0" }),
-            limit: z.coerce
-              .number({
-                errorMap: (issue, { defaultError }) => ({
-                  message:
-                    issue.code === "invalid_type"
-                      ? "Refill limit must be greater than 0"
-                      : defaultError,
-                }),
-              })
-              .positive({ message: "Limit must be greater than 0" }),
-          }),
-        )
-        .optional()
-        .default([]),
-    })
-    .default({ enabled: false }),
+  ratelimit: createConditionalSchema("enabled", ratelimitValidationSchema).default({
+    enabled: false,
+    data: [
+      {
+        name: "default",
+        limit: 10,
+        refillInterval: 1000,
+      },
+    ],
+  }),
 });
 
 export const expirationSchema = z.object({
-  expiration: z
-    .object({
-      enabled: z.boolean().default(false),
-      data: z.coerce
-        .date()
-        .min(new Date(new Date().getTime() + 2 * 60000))
-        .optional(),
-    })
-    .default({ enabled: false }),
+  expiration: createConditionalSchema("enabled", expirationValidationSchema).default({
+    enabled: false,
+  }),
 });
 
+// Main form schema
 export const formSchema = z
   .object({
     ...generalSchema.shape,
@@ -167,75 +239,17 @@ export const formSchema = z
     ...expirationSchema.shape,
   })
   .superRefine((data, ctx) => {
-    if (data.ratelimit?.enabled) {
-      // Check if data array exists and is not empty
-      if (!data.ratelimit.data || data.ratelimit.data.length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "At least one rate limit rule is required when ratelimit is enabled",
-          path: ["ratelimit", "data"],
-        });
-      } else {
-        // Validate each item in the data array
-        data.ratelimit.data.forEach((item, index) => {
-          if (!item.name || item.name.trim() === "") {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Name is required for each rate limit rule",
-              path: ["ratelimit", "data", index, "name"],
-            });
-          }
-
-          if (!item.limit || item.limit <= 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Limit is required and must be greater than 0",
-              path: ["ratelimit", "data", index, "limit"],
-            });
-          }
-
-          if (!item.refillInterval || item.refillInterval <= 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Refill interval is required and must be greater than 0",
-              path: ["ratelimit", "data", index, "refillInterval"],
-            });
-          }
-        });
-      }
-    }
-
-    // Validate limit fields when limit.enabled is true
-    if (data.limit?.enabled) {
-      const remaining = data.limit.data?.remaining;
-
-      if (!remaining || remaining <= 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Number of uses is required when limit is enabled",
-          path: ["limit", "data", "remaining"],
-        });
-      }
-
-      // If refill interval is not "none", refill amount is required
-      if (data.limit?.data?.refill?.interval && data.limit.data.refill.interval !== "none") {
-        if (!data.limit.data.refill.amount) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Refill amount is required when interval is selected",
-            path: ["limit", "data", "refill", "amount"],
-          });
-        }
-
-        // If refill interval is "monthly", refill day is required
-        if (data.limit.data.refill.interval === "monthly" && !data.limit.data.refill.refillDay) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Refill day is required for monthly interval",
-            path: ["limit", "data", "refill", "refillDay"],
-          });
-        }
-      }
+    // For monthly refills, ensure refillDay is provided
+    if (
+      data.limit?.enabled &&
+      data.limit.data?.refill?.interval === "monthly" &&
+      !data.limit.data.refill.refillDay
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Refill day is required for monthly interval",
+        path: ["limit", "data", "refill", "refillDay"],
+      });
     }
 
     // Validate metadata.data field when metadata.enabled is true
@@ -257,7 +271,39 @@ export const formSchema = z
     }
   });
 
-export const getDefaultValues = (): Partial<FormValues> => {
+export type RatelimitItem = z.infer<typeof ratelimitItemSchema>;
+export type LimitData = z.infer<typeof limitDataSchema>;
+
+export interface FormValueTypes {
+  bytes: number;
+  prefix?: string;
+  ownerId?: string;
+  name?: string;
+  environment?: string;
+  metadata: {
+    enabled: boolean;
+    data?: string;
+  };
+  limit?: {
+    enabled: boolean;
+    data?: LimitData;
+  };
+  ratelimit: {
+    enabled: boolean;
+    data: RatelimitItem[];
+  };
+  expiration: {
+    enabled: boolean;
+    data?: Date;
+  };
+}
+
+export type RatelimitFormValues = Pick<FormValueTypes, "ratelimit">;
+export type CreditsFormValues = Pick<FormValueTypes, "limit">;
+export type MetadataFormValues = Pick<FormValueTypes, "metadata">;
+export type ExpirationFormValues = Pick<FormValueTypes, "expiration">;
+
+export const getDefaultValues = (): Partial<FormValueTypes> => {
   return {
     bytes: 16,
     prefix: "",
@@ -292,7 +338,3 @@ export const getDefaultValues = (): Partial<FormValues> => {
 };
 
 export type FormValues = z.infer<typeof formSchema>;
-export type RatelimitFormValues = Pick<FormValues, "ratelimit">;
-export type CreditsFormValues = Pick<FormValues, "limit">;
-export type MetadataFormValues = Pick<FormValues, "metadata">;
-export type ExpirationFormValues = Pick<FormValues, "expiration">;

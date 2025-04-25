@@ -3,7 +3,7 @@ import { Gauge, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
 import { useEffect } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import type { RatelimitFormValues } from "../schema";
+import type { RatelimitFormValues, RatelimitItem } from "../schema";
 import { ProtectionSwitch } from "./protection-switch";
 
 export const RatelimitSetup = () => {
@@ -15,9 +15,10 @@ export const RatelimitSetup = () => {
     trigger,
   } = useFormContext<RatelimitFormValues>();
 
+  // Note: We're using the explicitly defined type from the schema file
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "ratelimit.data",
+    name: "ratelimit.data" as const, // Use as const to make TypeScript recognize this as a literal
   });
 
   const ratelimitEnabled = useWatch({
@@ -28,7 +29,11 @@ export const RatelimitSetup = () => {
   // Ensure there's always at least one ratelimit item
   useEffect(() => {
     if (fields.length === 0) {
-      append({ name: "Default", limit: 10, refillInterval: 1000 });
+      append({
+        name: "Default",
+        limit: 10,
+        refillInterval: 1000,
+      });
     }
   }, [fields.length, append]);
 
@@ -38,7 +43,12 @@ export const RatelimitSetup = () => {
   };
 
   const handleAddRatelimit = () => {
-    append({ name: "", limit: 10, refillInterval: 1000 });
+    const newItem: RatelimitItem = {
+      name: "",
+      limit: 10,
+      refillInterval: 1000,
+    };
+    append(newItem);
   };
 
   return (

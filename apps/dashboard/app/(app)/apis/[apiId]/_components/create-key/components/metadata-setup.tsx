@@ -4,10 +4,8 @@ import { Code } from "@unkey/icons";
 import { FormTextarea } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useFormContext, useWatch } from "react-hook-form";
-import type { FormValues } from "../schema";
+import type { MetadataFormValues } from "../schema";
 import { ProtectionSwitch } from "./protection-switch";
-
-export type MetadataFormValues = Pick<FormValues, "metadata">;
 
 const EXAMPLE_JSON = {
   user: {
@@ -31,7 +29,7 @@ export const MetadataSetup = () => {
     control,
     setValue,
     trigger,
-  } = useFormContext<FormValues>();
+  } = useFormContext<MetadataFormValues>();
 
   const metadataEnabled = useWatch({
     control,
@@ -45,6 +43,7 @@ export const MetadataSetup = () => {
 
   const handleSwitchChange = (checked: boolean) => {
     setValue("metadata.enabled", checked);
+    trigger("metadata");
   };
 
   const formatJSON = () => {

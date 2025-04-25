@@ -45,6 +45,7 @@ export const ExpirationSetup = () => {
     formState: { errors },
     control,
     setValue,
+    trigger,
   } = useFormContext<ExpirationFormValues>();
 
   const [selectedTitle, setSelectedTitle] = useState<string>("1 day");
@@ -61,6 +62,7 @@ export const ExpirationSetup = () => {
 
   const handleSwitchChange = (checked: boolean) => {
     setValue("expiration.enabled", checked);
+    trigger("expiration");
   };
 
   // Handle date and time selection from DatetimePopover
