@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
 
+concurrency: release
 jobs:
   goreleaser:
     runs-on: ubuntu-latest

@@ -75,4 +75,9 @@ npms:
     license: AGPLv3
     author: chronark <andreas@unkey.com>
     bugs: https://github.com/unkeyed/unkey/issues
-    access: restricted
+    access: public
+    extra_files:
+      - glob: "../README.md"
+        name_template: README.md
+      - glob: "../LICENSE"
+        name_template: LICENSE
