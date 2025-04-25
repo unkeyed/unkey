@@ -24,7 +24,7 @@ export const ControlCloud = <TFilter extends FilterValue>({
 }: ControlCloudProps<TFilter>) => {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
-  useKeyboardShortcut({ key: "d", meta: true }, () => {
+  useKeyboardShortcut("option+shift+d", () => {
     const timestamp = Date.now();
     updateFilters([
       {
@@ -42,7 +42,7 @@ export const ControlCloud = <TFilter extends FilterValue>({
     ] as TFilter[]);
   });
 
-  useKeyboardShortcut({ key: "c", meta: true }, () => {
+  useKeyboardShortcut("option+shift+c", () => {
     setFocusedIndex(0);
   });
 
@@ -144,10 +144,10 @@ export const ControlCloud = <TFilter extends FilterValue>({
       ))}
       <div className="flex items-center px-2 py-1 gap-2 ml-auto max-md:hidden">
         <span className="text-gray-9 text-[13px]">Clear filters</span>
-        <KeyboardButton shortcut="d" modifierKey="⌘" />
+        <KeyboardButton shortcut="⌥+⇧+D" />
         <div className="w-px h-4 bg-gray-4" />
         <span className="text-gray-9 text-[13px]">Focus filters</span>
-        <KeyboardButton shortcut="c" modifierKey="⌘" />
+        <KeyboardButton shortcut="⌥+⇧+C" />
       </div>
     </div>
   );
