@@ -32,6 +32,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
+      - name: Login to npm registry
+        run: npm set "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}"
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
