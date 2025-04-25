@@ -1,6 +1,7 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useState } from "react";
 import type { VerificationQueryTimeseriesPayload } from "./query-timeseries.schema";
 import { useFilters } from "./use-filters";
@@ -8,13 +9,13 @@ import { useFilters } from "./use-filters";
 export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
   const [enabled, setEnabled] = useState(false);
   const { filters } = useFilters();
-  const dateNow = useMemo(() => Date.now(), []);
+  const { queryTime: timestamp } = useQueryTime();
 
   const queryParams = useMemo(() => {
     const params: VerificationQueryTimeseriesPayload = {
       keyspaceId: keyspaceId ?? "",
-      startTime: dateNow - HISTORICAL_DATA_WINDOW,
-      endTime: dateNow,
+      startTime: timestamp - HISTORICAL_DATA_WINDOW,
+      endTime: timestamp,
       since: "",
     };
 
@@ -41,7 +42,7 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
     });
 
     return params;
-  }, [filters, dateNow, keyspaceId]);
+  }, [filters, timestamp, keyspaceId]);
 
   useEffect(() => {
     // Implement a 2-second delay before enabling queries to prevent excessive ClickHouse load

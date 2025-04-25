@@ -1,5 +1,6 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryTime } from "@/providers/query-time-provider";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
@@ -26,6 +27,7 @@ export function useLogsQuery({
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
+  const { queryTime: timestamp } = useQueryTime();
 
   const realtimeLogs = useMemo(() => {
     return sortLogs(Array.from(realtimeLogsMap.values()));
@@ -34,12 +36,11 @@ export function useLogsQuery({
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   //Required for preventing double trpc call during initial render
-  const dateNow = useMemo(() => Date.now(), []);
   const queryParams = useMemo(() => {
     const params: z.infer<typeof queryLogsPayload> = {
       limit,
-      startTime: dateNow - HISTORICAL_DATA_WINDOW,
-      endTime: dateNow,
+      startTime: timestamp - HISTORICAL_DATA_WINDOW,
+      endTime: timestamp,
       host: { filters: [] },
       requestId: { filters: [] },
       method: { filters: [] },
@@ -127,7 +128,7 @@ export function useLogsQuery({
     });
 
     return params;
-  }, [filters, limit, dateNow]);
+  }, [filters, limit, timestamp]);
 
   // Main query for historical data
   const {
