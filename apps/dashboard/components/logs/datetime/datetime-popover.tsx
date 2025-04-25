@@ -189,7 +189,7 @@ export const DatetimePopover = ({
             align="start"
           >
             <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
-          {customHeader || <DefaultPopoverHeader />}
+              {customHeader || <DefaultPopoverHeader />}
               <DateTimeSuggestions options={suggestions} onChange={handleSuggestionChange} />
             </div>
             <DateTime
