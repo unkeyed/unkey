@@ -27,7 +27,7 @@ type Props = {
 export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const router = useRouter();
   const utils = trpc.useUtils();
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -38,7 +38,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       workspaceName: workspace.name,
     },
   });
-  
+
   const updateName = trpc.workspace.updateName.useMutation({
     onSuccess() {
       toast.success("Workspace name updated");
