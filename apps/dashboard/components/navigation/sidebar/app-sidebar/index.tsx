@@ -17,8 +17,8 @@ import {
 import type { Quotas, Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
-import { useSelectedLayoutSegments } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useRouter, useSelectedLayoutSegments } from "next/navigation";
+import { useCallback, useEffect, useMemo } from "react";
 import { HelpButton } from "../help-button";
 import { UsageBanner } from "../usage-banner";
 import { NavItems } from "./components/nav-items";
@@ -30,6 +30,16 @@ export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & { workspace: Workspace & { quotas?: Quotas } }) {
   const segments = useSelectedLayoutSegments() ?? [];
+  const router = useRouter();
+
+  // Refresh the router when workspace changes to update sidebar
+  useEffect(() => {
+    if (!props.workspace.id) {
+      return;
+    }
+    // Use a more targeted approach to refresh the sidebar
+    router.refresh();
+  }, [router, props.workspace.id]);
 
   // Create base navigation items
   const baseNavItems = useMemo(
