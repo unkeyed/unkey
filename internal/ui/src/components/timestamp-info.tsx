@@ -1,8 +1,10 @@
 "use client";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow, fromUnixTime } from "date-fns";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
 import { useEffect, useRef, useState } from "react";
+import { cn } from "../lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 const unixMicroToDate = (unix: string | number): Date => {
   return fromUnixTime(Number(unix) / 1000 / 1000);
@@ -36,7 +38,14 @@ const timestampRelativeFormatter = (value: string | number): string => {
 
 type DisplayType = "local" | "utc" | "relative";
 
-export const TimestampInfo = ({
+export const TimestampInfo: React.FC<{
+  value: string | number;
+  className?: string;
+  displayType?: DisplayType;
+  triggerRef?: React.RefObject<HTMLElement>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}> = ({
   value,
   className,
   displayType = "local",
