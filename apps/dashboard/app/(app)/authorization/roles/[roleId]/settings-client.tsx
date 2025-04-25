@@ -2,7 +2,7 @@
 
 import { revalidateTag } from "@/app/actions";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
-import { SettingCard } from "@/components/settings-card";
+import { SettingCard } from "@unkey/ui";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";

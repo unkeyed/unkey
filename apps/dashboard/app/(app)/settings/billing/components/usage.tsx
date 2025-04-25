@@ -1,4 +1,4 @@
-import { SettingCard } from "@/components/settings-card";
+import { SettingCard } from "@unkey/ui";
 import { formatNumber } from "@/lib/fmt";
 
 export const Usage: React.FC<{ current: number; max: number }> = async ({ current, max }) => {

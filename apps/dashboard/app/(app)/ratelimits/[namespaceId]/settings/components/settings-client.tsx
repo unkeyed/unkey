@@ -1,7 +1,7 @@
 "use client";
 
 import { revalidateTag } from "@/app/actions";
-import { SettingCard } from "@/components/settings-card";
+import { SettingCard } from "@unkey/ui";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";

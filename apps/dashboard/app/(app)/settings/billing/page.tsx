@@ -1,4 +1,4 @@
-import { SettingCard } from "@/components/settings-card";
+import { SettingCard } from "@unkey/ui";
 import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
