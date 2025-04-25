@@ -48,9 +48,8 @@ kos:
   - repositories: 
       - ghcr.io/unkeyed/unkey
     tags:
-      - "{{.Version}}"
+      - "v{{.Version}}"
     bare: true
-    sbom: spdx
     platforms:
       - linux/amd64
       - linux/arm64
