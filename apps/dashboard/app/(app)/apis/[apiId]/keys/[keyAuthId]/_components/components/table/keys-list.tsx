@@ -130,7 +130,14 @@ export const KeysList = ({
                       {key.id.substring(key.id.length - 4)}
                     </div>
                   </Link>
-                  {key.name && <span className="font-sans text-accent-9">{key.name}</span>}
+                  {key.name && (
+                    <span
+                      className="font-sans text-accent-9 truncate max-w-[120px]"
+                      title={key.name}
+                    >
+                      {key.name}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

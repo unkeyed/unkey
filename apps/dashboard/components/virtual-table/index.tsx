@@ -1,4 +1,4 @@
-import { useResponsive } from "@/hooks/use-responsive";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
@@ -10,6 +10,7 @@ import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
+const MOBILE_TABLE_HEIGHT = 400;
 const calculateTableLayout = (columns: Column<any>[]) => {
   return columns.map((column) => {
     let width = "auto";
@@ -61,7 +62,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const isGridLayout = config.layoutMode === "grid";
     const parentRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const { isMobile } = useResponsive();
+    const isMobile = useIsMobile();
 
     const hasPadding = config.containerPadding !== "px-0";
 
@@ -86,8 +87,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       "overflow-auto relative pb-4",
       config.containerPadding || "px-2", // Default to px-2 if containerPadding is not specified
     );
-
-    const containerStyle = isMobile ? { height: `${fixedHeight}px` } : {};
 
     // Expose refs and methods to parent components. Primarily used for anchoring log details.
     useImperativeHandle(
@@ -140,8 +139,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     }
 
     return (
-      <div className="w-full flex flex-col max-h-[400px] md:h-full" ref={containerRef}>
-        <div ref={parentRef} className={containerClassName} style={containerStyle}>
+      <div className="w-full flex flex-col" ref={containerRef}>
+        <div
+          ref={parentRef}
+          className={containerClassName}
+          style={isMobile ? { height: MOBILE_TABLE_HEIGHT } : { height: `${fixedHeight}px` }}
+        >
           <table className={tableClassName}>
             <colgroup>
               {colWidths.map((col, idx) => (
