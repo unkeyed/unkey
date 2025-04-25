@@ -20,6 +20,10 @@ builds:
       - linux
       - windows
       - darwin
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
     binary: unkey
 
     ldflags:
@@ -39,6 +43,17 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
+
+kos:
+  - repositories: 
+      - ghcr.io/unkeyed/unkey
+    tags:
+      - "{{.Version}}"
+    bare: true
+    sbom: spdx
+    platforms:
+      - linux/amd64
+      - linux/arm64
 
 changelog:
   use: github
