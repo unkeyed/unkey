@@ -21,31 +21,40 @@ import { Members } from "./members";
 
 export default function TeamPageClient({ team }: { team: boolean }) {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
+
   const { data: memberships, isLoading: isUserMembershipsLoading } =
-    trpc.user.listMemberships.useQuery(user?.id as string, {
+    trpc.user.listMemberships.useQuery(user?.id || "", {
       enabled: !!user,
     });
+
   const { data: organization, isLoading: isOrganizationLoading } = trpc.org.getOrg.useQuery(
-    user?.orgId! as string,
+    user?.orgId || "",
     {
       enabled: !!user,
     },
   );
+
   const userMemberships = memberships?.data;
+
   const currentOrgMembership = userMemberships?.find(
     (membership) => membership.organization.id === user?.orgId,
   );
 
   const isAdmin = useMemo(() => {
-    return currentOrgMembership?.role === "admin";
-  }, [currentOrgMembership]);
+    return user?.role === "admin";
+  }, [user?.role]);
 
   const isLoading = useMemo(() => {
-    return isUserMembershipsLoading || isOrganizationLoading;
-  }, [isUserMembershipsLoading, isOrganizationLoading]);
+    return isUserMembershipsLoading || isOrganizationLoading || !user;
+  }, [isUserMembershipsLoading, isOrganizationLoading, user]);
 
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
+
+  // make typescript happy
+  if (!user || !organization || !userMemberships || !currentOrgMembership) {
+    return null;
+  }
 
   const actions: React.ReactNode[] = [];
 
@@ -64,7 +73,7 @@ export default function TeamPageClient({ team }: { team: boolean }) {
       </Select>,
     );
 
-    actions.push(<InviteButton key="invite-button" user={user!} organization={organization!} />);
+    actions.push(<InviteButton key="invite-button" user={user} organization={organization} />);
   }
 
   if (!team) {
@@ -89,9 +98,9 @@ export default function TeamPageClient({ team }: { team: boolean }) {
       {isLoading ? (
         <Loading />
       ) : tab === "members" ? (
-        <Members organization={organization!} user={user!} userMembership={currentOrgMembership!} />
+        <Members organization={organization!} user={user} userMembership={currentOrgMembership} />
       ) : (
-        <Invitations organization={organization!} user={user!} />
+        <Invitations organization={organization!} user={user} />
       )}
     </>
   );

@@ -1,7 +1,7 @@
 import { OptIn } from "@/components/opt-in";
 import { PageContent } from "@/components/page-content";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getOrgId } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
 import { Loader2 } from "lucide-react";
@@ -26,7 +26,7 @@ export default async function Page(props: Props) {
   const search = parseAsString.withDefault("").parse(props.searchParams.search ?? "");
   const limit = parseAsInteger.withDefault(10).parse(props.searchParams.limit ?? "10");
 
-  const orgId = await getOrgId();
+  const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.orgId, orgId),
   });
@@ -66,7 +66,7 @@ const Results: React.FC<{ search?: string; limit?: number }> = async (props) => 
   const search = props.search || "";
   const limit = props.limit || 10;
 
-  const orgId = await getOrgId();
+  const { orgId } = await getAuth();
   const getData = cache(
     async () =>
       db.query.workspaces.findFirst({

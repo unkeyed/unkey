@@ -2,7 +2,6 @@ import { env } from "@/lib/env";
 import { TRPCError, initTRPC } from "@trpc/server";
 import { Ratelimit } from "@unkey/ratelimit";
 import superjson from "superjson";
-import { auth } from "../auth/server";
 import type { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create({ transformer: superjson });
@@ -62,8 +61,7 @@ export const requireOrgAdmin = t.middleware(async ({ next, ctx, rawInput }) => {
     });
   }
   try {
-    const memberships = await auth.listMemberships(ctx.user!.id);
-    const isAdmin = memberships.data.some((m) => m.organization.id === orgId && m.role === "admin");
+    const isAdmin = ctx.tenant?.role === "admin";
 
     if (!isAdmin) {
       throw new TRPCError({

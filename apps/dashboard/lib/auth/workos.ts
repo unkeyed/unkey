@@ -7,6 +7,7 @@ import {
 import { getBaseUrl } from "../utils";
 import { BaseAuthProvider } from "./base-provider";
 import { getCookie } from "./cookies";
+import { getAuth } from "./get-auth";
 import {
   AuthErrorCode,
   type EmailAuthResult,
@@ -69,8 +70,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         return {
           isValid: true,
           shouldRefresh: false,
+          impersonator: authResult.impersonator,
           userId: authResult.user.id,
           orgId: authResult.organizationId ?? null,
+          role: authResult.role ?? null,
         };
       }
 
@@ -110,7 +113,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           session: {
             userId: refreshResult.session.user.id,
             orgId: refreshResult.session.organizationId ?? null,
+            role: refreshResult.role ?? null,
           },
+          impersonator: refreshResult.session.impersonator,
         };
       }
 
@@ -125,35 +130,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }
 
   // User Management
-  async getCurrentUser(): Promise<User | null> {
-    try {
-      const token = await getCookie(UNKEY_SESSION_COOKIE);
-      if (!token) {
-        return null;
-      }
-
-      const session = this.provider.userManagement.loadSealedSession({
-        sessionData: token,
-        cookiePassword: this.cookiePassword,
-      });
-      const authResult = await session.authenticate();
-      if (!authResult.authenticated) {
-        console.error("Get current user failed:", authResult.reason);
-        return null;
-      }
-
-      const { user, organizationId, impersonator } = authResult;
-      return this.transformUserData({
-        ...user,
-        organizationId: organizationId,
-        impersonator,
-      });
-    } catch (error) {
-      console.error("Error getting current user:", error);
-      return null;
-    }
-  }
-
   async getUser(userId: string): Promise<User | null> {
     if (!userId) {
       throw new Error("User Id is required.");
@@ -444,8 +420,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      const user = await this.getCurrentUser();
-      if (!user) {
+      const { userId } = await getAuth();
+      if (!userId) {
         throw new Error("User must be authenticated to invite members.");
       }
 
@@ -453,12 +429,12 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         email,
         organizationId: orgId,
         roleSlug: role,
-        inviterUserId: user.id,
+        inviterUserId: userId,
       });
 
       return this.transformInvitationData(invitation, {
         orgId,
-        inviterId: user.id,
+        inviterId: userId,
       });
     } catch (error) {
       throw this.handleError(error);
@@ -884,7 +860,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   private transformUserData(providerUser: any): User {
     return {
       id: providerUser.id,
-      orgId: providerUser.organizationId,
       email: providerUser.email,
       firstName: providerUser.firstName,
       lastName: providerUser.lastName,
@@ -893,7 +868,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         providerUser.firstName && providerUser.lastName
           ? `${providerUser.firstName} ${providerUser.lastName}`
           : null,
-      impersonator: providerUser.impersonator,
     };
   }
 
