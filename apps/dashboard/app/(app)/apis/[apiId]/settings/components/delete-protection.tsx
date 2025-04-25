@@ -1,11 +1,11 @@
 "use client";
 import { DialogContainer } from "@/components/dialog-container";
 import { SettingCard } from "@/components/settings-card";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
+import { Input } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -101,14 +101,14 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       border="top"
       contentWidth="w-full lg:w-[320px]"
     >
-      <div className="flex w-full gap-2 lg:items-center lg:justify-end">
+      <div className="flex w-full gap-2 lg:items-center justify-end">
         {api.deleteProtection ? (
           <Button
             type="button"
             variant="outline"
             color="warning"
             size="xlg"
-            className="w-[24rem] lg:w-[12rem]"
+            className="w-full lg:w-fit"
             onClick={() => setOpen(true)}
           >
             Disable Delete Protection
@@ -119,7 +119,6 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
             variant="outline"
             color="success"
             size="xlg"
-            className="w-[24rem] lg:w-[12rem]"
             onClick={() => setOpen(true)}
           >
             Enable Delete Protection

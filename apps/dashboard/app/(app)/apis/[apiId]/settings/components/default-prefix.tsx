@@ -1,10 +1,10 @@
 "use client";
 import { SettingCard } from "@/components/settings-card";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Input } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -90,7 +90,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
                   <FormControl>
                     <Input
                       id="defaultPrefix"
-                      className="w-[20rem] lg:w-[16rem] h-9"
+                      className="w-[20rem] lg:w-[16rem]"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {
@@ -104,7 +104,6 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
               )}
             />
             <Button
-              className="items-end"
               variant="primary"
               size="lg"
               disabled={

@@ -1,11 +1,11 @@
 "use client";
 import { SettingCard } from "@/components/settings-card";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Input } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -100,7 +100,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
                     <Input
                       type="text"
                       id="apiName"
-                      className="w-[20rem] lg:w-[16rem] h-9"
+                      className="w-[20rem] lg:w-[16rem]"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {
@@ -115,7 +115,6 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
             />
             <Button
               size="lg"
-              className="items-end"
               variant="primary"
               disabled={
                 !form.formState.isValid ||

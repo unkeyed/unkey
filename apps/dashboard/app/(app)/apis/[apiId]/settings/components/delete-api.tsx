@@ -1,12 +1,12 @@
 "use client";
 import { DialogContainer } from "@/components/dialog-container";
 import { SettingCard } from "@/components/settings-card";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Lock } from "@unkey/icons";
+import { Input } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -107,7 +107,6 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
       >
         <div className="w-full flex justify-end">
           <Button
-            className="w-fit rounded-lg"
             variant="outline"
             color="danger"
             size="lg"

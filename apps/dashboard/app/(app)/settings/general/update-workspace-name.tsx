@@ -83,7 +83,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
                     <Input
                       type="text"
                       id="workspaceName"
-                      className="w-[20rem] lg:w-[16rem] h-9"
+                      className="w-[20rem] lg:w-[16rem]"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {

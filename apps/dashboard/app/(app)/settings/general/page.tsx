@@ -27,15 +27,17 @@ export default async function SettingsPage() {
     <div>
       <WorkspaceNavbar workspace={workspace} activePage={{ href: "general", text: "General" }} />
       <PageContent>
-        <div className="lg:w-[760px] flex-col justify-center items-center space-y-6">
-          <div className="w-full text-accent-12 font-semibold text-lg pt-[22px] pb-[20px] text-left border-b border-gray-4 px-2">
-            Workspace Settings
-          </div>
-          <div>
-            <UpdateWorkspaceName workspace={workspace} />
-            {/* <UpdateWorkspaceImage /> */}
-            <Separator className="bg-gray-4" orientation="horizontal" />
-            <CopyWorkspaceId workspaceId={workspace.id} />
+        <div className="flex items-center justify-center w-full py-3 ">
+          <div className="lg:w-[760px] flex-col justify-center items-center">
+            <div className="w-full text-accent-12 font-semibold text-lg pt-[22px] pb-[20px] text-left border-b border-gray-4 px-2">
+              Workspace Settings
+            </div>
+            <div className="mt-6">
+              <UpdateWorkspaceName workspace={workspace} />
+              {/* <UpdateWorkspaceImage /> */}
+              <Separator className="bg-gray-4" orientation="horizontal" />
+              <CopyWorkspaceId workspaceId={workspace.id} />
+            </div>
           </div>
         </div>
       </PageContent>

@@ -20,7 +20,7 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
       contentWidth="w-full lg:w-[320px]"
     >
       <Input
-        className="w-full lg:w-[320px] focus:ring-0 focus:ring-offset-0"
+        className="w-full lg:w-[315px] focus:ring-0 focus:ring-offset-0"
         readOnly
         defaultValue={apiId}
         placeholder="API ID"
