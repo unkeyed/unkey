@@ -1,6 +1,7 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { useEffect, useMemo, useState } from "react";
 import { keysOverviewFilterFieldConfig } from "../../../filters.schema";
@@ -22,14 +23,13 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
-  // Required for preventing double trpc call during initial render
-  const dateNow = useMemo(() => Date.now(), []);
+  const { queryTime: timestamp } = useQueryTime();
 
   const queryParams = useMemo(() => {
     const params: KeysQueryOverviewLogsPayload = {
       limit,
-      startTime: dateNow - HISTORICAL_DATA_WINDOW,
-      endTime: dateNow,
+      startTime: timestamp - HISTORICAL_DATA_WINDOW,
+      endTime: timestamp,
       keyIds: [],
       outcomes: [],
       identities: [],
@@ -108,7 +108,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     });
 
     return params;
-  }, [filters, limit, dateNow, apiId, sorts]);
+  }, [filters, limit, timestamp, apiId, sorts]);
 
   // Main query for historical data
   const {

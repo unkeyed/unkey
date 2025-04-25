@@ -52,7 +52,7 @@
     "@unkey/icons": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/keys": "workspace:^",
-    "@unkey/ratelimit": "workspace:^",
+    "@unkey/ratelimit": "^2.0.0-canary.0",
     "@unkey/rbac": "workspace:^",
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",

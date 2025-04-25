@@ -67,7 +67,7 @@ const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.Reac
     const childrenArray = React.Children.toArray(children);
     return (
       <nav ref={ref} aria-label="breadcrumb" className={cn("flex", className)} {...props}>
-        <ol className="flex items-center gap-2">
+        <ol className="flex items-center gap-3">
           <li>
             <Button
               variant="outline"
