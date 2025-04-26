@@ -8,8 +8,8 @@ import { useDelayLoader } from "@/hooks/use-delay-loader";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@radix-ui/react-collapsible";
 import { CaretRight } from "@unkey/icons";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useLayoutEffect, useState, useTransition } from "react";
 import type { NavItem } from "../../../workspace-navigations";
 import { NavLink } from "../nav-link";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
@@ -29,16 +29,19 @@ export const NestedNavItem = ({
   const [parentIsPending, startParentTransition] = useTransition();
   const showParentLoader = useDelayLoader(parentIsPending);
   const router = useRouter();
+  const pathname = usePathname();
   const Icon = item.icon;
   const [subPending, setSubPending] = useState<Record<string, boolean>>({});
-  const [isOpen, setIsOpen] = useState(hasActiveChild(item));
+  const [isOpen, setIsOpen] = useState<boolean>(pathname === item.href);
 
-  function hasActiveChild(navItem: NavItem): boolean {
-    if (!navItem.items) {
-      return false;
-    }
-    return navItem.items.some((child) => child.active || hasActiveChild(child));
-  }
+  useLayoutEffect(() => {
+    const isActive = pathname === item.href;
+    const hasActiveChild = item.items?.some(
+      (subItem) => subItem.items?.some((child) => child.active) || subItem.active,
+    );
+
+    setIsOpen((isActive || hasActiveChild) ?? false);
+  }, [pathname, item.href, item.items]);
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
     // If the item has children, toggle the open state
@@ -152,18 +155,17 @@ export const NestedNavItem = ({
       asChild
       open={isOpen}
       onOpenChange={setIsOpen}
-      // Use hasActiveChild instead of item.active here
-      defaultOpen={hasActiveChild(item)}
+      defaultOpen={isOpen}
       className="group/collapsible"
     >
       <SidebarMenuItem>
         <SidebarMenuButton
           tooltip={item.tooltip}
           // Only highlight if this item itself is active, not if its children are active
-          isActive={item.active && !hasActiveChild(item)}
+          isActive={item.active}
           className={cn(
             // Only highlight if this item itself is active, not if its children are active
-            getButtonStyles(item.active && !hasActiveChild(item), showParentLoader),
+            getButtonStyles(item.active, showParentLoader),
             "cursor-pointer relative",
           )}
           onClick={handleMenuItemClick}
