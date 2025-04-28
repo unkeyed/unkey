@@ -20,41 +20,49 @@ export const NestedNavItem = ({
   onLoadMore,
   depth = 0,
   maxDepth = 1,
+  isSubItem = false,
 }: {
   item: NavItem;
   onLoadMore?: () => void;
   depth?: number;
   maxDepth?: number;
+  isSubItem?: boolean;
 }) => {
   const [parentIsPending, startParentTransition] = useTransition();
   const showParentLoader = useDelayLoader(parentIsPending);
   const router = useRouter();
   const pathname = usePathname();
-  const Icon = item.icon;
   const [subPending, setSubPending] = useState<Record<string, boolean>>({});
-  const [isOpen, setIsOpen] = useState<boolean>(pathname === item.href);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isChildrenOpen, setIsChildrenOpen] = useState(false);
+
+  const Icon = item.icon;
+  const hasChildren = item.items && item.items.length > 0;
 
   useLayoutEffect(() => {
-    const isActive = pathname === item.href;
-    const hasActiveChild = item.items?.some(
-      (subItem) => subItem.items?.some((child) => child.active) || subItem.active,
+    if (!hasChildren || !pathname) {
+      return;
+    }
+
+    const paths = ["/apis", "/ratelimits"];
+    const hasMatchingChild = item.items?.some(
+      (subItem) =>
+        subItem.href === pathname || subItem.items?.some((child) => child.href === pathname),
     );
 
-    setIsOpen((isActive || hasActiveChild) ?? false);
-  }, [pathname, item.href, item.items]);
+    setIsChildrenOpen(!!hasMatchingChild);
+
+    if (paths.includes(pathname) && pathname.startsWith(item.href)) {
+      setIsOpen(true);
+    }
+  }, [pathname, item.items, item.href, hasChildren]);
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
     // If the item has children, toggle the open state
-    if (item.items && item.items.length > 0) {
-      // Check if we're closing or opening
-      const willClose = isOpen;
-
-      // Toggle the open state
-      setIsOpen(!isOpen);
-
-      // If we're closing, prevent navigation
-      if (willClose) {
-        e.preventDefault();
+    if (hasChildren && !isSubItem) {
+      e.preventDefault();
+      setIsOpen((prev) => !prev);
+      if (isOpen) {
         return;
       }
     }
@@ -88,6 +96,7 @@ export const NestedNavItem = ({
             onLoadMore={onLoadMore}
             depth={depth + 1}
             maxDepth={maxDepth}
+            isSubItem={true}
           />
         </SidebarMenuSubItem>
       );
@@ -153,9 +162,8 @@ export const NestedNavItem = ({
   return (
     <Collapsible
       asChild
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      defaultOpen={isOpen}
+      open={isSubItem ? isChildrenOpen : isOpen}
+      onOpenChange={isSubItem ? setIsChildrenOpen : setIsOpen}
       className="group/collapsible"
     >
       <SidebarMenuItem>
