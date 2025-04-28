@@ -18,6 +18,7 @@ export const GeneralSetup = () => {
         maxLength={256}
         description="Optional name to help identify this particular key."
         error={errors.name?.message}
+        variant="default"
         optional
         {...register("name")}
       />

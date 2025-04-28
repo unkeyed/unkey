@@ -63,9 +63,13 @@ export const KeyCreatedSuccessDialog = ({
   }'`;
 
   const handleCreateAnotherKey = () => {
-    onClose();
-    if (onCreateAnother) {
-      onCreateAnother();
+    if (shouldShowWarning) {
+      setIsConfirmOpen(true);
+    } else {
+      onClose();
+      if (onCreateAnother) {
+        onCreateAnother();
+      }
     }
   };
 
@@ -73,9 +77,12 @@ export const KeyCreatedSuccessDialog = ({
     setIsConfirmOpen(true);
   };
 
-  const handleConfirmAndClose = () => {
+  const handleConfirmAndClose = (createAnother = false) => {
     setIsConfirmOpen(false);
     onClose();
+    if (createAnother && onCreateAnother) {
+      onCreateAnother();
+    }
   };
 
   return (
@@ -263,7 +270,7 @@ export const KeyCreatedSuccessDialog = ({
                 Make sure to copy your secret key before closing. It cannot be retrieved later.
               </div>
               <div className="space-x-3 w-full px-4 pb-4">
-                <Button color="warning" onClick={handleConfirmAndClose}>
+                <Button color="warning" onClick={() => handleConfirmAndClose(true)}>
                   Close anyway
                 </Button>
                 <PopoverClose asChild>
