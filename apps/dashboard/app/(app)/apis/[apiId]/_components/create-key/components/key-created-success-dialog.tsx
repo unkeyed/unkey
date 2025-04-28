@@ -40,6 +40,7 @@ export const KeyCreatedSuccessDialog = ({
 }) => {
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isCreateAnother, setIsCreateAnother] = useState(false);
   const xButtonRef = useRef<HTMLButtonElement>(null);
   const shouldShowWarning = true;
 
@@ -62,26 +63,16 @@ export const KeyCreatedSuccessDialog = ({
     "apiId": "${apiId}"
   }'`;
 
-  const handleCreateAnotherKey = () => {
-    if (shouldShowWarning) {
-      setIsConfirmOpen(true);
-    } else {
-      onClose();
-      if (onCreateAnother) {
-        onCreateAnother();
-      }
-    }
-  };
-
-  const handleAttemptClose = () => {
+  const handleAttemptClose = (shouldCreateAnother = false) => {
+    setIsCreateAnother(shouldCreateAnother);
     setIsConfirmOpen(true);
   };
 
-  const handleConfirmAndClose = (createAnother = false) => {
+  const handleConfirmAndClose = () => {
     setIsConfirmOpen(false);
     onClose();
-    if (createAnother && onCreateAnother) {
-      onCreateAnother();
+    if (isCreateAnother) {
+      onCreateAnother?.();
     }
   };
 
@@ -227,7 +218,9 @@ export const KeyCreatedSuccessDialog = ({
                 <Button
                   variant="outline"
                   className="font-medium text-[13px] text-gray-12"
-                  onClick={handleCreateAnotherKey}
+                  onClick={() => {
+                    handleAttemptClose(true);
+                  }}
                 >
                   <Plus size="sm-regular" />
                   Create another key
@@ -270,7 +263,7 @@ export const KeyCreatedSuccessDialog = ({
                 Make sure to copy your secret key before closing. It cannot be retrieved later.
               </div>
               <div className="space-x-3 w-full px-4 pb-4">
-                <Button color="warning" onClick={() => handleConfirmAndClose(true)}>
+                <Button color="warning" onClick={handleConfirmAndClose}>
                   Close anyway
                 </Button>
                 <PopoverClose asChild>
