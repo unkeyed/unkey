@@ -61,7 +61,15 @@ export const ExpirationSetup = () => {
 
   const handleSwitchChange = (checked: boolean) => {
     setValue("expiration.enabled", checked);
+
+    // Set default expiry date (1 day) when enabling if not already set
+    if (checked && !currentExpiryDate) {
+      setValue("expiration.data", addDays(new Date(), 1));
+    }
   };
+
+  // Calculate minimum valid date (2 minutes from now)
+  const minValidDate = addMinutes(new Date(), 2);
 
   // Handle date and time selection from DatetimePopover
   const handleDateTimeChange = (startTime?: number, _?: number, since?: string) => {
@@ -85,8 +93,6 @@ export const ExpirationSetup = () => {
       const newDate = new Date(startTime);
 
       // Check if the date is valid (at least 2 minutes in the future)
-      const minValidDate = addMinutes(new Date(), 2);
-
       if (newDate < minValidDate) {
         // If date is too soon, set it to minimum valid date
         setValue("expiration.data", minValidDate);
@@ -104,11 +110,13 @@ export const ExpirationSetup = () => {
     return format(date, "MMM d, yyyy 'at' h:mm a");
   };
 
-  // Calculate initial time values for DatetimePopover
   const getInitialTimeValues = () => {
+    // If we have a current expiry date, use it, otherwise use minimum valid date
+    const initialDate = currentExpiryDate || minValidDate;
+
     return {
-      startTime: currentExpiryDate ? new Date(currentExpiryDate)?.getTime() : new Date().getTime(),
-      endTime: undefined,
+      startTime: initialDate.getTime(),
+      endTime: undefined, // Not needed for single date mode
       since: undefined,
     };
   };
@@ -147,6 +155,8 @@ export const ExpirationSetup = () => {
             onDateTimeChange={handleDateTimeChange}
             customOptions={EXPIRATION_OPTIONS}
             customHeader={<ExpirationHeader />}
+            singleDateMode
+            minDate={minValidDate} // Set minimum date to 2 minutes from now
           >
             <FormInput
               label="Expiry Date"
