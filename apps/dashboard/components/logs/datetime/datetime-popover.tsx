@@ -193,7 +193,7 @@ export const DatetimePopover = ({
 
   // Common calendar props to ensure consistency between mobile and desktop
   const calendarProps = {
-    mode: singleDateMode ? "single" : "range",
+    mode: (singleDateMode ? "single" : "range") as "single" | "range",
     className: "px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]",
     disabledDates: getDisabledDates(),
     showOutsideDays: true,
