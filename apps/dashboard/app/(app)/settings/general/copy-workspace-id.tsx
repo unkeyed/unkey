@@ -1,9 +1,8 @@
 "use client";
 
-import { SettingCard } from "@/components/settings-card";
 import { toast } from "@/components/ui/toaster";
 import { Clone } from "@unkey/icons";
-import { Input } from "@unkey/ui";
+import { Input, SettingCard } from "@unkey/ui";
 
 export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
   return (
