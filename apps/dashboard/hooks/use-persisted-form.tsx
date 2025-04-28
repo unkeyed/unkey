@@ -14,10 +14,14 @@ export type UsePersistedFormReturn<TFormValues extends FieldValues> = UseFormRet
 const memoryStorage = new Map<string, string>();
 
 /**
- * Custom hook that extends useForm with configurable storage persistence
- * @param storageKey - Key used to store form data
- * @param formOptions - Standard useForm options
- * @param storageType - Where to persist data: "memory", "session", or "local"
+ * A React hook that extends `useForm` with persistent storage for form data.
+ *
+ * Persists form state to memory, sessionStorage, or localStorage, allowing form data to be saved, loaded, or cleared across sessions or reloads.
+ *
+ * @param storageKey - Unique key used to identify and store form data.
+ * @param formOptions - Options passed to the underlying `useForm` hook.
+ * @param storageType - Storage medium for persistence: `"memory"`, `"session"`, or `"local"`. Defaults to `"session"`.
+ * @returns All standard `useForm` methods, plus `clearPersistedData`, `saveCurrentValues`, and `loadSavedValues` for managing persisted form state.
  */
 export function usePersistedForm<TFormValues extends Record<string, any>>(
   storageKey: string,

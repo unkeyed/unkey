@@ -23,7 +23,13 @@ const createNavigableDialogContext = <TStepName extends string>() => {
 const NavigableDialogContext: React.Context<NavigableDialogContextType<any>> =
   createNavigableDialogContext();
 
-// Hook to use the NavigableDialog context
+/**
+ * Provides access to the current navigable dialog context.
+ *
+ * @returns The active step ID and a function to update it.
+ *
+ * @throws {Error} If called outside of a {@link NavigableDialogRoot} provider.
+ */
 export function useNavigableDialog<TStepName extends string>() {
   const context = useContext(NavigableDialogContext) as NavigableDialogContextType<TStepName>;
   if (context === undefined) {
@@ -35,7 +41,17 @@ export function useNavigableDialog<TStepName extends string>() {
 // Helper type to extract valid step names when using the component
 export type StepNamesFrom<T extends readonly { id: string }[]> = T[number]["id"];
 
-// Root component that provides context and structure
+/**
+ * Provides context and structure for a multi-step navigable dialog.
+ *
+ * Wraps children with dialog UI and manages the active step state, exposing it via context to descendant components.
+ *
+ * @param children - Dialog content, typically including navigation and step content components.
+ * @param isOpen - Controls whether the dialog is open.
+ * @param onOpenChange - Callback invoked when the dialog open state changes.
+ * @param dialogClassName - Optional additional class names for the dialog container.
+ * @param preventAutoFocus - If true, prevents autofocus when the dialog opens. Defaults to true.
+ */
 export function NavigableDialogRoot<TStepName extends string>({
   children,
   isOpen,
@@ -78,7 +94,12 @@ export function NavigableDialogRoot<TStepName extends string>({
   );
 }
 
-// Header component
+/**
+ * Renders the header section of a navigable dialog with a title and optional subtitle.
+ *
+ * @param title - The main title displayed in the dialog header.
+ * @param subTitle - An optional subtitle displayed below the title.
+ */
 export function NavigableDialogHeader({
   title,
   subTitle,
@@ -89,12 +110,27 @@ export function NavigableDialogHeader({
   return <DefaultDialogHeader title={title} subTitle={subTitle} />;
 }
 
-// Footer component
+/**
+ * Renders the footer section of a navigable dialog.
+ *
+ * Displays arbitrary child elements within a styled dialog footer container.
+ */
 export function NavigableDialogFooter({ children }: { children: ReactNode }) {
   return <DefaultDialogFooter>{children}</DefaultDialogFooter>;
 }
 
-// Navigation sidebar component
+/**
+ * Renders a vertical navigation sidebar for a multi-step dialog, allowing users to switch between steps.
+ *
+ * Each navigation item can display a label and optional icon, and can be disabled to prevent interaction. Navigation can be conditionally validated via an optional callback before switching steps.
+ *
+ * @param items - List of navigation items, each with an {@link id}, label, and optional icon.
+ * @param onNavigate - Optional callback invoked before navigating away from the current step; must return `true` to allow navigation.
+ * @param initialSelectedId - Optional ID of the step to select initially.
+ * @param disabledIds - Optional list of step IDs to disable in the navigation.
+ * @param navWidthClass - Optional CSS class for the navigation sidebar width.
+ * @param className - Optional additional CSS classes for the sidebar container.
+ */
 export function NavigableDialogNav<TStepName extends string>({
   items,
   className,
@@ -199,7 +235,12 @@ export function NavigableDialogNav<TStepName extends string>({
   );
 }
 
-// Content area component
+/**
+ * Renders the content area of a navigable dialog, displaying only the content for the currently active step.
+ *
+ * @param items - Array of step objects, each with an {@link id} and corresponding {@link content}.
+ * @param className - Optional CSS class for custom styling.
+ */
 export function NavigableDialogContent<TStepName extends string>({
   items,
   className,
@@ -225,7 +266,11 @@ export function NavigableDialogContent<TStepName extends string>({
   );
 }
 
-// Main container for the nav and content
+/**
+ * Provides a flex container for arranging the dialog's navigation and content areas.
+ *
+ * Renders its children inside a horizontally oriented, overflow-hidden layout.
+ */
 export function NavigableDialogBody({ children }: { children: ReactNode }) {
   return <div className="flex overflow-hidden">{children}</div>;
 }
