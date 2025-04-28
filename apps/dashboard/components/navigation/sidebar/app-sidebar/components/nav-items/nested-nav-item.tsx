@@ -15,6 +15,8 @@ import { NavLink } from "../nav-link";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
 import { getButtonStyles } from "./utils";
 
+const paths = ["/apis", "/ratelimits"];
+
 export const NestedNavItem = ({
   item,
   onLoadMore,
@@ -44,7 +46,6 @@ export const NestedNavItem = ({
       return;
     }
 
-    const paths = ["/apis", "/ratelimits"];
     const hasMatchingChild = item.items?.some(
       (subItem) =>
         subItem.href === pathname || subItem.items?.some((child) => child.href === pathname),
