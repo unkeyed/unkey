@@ -1,0 +1,63 @@
+---
+title: InlineLink
+description: A component for creating inline links with optional icons and styling.
+---
+
+import { InlineLinkBasic, InlineLinkWithIcon, InlineLinkWithTarget, InlineLinkWithCustomClass } from "./inline-link.example"
+
+## InlineLink
+
+The InlineLink component provides a consistent way to create inline links within text content. It supports icons, custom styling, and target attributes.
+
+## Basic Usage
+
+The basic InlineLink includes a label and href.
+
+<InlineLinkBasic />
+
+## With Icon
+
+Add an icon to the link, positioned either on the left or right.
+
+<InlineLinkWithIcon />
+
+## With Target
+
+Open the link in a new tab.
+
+<InlineLinkWithTarget />
+
+## With Custom Styling
+
+Apply custom styling to the link.
+
+<InlineLinkWithCustomClass />
+
+## Features
+
+- Consistent link styling
+- Optional icon support
+- Configurable icon position
+- Custom styling support
+- Target attribute for new tab opening
+- Accessible by default
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| href | string | required | The URL the link points to |
+| label | string | required | The text content of the link |
+| icon | React.ReactNode | undefined | Optional icon to display with the link |
+| iconPosition | "left" \| "right" | "right" | Position of the icon relative to the label |
+| className | string | undefined | Additional CSS classes |
+| target | boolean | undefined | Whether to open the link in a new tab |
+
+## Accessibility
+
+- Proper ARIA attributes
+- Keyboard navigation support
+- High contrast text for readability
+- Clear focus indicators
+- Semantic HTML structure
+- Descriptive link text
