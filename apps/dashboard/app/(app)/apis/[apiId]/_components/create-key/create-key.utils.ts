@@ -107,7 +107,7 @@ export const getDefaultValues = (): Partial<FormValueTypes> => {
       enabled: false,
       data: [
         {
-          name: "default",
+          name: "Default",
           limit: 10,
           refillInterval: 1000,
         },

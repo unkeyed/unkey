@@ -36,7 +36,11 @@ export const MetadataSetup = () => {
 
   const handleSwitchChange = (checked: boolean) => {
     setValue("metadata.enabled", checked);
-    setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
+    // Only set example json if its first time
+    if (checked && !currentMetadata) {
+      setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
+    }
+
     trigger("metadata");
   };
 
