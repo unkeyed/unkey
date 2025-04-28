@@ -1,11 +1,11 @@
 "use client";
-import { SettingCard } from "@/components/settings-card";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { SettingCard } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
