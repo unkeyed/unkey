@@ -1,13 +1,11 @@
 "use client";
-import { SettingCard } from "@/components/settings-card";
 import { FormField } from "@/components/ui/form";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
 import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
-import { Textarea } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import { Button, InlineLink, SettingCard, Textarea } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -81,11 +79,17 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
           <div className="font-normal text-[13px] max-w-[380px]">
             Want to protect your API from unauthorized access? <br />
             Upgrade to our <span className="font-bold">Enterprise plan</span> to enable IP
-            whitelisting and restrict access to trusted sources.
+            whitelisting and restrict access to trusted sources.{" "}
+            <InlineLink
+              label="Learn more"
+              href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
+              target={true}
+              icon={<ArrowUpRight size="sm-thin" />}
+            />
           </div>
         }
         border="both"
-        contentWidth="w-full lg:w-[320px]"
+        contentWidth="w-full"
       >
         {isEnabled ? (
           <div className="flex flex-row justify-items-start items-center w-full gap-x-2">
@@ -120,23 +124,8 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         ) : (
           <div className="flex flex-row w-full gap-2 justify-end">
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
-              <Button
-                type="button"
-                size="lg"
-                variant="primary"
-                color="info"
-                className="w-full lg:w-fit"
-              >
+              <Button type="button" size="lg" variant="primary" color="info">
                 Upgrade to Enterprise
-              </Button>
-            </a>
-            <a
-              href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Button type="button" variant="ghost" size="lg" className="w-full lg:w-fit">
-                Learn more <ArrowUpRight size="lg-thin" className="text-accent-9" />
               </Button>
             </a>
           </div>

@@ -1,9 +1,9 @@
-import { SettingCard } from "@/components/settings-card";
 import { getOrgId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatNumber } from "@/lib/fmt";
+import { SettingCard } from "@unkey/ui";
 import { Button, Empty, Input } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";

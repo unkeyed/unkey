@@ -1,6 +1,6 @@
-import { SettingCard } from "@/components/settings-card";
 import { toast } from "@/components/ui/toaster";
 import { Clone } from "@unkey/icons";
+import { SettingCard } from "@unkey/ui";
 import { Input } from "@unkey/ui";
 
 export const CopyApiId = ({ apiId }: { apiId: string }) => {
