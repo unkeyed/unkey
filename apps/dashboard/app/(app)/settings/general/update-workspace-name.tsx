@@ -1,18 +1,12 @@
 "use client";
-import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, SettingCard } from "@unkey/ui";
+import { Button, FormInput, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-const formSchema = z.object({
-  workspaceId: z.string(),
-  workspaceName: z.string().trim(),
-});
 
 type Props = {
   workspace: {
@@ -25,11 +19,24 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const router = useRouter();
   const utils = trpc.useUtils();
   const [name, setName] = useState(workspace.name);
-  const form = useForm<z.infer<typeof formSchema>>({
+
+  const formSchema = z.object({
+    workspaceId: z.string(),
+    workspaceName: z
+      .string()
+      .trim()
+      .min(3, { message: "Workspace name must be at least 3 characters long" })
+      .max(50, { message: "Workspace name must be less than 50 characters long" }),
+  });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid, isSubmitting },
+    watch,
+  } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    mode: "all",
-    shouldFocusError: true,
-    delayError: 100,
+    mode: "onChange",
     defaultValues: {
       workspaceId: workspace.id,
       workspaceName: name,
@@ -41,7 +48,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       toast.success("Workspace name updated");
       // invalidate the current user so it refetches
       utils.user.getCurrentUser.invalidate();
-      setName(form.getValues("workspaceName"));
+      setName(watch("workspaceName"));
       router.refresh();
     },
     onError(err) {
@@ -51,76 +58,54 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (name === values.workspaceName || !values.workspaceName) {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (workspace.name === values.workspaceName || !values.workspaceName) {
       return toast.error("Please provide a different name before saving.");
     }
 
     await updateName.mutateAsync({ workspaceId: workspace.id, name: values.workspaceName });
-  }
+  };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <SettingCard
-          title={
-            <div className="flex items-center justify-start gap-2.5">
-              <span className="text-sm font-medium text-accent-12">Workspace Name</span>
-            </div>
-          }
-          description={
-            <div className="font-normal text-[13px] max-w-[380px]">
-              Not customer-facing. Choose a name that is easy to recognize.
-            </div>
-          }
-          border="top"
-          className="border-b-1"
-          contentWidth="w-full lg:w-[320px]"
-        >
-          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
-            <input type="hidden" name="workspaceId" value={workspace.id} />
-            <label htmlFor="workspaceName" className="hidden sr-only">
-              Workspace Name
-            </label>
-            <FormField
-              control={form.control}
-              name="workspaceName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      id="workspaceName"
-                      disabled={form?.formState?.isSubmitting || form.formState.isLoading}
-                      className="w-[20rem] lg:w-[16rem]"
-                      {...field}
-                      autoComplete="off"
-                      onBlur={(e) => {
-                        if (e.target.value === "") {
-                          return;
-                        }
-                      }}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
+    <form onSubmit={handleSubmit(onSubmit)} id="workspace-name-form">
+      <SettingCard
+        title={<span className="text-sm font-medium text-accent-12">Workspace Name</span>}
+        description={
+          <div className="font-normal text-[13px] max-w-[380px]">
+            Not customer-facing. Choose a name that is easy to recognize.
+          </div>
+        }
+        border="top"
+        className="border-b-1"
+        contentWidth="w-full lg:w-[320px] h-24"
+      >
+        <div className="flex flex-col w-full h-full gap-x-2 pt-2">
+          <input type="hidden" name="workspaceId" value={workspace.id} />
+          <label htmlFor="workspaceName" className="hidden sr-only">
+            Workspace Name
+          </label>
+          <div className="inline-flex w-full gap-x-2">
+            <FormInput
+              className="w-[20rem] lg:w-[16rem] h-full"
+              placeholder="Workspace Name"
+              minLength={3}
+              error={errors.workspaceName?.message}
+              {...register("workspaceName")}
             />
             <Button
               type="submit"
               variant="primary"
               size="lg"
-              loading={form?.formState?.isSubmitting}
               disabled={
-                !form.formState.isValid ||
-                form.formState.isSubmitting ||
-                name === form.watch("workspaceName")
+                updateName.isLoading || isSubmitting || !isValid || watch("workspaceName") === name
               }
+              loading={updateName.isLoading || isSubmitting}
             >
               Save
             </Button>
           </div>
-        </SettingCard>
-      </form>
-    </Form>
+        </div>
+      </SettingCard>
+    </form>
   );
 };

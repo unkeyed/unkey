@@ -57,7 +57,6 @@ export const SettingsClient = ({ namespace }: Props) => {
           <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
             Ratelimit Settings
           </div>
-
           <div className="w-full">
             <SettingCard
               title="Namespace name"

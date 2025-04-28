@@ -18,27 +18,29 @@ export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
         </div>
       }
       border="bottom"
-      contentWidth="w-full lg:w-[320px]"
+      contentWidth="w-full lg:w-[320px] h-16"
     >
-      <Input
-        className="w-full lg:w-[315px] focus:ring-0 focus:ring-offset-0"
-        readOnly
-        defaultValue={workspaceId}
-        placeholder="Workspace ID"
-        rightIcon={
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(workspaceId);
-              toast.success("Copied to clipboard", {
-                description: workspaceId,
-              });
-            }}
-          >
-            <Clone size="md-regular" className="text-accent-8" />
-          </button>
-        }
-      />
+      <div className="flex flex-col w-full h-full gap-x-2 pt-2">
+        <Input
+          className="w-full lg:w-[315px] focus:ring-0 focus:ring-offset-0"
+          readOnly
+          defaultValue={workspaceId}
+          placeholder="Workspace ID"
+          rightIcon={
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(workspaceId);
+                toast.success("Copied to clipboard", {
+                  description: workspaceId,
+                });
+              }}
+            >
+              <Clone size="md-regular" />
+            </button>
+          }
+        />
+      </div>
     </SettingCard>
   );
 };
