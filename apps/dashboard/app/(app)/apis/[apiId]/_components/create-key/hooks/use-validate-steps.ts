@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import type { UseFormTrigger } from "react-hook-form";
-import { DEFAULT_STEP_STATES, type DialogSectionName, SECTIONS } from "../constants";
-import { getFieldsFromSchema, isFeatureEnabled, sectionSchemaMap } from "../form-utils";
-import type { FormValues } from "../schema";
+import { DEFAULT_STEP_STATES, type DialogSectionName, SECTIONS } from "../create-key.constants";
+import type { FormValues } from "../create-key.schema";
+import { getFieldsFromSchema, isFeatureEnabled, sectionSchemaMap } from "../create-key.utils";
 import type { SectionName, SectionState } from "../types";
 
 // Custom hook to handle form validation on dialog open

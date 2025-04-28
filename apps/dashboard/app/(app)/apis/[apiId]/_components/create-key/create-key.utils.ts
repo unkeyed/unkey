@@ -7,7 +7,7 @@ import {
   generalSchema,
   metadataSchema,
   ratelimitSchema,
-} from "./schema";
+} from "./create-key.schema";
 import type { SectionName } from "./types";
 
 /**

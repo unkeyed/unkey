@@ -5,7 +5,7 @@ import { FormInput } from "@unkey/ui";
 import { addDays, addMinutes, format } from "date-fns";
 import { useState } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
-import type { ExpirationFormValues } from "../schema";
+import type { ExpirationFormValues } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
 
 const EXPIRATION_OPTIONS = [

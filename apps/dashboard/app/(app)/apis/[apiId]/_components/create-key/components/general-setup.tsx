@@ -1,7 +1,7 @@
 "use client";
 import { FormInput } from "@unkey/ui";
 import { useFormContext } from "react-hook-form";
-import type { FormValues } from "../schema";
+import type { FormValues } from "../create-key.schema";
 
 export const GeneralSetup = () => {
   const {

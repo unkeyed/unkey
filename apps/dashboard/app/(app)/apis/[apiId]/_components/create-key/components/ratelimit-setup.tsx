@@ -3,7 +3,7 @@ import { Gauge, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
 import { useEffect } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import type { RatelimitFormValues, RatelimitItem } from "../schema";
+import type { RatelimitFormValues, RatelimitItem } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
 
 export const RatelimitSetup = () => {

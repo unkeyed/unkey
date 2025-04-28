@@ -16,11 +16,11 @@ import { FormProvider } from "react-hook-form";
 import { toast } from "sonner";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
 import { SectionLabel } from "./components/section-label";
-import { type DialogSectionName, SECTIONS } from "./constants";
-import { formValuesToApiInput, getDefaultValues } from "./form-utils";
+import { type DialogSectionName, SECTIONS } from "./create-key.constants";
+import { type FormValues, formSchema } from "./create-key.schema";
+import { formValuesToApiInput, getDefaultValues } from "./create-key.utils";
 import { useCreateKey } from "./hooks/use-create-key";
 import { useValidateSteps } from "./hooks/use-validate-steps";
-import { type FormValues, formSchema } from "./schema";
 
 // Storage key for saving form state
 const FORM_STORAGE_KEY = "unkey_create_key_form_state";
