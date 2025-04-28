@@ -6,8 +6,7 @@ import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { Clone } from "@unkey/icons";
-import { SettingCard } from "@unkey/ui";
-import { Button, Input } from "@unkey/ui";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
@@ -74,8 +73,8 @@ export const SettingsClient = ({ namespace }: Props) => {
               <div className="flex gap-2 items-center justify-center w-full">
                 <Input
                   placeholder="Namespace name"
-                  className="h-9"
                   value={namespaceName}
+                  className="w-[20rem] lg:w-[16rem]"
                   onChange={(e) => setNamespaceName(e.target.value)}
                 />
                 <Button
@@ -100,6 +99,7 @@ export const SettingsClient = ({ namespace }: Props) => {
                 disabled
                 defaultValue={namespace.id}
                 placeholder="Namespace name"
+                className="w-full lg:w-[315px] focus:ring-0 focus:ring-offset-0"
                 rightIcon={
                   <button
                     type="button"
@@ -135,7 +135,7 @@ export const SettingsClient = ({ namespace }: Props) => {
                 size="lg"
                 onClick={() => setIsNamespaceNameDeleteModalOpen(true)}
               >
-                Delete Namespace...
+                Delete Namespace
               </Button>
             </div>
           </SettingCard>

@@ -37,7 +37,7 @@ export default async function SettingsKeysPage(_props: {
         activePage={{ href: "root-keys", text: "Root Keys" }}
       />
       <PageContent>
-        <div className="flex flex-col items-center justify-center w-full px-12 gap-4">
+        <div className="flex flex-col items-center justify-center w-full px-16 gap-4 mt-10">
           <PageHeader
             className="mt-6"
             title="Root Keys"

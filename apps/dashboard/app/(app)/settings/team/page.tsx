@@ -1,4 +1,3 @@
-import { PageContent } from "@/components/page-content";
 import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { WorkspaceNavbar } from "../workspace-navbar";
@@ -21,9 +20,9 @@ export default async function SettingTeamPage() {
         workspace={{ id: workspace.id, name: workspace.name }}
         activePage={{ href: "team", text: "Team" }}
       />
-      <PageContent>
+      <div className="flex flex-col items-center justify-center w-full px-16 gap-4 mt-10">
         <TeamPageClient team={team} />
-      </PageContent>
+      </div>
     </>
   ) : (
     <div>

@@ -5,14 +5,13 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-export const dynamic = "force-dynamic";
-
 const formSchema = z.object({
   workspaceId: z.string(),
-  workspaceName: z.string().trim().min(3),
+  workspaceName: z.string().trim(),
 });
 
 type Props = {
@@ -25,7 +24,7 @@ type Props = {
 export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const router = useRouter();
   const utils = trpc.useUtils();
-
+  const [name, setName] = useState(workspace.name);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -33,7 +32,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     delayError: 100,
     defaultValues: {
       workspaceId: workspace.id,
-      workspaceName: workspace.name,
+      workspaceName: name,
     },
   });
 
@@ -42,14 +41,21 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       toast.success("Workspace name updated");
       // invalidate the current user so it refetches
       utils.user.getCurrentUser.invalidate();
+      setName(form.getValues("workspaceName"));
       router.refresh();
     },
     onError(err) {
-      toast.error(err.message);
+      toast.error("Failed to update namespace name", {
+        description: err.message,
+      });
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (name === values.workspaceName || !values.workspaceName) {
+      return toast.error("Please provide a different name before saving.");
+    }
+
     await updateName.mutateAsync({ workspaceId: workspace.id, name: values.workspaceName });
   }
 
@@ -84,6 +90,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
                     <Input
                       type="text"
                       id="workspaceName"
+                      disabled={form?.formState?.isSubmitting || form.formState.isLoading}
                       className="w-[20rem] lg:w-[16rem]"
                       {...field}
                       autoComplete="off"
@@ -104,7 +111,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
               disabled={
                 !form.formState.isValid ||
                 form.formState.isSubmitting ||
-                workspace.name === form.watch("workspaceName")
+                name === form.watch("workspaceName")
               }
             >
               Save

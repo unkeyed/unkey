@@ -1,7 +1,6 @@
 import { toast } from "@/components/ui/toaster";
 import { Clone } from "@unkey/icons";
-import { SettingCard } from "@unkey/ui";
-import { Input } from "@unkey/ui";
+import { Input, SettingCard } from "@unkey/ui";
 
 export const CopyApiId = ({ apiId }: { apiId: string }) => {
   return (
