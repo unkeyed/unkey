@@ -53,11 +53,7 @@ export const processFormData = (data: FormValues) => {
 
   // Handle rate limiting
   if (data.ratelimit?.enabled && data.ratelimit.data) {
-    processedData.ratelimit = {
-      async: false,
-      duration: data.ratelimit.data.refillInterval,
-      limit: data.ratelimit.data.limit,
-    };
+    processedData.ratelimit = data.ratelimit.data;
   }
 
   return processedData;

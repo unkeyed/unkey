@@ -37,11 +37,31 @@ export const createKey = t.procedure
       expires: z.number().int().nullish(), // unix timestamp in milliseconds
       name: z.string().optional(),
       ratelimit: z
-        .object({
-          async: z.boolean(),
-          duration: z.number().int().positive(),
-          limit: z.number().int().positive(),
-        })
+        .array(
+          z.object({
+            name: z.string().min(1, { message: "Name is required" }),
+            refillInterval: z.coerce
+              .number({
+                errorMap: (issue, { defaultError }) => ({
+                  message:
+                    issue.code === "invalid_type"
+                      ? "Duration must be greater than 0"
+                      : defaultError,
+                }),
+              })
+              .positive({ message: "Refill interval must be greater than 0" }),
+            limit: z.coerce
+              .number({
+                errorMap: (issue, { defaultError }) => ({
+                  message:
+                    issue.code === "invalid_type"
+                      ? "Refill limit must be greater than 0"
+                      : defaultError,
+                }),
+              })
+              .positive({ message: "Limit must be greater than 0" }),
+          }),
+        )
         .optional(),
       enabled: z.boolean().default(true),
       environment: z.string().optional(),
@@ -91,9 +111,6 @@ export const createKey = t.procedure
           expires: input.expires ? new Date(input.expires) : null,
           createdAtM: Date.now(),
           updatedAtM: null,
-          ratelimitAsync: input.ratelimit?.async,
-          ratelimitLimit: input.ratelimit?.limit,
-          ratelimitDuration: input.ratelimit?.duration,
           remaining: input.remaining,
           refillDay: input.refill?.refillDay ?? null,
           refillAmount: input.refill?.amount ?? null,
@@ -101,6 +118,21 @@ export const createKey = t.procedure
           enabled: input.enabled,
           environment: input.environment,
         });
+
+        if (input.ratelimit?.length) {
+          await tx.insert(schema.ratelimits).values(
+            input.ratelimit.map((ratelimit) => ({
+              id: newId("ratelimit"),
+              keyId,
+              duration: ratelimit.refillInterval,
+              limit: ratelimit.limit,
+              name: ratelimit.name,
+              workspaceId: ctx.workspace.id,
+              createdAt: Date.now(),
+              updatedAt: null,
+            })),
+          );
+        }
 
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,

@@ -12,13 +12,10 @@ export type ProcessedFormData = {
   };
   expires?: number;
   ratelimit?: {
-    rules: {
-      name: string;
-      limit: number;
-      refillInterval: number;
-      async?: boolean;
-    }[];
-  };
+    name: string;
+    limit: number;
+    refillInterval: number;
+  }[];
   enabled: boolean;
 };
 
