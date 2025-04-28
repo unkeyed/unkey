@@ -2,7 +2,19 @@
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { BookBookmark, Focus, Key } from "@unkey/icons";
+import {
+  ArrowOppositeDirectionY,
+  Ban,
+  BookBookmark,
+  CalendarEvent,
+  ChartActivity2,
+  Clone,
+  Focus,
+  Gauge,
+  Key,
+  PenWriting3,
+  Trash,
+} from "@unkey/icons";
 import {
   AnimatedLoadingSpinner,
   Button,
@@ -13,9 +25,11 @@ import {
   TooltipTrigger,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { Code } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import React from "react";
+import { TableActionPopover } from "./components/actions/table-action.popover";
 import { VerificationBarChart } from "./components/bar-chart";
 import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
@@ -184,6 +198,82 @@ export const KeysList = ({
         width: "15%",
         render: (key) => {
           return <StatusDisplay keyData={key} keyAuthId={keyspaceId} />;
+        },
+      },
+
+      {
+        key: "action",
+        header: "",
+        width: "15%",
+        render: () => {
+          return (
+            <TableActionPopover
+              items={[
+                {
+                  id: "override",
+                  label: "Edit key name...",
+                  icon: <PenWriting3 size="md-regular" className="text-gray-9" />,
+                  onClick: (e) => {},
+                },
+                {
+                  id: "copy",
+                  label: "Copy key ID",
+                  className: "mt-1",
+                  icon: <Clone size="md-regular" className="text-gray-9" />,
+                  onClick: (e) => {},
+                  divider: true,
+                },
+                {
+                  id: "edit-owner-id",
+                  label: "Edit Owner ID...",
+                  icon: <ArrowOppositeDirectionY size="md-regular" className="text-gray-9" />,
+                  onClick: (e) => {},
+                  divider: true,
+                },
+                {
+                  id: "disable-key",
+                  label: "Disable Key...",
+                  icon: <Ban size="md-regular" className="text-gray-9" />,
+                  onClick: (e) => {},
+                  divider: true,
+                },
+                {
+                  id: "edit-remaining-uses",
+                  label: "Edit remaining uses...",
+                  icon: <ChartActivity2 size="md-regular" className="text-gray-9" />,
+                  onClick: (e) => {},
+                },
+                {
+                  id: "edit-ratelimit",
+                  label: "Edit ratelimit...",
+                  icon: <Gauge size="md-regular" className="text-gray-9" />,
+                  onClick: (e) => {},
+                },
+                {
+                  id: "edit-expiration",
+                  label: "Edit expiration...",
+                  icon: <CalendarEvent size="md-regular" className="text-gray-9" />,
+                  onClick: (e) => {},
+                },
+                {
+                  id: "edit-metadata",
+                  label: "Edit metadata...",
+                  icon: (
+                    // TODO: Replace this with our own Code icon
+                    <Code size="md-regular" className="text-gray-9 size-3 stroke-2" />
+                  ),
+                  onClick: (e) => {},
+                  divider: true,
+                },
+                {
+                  id: "delete-key",
+                  label: "Delete key",
+                  icon: <Trash size="md-regular" className="text-gray-9" />,
+                  onClick: (e) => {},
+                },
+              ]}
+            />
+          );
         },
       },
     ],
