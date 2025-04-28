@@ -46,7 +46,7 @@ export const keyBytesSchema = z.coerce
 export const generalSchema = z.object({
   bytes: keyBytesSchema,
   prefix: keyPrefixSchema,
-  ownerId: z
+  externalId: z
     .string()
     .trim()
     .max(256, { message: "External ID cannot exceed 256 characters" })
@@ -299,7 +299,10 @@ export const createKeyInputSchema = z.object({
   prefix: keyPrefixSchema,
   bytes: keyBytesSchema,
   keyAuthId: z.string(),
-  ownerId: z.string().max(256, { message: "Owner ID cannot exceed 256 characters" }).nullish(),
+  externalId: z
+    .string()
+    .max(256, { message: "External ID cannot exceed 256 characters" })
+    .nullish(),
   meta: z.record(z.unknown()).optional(),
   remaining: z.number().int().positive().optional(),
   refill: z

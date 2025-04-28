@@ -38,7 +38,6 @@ export const KeyCreatedSuccessDialog = ({
   keyspaceId?: string | null;
   onCreateAnother?: () => void;
 }) => {
-  console.log({ keyData });
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const xButtonRef = useRef<HTMLButtonElement>(null);

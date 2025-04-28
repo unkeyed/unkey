@@ -37,9 +37,9 @@ export const GeneralSetup = () => {
         maxLength={256}
         placeholder="Enter external ID"
         description="ID of the user/workspace in your system for key attribution."
-        error={errors.ownerId?.message}
+        error={errors.externalId?.message}
         optional
-        {...register("ownerId")}
+        {...register("externalId")}
       />
       <FormInput
         className="[&_input:first-of-type]:h-[36px]"
