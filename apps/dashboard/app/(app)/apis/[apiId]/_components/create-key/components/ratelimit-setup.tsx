@@ -79,7 +79,7 @@ export const RatelimitSetup = () => {
           type="button"
           disabled={!ratelimitEnabled}
         >
-          Add ratelimit
+          Add additional ratelimit
         </Button>
       </div>
 

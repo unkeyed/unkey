@@ -45,7 +45,6 @@ export const ExpirationSetup = () => {
     formState: { errors },
     control,
     setValue,
-    trigger,
   } = useFormContext<ExpirationFormValues>();
 
   const [selectedTitle, setSelectedTitle] = useState<string>("1 day");
@@ -62,7 +61,6 @@ export const ExpirationSetup = () => {
 
   const handleSwitchChange = (checked: boolean) => {
     setValue("expiration.enabled", checked);
-    trigger("expiration");
   };
 
   // Handle date and time selection from DatetimePopover
@@ -157,7 +155,7 @@ export const ExpirationSetup = () => {
               disabled={!expirationEnabled}
               value={formatExpiryDate(field.value)}
               className="cursor-pointer w-full"
-              variant={isExpiringVerySoon ? "warning" : undefined}
+              variant={expirationEnabled && isExpiringVerySoon ? "warning" : undefined}
               error={errors.expiration?.data?.message}
             />
           </DatetimePopover>
