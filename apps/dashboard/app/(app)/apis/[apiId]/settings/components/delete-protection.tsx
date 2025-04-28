@@ -98,6 +98,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
         )
       }
       border="top"
+      className="border-b-1"
       contentWidth="w-full lg:w-[320px]"
     >
       <div className="flex w-full gap-2 lg:items-center justify-end">

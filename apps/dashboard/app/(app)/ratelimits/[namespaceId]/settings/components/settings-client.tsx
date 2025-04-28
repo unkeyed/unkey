@@ -1,7 +1,6 @@
 "use client";
 
 import { revalidateTag } from "@/app/actions";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
@@ -69,6 +68,7 @@ export const SettingsClient = ({ namespace }: Props) => {
                 </div>
               }
               border="top"
+              className="border-b-1"
             >
               <div className="flex gap-2 items-center justify-center w-full">
                 <Input
@@ -79,7 +79,7 @@ export const SettingsClient = ({ namespace }: Props) => {
                 />
                 <Button
                   size="lg"
-                  className="rounded-lg"
+                  variant="primary"
                   onClick={handleUpdateName}
                   loading={isUpdating}
                   disabled={isUpdating || namespaceName === namespace.name || !namespaceName}
@@ -88,7 +88,6 @@ export const SettingsClient = ({ namespace }: Props) => {
                 </Button>
               </div>
             </SettingCard>
-            <Separator className="bg-gray-4" orientation="horizontal" />
             <SettingCard
               title="Namespace ID"
               description="An identifier for the namespace, used in some API calls."
@@ -129,7 +128,7 @@ export const SettingsClient = ({ namespace }: Props) => {
           >
             <div className="w-full flex justify-end">
               <Button
-                className="w-fit rounded-lg"
+                className="w-fit"
                 variant="outline"
                 color="danger"
                 size="lg"

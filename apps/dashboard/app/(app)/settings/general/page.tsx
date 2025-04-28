@@ -1,4 +1,3 @@
-import { Separator } from "@/components/ui/separator";
 import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -25,15 +24,14 @@ export default async function SettingsPage() {
   return (
     <div>
       <WorkspaceNavbar workspace={workspace} activePage={{ href: "general", text: "General" }} />
-      <div className="flex items-center justify-center w-full py-3 ">
-        <div className="lg:w-[760px] flex-col justify-center items-center">
-          <div className="w-full text-accent-12 font-semibold text-lg pt-[22px] pb-[20px] text-left border-b border-gray-4 px-2">
+      <div className="py-3 w-full flex items-center justify-center ">
+        <div className="w-[760px] flex flex-col justify-center items-center gap-5">
+          <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
             Workspace Settings
           </div>
-          <div className="mt-6">
+          <div>
             <UpdateWorkspaceName workspace={workspace} />
             {/* <UpdateWorkspaceImage /> */}
-            <Separator className="bg-gray-4" orientation="horizontal" />
             <CopyWorkspaceId workspaceId={workspace.id} />
           </div>
         </div>

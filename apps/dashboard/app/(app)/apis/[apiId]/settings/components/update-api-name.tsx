@@ -81,6 +81,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
             </div>
           }
           border="top"
+          className="border-b-1"
           contentWidth="w-full lg:w-[320px]"
         >
           <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
