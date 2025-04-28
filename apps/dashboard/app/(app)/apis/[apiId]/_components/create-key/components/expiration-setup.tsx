@@ -68,8 +68,8 @@ export const ExpirationSetup = () => {
     }
   };
 
-  // Calculate minimum valid date (2 minutes from now)
-  const minValidDate = addMinutes(new Date(), 2);
+  // Calculate minimum valid date (10 minutes from now)
+  const minValidDate = addMinutes(new Date(), 10);
 
   // Handle date and time selection from DatetimePopover
   const handleDateTimeChange = (startTime?: number, _?: number, since?: string) => {
