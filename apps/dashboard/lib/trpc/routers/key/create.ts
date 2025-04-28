@@ -1,72 +1,15 @@
+import { createKeyInputSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
-import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const createKey = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
-  .input(
-    z.object({
-      prefix: z
-        .string()
-        .max(8, { message: "Prefixes cannot be longer than 8 characters" })
-        .refine((prefix) => !prefix.includes(" "), {
-          message: "Prefixes cannot contain spaces.",
-        })
-        .optional(),
-      bytes: z
-        .number()
-        .int()
-        .min(8, { message: "Key must be between 8 and 255 bytes long" })
-        .max(255, { message: "Key must be between 8 and 255 bytes long" })
-        .default(16),
-      keyAuthId: z.string(),
-      ownerId: z.string().nullish(),
-      meta: z.record(z.unknown()).optional(),
-      remaining: z.number().int().positive().optional(),
-      refill: z
-        .object({
-          amount: z.coerce.number().int().min(1),
-          refillDay: z.number().int().min(1).max(31).nullable(),
-        })
-        .optional(),
-      expires: z.number().int().nullish(), // unix timestamp in milliseconds
-      name: z.string().optional(),
-      ratelimit: z
-        .array(
-          z.object({
-            name: z.string().min(1, { message: "Name is required" }),
-            refillInterval: z.coerce
-              .number({
-                errorMap: (issue, { defaultError }) => ({
-                  message:
-                    issue.code === "invalid_type"
-                      ? "Duration must be greater than 0"
-                      : defaultError,
-                }),
-              })
-              .positive({ message: "Refill interval must be greater than 0" }),
-            limit: z.coerce
-              .number({
-                errorMap: (issue, { defaultError }) => ({
-                  message:
-                    issue.code === "invalid_type"
-                      ? "Refill limit must be greater than 0"
-                      : defaultError,
-                }),
-              })
-              .positive({ message: "Limit must be greater than 0" }),
-          }),
-        )
-        .optional(),
-      enabled: z.boolean().default(true),
-      environment: z.string().optional(),
-    }),
-  )
+  .input(createKeyInputSchema)
   .mutation(async ({ input, ctx }) => {
     const keyAuth = await db.query.keyAuth
       .findFirst({

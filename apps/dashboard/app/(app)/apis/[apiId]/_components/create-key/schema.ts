@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Helper function for creating conditional schemas based on the "enabled" flag
-const createConditionalSchema = <
+export const createConditionalSchema = <
   T extends z.ZodObject<any, any, any>,
   EnabledPath extends string = "enabled",
 >(
@@ -24,26 +24,31 @@ const createConditionalSchema = <
 };
 
 // Basic schemas
+export const keyPrefixSchema = z
+  .string()
+  .max(8, { message: "Prefixes cannot be longer than 8 characters" })
+  .refine((prefix) => !prefix.includes(" "), {
+    message: "Prefixes cannot contain spaces.",
+  })
+  .refine((prefix) => !prefix.endsWith("_"), {
+    message: "Prefixes cannot end with an underscore. We'll add that automatically.",
+  })
+  .optional();
+
+export const keyBytesSchema = z.coerce
+  .number()
+  .int({ message: "Key length must be a whole number (integer)" })
+  .min(8, { message: "Key length is too short (minimum 8 bytes required)" })
+  .max(255, { message: "Key length is too long (maximum 255 bytes allowed)" })
+  .default(16);
+
 export const generalSchema = z.object({
-  bytes: z.coerce
-    .number()
-    .int({ message: "Key length must be a whole number (integer)" })
-    .min(8, { message: "Key length is too short (minimum 8 bytes required)" })
-    .max(255, { message: "Key length is too long (maximum 255 bytes allowed)" })
-    .default(16),
-  prefix: z
-    .string()
-    .max(8, { message: "Prefixes cannot be longer than 8 characters" })
-    .refine((prefix) => !prefix.includes(" "), {
-      message: "Prefixes cannot contain spaces.",
-    })
-    .refine((prefix) => !prefix.endsWith("_"), {
-      message: "Prefixes cannot end with an underscore. We'll add that automatically.",
-    })
-    .optional(),
-  ownerId: z.string().trim().optional(),
+  bytes: keyBytesSchema,
+  prefix: keyPrefixSchema,
+  ownerId: z.string().trim().optional().nullish(),
   name: z.string().trim().optional(),
   environment: z.string().optional(),
+  enabled: z.boolean().default(true),
 });
 
 export const refillSchema = z.discriminatedUnion("interval", [
@@ -107,7 +112,7 @@ export const ratelimitItemSchema = z.object({
     .positive({ message: "Limit must be greater than 0" }),
 });
 
-const metadataValidationSchema = z.object({
+export const metadataValidationSchema = z.object({
   enabled: z.literal(true),
   data: z
     .string({
@@ -129,7 +134,7 @@ const metadataValidationSchema = z.object({
     ),
 });
 
-const limitDataSchema = z.object({
+export const limitDataSchema = z.object({
   remaining: z.coerce
     .number({
       errorMap: () => ({
@@ -141,22 +146,22 @@ const limitDataSchema = z.object({
   refill: refillSchema,
 });
 
-const limitValidationSchema = z.object({
+export const limitValidationSchema = z.object({
   enabled: z.literal(true),
   data: limitDataSchema,
 });
 
-const ratelimitValidationSchema = z.object({
+export const ratelimitValidationSchema = z.object({
   enabled: z.literal(true),
   data: z.array(ratelimitItemSchema).min(1, { message: "At least one rate limit is required" }),
 });
 
-const expirationValidationSchema = z.object({
+export const expirationValidationSchema = z.object({
   enabled: z.literal(true),
   data: z.preprocess(
     (val) => {
       if (val === null || val === undefined || val === "") {
-        return null; // This will trigger the required_error
+        return null;
       }
 
       if (val instanceof Date) {
@@ -167,7 +172,7 @@ const expirationValidationSchema = z.object({
         const date = new Date(val as any);
         return date;
       } catch {
-        return null; // Invalid date will be caught by the next validation
+        return null;
       }
     },
     z
@@ -190,6 +195,7 @@ const expirationValidationSchema = z.object({
   ),
 });
 
+// Combined schemas for forms
 export const metadataSchema = z.object({
   metadata: createConditionalSchema("enabled", metadataValidationSchema).default({
     enabled: false,
@@ -229,7 +235,7 @@ export const expirationSchema = z.object({
   }),
 });
 
-// Main form schema
+// Combined form schema for UI
 export const formSchema = z
   .object({
     ...generalSchema.shape,
@@ -271,10 +277,34 @@ export const formSchema = z
     }
   });
 
+// API/TRPC input schema
+export const createKeyInputSchema = z.object({
+  prefix: keyPrefixSchema,
+  bytes: keyBytesSchema,
+  keyAuthId: z.string(),
+  ownerId: z.string().nullish(),
+  meta: z.record(z.unknown()).optional(),
+  remaining: z.number().int().positive().optional(),
+  refill: z
+    .object({
+      amount: z.coerce.number().int().min(1),
+      refillDay: z.number().int().min(1).max(31).nullable(),
+    })
+    .optional(),
+  expires: z.number().int().nullish(), // unix timestamp in milliseconds
+  name: z.string().optional(),
+  ratelimit: z.array(ratelimitItemSchema).optional(),
+  enabled: z.boolean().default(true),
+  environment: z.string().optional(),
+});
+
+// Type exports
 export type RatelimitItem = z.infer<typeof ratelimitItemSchema>;
 export type LimitData = z.infer<typeof limitDataSchema>;
+export type CreateKeyInput = z.infer<typeof createKeyInputSchema>;
+export type FormValues = z.infer<typeof formSchema>;
 
-export interface FormValueTypes {
+export type FormValueTypes = {
   bytes: number;
   prefix?: string;
   ownerId?: string;
@@ -296,45 +326,10 @@ export interface FormValueTypes {
     enabled: boolean;
     data?: Date;
   };
-}
+};
 
+// Helper type exports
 export type RatelimitFormValues = Pick<FormValueTypes, "ratelimit">;
 export type CreditsFormValues = Pick<FormValueTypes, "limit">;
 export type MetadataFormValues = Pick<FormValueTypes, "metadata">;
 export type ExpirationFormValues = Pick<FormValueTypes, "expiration">;
-
-export const getDefaultValues = (): Partial<FormValueTypes> => {
-  return {
-    bytes: 16,
-    prefix: "",
-    metadata: {
-      enabled: false,
-    },
-    limit: {
-      enabled: false,
-      data: {
-        remaining: 100,
-        refill: {
-          interval: "none",
-          amount: undefined,
-          refillDay: undefined,
-        },
-      },
-    },
-    ratelimit: {
-      enabled: false,
-      data: [
-        {
-          name: "default",
-          limit: 10,
-          refillInterval: 1000,
-        },
-      ],
-    },
-    expiration: {
-      enabled: false,
-    },
-  };
-};
-
-export type FormValues = z.infer<typeof formSchema>;

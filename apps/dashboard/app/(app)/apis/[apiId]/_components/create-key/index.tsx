@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
 import { SectionLabel } from "./components/section-label";
 import { type DialogSectionName, SECTIONS } from "./constants";
-import { getDefaultValues, processFormData } from "./form-utils";
+import { formValuesToApiInput, getDefaultValues } from "./form-utils";
 import { useCreateKey } from "./hooks/use-create-key";
 import { useValidateSteps } from "./hooks/use-validate-steps";
 import { type FormValues, formSchema } from "./schema";
@@ -96,7 +96,6 @@ export const CreateKeyDialog = ({
   };
 
   const onSubmit = async (data: FormValues) => {
-    const finalData = processFormData(data);
     if (!keyspaceId) {
       toast.error("Failed to Create Key", {
         description: "An unexpected error occurred. Please try again later.",
@@ -107,12 +106,10 @@ export const CreateKeyDialog = ({
       });
       return;
     }
+    const finalData = formValuesToApiInput(data, keyspaceId);
 
     try {
-      await key.mutateAsync({
-        keyAuthId: keyspaceId,
-        ...finalData,
-      });
+      await key.mutateAsync(finalData);
     } catch {
       // `useCreateKey` already shows a toast, but we still need to
       // prevent unhandled‐rejection noise in the console.

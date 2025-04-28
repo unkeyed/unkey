@@ -1,4 +1,6 @@
 import {
+  type CreateKeyInput,
+  type FormValueTypes,
   type FormValues,
   creditsSchema,
   expirationSchema,
@@ -6,86 +8,40 @@ import {
   metadataSchema,
   ratelimitSchema,
 } from "./schema";
-import type { ProcessedFormData, SectionName } from "./types";
+import type { SectionName } from "./types";
 
 /**
  * Processes form data to create the final API payload
  */
-export const processFormData = (data: FormValues) => {
-  const processedData: ProcessedFormData = {
-    prefix: data.prefix || undefined,
-    bytes: data.bytes,
-    ownerId: data.ownerId?.trim() || undefined,
-    name: data.name?.trim() || undefined,
-    environment: data.environment || undefined,
-    enabled: true,
-  };
-
-  // Handle metadata
-  if (data.metadata?.enabled && data.metadata.data) {
-    try {
-      processedData.meta = JSON.parse(data.metadata.data);
-    } catch (error) {
-      console.error("Failed to parse metadata JSON:", error);
-    }
-  }
-
-  // Handle limits and refill
-  if (data.limit?.enabled && data.limit.data) {
-    processedData.remaining = data.limit.data.remaining;
-
-    // Only include refill if interval is not 'none'
-    if (data.limit.data.refill?.interval !== "none" && data.limit.data.refill?.amount) {
-      processedData.refill = {
-        amount: data.limit.data.refill.amount,
-        refillDay:
-          data.limit.data.refill.interval === "monthly"
-            ? data.limit.data.refill.refillDay || 1
-            : null,
-      };
-    }
-  }
-
-  // Handle expiration
-  if (data.expiration?.enabled && data.expiration.data) {
-    processedData.expires = data.expiration.data.getTime();
-  }
-
-  // Handle rate limiting
-  if (data.ratelimit?.enabled && data.ratelimit.data) {
-    processedData.ratelimit = data.ratelimit.data;
-  }
-
-  return processedData;
-};
-
-export const getDefaultValues = (): Partial<FormValues> => {
+export const formValuesToApiInput = (formValues: FormValues, keyAuthId: string): CreateKeyInput => {
   return {
-    bytes: 16,
-    prefix: "",
-    metadata: {
-      enabled: false,
-    },
-    limit: {
-      enabled: false,
-      data: {
-        remaining: 100,
-        refill: {
-          amount: undefined,
-          refillDay: undefined,
-        },
-      },
-    },
-    ratelimit: {
-      enabled: false,
-      data: {
-        limit: 10,
-        refillInterval: 1000,
-      },
-    },
-    expiration: {
-      enabled: false,
-    },
+    keyAuthId,
+    prefix: formValues.prefix,
+    bytes: formValues.bytes,
+    ownerId: formValues.ownerId || null,
+    name: formValues.name,
+    enabled: true,
+    environment: formValues.environment,
+    meta:
+      formValues.metadata?.enabled && formValues.metadata.data
+        ? JSON.parse(formValues.metadata.data)
+        : undefined,
+    remaining: formValues.limit?.enabled ? formValues.limit.data?.remaining : undefined,
+    refill:
+      formValues.limit?.enabled && formValues.limit.data?.refill?.interval !== "none"
+        ? {
+            amount: formValues.limit.data?.refill?.amount as number,
+            refillDay:
+              formValues.limit.data?.refill?.interval === "monthly"
+                ? formValues.limit.data?.refill?.refillDay || null
+                : null,
+          }
+        : undefined,
+    expires:
+      formValues.expiration?.enabled && formValues.expiration.data
+        ? formValues.expiration.data.getTime()
+        : undefined,
+    ratelimit: formValues.ratelimit?.enabled ? formValues.ratelimit.data : undefined,
   };
 };
 
@@ -127,4 +83,38 @@ export const getFieldsFromSchema = (schema: any, prefix = ""): string[] => {
     }
     return [fullPath];
   });
+};
+
+export const getDefaultValues = (): Partial<FormValueTypes> => {
+  return {
+    bytes: 16,
+    prefix: "",
+    metadata: {
+      enabled: false,
+    },
+    limit: {
+      enabled: false,
+      data: {
+        remaining: 100,
+        refill: {
+          interval: "none",
+          amount: undefined,
+          refillDay: undefined,
+        },
+      },
+    },
+    ratelimit: {
+      enabled: false,
+      data: [
+        {
+          name: "default",
+          limit: 10,
+          refillInterval: 1000,
+        },
+      ],
+    },
+    expiration: {
+      enabled: false,
+    },
+  };
 };
