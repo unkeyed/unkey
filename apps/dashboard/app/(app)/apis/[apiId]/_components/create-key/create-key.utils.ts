@@ -16,12 +16,12 @@ import type { SectionName } from "./types";
 export const formValuesToApiInput = (formValues: FormValues, keyAuthId: string): CreateKeyInput => {
   return {
     keyAuthId,
-    prefix: formValues.prefix,
+    prefix: formValues.prefix === "" ? undefined : formValues.prefix,
     bytes: formValues.bytes,
     ownerId: formValues.ownerId || null,
-    name: formValues.name,
+    name: formValues.name === "" ? undefined : formValues.name,
     enabled: true,
-    environment: formValues.environment,
+    environment: formValues.environment === "" ? undefined : formValues.name,
     meta:
       formValues.metadata?.enabled && formValues.metadata.data
         ? JSON.parse(formValues.metadata.data)

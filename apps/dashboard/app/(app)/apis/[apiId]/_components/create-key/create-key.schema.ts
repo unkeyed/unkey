@@ -27,6 +27,7 @@ export const createConditionalSchema = <
 export const keyPrefixSchema = z
   .string()
   .max(8, { message: "Prefixes cannot be longer than 8 characters" })
+  .trim()
   .refine((prefix) => !prefix.includes(" "), {
     message: "Prefixes cannot contain spaces.",
   })
@@ -45,9 +46,18 @@ export const keyBytesSchema = z.coerce
 export const generalSchema = z.object({
   bytes: keyBytesSchema,
   prefix: keyPrefixSchema,
-  ownerId: z.string().trim().optional().nullish(),
-  name: z.string().trim().optional(),
-  environment: z.string().optional(),
+  ownerId: z
+    .string()
+    .trim()
+    .max(256, { message: "External ID cannot exceed 256 characters" })
+    .optional()
+    .nullish(),
+  name: z.string().trim().max(256, { message: "Name cannot exceed 256 characters" }).optional(),
+  environment: z
+    .string()
+    .max(256, { message: "Environment cannot exceed 256 characters" })
+    .trim()
+    .optional(),
   enabled: z.boolean().default(true),
 });
 
@@ -92,9 +102,11 @@ export const refillSchema = z.discriminatedUnion("interval", [
     refillDay: z.undefined().optional(),
   }),
 ]);
-
 export const ratelimitItemSchema = z.object({
-  name: z.string().min(1, { message: "Name is required" }),
+  name: z
+    .string()
+    .min(3, { message: "Name is required" })
+    .max(256, { message: "Name cannot exceed 256 characters" }),
   refillInterval: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({
@@ -118,6 +130,11 @@ export const metadataValidationSchema = z.object({
     .string({
       required_error: "Metadata is required",
       invalid_type_error: "Metadata must be a JSON",
+    })
+    .trim()
+    .min(2, { message: "Metadata must contain valid JSON" })
+    .max(65534, {
+      message: "Metadata cannot exceed 65535 characters (text field limit)",
     })
     .refine(
       (s) => {
@@ -282,7 +299,7 @@ export const createKeyInputSchema = z.object({
   prefix: keyPrefixSchema,
   bytes: keyBytesSchema,
   keyAuthId: z.string(),
-  ownerId: z.string().nullish(),
+  ownerId: z.string().max(256, { message: "Owner ID cannot exceed 256 characters" }).nullish(),
   meta: z.record(z.unknown()).optional(),
   remaining: z.number().int().positive().optional(),
   refill: z
@@ -292,10 +309,13 @@ export const createKeyInputSchema = z.object({
     })
     .optional(),
   expires: z.number().int().nullish(), // unix timestamp in milliseconds
-  name: z.string().optional(),
+  name: z.string().max(256, { message: "Name cannot exceed 256 characters" }).optional(),
   ratelimit: z.array(ratelimitItemSchema).optional(),
   enabled: z.boolean().default(true),
-  environment: z.string().optional(),
+  environment: z
+    .string()
+    .max(256, { message: "Environment cannot exceed 256 characters" })
+    .optional(),
 });
 
 // Type exports

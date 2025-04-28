@@ -1,9 +1,15 @@
-import { toast } from "@/components/ui/toaster";
+"use client"; // Keep if needed
+
+import { CopyButton } from "@/components/dashboard/copy-button";
 import { cn } from "@/lib/utils";
-import { CircleLock } from "@unkey/icons";
+import { CircleLock, Eye, EyeSlash } from "@unkey/icons";
+import { Button } from "@unkey/ui";
 import { useState } from "react";
 
-const MAX_DOT_COUNT = 80;
+const maskKey = (key: string): string => {
+  return "•".repeat(key.length);
+};
+
 export const SecretKey = ({
   value,
   title = "Value",
@@ -13,39 +19,56 @@ export const SecretKey = ({
   title: string;
   className?: string;
 }) => {
-  // Using hover state instead of clicked state
-  const [isHovering, setIsHovering] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
-  // Show full value on hover, otherwise show partial with dots
-  const displayValue = isHovering ? value : value.slice(0, 4) + "•".repeat(MAX_DOT_COUNT);
+  const displayValue = isVisible ? value : maskKey(value);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleToggleVisibility = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard
-      .writeText(value)
-      .then(() => {
-        toast.success(`${title} copied to clipboard`);
-      })
-      .catch((error) => {
-        console.error("Failed to copy to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      });
+    setIsVisible(!isVisible);
   };
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
     <div
       className={cn(
-        "rounded-xl border bg-white dark:bg-base-11 border-accent-4 text-grayA-11 w-full px-3 py-2 flex items-center cursor-pointer group relative",
+        "w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5",
         className,
       )}
-      onClick={(e) => handleClick(e)}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
     >
-      <div className="flex items-center gap-2 flex-grow truncate pr-10">
-        <CircleLock size="sm-regular" className="text-gray-12 flex-shrink-0" />
-        <div className="truncate text-grayA-12 text-[13px]">{displayValue}</div>
+      <div className="flex items-center justify-between w-full gap-3">
+        <div className="flex-shrink-0">
+          <CircleLock size="sm-regular" className="text-gray-12" />
+        </div>
+        <div className="flex-1 overflow-x-auto min-w-0">
+          {" "}
+          <p className="whitespace-pre-wrap break-all font-mono text-[13px] text-grayA-12 pr-2">
+            {displayValue}
+          </p>
+        </div>
+        <div className="flex items-center justify-between gap-2 flex-shrink-0">
+          <Button
+            variant="outline"
+            size="icon"
+            className="bg-grayA-3 transition-all"
+            onClick={handleToggleVisibility}
+            aria-label={isVisible ? `Hide ${title}` : `Show ${title}`}
+            title={isVisible ? `Hide ${title}` : `Show ${title}`}
+          >
+            {isVisible ? <EyeSlash /> : <Eye />}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="icon"
+            className="bg-grayA-3"
+            aria-label={`Copy ${title}`}
+            title={`Copy ${title}`}
+          >
+            <div className="flex items-center justify-center">
+              <CopyButton value={value} />
+            </div>
+          </Button>
+        </div>
       </div>
     </div>
   );

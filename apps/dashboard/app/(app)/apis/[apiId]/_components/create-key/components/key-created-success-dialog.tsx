@@ -1,5 +1,6 @@
 "use client";
 
+import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Popover, PopoverContent } from "@/components/ui/popover";
@@ -7,7 +8,6 @@ import { toast } from "@/components/ui/toaster";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import {
   ArrowRight,
-  Bookmark,
   Check,
   CircleInfo,
   Eye,
@@ -38,6 +38,7 @@ export const KeyCreatedSuccessDialog = ({
   keyspaceId?: string | null;
   onCreateAnother?: () => void;
 }) => {
+  console.log({ keyData });
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const xButtonRef = useRef<HTMLButtonElement>(null);
@@ -104,7 +105,7 @@ export const KeyCreatedSuccessDialog = ({
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
-                  <Key2 size="2xl-regular" />
+                  <Key2 size="2xl-thin" />
                   <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
                     <Check size="sm-bold" />
                   </div>
@@ -134,7 +135,16 @@ export const KeyCreatedSuccessDialog = ({
                   </div>
                   <div className="flex flex-col gap-1 py-6">
                     <div className="text-accent-12 text-xs font-mono">{keyData.id}</div>
-                    <div className="text-accent-9 text-xs">{keyData.name ?? "Unnamed Key"}</div>
+                    <RatelimitOverviewTooltip
+                      content={keyData.name}
+                      position={{ side: "bottom", align: "center" }}
+                      asChild
+                      disabled={!keyData.name}
+                    >
+                      <div className="text-accent-9 text-xs max-w-[160px] truncate">
+                        {keyData.name ?? "Unnamed Key"}
+                      </div>
+                    </RatelimitOverviewTooltip>
                   </div>
                   <Button
                     variant="outline"
@@ -160,7 +170,7 @@ export const KeyCreatedSuccessDialog = ({
             </div>
             <div className="flex flex-col gap-2 items-start w-full mt-6">
               <div className="text-gray-12 text-sm font-semibold">Key Secret</div>
-              <SecretKey value={keyData.key} title="API Key" className="bg-white dark:bg-black" />
+              <SecretKey value={keyData.key} title="API Key" className="bg-white dark:bg-black " />
               <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
                 <CircleInfo className="text-accent-9" size="sm-regular" />
                 <span>
@@ -179,13 +189,13 @@ export const KeyCreatedSuccessDialog = ({
             <div className="flex flex-col gap-2 items-start w-full mt-8">
               <div className="text-gray-12 text-sm font-semibold">Try It Out</div>
               <div className="w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5">
-                <div className="flex items-start justify-between w-full gap-4 overflow-hidden text-xs bg-transparent">
-                  <div className="mt-2">
-                    <pre className="ph-no-capture whitespace-pre-wrap text-[11px]">
+                <div className="flex items-start justify-between w-full gap-4 bg-transparent">
+                  <div className="mt-2 overflow-x-auto w-full min-w-0">
+                    <pre className="ph-no-capture whitespace-pre-wrap break-all text-[11px] pr-2">
                       {showKeyInSnippet ? snippet : snippet.replace(keyData.key, maskedKey)}
                     </pre>
                   </div>
-                  <div className="flex items-center justify-between gap-2 mt-1">
+                  <div className="flex items-center justify-between gap-2 mt-1 flex-shrink-0">
                     <Button
                       variant="outline"
                       size="icon"
@@ -216,15 +226,16 @@ export const KeyCreatedSuccessDialog = ({
                   <Plus size="sm-regular" />
                   Create another key
                 </Button>
-                <Button
-                  variant="outline"
-                  className="font-medium text-[13px] text-gray-12"
-                  disabled
-                  title="Coming soon!"
-                >
-                  <Bookmark size="sm-regular" />
-                  Learn best practices
-                </Button>
+                {/* INFO: We'll add this back soon */}
+                {/* <Button */}
+                {/*   variant="outline" */}
+                {/*   className="font-medium text-[13px] text-gray-12" */}
+                {/*   disabled */}
+                {/*   title="Coming soon!" */}
+                {/* > */}
+                {/*   <Bookmark size="sm-regular" /> */}
+                {/*   Learn best practices */}
+                {/* </Button> */}
               </div>
             </div>
           </div>
