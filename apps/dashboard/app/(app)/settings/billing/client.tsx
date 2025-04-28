@@ -1,9 +1,9 @@
 "use client";
-import { SettingCard } from "@/components/settings-card";
 import type { Workspace } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import { SettingCard } from "@unkey/ui";
 import { Button, Empty } from "@unkey/ui";
 import ms from "ms";
 import Link from "next/link";
