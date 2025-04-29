@@ -13,8 +13,8 @@ import {
   Trash,
 } from "@unkey/icons";
 import { UpdateKeyStatus } from "./components/disable-key";
+import { EditCredits } from "./components/edit-credits";
 import { EditKeyName } from "./components/edit-key-name";
-import { EditRemainingUses } from "./components/edit-remaining-uses";
 import type { MenuItem } from "./keys-table-action.popover";
 
 export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
@@ -57,10 +57,10 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       divider: true,
     },
     {
-      id: "edit-remaining-uses",
-      label: "Edit remaining uses...",
+      id: "edit-credits",
+      label: "Edit credits...",
       icon: <ChartPie size="md-regular" />,
-      ActionComponent: (props) => <EditRemainingUses {...props} keyDetails={key} />,
+      ActionComponent: (props) => <EditCredits {...props} keyDetails={key} />,
     },
     {
       id: "edit-ratelimit",

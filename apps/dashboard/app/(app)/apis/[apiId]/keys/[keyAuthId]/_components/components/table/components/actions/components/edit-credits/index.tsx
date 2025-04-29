@@ -3,7 +3,6 @@ import {
   type CreditsFormValues,
   creditsSchema,
 } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
-import { getDefaultValues } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.utils";
 import { DialogContainer } from "@/components/dialog-container";
 import {
   Select,
@@ -12,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toaster";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,58 +19,27 @@ import { ChartPie, CircleInfo } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, FormProvider, useWatch } from "react-hook-form";
-import { z } from "zod";
-import type { ActionComponentProps } from "../keys-table-action.popover";
-import { useUpdateKeyRemaining } from "./hooks/use-update-remaining";
-import { KeyInfo } from "./key-info";
+import type { ActionComponentProps } from "../../keys-table-action.popover";
+import { useEditCredits } from "../hooks/use-edit-credits";
+import { KeyInfo } from "../key-info";
+import { getKeyLimitDefaults } from "./utils";
 
-const editRemainingUsesFormSchema = z.object({
-  ...creditsSchema.shape,
-});
+const EDIT_CREDITS_FORM_STORAGE_KEY = "unkey_edit_credits_form_state";
 
-const EDIT_REMAINING_USES_FORM_STORAGE_KEY = "unkey_edit_remaining_uses_form_state";
-
-type EditRemainingUsesFormValues = CreditsFormValues & {
+type EditCreditsFormValues = CreditsFormValues & {
   originalRemaining?: number;
 };
-type EditRemainingUsesProps = { keyDetails: KeyDetails } & ActionComponentProps;
+type EditCreditsProps = { keyDetails: KeyDetails } & ActionComponentProps;
 
-export const EditRemainingUses = ({ keyDetails, isOpen, onClose }: EditRemainingUsesProps) => {
-  const methods = usePersistedForm<EditRemainingUsesFormValues>(
-    EDIT_REMAINING_USES_FORM_STORAGE_KEY,
+export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) => {
+  const methods = usePersistedForm<EditCreditsFormValues>(
+    EDIT_CREDITS_FORM_STORAGE_KEY,
     {
-      resolver: zodResolver(editRemainingUsesFormSchema),
+      resolver: zodResolver(creditsSchema),
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,
-      defaultValues: {
-        limit: {
-          enabled: Boolean(keyDetails.key.remaining) ?? false,
-          data: {
-            remaining: keyDetails.key.remaining ?? getDefaultValues().limit?.data?.remaining ?? 100,
-            refill: keyDetails.key.refillDay
-              ? {
-                  // Monthly refill
-                  interval: "monthly",
-                  amount: keyDetails.key.refillAmount ?? 100,
-                  refillDay: keyDetails.key.refillDay,
-                }
-              : keyDetails.key.refillAmount
-                ? {
-                    // Daily refill
-                    interval: "daily",
-                    amount: keyDetails.key.refillAmount,
-                    refillDay: undefined,
-                  }
-                : {
-                    // No refill
-                    interval: "none",
-                    amount: undefined,
-                    refillDay: undefined,
-                  },
-          },
-        },
-      },
+      defaultValues: getKeyLimitDefaults(keyDetails),
     },
     "memory",
   );
@@ -143,57 +112,43 @@ export const EditRemainingUses = ({ keyDetails, isOpen, onClose }: EditRemaining
     }
   };
 
-  const key = useUpdateKeyRemaining(() => {
+  const key = useEditCredits(() => {
     clearPersistedData();
-    reset({
-      limit: {
-        enabled: Boolean(keyDetails.key.remaining) ?? false,
-        data: {
-          remaining: keyDetails.key.remaining ?? getDefaultValues().limit?.data?.remaining ?? 100,
-          refill: keyDetails.key.refillDay
-            ? {
-                // Monthly refill
-                interval: "monthly",
-                amount: keyDetails.key.refillAmount ?? 100,
-                refillDay: keyDetails.key.refillDay,
-              }
-            : keyDetails.key.refillAmount
-              ? {
-                  // Daily refill
-                  interval: "daily",
-                  amount: keyDetails.key.refillAmount,
-                  refillDay: undefined,
-                }
-              : {
-                  // No refill
-                  interval: "none",
-                  amount: undefined,
-                  refillDay: undefined,
-                },
-        },
-      },
-    });
+    reset(getKeyLimitDefaults(keyDetails));
     onClose();
   });
 
-  const onSubmit = async (data: EditRemainingUsesFormValues) => {
+  const onSubmit = async (data: EditCreditsFormValues) => {
     try {
-      // Map form data to the structure expected by the TRPC endpoint
-      await key.mutateAsync({
-        keyId: keyDetails.id,
-        limitEnabled: Boolean(data.limit?.enabled),
-        remaining: data.limit?.enabled ? data.limit.data?.remaining : undefined,
-        refill:
-          data.limit?.enabled && data.limit.data?.refill.interval !== "none"
-            ? {
-                amount: data.limit.data?.refill.amount,
-                refillDay:
-                  data.limit.data?.refill.interval === "monthly"
-                    ? data.limit.data?.refill.refillDay
-                    : null,
-              }
-            : undefined,
-      });
+      if (data.limit) {
+        if (data.limit.enabled === true) {
+          if (data.limit.data) {
+            await key.mutateAsync({
+              keyId: keyDetails.id,
+              limit: {
+                enabled: true,
+                data: data.limit.data,
+              },
+            });
+          } else {
+            // Shouldn't happen
+            toast.error("Failed to Update Key Limits", {
+              description: "An unexpected error occurred. Please try again later.",
+              action: {
+                label: "Contact Support",
+                onClick: () => window.open("https://support.unkey.dev", "_blank"),
+              },
+            });
+          }
+        } else {
+          await key.mutateAsync({
+            keyId: keyDetails.id,
+            limit: {
+              enabled: false,
+            },
+          });
+        }
+      }
     } catch {
       // `useEditKeyRemainingUses` already shows a toast, but we still need to
       // prevent unhandled‐rejection noise in the console.

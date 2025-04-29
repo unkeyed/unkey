@@ -2,12 +2,12 @@ import { toast } from "@/components/ui/toaster";
 
 import { trpc } from "@/lib/trpc/client";
 
-export const useUpdateKeyRemaining = (onSuccess?: () => void) => {
+export const useEditCredits = (onSuccess?: () => void) => {
   const trpcUtils = trpc.useUtils();
   const updateKeyRemaining = trpc.key.update.remaining.useMutation({
     onSuccess(data, variables) {
-      const remainingChange = variables.limitEnabled
-        ? `with ${variables.remaining} uses remaining`
+      const remainingChange = variables.limit?.enabled
+        ? `with ${variables.limit.data.remaining} uses remaining`
         : "with limits disabled";
 
       toast.success("Key Limits Updated", {

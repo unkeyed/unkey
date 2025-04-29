@@ -1,30 +1,19 @@
+import { creditsSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
+
 export const updateKeyRemaining = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .input(
-    z.object({
+    creditsSchema.extend({
       keyId: z.string(),
-      limitEnabled: z.boolean(),
-      remaining: z.number().int().positive().optional(),
-      refill: z
-        .object({
-          amount: z.number().int().min(1).optional(),
-          refillDay: z.number().int().min(1).max(31).nullable().optional(),
-        })
-        .optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    if (input.limitEnabled === false || input.remaining === null) {
-      input.remaining = undefined;
-      input.refill = undefined;
-    }
-
     await db
       .transaction(async (tx) => {
         const key = await tx.query.keys.findFirst({
@@ -42,22 +31,63 @@ export const updateKeyRemaining = t.procedure
             code: "NOT_FOUND",
           });
         }
-        await tx
-          .update(schema.keys)
-          .set({
-            remaining: input.remaining ?? null,
-            refillDay: input.refill?.refillDay ?? null,
-            refillAmount: input.refill?.amount ?? null,
-            lastRefillAt: input.refill?.amount ? new Date() : null,
-          })
-          .where(eq(schema.keys.id, key.id))
-          .catch((_err) => {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message:
-                "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
+
+        // If limits are disabled, set all values to null
+        if (!input.limit.enabled) {
+          await tx
+            .update(schema.keys)
+            .set({
+              remaining: null,
+              refillDay: null,
+              refillAmount: null,
+              lastRefillAt: null,
+            })
+            .where(eq(schema.keys.id, key.id))
+            .catch((_err) => {
+              throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message:
+                  "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
+              });
             });
-          });
+        } else {
+          // Get appropriate refill values based on the interval
+          const { refill } = input.limit.data;
+          const refillDay = refill.interval === "monthly" ? refill.refillDay : null;
+          const refillAmount = refill.interval !== "none" ? refill.amount : null;
+
+          await tx
+            .update(schema.keys)
+            .set({
+              remaining: input.limit.data.remaining,
+              refillDay,
+              refillAmount,
+              lastRefillAt: refillAmount ? new Date() : null,
+            })
+            .where(eq(schema.keys.id, key.id))
+            .catch((_err) => {
+              throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message:
+                  "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
+              });
+            });
+        }
+
+        // Create audit log
+        let description = "";
+        if (input.limit.enabled) {
+          const { refill } = input.limit.data;
+          const refillInfo =
+            refill.interval !== "none"
+              ? `${refill.amount}@${refill.interval === "monthly" ? refill.refillDay : "daily"}`
+              : "none";
+
+          description = `Changed remaining for ${key.id} to remaining=${input.limit.data.remaining}, refill=${refillInfo}`;
+        } else {
+          description = `Disabled limit for ${key.id}`;
+        }
+
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
@@ -65,11 +95,7 @@ export const updateKeyRemaining = t.procedure
             id: ctx.user.id,
           },
           event: "key.update",
-          description: input.limitEnabled
-            ? `Changed remaining for ${key.id} to remaining=${input.remaining}, refill=${
-                input.refill ? `${input.refill.amount}@${input.refill.refillDay}` : "none"
-              }`
-            : `Disabled limit for ${key.id}`,
+          description,
           resources: [
             {
               type: "key",
@@ -91,6 +117,5 @@ export const updateKeyRemaining = t.procedure
             "We were unable to update remaining limits on this key. Please try again or contact support@unkey.dev",
         });
       });
-
     return { keyId: input.keyId };
   });
