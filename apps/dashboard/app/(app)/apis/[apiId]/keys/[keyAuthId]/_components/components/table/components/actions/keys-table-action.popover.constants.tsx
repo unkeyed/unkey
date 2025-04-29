@@ -1,3 +1,4 @@
+import { toast } from "@/components/ui/toaster";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
   ArrowOppositeDirectionY,
@@ -26,7 +27,17 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       label: "Copy key ID",
       className: "mt-1",
       icon: <Clone size="md-regular" />,
-      onClick: () => {},
+      onClick: () => {
+        navigator.clipboard
+          .writeText(key.id)
+          .then(() => {
+            toast.success("Key ID copied to clipboard");
+          })
+          .catch((error) => {
+            console.error("Failed to copy to clipboard:", error);
+            toast.error("Failed to copy to clipboard");
+          });
+      },
       divider: true,
     },
     {
