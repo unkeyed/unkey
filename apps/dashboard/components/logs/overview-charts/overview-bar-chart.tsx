@@ -243,7 +243,7 @@ export function OverviewBarChart({
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) =>
-                        createTimeIntervalFormatter(data)(tooltipPayload)
+                        createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)
                       }
                     />
                   );
