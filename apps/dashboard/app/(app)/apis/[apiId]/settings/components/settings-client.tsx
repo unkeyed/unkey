@@ -17,8 +17,8 @@ type Props = {
 export const SettingsClient = ({ api, workspace, keyAuth }: Props) => {
   return (
     <>
-      <div className="py-3 w-full flex items-center justify-center ">
-        <div className="w-[760px] flex flex-col justify-center items-center gap-5">
+      <div className="py-3 w-full flex items-center justify-center">
+        <div className="w-[760px] flex flex-col justify-center items-center gap-5 mx-6">
           <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
             API Settings
           </div>

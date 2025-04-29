@@ -62,21 +62,17 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <SettingCard
-          title={
-            <div className="flex items-center justify-start gap-2.5">
-              <span className="text-sm font-medium text-accent-12">Default Bytes</span>
-            </div>
-          }
+          title={"Default Bytes"}
           description={
-            <div className="font-normal text-[13px] max-w-[380px]">
+            <div className="max-w-[380px]">
               Sets the default byte size for keys under this API. Must be between 8 and 255.
             </div>
           }
           border="top"
           className="border-b-1"
-          contentWidth="w-full lg:w-[320px]"
+          contentWidth="w-full lg:w-[320px] h-full"
         >
-          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
+          <div className="flex flex-row justify-end items-center w-full gap-x-2 mt-2">
             <input type="hidden" name="keyAuthId" value={keyAuth.id} />
             <label htmlFor="defaultBytes" className="hidden sr-only">
               Default Bytes
@@ -89,7 +85,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
                   <FormControl>
                     <Input
                       id="defaultBytes"
-                      className="w-[20rem] lg:w-[16rem]"
+                      className="w-[16rem]"
                       {...field}
                       autoComplete="off"
                       onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}

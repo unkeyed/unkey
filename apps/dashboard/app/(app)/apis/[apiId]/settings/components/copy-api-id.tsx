@@ -5,38 +5,34 @@ import { Input, SettingCard } from "@unkey/ui";
 export const CopyApiId = ({ apiId }: { apiId: string }) => {
   return (
     <SettingCard
-      title={
-        <div className="flex items-center justify-start gap-2.5">
-          <span className="text-sm font-medium text-accent-12">API ID</span>
-        </div>
-      }
+      title={"API ID"}
       description={
-        <div className="font-normal text-[13px] max-w-[380px]">
-          An identifier for the API, used in some API calls.
-        </div>
+        <div className="max-w-[380px]">An identifier for the API, used in some API calls.</div>
       }
       border="bottom"
-      contentWidth="w-full lg:w-[320px]"
+      contentWidth="w-full lg:w-[320px] justify-end items-end"
     >
-      <Input
-        className="w-full lg:w-[315px] focus:ring-0 focus:ring-offset-0"
-        readOnly
-        defaultValue={apiId}
-        placeholder="API ID"
-        rightIcon={
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(apiId);
-              toast.success("Copied to clipboard", {
-                description: apiId,
-              });
-            }}
-          >
-            <Clone size="md-regular" />
-          </button>
-        }
-      />
+      <div className="flex flex-row justify-end items-center gap-x-2 mt-1">
+        <Input
+          className="min-w-[315px] focus:ring-0 focus:ring-offset-0"
+          readOnly
+          defaultValue={apiId}
+          placeholder="API ID"
+          rightIcon={
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(apiId);
+                toast.success("Copied to clipboard", {
+                  description: apiId,
+                });
+              }}
+            >
+              <Clone size="md-regular" />
+            </button>
+          }
+        />
+      </div>
     </SettingCard>
   );
 };

@@ -77,8 +77,8 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
   return (
     <SettingCard
       title={
-        <div className="flex items-center justify-start gap-2.5">
-          <span className="text-sm font-medium text-accent-12">Delete Protection</span>{" "}
+        <div className="inline-flex gap-2">
+          <span>Delete Protection</span>{" "}
           <StatusBadge
             variant={api.deleteProtection ? "enabled" : "disabled"}
             text={api.deleteProtection ? "Enabled" : "Disabled"}
@@ -88,27 +88,22 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       }
       description={
         api.deleteProtection ? (
-          <div className="font-normal text-[13px] max-w-[380px]">
-            Disabling this allows the API, along with all keys and data, to be deleted.
-          </div>
+          <div>Disabling this allows the API, along with all keys and data, to be deleted.</div>
         ) : (
-          <div className="font-normal text-[13px] max-w-[380px]">
-            Enabling this prevents the API from being deleted.
-          </div>
+          <div>Enabling this prevents the API from being deleted.</div>
         )
       }
       border="top"
       className="border-b-1"
       contentWidth="w-full lg:w-[320px]"
     >
-      <div className="flex w-full gap-2 lg:items-center justify-end">
+      <div className="flex w-full gap-2 lg:items-center justify-end lg:mt-1">
         {api.deleteProtection ? (
           <Button
             type="button"
             variant="outline"
             color="warning"
             size="xlg"
-            className="w-full lg:w-fit"
             onClick={() => setOpen(true)}
           >
             Disable Delete Protection

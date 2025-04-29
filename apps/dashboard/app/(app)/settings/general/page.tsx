@@ -24,12 +24,12 @@ export default async function SettingsPage() {
   return (
     <div>
       <WorkspaceNavbar workspace={workspace} activePage={{ href: "general", text: "General" }} />
-      <div className="py-3 w-full flex items-center justify-center ">
-        <div className="w-[760px] flex flex-col justify-center items-center gap-5">
+      <div className="py-3 w-full flex items-center justify-center">
+        <div className="w-[760px] flex flex-col justify-center items-center gap-5 mx-6">
           <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
             Workspace Settings
           </div>
-          <div>
+          <div className="w-full flex flex-col">
             <UpdateWorkspaceName workspace={workspace} />
             {/* <UpdateWorkspaceImage /> */}
             <CopyWorkspaceId workspaceId={workspace.id} />

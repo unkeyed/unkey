@@ -69,41 +69,35 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   return (
     <form onSubmit={handleSubmit(onSubmit)} id="workspace-name-form">
       <SettingCard
-        title={<span className="text-sm font-medium text-accent-12">Workspace Name</span>}
-        description={
-          <div className="font-normal text-[13px] max-w-[380px]">
-            Not customer-facing. Choose a name that is easy to recognize.
-          </div>
-        }
+        title={"Workspace Name"}
+        description={"Not customer-facing. Choose a name that is easy to recognize."}
         border="top"
         className="border-b-1"
-        contentWidth="w-full lg:w-[320px] h-24"
+        contentWidth="w-full lg:w-[320px]"
       >
-        <div className="flex flex-col w-full h-full gap-x-2 pt-2">
+        <div className="flex flex-row justify-end items-start w-full gap-x-2 mt-2">
           <input type="hidden" name="workspaceId" value={workspace.id} />
           <label htmlFor="workspaceName" className="hidden sr-only">
             Workspace Name
           </label>
-          <div className="inline-flex w-full gap-x-2">
-            <FormInput
-              className="w-[20rem] lg:w-[16rem] h-full"
-              placeholder="Workspace Name"
-              minLength={3}
-              error={errors.workspaceName?.message}
-              {...register("workspaceName")}
-            />
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              disabled={
-                updateName.isLoading || isSubmitting || !isValid || watch("workspaceName") === name
-              }
-              loading={updateName.isLoading || isSubmitting}
-            >
-              Save
-            </Button>
-          </div>
+          <FormInput
+            className="w-[16rem] lg:h-18"
+            placeholder="Workspace Name"
+            minLength={3}
+            error={errors.workspaceName?.message}
+            {...register("workspaceName")}
+          />
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            disabled={
+              updateName.isLoading || isSubmitting || !isValid || watch("workspaceName") === name
+            }
+            loading={updateName.isLoading || isSubmitting}
+          >
+            Save
+          </Button>
         </div>
       </SettingCard>
     </form>

@@ -11,8 +11,8 @@ export const changeWorkspaceName = t.procedure
     z.object({
       name: z
         .string()
-        .min(3, "workspace names must contain at least 3 characters")
-        .max(50, "workspace names must contain less than 50 characters"),
+        .min(3, "Workspace names must contain at least 3 characters")
+        .max(50, "Workspace names must contain less than 50 characters"),
       workspaceId: z.string(),
     }),
   )

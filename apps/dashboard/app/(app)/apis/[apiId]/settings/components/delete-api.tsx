@@ -76,8 +76,8 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
     <div>
       <SettingCard
         title={
-          <div className=" flex items-center justify-start gap-2.5">
-            <span className="text-sm font-medium text-accent-12">Delete API</span>
+          <div className="inline-flex gap-2">
+            <span>Delete API </span>
             {api.deleteProtection && (
               <StatusBadge variant={"locked"} text={"Locked"} icon={<Lock size="sm-thin" />} />
             )}
@@ -103,7 +103,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
         border="bottom"
         contentWidth="w-full lg:w-[320px]"
       >
-        <div className="w-full flex justify-end">
+        <div className="w-full flex justify-end lg:mt-4">
           <Button
             variant="outline"
             color="danger"
