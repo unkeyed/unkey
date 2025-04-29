@@ -7,24 +7,29 @@ import { Button, FormCheckbox } from "@unkey/ui";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import type { ActionComponentProps } from "../keys-table-action.popover";
+import { useUpdateKeyStatus } from "./hooks/use-update-key-status";
 
-const disableKeyFormSchema = z.object({
-  confirmDisable: z.boolean().refine((val) => val === true, {
-    message: "Please confirm that you want to disable this key",
+const updateKeyStatusFormSchema = z.object({
+  confirmStatusChange: z.boolean().refine((val) => val === true, {
+    message: "Please confirm that you want to change this key's status",
   }),
 });
 
-type DisableKeyFormValues = z.infer<typeof disableKeyFormSchema>;
-type DisableKeyProps = { keyDetails: KeyDetails } & ActionComponentProps;
+type UpdateKeyStatusFormValues = z.infer<typeof updateKeyStatusFormSchema>;
+type UpdateKeyStatusProps = { keyDetails: KeyDetails } & ActionComponentProps;
 
-export const DisableKey = ({ keyDetails, isOpen, onClose }: DisableKeyProps) => {
-  const methods = useForm<DisableKeyFormValues>({
-    resolver: zodResolver(disableKeyFormSchema),
+export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatusProps) => {
+  const isEnabling = !keyDetails.enabled;
+  const action = isEnabling ? "Enable" : "Disable";
+  const actionColor = isEnabling ? "default" : "danger";
+
+  const methods = useForm<UpdateKeyStatusFormValues>({
+    resolver: zodResolver(updateKeyStatusFormSchema),
     mode: "onChange",
     shouldFocusError: true,
     shouldUnregister: true,
     defaultValues: {
-      confirmDisable: false,
+      confirmStatusChange: true,
     },
   });
 
@@ -35,38 +40,49 @@ export const DisableKey = ({ keyDetails, isOpen, onClose }: DisableKeyProps) => 
     watch,
   } = methods;
 
-  // Watch confirmDisable value to enable/disable the submit button
-  const confirmDisable = watch("confirmDisable");
+  const confirmStatusChange = watch("confirmStatusChange");
+
+  const updateKeyStatus = useUpdateKeyStatus(() => {
+    onClose();
+  });
 
   const onSubmit = async () => {
     try {
-      // await key.mutateAsync({ ...data, keyId: keyDetails.id });
+      await updateKeyStatus.mutateAsync({
+        keyId: keyDetails.id,
+        enabled: isEnabling,
+      });
     } catch {
-      // `useEditKeyName` already shows a toast, but we still need to
+      // `useUpdateKeyStatus` already shows a toast, but we still need to
       // prevent unhandled‐rejection noise in the console.
     }
   };
 
   return (
     <FormProvider {...methods}>
-      <form id="edit-key-name-form" onSubmit={handleSubmit(onSubmit)}>
+      <form id="update-key-status-form" onSubmit={handleSubmit(onSubmit)}>
         <DialogContainer
           isOpen={isOpen}
-          subTitle="Disable this key to block verification requests"
+          subTitle={
+            isEnabling
+              ? "Enable this key to allow verification requests"
+              : "Disable this key to block verification requests"
+          }
           onOpenChange={onClose}
-          title="Disable key"
+          title={`${action} key`}
           footer={
             <div className="w-full flex flex-col gap-2 items-center justify-center">
               <Button
                 type="submit"
-                form="edit-key-name-form"
+                form="update-key-status-form"
                 variant="primary"
-                color="danger"
+                color={actionColor}
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!confirmDisable || isSubmitting}
+                disabled={!confirmStatusChange || isSubmitting}
+                loading={isSubmitting}
               >
-                {isSubmitting ? "Saving..." : "Disable key"}
+                {`${action} key`}
               </Button>
               <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
             </div>
@@ -96,17 +112,21 @@ export const DisableKey = ({ keyDetails, isOpen, onClose }: DisableKeyProps) => 
           </div>
 
           <Controller
-            name="confirmDisable"
+            name="confirmStatusChange"
             control={control}
             render={({ field }) => (
               <FormCheckbox
-                id="terms"
-                color="danger"
+                id="confirm-status-change"
+                color={actionColor}
                 size="md"
                 checked={field.value}
                 onCheckedChange={field.onChange}
-                label="I want to disable this key and stop all verification"
-                error={errors.confirmDisable?.message}
+                label={
+                  isEnabling
+                    ? "I want to enable this key and allow verification"
+                    : "I want to disable this key and stop all verification"
+                }
+                error={errors.confirmStatusChange?.message}
               />
             )}
           />

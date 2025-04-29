@@ -5,13 +5,14 @@ import {
   Ban,
   CalendarClock,
   ChartPie,
+  Check,
   Clone,
   Code,
   Gauge,
   PenWriting3,
   Trash,
 } from "@unkey/icons";
-import { DisableKey } from "./components/disable-key";
+import { UpdateKeyStatus } from "./components/disable-key";
 import { EditKeyName } from "./components/edit-key-name";
 import type { MenuItem } from "./keys-table-action.popover";
 
@@ -48,10 +49,10 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       divider: true,
     },
     {
-      id: "disable-key",
-      label: "Disable Key...",
-      icon: <Ban size="md-regular" />,
-      ActionComponent: (props) => <DisableKey {...props} keyDetails={key} />,
+      id: key.enabled ? "disable-key" : "enable-key",
+      label: key.enabled ? "Disable Key..." : "Enable Key...",
+      icon: key.enabled ? <Ban size="md-regular" /> : <Check size="md-regular" />,
+      ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
       divider: true,
     },
     {

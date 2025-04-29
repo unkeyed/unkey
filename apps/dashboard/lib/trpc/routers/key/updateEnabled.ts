@@ -3,6 +3,7 @@ import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
+
 export const updateKeyEnabled = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
@@ -79,4 +80,6 @@ export const updateKeyEnabled = t.procedure
             "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
         });
       });
+
+    return { enabled: input.enabled, keyId: input.keyId };
   });

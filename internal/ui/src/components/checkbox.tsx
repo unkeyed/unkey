@@ -165,7 +165,7 @@ const checkboxVariants = cva(
   },
 );
 
-const checkmarkVariants = cva("flex items-center justify-center text-white");
+const checkmarkVariants = cva("flex items-center justify-center");
 
 const VARIANT_MAP: Record<string, { variant: CheckboxVariant; color?: CheckboxColor }> = {
   default: { variant: "primary" },
@@ -217,6 +217,9 @@ const Checkbox = React.forwardRef<React.ElementRef<typeof CheckboxPrimitive.Root
 
     const iconSize = getIconSize(size);
 
+    const checkmarkColor =
+      mappedColor === "default" && mappedVariant === "primary" ? "text-black" : "text-white";
+
     return (
       <CheckboxPrimitive.Root
         ref={ref}
@@ -230,7 +233,7 @@ const Checkbox = React.forwardRef<React.ElementRef<typeof CheckboxPrimitive.Root
         )}
         {...props}
       >
-        <CheckboxPrimitive.Indicator className={cn(checkmarkVariants())}>
+        <CheckboxPrimitive.Indicator className={cn(checkmarkVariants(), checkmarkColor)}>
           <Check size={iconSize} />
         </CheckboxPrimitive.Indicator>
       </CheckboxPrimitive.Root>
