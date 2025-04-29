@@ -63,19 +63,21 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
                       : "",
                 )}
               >
-                {variant === "warning" ? (
-                  <TriangleWarning2
-                    size="md-regular"
-                    className="flex-shrink-0"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <CircleInfo
-                    size="md-regular"
-                    className="flex-shrink-0 mt-[3px]"
-                    aria-hidden="true"
-                  />
-                )}
+                <div className="size-[14px]">
+                  {variant === "warning" ? (
+                    <TriangleWarning2
+                      size="md-regular"
+                      className="flex-shrink-0 mt-[3px]"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <CircleInfo
+                      size="md-regular"
+                      className="flex-shrink-0 mt-[3px]"
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
                 <span className="flex-1">{description}</span>
               </output>
             ) : null}

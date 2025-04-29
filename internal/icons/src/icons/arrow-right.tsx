@@ -12,13 +12,13 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const XMark: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+export const ArrowRight: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
+      {...props}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -28,21 +28,18 @@ export const XMark: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          x1="14"
-          x2="4"
-          y1="4"
-          y2="14"
           strokeWidth={strokeWidth}
+          x1="15.25"
+          x2="2.75"
+          y1="9"
+          y2="9"
         />
-        <line
+        <polyline
           fill="none"
+          points="11 4.75 15.25 9 11 13.25"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          x1="4"
-          x2="14"
-          y1="4"
-          y2="14"
           strokeWidth={strokeWidth}
         />
       </g>

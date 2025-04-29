@@ -8,7 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn, processTimeFilters } from "@/lib/utils";
 import { ChevronDown } from "@unkey/icons";
 import { Button, DateTime, type Range, type TimeUnit } from "@unkey/ui";
-import { type PropsWithChildren, useEffect, useState } from "react";
+import { type PropsWithChildren, type ReactNode, useEffect, useState } from "react";
 import { CUSTOM_OPTION_ID, DEFAULT_OPTIONS } from "./constants";
 import { DateTimeSuggestions } from "./suggestions";
 import type { OptionsType } from "./types";
@@ -20,7 +20,11 @@ interface DatetimePopoverProps extends PropsWithChildren {
   initialTimeValues: { startTime?: number; endTime?: number; since?: string };
   onSuggestionChange: (title: string) => void;
   onDateTimeChange: (startTime?: number, endTime?: number, since?: string) => void;
-  customOptions?: OptionsType; // Add this to accept custom options
+  customOptions?: OptionsType;
+  customHeader?: ReactNode;
+  singleDateMode?: boolean; // Props for single date selection
+  minDate?: Date; // Props to set a minimum selectable date
+  maxDate?: Date; // Props to set a maximum selectable date
 }
 
 type TimeRangeType = {
@@ -34,7 +38,11 @@ export const DatetimePopover = ({
   initialTimeValues,
   onSuggestionChange,
   onDateTimeChange,
-  customOptions, // Accept custom options
+  customOptions,
+  customHeader,
+  singleDateMode = false,
+  minDate,
+  maxDate,
 }: DatetimePopoverProps) => {
   const isMobile = useIsMobile();
   const [timeRangeOpen, setTimeRangeOpen] = useState(false);
@@ -102,14 +110,17 @@ export const DatetimePopover = ({
       })),
     );
 
+    // In single date mode, we only care about the "from" date
+    // In range mode, we use both from and to dates
     setTime({
       startTime: processTimeFilters(newRange?.from, newStart)?.getTime(),
-      endTime: processTimeFilters(newRange?.to, newEnd)?.getTime(),
+      endTime: singleDateMode ? undefined : processTimeFilters(newRange?.to, newEnd)?.getTime(),
     });
   };
 
   const isTimeChanged =
-    time.startTime !== lastAppliedTime.startTime || time.endTime !== lastAppliedTime.endTime;
+    time.startTime !== lastAppliedTime.startTime ||
+    (!singleDateMode && time.endTime !== lastAppliedTime.endTime);
 
   const handleApplyFilter = () => {
     if (!isTimeChanged) {
@@ -117,9 +128,75 @@ export const DatetimePopover = ({
       return;
     }
 
-    onDateTimeChange(time.startTime, time.endTime);
-    setLastAppliedTime({ startTime: time.startTime, endTime: time.endTime });
+    onDateTimeChange(time.startTime, singleDateMode ? undefined : time.endTime);
+    setLastAppliedTime({
+      startTime: time.startTime,
+      endTime: singleDateMode ? undefined : time.endTime,
+    });
     setOpen(false);
+  };
+
+  // Ensure initial date is valid based on constraints
+  const ensureValidDate = (date: Date): Date => {
+    let validDate = new Date(date);
+
+    // Apply minimum date constraint if needed
+    if (minDate && validDate < minDate) {
+      validDate = new Date(minDate);
+    }
+
+    // Apply maximum date constraint if needed
+    if (maxDate && validDate > maxDate) {
+      validDate = new Date(maxDate);
+    }
+
+    return validDate;
+  };
+
+  // Initialize with appropriate date based on constraints
+  const getInitialRange = (): Range => {
+    let fromDate = startTime ? new Date(startTime) : new Date();
+    if (minDate || maxDate) {
+      fromDate = ensureValidDate(fromDate);
+    }
+
+    let toDate = undefined;
+    if (!singleDateMode && endTime) {
+      toDate = new Date(endTime);
+      if (minDate || maxDate) {
+        toDate = ensureValidDate(toDate);
+      }
+    }
+
+    return {
+      from: fromDate,
+      to: toDate,
+    };
+  };
+
+  const initialRange = getInitialRange();
+
+  // Create disabled dates array
+  const getDisabledDates = () => {
+    const disabledDates = [];
+
+    if (minDate) {
+      disabledDates.push({ before: minDate });
+    }
+
+    if (maxDate) {
+      disabledDates.push({ after: maxDate });
+    }
+
+    return disabledDates;
+  };
+
+  // Common calendar props to ensure consistency between mobile and desktop
+  const calendarProps = {
+    mode: (singleDateMode ? "single" : "range") as "single" | "range",
+    className: "px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]",
+    disabledDates: getDisabledDates(),
+    showOutsideDays: true,
   };
 
   return (
@@ -136,7 +213,9 @@ export const DatetimePopover = ({
                 onClick={() => setTimeRangeOpen(!timeRangeOpen)}
                 className="text-gray-11 h-9 border-border border px-2 text-sm w-full rounded-lg bg-gray-3 flex items-center justify-between"
               >
-                <span className="text-gray-9 text-[13px]">Filter by time range</span>
+                <span className="text-gray-9 text-[13px]">
+                  {singleDateMode ? "Select a date" : "Filter by time range"}
+                </span>
                 <ChevronDown
                   className={cn("transition-transform duration-150 ease-out", {
                     "rotate-180": timeRangeOpen,
@@ -152,17 +231,16 @@ export const DatetimePopover = ({
             <div className={cn("w-full", timeRangeOpen && "hidden")}>
               <DateTime
                 onChange={handleDateTimeChange}
-                initialRange={{
-                  from: startTime ? new Date(startTime) : undefined,
-                  to: endTime ? new Date(endTime) : undefined,
-                }}
+                initialRange={initialRange}
                 className="gap-3 h-full w-full flex"
+                minDate={minDate}
+                maxDate={maxDate}
               >
-                <DateTime.Calendar
-                  mode="range"
-                  className="px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]"
+                <DateTime.Calendar {...calendarProps} />
+                <DateTime.TimeInput
+                  type={singleDateMode ? "single" : "range"}
+                  className="px-3.5 h-9 mt-0"
                 />
-                <DateTime.TimeInput type="range" className="px-3.5 h-9 mt-0" />
                 <DateTime.Actions className="px-3.5 h-full pb-4">
                   <Button
                     variant="primary"
@@ -170,7 +248,7 @@ export const DatetimePopover = ({
                     onClick={handleApplyFilter}
                     disabled={!isTimeChanged}
                   >
-                    Apply Filter
+                    Apply
                   </Button>
                 </DateTime.Actions>
               </DateTime>
@@ -187,22 +265,28 @@ export const DatetimePopover = ({
             align="start"
           >
             <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
-              <PopoverHeader />
+              {customHeader || (
+                <div className="flex w-full h-8 justify-between px-2">
+                  <span className="text-gray-9 text-[13px] w-full">
+                    {singleDateMode ? "Select a date" : "Filter by time range"}
+                  </span>
+                  <KeyboardButton shortcut="T" className="p-0 m-0 min-w-5 w-5 h-5" />
+                </div>
+              )}
               <DateTimeSuggestions options={suggestions} onChange={handleSuggestionChange} />
             </div>
             <DateTime
               onChange={handleDateTimeChange}
-              initialRange={{
-                from: startTime ? new Date(startTime) : undefined,
-                to: endTime ? new Date(endTime) : undefined,
-              }}
+              initialRange={initialRange}
               className="gap-3 h-full"
+              minDate={minDate}
+              maxDate={maxDate}
             >
-              <DateTime.Calendar
-                mode="range"
-                className="px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]"
+              <DateTime.Calendar {...calendarProps} />
+              <DateTime.TimeInput
+                type={singleDateMode ? "single" : "range"}
+                className="px-3.5 h-9 mt-0"
               />
-              <DateTime.TimeInput type="range" className="px-3.5 h-9 mt-0" />
               <DateTime.Actions className="px-3.5 h-full pb-4">
                 <Button
                   variant="primary"
@@ -210,7 +294,7 @@ export const DatetimePopover = ({
                   onClick={handleApplyFilter}
                   disabled={!isTimeChanged}
                 >
-                  Apply Filter
+                  Apply
                 </Button>
               </DateTime.Actions>
             </DateTime>
@@ -218,14 +302,5 @@ export const DatetimePopover = ({
         </Popover>
       )}
     </>
-  );
-};
-
-const PopoverHeader = () => {
-  return (
-    <div className="flex w-full h-8 justify-between px-2">
-      <span className="text-gray-9 text-[13px] w-full">Filter by time range</span>
-      <KeyboardButton shortcut="T" className="p-0 m-0 min-w-5 w-5 h-5" />
-    </div>
   );
 };
