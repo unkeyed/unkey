@@ -132,24 +132,6 @@ export const FilterCheckbox = <
     [selectionMode, handleCheckboxChange, handleSingleSelection],
   );
 
-  // Handle keyboard event
-  const handleKeyboardEvent = useCallback(
-    (event: React.KeyboardEvent<HTMLLabelElement>, index?: number) => {
-      if (event.key === " " || event.key === "Enter") {
-        event.preventDefault();
-        if (index !== undefined) {
-          handleCheckboxClick(index);
-        } else if (selectionMode === "multiple") {
-          handleSelectAll();
-        }
-      }
-
-      // Use the handleKeyDown from the hook for other keyboard navigation
-      handleKeyDown(event, index);
-    },
-    [handleCheckboxClick, handleSelectAll, handleKeyDown, selectionMode],
-  );
-
   // Handle applying the filter
   const handleApplyFilter = useCallback(() => {
     const selectedCheckboxes = checkboxes.filter((c) => c.checked);
@@ -211,18 +193,20 @@ export const FilterCheckbox = <
         {selectionMode === "multiple" && (
           <div className="flex justify-between items-center">
             <label
-              htmlFor="select-all-checkbox"
+              // "checkbox-999 required to transfer focus from single checkboxes to this "select" all"
+              htmlFor={"checkbox-999"}
               className="flex items-center gap-[18px] cursor-pointer"
-              // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
-              role="checkbox"
               aria-checked={checkboxes.every((checkbox) => checkbox.checked)}
-              onKeyDown={handleKeyboardEvent}
-              tabIndex={0}
+              onKeyDown={(e) => handleKeyDown(e)}
             >
               <Checkbox
+                id={"checkbox-999"}
                 checked={checkboxes.every((checkbox) => checkbox.checked)}
                 className="size-4 rounded border-gray-4 [&_svg]:size-3"
-                onClick={handleSelectAll}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelectAll();
+                }}
               />
               <span className="text-xs text-accent-12">
                 {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
@@ -236,16 +220,17 @@ export const FilterCheckbox = <
             key={checkbox.id}
             htmlFor={`checkbox-${checkbox.id}`}
             className="flex gap-[18px] items-center py-1 cursor-pointer"
-            // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
-            role="checkbox"
             aria-checked={checkbox.checked}
-            onKeyDown={(e) => handleKeyboardEvent(e, index)}
-            tabIndex={0}
+            onKeyDown={(e) => handleKeyDown(e, index)}
           >
             <Checkbox
+              id={`checkbox-${checkbox.id}`}
               checked={checkbox.checked}
               className="size-4 rounded border-gray-4 [&_svg]:size-3"
-              onClick={() => handleCheckboxClick(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCheckboxClick(index);
+              }}
             />
             {renderOptionContent ? renderOptionContent(checkbox) : null}
           </label>
@@ -257,7 +242,7 @@ export const FilterCheckbox = <
       {renderBottomGradient && <div className="border-t border-gray-4" />}
       <Button
         variant="primary"
-        className="font-sans mt-2 w-full h-9 rounded-md"
+        className="mt-2 w-full h-9 rounded-md focus:ring-4 focus:ring-accent-9 focus:ring-offset-2"
         onClick={handleApplyFilter}
       >
         Apply Filter

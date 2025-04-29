@@ -3,7 +3,13 @@ import { format } from "date-fns";
 import { useState } from "react";
 // biome-ignore lint/correctness/noUnusedImports: otherwise biome complains
 import React from "react";
-import { type CaptionProps, type DateRange, DayPicker, useNavigation } from "react-day-picker";
+import {
+  type CaptionProps,
+  type DateRange,
+  DayPicker,
+  type Matcher,
+  useNavigation,
+} from "react-day-picker";
 import { cn } from "../../../lib/utils";
 import { buttonVariants } from "../../button";
 import { useDateTimeContext } from "../date-time";
@@ -67,14 +73,21 @@ const styleClassNames = {
     "relative after:content-[''] after:absolute after:bottom-0.5 after:left-1/2 after:w-1 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-gray-10 text-gray-12 hover:bg-gray-3",
   day_outside:
     "day-outside text-gray-10 opacity-50 aria-selected:bg-gray-3 aria-selected:text-gray-12 aria-selected:opacity-100",
-  day_disabled: "text-gray-10",
+  day_disabled: "text-gray-10 hover:bg-transparent cursor-not-allowed",
   day_hidden: "invisible",
 };
+
 type CalendarProps = {
   className?: string;
   classNames?: Record<string, string>;
   mode: "single" | "range";
   showOutsideDays?: boolean;
+  disabledDates?: Array<{
+    from?: Date;
+    to?: Date;
+    before?: Date;
+    after?: Date;
+  }>;
 };
 
 export const Calendar = ({
@@ -82,9 +95,10 @@ export const Calendar = ({
   classNames,
   mode,
   showOutsideDays = true,
+  disabledDates,
   ...props
 }: CalendarProps) => {
-  const { date, onDateChange, minDateRange, maxDateRange } = useDateTimeContext();
+  const { date, onDateChange, minDate, maxDate } = useDateTimeContext();
   const [singleDay, setSingleDay] = useState<Date | undefined>(date?.from);
 
   const handleChange = (newDate: DateRange | undefined) => {
@@ -132,8 +146,33 @@ export const Calendar = ({
     setSingleDay(newDate);
   };
 
+  const getDisabledMatcher = (): Matcher | Matcher[] | undefined => {
+    const matchers: Matcher[] = [];
+
+    if (minDate) {
+      matchers.push({ before: minDate });
+    }
+
+    if (maxDate) {
+      matchers.push({ after: maxDate });
+    }
+
+    if (disabledDates && disabledDates.length > 0) {
+      disabledDates.forEach((dateRange) => {
+        if (dateRange.from && dateRange.to) {
+          matchers.push({ from: dateRange.from, to: dateRange.to });
+        } else if (dateRange.before) {
+          matchers.push({ before: dateRange.before });
+        } else if (dateRange.after) {
+          matchers.push({ after: dateRange.after });
+        }
+      });
+    }
+
+    return matchers.length > 0 ? matchers : undefined;
+  };
+
   const commonProps = {
-    disabled: minDateRange && { before: minDateRange, after: maxDateRange },
     showOutsideDays,
     className: cn("", className),
     classNames: {
@@ -143,6 +182,7 @@ export const Calendar = ({
     components: {
       Caption: CustomCaptionComponent,
     },
+    disabled: getDisabledMatcher(),
     ...props,
   };
 
@@ -152,7 +192,6 @@ export const Calendar = ({
         {...commonProps}
         mode="range"
         selected={date}
-        disabled={(date) => date > new Date()}
         onSelect={(date: DateRange | undefined) => (date ? handleChange(date) : undefined)}
       />
     );
@@ -163,7 +202,6 @@ export const Calendar = ({
       {...commonProps}
       mode="single"
       selected={singleDay}
-      disabled={(date) => date > new Date()}
       onSelect={(date: Date | undefined) => handleSingleChange(date)}
     />
   );

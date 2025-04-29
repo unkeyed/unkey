@@ -6,6 +6,14 @@ import { useLogsQuery } from "./use-logs-query";
 let mockFilters: any[] = [];
 const mockDate = 1706024400000;
 
+vi.mock("@/providers/query-time-provider", () => ({
+  QueryTimeProvider: ({ children }: { children: React.ReactNode }) => children,
+  useQueryTime: () => ({
+    queryTime: new Date(mockDate),
+    refreshQueryTime: vi.fn(),
+  }),
+}));
+
 vi.mock("@/lib/trpc/client", () => {
   const useInfiniteQuery = vi.fn().mockReturnValue({
     data: null,
@@ -71,7 +79,7 @@ describe("useLogsQuery filter processing", () => {
       { field: "host", operator: "is", value: {} },
     ];
     renderHook(() => useLogsQuery());
-    expect(consoleMock).toHaveBeenCalledTimes(3);
+    expect(consoleMock).toHaveBeenCalledTimes(6);
   });
 
   it("handles time-based filters", () => {
