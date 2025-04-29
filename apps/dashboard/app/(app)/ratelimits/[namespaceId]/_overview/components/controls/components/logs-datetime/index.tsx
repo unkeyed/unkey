@@ -28,6 +28,7 @@ export const LogsDateTime = () => {
 
   return (
     <DatetimePopover
+      maxDate={new Date()}
       initialTimeValues={timeValues}
       onDateTimeChange={(startTime, endTime, since) => {
         const activeFilters = filters.filter(

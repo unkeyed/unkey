@@ -22,7 +22,10 @@ export const requireUser = t.middleware(({ next, ctx }) => {
 
 export const requireWorkspace = t.middleware(({ next, ctx }) => {
   if (!ctx.workspace) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found in context" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "workspace not found in context",
+    });
   }
 
   return next({
