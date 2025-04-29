@@ -75,7 +75,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
         className="border-b-1"
         contentWidth="w-full lg:w-[320px]"
       >
-        <div className="flex flex-row justify-end items-start w-full gap-x-2 mt-2">
+        <div className="flex flex-row justify-end items-center w-full gap-x-2 mt-2">
           <input type="hidden" name="workspaceId" value={workspace.id} />
           <label htmlFor="workspaceName" className="hidden sr-only">
             Workspace Name
