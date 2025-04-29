@@ -6,9 +6,10 @@ import {
   ArrowOppositeDirectionY,
   Ban,
   BookBookmark,
-  CalendarEvent,
-  ChartActivity2,
+  CalendarClock,
+  ChartPie,
   Clone,
+  Code,
   Focus,
   Gauge,
   Key,
@@ -25,7 +26,6 @@ import {
   TooltipTrigger,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { Code } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import React from "react";
@@ -213,63 +213,63 @@ export const KeysList = ({
                   id: "override",
                   label: "Edit key name...",
                   icon: <PenWriting3 size="md-regular" className="text-gray-9" />,
-                  onClick: (e) => {},
+                  onClick: () => {},
                 },
                 {
                   id: "copy",
                   label: "Copy key ID",
                   className: "mt-1",
                   icon: <Clone size="md-regular" className="text-gray-9" />,
-                  onClick: (e) => {},
+                  onClick: () => {},
                   divider: true,
                 },
                 {
                   id: "edit-owner-id",
                   label: "Edit Owner ID...",
                   icon: <ArrowOppositeDirectionY size="md-regular" className="text-gray-9" />,
-                  onClick: (e) => {},
+                  onClick: () => {},
                   divider: true,
                 },
                 {
                   id: "disable-key",
                   label: "Disable Key...",
                   icon: <Ban size="md-regular" className="text-gray-9" />,
-                  onClick: (e) => {},
+                  onClick: () => {},
                   divider: true,
                 },
                 {
                   id: "edit-remaining-uses",
                   label: "Edit remaining uses...",
-                  icon: <ChartActivity2 size="md-regular" className="text-gray-9" />,
-                  onClick: (e) => {},
+                  icon: <ChartPie size="md-regular" className="text-gray-9" />,
+                  onClick: () => {},
                 },
                 {
                   id: "edit-ratelimit",
                   label: "Edit ratelimit...",
                   icon: <Gauge size="md-regular" className="text-gray-9" />,
-                  onClick: (e) => {},
+                  onClick: () => {},
                 },
                 {
                   id: "edit-expiration",
                   label: "Edit expiration...",
-                  icon: <CalendarEvent size="md-regular" className="text-gray-9" />,
-                  onClick: (e) => {},
+                  icon: <CalendarClock size="md-regular" className="text-gray-9" />,
+                  onClick: () => {},
                 },
                 {
                   id: "edit-metadata",
                   label: "Edit metadata...",
                   icon: (
                     // TODO: Replace this with our own Code icon
-                    <Code size="md-regular" className="text-gray-9 size-3 stroke-2" />
+                    <Code size="md-regular" className="text-gray-9" />
                   ),
-                  onClick: (e) => {},
+                  onClick: () => {},
                   divider: true,
                 },
                 {
                   id: "delete-key",
                   label: "Delete key",
                   icon: <Trash size="md-regular" className="text-gray-9" />,
-                  onClick: (e) => {},
+                  onClick: () => {},
                 },
               ]}
             />
