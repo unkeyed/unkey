@@ -37,7 +37,7 @@ type EditKeyNameProps = { keyDetails: KeyDetails } & ActionComponentProps;
 
 export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) => {
   const methods = usePersistedForm<EditNameFormValues>(
-    EDIT_NAME_FORM_STORAGE_KEY,
+    `${EDIT_NAME_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
       resolver: zodResolver(editNameFormSchema),
       mode: "onChange",

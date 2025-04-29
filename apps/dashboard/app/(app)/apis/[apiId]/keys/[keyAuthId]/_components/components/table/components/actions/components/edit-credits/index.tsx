@@ -26,14 +26,11 @@ import { getKeyLimitDefaults } from "./utils";
 
 const EDIT_CREDITS_FORM_STORAGE_KEY = "unkey_edit_credits_form_state";
 
-type EditCreditsFormValues = CreditsFormValues & {
-  originalRemaining?: number;
-};
 type EditCreditsProps = { keyDetails: KeyDetails } & ActionComponentProps;
 
 export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) => {
-  const methods = usePersistedForm<EditCreditsFormValues>(
-    EDIT_CREDITS_FORM_STORAGE_KEY,
+  const methods = usePersistedForm<CreditsFormValues>(
+    `${EDIT_CREDITS_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
       resolver: zodResolver(creditsSchema),
       mode: "onChange",
@@ -113,12 +110,12 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
   };
 
   const key = useEditCredits(() => {
-    clearPersistedData();
     reset(getKeyLimitDefaults(keyDetails));
+    clearPersistedData();
     onClose();
   });
 
-  const onSubmit = async (data: EditCreditsFormValues) => {
+  const onSubmit = async (data: CreditsFormValues) => {
     try {
       if (data.limit) {
         if (data.limit.enabled === true) {
@@ -192,12 +189,12 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
       <form id="edit-remaining-uses-form" onSubmit={handleSubmit(onSubmit)}>
         <DialogContainer
           isOpen={isOpen}
-          subTitle="Update the number of remaining uses and refill settings for this key"
+          subTitle="Update the number of credits and refill settings for this key"
           onOpenChange={() => {
             saveCurrentValues();
             onClose();
           }}
-          title="Edit Remaining Uses"
+          title="Edit Credits"
           footer={
             <div className="w-full flex flex-col gap-2 items-center justify-center">
               <Button
@@ -206,9 +203,10 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!isValid || isSubmitting || !isDirty}
+                disabled={!isDirty || !isValid || isSubmitting}
+                loading={key.isLoading}
               >
-                Update remaining uses
+                Update credits
               </Button>
               <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
             </div>
