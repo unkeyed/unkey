@@ -14,6 +14,7 @@ import {
 } from "@unkey/icons";
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditKeyName } from "./components/edit-key-name";
+import { EditRemainingUses } from "./components/edit-remaining-uses";
 import type { MenuItem } from "./keys-table-action.popover";
 
 export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
@@ -59,7 +60,7 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       id: "edit-remaining-uses",
       label: "Edit remaining uses...",
       icon: <ChartPie size="md-regular" />,
-      onClick: () => {},
+      ActionComponent: (props) => <EditRemainingUses {...props} keyDetails={key} />,
     },
     {
       id: "edit-ratelimit",

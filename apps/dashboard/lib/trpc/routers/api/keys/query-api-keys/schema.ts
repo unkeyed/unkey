@@ -19,6 +19,7 @@ export const keyDetailsResponseSchema = z.object({
   key: z.object({
     remaining: z.number().nullable(),
     refillAmount: z.number().nullable(),
+    refillDay: z.number().nullable(),
   }),
 });
 

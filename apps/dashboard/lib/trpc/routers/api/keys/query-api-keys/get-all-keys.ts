@@ -237,6 +237,7 @@ export async function getAllKeys({
         key: {
           remaining: key.remaining,
           refillAmount: key.refillAmount,
+          refillDay: key.refillDay,
         },
       };
     });

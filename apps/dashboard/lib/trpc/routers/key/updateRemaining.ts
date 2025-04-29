@@ -91,4 +91,6 @@ export const updateKeyRemaining = t.procedure
             "We were unable to update remaining limits on this key. Please try again or contact support@unkey.dev",
         });
       });
+
+    return { keyId: input.keyId };
   });

@@ -40,60 +40,6 @@ export const KeysTableActionPopover = ({ items, align = "end" }: BaseTableAction
     }
   }, [open, items]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<Element>) => {
-    e.stopPropagation();
-    const activeElement = document.activeElement;
-    const currentIndex = menuItems.current.findIndex((item) => item === activeElement);
-    const itemCount = items.length;
-
-    const findNextEnabledIndex = (startIndex: number, direction: 1 | -1) => {
-      let index = startIndex;
-      for (let i = 0; i < itemCount; i++) {
-        index = (index + direction + itemCount) % itemCount;
-        if (!items[index].disabled) {
-          return index;
-        }
-      }
-      return startIndex;
-    };
-
-    switch (e.key) {
-      case "Tab": {
-        e.preventDefault();
-        const nextIndex = findNextEnabledIndex(currentIndex, e.shiftKey ? -1 : 1);
-        setFocusIndex(nextIndex);
-        menuItems.current[nextIndex]?.focus();
-        break;
-      }
-      case "ArrowDown": {
-        e.preventDefault();
-        const nextDownIndex = findNextEnabledIndex(currentIndex, 1);
-        setFocusIndex(nextDownIndex);
-        menuItems.current[nextDownIndex]?.focus();
-        break;
-      }
-      case "ArrowUp": {
-        e.preventDefault();
-        const nextUpIndex = findNextEnabledIndex(currentIndex, -1);
-        setFocusIndex(nextUpIndex);
-        menuItems.current[nextUpIndex]?.focus();
-        break;
-      }
-      case "Escape":
-        e.preventDefault();
-        setOpen(false);
-        break;
-      case "Enter":
-      case "ArrowRight":
-      case " ":
-        e.preventDefault();
-        if (activeElement === menuItems.current[currentIndex] && !items[currentIndex].disabled) {
-          items[currentIndex].onClick?.(e);
-        }
-        break;
-    }
-  };
-
   const handleActionSelection = (value: string) => {
     setEnabledItem(value);
   };
@@ -131,12 +77,8 @@ export const KeysTableActionPopover = ({ items, align = "end" }: BaseTableAction
           setOpen(false);
         }}
       >
-        <div
-          role="menu"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={handleKeyDown}
-          className="py-2"
-        >
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+        <div role="menu" onClick={(e) => e.stopPropagation()} className="py-2">
           {items.map((item, index) => (
             <div key={item.id}>
               <div className="px-2">

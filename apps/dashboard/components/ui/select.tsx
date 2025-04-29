@@ -7,24 +7,24 @@ import { Check, ChevronDown } from "lucide-react";
 import * as React from "react";
 
 const selectTriggerVariants = cva(
-  "flex min-h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-gray-7 text-gray-12 items-center justify-between",
+  "flex min-h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12 items-center justify-between",
   {
     variants: {
       variant: {
         default: [
-          "border border-gray-5 hover:border-gray-8 bg-gray-2",
+          "border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black",
           "focus:border focus:border-accent-12 focus:ring-2 focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0",
         ],
         success: [
-          "border border-success-9 hover:border-success-10 bg-gray-2",
+          "border border-success-9 hover:border-success-10 bg-gray-2 dark:bg-black",
           "focus:border-success-8 focus:ring-2 focus:ring-success-2 focus-visible:outline-none",
         ],
         warning: [
-          "border border-warning-9 hover:border-warning-10 bg-gray-2",
+          "border border-warning-9 hover:border-warning-10 bg-gray-2 dark:bg-black",
           "focus:border-warning-8 focus:ring-2 focus:ring-warning-2 focus-visible:outline-none",
         ],
         error: [
-          "border border-error-9 hover:border-error-10 bg-gray-2",
+          "border border-error-9 hover:border-error-10 bg-gray-2 dark:bg-black",
           "focus:border-error-8 focus:ring-2 focus:ring-error-2 focus-visible:outline-none",
         ],
       },
@@ -38,7 +38,7 @@ const selectTriggerVariants = cva(
 const selectWrapperVariants = cva("relative flex items-center w-full", {
   variants: {
     variant: {
-      default: "text-gray-11",
+      default: "text-grayA-12",
       success: "text-success-11",
       warning: "text-warning-11",
       error: "text-error-11",
