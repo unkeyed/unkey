@@ -18,6 +18,7 @@ import {
 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRef, useState } from "react";
+import { UNNAMED_KEY } from "../create-key.constants";
 import { SecretKey } from "./secret-key";
 
 const PopoverAnchor = PopoverPrimitive.Anchor;
@@ -139,7 +140,7 @@ export const KeyCreatedSuccessDialog = ({
                       disabled={!keyData.name}
                     >
                       <div className="text-accent-9 text-xs max-w-[160px] truncate">
-                        {keyData.name ?? "Unnamed Key"}
+                        {keyData.name ?? UNNAMED_KEY}
                       </div>
                     </RatelimitOverviewTooltip>
                   </div>

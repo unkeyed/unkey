@@ -10,10 +10,27 @@ import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
 import { z } from "zod";
 import type { ActionComponentProps } from "../keys-table-action.popover";
+import { useEditKeyName } from "./hooks/use-edit-key";
 
-const editNameFormSchema = z.object({
-  name: nameSchema,
-});
+const editNameFormSchema = z
+  .object({
+    name: nameSchema,
+    //Hidden field. Required for comparison
+    originalName: z.string().optional().default(""),
+  })
+  .superRefine((data, ctx) => {
+    const normalizedNewName = (data.name || "").trim();
+    const normalizedOriginalName = (data.originalName || "").trim();
+
+    if (normalizedNewName === normalizedOriginalName && normalizedNewName !== "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "New name must be different from the current name",
+        path: ["name"],
+      });
+    }
+  });
+
 const EDIT_NAME_FORM_STORAGE_KEY = "unkey_edit_name_form_state";
 
 type EditNameFormValues = z.infer<typeof editNameFormSchema>;
@@ -29,6 +46,7 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
       shouldUnregister: true,
       defaultValues: {
         name: keyDetails.name || "",
+        originalName: keyDetails.name || "",
       },
     },
     "memory",
@@ -40,6 +58,8 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
     register,
     loadSavedValues,
     saveCurrentValues,
+    clearPersistedData,
+    reset,
   } = methods;
 
   // Load saved values when the dialog opens
@@ -49,16 +69,21 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
     }
   }, [isOpen, loadSavedValues]);
 
+  const key = useEditKeyName(() => {
+    clearPersistedData();
+    reset({
+      name: keyDetails.name || "",
+      originalName: keyDetails.name || "",
+    });
+    onClose();
+  });
+
   const onSubmit = async (data: EditNameFormValues) => {
     try {
-      // Add your API call here to update the key name
-      // Example: await updateKeyName(key.id, data.name);
-      console.log("Updating key name to:", data.name);
-
-      // Close the dialog after successful submission
-      onClose();
-    } catch (error) {
-      console.error("Failed to update key name:", error);
+      await key.mutateAsync({ ...data, keyId: keyDetails.id });
+    } catch {
+      // `useEditKeyName` already shows a toast, but we still need to
+      // prevent unhandled‐rejection noise in the console.
     }
   };
 
@@ -72,7 +97,7 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
             saveCurrentValues();
             onClose();
           }}
-          title="Create Namespace"
+          title="Edit key name"
           footer={
             <div className="w-full flex flex-col gap-2 items-center justify-center">
               <Button
@@ -82,10 +107,11 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
                 size="xlg"
                 className="w-full rounded-lg"
                 disabled={!isValid || isSubmitting}
-                // loading={key.isLoading}
+                loading={key.isLoading}
               >
-                {isSubmitting ? "Saving..." : "Save"}
+                {isSubmitting ? "Saving..." : "Update key name"}
               </Button>
+              <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
             </div>
           }
         >
@@ -133,6 +159,12 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
               variant="default"
               optional
               {...register("name")}
+            />
+            <FormInput
+              hidden
+              className="hidden"
+              defaultValue={keyDetails.name ?? ""}
+              {...register("originalName")}
             />
           </div>
         </DialogContainer>
