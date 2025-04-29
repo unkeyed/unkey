@@ -14,7 +14,6 @@ import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 export const Gauge: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
-
   return (
     <svg
       {...props}
