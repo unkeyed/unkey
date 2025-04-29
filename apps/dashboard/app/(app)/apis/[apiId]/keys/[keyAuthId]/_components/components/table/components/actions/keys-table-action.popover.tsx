@@ -1,16 +1,22 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dots } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { type PropsWithChildren, useEffect, useRef, useState } from "react";
+import { type FC, type PropsWithChildren, useEffect, useRef, useState } from "react";
+
+export type ActionComponentProps = {
+  isOpen: boolean;
+  onClose: () => void;
+};
 
 export type MenuItem = {
   id: string;
   label: string;
   icon: React.ReactNode;
-  onClick: (e: React.MouseEvent<Element, MouseEvent> | React.KeyboardEvent<Element>) => void;
+  onClick?: (e: React.MouseEvent<Element, MouseEvent> | React.KeyboardEvent<Element>) => void;
   className?: string;
   disabled?: boolean;
-  divider?: boolean; // Add this property to control dividers
+  divider?: boolean;
+  ActionComponent?: FC<ActionComponentProps>;
 };
 
 type BaseTableActionPopoverProps = PropsWithChildren<{
@@ -18,7 +24,8 @@ type BaseTableActionPopoverProps = PropsWithChildren<{
   align?: "start" | "end";
 }>;
 
-export const TableActionPopover = ({ items, align = "end" }: BaseTableActionPopoverProps) => {
+export const KeysTableActionPopover = ({ items, align = "end" }: BaseTableActionPopoverProps) => {
+  const [enabledItem, setEnabledItem] = useState<string>();
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
   const menuItems = useRef<HTMLDivElement[]>([]);
@@ -58,7 +65,6 @@ export const TableActionPopover = ({ items, align = "end" }: BaseTableActionPopo
         menuItems.current[nextIndex]?.focus();
         break;
       }
-      case "j":
       case "ArrowDown": {
         e.preventDefault();
         const nextDownIndex = findNextEnabledIndex(currentIndex, 1);
@@ -66,7 +72,6 @@ export const TableActionPopover = ({ items, align = "end" }: BaseTableActionPopo
         menuItems.current[nextDownIndex]?.focus();
         break;
       }
-      case "k":
       case "ArrowUp": {
         e.preventDefault();
         const nextUpIndex = findNextEnabledIndex(currentIndex, -1);
@@ -80,14 +85,17 @@ export const TableActionPopover = ({ items, align = "end" }: BaseTableActionPopo
         break;
       case "Enter":
       case "ArrowRight":
-      case "l":
       case " ":
         e.preventDefault();
         if (activeElement === menuItems.current[currentIndex] && !items[currentIndex].disabled) {
-          items[currentIndex].onClick(e);
+          items[currentIndex].onClick?.(e);
         }
         break;
     }
+  };
+
+  const handleActionSelection = (value: string) => {
+    setEnabledItem(value);
   };
 
   return (
@@ -151,16 +159,26 @@ export const TableActionPopover = ({ items, align = "end" }: BaseTableActionPopo
                   )}
                   onClick={(e) => {
                     if (!item.disabled) {
-                      item.onClick(e);
-                      setOpen(false);
+                      item.onClick?.(e);
+
+                      if (!item.ActionComponent) {
+                        setOpen(false);
+                      }
+
+                      setEnabledItem(item.id);
                     }
                   }}
                 >
-                  {item.icon}
+                  <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
+                    {item.icon}
+                  </div>
                   <span className="text-[13px] font-medium">{item.label}</span>
                 </div>
               </div>
               {item.divider && <div className="h-[1px] bg-grayA-3 w-full my-2" />}
+              {item.ActionComponent && enabledItem === item.id && (
+                <item.ActionComponent isOpen onClose={() => handleActionSelection("none")} />
+              )}
             </div>
           ))}
         </div>
