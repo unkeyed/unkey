@@ -1,7 +1,7 @@
-import { RatelimitSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/ratelimit-setup";
+import { ExpirationSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/expiration-setup";
 import {
-  type RatelimitFormValues,
-  ratelimitSchema,
+  type ExpirationFormValues,
+  expirationSchema,
 } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
 import { DialogContainer } from "@/components/dialog-container";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
@@ -9,38 +9,39 @@ import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/sche
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useEffect } from "react";
-import { FormProvider } from "react-hook-form";
+import { FormProvider, useWatch } from "react-hook-form";
 import type { ActionComponentProps } from "../../keys-table-action.popover";
-import { useEditRatelimits } from "../hooks/use-edit-ratelimits";
+import { useEditExpiration } from "../hooks/use-edit-expiration";
 import { KeyInfo } from "../key-info";
-import { getKeyRatelimitsDefaults } from "./utils";
+import { getKeyExpirationDefaults } from "./utils";
 
-const EDIT_RATELIMITS_FORM_STORAGE_KEY = "unkey_edit_ratelimits_form_state";
+const EDIT_EXPIRATION_FORM_STORAGE_KEY = "unkey_edit_expiration_form_state";
 
-type EditRatelimitsProps = {
+type EditExpirationProps = {
   keyDetails: KeyDetails;
 } & ActionComponentProps;
 
-export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsProps) => {
-  const methods = usePersistedForm<RatelimitFormValues>(
-    `${EDIT_RATELIMITS_FORM_STORAGE_KEY}_${keyDetails.id}`,
+export const EditExpiration = ({ keyDetails, isOpen, onClose }: EditExpirationProps) => {
+  const methods = usePersistedForm<ExpirationFormValues>(
+    `${EDIT_EXPIRATION_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
-      resolver: zodResolver(ratelimitSchema),
+      resolver: zodResolver(expirationSchema),
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,
-      defaultValues: getKeyRatelimitsDefaults(keyDetails),
+      defaultValues: getKeyExpirationDefaults(keyDetails),
     },
     "memory",
   );
 
   const {
     handleSubmit,
-    formState: { isSubmitting, isValid, isDirty },
+    formState: { isSubmitting, isValid },
     loadSavedValues,
     saveCurrentValues,
     clearPersistedData,
     reset,
+    control,
   } = methods;
 
   // Load saved values when the dialog opens
@@ -50,51 +51,55 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
     }
   }, [isOpen, loadSavedValues]);
 
-  const key = useEditRatelimits(() => {
-    reset(getKeyRatelimitsDefaults(keyDetails));
+  const updateExpiration = useEditExpiration(() => {
+    reset(getKeyExpirationDefaults(keyDetails));
     clearPersistedData();
     onClose();
   });
 
-  const onSubmit = async (data: RatelimitFormValues) => {
+  const onSubmit = async (data: ExpirationFormValues) => {
     try {
-      await key.mutateAsync({
+      await updateExpiration.mutateAsync({
         keyId: keyDetails.id,
-        ratelimitType: "v2",
-        ratelimit: {
-          enabled: data.ratelimit.enabled,
-          data: data.ratelimit.data,
+        expiration: {
+          enabled: data.expiration.enabled,
+          data: data.expiration.enabled ? data.expiration.data : undefined,
         },
       });
     } catch {
-      // `useEditRatelimits` already shows a toast, but we still need to
+      // `useEditExpiration` already shows a toast, but we still need to
       // prevent unhandled rejection noise in the console.
     }
   };
 
+  const expirationEnabled = useWatch({
+    control,
+    name: "expiration.data",
+  });
+
   return (
     <FormProvider {...methods}>
-      <form id="edit-remaining-uses-form" onSubmit={handleSubmit(onSubmit)}>
+      <form id="edit-expiration-form" onSubmit={handleSubmit(onSubmit)}>
         <DialogContainer
           isOpen={isOpen}
-          subTitle="Control how often this key can be used"
+          subTitle="Automatically revoke this key after a certain date"
           onOpenChange={() => {
             saveCurrentValues();
             onClose();
           }}
-          title="Edit ratelimits"
+          title="Edit expiration"
           footer={
             <div className="w-full flex flex-col gap-2 items-center justify-center">
               <Button
                 type="submit"
-                form="edit-remaining-uses-form"
+                form="edit-expiration-form"
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!isDirty || !isValid || isSubmitting}
-                loading={key.isLoading}
+                disabled={!isValid || isSubmitting || !expirationEnabled}
+                loading={updateExpiration.isLoading}
               >
-                Update ratelimit
+                Update expiration
               </Button>
               <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
             </div>
@@ -105,7 +110,7 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
             <div className="h-[1px] bg-grayA-3 w-full" />
           </div>
           <div className="[&>*:first-child]:p-0">
-            <RatelimitSetup />
+            <ExpirationSetup />
           </div>
         </DialogContainer>
       </form>

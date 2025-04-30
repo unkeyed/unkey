@@ -14,11 +14,12 @@ import {
 } from "@unkey/icons";
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";
+import { EditExpiration } from "./components/edit-expiration";
 import { EditKeyName } from "./components/edit-key-name";
 import { EditRatelimits } from "./components/edit-ratelimits";
 import type { MenuItem } from "./keys-table-action.popover";
 
-export const getKeysTableActionItems = (key: KeyDetails, workspaceId: string): MenuItem[] => {
+export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
   return [
     {
       id: "override",
@@ -67,15 +68,13 @@ export const getKeysTableActionItems = (key: KeyDetails, workspaceId: string): M
       id: "edit-ratelimit",
       label: "Edit ratelimit...",
       icon: <Gauge size="md-regular" />,
-      ActionComponent: (props) => (
-        <EditRatelimits {...props} keyDetails={key} workspaceId={workspaceId} />
-      ),
+      ActionComponent: (props) => <EditRatelimits {...props} keyDetails={key} />,
     },
     {
       id: "edit-expiration",
       label: "Edit expiration...",
       icon: <CalendarClock size="md-regular" />,
-      onClick: () => {},
+      ActionComponent: (props) => <EditExpiration {...props} keyDetails={key} />,
     },
     {
       id: "edit-metadata",

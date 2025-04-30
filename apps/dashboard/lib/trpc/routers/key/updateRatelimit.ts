@@ -8,7 +8,6 @@ import { requireUser, requireWorkspace, t } from "../../trpc";
 
 const baseRatelimitInputSchema = z.object({
   keyId: z.string(),
-  workspaceId: z.string(),
 });
 
 const ratelimitValidationV2 = ratelimitSchema.extend({
