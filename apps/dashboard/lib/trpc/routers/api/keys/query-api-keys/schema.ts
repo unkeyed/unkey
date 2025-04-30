@@ -6,6 +6,30 @@ export const identitySchema = z.object({
 
 export type Identity = z.infer<typeof identitySchema>;
 
+export const ratelimitItemSchema = z.object({
+  name: z.string(),
+  limit: z.number(),
+  refillInterval: z.number(),
+});
+
+export type RatelimitItem = z.infer<typeof ratelimitItemSchema>;
+
+export const creditsSchema = z.object({
+  enabled: z.boolean(),
+  remaining: z.number().nullable(),
+  refillAmount: z.number().nullable(),
+  refillDay: z.number().nullable(),
+});
+
+export type Credits = z.infer<typeof creditsSchema>;
+
+export const ratelimitsSchema = z.object({
+  enabled: z.boolean(),
+  items: z.array(ratelimitItemSchema),
+});
+
+export type Ratelimits = z.infer<typeof ratelimitsSchema>;
+
 export const keyDetailsResponseSchema = z.object({
   id: z.string(),
   name: z.string().nullable(),
@@ -17,9 +41,8 @@ export const keyDetailsResponseSchema = z.object({
   updated_at_m: z.number().nullable(),
   start: z.string(),
   key: z.object({
-    remaining: z.number().nullable(),
-    refillAmount: z.number().nullable(),
-    refillDay: z.number().nullable(),
+    credits: creditsSchema,
+    ratelimits: ratelimitsSchema,
   }),
 });
 

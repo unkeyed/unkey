@@ -203,6 +203,13 @@ export async function getAllKeys({
         return filterConditions;
       },
       with: {
+        ratelimits: {
+          columns: {
+            name: true,
+            limit: true,
+            duration: true,
+          },
+        },
         identity: {
           columns: {
             externalId: true,
@@ -218,7 +225,7 @@ export async function getAllKeys({
     // Remove the extra item if it exists
     const keys = hasMore ? keysQuery.slice(0, limit) : keysQuery;
 
-    const transformedKeys = keys.map((key) => {
+    const transformedKeys: KeyDetails[] = keys.map((key) => {
       const identityData = key.identity
         ? {
             external_id: key.identity.externalId,
@@ -235,9 +242,20 @@ export async function getAllKeys({
         updated_at_m: key.updatedAtM,
         start: key.start,
         key: {
-          remaining: key.remaining,
-          refillAmount: key.refillAmount,
-          refillDay: key.refillDay,
+          credits: {
+            enabled: Boolean(key.remaining), // If remaining is bigger than 0 it means user has enabled credits option
+            remaining: key.remaining,
+            refillAmount: key.refillAmount,
+            refillDay: key.refillDay,
+          },
+          ratelimits: {
+            enabled: key.ratelimits.length > 0,
+            items: key.ratelimits.map((r) => ({
+              limit: r.limit,
+              name: r.name,
+              refillInterval: r.duration,
+            })),
+          },
         },
       };
     });
