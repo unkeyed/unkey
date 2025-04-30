@@ -1,24 +1,16 @@
-import { ProtectionSwitch } from "@/app/(app)/apis/[apiId]/_components/create-key/components/protection-switch";
+import { UsageSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/credits-setup";
 import {
   type CreditsFormValues,
   creditsSchema,
 } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
 import { DialogContainer } from "@/components/dialog-container";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChartPie, CircleInfo } from "@unkey/icons";
-import { Button, FormInput } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { useEffect } from "react";
-import { Controller, FormProvider, useWatch } from "react-hook-form";
+import { FormProvider } from "react-hook-form";
 import type { ActionComponentProps } from "../../keys-table-action.popover";
 import { useEditCredits } from "../hooks/use-edit-credits";
 import { KeyInfo } from "../key-info";
@@ -43,12 +35,7 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
 
   const {
     handleSubmit,
-    formState: { isSubmitting, errors, isValid, isDirty },
-    register,
-    control,
-    setValue,
-    getValues,
-    trigger,
+    formState: { isSubmitting, isValid, isDirty },
     loadSavedValues,
     saveCurrentValues,
     clearPersistedData,
@@ -61,53 +48,6 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
       loadSavedValues();
     }
   }, [isOpen, loadSavedValues]);
-
-  const currentRefillInterval = useWatch({
-    control,
-    name: "limit.data.refill.interval",
-    defaultValue: keyDetails.key.refillDay
-      ? "monthly"
-      : !keyDetails.key.refillAmount
-        ? "daily"
-        : "none",
-  });
-
-  const handleRefillIntervalChange = (value: "none" | "daily" | "monthly") => {
-    if (value === "none") {
-      // For "none", set entire refill object
-      setValue(
-        "limit.data.refill",
-        {
-          interval: "none",
-          amount: undefined,
-          refillDay: undefined,
-        },
-        { shouldValidate: true },
-      );
-    } else if (value === "daily") {
-      // For "daily"
-      setValue(
-        "limit.data.refill",
-        {
-          interval: "daily",
-          amount: getValues("limit.data.refill.amount") || 100,
-          refillDay: undefined, // Must be undefined for daily
-        },
-        { shouldValidate: true },
-      );
-    } else if (value === "monthly") {
-      // For "monthly"
-      setValue(
-        "limit.data.refill",
-        {
-          interval: "monthly",
-          amount: getValues("limit.data.refill.amount") || 100,
-          refillDay: getValues("limit.data.refill.refillDay") || 1,
-        },
-        { shouldValidate: true },
-      );
-    }
-  };
 
   const key = useEditCredits(() => {
     reset(getKeyLimitDefaults(keyDetails));
@@ -152,38 +92,6 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
     }
   };
 
-  const limitEnabled = useWatch({
-    control,
-    name: "limit.enabled",
-  });
-
-  const handleSwitchChange = (checked: boolean) => {
-    setValue("limit.enabled", checked);
-
-    // When enabling, ensure default values are set properly
-    if (checked) {
-      // Set default remaining to 100 if not already set
-      if (!getValues("limit.data.remaining")) {
-        setValue("limit.data.remaining", 100, { shouldValidate: true });
-      }
-
-      // Set up refill structure with defaults, using the entire object at once
-      if (!getValues("limit.data.refill.interval")) {
-        setValue(
-          "limit.data.refill",
-          {
-            interval: "none",
-            amount: undefined,
-            refillDay: undefined,
-          },
-          { shouldValidate: true },
-        );
-      }
-    }
-
-    trigger("limit");
-  };
-
   return (
     <FormProvider {...methods}>
       <form id="edit-remaining-uses-form" onSubmit={handleSubmit(onSubmit)}>
@@ -216,104 +124,8 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
           <div className="py-1 my-2">
             <div className="h-[1px] bg-grayA-3 w-full" />
           </div>
-          <div className="space-y-5 py-1">
-            <ProtectionSwitch
-              description="Turn on to limit how many times this key can be used. Once the limit
-            is reached, the key will be disabled."
-              title="Credits"
-              icon={<ChartPie className="text-gray-12" size="sm-regular" />}
-              checked={limitEnabled}
-              onCheckedChange={handleSwitchChange}
-              {...register("limit.enabled")}
-            />
-            <FormInput
-              className="[&_input:first-of-type]:h-[36px]"
-              placeholder="100"
-              inputMode="numeric"
-              type="number"
-              label="Number of uses"
-              description="Enter the remaining amount of uses for this key."
-              error={errors.limit?.data?.remaining?.message}
-              disabled={!limitEnabled}
-              readOnly={!limitEnabled}
-              {...register("limit.data.remaining")}
-            />
-
-            <Controller
-              control={control}
-              name="limit.data.refill.interval"
-              render={({ field }) => (
-                <div className="space-y-1.5">
-                  <div className="text-gray-11 text-[13px] flex items-center">Refill Rate</div>
-                  <Select
-                    onValueChange={(value) => {
-                      handleRefillIntervalChange(value as "none" | "daily" | "monthly");
-                    }}
-                    value={field.value || "none"}
-                    disabled={!limitEnabled}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Select refill interval" />
-                    </SelectTrigger>
-                    <SelectContent className="border-none rounded-md">
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <output className="text-gray-9 flex gap-2 items-center text-[13px]">
-                    <CircleInfo size="md-regular" aria-hidden="true" />
-                    <span>Interval key will be refilled.</span>
-                  </output>
-                </div>
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="limit.data.refill.amount"
-              render={({ field }) => (
-                <FormInput
-                  className="[&_input:first-of-type]:h-[36px]"
-                  placeholder="100"
-                  inputMode="numeric"
-                  type="number"
-                  label="Number of uses per interval"
-                  description="Enter the number of uses to refill per interval."
-                  error={errors.limit?.data?.refill?.amount?.message}
-                  disabled={!limitEnabled || currentRefillInterval === "none"}
-                  readOnly={!limitEnabled || currentRefillInterval === "none"}
-                  value={field.value === undefined ? "" : field.value}
-                  onChange={(e) => {
-                    const value = e.target.value === "" ? undefined : Number(e.target.value);
-                    field.onChange(value);
-                  }}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="limit.data.refill.refillDay"
-              render={({ field }) => (
-                <FormInput
-                  className="[&_input:first-of-type]:h-[36px]"
-                  placeholder="1"
-                  inputMode="numeric"
-                  type="number"
-                  label="On which day of the month should we refill the key?"
-                  description="Enter the day to refill monthly (1-31)."
-                  error={errors.limit?.data?.refill?.refillDay?.message}
-                  disabled={!limitEnabled || currentRefillInterval !== "monthly"}
-                  readOnly={!limitEnabled || currentRefillInterval !== "monthly"}
-                  value={field.value === undefined ? "" : field.value}
-                  onChange={(e) => {
-                    const value = e.target.value === "" ? undefined : Number(e.target.value);
-                    field.onChange(value);
-                  }}
-                />
-              )}
-            />
+          <div className="[&>*:first-child]:p-0">
+            <UsageSetup />
           </div>
         </DialogContainer>
       </form>
