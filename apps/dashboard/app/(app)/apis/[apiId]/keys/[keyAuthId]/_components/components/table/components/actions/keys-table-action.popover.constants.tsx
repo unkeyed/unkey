@@ -16,6 +16,7 @@ import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";
 import { EditExpiration } from "./components/edit-expiration";
 import { EditKeyName } from "./components/edit-key-name";
+import { EditMetadata } from "./components/edit-metadata";
 import { EditRatelimits } from "./components/edit-ratelimits";
 import type { MenuItem } from "./keys-table-action.popover";
 
@@ -80,7 +81,7 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       id: "edit-metadata",
       label: "Edit metadata...",
       icon: <Code size="md-regular" />,
-      onClick: () => {},
+      ActionComponent: (props) => <EditMetadata {...props} keyDetails={key} />,
       divider: true,
     },
     {

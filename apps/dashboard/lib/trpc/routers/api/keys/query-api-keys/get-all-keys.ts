@@ -242,6 +242,7 @@ export async function getAllKeys({
         identity: identityData,
         updated_at_m: key.updatedAtM,
         start: key.start,
+        metadata: key.meta,
         key: {
           credits: {
             enabled: Boolean(key.remaining), // If remaining is bigger than 0 it means user has enabled credits option

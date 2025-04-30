@@ -40,6 +40,7 @@ export const keyDetailsResponseSchema = z.object({
   expires: z.number().nullable(),
   identity: identitySchema.nullable(),
   updated_at_m: z.number().nullable(),
+  metadata: z.string().nullable(),
   start: z.string(),
   key: z.object({
     credits: creditsSchema,
