@@ -7,6 +7,7 @@ export function Navigation({ keyId }: { keyId: string }) {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Gear />}>
+        <Navbar.Breadcrumbs.Link href="/settings">Settings</Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link href="/settings/root-keys">Root Keys</Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
           href={`/settings/root-keys/${keyId}`}
