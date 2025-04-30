@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
-import { getAuth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth/get-auth";
 import { db } from "@/lib/db";
 import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
@@ -59,7 +59,10 @@ export default async function (props: Props) {
   if (props.searchParams.workspaceId && !props.searchParams.product) {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
+        and(
+          eq(table.id, props.searchParams.workspaceId!),
+          isNull(table.deletedAtM)
+        ),
     });
     if (!workspace) {
       return redirect("/new");
@@ -108,7 +111,9 @@ export default async function (props: Props) {
               <div className="flex items-center justify-center p-4 border rounded-lg bg-primary/5">
                 <GlobeLock className="w-6 h-6 text-primary" />
               </div>
-              <h4 className="text-lg font-medium">I want to ratelimit something</h4>
+              <h4 className="text-lg font-medium">
+                I want to ratelimit something
+              </h4>
               <p className="text-sm text-content-subtle">
                 Global low latency ratelimiting for your application.
               </p>
@@ -132,7 +137,10 @@ export default async function (props: Props) {
   if (props.searchParams.product === "keys") {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
+        and(
+          eq(table.id, props.searchParams.workspaceId!),
+          isNull(table.deletedAtM)
+        ),
     });
     if (!workspace) {
       return redirect("/new");
@@ -162,7 +170,10 @@ export default async function (props: Props) {
   if (props.searchParams.product === "ratelimit") {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
+        and(
+          eq(table.id, props.searchParams.workspaceId!),
+          isNull(table.deletedAtM)
+        ),
     });
     if (!workspace) {
       return redirect("/new");
