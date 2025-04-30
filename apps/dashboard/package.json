@@ -60,7 +60,7 @@
     "@unkey/validation": "workspace:^",
     "@unkey/vercel": "workspace:^",
     "@vercel/og": "^0.6.2",
-    "@workos-inc/node": "^7.35.1",
+    "@workos-inc/node": "^7.47.0",
     "autoprefixer": "^10.4.19",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

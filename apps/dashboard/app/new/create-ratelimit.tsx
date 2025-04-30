@@ -14,7 +14,9 @@ type Props = {
 
 export const CreateRatelimit: React.FC<Props> = async (props) => {
   const user = await getCurrentUser();
-  if (!user) {
+
+  // make typescript happy
+  if (!user || !user.orgId || !user.role) {
     return null;
   }
 
@@ -25,7 +27,8 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
     },
     workspace: props.workspace,
     tenant: {
-      id: user.orgId!, // if you have a workspace, you will have an orgId
+      id: user.orgId,
+      role: user.role,
     },
     audit: {
       location: "",

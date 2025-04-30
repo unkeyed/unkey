@@ -1,4 +1,4 @@
-import { getOrgId } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ApiListClient } from "./_components/api-list-client";
@@ -13,7 +13,7 @@ type Props = {
 };
 
 export default async function ApisOverviewPage(props: Props) {
-  const orgId = await getOrgId();
+  const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });

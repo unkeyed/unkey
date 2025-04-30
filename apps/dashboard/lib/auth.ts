@@ -1,18 +1,18 @@
-import { getAuth as noCacheGetAuth } from "@/lib/auth/get-auth";
+import { getAuth as getBaseAuth } from "@/lib/auth/get-auth";
 import { auth } from "@/lib/auth/server";
-import type { User } from "@/lib/auth/types";
+import type { AuthenticatedUser } from "@/lib/auth/types";
 import { redirect } from "next/navigation";
-import { cache } from "react";
+import type { NextRequest } from "next/server";
 
 type GetAuthResult = {
-  userId: string | null;
-  orgId: string | null;
+  userId: string;
+  orgId: string;
+  role: string;
+  impersonator?: {
+    email: string;
+    reason?: string | null;
+  };
 };
-
-export async function getIsImpersonator(): Promise<boolean> {
-  const user = await getCurrentUser();
-  return user.impersonator !== undefined;
-}
 
 /**
  * Validates the current user session and performs token refresh if needed.
@@ -26,34 +26,18 @@ export async function getIsImpersonator(): Promise<boolean> {
  * @returns Authentication result containing userId and orgId if authenticated, null values otherwise
  * @throws Redirects to sign-in or organization/workspace creation pages if requirements aren't met
  */
-export const getAuth = cache(async (_req?: Request): Promise<GetAuthResult> => {
-  const authResult = await noCacheGetAuth();
+export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
+  const authResult = await getBaseAuth(req);
   if (!authResult.userId) {
     redirect("/auth/sign-in");
   }
 
-  return authResult;
-});
-
-/**
- * Retrieves the current organization ID or redirects if unavailable.
- *
- * This function checks authentication status and organization membership.
- * It will redirect to the sign-in page if the user is not authenticated,
- * or to the workspace creation page if the user has no organization.
- * Results are cached for the duration of the server request.
- *
- * @returns The current user's organization ID
- */
-export const getOrgId = cache(async (): Promise<string> => {
-  const { orgId } = await getAuth();
-
-  if (!orgId) {
+  if (!authResult.orgId && !authResult.role) {
     redirect("/new");
   }
 
-  return orgId;
-});
+  return authResult as GetAuthResult;
+}
 
 /**
  * Retrieves the complete current user object with organization information.
@@ -66,12 +50,12 @@ export const getOrgId = cache(async (): Promise<string> => {
  * @returns Full user object with organization ID
  * @throws Redirects to sign-in page if user is not authenticated or not found
  */
-export const getCurrentUser = cache(async (): Promise<User> => {
-  const { userId, orgId } = await getAuth();
+export async function getCurrentUser(): Promise<AuthenticatedUser> {
+  const { userId, orgId, impersonator, role } = await getAuth();
 
   const user = await auth.getUser(userId!); // getAuth will redirect if there's no userId
   if (!user) {
     redirect("/auth/sign-in");
   }
-  return { ...user, orgId };
-});
+  return { ...user, orgId, role, impersonator };
+}
