@@ -1,12 +1,11 @@
 "use client";
 import { FormField } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
 import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
-import { Button, InlineLink, SettingCard } from "@unkey/ui";
+import { Button, InlineLink, SettingCard, Textarea } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -54,7 +53,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     },
   });
 
-  const isValid = api.ipWhitelist?.toString() === form.watch("ipWhitelist").toString();
+  const isValid = api.ipWhitelist?.toString() !== form.watch("ipWhitelist").toString();
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateIps.mutateAsync(values);
@@ -93,7 +92,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         contentWidth="w-full"
       >
         {isEnabled ? (
-          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
+          <div className="flex flex-row justify-items-start items-center w-full gap-x-2">
             <input type="hidden" name="workspaceId" value={api.workspaceId} />
             <input type="hidden" name="apiId" value={api.id} />
             <label htmlFor="ipWhitelist" className="hidden sr-only">
@@ -104,8 +103,8 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
               name="ipWhitelist"
               render={({ field }) => (
                 <Textarea
-                  className="max-w-sm"
                   {...field}
+                  className="lg:w-[16rem]"
                   autoComplete="off"
                   placeholder={`127.0.0.1
 1.1.1.1`}
@@ -115,8 +114,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             <Button
               size="lg"
               variant="primary"
-              className="items-end"
-              disabled={!form.formState.isValid || form.formState.isSubmitting || isValid}
+              disabled={!form.formState.isValid || form.formState.isSubmitting || !isValid}
               type="submit"
               loading={form.formState.isSubmitting}
             >
@@ -124,7 +122,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             </Button>
           </div>
         ) : (
-          <div className="flex w-full gap-2 lg:justify-end lg:items-center ">
+          <div className="flex flex-col justify-center items-end w-full h-full lg:mt-6">
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
               <Button type="button" size="lg" variant="primary" color="info">
                 Upgrade to Enterprise

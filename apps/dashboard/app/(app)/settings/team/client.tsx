@@ -69,8 +69,8 @@ export default function TeamPageClient({ team }: { team: boolean }) {
 
   if (!team) {
     return (
-      <div className="w-full h-screen -mt-40 flex items-center justify-center">
-        <Empty>
+      <div className="relative items-center justify-center h-screen w-full">
+        <Empty className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] w-full">
           <Empty.Title>Upgrade Your Plan to Add Team Members</Empty.Title>
           <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
           <Empty.Actions>

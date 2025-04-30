@@ -1,16 +1,9 @@
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Navigation } from "@/components/navigation/navigation";
-import { PageContent } from "@/components/page-content";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Code } from "@/components/ui/code";
 import { getOrgId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Gear } from "@unkey/icons";
 import { redirect } from "next/navigation";
-import { navigation } from "../constants";
+import { WorkspaceNavbar } from "../workspace-navbar";
+import { CopyWorkspaceId } from "./copy-workspace-id";
 import { UpdateWorkspaceName } from "./update-workspace-name";
-// import { UpdateWorkspaceImage } from "./update-workspace-image";
 
 /**
  * TODO: WorkOS doesn't have workspace images
@@ -30,30 +23,19 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <Navigation href="/settings/general" name="Settings" icon={<Gear />} />
-      <PageContent>
-        <SubMenu navigation={navigation} segment="general" />
-        <div className="mb-20 flex flex-col gap-8 mt-8">
-          <UpdateWorkspaceName workspace={workspace} />
-          {/* <UpdateWorkspaceImage /> */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Workspace ID</CardTitle>
-              <CardDescription>
-                This is your workspace id. It's used in some API calls.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Code className="flex h-8 w-full max-w-sm items-center justify-between gap-4">
-                <pre>{workspace.id}</pre>
-                <div className="flex items-start justify-between gap-4">
-                  <CopyButton value={workspace.id} />
-                </div>
-              </Code>
-            </CardContent>
-          </Card>
+      <WorkspaceNavbar workspace={workspace} activePage={{ href: "general", text: "General" }} />
+      <div className="py-3 w-full flex items-center justify-center">
+        <div className="w-[760px] flex flex-col justify-center items-center gap-5 mx-6">
+          <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
+            Workspace Settings
+          </div>
+          <div className="w-full flex flex-col">
+            <UpdateWorkspaceName workspace={workspace} />
+            {/* <UpdateWorkspaceImage /> */}
+            <CopyWorkspaceId workspaceId={workspace.id} />
+          </div>
         </div>
-      </PageContent>
+      </div>
     </div>
   );
 }
