@@ -12,6 +12,7 @@ import {
   PenWriting3,
   Trash,
 } from "@unkey/icons";
+import { DeleteKey } from "./components/delete-key";
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";
 import { EditExpiration } from "./components/edit-expiration";
@@ -88,7 +89,7 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       id: "delete-key",
       label: "Delete key",
       icon: <Trash size="md-regular" />,
-      onClick: () => {},
+      ActionComponent: (props) => <DeleteKey {...props} keyDetails={key} />,
     },
   ];
 };
