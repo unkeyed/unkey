@@ -1,7 +1,7 @@
 import { BarsFilter } from "@unkey/icons";
+import { OverviewTooltip } from "@unkey/ui";
 import type { RatelimitOverviewFilterValue } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
-import { RatelimitOverviewTooltip } from "./ratelimit-overview-tooltip";
 
 type FilterPair = {
   status?: "blocked" | "passed";
@@ -25,7 +25,7 @@ export const InlineFilter = ({
   );
 
   return (
-    <RatelimitOverviewTooltip content={<span className="text-xs font-medium">{content}</span>}>
+    <OverviewTooltip content={<span className="text-xs font-medium">{content}</span>}>
       <button
         onClick={() => {
           updateFilters([
@@ -48,6 +48,6 @@ export const InlineFilter = ({
           size="md-regular"
         />
       </button>
-    </RatelimitOverviewTooltip>
+    </OverviewTooltip>
   );
 };

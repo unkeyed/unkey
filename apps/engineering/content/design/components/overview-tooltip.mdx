@@ -1,0 +1,36 @@
+---
+title: OverviewTooltip
+description: The Overview Tooltip is a specialized tooltip component that provides contextual information about elements in a consistent and accessible way. It's built on top of the base Tooltip component with additional styling and positioning options.
+---
+import { OverviewTooltipExample } from "./overview-tooltip.example"
+
+## Features
+
+- Customizable positioning (top, right, bottom, left)
+- Alignment control (start, center, end)
+- Side offset adjustment
+- Disabled state support
+- Child element support via `asChild` prop
+
+## Usage
+
+<OverviewTooltipExample />
+
+## Props
+
+| Prop      | Type                    | Default   | Description                                      |
+|-----------|-------------------------|-----------|--------------------------------------------------|
+| content   | React.ReactNode         | -         | The content to display in the tooltip            |
+| position  | TooltipPosition         | -         | Configuration for tooltip positioning            |
+| disabled  | boolean                 | false     | Whether the tooltip is disabled                  |
+| asChild   | boolean                 | false     | Whether to render the trigger as a child element |
+
+## Position Configuration
+
+The `position` prop accepts an object with the following properties:
+
+| Property    | Type                    | Default   | Description                                      |
+|-------------|-------------------------|-----------|--------------------------------------------------|
+| side        | "top" \| "right" \| "bottom" \| "left" | "right" | The side where the tooltip appears |
+| align       | "start" \| "center" \| "end" | "center" | The alignment of the tooltip |
+| sideOffset  | number                  | -         | The offset from the side in pixels               | 

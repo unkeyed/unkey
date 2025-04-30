@@ -3,10 +3,10 @@ import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { OverviewTooltip } from "@unkey/ui";
 import ms from "ms";
 import { calculateBlockedPercentage } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
-import { RatelimitOverviewTooltip } from "./ratelimit-overview-tooltip";
 
 type IdentifierColumnProps = {
   log: RatelimitOverviewLog;
@@ -25,7 +25,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
 
   return (
     <div className="flex gap-6 items-center pl-2">
-      <RatelimitOverviewTooltip
+      <OverviewTooltip
         content={
           <p className="text-sm">
             {isFullyBlocked ? (
@@ -43,7 +43,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
         <div className={cn(hasMoreBlocked ? "block" : "invisible")}>
           <TriangleWarning2 />
         </div>
-      </RatelimitOverviewTooltip>
+      </OverviewTooltip>
       <div className="flex gap-3 items-center">
         <div
           className={cn(

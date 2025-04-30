@@ -1,5 +1,6 @@
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import type { PropsWithChildren } from "react";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import React, { type PropsWithChildren } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
 
 type TooltipPosition = {
   side?: "top" | "right" | "bottom" | "left";
@@ -7,7 +8,7 @@ type TooltipPosition = {
   sideOffset?: number;
 };
 
-export const RatelimitOverviewTooltip = ({
+const OverviewTooltip = ({
   content,
   children,
   position,
@@ -35,3 +36,5 @@ export const RatelimitOverviewTooltip = ({
     </TooltipProvider>
   );
 };
+
+export { OverviewTooltip };
