@@ -75,7 +75,7 @@ export default async function AuthenticatedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await getAuth(); // we want the uncached version since the cached version redirects to sign-in
+  const { userId } = await getAuth(); // we want the one without redirect
 
   if (userId) {
     return redirect("/apis");
