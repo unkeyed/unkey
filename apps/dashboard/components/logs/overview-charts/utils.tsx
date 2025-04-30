@@ -1,15 +1,15 @@
-// components/logs/chart/utils/format-interval.ts
-
-import { formatTimestampTooltip } from "../chart/utils/format-timestamp";
+import { format } from "date-fns";
 import type { TimeseriesData } from "./types";
 
 /**
  * Creates a tooltip formatter that displays time intervals between data points
+ * with a custom timestamp format that matches the bottom axis
  *
  * @param data - The chart data array containing timestamp information
+ * @param timeFormat - Optional custom time format (defaults to "HH:mm")
  * @returns A formatter function for use with chart tooltips
  */
-export function createTimeIntervalFormatter(data?: TimeseriesData[]) {
+export function createTimeIntervalFormatter(data?: TimeseriesData[], timeFormat = "HH:mm") {
   return (tooltipPayload: any[]) => {
     // Basic validation checks
     if (!tooltipPayload?.[0]?.payload) {
@@ -18,15 +18,15 @@ export function createTimeIntervalFormatter(data?: TimeseriesData[]) {
 
     const currentPayload = tooltipPayload[0].payload;
     const currentTimestamp = currentPayload.originalTimestamp;
-    const currentDisplayX = currentPayload.displayX;
+
+    // Format timestamp with the provided format (defaults to just hours:minutes)
+    const formattedCurrentTimestamp = format(new Date(currentTimestamp), timeFormat);
 
     // If we don't have necessary data, fallback to displaying just the current point
-    if (!currentTimestamp || !currentDisplayX || !data?.length) {
+    if (!currentTimestamp || !data?.length) {
       return (
         <div>
-          <span className="font-mono text-accent-9 text-xs px-4">
-            {currentDisplayX || formatTimestampTooltip(currentTimestamp)}
-          </span>
+          <span className="font-mono text-accent-9 text-xs px-4">{formattedCurrentTimestamp}</span>
         </div>
       );
     }
@@ -38,7 +38,7 @@ export function createTimeIntervalFormatter(data?: TimeseriesData[]) {
     if (currentIndex === -1 || currentIndex >= data.length - 1) {
       return (
         <div>
-          <span className="font-mono text-accent-9 text-xs px-4">{currentDisplayX}</span>
+          <span className="font-mono text-accent-9 text-xs px-4">{formattedCurrentTimestamp}</span>
         </div>
       );
     }
@@ -48,21 +48,19 @@ export function createTimeIntervalFormatter(data?: TimeseriesData[]) {
     if (!nextPoint) {
       return (
         <div>
-          <span className="font-mono text-accent-9 text-xs px-4">{currentDisplayX}</span>
+          <span className="font-mono text-accent-9 text-xs px-4">{formattedCurrentTimestamp}</span>
         </div>
       );
     }
 
-    // Format the next timestamp
-    const nextDisplayX =
-      nextPoint.displayX ||
-      (nextPoint.originalTimestamp ? formatTimestampTooltip(nextPoint.originalTimestamp) : "");
+    // Format the next timestamp with the same format
+    const formattedNextTimestamp = format(new Date(nextPoint.originalTimestamp), timeFormat);
 
     // Return formatted interval
     return (
       <div>
         <span className="font-mono text-accent-9 text-xs px-4">
-          {currentDisplayX} - {nextDisplayX}
+          {formattedCurrentTimestamp} - {formattedNextTimestamp}
         </span>
       </div>
     );

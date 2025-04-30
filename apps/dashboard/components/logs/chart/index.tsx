@@ -184,7 +184,9 @@ export function LogsTimeseriesBarChart({
                       </div>
                     }
                     className="rounded-lg shadow-lg border border-gray-4"
-                    labelFormatter={(_, payload) => createTimeIntervalFormatter(data)(payload)}
+                    labelFormatter={(_, payload) =>
+                      createTimeIntervalFormatter(data, "HH:mm")(payload)
+                    }
                   />
                 );
               }}
