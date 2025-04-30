@@ -1,6 +1,6 @@
 "use server";
 
-import { SetSessionCookie, deleteCookie, getCookie, setCookies } from "@/lib/auth/cookies";
+import { deleteCookie, getCookie, setCookies, setSessionCookie } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import {
   AuthErrorCode,
@@ -187,7 +187,7 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
   try {
     const { newToken, expiresAt } = await auth.switchOrg(orgId);
 
-    await SetSessionCookie({ token: newToken, expiresAt });
+    await setSessionCookie({ token: newToken, expiresAt });
 
     return { success: true };
   } catch (error) {

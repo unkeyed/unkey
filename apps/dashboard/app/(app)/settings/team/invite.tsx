@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import type { Organization, User } from "@/lib/auth/types";
+import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
@@ -34,8 +34,8 @@ const formSchema = z.object({
 });
 
 interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  user: User | null;
-  organization: Organization | null;
+  user: AuthenticatedUser;
+  organization: Organization;
 }
 
 export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps) => {

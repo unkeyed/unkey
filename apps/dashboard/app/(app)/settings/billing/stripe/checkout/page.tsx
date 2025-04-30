@@ -1,5 +1,5 @@
 import { Code } from "@/components/ui/code";
-import { getOrgId } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { Empty } from "@unkey/ui";
@@ -15,7 +15,7 @@ type Props = {
 };
 
 export default async function StripeRedirect(props: Props) {
-  const orgId = await getOrgId();
+  const { orgId } = await getAuth();
   if (!orgId) {
     return redirect("/auth/sign-in");
   }

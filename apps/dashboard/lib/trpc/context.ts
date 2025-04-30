@@ -5,7 +5,7 @@ import { getAuth } from "../auth/get-auth";
 import { db } from "../db";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
-  const { userId, orgId } = await getAuth(req as any);
+  const { userId, orgId, role } = await getAuth(req as any);
 
   const ws = orgId
     ? await db.query.workspaces.findFirst({
@@ -25,6 +25,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
     tenant: orgId
       ? {
           id: orgId,
+          role,
         }
       : null,
   };
