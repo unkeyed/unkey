@@ -2,8 +2,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import { useState } from "react";
+import { OverviewTooltip } from "@unkey/ui";
 import { StatusBadge } from "./components/status-badge";
 import { useKeyStatus } from "./use-key-status";
 
@@ -15,7 +14,6 @@ type StatusDisplayProps = {
 export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
   const { primary, count, isLoading, statuses, isError } = useKeyStatus(keyAuthId, keyData);
   const utils = trpc.useUtils();
-  const [isOpen, setIsOpen] = useState(false);
 
   const enableKeyMutation = trpc.api.keys.enableKey.useMutation({
     onSuccess: async () => {
@@ -58,12 +56,10 @@ export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
   }
 
   return (
-    <TooltipProvider>
-      <Tooltip open={isOpen} onOpenChange={setIsOpen}>
-        <TooltipTrigger onClick={() => setIsOpen(!isOpen)} className="cursor-pointer">
-          <StatusBadge primary={primary} count={count} />
-        </TooltipTrigger>
-        <TooltipContent className="p-0 bg-white dark:bg-black border rounded-lg border-grayA-3 w-72 flex flex-col drop-shadow-xl">
+    <OverviewTooltip
+      asChild
+      content={
+        <div className="p-0 bg-white dark:bg-black border rounded-lg border-grayA-3 w-72 flex flex-col drop-shadow-xl">
           {statuses && statuses.length > 1 && (
             <div className="border-b border-grayA-3 ">
               <div className="px-4 py-3">
@@ -136,8 +132,10 @@ export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
               </div>
             </div>
           ))}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+        </div>
+      }
+    >
+      <StatusBadge primary={primary} count={count} />
+    </OverviewTooltip>
   );
 };

@@ -3,15 +3,7 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Focus, Key } from "@unkey/icons";
-import {
-  AnimatedLoadingSpinner,
-  Button,
-  Empty,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@unkey/ui";
+import { AnimatedLoadingSpinner, Button, Empty, OverviewTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
@@ -82,17 +74,11 @@ export const KeysList = ({
             <div className="flex flex-col items-start px-[18px] py-[6px]">
               <div className="flex gap-4 items-center">
                 {identity ? (
-                  <TooltipProvider delayDuration={100}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        {React.cloneElement(iconContainer, {
-                          className: cn(iconContainer.props.className, "cursor-pointer"),
-                        })}
-                      </TooltipTrigger>
-                      <TooltipContent
-                        className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12"
-                        side="right"
-                      >
+                  <OverviewTooltip
+                    variant="secondary"
+                    position={{ side: "right" }}
+                    content={
+                      <div>
                         This key is associated with the identity:{" "}
                         {key.identity_id ? (
                           <Link
@@ -108,9 +94,14 @@ export const KeysList = ({
                         ) : (
                           <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
                         )}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                      </div>
+                    }
+                    asChild
+                  >
+                    {React.cloneElement(iconContainer, {
+                      className: cn(iconContainer.props.className, "cursor-pointer"),
+                    })}
+                  </OverviewTooltip>
                 ) : (
                   iconContainer
                 )}

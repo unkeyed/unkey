@@ -1,6 +1,6 @@
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { OverviewTooltip } from "@unkey/ui";
 import type { ReactNode } from "react";
 
 type Field<T> = {
@@ -71,7 +71,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
         )}
         onClick={!field.skipTooltip ? () => handleClick(field) : undefined}
       >
-        <span className="text-accent-9 text-[13px]">{field.label}</span>
+        <span className="text-accent-9 text-[13px] lg:no-wrap text-left">{field.label}</span>
         <span className="text-accent-12 text-right w-3/4">
           {field.description(field.content as NonNullable<T[number]>)}
         </span>
@@ -83,12 +83,15 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
     }
 
     return (
-      <TooltipProvider key={`${field.label}-${index}`}>
-        <Tooltip>
-          <TooltipTrigger asChild>{baseContent}</TooltipTrigger>
-          <TooltipContent side="bottom">{field.tooltipContent}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <OverviewTooltip
+        position={{ side: "top" }}
+        key={`${field.label}-${index}`}
+        variant="secondary"
+        content={field.tooltipContent}
+        triggerClassName="w-full flex flex-row"
+      >
+        {baseContent}
+      </OverviewTooltip>
     );
   };
 

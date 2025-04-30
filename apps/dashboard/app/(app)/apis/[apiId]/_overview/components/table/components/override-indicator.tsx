@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { OverviewTooltip } from "@unkey/ui";
 import Link from "next/link";
 import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked-percentage";
 
@@ -14,17 +14,9 @@ export const KeyTooltip = ({
   content: React.ReactNode;
 }) => {
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent
-          className="bg-gray-12 text-gray-1 px-3 py-2 border border-accent-6 shadow-md font-medium text-xs"
-          side="right"
-        >
-          {content}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <OverviewTooltip content={content} asChild position={{ side: "right" }}>
+      {children}
+    </OverviewTooltip>
   );
 };
 

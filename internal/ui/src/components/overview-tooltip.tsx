@@ -1,6 +1,16 @@
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import React, { type PropsWithChildren } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
+import { cn } from "../lib/utils";
+
+const variants = {
+  primary:
+    "bg-gray-12 text-gray-1 border-accent-6 px-3 py-2 text-xs font-medium shadow-md rounded-md",
+  secondary:
+    "bg-gray-1 text-accent-12 border border-gray-4 px-3 py-2 text-xs font-medium shadow-md rounded-md",
+} as const;
+
+type TooltipVariant = keyof typeof variants;
 
 type TooltipPosition = {
   side?: "top" | "right" | "bottom" | "left";
@@ -9,23 +19,33 @@ type TooltipPosition = {
 };
 
 const OverviewTooltip = ({
+  delayDuration,
   content,
   children,
   position,
   disabled = false,
   asChild = false,
+  className,
+  variant = "primary",
+  triggerClassName,
 }: PropsWithChildren<{
+  variant?: TooltipVariant;
+  delayDuration?: number;
   content: React.ReactNode;
   position?: TooltipPosition;
   disabled?: boolean;
   asChild?: boolean;
+  className?: string;
+  triggerClassName?: string;
 }>) => {
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={delayDuration ?? undefined}>
       <Tooltip open={disabled ? false : undefined}>
-        <TooltipTrigger asChild={asChild}>{children}</TooltipTrigger>
+        <TooltipTrigger asChild={asChild} className={triggerClassName}>
+          {children}
+        </TooltipTrigger>
         <TooltipContent
-          className="bg-gray-12 text-gray-1 px-3 py-2 border border-accent-6 shadow-md font-medium text-xs"
+          className={cn(variants[variant], className)}
           side={position?.side || "right"}
           align={position?.align || "center"}
           sideOffset={position?.sideOffset}

@@ -1,7 +1,7 @@
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
+import { OverviewTooltip } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useQueries } from "./queries-context";
 import { QueriesItemRow } from "./queries-item-row";
@@ -51,7 +51,6 @@ export function ListGroup({
   selectedIndex,
   changeBookmark,
 }: ListGroupProps) {
-  const [toolTipOpen, setToolTipOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<ToolTipMessageType>();
   const [tooltipMessage, setTooltipMessage] = useState<ToolTipMessageType>(
     filterList.bookmarked ? tooltipMessageOptions.saved : tooltipMessageOptions.save,
@@ -81,14 +80,9 @@ export function ListGroup({
   }
 
   const handleMouseEnter = () => {
-    setToolTipOpen(true);
     setTooltipMessage(
       filterList.bookmarked ? tooltipMessageOptions.remove : tooltipMessageOptions.save,
     );
-  };
-
-  const handleMouseLeave = () => {
-    setToolTipOpen(false);
   };
 
   const handleSelection = () => {
@@ -147,33 +141,29 @@ export function ListGroup({
         <div
           className="flex flex-col h-[24px] pr-2 mt-1.5 w-[24px]"
           onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
         >
-          <Tooltip open={toolTipOpen}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  "flex h-7 w-6 ml-[1px]  justify-center items-center text-accent-9 rounded-md",
-                  filterList.bookmarked
-                    ? "text-info-9 hover:bg-info-3"
-                    : "hover:bg-gray-3 hover:text-accent-12",
-                  `tabIndex-${0}`,
-                )}
-                onClick={() => handleBookmarkChanged()}
-                onKeyUp={(e) => e.key === "Enter"}
-                aria-label={filterList.bookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
-              >
-                <Bookmark size="md-regular" filled={filterList.bookmarked} />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent
-              className="flex h-8 py-1 px-2 rounded-lg font-500 text-[12px] justify-center items-center leading-6 shadow-lg"
-              side="bottom"
+          <OverviewTooltip
+            variant="primary"
+            position={{ side: "top" }}
+            content={tooltipMessage}
+            asChild
+          >
+            <button
+              type="button"
+              className={cn(
+                "flex h-7 w-6 ml-[1px]  justify-center items-center text-accent-9 rounded-md",
+                filterList.bookmarked
+                  ? "text-info-9 hover:bg-info-3"
+                  : "hover:bg-gray-3 hover:text-accent-12",
+                `tabIndex-${0}`,
+              )}
+              onClick={() => handleBookmarkChanged()}
+              onKeyUp={(e) => e.key === "Enter"}
+              aria-label={filterList.bookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
             >
-              {tooltipMessage}
-            </TooltipContent>
-          </Tooltip>
+              <Bookmark size="md-regular" filled={filterList.bookmarked} />
+            </button>
+          </OverviewTooltip>
         </div>
       </div>
       <div

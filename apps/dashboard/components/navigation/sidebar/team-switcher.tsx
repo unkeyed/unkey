@@ -13,11 +13,11 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
+import { OverviewTooltip } from "@unkey/ui";
 import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -108,16 +108,16 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
           {isUserMembershipsLoading ? (
             <Loading />
           ) : !isCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="overflow-hidden text-sm font-medium text-ellipsis">
-                  {props.workspace.name}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className="text-sm font-medium">{props.workspace.name}</span>
-              </TooltipContent>
-            </Tooltip>
+            <OverviewTooltip
+              asChild
+              variant="secondary"
+              position={{ side: "bottom" }}
+              content={<span className="text-sm font-medium">{props.workspace.name}</span>}
+            >
+              <span className="overflow-hidden text-sm font-medium text-ellipsis">
+                {props.workspace.name}
+              </span>
+            </OverviewTooltip>
           ) : null}
         </div>
         {!isCollapsed && (

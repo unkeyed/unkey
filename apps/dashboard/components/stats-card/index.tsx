@@ -1,6 +1,6 @@
 "use client";
 import { ProgressBar } from "@unkey/icons";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
+import { OverviewTooltip } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -32,28 +32,18 @@ export const StatsCard = ({
             <div className="flex flex-col flex-grow min-w-0">
               <div className="flex gap-2 md:gap-3 items-center">
                 <span className="flex-shrink-0">{icon}</span>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
-                      {name}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-gray-12 text-gray-1 px-3 py-2 border border-accent-6 shadow-md font-medium text-xs">
+                <OverviewTooltip position={{ side: "top" }} content={name}>
+                  <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
                     {name}
-                  </TooltipContent>
-                </Tooltip>
+                  </div>
+                </OverviewTooltip>
               </div>
               {secondaryId && (
-                <Tooltip>
-                  <TooltipTrigger>
-                    <div className="text-left text-accent-11 text-xxs overflow-hidden text-ellipsis w-[240px] md:w-[300px]">
-                      {secondaryId}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-gray-12 text-gray-1 px-3 py-2 border border-accent-6 shadow-md font-medium text-xs">
+                <OverviewTooltip position={{ side: "top" }} content={secondaryId}>
+                  <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
                     {secondaryId}
-                  </TooltipContent>
-                </Tooltip>
+                  </div>
+                </OverviewTooltip>
               )}
             </div>
             {rightContent && <div className="flex-shrink-0">{rightContent}</div>}

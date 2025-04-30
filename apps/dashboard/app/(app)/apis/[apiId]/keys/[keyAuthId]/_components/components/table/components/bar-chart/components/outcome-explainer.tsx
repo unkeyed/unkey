@@ -1,6 +1,6 @@
 import { formatNumber } from "@/lib/fmt";
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { OverviewTooltip } from "@unkey/ui";
 import { useMemo } from "react";
 import type { ProcessedTimeseriesDataPoint } from "../use-fetch-timeseries";
 
@@ -100,15 +100,14 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
   }, [aggregatedData]);
 
   return (
-    <TooltipProvider>
-      <Tooltip delayDuration={300}>
-        <TooltipTrigger asChild>
-          <div>{children}</div>
-        </TooltipTrigger>
-        <TooltipContent
-          className="min-w-64 bg-gray-1 dark:bg-black shadow-2xl p-0 border border-grayA-2 rounded-lg overflow-hidden flex justify-start px-4 pt-2 pb-1 flex-col gap-1"
-          side="bottom"
-        >
+    <OverviewTooltip
+      asChild
+      className="bg-gray-1 dark:bg-black shadow-2xl p-0 border border-grayA-2 rounded-lg overflow-hidden px-4 pt-2 pb-1"
+      delayDuration={300}
+      variant="secondary"
+      position={{ side: "bottom" }}
+      content={
+        <div className="flex flex-col gap-1 min-w-64 justify-start ">
           <div className="text-gray-12 font-medium text-[13px] pr-2">API Key Activity</div>
           <div className="text-xs text-grayA-9 pr-2 font-normal">Last 36 hours</div>
 
@@ -145,8 +144,10 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
               <div className="text-gray-9 text-[13px] py-1">No verification activity</div>
             )}
           </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+        </div>
+      }
+    >
+      <div>{children}</div>
+    </OverviewTooltip>
   );
 }
