@@ -1,11 +1,9 @@
 "use client";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SettingCard } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -64,20 +62,17 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <SettingCard
-          title={
-            <div className="flex items-center justify-start gap-2.5">
-              <span className="text-sm font-medium text-accent-12">Default Prefix</span>
-            </div>
-          }
+          title={"Default Prefix"}
           description={
-            <div className="font-normal text-[13px] max-w-[380px]">
+            <div className="max-w-[380px]">
               Sets the default prefix for keys under this API. A trailing underscore is added
               automatically.
             </div>
           }
           border="bottom"
+          contentWidth="w-full lg:w-[320px] h-full"
         >
-          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
+          <div className="flex flex-row justify-end items-center w-full gap-x-2 mt-2">
             <input type="hidden" name="keyAuthId" value={keyAuth.id} />
             <label htmlFor="defaultPrefix" className="hidden sr-only">
               Default Prefix
@@ -90,7 +85,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
                   <FormControl>
                     <Input
                       id="defaultPrefix"
-                      className="w-[20rem] lg:w-[16rem] h-9"
+                      className="w-[16rem]"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {
@@ -104,7 +99,6 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
               )}
             />
             <Button
-              className="items-end"
               variant="primary"
               size="lg"
               disabled={

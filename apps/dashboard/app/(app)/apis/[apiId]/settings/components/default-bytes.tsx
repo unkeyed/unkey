@@ -1,11 +1,9 @@
 "use client";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SettingCard } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -64,20 +62,17 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <SettingCard
-          title={
-            <div className="flex items-center justify-start gap-2.5">
-              <span className="text-sm font-medium text-accent-12">Default Bytes</span>
-            </div>
-          }
+          title={"Default Bytes"}
           description={
-            <div className="font-normal text-[13px] max-w-[380px]">
+            <div className="max-w-[380px]">
               Sets the default byte size for keys under this API. Must be between 8 and 255.
             </div>
           }
           border="top"
-          contentWidth="w-full lg:w-[320px]"
+          className="border-b-1"
+          contentWidth="w-full lg:w-[320px] h-full"
         >
-          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
+          <div className="flex flex-row justify-end items-center w-full gap-x-2 mt-2">
             <input type="hidden" name="keyAuthId" value={keyAuth.id} />
             <label htmlFor="defaultBytes" className="hidden sr-only">
               Default Bytes
@@ -90,7 +85,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
                   <FormControl>
                     <Input
                       id="defaultBytes"
-                      className="w-[20rem] lg:w-[16rem] h-9"
+                      className="w-[16rem]"
                       {...field}
                       autoComplete="off"
                       onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}

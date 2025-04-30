@@ -1,11 +1,10 @@
 "use client";
 import { DialogContainer } from "@/components/dialog-container";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
-import { InlineLink, SettingCard } from "@unkey/ui";
+import { InlineLink, Input, SettingCard } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -78,8 +77,8 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
   return (
     <SettingCard
       title={
-        <div className="flex items-center justify-start gap-2.5">
-          <span className="text-sm font-medium text-accent-12">Delete Protection</span>{" "}
+        <div className="inline-flex gap-2">
+          <span>Delete Protection</span>{" "}
           <StatusBadge
             variant={api.deleteProtection ? "enabled" : "disabled"}
             text={api.deleteProtection ? "Enabled" : "Disabled"}
@@ -89,26 +88,22 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       }
       description={
         api.deleteProtection ? (
-          <div className="font-normal text-[13px] max-w-[380px]">
-            Disabling this allows the API, along with all keys and data, to be deleted.
-          </div>
+          <div>Disabling this allows the API, along with all keys and data, to be deleted.</div>
         ) : (
-          <div className="font-normal text-[13px] max-w-[380px]">
-            Enabling this prevents the API from being deleted.
-          </div>
+          <div>Enabling this prevents the API from being deleted.</div>
         )
       }
       border="top"
+      className="border-b-1"
       contentWidth="w-full lg:w-[320px]"
     >
-      <div className="flex w-full gap-2 lg:items-center lg:justify-end">
+      <div className="flex w-full gap-2 lg:items-center justify-end lg:mt-1">
         {api.deleteProtection ? (
           <Button
             type="button"
             variant="outline"
             color="warning"
             size="xlg"
-            className="w-[24rem] lg:w-[12rem]"
             onClick={() => setOpen(true)}
           >
             Disable Delete Protection
@@ -119,7 +114,6 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
             variant="outline"
             color="success"
             size="xlg"
-            className="w-[24rem] lg:w-[12rem]"
             onClick={() => setOpen(true)}
           >
             Enable Delete Protection

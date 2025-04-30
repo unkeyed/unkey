@@ -1,52 +1,15 @@
+import { createKeyInputSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
-import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const createKey = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
-  .input(
-    z.object({
-      prefix: z
-        .string()
-        .max(8, { message: "Prefixes cannot be longer than 8 characters" })
-        .refine((prefix) => !prefix.includes(" "), {
-          message: "Prefixes cannot contain spaces.",
-        })
-        .optional(),
-      bytes: z
-        .number()
-        .int()
-        .min(8, { message: "Key must be between 8 and 255 bytes long" })
-        .max(255, { message: "Key must be between 8 and 255 bytes long" })
-        .default(16),
-      keyAuthId: z.string(),
-      ownerId: z.string().nullish(),
-      meta: z.record(z.unknown()).optional(),
-      remaining: z.number().int().positive().optional(),
-      refill: z
-        .object({
-          amount: z.coerce.number().int().min(1),
-          refillDay: z.number().int().min(1).max(31).nullable(),
-        })
-        .optional(),
-      expires: z.number().int().nullish(), // unix timestamp in milliseconds
-      name: z.string().optional(),
-      ratelimit: z
-        .object({
-          async: z.boolean(),
-          duration: z.number().int().positive(),
-          limit: z.number().int().positive(),
-        })
-        .optional(),
-      enabled: z.boolean().default(true),
-      environment: z.string().optional(),
-    }),
-  )
+  .input(createKeyInputSchema)
   .mutation(async ({ input, ctx }) => {
     const keyAuth = await db.query.keyAuth
       .findFirst({
@@ -84,16 +47,13 @@ export const createKey = t.procedure
           name: input.name,
           hash,
           start,
-          ownerId: input.ownerId,
+          ownerId: input.externalId,
           meta: JSON.stringify(input.meta ?? {}),
           workspaceId: ctx.workspace.id,
           forWorkspaceId: null,
           expires: input.expires ? new Date(input.expires) : null,
           createdAtM: Date.now(),
           updatedAtM: null,
-          ratelimitAsync: input.ratelimit?.async,
-          ratelimitLimit: input.ratelimit?.limit,
-          ratelimitDuration: input.ratelimit?.duration,
           remaining: input.remaining,
           refillDay: input.refill?.refillDay ?? null,
           refillAmount: input.refill?.amount ?? null,
@@ -101,6 +61,21 @@ export const createKey = t.procedure
           enabled: input.enabled,
           environment: input.environment,
         });
+
+        if (input.ratelimit?.length) {
+          await tx.insert(schema.ratelimits).values(
+            input.ratelimit.map((ratelimit) => ({
+              id: newId("ratelimit"),
+              keyId,
+              duration: ratelimit.refillInterval,
+              limit: ratelimit.limit,
+              name: ratelimit.name,
+              workspaceId: ctx.workspace.id,
+              createdAt: Date.now(),
+              updatedAt: null,
+            })),
+          );
+        }
 
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
@@ -128,5 +103,5 @@ export const createKey = t.procedure
         });
       });
 
-    return { keyId, key };
+    return { keyId, key, name: input.name };
   });

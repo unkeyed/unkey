@@ -1,4 +1,3 @@
-import { PageContent } from "@/components/page-content";
 import { getOrgId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
@@ -50,9 +49,7 @@ export default async function SettingsPage(props: Props) {
         }}
         apis={workspace.apis}
       />
-      <PageContent>
-        <SettingsClient api={api} workspace={workspace} keyAuth={keyAuth} />
-      </PageContent>
+      <SettingsClient api={api} workspace={workspace} keyAuth={keyAuth} />
     </div>
   );
 }
