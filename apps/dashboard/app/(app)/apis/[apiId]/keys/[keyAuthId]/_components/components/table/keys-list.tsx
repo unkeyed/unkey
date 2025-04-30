@@ -33,9 +33,11 @@ import { getRowClassName } from "./utils/get-row-class";
 
 export const KeysList = ({
   keyspaceId,
+  workspaceId,
   apiId,
 }: {
   keyspaceId: string;
+  workspaceId: string;
   apiId: string;
 }) => {
   const { keys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useKeysListQuery({
@@ -193,11 +195,11 @@ export const KeysList = ({
         header: "",
         width: "15%",
         render: (key) => {
-          return <KeysTableActionPopover items={getKeysTableActionItems(key)} />;
+          return <KeysTableActionPopover items={getKeysTableActionItems(key, workspaceId)} />;
         },
       },
     ],
-    [keyspaceId, selectedKey?.id, apiId, navigatingKeyId, handleLinkClick],
+    [keyspaceId, selectedKey?.id, apiId, navigatingKeyId, handleLinkClick, workspaceId],
   );
 
   return (

@@ -109,6 +109,7 @@ export const refillSchema = z.discriminatedUnion("interval", [
   }),
 ]);
 export const ratelimitItemSchema = z.object({
+  id: z.string().nullish(), // Will be used only for updating case
   name: z
     .string()
     .min(3, { message: "Name is required" })

@@ -25,7 +25,11 @@ export default async function APIKeysPage(props: {
         }}
         apis={workspaceApis}
       />
-      <KeysClient apiId={props.params.apiId} keyspaceId={keyspaceId} />
+      <KeysClient
+        apiId={props.params.apiId}
+        keyspaceId={keyspaceId}
+        workspaceId={currentApi.workspaceId}
+      />
     </div>
   );
 }

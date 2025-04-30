@@ -10,6 +10,7 @@ export const ratelimitItemSchema = z.object({
   name: z.string(),
   limit: z.number(),
   refillInterval: z.number(),
+  id: z.string(),
 });
 
 export type RatelimitItem = z.infer<typeof ratelimitItemSchema>;

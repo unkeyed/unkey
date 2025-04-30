@@ -205,6 +205,7 @@ export async function getAllKeys({
       with: {
         ratelimits: {
           columns: {
+            id: true,
             name: true,
             limit: true,
             duration: true,
@@ -254,6 +255,7 @@ export async function getAllKeys({
               limit: r.limit,
               name: r.name,
               refillInterval: r.duration,
+              id: r.id,
             })),
           },
         },

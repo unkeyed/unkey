@@ -5,23 +5,22 @@ import type { z } from "zod";
 
 type Refill = z.infer<typeof refillSchema>;
 export const getKeyLimitDefaults = (keyDetails: KeyDetails) => {
-  const hasRemaining = Boolean(keyDetails.key.remaining);
   const defaultRemaining =
-    keyDetails.key.remaining ?? getDefaultValues().limit?.data?.remaining ?? 100;
+    keyDetails.key.credits.remaining ?? getDefaultValues().limit?.data?.remaining ?? 100;
 
   let refill: Refill;
-  if (keyDetails.key.refillDay) {
+  if (keyDetails.key.credits.refillDay) {
     // Monthly refill
     refill = {
       interval: "monthly",
-      amount: keyDetails.key.refillAmount ?? 100,
-      refillDay: keyDetails.key.refillDay,
+      amount: keyDetails.key.credits.refillAmount ?? 100,
+      refillDay: keyDetails.key.credits.refillDay,
     };
-  } else if (keyDetails.key.refillAmount) {
+  } else if (keyDetails.key.credits.refillAmount) {
     // Daily refill
     refill = {
       interval: "daily",
-      amount: keyDetails.key.refillAmount,
+      amount: keyDetails.key.credits.refillAmount,
       refillDay: undefined,
     };
   } else {
@@ -35,7 +34,7 @@ export const getKeyLimitDefaults = (keyDetails: KeyDetails) => {
 
   return {
     limit: {
-      enabled: hasRemaining,
+      enabled: keyDetails.key.credits.enabled,
       data: {
         remaining: defaultRemaining,
         refill,

@@ -15,9 +15,10 @@ import {
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";
 import { EditKeyName } from "./components/edit-key-name";
+import { EditRatelimits } from "./components/edit-ratelimits";
 import type { MenuItem } from "./keys-table-action.popover";
 
-export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
+export const getKeysTableActionItems = (key: KeyDetails, workspaceId: string): MenuItem[] => {
   return [
     {
       id: "override",
@@ -66,7 +67,9 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       id: "edit-ratelimit",
       label: "Edit ratelimit...",
       icon: <Gauge size="md-regular" />,
-      onClick: () => {},
+      ActionComponent: (props) => (
+        <EditRatelimits {...props} keyDetails={key} workspaceId={workspaceId} />
+      ),
     },
     {
       id: "edit-expiration",
