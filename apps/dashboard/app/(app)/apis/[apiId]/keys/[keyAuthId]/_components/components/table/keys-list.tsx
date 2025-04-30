@@ -21,6 +21,7 @@ import { VerificationBarChart } from "./components/bar-chart";
 import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
 import {
+  ActionColumnSkeleton,
   KeyColumnSkeleton,
   LastUsedColumnSkeleton,
   StatusColumnSkeleton,
@@ -184,7 +185,13 @@ export const KeysList = ({
         header: "Status",
         width: "15%",
         render: (key) => {
-          return <StatusDisplay keyData={key} keyAuthId={keyspaceId} />;
+          return (
+            <StatusDisplay
+              keyData={key}
+              keyAuthId={keyspaceId}
+              isSelected={selectedKey?.id === key.id}
+            />
+          );
         },
       },
 
@@ -270,7 +277,8 @@ export const KeysList = ({
             {column.key === "usage" && <UsageColumnSkeleton />}
             {column.key === "last_used" && <LastUsedColumnSkeleton />}
             {column.key === "status" && <StatusColumnSkeleton />}
-            {!["key", "value", "usage", "last_used", "status"].includes(column.key) && (
+            {column.key === "action" && <ActionColumnSkeleton />}
+            {!["key", "value", "usage", "last_used", "status", "action"].includes(column.key) && (
               <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />
             )}
           </td>

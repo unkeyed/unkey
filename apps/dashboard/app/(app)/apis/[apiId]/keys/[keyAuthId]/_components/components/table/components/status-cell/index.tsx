@@ -10,9 +10,10 @@ import { useKeyStatus } from "./use-key-status";
 type StatusDisplayProps = {
   keyData: KeyDetails;
   keyAuthId: string;
+  isSelected: boolean;
 };
 
-export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
+export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayProps) => {
   const { primary, count, isLoading, statuses, isError } = useKeyStatus(keyAuthId, keyData);
   const utils = trpc.useUtils();
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +33,7 @@ export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
   if (isLoading) {
     return (
       <div
-        className="flex w-[100px] items-center h-[22px] space-x-1 px-1.5 py-1 rounded-md bg-gray-3"
+        className="flex w-[100px] items-center h-[22px] space-x-1 px-1.5 py-1 rounded-md bg-grayA-3"
         aria-busy="true"
         aria-live="polite"
       >
@@ -61,7 +62,7 @@ export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
     <TooltipProvider>
       <Tooltip open={isOpen} onOpenChange={setIsOpen}>
         <TooltipTrigger onClick={() => setIsOpen(!isOpen)} className="cursor-pointer">
-          <StatusBadge primary={primary} count={count} />
+          <StatusBadge primary={primary} count={count} isSelected={isSelected} />
         </TooltipTrigger>
         <TooltipContent className="p-0 bg-white dark:bg-black border rounded-lg border-grayA-3 w-72 flex flex-col drop-shadow-xl">
           {statuses && statuses.length > 1 && (

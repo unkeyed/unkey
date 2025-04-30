@@ -1,8 +1,8 @@
+import { Dots } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 
 export const KeyColumnSkeleton = () => (
-  // INFO: Oddly specific 236px is required to prevent layout shift. I've no idea how to make this better at the moment.
-  <div className="flex flex-col items-start w-[236px]">
+  <div className="flex flex-col items-start w-auto">
     <div className="flex gap-4 items-center">
       <div className="bg-grayA-3 size-5 rounded animate-pulse" />
       <div className="flex flex-col gap-1">
@@ -67,4 +67,16 @@ export const StatusColumnSkeleton = () => (
     <div className="h-2 w-2 bg-grayA-3 rounded-full animate-pulse" />
     <div className="h-2 w-16 bg-grayA-3 rounded animate-pulse" />
   </div>
+);
+
+export const ActionColumnSkeleton = () => (
+  <button
+    type="button"
+    className={cn(
+      "group-data-[state=open]:bg-gray-6 bg-gray-5 hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
+      "border border-gray-6 hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
+    )}
+  >
+    <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+  </button>
 );
