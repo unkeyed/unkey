@@ -1,10 +1,10 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { type VariantProps, cva } from "class-variance-authority";
 import { Check, ChevronDown } from "lucide-react";
 import * as React from "react";
+import { cn } from "../lib/utils";
 
 const selectTriggerVariants = cva(
   "flex min-h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-gray-7 text-gray-12 items-center justify-between",
