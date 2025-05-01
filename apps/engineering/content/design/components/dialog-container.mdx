@@ -1,0 +1,36 @@
+---
+title: Dialog Container
+---
+import { DialogContainerExample } from "./dialog-container.example"
+
+## Dialog Container
+
+The Dialog Container is a flexible modal component that provides a consistent way to display content in a modal dialog. It's built on top of Radix UI's Dialog primitive with additional styling and functionality.
+
+### Features
+
+- Accessible modal implementation
+- Customizable overlay and content styling
+- Close button with warning support
+- Keyboard navigation support
+- Customizable animations
+- Responsive design
+
+### Usage
+
+<DialogContainerExample />
+
+### Props
+
+| Prop              | Type                    | Default   | Description                                      |
+|-------------------|-------------------------|-----------|--------------------------------------------------|
+| isOpen           | boolean                 | -         | Controls the open state of the dialog            |
+| onOpenChange     | (value: boolean) => void | -         | Callback when the open state changes             |
+| title            | string                  | -         | The title of the dialog                          |
+| subTitle         | string                  | -         | Optional subtitle for the dialog                 |
+| footer           | ReactNode               | -         | Optional footer content                          |
+| className        | string                  | -         | Additional classes for the dialog container      |
+| contentClassName | string                  | -         | Additional classes for the dialog content        |
+| preventAutoFocus | boolean                 | false     | Whether to prevent auto-focus on open            |
+| children         | ReactNode               | -         | The content to display in the dialog             |
+

@@ -9,3 +9,4 @@ export * from "./components/form";
 export * from "./components/textarea";
 export * from "./components/timestamp-info";
 export * from "./components/settings-card";
+export * from "./components/dialog/dialog-container";
