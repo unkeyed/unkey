@@ -1,9 +1,9 @@
 "use client";
 
-import { DialogContainer } from "@/components/dialog-container";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DialogContainer } from "@unkey/ui";
 import { Button, Input } from "@unkey/ui";
 import type { PropsWithChildren } from "react";
 import { useForm } from "react-hook-form";

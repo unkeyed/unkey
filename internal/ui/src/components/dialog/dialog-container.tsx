@@ -1,9 +1,9 @@
 "use client";
-import { Dialog, DialogContent } from "./dialog";
-import { cn } from "../../lib/utils";
 import type { PropsWithChildren, ReactNode } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import React from "react";
+import { cn } from "../../lib/utils";
+import { Dialog, DialogContent } from "./dialog";
 import { DefaultDialogContentArea, DefaultDialogFooter, DefaultDialogHeader } from "./dialog-parts";
 
 type DialogContainerProps = PropsWithChildren<{
@@ -35,7 +35,7 @@ export const DialogContainer = ({
           "drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0",
           className,
         )}
-        onOpenAutoFocus={(e) => {
+        onOpenAutoFocus={(e: Event) => {
           if (preventAutoFocus) {
             e.preventDefault();
           }

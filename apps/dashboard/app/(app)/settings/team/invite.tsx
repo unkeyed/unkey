@@ -1,5 +1,4 @@
 "use client";
-import { DialogContainer } from "@/components/dialog-container";
 import {
   Form,
   FormControl,
@@ -21,6 +20,7 @@ import { toast } from "@/components/ui/toaster";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DialogContainer } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
 import type React from "react";
