@@ -16,6 +16,7 @@ import { DeleteKey } from "./components/delete-key";
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";
 import { EditExpiration } from "./components/edit-expiration";
+import { EditExternalId } from "./components/edit-external-id";
 import { EditKeyName } from "./components/edit-key-name";
 import { EditMetadata } from "./components/edit-metadata";
 import { EditRatelimits } from "./components/edit-ratelimits";
@@ -48,9 +49,10 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       divider: true,
     },
     {
-      id: "edit-owner-id",
-      label: "Edit Owner ID...",
+      id: "edit-external-id",
+      label: "Edit External ID...",
       icon: <ArrowOppositeDirectionY size="md-regular" />,
+      ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
       divider: true,
     },
     {
