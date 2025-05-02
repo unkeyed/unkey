@@ -6,8 +6,9 @@ import { User } from "@unkey/icons";
 import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import { useState } from "react";
 import type { ActionComponentProps } from "../../keys-table-action.popover";
+import { useEditExternalId } from "../hooks/use-edit-external-id";
+import { useFetchIdentities } from "../hooks/use-fetch-identities";
 import { KeyInfo } from "../key-info";
-import { useFetchIdentities } from "./hooks/use-fetch-identities";
 
 type EditExternalIdProps = {
   keyDetails: KeyDetails;
@@ -18,8 +19,42 @@ export const EditExternalId = ({
   isOpen,
   onClose,
 }: EditExternalIdProps): JSX.Element => {
-  const [value, setValue] = useState<string>("");
+  const [value, setValue] = useState<string>(keyDetails.identity_id || "");
+  const [originalIdentityId, setOriginalIdentityId] = useState<string | null>(
+    keyDetails.identity_id || null,
+  );
+  const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(
+    keyDetails.identity_id || null,
+  );
+
   const { identities, isFetchingNextPage, hasNextPage, loadMore } = useFetchIdentities();
+
+  const updateKeyOwner = useEditExternalId(() => {
+    setOriginalIdentityId(selectedIdentityId);
+    onClose();
+  });
+
+  const handleSubmit = () => {
+    updateKeyOwner.mutate({
+      keyId: keyDetails.id,
+      ownerType: "v2",
+      identity: {
+        id: selectedIdentityId,
+      },
+    });
+  };
+
+  const clearSelection = () => {
+    setValue("");
+    setSelectedIdentityId(null);
+    updateKeyOwner.mutate({
+      keyId: keyDetails.id,
+      ownerType: "v2",
+      identity: {
+        id: null,
+      },
+    });
+  };
 
   const isMetaEmpty = (meta: unknown) => {
     if (!meta) {
@@ -118,7 +153,7 @@ export const EditExternalId = ({
         <span className="w-[200px] truncate text-accent-8 text-left">{identity.externalId}</span>
       </div>
     ),
-    value: identity.externalId,
+    value: identity.id,
   }));
 
   const allOptions = hasNextPage
@@ -156,15 +191,33 @@ export const EditExternalId = ({
       title="Edit external ID"
       footer={
         <div className="w-full flex flex-col gap-2 items-center justify-center">
-          <Button
-            type="submit"
-            form="edit-remaining-uses-form"
-            variant="primary"
-            size="xlg"
-            className="w-full rounded-lg"
-          >
-            Update external ID
-          </Button>
+          <div className="w-full flex gap-2">
+            {originalIdentityId !== null ? (
+              <Button
+                type="button"
+                variant="primary"
+                color="danger"
+                size="xlg"
+                className="rounded-lg flex-1"
+                loading={updateKeyOwner.isLoading}
+                onClick={clearSelection}
+              >
+                Clear external ID
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                form="edit-external-id-form"
+                variant="primary"
+                size="xlg"
+                className="rounded-lg flex-1"
+                loading={updateKeyOwner.isLoading}
+                onClick={handleSubmit}
+              >
+                Update external ID
+              </Button>
+            )}
+          </div>
           <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
         </div>
       }
@@ -179,7 +232,11 @@ export const EditExternalId = ({
         description="ID of the user/workspace in your system for key attribution."
         options={allOptions}
         value={value}
-        onValueChange={setValue}
+        onValueChange={(val) => {
+          setValue(val);
+          const identity = identities.find((id) => id.id === val);
+          setSelectedIdentityId(identity?.id || null);
+        }}
         placeholder={
           <div className="flex w-full text-grayA-8 text-xs gap-1.5 items-center py-2">
             Select external ID

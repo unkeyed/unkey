@@ -30,7 +30,7 @@ import { updateKeyEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
 import { updateKeyName } from "./key/updateName";
-import { updateKeyOwnerId } from "./key/updateOwnerId";
+import { updateKeyOwner } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
@@ -94,7 +94,7 @@ export const router = t.router({
       expiration: updateKeyExpiration,
       metadata: updateKeyMetadata,
       name: updateKeyName,
-      ownerId: updateKeyOwnerId,
+      ownerId: updateKeyOwner,
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
     }),
