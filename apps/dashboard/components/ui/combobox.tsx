@@ -1,8 +1,5 @@
 "use client";
 
-import * as React from "react";
-import { cn } from "@/lib/utils";
-import { cva } from "class-variance-authority";
 import {
   Command,
   CommandEmpty,
@@ -11,13 +8,12 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@unkey/ui";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { Check, ChevronExpandY } from "@unkey/icons";
+import { Button } from "@unkey/ui";
+import { cva } from "class-variance-authority";
+import * as React from "react";
 
 const comboboxTriggerVariants = cva(
   "flex min-h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12 items-center justify-between",
@@ -45,7 +41,7 @@ const comboboxTriggerVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 const comboboxWrapperVariants = cva("relative flex items-center w-full", {
@@ -80,6 +76,11 @@ type ComboboxProps = {
   wrapperClassName?: string;
   className?: string;
   variant?: "default" | "success" | "warning" | "error";
+  id?: string; // Added id prop
+  /** Additional accessibility attributes */
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
+  "aria-required"?: boolean;
 };
 
 export function Combobox({
@@ -94,23 +95,24 @@ export function Combobox({
   wrapperClassName,
   className,
   variant = "default",
+  id,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
+  "aria-required": ariaRequired,
+  ...otherProps
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
 
   const selectedOption = React.useMemo(
     () => options.find((option) => option.value === value),
-    [options, value]
+    [options, value],
   );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <div
-        className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}
-      >
+      <div className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}>
         {leftIcon && (
-          <div className="absolute left-3 flex items-center pointer-events-none">
-            {leftIcon}
-          </div>
+          <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
         )}
         <PopoverTrigger className="w-full">
           <Button
@@ -119,14 +121,19 @@ export function Combobox({
             role="combobox"
             aria-expanded={open}
             disabled={disabled}
+            id={id}
+            aria-describedby={ariaDescribedby}
+            aria-invalid={ariaInvalid}
+            aria-required={ariaRequired}
             className={cn(
               comboboxTriggerVariants({ variant }),
               "px-3 py-0",
               leftIcon && "pl-9",
               "pr-9", // Always have space for the chevron icon
-              "h-auto justify-between font-normal w-full",
-              className
+              "h-auto justify-between font-normal w-full [&_svg]:size-3",
+              className,
             )}
+            {...otherProps}
           >
             {selectedOption ? (
               <div className="py-0 w-full">{selectedOption.selectedLabel}</div>
@@ -158,10 +165,7 @@ export function Combobox({
                 >
                   {option.label}
                   <Check
-                    className={cn(
-                      "ml-auto",
-                      value === option.value ? "opacity-100" : "opacity-0"
-                    )}
+                    className={cn("ml-auto", value === option.value ? "opacity-100" : "opacity-0")}
                     size="sm-regular"
                   />
                 </CommandItem>
