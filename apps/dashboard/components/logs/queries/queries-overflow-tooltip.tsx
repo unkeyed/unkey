@@ -1,4 +1,4 @@
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import { QueriesPill } from "./queries-pill";
 
 type QueriesOverflowProps = {
@@ -11,7 +11,7 @@ export const QueriesOverflow = ({ list }: QueriesOverflowProps) => {
   }
 
   return (
-    <OverviewTooltip
+    <InfoTooltip
       position={{ side: "bottom" }}
       content={
         <ul className="flex flex-col gap-2 p-2">
@@ -26,6 +26,6 @@ export const QueriesOverflow = ({ list }: QueriesOverflowProps) => {
       }
     >
       <QueriesPill value={`+${list.length} more`} className="text-gray-10" />
-    </OverviewTooltip>
+    </InfoTooltip>
   );
 };

@@ -1,5 +1,5 @@
 import { CaretRightOutline, CircleInfoSparkle } from "@unkey/icons";
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 
 type SearchExampleTooltipProps = {
   onSelectExample: (query: string) => void;
@@ -17,7 +17,7 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
   ];
 
   return (
-    <OverviewTooltip
+    <InfoTooltip
       variant="secondary"
       content={
         <div>
@@ -47,6 +47,6 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
       <div data-testid="info-icon">
         <CircleInfoSparkle className="size-4 text-accent-9" />
       </div>
-    </OverviewTooltip>
+    </InfoTooltip>
   );
 };

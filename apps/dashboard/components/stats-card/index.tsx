@@ -1,6 +1,6 @@
 "use client";
 import { ProgressBar } from "@unkey/icons";
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -32,18 +32,18 @@ export const StatsCard = ({
             <div className="flex flex-col flex-grow min-w-0">
               <div className="flex gap-2 md:gap-3 items-center">
                 <span className="flex-shrink-0">{icon}</span>
-                <OverviewTooltip position={{ side: "top" }} content={name}>
+                <InfoTooltip position={{ side: "top" }} content={name}>
                   <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
                     {name}
                   </div>
-                </OverviewTooltip>
+                </InfoTooltip>
               </div>
               {secondaryId && (
-                <OverviewTooltip position={{ side: "top" }} content={secondaryId}>
+                <InfoTooltip position={{ side: "top" }} content={secondaryId}>
                   <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
                     {secondaryId}
                   </div>
-                </OverviewTooltip>
+                </InfoTooltip>
               )}
             </div>
             {rightContent && <div className="flex-shrink-0">{rightContent}</div>}

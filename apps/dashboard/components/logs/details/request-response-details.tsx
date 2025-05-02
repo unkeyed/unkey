@@ -1,6 +1,6 @@
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import type { ReactNode } from "react";
 
 type Field<T> = {
@@ -83,7 +83,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
     }
 
     return (
-      <OverviewTooltip
+      <InfoTooltip
         position={{ side: "top" }}
         key={`${field.label}-${index}`}
         variant="secondary"
@@ -91,7 +91,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
         triggerClassName="w-full flex flex-row"
       >
         {baseContent}
-      </OverviewTooltip>
+      </InfoTooltip>
     );
   };
 

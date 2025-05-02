@@ -21,7 +21,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Button, OverviewTooltip } from "@unkey/ui";
+import { Button, InfoTooltip } from "@unkey/ui";
 import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -88,7 +88,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       accessorKey: "start",
       header: "Key",
       cell: ({ row }) => (
-        <OverviewTooltip
+        <InfoTooltip
           variant="secondary"
           content={
             <p>
@@ -100,7 +100,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
           <Link href={`/settings/root-keys/${row.original.id}`}>
             <Badge variant="secondary">{row.getValue("start")}...</Badge>
           </Link>
-        </OverviewTooltip>
+        </InfoTooltip>
       ),
     },
     {

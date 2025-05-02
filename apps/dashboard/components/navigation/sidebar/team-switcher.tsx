@@ -17,7 +17,7 @@ import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -108,7 +108,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
           {isUserMembershipsLoading ? (
             <Loading />
           ) : !isCollapsed ? (
-            <OverviewTooltip
+            <InfoTooltip
               asChild
               variant="secondary"
               position={{ side: "bottom" }}
@@ -117,7 +117,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
               <span className="overflow-hidden text-sm font-medium text-ellipsis">
                 {props.workspace.name}
               </span>
-            </OverviewTooltip>
+            </InfoTooltip>
           ) : null}
         </div>
         {!isCollapsed && (

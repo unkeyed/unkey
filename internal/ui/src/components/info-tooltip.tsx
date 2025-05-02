@@ -4,10 +4,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tool
 import { cn } from "../lib/utils";
 
 const variants = {
-  primary:
-    "bg-gray-12 text-gray-1 border-accent-6 px-3 py-2 text-xs font-medium shadow-md rounded-md",
-  secondary:
-    "bg-gray-1 text-accent-12 border border-grayA-4 px-3 py-2 text-xs font-medium shadow-md rounded-md",
+  primary: [
+    "border border-grayA-4 hover:border-gray-8 bg-gray-2 dark:bg-black",
+    "focus:border focus:border-accent-12 focus:ring-2 focus:ring-grayA-4 focus-visible:outline-none focus:ring-offset-0",
+  ],
+  secondary: [
+    "bg-gray-1 text-accent-12 border border-grayA-4 px-3 py-2 text-xs font-medium shadow-md rounded-lg",
+  ],
 } as const;
 
 type TooltipVariant = keyof typeof variants;

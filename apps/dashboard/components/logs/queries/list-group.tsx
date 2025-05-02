@@ -1,7 +1,7 @@
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useQueries } from "./queries-context";
 import { QueriesItemRow } from "./queries-item-row";
@@ -142,7 +142,7 @@ export function ListGroup({
           className="flex flex-col h-[24px] pr-2 mt-1.5 w-[24px]"
           onMouseEnter={handleMouseEnter}
         >
-          <OverviewTooltip
+          <InfoTooltip
             variant="primary"
             position={{ side: "top" }}
             content={tooltipMessage}
@@ -163,7 +163,7 @@ export function ListGroup({
             >
               <Bookmark size="md-regular" filled={filterList.bookmarked} />
             </button>
-          </OverviewTooltip>
+          </InfoTooltip>
         </div>
       </div>
       <div
