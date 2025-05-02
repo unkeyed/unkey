@@ -15,7 +15,7 @@ import {
   Plus,
   TriangleWarning2,
 } from "@unkey/icons";
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { SecretKey } from "./secret-key";
@@ -132,7 +132,7 @@ export const KeyCreatedSuccessDialog = ({
                   </div>
                   <div className="flex flex-col gap-1 py-6">
                     <div className="text-accent-12 text-xs font-mono">{keyData.id}</div>
-                    <OverviewTooltip
+                    <InfoTooltip
                       content={keyData.name}
                       position={{ side: "bottom", align: "center" }}
                       asChild
@@ -141,7 +141,7 @@ export const KeyCreatedSuccessDialog = ({
                       <div className="text-accent-9 text-xs max-w-[160px] truncate">
                         {keyData.name ?? "Unnamed Key"}
                       </div>
-                    </OverviewTooltip>
+                    </InfoTooltip>
                   </div>
                   <Button
                     variant="outline"

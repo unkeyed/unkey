@@ -7,7 +7,7 @@ const variants = {
   primary:
     "bg-gray-12 text-gray-1 border-accent-6 px-3 py-2 text-xs font-medium shadow-md rounded-md",
   secondary:
-    "bg-gray-1 text-accent-12 border border-gray-4 px-3 py-2 text-xs font-medium shadow-md rounded-md",
+    "bg-gray-1 text-accent-12 border border-grayA-4 px-3 py-2 text-xs font-medium shadow-md rounded-md",
 } as const;
 
 type TooltipVariant = keyof typeof variants;
@@ -18,7 +18,7 @@ type TooltipPosition = {
   sideOffset?: number;
 };
 
-const OverviewTooltip = ({
+const InfoTooltip = ({
   delayDuration,
   content,
   children,
@@ -57,4 +57,4 @@ const OverviewTooltip = ({
   );
 };
 
-export { OverviewTooltip };
+export { InfoTooltip };

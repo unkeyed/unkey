@@ -3,7 +3,7 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Switch } from "@/components/ui/switch";
 import { ChevronRight } from "@unkey/icons";
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { PermissionToggle } from "./permission-toggle";
@@ -88,7 +88,7 @@ export const RecursivePermission: React.FC<
 
   if (!hasChildren) {
     return (
-      <OverviewTooltip
+      <InfoTooltip
         asChild
         delayDuration={50}
         content={
@@ -114,7 +114,7 @@ export const RecursivePermission: React.FC<
           </div>
           {description && <p className="text-xs text-accent-11 mt-0.5">{description}</p>}
         </div>
-      </OverviewTooltip>
+      </InfoTooltip>
     );
   }
 

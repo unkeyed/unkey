@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
 import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked-percentage";
 
@@ -14,9 +14,9 @@ export const KeyTooltip = ({
   content: React.ReactNode;
 }) => {
   return (
-    <OverviewTooltip content={content} asChild position={{ side: "right" }}>
+    <InfoTooltip content={content} asChild position={{ side: "right" }}>
       {children}
-    </OverviewTooltip>
+    </InfoTooltip>
   );
 };
 

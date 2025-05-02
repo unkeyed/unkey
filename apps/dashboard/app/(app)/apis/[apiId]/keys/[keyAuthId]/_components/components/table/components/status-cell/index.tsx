@@ -2,7 +2,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { cn } from "@/lib/utils";
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import { StatusBadge } from "./components/status-badge";
 import { useKeyStatus } from "./use-key-status";
 
@@ -56,7 +56,7 @@ export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
   }
 
   return (
-    <OverviewTooltip
+    <InfoTooltip
       asChild
       content={
         <div className="p-0 bg-white dark:bg-black border rounded-lg border-grayA-3 w-72 flex flex-col drop-shadow-xl">
@@ -136,6 +136,6 @@ export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
       }
     >
       <StatusBadge primary={primary} count={count} />
-    </OverviewTooltip>
+    </InfoTooltip>
   );
 };

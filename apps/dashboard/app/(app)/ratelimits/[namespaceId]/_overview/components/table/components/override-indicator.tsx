@@ -2,7 +2,7 @@ import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import ms from "ms";
 import { calculateBlockedPercentage } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
@@ -24,7 +24,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
 
   return (
     <div className="flex gap-6 items-center pl-2">
-      <OverviewTooltip
+      <InfoTooltip
         content={
           <p className="text-sm">
             {isFullyBlocked ? (
@@ -42,7 +42,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
         <div className={cn(hasMoreBlocked ? "block" : "invisible")}>
           <TriangleWarning2 />
         </div>
-      </OverviewTooltip>
+      </InfoTooltip>
       <div className="flex gap-3 items-center">
         <div
           className={cn(
@@ -77,7 +77,7 @@ type OverrideIndicatorProps = {
 };
 
 const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
-  <OverviewTooltip
+  <InfoTooltip
     variant="secondary"
     content={
       <div className="flex flex-row pr-4 gap-3 items-center justify-center">
@@ -116,5 +116,5 @@ const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
         )}
       />
     </div>
-  </OverviewTooltip>
+  </InfoTooltip>
 );

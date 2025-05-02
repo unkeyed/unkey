@@ -3,7 +3,7 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Focus, Key } from "@unkey/icons";
-import { AnimatedLoadingSpinner, Button, Empty, OverviewTooltip } from "@unkey/ui";
+import { AnimatedLoadingSpinner, Button, Empty, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
@@ -74,7 +74,7 @@ export const KeysList = ({
             <div className="flex flex-col items-start px-[18px] py-[6px]">
               <div className="flex gap-4 items-center">
                 {identity ? (
-                  <OverviewTooltip
+                  <InfoTooltip
                     variant="secondary"
                     position={{ side: "right" }}
                     content={
@@ -101,7 +101,7 @@ export const KeysList = ({
                     {React.cloneElement(iconContainer, {
                       className: cn(iconContainer.props.className, "cursor-pointer"),
                     })}
-                  </OverviewTooltip>
+                  </InfoTooltip>
                 ) : (
                   iconContainer
                 )}

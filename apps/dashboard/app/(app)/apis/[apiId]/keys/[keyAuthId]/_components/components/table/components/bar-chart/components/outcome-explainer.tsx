@@ -1,6 +1,6 @@
 import { formatNumber } from "@/lib/fmt";
 
-import { OverviewTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 import { useMemo } from "react";
 import type { ProcessedTimeseriesDataPoint } from "../use-fetch-timeseries";
 
@@ -100,7 +100,7 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
   }, [aggregatedData]);
 
   return (
-    <OverviewTooltip
+    <InfoTooltip
       asChild
       className="bg-gray-1 dark:bg-black shadow-2xl p-0 border border-grayA-2 rounded-lg overflow-hidden px-4 pt-2 pb-1"
       delayDuration={300}
@@ -148,6 +148,6 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
       }
     >
       <div>{children}</div>
-    </OverviewTooltip>
+    </InfoTooltip>
   );
 }
