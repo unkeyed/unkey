@@ -1,10 +1,15 @@
 import { DialogContainer } from "@/components/dialog-container";
 import { Combobox } from "@/components/ui/combobox";
-
 import { CopyButton } from "@/components/dashboard/copy-button";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { User } from "@unkey/icons";
-import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import {
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@unkey/ui";
 import { useState } from "react";
 import type { ActionComponentProps } from "../../keys-table-action.popover";
 import { KeyInfo } from "../key-info";
@@ -41,7 +46,9 @@ export const EditExternalId = ({
           >
             Update external ID
           </Button>
-          <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
+          <div className="text-gray-9 text-xs">
+            Changes will be applied immediately
+          </div>
         </div>
       }
     >
@@ -64,14 +71,16 @@ export const EditExternalId = ({
                         {identity.id}
                       </span>
                     </div>
-                    <span className="w-[200px] truncate text-accent-8">{identity.externalId}</span>
+                    <span className="w-[200px] truncate text-accent-8">
+                      {identity.externalId}
+                    </span>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent
                   side="right"
                   align="start"
-                  sideOffset={17}
-                  className="drop-shadow-2xl border border-gray-4 overflow-hidden rounded-[10px] p-0 bg-white dark:bg-black w-[320px] h-[300px]"
+                  sideOffset={30}
+                  className="drop-shadow-2xl border border-gray-4 overflow-hidden rounded-[10px] p-0 bg-white dark:bg-black w-[320px] h-[300px] z-[100]"
                 >
                   <div className="flex flex-col h-full">
                     {/* Header */}
@@ -96,7 +105,9 @@ export const EditExternalId = ({
                               className="bg-white dark:bg-grayA-3 hover:bg-grayA-3 dark:hover:bg-grayA-4 shadow-sm"
                             >
                               <div className="flex items-center justify-center">
-                                <CopyButton value={JSON.stringify(identity.meta, null, 2)} />
+                                <CopyButton
+                                  value={JSON.stringify(identity.meta, null, 2)}
+                                />
                               </div>
                             </Button>
                           </div>
@@ -108,12 +119,27 @@ export const EditExternalId = ({
               </Tooltip>
             </TooltipProvider>
           ),
+          selectedLabel: (
+            <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center">
+              <div className="flex items-center justify-center gap-2">
+                <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
+                  <User size="sm-regular" className="text-grayA-11" />
+                </div>
+                <span className="text-accent-12 font-medium text-xs w-[120px] truncate">
+                  {identity.id}
+                </span>
+              </div>
+              <span className="w-[200px] truncate text-accent-8">
+                {identity.externalId}
+              </span>
+            </div>
+          ),
           value: identity.externalId,
         }))}
         value={value}
         onValueChange={setValue}
         placeholder={
-          <div className="flex w-full text-grayA-8 text-xs gap-1.5 items-center">
+          <div className="flex w-full text-grayA-8 text-xs gap-1.5 items-center py-2">
             Select external ID
           </div>
         }
