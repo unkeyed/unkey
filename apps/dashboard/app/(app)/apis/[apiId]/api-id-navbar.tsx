@@ -21,7 +21,7 @@ export const ApisNavbar = ({
     id: string;
     name: string;
   }[];
-  activePage: {
+  activePage?: {
     href: string;
     text: string;
   };
@@ -58,7 +58,7 @@ export const ApisNavbar = ({
             </>
           )}
 
-          <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
+          <Navbar.Breadcrumbs.Link href={activePage?.href ?? ""} noop active={!keyId}>
             <QuickNavPopover
               items={[
                 {
@@ -76,24 +76,25 @@ export const ApisNavbar = ({
                   label: "Settings",
                   href: `/apis/${api.id}/settings`,
                 },
-                ...(keyId
-                  ? [
-                      {
-                        id: "settings",
-                        label: `${keyId.substring(0, 8)}...${keyId.substring(keyId.length - 4)}`,
-                        href: `/apis/${api.id}/keys/${api.keyAuthId}/${keyId}`,
-                      },
-                    ]
-                  : []),
               ]}
-              shortcutKey="M"
             >
               <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-                {activePage.text}
+                {activePage?.text ?? ""}
                 <ChevronExpandY className="size-4" />
               </div>
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
+          {keyId && (
+            <Navbar.Breadcrumbs.Link
+              href={`/apis/${api.id}/keys/${api.keyAuthId}/${keyId}`}
+              className="max-md:hidden"
+              isLast
+              isIdentifier
+              active
+            >
+              {keyId?.substring(0, 8)}...{keyId?.substring(keyId?.length - 4)}
+            </Navbar.Breadcrumbs.Link>
+          )}
         </Navbar.Breadcrumbs>
         <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
       </Navbar>

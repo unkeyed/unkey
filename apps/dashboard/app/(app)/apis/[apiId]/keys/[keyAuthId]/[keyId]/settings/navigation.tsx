@@ -33,7 +33,8 @@ export function Navigation({ apiId, apiKey }: NavigationProps) {
           href={`/apis/${apiId}/keys/${apiKey.keyAuth.id}/${apiKey.id}`}
           isIdentifier
         >
-          {apiKey.id}
+          {apiKey.id?.substring(0, 8)}...
+          {apiKey.id?.substring(apiKey.id?.length - 4)}
         </Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
           href={`/apis/${apiId}/keys/${apiKey.keyAuth.id}/${apiKey.id}/settings`}
