@@ -43,9 +43,7 @@ export const UserButton: React.FC = () => {
             {user?.avatarUrl ? (
               <AvatarImage src={user.avatarUrl} alt="Profile picture" className="rounded-full" />
             ) : null}
-            <AvatarFallback
-              className={cn("bg-gray-2 border border-grayA-6 rounded-full", "size-5")}
-            >
+            <AvatarFallback className={cn("bg-gray-2 rounded-full", "size-5")}>
               {user ? (user?.fullName ?? "U").slice(0, 1).toUpperCase() : null}
             </AvatarFallback>
           </Avatar>
