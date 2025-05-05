@@ -44,7 +44,7 @@ export const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProp
 
     return (
       <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Checkbox
             ref={ref}
             id={checkboxId}

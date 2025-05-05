@@ -25,7 +25,26 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
 
   // INFO: https://trpc.io/docs/client/links/splitLink#disable-batching-for-certain-requests
   // For disable batching read this
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 1000 * 60 * 5, // 5 minutes
+            // Keep cache for 10 minutes
+            cacheTime: 1000 * 60 * 10,
+            // Retry failed queries 1 time instead of default 3
+            retry: 1,
+            // Will refetch only if the data is stale
+            refetchOnWindowFocus: true,
+            // Minimize connection issues by retrying when reconnecting
+            refetchOnReconnect: true,
+            // Show stale data while refetching
+            keepPreviousData: true,
+          },
+        },
+      }),
+  );
   const [trpcClient] = useState(() =>
     trpc.createClient({
       transformer: SuperJSON,

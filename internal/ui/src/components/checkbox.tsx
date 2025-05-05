@@ -1,11 +1,11 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import { Check } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
+import { cn } from "../lib/utils";
 
 const checkboxVariants = cva(
   "peer relative flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed",
@@ -185,6 +185,61 @@ const getIconSize = (size: CheckboxSize | undefined): IconProps["size"] => {
     default:
       return "md-regular";
   }
+};
+
+export type DocumentedCheckboxProps = VariantProps<typeof checkboxVariants> & {
+  /**
+   * The variant style to use for the checkbox
+   * @default "primary"
+   */
+  variant?: CheckboxVariant;
+
+  /**
+   * The color scheme to use for the checkbox
+   * @default "default"
+   */
+  color?: CheckboxColor;
+
+  /**
+   * The size of the checkbox
+   * @default "md"
+   */
+  size?: CheckboxSize;
+
+  /**
+   * Whether the checkbox is checked
+   */
+  checked?: boolean;
+
+  /**
+   * Default checked state when uncontrolled
+   */
+  defaultChecked?: boolean;
+
+  /**
+   * Whether the checkbox is disabled
+   */
+  disabled?: boolean;
+
+  /**
+   * Required state for the checkbox
+   */
+  required?: boolean;
+
+  /**
+   * Name of the checkbox for form submission
+   */
+  name?: string;
+
+  /**
+   * Value of the checkbox for form submission
+   */
+  value?: string;
+
+  /**
+   * Callback triggered when checkbox state changes
+   */
+  onCheckedChange?: (checked: boolean) => void;
 };
 
 type CheckboxVariant = NonNullable<VariantProps<typeof checkboxVariants>["variant"]>;
