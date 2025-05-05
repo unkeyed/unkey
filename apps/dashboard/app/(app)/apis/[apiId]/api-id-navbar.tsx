@@ -1,9 +1,7 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
-import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChevronExpandY, Gauge } from "@unkey/icons";
 import { CreateKeyDialog } from "./_components/create-key";
@@ -97,18 +95,7 @@ export const ApisNavbar = ({
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
-        <Navbar.Actions className="justify-end flex flex-1">
-          <Badge
-            key="namespaceId"
-            variant="secondary"
-            className="flex justify-between gap-2 max-md:w-[120px] font-mono font-medium ph-no-capture"
-          >
-            <span className="truncate">{api.id}</span>
-            <CopyButton value={api.id} className="flex-shrink-0" />
-          </Badge>
-
-          <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
-        </Navbar.Actions>
+        <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
       </Navbar>
     </div>
   );

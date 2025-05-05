@@ -22,9 +22,9 @@ export interface NavbarActionButtonProps extends Omit<ButtonProps, "title"> {
 export const NavbarActionButton = React.forwardRef<HTMLButtonElement, NavbarActionButtonProps>(
   ({
     title = "Create New Root Key",
-    variant = "outline",
+    variant = "primary",
     size = "md",
-    className = "bg-grayA-2 hover:bg-grayA-3",
+    className = "px-3",
     disabled,
     loading,
     rightContent,
