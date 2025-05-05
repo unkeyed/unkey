@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { usePathname } from "next/navigation";
