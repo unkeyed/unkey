@@ -9,7 +9,7 @@ import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/sche
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useEffect } from "react";
-import { FormProvider, useWatch } from "react-hook-form";
+import { FormProvider } from "react-hook-form";
 import type { ActionComponentProps } from "../../keys-table-action.popover";
 import { useEditMetadata } from "../hooks/use-edit-metadata";
 import { KeyInfo } from "../key-info";
@@ -41,7 +41,6 @@ export const EditMetadata = ({ keyDetails, isOpen, onClose }: EditMetadataProps)
     saveCurrentValues,
     clearPersistedData,
     reset,
-    control,
   } = methods;
 
   // Load saved values when the dialog opens
@@ -81,11 +80,6 @@ export const EditMetadata = ({ keyDetails, isOpen, onClose }: EditMetadataProps)
     }
   };
 
-  const metadataEnabled = useWatch({
-    control,
-    name: "metadata.data",
-  });
-
   return (
     <FormProvider {...methods}>
       <form id="edit-metadata-form" onSubmit={handleSubmit(onSubmit)}>
@@ -105,7 +99,7 @@ export const EditMetadata = ({ keyDetails, isOpen, onClose }: EditMetadataProps)
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!metadataEnabled || !isValid || isSubmitting}
+                disabled={!isValid || isSubmitting}
                 loading={updateMetadata.isLoading}
               >
                 Update metadata

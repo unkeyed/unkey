@@ -35,7 +35,7 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
 
   const {
     handleSubmit,
-    formState: { isSubmitting, isValid, isDirty },
+    formState: { isSubmitting, isValid },
     loadSavedValues,
     saveCurrentValues,
     clearPersistedData,
@@ -111,7 +111,7 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!isDirty || !isValid || isSubmitting}
+                disabled={!isValid || isSubmitting}
                 loading={key.isLoading}
               >
                 Update credits

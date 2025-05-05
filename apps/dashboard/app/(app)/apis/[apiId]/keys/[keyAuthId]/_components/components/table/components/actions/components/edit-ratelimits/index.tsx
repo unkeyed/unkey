@@ -36,7 +36,7 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
 
   const {
     handleSubmit,
-    formState: { isSubmitting, isValid, isDirty },
+    formState: { isSubmitting, isValid },
     loadSavedValues,
     saveCurrentValues,
     clearPersistedData,
@@ -91,7 +91,7 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!isDirty || !isValid || isSubmitting}
+                disabled={!isValid || isSubmitting}
                 loading={key.isLoading}
               >
                 Update ratelimit

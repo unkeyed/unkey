@@ -9,7 +9,7 @@ import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/sche
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useEffect } from "react";
-import { FormProvider, useWatch } from "react-hook-form";
+import { FormProvider } from "react-hook-form";
 import type { ActionComponentProps } from "../../keys-table-action.popover";
 import { useEditExpiration } from "../hooks/use-edit-expiration";
 import { KeyInfo } from "../key-info";
@@ -41,7 +41,6 @@ export const EditExpiration = ({ keyDetails, isOpen, onClose }: EditExpirationPr
     saveCurrentValues,
     clearPersistedData,
     reset,
-    control,
   } = methods;
 
   // Load saved values when the dialog opens
@@ -72,11 +71,6 @@ export const EditExpiration = ({ keyDetails, isOpen, onClose }: EditExpirationPr
     }
   };
 
-  const expirationEnabled = useWatch({
-    control,
-    name: "expiration.data",
-  });
-
   return (
     <FormProvider {...methods}>
       <form id="edit-expiration-form" onSubmit={handleSubmit(onSubmit)}>
@@ -96,7 +90,7 @@ export const EditExpiration = ({ keyDetails, isOpen, onClose }: EditExpirationPr
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!isValid || isSubmitting || !expirationEnabled}
+                disabled={!isValid || isSubmitting}
                 loading={updateExpiration.isLoading}
               >
                 Update expiration
