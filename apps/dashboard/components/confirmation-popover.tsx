@@ -28,13 +28,13 @@ const VARIANT_STYLES = {
   warning: {
     iconBg: "bg-warningA-4",
     iconColor: "text-warning-11",
-    buttonColor: "warning",
+    buttonColor: "warning" as const,
     icon: TriangleWarning2,
   },
   danger: {
     iconBg: "bg-error-4",
     iconColor: "text-error-11",
-    buttonColor: "danger",
+    buttonColor: "danger" as const,
     icon: TriangleWarning2,
   },
 };
@@ -101,7 +101,7 @@ export const ConfirmPopover = ({
         </div>
         <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4">{description}</div>
         <div className="space-x-3 w-full px-4 pb-4">
-          <Button color={buttonColor as any} onClick={handleConfirm} className="px-4">
+          <Button color={buttonColor} onClick={handleConfirm} className="px-4">
             {confirmButtonText}
           </Button>
           <PopoverClose asChild>
