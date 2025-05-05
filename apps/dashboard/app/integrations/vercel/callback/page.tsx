@@ -4,7 +4,7 @@
  */
 
 import { Code } from "@/components/ui/code";
-import { getOrgId } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
 import { Empty } from "@unkey/ui";
@@ -30,7 +30,7 @@ export default async function Page(props: Props) {
     return <div>no code</div>;
   }
 
-  const orgId = await getOrgId();
+  const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {

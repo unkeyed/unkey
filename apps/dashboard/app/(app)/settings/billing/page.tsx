@@ -1,4 +1,4 @@
-import { getOrgId } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -8,6 +8,7 @@ import { Button, Empty, Input } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
+import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
 import { Shell } from "./components/shell";
 
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function BillingPage() {
-  const orgId = await getOrgId();
+  const { orgId } = await getAuth();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
@@ -31,12 +32,16 @@ export default async function BillingPage() {
   const e = stripeEnv();
   if (!e) {
     return (
-      <Empty>
-        <Empty.Title>Stripe is not configured</Empty.Title>
-        <Empty.Description>
-          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
-        </Empty.Description>
-      </Empty>
+      <div>
+        <WorkspaceNavbar workspace={workspace} activePage={{ href: "billing", text: "Billing" }} />
+        <Empty>
+          <Empty.Title>Stripe is not configured</Empty.Title>
+          <Empty.Description>
+            If you are selfhosting Unkey, you need to configure Stripe in your environment
+            variables.
+          </Empty.Description>
+        </Empty>
+      </div>
     );
   }
 
@@ -69,7 +74,8 @@ export default async function BillingPage() {
 
   if (isLegacy) {
     return (
-      <Shell>
+      <Shell workspace={workspace}>
+        <WorkspaceNavbar workspace={workspace} activePage={{ href: "billing", text: "Billing" }} />
         <div className="w-full">
           <SettingCard
             title="Verifications"
@@ -110,7 +116,7 @@ export default async function BillingPage() {
             </>
           }
         >
-          <div className="w-full flex justify-end">
+          <div className="flex justify-end w-full">
             <Button variant="primary" size="lg">
               <Link href="mailto:support@unkey.dev">Contact us</Link>
             </Button>
