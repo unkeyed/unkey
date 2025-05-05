@@ -8,7 +8,7 @@ import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
 
 const checkboxVariants = cva(
-  "peer relative flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed",
+  "peer relative flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed",
   {
     variants: {
       variant: {
@@ -218,7 +218,9 @@ const Checkbox = React.forwardRef<React.ElementRef<typeof CheckboxPrimitive.Root
     const iconSize = getIconSize(size);
 
     const checkmarkColor =
-      mappedColor === "default" && mappedVariant === "primary" ? "text-black" : "text-white";
+      mappedColor === "default" && mappedVariant === "primary"
+        ? "text-white dark:text-black"
+        : "text-white";
 
     return (
       <CheckboxPrimitive.Root
