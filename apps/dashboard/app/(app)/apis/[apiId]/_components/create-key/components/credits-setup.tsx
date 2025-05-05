@@ -1,12 +1,6 @@
 "use client";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ChartPie, CircleInfo } from "@unkey/icons";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { FormInput } from "@unkey/ui";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { CreditsFormValues } from "../create-key.schema";
