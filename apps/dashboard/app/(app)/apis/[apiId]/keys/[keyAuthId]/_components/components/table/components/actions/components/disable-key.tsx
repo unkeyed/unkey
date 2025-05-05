@@ -33,7 +33,7 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
     shouldFocusError: true,
     shouldUnregister: true,
     defaultValues: {
-      confirmStatusChange: true,
+      confirmStatusChange: false,
     },
   });
 
@@ -131,7 +131,6 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
                   id="confirm-status-change"
                   color={isEnabling ? "default" : "danger"}
                   size="md"
-                  checked={field.value}
                   onCheckedChange={field.onChange}
                   required
                   label={

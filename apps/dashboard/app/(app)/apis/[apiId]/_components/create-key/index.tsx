@@ -32,9 +32,11 @@ const FORM_STORAGE_KEY = "unkey_create_key_form_state";
 export const CreateKeyDialog = ({
   keyspaceId,
   apiId,
+  copyIdValue,
 }: {
   keyspaceId: string | null;
   apiId: string;
+  copyIdValue?: string;
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -141,7 +143,7 @@ export const CreateKeyDialog = ({
           <Plus />
           Create new key
         </NavbarActionButton>
-        <CopyableIDButton value={apiId} />
+        <CopyableIDButton value={copyIdValue ?? apiId} />
       </Navbar.Actions>
 
       <FormProvider {...methods}>

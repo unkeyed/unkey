@@ -1,10 +1,8 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { Navbar } from "@/components/navigation/navbar";
-import { Badge } from "@/components/ui/badge";
 import { Nodes } from "@unkey/icons";
+import { CreateKeyDialog } from "../../../../_components/create-key";
 
 type Key = {
   id: string;
@@ -44,16 +42,9 @@ export function Navigation({ apiId, apiKey }: NavigationProps) {
           Settings
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
-      <Navbar.Actions>
-        <Badge
-          variant="secondary"
-          className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-        >
-          {apiKey.id}
-          <CopyButton value={apiKey.id} />
-        </Badge>
-        <CreateKeyButton apiId={apiKey.keyAuth.api.id} keyAuthId={apiKey.keyAuth.id} />
-      </Navbar.Actions>
+      <div className="items-center flex">
+        <CreateKeyDialog keyspaceId={apiKey.keyAuth.id} apiId={apiId} copyIdValue={apiKey.id} />
+      </div>
     </Navbar>
   );
 }
