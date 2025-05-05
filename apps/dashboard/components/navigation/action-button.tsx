@@ -23,7 +23,7 @@ export const NavbarActionButton = React.forwardRef<HTMLButtonElement, NavbarActi
   ({
     title = "Create New Root Key",
     variant = "primary",
-    size = "md",
+    size = "sm",
     className = "px-3",
     disabled,
     loading,
