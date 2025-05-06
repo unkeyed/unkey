@@ -54,7 +54,7 @@ export const GeneralSetup = () => {
         description="ID of the user/workspace in your system for key attribution."
         options={identityOptions}
         value={selectedIdentityId || ""}
-        onValueChange={(val) => {
+        onSelect={(val) => {
           const identity = identities.find((id) => id.id === val);
           setSelectedIdentityId(identity?.id || null);
           setValue("externalId", identity?.id || "");

@@ -8,7 +8,7 @@ export const useFetchIdentities = (limit = 50) => {
   const trpcUtils = trpc.useUtils();
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    trpc.key.query.identities.useInfiniteQuery(
+    trpc.identity.query.useInfiniteQuery(
       {
         limit,
       },
@@ -19,10 +19,6 @@ export const useFetchIdentities = (limit = 50) => {
             toast.error("Failed to Load Identities", {
               description:
                 "We couldn't find any identities for this workspace. Please try again or contact support@unkey.dev.",
-            });
-          } else if (err.data?.code === "UNAUTHORIZED") {
-            toast.error("Unauthorized Access", {
-              description: "You don't have permission to view identities in this workspace.",
             });
           } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
             toast.error("Server Error", {
@@ -58,7 +54,7 @@ export const useFetchIdentities = (limit = 50) => {
   };
 
   const refresh = () => {
-    trpcUtils.key.query.identities.invalidate();
+    trpcUtils.identity.query.invalidate();
   };
 
   return {

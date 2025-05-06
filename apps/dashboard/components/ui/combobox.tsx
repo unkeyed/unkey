@@ -67,10 +67,11 @@ export type ComboboxOption = {
 type ComboboxProps = {
   options: ComboboxOption[];
   value: string;
-  onValueChange: (value: string) => void;
+  onSelect: (value: string) => void;
+  onChange?: (event: React.FormEvent<HTMLInputElement>) => void;
   placeholder?: React.ReactNode;
   searchPlaceholder?: string;
-  emptyMessage?: string;
+  emptyMessage?: React.ReactNode;
   disabled?: boolean;
   leftIcon?: React.ReactNode;
   wrapperClassName?: string;
@@ -86,7 +87,8 @@ type ComboboxProps = {
 export function Combobox({
   options,
   value,
-  onValueChange,
+  onSelect,
+  onChange,
   placeholder,
   searchPlaceholder = "Search...",
   emptyMessage = "No results found.",
@@ -147,6 +149,7 @@ export function Combobox({
       <PopoverContent className="p-0 w-full min-w-[var(--radix-popover-trigger-width)] rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-50">
         <Command>
           <CommandInput
+            onInput={onChange}
             placeholder={searchPlaceholder}
             className="text-xs placeholder:text-xs placeholder:text-accent-8"
           />
@@ -158,7 +161,7 @@ export function Combobox({
                   key={option.value}
                   value={option.value}
                   onSelect={() => {
-                    onValueChange(option.value);
+                    onSelect(option.value);
                     setOpen(false);
                   }}
                   className="flex items-center py-0.5"

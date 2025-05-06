@@ -21,11 +21,12 @@ import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
 import { queryUsage } from "./billing/query-usage";
+import { createIdentity } from "./identity/create";
+import { queryIdentities } from "./identity/query";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
 import { deleteRootKeys } from "./key/deleteRootKey";
-import { queryIdentities } from "./key/query-identities";
 import { updateKeyEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
@@ -86,9 +87,6 @@ export const router = t.router({
   key: t.router({
     create: createKey,
     delete: deleteKeys,
-    query: t.router({
-      identities: queryIdentities,
-    }),
     update: t.router({
       enabled: updateKeyEnabled,
       expiration: updateKeyExpiration,
@@ -216,6 +214,10 @@ export const router = t.router({
       create: inviteMember,
       remove: revokeInvitation,
     }),
+  }),
+  identity: t.router({
+    create: createIdentity,
+    query: queryIdentities,
   }),
 });
 
