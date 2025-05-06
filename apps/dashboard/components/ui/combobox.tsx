@@ -150,6 +150,7 @@ export function Combobox({
         <Command>
           <CommandInput
             onInput={onChange}
+            onKeyDown={(e) => e.stopPropagation()}
             placeholder={searchPlaceholder}
             className="text-xs placeholder:text-xs placeholder:text-accent-8"
           />

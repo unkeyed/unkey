@@ -73,7 +73,7 @@ export const EditExternalId = ({
         isOpen={isOpen}
         subTitle="Provide an owner to this key, like a userId from your system"
         onOpenChange={handleDialogOpenChange}
-        title="Edit external ID"
+        title="Edit External ID"
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <div className="w-full flex gap-2">
@@ -88,7 +88,7 @@ export const EditExternalId = ({
                   onClick={handleClearButtonClick}
                   ref={clearButtonRef}
                 >
-                  Clear external ID
+                  Clear External ID
                 </Button>
               ) : (
                 <Button
@@ -101,7 +101,7 @@ export const EditExternalId = ({
                   onClick={handleSubmit}
                   disabled={!originalIdentityId && !selectedIdentityId}
                 >
-                  Update external ID
+                  Update External ID
                 </Button>
               )}
             </div>
@@ -124,9 +124,9 @@ export const EditExternalId = ({
         onOpenChange={setIsConfirmPopoverOpen}
         onConfirm={clearSelection}
         triggerRef={clearButtonRef}
-        title="Confirm removing external ID"
-        description="This will remove the external ID association from this key. Any tracking or analytics related to this ID will no longer be associated with this key."
-        confirmButtonText="Remove external ID"
+        title="Confirm removing External ID"
+        description="This will remove the External ID association from this key. Any tracking or analytics related to this ID will no longer be associated with this key."
+        confirmButtonText="Remove External ID"
         cancelButtonText="Cancel"
         variant="danger"
       />
