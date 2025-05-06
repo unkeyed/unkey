@@ -10,17 +10,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import type { Organization, User } from "@/lib/auth/types";
+import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
 import type React from "react";
@@ -34,8 +28,8 @@ const formSchema = z.object({
 });
 
 interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  user: User | null;
-  organization: Organization | null;
+  user: AuthenticatedUser;
+  organization: Organization;
 }
 
 export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps) => {

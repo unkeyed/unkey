@@ -119,6 +119,12 @@ export const createWorkspaceNavigation = (
       items: [
         {
           icon: null,
+          href: "/settings/general",
+          label: "General",
+          active: segments.some((s) => s === "general"),
+        },
+        {
+          icon: null,
           href: "/settings/team",
           label: "Team",
           active: segments.some((s) => s === "team"),

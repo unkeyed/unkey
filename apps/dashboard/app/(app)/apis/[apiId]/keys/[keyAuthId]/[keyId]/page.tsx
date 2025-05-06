@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
-import { getOrgId } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
@@ -32,7 +32,7 @@ export default async function APIKeyDetailPage(props: {
     interval?: Interval;
   };
 }) {
-  const orgId = await getOrgId();
+  const { orgId } = await getAuth();
 
   const key = await db.query.keys.findFirst({
     where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAtM)),

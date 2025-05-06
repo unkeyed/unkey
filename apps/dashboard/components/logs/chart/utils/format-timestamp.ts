@@ -1,5 +1,5 @@
 import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
-import { addMinutes, format, fromUnixTime } from "date-fns";
+import { format, fromUnixTime } from "date-fns";
 
 export const formatTimestampLabel = (timestamp: string | number | Date) => {
   const date = new Date(timestamp);
@@ -10,9 +10,7 @@ export const formatTimestampForChart = (
   value: string | number,
   granularity: CompoundTimeseriesGranularity,
 ) => {
-  const date = new Date(value);
-  const offset = new Date().getTimezoneOffset() * -1;
-  const localDate = addMinutes(date, offset);
+  const localDate = new Date(value);
 
   switch (granularity) {
     case "perMinute":

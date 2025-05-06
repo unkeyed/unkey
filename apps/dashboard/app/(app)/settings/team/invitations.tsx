@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
-import type { Organization, User } from "@/lib/auth/types";
+import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
@@ -19,8 +19,8 @@ import { InviteButton } from "./invite";
 import { StatusBadge } from "./status-badge";
 
 type InvitationsProps = {
-  user: User | null;
-  organization: Organization | null;
+  user: AuthenticatedUser;
+  organization: Organization;
 };
 
 export const Invitations = memo<InvitationsProps>(({ user, organization }) => {

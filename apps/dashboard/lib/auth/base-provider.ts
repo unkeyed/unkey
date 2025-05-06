@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server";
 import {
   AuthErrorCode,
   type AuthErrorResponse,
-  DEFAULT_MIDDLEWARE_CONFIG,
   type EmailAuthResult,
   type Invitation,
   type InvitationListResponse,
@@ -51,7 +50,6 @@ export abstract class BaseAuthProvider {
   abstract completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;
 
   // User Management
-  abstract getCurrentUser(): Promise<User | null>;
   abstract getUser(userId: string): Promise<User | null>;
   abstract findUser(email: string): Promise<User | null>;
 
@@ -158,28 +156,4 @@ export abstract class BaseAuthProvider {
    * // In middleware.ts
    * export default authMiddleware;
    */
-  public createMiddleware(config: Partial<MiddlewareConfig> = {}) {
-    const middlewareConfig = {
-      ...DEFAULT_MIDDLEWARE_CONFIG,
-      ...config,
-    };
-
-    return async (request: NextRequest): Promise<NextResponse> => {
-      const { pathname } = request.nextUrl;
-
-      // Skip public paths
-      if (this.isPublicPath(pathname, middlewareConfig.publicPaths)) {
-        return NextResponse.next();
-      }
-
-      // Check if cookie exists at all (lightweight check)
-      const hasSessionCookie = request.cookies.has(middlewareConfig.cookieName);
-      if (!hasSessionCookie) {
-        return this.redirectToLogin(request, middlewareConfig);
-      }
-
-      // Allow request to proceed to server components for full auth check
-      return NextResponse.next();
-    };
-  }
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
-import { useResponsive } from "@/hooks/use-responsive";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ChevronExpandY, Gauge } from "@unkey/icons";
+import { CreateKeyDialog } from "./_components/create-key";
 
 export const ApisNavbar = ({
   api,
@@ -29,7 +29,7 @@ export const ApisNavbar = ({
   };
   keyId?: string;
 }) => {
-  const { isMobile } = useResponsive();
+  const isMobile = useIsMobile();
   return (
     <div className="w-full">
       <Navbar className="w-full flex justify-between">
@@ -107,7 +107,7 @@ export const ApisNavbar = ({
             <CopyButton value={api.id} className="flex-shrink-0" />
           </Badge>
 
-          <CreateKeyButton apiId={api.id} keyAuthId={api.keyAuthId!} />
+          <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
         </Navbar.Actions>
       </Navbar>
     </div>
