@@ -3,6 +3,7 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useDelayLoader } from "@/hooks/use-delay-loader";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ export const NestedNavItem = ({
   maxDepth?: number;
   isSubItem?: boolean;
 }) => {
+  const sidebar = useSidebar();
   const [parentIsPending, startParentTransition] = useTransition();
   const showParentLoader = useDelayLoader(parentIsPending);
   const router = useRouter();
@@ -63,7 +65,7 @@ export const NestedNavItem = ({
     if (hasChildren && !isSubItem) {
       e.preventDefault();
       setIsOpen((prev) => !prev);
-      if (isOpen) {
+      if (sidebar.open && isOpen) {
         return;
       }
     }
