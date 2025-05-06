@@ -9,4 +9,6 @@ export * from "./components/select";
 export * from "./components/settings-card";
 export * from "./components/textarea";
 export * from "./components/timestamp-info";
+export * from "./components/settings-card";
+export * from "./components/dialog/dialog-container";
 export * from "./components/tooltip";

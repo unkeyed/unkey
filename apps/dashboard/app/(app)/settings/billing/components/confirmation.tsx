@@ -1,6 +1,6 @@
 "use client";
 
-import { DialogContainer } from "@/components/dialog-container";
+import { DialogContainer } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 

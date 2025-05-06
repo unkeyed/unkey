@@ -1,10 +1,10 @@
 "use client";
-import { DialogContainer } from "@/components/dialog-container";
 import { toast } from "@/components/ui/toaster";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Lock } from "@unkey/icons";
+import { DialogContainer } from "@unkey/ui";
 import { Button, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";

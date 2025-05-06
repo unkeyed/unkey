@@ -1,6 +1,6 @@
 "use client";
 
-import { DialogContainer } from "@/components/dialog-container";
+import { DialogContainer } from "@unkey/ui";
 
 import type { Organization } from "@/lib/auth/types";
 import { Button } from "@unkey/ui";
