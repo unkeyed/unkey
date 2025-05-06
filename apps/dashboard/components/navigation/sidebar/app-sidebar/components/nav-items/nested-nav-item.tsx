@@ -15,8 +15,6 @@ import { NavLink } from "../nav-link";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
 import { getButtonStyles } from "./utils";
 
-const paths = ["/apis", "/ratelimits"];
-
 export const NestedNavItem = ({
   item,
   onLoadMore,
@@ -53,10 +51,11 @@ export const NestedNavItem = ({
 
     setIsChildrenOpen(!!hasMatchingChild);
 
-    if (paths.includes(pathname) && pathname.startsWith(item.href)) {
+    const itemPath = `/${item.label.toLocaleLowerCase()}`;
+    if (pathname.startsWith(itemPath)) {
       setIsOpen(true);
     }
-  }, [pathname, item.items, item.href, hasChildren]);
+  }, [pathname, item.items, item.label, hasChildren]);
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
     // If the item has children, toggle the open state
