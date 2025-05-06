@@ -180,6 +180,7 @@ const LastUsed: React.FC<{
       workspaceId: props.workspaceId,
       keySpaceId: props.keySpaceId,
       keyId: props.keyId,
+      limit: 50,
     })
     .then((res) => res.val?.at(0)?.time ?? null);
 

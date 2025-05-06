@@ -1,9 +1,7 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
-import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChevronExpandY, Gauge } from "@unkey/icons";
 import { CreateKeyDialog } from "./_components/create-key";
@@ -23,7 +21,7 @@ export const ApisNavbar = ({
     id: string;
     name: string;
   }[];
-  activePage: {
+  activePage?: {
     href: string;
     text: string;
   };
@@ -60,7 +58,7 @@ export const ApisNavbar = ({
             </>
           )}
 
-          <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
+          <Navbar.Breadcrumbs.Link href={activePage?.href ?? ""} noop active={!keyId}>
             <QuickNavPopover
               items={[
                 {
@@ -78,37 +76,27 @@ export const ApisNavbar = ({
                   label: "Settings",
                   href: `/apis/${api.id}/settings`,
                 },
-                ...(keyId
-                  ? [
-                      {
-                        id: "settings",
-                        label: `${keyId.substring(0, 8)}...${keyId.substring(keyId.length - 4)}`,
-                        href: `/apis/${api.id}/keys/${api.keyAuthId}/${keyId}`,
-                      },
-                    ]
-                  : []),
               ]}
-              shortcutKey="M"
             >
               <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-                {activePage.text}
+                {activePage?.text ?? ""}
                 <ChevronExpandY className="size-4" />
               </div>
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
+          {keyId && (
+            <Navbar.Breadcrumbs.Link
+              href={`/apis/${api.id}/keys/${api.keyAuthId}/${keyId}`}
+              className="max-md:hidden"
+              isLast
+              isIdentifier
+              active
+            >
+              {keyId?.substring(0, 8)}...{keyId?.substring(keyId?.length - 4)}
+            </Navbar.Breadcrumbs.Link>
+          )}
         </Navbar.Breadcrumbs>
-        <Navbar.Actions className="justify-end flex flex-1">
-          <Badge
-            key="namespaceId"
-            variant="secondary"
-            className="flex justify-between gap-2 max-md:w-[120px] font-mono font-medium ph-no-capture"
-          >
-            <span className="truncate">{api.id}</span>
-            <CopyButton value={api.id} className="flex-shrink-0" />
-          </Badge>
-
-          <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
-        </Navbar.Actions>
+        <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
       </Navbar>
     </div>
   );

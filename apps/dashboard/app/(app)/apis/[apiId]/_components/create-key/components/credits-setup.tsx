@@ -29,44 +29,64 @@ export const UsageSetup = () => {
   const handleSwitchChange = (checked: boolean) => {
     setValue("limit.enabled", checked);
 
-    // When enabling, ensure refill has the correct structure
-    if (checked && !getValues("limit.data.refill.interval")) {
-      setValue("limit.data.refill.interval", "none", { shouldValidate: true });
-      setValue("limit.data.refill.amount", undefined, { shouldValidate: true });
-      setValue("limit.data.refill.refillDay", undefined, {
-        shouldValidate: true,
-      });
+    // When enabling, ensure default values are set properly
+    if (checked) {
+      // Set default remaining to 100 if not already set
+      if (!getValues("limit.data.remaining")) {
+        setValue("limit.data.remaining", 100, { shouldValidate: true });
+      }
+
+      // Set up refill structure with defaults, using the entire object at once
+      if (!getValues("limit.data.refill.interval")) {
+        setValue(
+          "limit.data.refill",
+          {
+            interval: "none",
+            amount: undefined,
+            refillDay: undefined,
+          },
+          { shouldValidate: true },
+        );
+      }
     }
 
     trigger("limit");
   };
 
   const handleRefillIntervalChange = (value: "none" | "daily" | "monthly") => {
-    setValue("limit.data.refill.interval", value, { shouldValidate: true });
-
-    // Clean up related fields based on the selected interval
     if (value === "none") {
-      setValue("limit.data.refill.amount", undefined, { shouldValidate: true });
-      setValue("limit.data.refill.refillDay", undefined, {
-        shouldValidate: true,
-      });
+      // For "none", set entire refill object
+      setValue(
+        "limit.data.refill",
+        {
+          interval: "none",
+          amount: undefined,
+          refillDay: undefined,
+        },
+        { shouldValidate: true },
+      );
     } else if (value === "daily") {
-      // For daily, ensure refillDay is undefined but keep amount if present
-      setValue("limit.data.refill.refillDay", undefined, {
-        shouldValidate: true,
-      });
-      // If amount is not set, set a default
-      if (!getValues("limit.data.refill.amount")) {
-        setValue("limit.data.refill.amount", 100, { shouldValidate: true });
-      }
+      // For "daily"
+      setValue(
+        "limit.data.refill",
+        {
+          interval: "daily",
+          amount: getValues("limit.data.refill.amount") || 100,
+          refillDay: undefined, // Must be undefined for daily
+        },
+        { shouldValidate: true },
+      );
     } else if (value === "monthly") {
-      // For monthly, ensure both amount and refillDay have values
-      if (!getValues("limit.data.refill.amount")) {
-        setValue("limit.data.refill.amount", 100, { shouldValidate: true });
-      }
-      if (!getValues("limit.data.refill.refillDay")) {
-        setValue("limit.data.refill.refillDay", 1, { shouldValidate: true });
-      }
+      // For "monthly"
+      setValue(
+        "limit.data.refill",
+        {
+          interval: "monthly",
+          amount: getValues("limit.data.refill.amount") || 100,
+          refillDay: getValues("limit.data.refill.refillDay") || 1,
+        },
+        { shouldValidate: true },
+      );
     }
   };
 

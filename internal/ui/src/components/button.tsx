@@ -327,69 +327,65 @@ function getPathForSegment(index: number) {
   return paths[index];
 }
 
-const Button: React.FC<ButtonProps> = ({
-  className,
-  variant,
-  color = "default",
-  size,
-  asChild = false,
-  loading,
-  disabled,
-  loadingLabel = "Loading, please wait",
-  ...props
-}) => {
-  let mappedVariant: ButtonVariant = "primary";
-  let mappedColor: ButtonColor = color;
-
-  if (variant === null || variant === undefined) {
-    mappedVariant = "primary";
-  } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
-    const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
-    mappedVariant = mapping.variant;
-    if (mapping.color) {
-      mappedColor = mapping.color;
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      className,
+      variant,
+      color = "default",
+      size,
+      asChild = false,
+      loading,
+      disabled,
+      loadingLabel = "Loading, please wait",
+      ...props
+    },
+    ref,
+  ) => {
+    let mappedVariant: ButtonVariant = "primary";
+    let mappedColor: ButtonColor = color;
+    if (variant === null || variant === undefined) {
+      mappedVariant = "primary";
+    } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
+      const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
+      mappedVariant = mapping.variant;
+      if (mapping.color) {
+        mappedColor = mapping.color;
+      }
+    } else {
+      mappedVariant = variant as ButtonVariant;
     }
-  } else {
-    mappedVariant = variant as ButtonVariant;
-  }
-
-  // Only disable the click behavior, not the visual appearance
-  const isClickDisabled = disabled || loading;
-  // Keep separate flag for actual visual disabled state
-  const isVisuallyDisabled = disabled;
-
-  // Width reference for consistent sizing during loading state
-  const buttonRef = React.useRef<HTMLButtonElement>(null);
-  const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(undefined);
-
-  // Capture initial width when entering loading state
-  React.useEffect(() => {
-    if (loading && buttonRef.current && !buttonWidth) {
-      setButtonWidth(buttonRef.current.offsetWidth);
-    } else if (!loading) {
-      setButtonWidth(undefined);
-    }
-  }, [loading, buttonWidth]);
-
-  // Keyboard handler
-  React.useEffect(() => {
-    if (!props.keyboard || isClickDisabled) {
-      return;
-    }
-
-    const down = (e: KeyboardEvent) => {
-      if (!props.keyboard!.trigger(e)) {
+    // Only disable the click behavior, not the visual appearance
+    const isClickDisabled = disabled || loading;
+    // Keep separate flag for actual visual disabled state
+    const isVisuallyDisabled = disabled;
+    // Width reference for consistent sizing during loading state
+    const buttonRef = React.useRef<HTMLButtonElement>(null);
+    const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(undefined);
+    // Capture initial width when entering loading state
+    React.useEffect(() => {
+      if (loading && buttonRef.current && !buttonWidth) {
+        setButtonWidth(buttonRef.current.offsetWidth);
+      } else if (!loading) {
+        setButtonWidth(undefined);
+      }
+    }, [loading, buttonWidth]);
+    // Keyboard handler
+    React.useEffect(() => {
+      if (!props.keyboard || isClickDisabled) {
         return;
       }
-      e.preventDefault();
-      props.keyboard!.callback(e);
-    };
-
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
-  }, [props.keyboard, isClickDisabled]);
-
-  const Comp = asChild ? Slot : "button";
+      const down = (e: KeyboardEvent) => {
+        if (!props.keyboard!.trigger(e)) {
+          return;
+        }
+        e.preventDefault();
+        props.keyboard!.callback(e);
+      };
+      document.addEventListener("keydown", down);
+      return () => document.removeEventListener("keydown", down);
+    }, [props.keyboard, isClickDisabled]);
+    const Comp = asChild ? Slot : "button";
 
   return (
     <Comp
