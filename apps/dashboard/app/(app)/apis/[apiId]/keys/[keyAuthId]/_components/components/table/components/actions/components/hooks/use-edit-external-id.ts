@@ -22,7 +22,7 @@ export const useEditExternalId = (onSuccess?: () => void) => {
         }
       }
 
-      toast.success("Key Owner Updated", {
+      toast.success("Key External ID Updated", {
         description,
         duration: 5000,
       });
@@ -41,17 +41,17 @@ export const useEditExternalId = (onSuccess?: () => void) => {
             "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
         });
       } else if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid Owner Information", {
+        toast.error("Invalid External ID Information", {
           description:
-            err.message || "Please ensure your owner information is valid and try again.",
+            err.message || "Please ensure your external ID information is valid and try again.",
         });
       } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
         toast.error("Server Error", {
           description:
-            "We are unable to update owner information on this key. Please try again or contact support@unkey.dev",
+            "We are unable to update external ID information on this key. Please try again or contact support@unkey.dev",
         });
       } else {
-        toast.error("Failed to Update Key Owner", {
+        toast.error("Failed to Update Key External ID", {
           description:
             err.message ||
             "An unexpected error occurred. Please try again or contact support@unkey.dev",

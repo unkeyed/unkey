@@ -1,14 +1,10 @@
-import { useFetchIdentities } from "@/app/(app)/apis/[apiId]/_components/create-key/hooks/use-fetch-identities";
-import { createIdentityOptions } from "@/app/(app)/apis/[apiId]/_components/create-key/hooks/use-fetch-identities/create-identity-options";
+import { ExternalIdField } from "@/app/(app)/apis/[apiId]/_components/create-key/components/external-id-field";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { DialogContainer } from "@/components/dialog-container";
-import { FormCombobox } from "@/components/ui/form-combobox";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRef, useState } from "react";
 import type { ActionComponentProps } from "../../keys-table-action.popover";
-import { useCreateIdentity } from "../hooks/use-create-identity";
 import { useEditExternalId } from "../hooks/use-edit-external-id";
 import { KeyInfo } from "../key-info";
 
@@ -28,26 +24,11 @@ export const EditExternalId = ({
     keyDetails.identity_id || null,
   );
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
   const clearButtonRef = useRef<HTMLButtonElement>(null);
-
-  const { identities, isFetchingNextPage, hasNextPage, loadMore } = useFetchIdentities();
-  const identityOptions = createIdentityOptions({
-    identities,
-    hasNextPage,
-    isFetchingNextPage,
-    loadMore,
-  });
 
   const updateKeyOwner = useEditExternalId(() => {
     setOriginalIdentityId(selectedIdentityId);
     onClose();
-  });
-
-  // Add the create identity hook
-  const createIdentity = useCreateIdentity((data) => {
-    // When identity is created, select it
-    setSelectedIdentityId(data.identityId);
   });
 
   const handleSubmit = () => {
@@ -84,15 +65,6 @@ export const EditExternalId = ({
         id: null,
       },
     });
-  };
-
-  const handleCreateIdentity = () => {
-    if (searchValue.trim()) {
-      createIdentity.mutate({
-        externalId: searchValue.trim(),
-        meta: null,
-      });
-    }
   };
 
   return (
@@ -141,40 +113,10 @@ export const EditExternalId = ({
         <div className="py-1 my-2">
           <div className="h-[1px] bg-grayA-3 w-full" />
         </div>
-        <FormCombobox
-          optional
-          label="External ID"
-          description="ID of the user/workspace in your system for key attribution."
-          options={identityOptions}
-          value={originalIdentityId || selectedIdentityId || ""}
-          onChange={(e) => setSearchValue(e.currentTarget.value)}
-          onSelect={(val) => {
-            const identity = identities.find((id) => id.id === val);
-            setSelectedIdentityId(identity?.id || null);
-          }}
-          placeholder={
-            <div className="flex w-full text-grayA-8 text-xs gap-1.5 items-center py-2">
-              Select external ID
-            </div>
-          }
-          searchPlaceholder="Search external ID..."
-          emptyMessage={
-            <div className="flex flex-col gap-4 items-center justify-center py-2">
-              <span className="text-gray-9 text-sm">No external ID found.</span>
-              <Button
-                variant="outline"
-                size="md"
-                className="w-fit rounded-lg"
-                onClick={handleCreateIdentity}
-                loading={createIdentity.isLoading}
-                disabled={!searchValue.trim() || createIdentity.isLoading}
-              >
-                <Plus size="sm-regular" />
-                Create new identity
-              </Button>
-            </div>
-          }
-          variant="default"
+        <ExternalIdField
+          value={selectedIdentityId}
+          onChange={setSelectedIdentityId}
+          disabled={updateKeyOwner.isLoading}
         />
       </DialogContainer>
       <ConfirmPopover
