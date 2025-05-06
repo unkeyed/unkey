@@ -32,7 +32,7 @@ export const KeyboardButton = ({
       {...props}
     >
       {modifierKey && <kbd>{modifierKey}+</kbd>}
-      <kbd>{shortcut.toUpperCase()}</kbd>
+      <kbd>{shortcut?.toUpperCase()}</kbd>
     </span>
   );
 };

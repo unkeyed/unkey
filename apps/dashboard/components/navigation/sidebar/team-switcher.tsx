@@ -14,7 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { SetSessionCookie } from "@/lib/auth/cookies";
+import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
@@ -56,7 +56,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
   const changeWorkspace = trpc.user.switchOrg.useMutation({
     async onSuccess(sessionData) {
       const { token, expiresAt } = sessionData;
-      await SetSessionCookie({
+      await setSessionCookie({
         token: token!,
         expiresAt: expiresAt!,
       });

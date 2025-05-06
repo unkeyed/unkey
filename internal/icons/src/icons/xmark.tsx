@@ -10,11 +10,18 @@
  * https://nucleoapp.com/license
  */
 import type React from "react";
-import type { IconProps } from "../props";
+import { type IconProps, sizeMap } from "../props";
 
-export const XMark: React.FC<IconProps> = (props) => {
+export const XMark: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor">
         <line
           fill="none"
@@ -25,6 +32,7 @@ export const XMark: React.FC<IconProps> = (props) => {
           x2="4"
           y1="4"
           y2="14"
+          strokeWidth={strokeWidth}
         />
         <line
           fill="none"
@@ -35,6 +43,7 @@ export const XMark: React.FC<IconProps> = (props) => {
           x2="14"
           y1="4"
           y2="14"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>

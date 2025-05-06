@@ -1,4 +1,6 @@
-import { cn } from "@unkey/ui/src/lib/utils";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
+import { cn } from "../lib/utils";
 
 type SettingCardProps = {
   title: string | React.ReactNode;
@@ -33,7 +35,7 @@ export function SettingCard({
   return (
     <div
       className={cn(
-        "px-6 py-3 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row",
+        "px-6 py-3 lg:w-full flex gap-6 lg:justify-between lg:items-start flex-col lg:flex-row",
         borderRadiusClass,
         borderClass,
         className,

@@ -1,7 +1,6 @@
 "use client";
-
 import { createContext, useContext, useState } from "react";
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+// biome-ignore lint: React in this context is used throughout
 import React from "react";
 import type { DateRange } from "react-day-picker";
 import { DateTimeActions } from "./components/actions";
@@ -9,8 +8,8 @@ import { Calendar } from "./components/calendar";
 import { TimeInput } from "./components/time-split";
 
 export type DateTimeContextType = {
-  minDateRange?: Date;
-  maxDateRange?: Date;
+  minDate?: Date;
+  maxDate?: Date;
   date?: DateRange;
   startTime: TimeUnit;
   endTime: TimeUnit;
@@ -18,7 +17,9 @@ export type DateTimeContextType = {
   onStartTimeChange: (newTime: TimeUnit) => void;
   onEndTimeChange: (newTime: TimeUnit) => void;
 };
+
 export type Range = DateRange;
+
 export type TimeUnit = {
   HH: string;
   mm: string;
@@ -44,7 +45,14 @@ type DateTimeRootProps = {
   onChange: (date?: DateRange, start?: TimeUnit, end?: TimeUnit) => void;
 };
 
-function DateTime({ children, className, onChange, initialRange }: DateTimeRootProps) {
+function DateTime({
+  children,
+  className,
+  onChange,
+  initialRange,
+  minDate,
+  maxDate,
+}: DateTimeRootProps) {
   const [date, setDate] = useState<DateRange | undefined>(initialRange);
 
   // Initialize time states based on initialRange dates if provided
@@ -91,6 +99,8 @@ function DateTime({ children, className, onChange, initialRange }: DateTimeRootP
         date,
         startTime,
         endTime,
+        minDate,
+        maxDate,
         onDateChange: handleDateChange,
         onStartTimeChange: handleStartTimeChange,
         onEndTimeChange: handleEndTimeChange,
@@ -104,12 +114,9 @@ function DateTime({ children, className, onChange, initialRange }: DateTimeRootP
 }
 
 DateTime.displayName = "DateTime.root";
-
 DateTime.Calendar = Calendar;
-
 DateTime.TimeInput = TimeInput;
 DateTime.TimeInput.displayName = "DateTime.TimeInput";
-
 DateTime.Actions = DateTimeActions;
 DateTime.Actions.displayName = "DateTime.Actions";
 

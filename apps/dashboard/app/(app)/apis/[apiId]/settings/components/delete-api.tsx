@@ -1,13 +1,11 @@
 "use client";
 import { DialogContainer } from "@/components/dialog-container";
-import { SettingCard } from "@/components/settings-card";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Lock } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
@@ -78,8 +76,8 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
     <div>
       <SettingCard
         title={
-          <div className=" flex items-center justify-start gap-2.5">
-            <span className="text-sm font-medium text-accent-12">Delete API</span>
+          <div className="inline-flex gap-2">
+            <span>Delete API </span>
             {api.deleteProtection && (
               <StatusBadge variant={"locked"} text={"Locked"} icon={<Lock size="sm-thin" />} />
             )}
@@ -105,9 +103,8 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
         border="bottom"
         contentWidth="w-full lg:w-[320px]"
       >
-        <div className="w-full flex justify-end">
+        <div className="w-full flex justify-end lg:mt-4">
           <Button
-            className="w-fit rounded-lg"
             variant="outline"
             color="danger"
             size="lg"

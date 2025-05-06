@@ -1,12 +1,10 @@
 "use client";
-import { SettingCard } from "@/components/settings-card";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@unkey/ui";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { revalidateTag } from "../../../../../actions";
@@ -72,20 +70,13 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <SettingCard
-          title={
-            <div className="flex items-center justify-start gap-2.5">
-              <span className="text-sm font-medium text-accent-12">API Name</span>
-            </div>
-          }
-          description={
-            <div className="font-normal text-[13px] max-w-[380px]">
-              Not customer-facing. Choose a name that is easy to recognize.
-            </div>
-          }
+          title={"API Name"}
+          description={"Not customer-facing. Choose a name that is easy to recognize."}
           border="top"
-          contentWidth="w-full lg:w-[320px]"
+          className="border-b-1"
+          contentWidth="w-full lg:w-[320px] h-full"
         >
-          <div className="flex flex-row justify-items-stretch items-center w-full gap-x-2">
+          <div className="flex flex-row justify-end items-center w-full gap-x-2 mt-2">
             <input type="hidden" name="workspaceId" value={api.workspaceId} />
             <input type="hidden" name="apiId" value={api.id} />
             <label htmlFor="apiName" className="hidden sr-only">
@@ -100,7 +91,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
                     <Input
                       type="text"
                       id="apiName"
-                      className="w-[20rem] lg:w-[16rem] h-9"
+                      className="min-w-[16rem]"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {
@@ -115,7 +106,6 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
             />
             <Button
               size="lg"
-              className="items-end"
               variant="primary"
               disabled={
                 !form.formState.isValid ||

@@ -1,5 +1,5 @@
-import { SettingCard } from "@/components/settings-card";
 import { formatNumber } from "@/lib/fmt";
+import { SettingCard } from "@unkey/ui";
 
 export const Usage: React.FC<{ current: number; max: number }> = async ({ current, max }) => {
   return (
@@ -7,6 +7,8 @@ export const Usage: React.FC<{ current: number; max: number }> = async ({ curren
       title="Usage this month"
       description="Valid key verifications and ratelimits."
       border="both"
+      className="w-full"
+      contentWidth="w-full lg:w-[320px]"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
         <p className="text-sm font-semibold text-gray-12">
