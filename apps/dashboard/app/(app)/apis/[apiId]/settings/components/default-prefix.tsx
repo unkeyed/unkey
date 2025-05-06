@@ -70,9 +70,9 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
             </div>
           }
           border="bottom"
-          contentWidth="w-full lg:w-[320px] h-full"
+          contentWidth="w-full lg:w-[420px] h-full"
         >
-          <div className="flex flex-row justify-end items-center w-full gap-x-2 mt-2">
+          <div className="flex flex-row justify-end items-center w-full gap-x-2">
             <input type="hidden" name="keyAuthId" value={keyAuth.id} />
             <label htmlFor="defaultPrefix" className="hidden sr-only">
               Default Prefix

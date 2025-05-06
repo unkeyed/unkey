@@ -5,7 +5,7 @@ import * as React from "react";
 import { cn } from "../lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed",
+  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed px-3",
   {
     variants: {
       variant: {
@@ -410,7 +410,7 @@ const Button: React.FC<ButtonProps> = ({
     >
       {loading && (
         <div
-          className="absolute inset-0 flex  items-center justify-center w-full h-full transition-opacity duration-200"
+          className="absolute inset-0 flex  items-center justify-center w-full h-full transition-opacity duration-200 px-1"
           aria-hidden="true"
         >
           <AnimatedLoadingSpinner />
@@ -419,7 +419,7 @@ const Button: React.FC<ButtonProps> = ({
       )}
       <div
         className={cn(
-          "w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200",
+          "w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200 px-1",
           {
             "opacity-0": loading,
             "opacity-100": !loading,

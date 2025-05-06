@@ -95,9 +95,9 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       }
       border="top"
       className="border-b-1"
-      contentWidth="w-full lg:w-[320px]"
+      contentWidth="w-full lg:w-[420px]"
     >
-      <div className="flex w-full gap-2 lg:items-center justify-end lg:mt-1">
+      <div className="flex w-full gap-2 lg:items-center justify-end">
         {api.deleteProtection ? (
           <Button
             type="button"

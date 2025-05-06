@@ -74,9 +74,9 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
           description={"Not customer-facing. Choose a name that is easy to recognize."}
           border="top"
           className="border-b-1"
-          contentWidth="w-full lg:w-[320px] h-full"
+          contentWidth="w-full lg:w-[420px] h-full"
         >
-          <div className="flex flex-row justify-end items-center w-full gap-x-2 mt-2">
+          <div className="flex flex-row justify-end items-center w-full gap-x-2">
             <input type="hidden" name="workspaceId" value={api.workspaceId} />
             <input type="hidden" name="apiId" value={api.id} />
             <label htmlFor="apiName" className="hidden sr-only">

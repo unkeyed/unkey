@@ -70,9 +70,9 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
           }
           border="top"
           className="border-b-1"
-          contentWidth="w-full lg:w-[320px] h-full"
+          contentWidth="w-full lg:w-[420px]"
         >
-          <div className="flex flex-row justify-end items-center w-full gap-x-2 mt-2">
+          <div className="flex flex-row justify-end items-center w-full gap-x-2">
             <input type="hidden" name="keyAuthId" value={keyAuth.id} />
             <label htmlFor="defaultBytes" className="hidden sr-only">
               Default Bytes

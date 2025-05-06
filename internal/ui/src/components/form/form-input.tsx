@@ -23,12 +23,12 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
     const errorId = `${inputId}-error`;
 
     return (
-      <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
+      <fieldset className={cn("relative gap-1.5 border-0 m-0 p-0", className)}>
         {label && (
           <label
             id={`${inputId}-label`}
             htmlFor={inputId}
-            className="text-gray-11 text-[13px] flex items-center"
+            className="absolute bottom-10 text-gray-11 text-[13px] flex items-center"
           >
             {label}
             {required && <RequiredTag hasError={!!error} />}
@@ -45,7 +45,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           {...props}
         />
         {(description || error) && (
-          <div className="text-[13px] leading-5">
+          <div className="text-[13px] leading-5 absolute top-10">
             {error ? (
               <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
                 <TriangleWarning2 className="flex-shrink-0" aria-hidden="true" />
