@@ -62,10 +62,10 @@ export const NestedNavItem = ({
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
     // If the item has children, toggle the open state
-    if (hasChildren && !isSubItem) {
+    if (sidebar.open && hasChildren && !isSubItem) {
       e.preventDefault();
       setIsOpen((prev) => !prev);
-      if (sidebar.open && isOpen) {
+      if (isOpen) {
         return;
       }
     }
