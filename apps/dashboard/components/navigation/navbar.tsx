@@ -1,6 +1,7 @@
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { MoreHorizontal } from "lucide-react";
+import Link from "next/link";
 import React from "react";
 
 type BaseProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;
@@ -112,7 +113,7 @@ Breadcrumbs.Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
           {children}
         </span>
       ) : (
-        <a
+        <Link
           ref={ref}
           href={href}
           className={cn(
@@ -125,7 +126,7 @@ Breadcrumbs.Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
           {...props}
         >
           {children}
-        </a>
+        </Link>
       )}
       {!isLast && (
         <div className="text-accent-10" aria-hidden="true">
