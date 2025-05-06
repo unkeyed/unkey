@@ -5,11 +5,13 @@ import type { NextRequest, NextResponse } from "next/server";
 import { UNKEY_SESSION_COOKIE } from "./types";
 
 export interface CookieOptions {
-  secure: boolean;
   httpOnly: boolean;
-  sameSite: "lax" | "strict" | "none";
+  secure: boolean;
+  sameSite: "strict" | "lax" | "none";
   path?: string;
   maxAge?: number;
+  expiresAt?: Date;
+  domain?: string;
 }
 
 export interface Cookie {
@@ -70,7 +72,7 @@ export async function updateCookie(
       options: {
         httpOnly: true,
         secure: true,
-        sameSite: "lax",
+        sameSite: "strict",
       },
     });
     return;
@@ -100,7 +102,7 @@ export async function setCookiesOnResponse(
  * Encapsulates the logic for the primary session cookie required for auth functionality
  * @param params
  */
-export async function SetSessionCookie(params: {
+export async function setSessionCookie(params: {
   token: string;
   expiresAt: Date;
 }): Promise<void> {
@@ -112,9 +114,52 @@ export async function SetSessionCookie(params: {
     options: {
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
       maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
     },
   });
+}
+
+export async function getCookieOptionsAsString(
+  options: Partial<CookieOptions> = {},
+): Promise<string> {
+  // Set defaults if not provided
+  const defaultOptions: CookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    path: "/",
+  };
+
+  // Merge defaults with provided options
+  const mergedOptions = { ...defaultOptions, ...options };
+
+  let cookieString = `Path=${mergedOptions.path}`;
+
+  if (mergedOptions.httpOnly) {
+    cookieString += "; HttpOnly";
+  }
+
+  if (mergedOptions.secure) {
+    cookieString += "; Secure";
+  }
+
+  if (mergedOptions.sameSite) {
+    const capitalizedSameSite =
+      mergedOptions.sameSite.charAt(0).toUpperCase() + mergedOptions.sameSite.slice(1);
+    cookieString += `; SameSite=${capitalizedSameSite}`;
+  }
+
+  if (mergedOptions.maxAge !== undefined) {
+    cookieString += `; Max-Age=${mergedOptions.maxAge}`;
+  } else if (mergedOptions.expiresAt) {
+    cookieString += `; Expires=${mergedOptions.expiresAt.toUTCString()}`;
+  }
+
+  if (mergedOptions.domain) {
+    cookieString += `; Domain=${mergedOptions.domain}`;
+  }
+
+  return cookieString;
 }
