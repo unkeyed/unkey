@@ -1,7 +1,7 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-  ignoreWorkspaces: ["packages/nuxt"],
+  ignoreWorkspaces: [],
   ignoreDependencies: ["cz-conventional-changelog"],
   workspaces: {
     ".": {
