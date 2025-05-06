@@ -58,7 +58,13 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateMetadata.mutate(values);
+    updateMetadata.mutate({
+      keyId: values.keyId,
+      metadata: {
+        enabled: Boolean(values.metadata),
+        data: values.metadata,
+      },
+    });
   }
   return (
     <Form {...form}>

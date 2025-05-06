@@ -1,27 +1,15 @@
 "use client";
 
 import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
+import { ConfirmPopover } from "@/components/confirmation-popover";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Popover, PopoverContent } from "@/components/ui/popover";
 import { toast } from "@/components/ui/toaster";
-import * as PopoverPrimitive from "@radix-ui/react-popover";
-import {
-  ArrowRight,
-  Check,
-  CircleInfo,
-  Eye,
-  EyeSlash,
-  Key2,
-  Plus,
-  TriangleWarning2,
-} from "@unkey/icons";
+import { ArrowRight, Check, CircleInfo, Eye, EyeSlash, Key2, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRef, useState } from "react";
+import { UNNAMED_KEY } from "../create-key.constants";
 import { SecretKey } from "./secret-key";
-
-const PopoverAnchor = PopoverPrimitive.Anchor;
-const PopoverClose = PopoverPrimitive.Close;
 
 export const KeyCreatedSuccessDialog = ({
   isOpen,
@@ -42,7 +30,6 @@ export const KeyCreatedSuccessDialog = ({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCreateAnother, setIsCreateAnother] = useState(false);
   const xButtonRef = useRef<HTMLButtonElement>(null);
-  const shouldShowWarning = true;
 
   if (!keyData) {
     return null;
@@ -87,8 +74,8 @@ export const KeyCreatedSuccessDialog = ({
     >
       <DialogContent
         className="drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-y-auto"
-        showCloseWarning={shouldShowWarning}
-        onAttemptClose={shouldShowWarning ? handleAttemptClose : undefined}
+        showCloseWarning
+        onAttemptClose={handleAttemptClose}
         xButtonRef={xButtonRef}
       >
         <>
@@ -139,7 +126,7 @@ export const KeyCreatedSuccessDialog = ({
                       disabled={!keyData.name}
                     >
                       <div className="text-accent-9 text-xs max-w-[160px] truncate">
-                        {keyData.name ?? "Unnamed Key"}
+                        {keyData.name ?? UNNAMED_KEY}
                       </div>
                     </RatelimitOverviewTooltip>
                   </div>
@@ -238,42 +225,21 @@ export const KeyCreatedSuccessDialog = ({
               </div>
             </div>
           </div>
-
-          <Popover open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-            <PopoverAnchor virtualRef={xButtonRef} />
-            <PopoverContent
-              sideOffset={5}
-              className="bg-white dark:bg-black flex flex-col items-center justify-center border-grayA-4 overflow-hidden !rounded-[10px] p-0 gap-0 min-w-[344px]"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-            >
-              <div className="p-4 w-full">
-                <div className="flex gap-4  items-center justify-start">
-                  <div className="bg-warningA-4 text-warning-11 flex items-center justify-center rounded size-[22px]">
-                    <TriangleWarning2 size="sm-regular" />
-                  </div>
-                  <div className="font-medium text-[13px] leading-7 text-gray-12">
-                    You won't see this secret key again!
-                  </div>
-                </div>
-              </div>
-              <div className="w-full">
-                <div className="h-[1px] bg-grayA-3 w-full" />
-              </div>
-              <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4">
-                Make sure to copy your secret key before closing. It cannot be retrieved later.
-              </div>
-              <div className="space-x-3 w-full px-4 pb-4">
-                <Button color="warning" onClick={handleConfirmAndClose}>
-                  Close anyway
-                </Button>
-                <PopoverClose asChild>
-                  <Button variant="ghost" className="text-gray-9">
-                    Dismiss
-                  </Button>
-                </PopoverClose>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <ConfirmPopover
+            isOpen={isConfirmOpen}
+            onOpenChange={setIsConfirmOpen}
+            onConfirm={handleConfirmAndClose}
+            triggerRef={xButtonRef}
+            title="You won't see this secret key again!"
+            description="Make sure to copy your secret key before closing. It cannot be retrieved later."
+            confirmButtonText="Close anyway"
+            cancelButtonText="Dismiss"
+            variant="warning"
+            popoverProps={{
+              sideOffset: 5,
+              onOpenAutoFocus: (e) => e.preventDefault(),
+            }}
+          />
         </>
       </DialogContent>
     </Dialog>
