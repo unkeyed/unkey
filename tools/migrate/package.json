@@ -20,8 +20,6 @@
     "zod": "^3.23.5"
   },
   "devDependencies": {
-    "@planetscale/database": "^1.18.0",
-    "@types/ms": "^0.7.34",
     "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.4.1",
