@@ -61,6 +61,7 @@ const comboboxWrapperVariants = cva("relative flex items-center w-full", {
 export type ComboboxOption = {
   label: React.ReactNode;
   value: string;
+  searchValue?: string;
   selectedLabel?: React.ReactNode;
 };
 
@@ -77,7 +78,7 @@ type ComboboxProps = {
   wrapperClassName?: string;
   className?: string;
   variant?: "default" | "success" | "warning" | "error";
-  id?: string; // Added id prop
+  id?: string;
   /** Additional accessibility attributes */
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
@@ -111,7 +112,7 @@ export function Combobox({
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <div className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}>
         {leftIcon && (
           <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
@@ -138,7 +139,9 @@ export function Combobox({
             {...otherProps}
           >
             {selectedOption ? (
-              <div className="py-0 w-full">{selectedOption.selectedLabel}</div>
+              <div className="py-0 w-full">
+                {selectedOption.selectedLabel || selectedOption.label}
+              </div>
             ) : (
               placeholder
             )}
@@ -150,17 +153,21 @@ export function Combobox({
         <Command>
           <CommandInput
             onInput={onChange}
-            onKeyDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " ") {
+                e.stopPropagation();
+              }
+            }}
             placeholder={searchPlaceholder}
             className="text-xs placeholder:text-xs placeholder:text-accent-8"
           />
-          <CommandList>
+          <CommandList className="max-h-[300px] overflow-y-auto overflow-x-hidden">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
-            <CommandGroup>
+            <CommandGroup className="max-h-[260px] overflow-y-auto">
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.value}
+                  value={option.searchValue || option.value}
                   onSelect={() => {
                     onSelect(option.value);
                     setOpen(false);

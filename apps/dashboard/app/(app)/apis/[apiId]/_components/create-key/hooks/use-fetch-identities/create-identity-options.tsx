@@ -114,6 +114,7 @@ export function createIdentityOptions({
       </div>
     ),
     value: identity.id,
+    searchValue: identity.externalId,
   }));
 
   if (hasNextPage) {
@@ -135,6 +136,7 @@ export function createIdentityOptions({
       ),
       value: "__load_more__",
       selectedLabel: <></>,
+      searchValue: "",
     });
   }
 

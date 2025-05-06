@@ -116,7 +116,7 @@ export const EditExternalId = ({
         <ExternalIdField
           value={selectedIdentityId}
           onChange={setSelectedIdentityId}
-          disabled={updateKeyOwner.isLoading}
+          disabled={updateKeyOwner.isLoading || Boolean(originalIdentityId)}
         />
       </DialogContainer>
       <ConfirmPopover
