@@ -77,6 +77,7 @@ export type UnkeyAuditLog = {
       | "vercelIntegration"
       | "ratelimitNamespace"
       | "ratelimitOverride"
+      | "ratelimit"
       | "gateway"
       | "llmGateway"
       | "webhook"
@@ -87,7 +88,7 @@ export type UnkeyAuditLog = {
 
     id: string;
     name?: string;
-    meta?: Record<string, string | number | boolean | null>;
+    meta?: Record<string, string | number | boolean | null | undefined>;
   }>;
   context: {
     userAgent?: string;

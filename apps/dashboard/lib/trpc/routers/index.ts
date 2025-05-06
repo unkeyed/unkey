@@ -21,6 +21,8 @@ import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
 import { queryUsage } from "./billing/query-usage";
+import { createIdentity } from "./identity/create";
+import { queryIdentities } from "./identity/query";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -29,7 +31,7 @@ import { updateKeyEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
 import { updateKeyName } from "./key/updateName";
-import { updateKeyOwnerId } from "./key/updateOwnerId";
+import { updateKeyOwner } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
@@ -90,7 +92,7 @@ export const router = t.router({
       expiration: updateKeyExpiration,
       metadata: updateKeyMetadata,
       name: updateKeyName,
-      ownerId: updateKeyOwnerId,
+      ownerId: updateKeyOwner,
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
     }),
@@ -212,6 +214,10 @@ export const router = t.router({
       create: inviteMember,
       remove: revokeInvitation,
     }),
+  }),
+  identity: t.router({
+    create: createIdentity,
+    query: queryIdentities,
   }),
 });
 

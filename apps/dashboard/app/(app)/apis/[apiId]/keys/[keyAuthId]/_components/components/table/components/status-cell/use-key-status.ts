@@ -115,8 +115,8 @@ export const useKeyStatus = (keyAuthId: string, keyData: KeyDetails): UseKeyStat
       applicableStatuses.push(STATUS_DEFINITIONS["validation-issues"]);
     }
 
-    const remaining = keyData.key.remaining;
-    const refillAmount = keyData.key.refillAmount;
+    const remaining = keyData.key.credits.remaining;
+    const refillAmount = keyData.key.credits.refillAmount;
     const isLowOnCredits =
       (remaining != null && remaining < LOW_CREDITS_THRESHOLD_ABSOLUTE) ||
       (refillAmount &&

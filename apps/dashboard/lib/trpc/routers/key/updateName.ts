@@ -1,15 +1,17 @@
+import { nameSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
+
 export const updateKeyName = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .input(
     z.object({
       keyId: z.string(),
-      name: z.string().nullish(),
+      name: nameSchema,
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -29,6 +31,7 @@ export const updateKeyName = t.procedure
             "We were unable to update the name on this key. Please try again or contact support@unkey.dev",
         });
       });
+
     if (!key) {
       throw new TRPCError({
         message:
@@ -36,6 +39,19 @@ export const updateKeyName = t.procedure
         code: "NOT_FOUND",
       });
     }
+
+    // Normalize both values
+    const normalizedNewName = (input.name || "").trim();
+    const normalizedCurrentName = (key.name || "").trim();
+
+    // Check if the name is actually changing
+    if (normalizedNewName === normalizedCurrentName && normalizedNewName !== "") {
+      throw new TRPCError({
+        message: "New name must be different from the current name",
+        code: "UNPROCESSABLE_CONTENT",
+      });
+    }
+
     await db
       .transaction(async (tx) => {
         await tx
@@ -80,5 +96,10 @@ export const updateKeyName = t.procedure
         });
       });
 
-    return true;
+    return {
+      keyId: key.id,
+      updated: true,
+      previousName: key.name,
+      newName: input.name ?? null,
+    };
   });
