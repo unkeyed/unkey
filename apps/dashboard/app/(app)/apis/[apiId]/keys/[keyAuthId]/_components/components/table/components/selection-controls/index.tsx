@@ -15,12 +15,12 @@ type SelectionControlsProps = {
   getSelectedKeysState: () => "all-enabled" | "all-disabled" | "mixed" | null;
 };
 
-export const SelectionControls: React.FC<SelectionControlsProps> = ({
+export const SelectionControls = ({
   selectedKeys,
   keys,
   setSelectedKeys,
   getSelectedKeysState,
-}) => {
+}: SelectionControlsProps) => {
   const [isBatchEditExternalIdOpen, setIsBatchEditExternalIdOpen] = useState(false);
   const [isDisableConfirmOpen, setIsDisableConfirmOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);

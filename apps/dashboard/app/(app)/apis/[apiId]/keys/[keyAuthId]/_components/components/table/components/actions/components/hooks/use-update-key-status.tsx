@@ -1,8 +1,9 @@
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import type { TRPCClientErrorLike } from "@trpc/client";
+import type { TRPCErrorShape } from "@trpc/server/rpc";
 
-// Common error handling function for key status updates
-const handleKeyUpdateError = (err: any) => {
+const handleKeyUpdateError = (err: TRPCClientErrorLike<TRPCErrorShape>) => {
   const errorMessage = err.message || "";
   if (err.data?.code === "NOT_FOUND") {
     toast.error("Key Update Failed", {

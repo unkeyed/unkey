@@ -1,7 +1,9 @@
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import type { TRPCClientErrorLike } from "@trpc/client";
+import type { TRPCErrorShape } from "@trpc/server/rpc";
 
-const handleKeyOwnerUpdateError = (err: any) => {
+const handleKeyOwnerUpdateError = (err: TRPCClientErrorLike<TRPCErrorShape>) => {
   if (err.data?.code === "NOT_FOUND") {
     toast.error("Key Update Failed", {
       description: "Unable to find the key(s). Please refresh and try again.",
