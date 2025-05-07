@@ -20,8 +20,7 @@ import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/toaster";
-import { SetSessionCookie } from "@/lib/auth/cookies";
-// import { useOrganization, useUser } from "@/lib/auth/hooks";
+import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
@@ -46,7 +45,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const changeWorkspace = trpc.user.switchOrg.useMutation({
     async onSuccess(sessionData) {
       const { token, expiresAt } = sessionData;
-      await SetSessionCookie({
+      await setSessionCookie({
         token: token!,
         expiresAt: expiresAt!,
       });

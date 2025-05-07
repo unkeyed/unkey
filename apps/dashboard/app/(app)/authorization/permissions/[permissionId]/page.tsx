@@ -1,4 +1,4 @@
-import { getOrgId } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { Navigation } from "./navigation";
@@ -13,7 +13,7 @@ type Props = {
 };
 
 export default async function RolesPage(props: Props) {
-  const orgId = await getOrgId();
+  const { orgId } = await getAuth();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.orgId, orgId),

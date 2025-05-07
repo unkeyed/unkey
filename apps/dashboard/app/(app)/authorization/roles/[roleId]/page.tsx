@@ -1,4 +1,4 @@
-import { getOrgId } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { Navigation } from "./navigation";
@@ -42,7 +42,7 @@ function sortNestedPermissions(nested: NestedPermissions) {
 }
 
 export default async function RolePage(props: Props) {
-  const orgId = await getOrgId();
+  const { orgId } = await getAuth();
 
   const role = await db.query.roles.findFirst({
     where: (table, { eq }) => eq(table.id, props.params.roleId),

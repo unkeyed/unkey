@@ -16,6 +16,7 @@ import (
 //   - interval: Maximum time to wait before flushing a non-empty batch.
 //
 // Returns a channel that can be used to send items to be batched.
+// When the returned channel is closed, any items remaining in the batch will be flushed.
 //
 // Example:
 //

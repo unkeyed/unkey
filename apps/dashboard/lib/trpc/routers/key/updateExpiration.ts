@@ -1,37 +1,24 @@
+import { expirationSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
+
 export const updateKeyExpiration = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .input(
-    z.object({
+    expirationSchema.extend({
       keyId: z.string(),
-      enableExpiration: z.boolean(),
-      expiration: z.date().nullish(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
     let expires: Date | null = null;
-    if (input.enableExpiration) {
-      if (!input.expiration) {
-        throw new TRPCError({
-          message:
-            "Expiration is not enabled. Please please enable expiration before setting an expiration date.",
-          code: "BAD_REQUEST",
-        });
-      }
-      try {
-        expires = new Date(input.expiration);
-      } catch (e) {
-        console.error(e);
-        throw new TRPCError({
-          message: "The Date is not valid. Please try again.",
-          code: "BAD_REQUEST",
-        });
-      }
+    if (input.expiration?.enabled && input.expiration.data) {
+      expires = input.expiration.data;
+    } else {
+      expires = null;
     }
 
     const key = await db.query.keys
@@ -50,13 +37,15 @@ export const updateKeyExpiration = t.procedure
             "We were unable to update expiration on this key. Please try again or contact support@unkey.dev",
         });
       });
+
     if (!key) {
       throw new TRPCError({
         message:
-          "We are unable to find the the correct key. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
+
     await db
       .transaction(async (tx) => {
         await tx
@@ -72,6 +61,7 @@ export const updateKeyExpiration = t.procedure
                 "We were unable to update expiration on this key. Please try again or contact support@unkey.dev",
             });
           });
+
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
@@ -79,11 +69,10 @@ export const updateKeyExpiration = t.procedure
             id: ctx.user.id,
           },
           event: "key.update",
-          description: `${
-            input.expiration
-              ? `Changed expiration of ${key.id} to ${input.expiration.toUTCString()}`
-              : `Disabled expiration for ${key.id}`
-          }`,
+          description:
+            input.expiration?.enabled && input.expiration.data
+              ? `Changed expiration of ${key.id} to ${input.expiration.data.toUTCString()}`
+              : `Disabled expiration for ${key.id}`,
           resources: [
             {
               type: "key",
@@ -105,5 +94,7 @@ export const updateKeyExpiration = t.procedure
         });
       });
 
-    return true;
+    return {
+      keyId: key.id,
+    };
   });

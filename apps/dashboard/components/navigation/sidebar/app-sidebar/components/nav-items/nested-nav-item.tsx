@@ -8,50 +8,62 @@ import { useDelayLoader } from "@/hooks/use-delay-loader";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@radix-ui/react-collapsible";
 import { CaretRight } from "@unkey/icons";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useLayoutEffect, useState, useTransition } from "react";
 import type { NavItem } from "../../../workspace-navigations";
 import { NavLink } from "../nav-link";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
 import { getButtonStyles } from "./utils";
+
+const paths = ["/apis", "/ratelimits"];
 
 export const NestedNavItem = ({
   item,
   onLoadMore,
   depth = 0,
   maxDepth = 1,
+  isSubItem = false,
 }: {
   item: NavItem;
   onLoadMore?: () => void;
   depth?: number;
   maxDepth?: number;
+  isSubItem?: boolean;
 }) => {
   const [parentIsPending, startParentTransition] = useTransition();
   const showParentLoader = useDelayLoader(parentIsPending);
   const router = useRouter();
-  const Icon = item.icon;
+  const pathname = usePathname();
   const [subPending, setSubPending] = useState<Record<string, boolean>>({});
-  const [isOpen, setIsOpen] = useState(hasActiveChild(item));
+  const [isOpen, setIsOpen] = useState(false);
+  const [isChildrenOpen, setIsChildrenOpen] = useState(false);
 
-  function hasActiveChild(navItem: NavItem): boolean {
-    if (!navItem.items) {
-      return false;
+  const Icon = item.icon;
+  const hasChildren = item.items && item.items.length > 0;
+
+  useLayoutEffect(() => {
+    if (!hasChildren || !pathname) {
+      return;
     }
-    return navItem.items.some((child) => child.active || hasActiveChild(child));
-  }
+
+    const hasMatchingChild = item.items?.some(
+      (subItem) =>
+        subItem.href === pathname || subItem.items?.some((child) => child.href === pathname),
+    );
+
+    setIsChildrenOpen(!!hasMatchingChild);
+
+    if (paths.includes(pathname) && pathname.startsWith(item.href)) {
+      setIsOpen(true);
+    }
+  }, [pathname, item.items, item.href, hasChildren]);
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
     // If the item has children, toggle the open state
-    if (item.items && item.items.length > 0) {
-      // Check if we're closing or opening
-      const willClose = isOpen;
-
-      // Toggle the open state
-      setIsOpen(!isOpen);
-
-      // If we're closing, prevent navigation
-      if (willClose) {
-        e.preventDefault();
+    if (hasChildren && !isSubItem) {
+      e.preventDefault();
+      setIsOpen((prev) => !prev);
+      if (isOpen) {
         return;
       }
     }
@@ -85,6 +97,7 @@ export const NestedNavItem = ({
             onLoadMore={onLoadMore}
             depth={depth + 1}
             maxDepth={maxDepth}
+            isSubItem={true}
           />
         </SidebarMenuSubItem>
       );
@@ -150,20 +163,18 @@ export const NestedNavItem = ({
   return (
     <Collapsible
       asChild
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      // Use hasActiveChild instead of item.active here
-      defaultOpen={hasActiveChild(item)}
+      open={isSubItem ? isChildrenOpen : isOpen}
+      onOpenChange={isSubItem ? setIsChildrenOpen : setIsOpen}
       className="group/collapsible"
     >
       <SidebarMenuItem>
         <SidebarMenuButton
           tooltip={item.tooltip}
           // Only highlight if this item itself is active, not if its children are active
-          isActive={item.active && !hasActiveChild(item)}
+          isActive={item.active}
           className={cn(
             // Only highlight if this item itself is active, not if its children are active
-            getButtonStyles(item.active && !hasActiveChild(item), showParentLoader),
+            getButtonStyles(item.active, showParentLoader),
             "cursor-pointer relative",
           )}
           onClick={handleMenuItemClick}

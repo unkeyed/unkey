@@ -1,4 +1,4 @@
-import { getOrgId } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { and, db, eq, isNull } from "@/lib/db";
 import { apis } from "@unkey/db/src/schema";
 import { notFound } from "next/navigation";
@@ -17,7 +17,7 @@ export type ApiLayoutData = {
 };
 
 export const fetchApiAndWorkspaceDataFromDb = async (apiId: string): Promise<ApiLayoutData> => {
-  const orgId = await getOrgId();
+  const { orgId } = await getAuth();
   if (!apiId || !orgId) {
     console.error("fetchApiLayoutDataFromDb: apiId or orgId is missing");
     notFound();

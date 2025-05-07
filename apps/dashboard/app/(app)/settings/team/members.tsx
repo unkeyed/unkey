@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
-import type { Membership, Organization, User } from "@/lib/auth/types";
+import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
@@ -21,13 +21,13 @@ import { InviteButton } from "./invite";
 import { RoleSwitcher } from "./role-switcher";
 
 type MembersProps = {
-  organization: Organization | null;
-  user: User | null;
-  userMembership: Membership | null;
+  organization: Organization;
+  user: AuthenticatedUser;
+  userMembership: Membership;
 };
 
 export const Members = memo<MembersProps>(({ organization, user, userMembership }) => {
-  const { data: orgMemberships, isLoading } = trpc.org.members.list.useQuery(organization!.id);
+  const { data: orgMemberships, isLoading } = trpc.org.members.list.useQuery(organization?.id);
   const memberships = orgMemberships?.data;
   const isAdmin = userMembership?.role === "admin";
   const utils = trpc.useUtils();

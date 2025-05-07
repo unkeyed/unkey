@@ -1,32 +1,34 @@
+import { metadataSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
+
 export const updateKeyMetadata = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .input(
-    z.object({
+    metadataSchema.extend({
       keyId: z.string(),
-      metadata: z.string(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
     let meta: unknown | null = null;
 
-    if (input.metadata === null || input.metadata === "") {
-      meta = null;
-    } else {
+    if (input.metadata?.enabled && input.metadata.data) {
       try {
-        meta = JSON.parse(input.metadata);
+        meta = JSON.parse(input.metadata.data);
       } catch (e) {
         throw new TRPCError({
-          message: `The Metadata is not valid ${(e as Error).message}. Please try again.`,
+          message: `The metadata is not valid JSON: ${(e as Error).message}. Please try again.`,
           code: "BAD_REQUEST",
         });
       }
+    } else {
+      meta = null;
     }
+
     const key = await db.query.keys
       .findFirst({
         where: (table, { eq, isNull, and }) =>
@@ -43,6 +45,7 @@ export const updateKeyMetadata = t.procedure
             "We were unable to update metadata on this key. Please try again or contact support@unkey.dev",
         });
       });
+
     if (!key) {
       throw new TRPCError({
         message:
@@ -50,6 +53,7 @@ export const updateKeyMetadata = t.procedure
         code: "NOT_FOUND",
       });
     }
+
     await db
       .transaction(async (tx) => {
         await tx
@@ -65,6 +69,7 @@ export const updateKeyMetadata = t.procedure
                 "We are unable to update metadata on this key. Please try again or contact support@unkey.dev",
             });
           });
+
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
@@ -72,7 +77,10 @@ export const updateKeyMetadata = t.procedure
             id: ctx.user.id,
           },
           event: "key.update",
-          description: `Updated metadata of ${key.id}`,
+          description:
+            input.metadata?.enabled && input.metadata.data
+              ? `Updated metadata of ${key.id}`
+              : `Removed metadata from ${key.id}`,
           resources: [
             {
               type: "key",
@@ -94,5 +102,8 @@ export const updateKeyMetadata = t.procedure
         });
       });
 
-    return true;
+    return {
+      keyId: key.id,
+      success: true,
+    };
   });

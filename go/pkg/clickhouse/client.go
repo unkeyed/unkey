@@ -63,7 +63,7 @@ func New(config Config) (*clickhouse, error) {
 		return nil, fault.Wrap(err, fault.WithDesc("parsing clickhouse DSN failed", ""))
 	}
 
-	// opts.TLS = &tls.Config{}
+	config.Logger.Info("initializing clickhouse client")
 	opts.Debug = true
 	opts.Debugf = func(format string, v ...any) {
 		config.Logger.Debug(fmt.Sprintf(format, v...))
@@ -91,6 +91,7 @@ func New(config Config) (*clickhouse, error) {
 	if err != nil {
 		return nil, fault.Wrap(err, fault.WithDesc("pinging clickhouse failed", ""))
 	}
+
 	c := &clickhouse{
 		conn:   conn,
 		logger: config.Logger,
@@ -139,7 +140,7 @@ func New(config Config) (*clickhouse, error) {
 				BatchSize:     1000,
 				BufferSize:    100000,
 				FlushInterval: time.Second,
-				Consumers:     4,
+				Consumers:     8,
 				Flush: func(ctx context.Context, rows []schema.RatelimitRequestV1) {
 					table := "ratelimits.raw_ratelimits_v1"
 					err := flush(ctx, conn, table, rows)
@@ -246,4 +247,8 @@ func (c *clickhouse) BufferKeyVerification(req schema.KeyVerificationRequestV1) 
 //	})
 func (c *clickhouse) BufferRatelimit(req schema.RatelimitRequestV1) {
 	c.ratelimits.Buffer(req)
+}
+
+func (c *clickhouse) Conn() ch.Conn {
+	return c.conn
 }

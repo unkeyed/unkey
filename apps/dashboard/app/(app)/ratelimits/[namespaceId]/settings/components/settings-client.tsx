@@ -1,12 +1,11 @@
 "use client";
 
 import { revalidateTag } from "@/app/actions";
-import { SettingCard } from "@/components/settings-card";
 import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { Clone } from "@unkey/icons";
-import { Button, Input } from "@unkey/ui";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
@@ -53,91 +52,99 @@ export const SettingsClient = ({ namespace }: Props) => {
 
   return (
     <>
-      <div className="py-3 w-full flex items-center justify-center ">
-        <div className="w-[760px] flex flex-col justify-center items-center gap-5">
+      <div className="py-3 w-full flex items-center justify-center">
+        <div className="w-[760px] flex flex-col justify-center items-center gap-5 mx-6">
           <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
             Ratelimit Settings
           </div>
-
-          <div className="w-full">
-            <SettingCard
-              title="Namespace name"
-              description={
-                <div>
-                  Used in API calls. Changing this may cause rate limit
-                  <br /> requests to be rejected.
-                </div>
-              }
-              border="top"
-            >
-              <div className="flex gap-2 items-center justify-center w-full">
-                <Input
-                  placeholder="Namespace name"
-                  className="h-9"
-                  value={namespaceName}
-                  onChange={(e) => setNamespaceName(e.target.value)}
-                />
-                <Button
-                  size="lg"
-                  className="rounded-lg"
-                  onClick={handleUpdateName}
-                  loading={isUpdating}
-                  disabled={isUpdating || namespaceName === namespace.name || !namespaceName}
-                >
-                  Save
-                </Button>
-              </div>
-            </SettingCard>
-
-            <SettingCard
-              title="Namespace ID"
-              description="An identifier for the namespace, used in some API calls."
-              border="bottom"
-            >
-              <Input
-                readOnly
-                disabled
-                defaultValue={namespace.id}
-                placeholder="Namespace name"
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(namespace.id);
-                      toast.success("Copied to clipboard", {
-                        description: namespace.id,
-                      });
-                    }}
-                  >
-                    <Clone size="md-regular" />
-                  </button>
+          <div className="flex flex-col w-full gap-6">
+            <div>
+              <SettingCard
+                title="Namespace name"
+                description={
+                  <div>
+                    Used in API calls. Changing this may cause rate limit
+                    <br /> requests to be rejected.
+                  </div>
                 }
-              />
-            </SettingCard>
-          </div>
-
-          <SettingCard
-            title="Delete ratelimit"
-            description={
-              <>
-                Deletes this namespace along with all associated
-                <br /> identifiers and data. This action cannot be undone.
-              </>
-            }
-            border="both"
-          >
-            <div className="w-full flex justify-end">
-              <Button
-                className="w-fit rounded-lg"
-                variant="outline"
-                color="danger"
-                size="lg"
-                onClick={() => setIsNamespaceNameDeleteModalOpen(true)}
+                border="top"
+                className="border-b-1"
+                contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
               >
-                Delete Namespace...
-              </Button>
+                <div className="flex flex-row justify-end items-center gap-x-2 mt-2">
+                  <Input
+                    placeholder="Namespace name"
+                    value={namespaceName}
+                    className="min-w-[16rem] items-end"
+                    onChange={(e) => setNamespaceName(e.target.value)}
+                  />
+                  <Button
+                    size="lg"
+                    variant="primary"
+                    onClick={handleUpdateName}
+                    loading={isUpdating}
+                    disabled={isUpdating || namespaceName === namespace.name || !namespaceName}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </SettingCard>
+              <SettingCard
+                title="Namespace ID"
+                description="An identifier for the namespace, used in some API calls."
+                border="bottom"
+                contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
+              >
+                <div className="flex flex-row justify-end items-center gap-x-2 mt-1">
+                  <Input
+                    readOnly
+                    defaultValue={namespace.id}
+                    placeholder="Namespace name"
+                    className="w-[315px] focus:ring-0 focus:ring-offset-0"
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(namespace.id);
+                          toast.success("Copied to clipboard", {
+                            description: namespace.id,
+                          });
+                        }}
+                      >
+                        <Clone size="md-regular" />
+                      </button>
+                    }
+                  />
+                </div>
+              </SettingCard>
             </div>
-          </SettingCard>
+
+            <div className="w-full">
+              <SettingCard
+                title="Delete ratelimit"
+                description={
+                  <>
+                    Deletes this namespace along with all associated
+                    <br /> identifiers and data. This action cannot be undone.
+                  </>
+                }
+                border="both"
+                contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
+              >
+                <div className="w-full flex justify-end lg:mt-3">
+                  <Button
+                    className="w-fit"
+                    variant="outline"
+                    color="danger"
+                    size="lg"
+                    onClick={() => setIsNamespaceNameDeleteModalOpen(true)}
+                  >
+                    Delete Namespace
+                  </Button>
+                </div>
+              </SettingCard>
+            </div>
+          </div>
         </div>
       </div>
       <DeleteNamespaceDialog
