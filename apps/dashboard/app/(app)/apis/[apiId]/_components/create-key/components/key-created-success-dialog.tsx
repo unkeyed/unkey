@@ -5,7 +5,15 @@ import { ConfirmPopover } from "@/components/confirmation-popover";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
-import { ArrowRight, Check, CircleInfo, Eye, EyeSlash, Key2, Plus } from "@unkey/icons";
+import {
+  ArrowRight,
+  Check,
+  CircleInfo,
+  Eye,
+  EyeSlash,
+  Key2,
+  Plus,
+} from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
@@ -103,23 +111,31 @@ export const KeyCreatedSuccessDialog = ({
               <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
                 Key Created
               </div>
-              <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
+              <div
+                className="text-gray-10 text-[13px] leading-[24px] text-center"
+                ref={dividerRef}
+              >
                 You've successfully generated a new API key.
-                <br /> Use this key to authenticate requests from your application.
+                <br /> Use this key to authenticate requests from your
+                application.
               </div>
             </div>
             <div className="p-1 w-full my-8">
               <div className="h-[1px] bg-grayA-3 w-full" />
             </div>
             <div className="flex flex-col gap-2 items-start w-full">
-              <div className="text-gray-12 text-sm font-semibold">Key Details</div>
+              <div className="text-gray-12 text-sm font-semibold">
+                Key Details
+              </div>
               <div className="bg-white dark:bg-black border rounded-xl border-grayA-5 px-6 w-full">
                 <div className="flex gap-6 items-center">
                   <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded ">
                     <Key2 size="sm-regular" />
                   </div>
                   <div className="flex flex-col gap-1 py-6">
-                    <div className="text-accent-12 text-xs font-mono">{keyData.id}</div>
+                    <div className="text-accent-12 text-xs font-mono">
+                      {keyData.id}
+                    </div>
                     <RatelimitOverviewTooltip
                       content={keyData.name}
                       position={{ side: "bottom", align: "center" }}
@@ -137,10 +153,15 @@ export const KeyCreatedSuccessDialog = ({
                     onClick={() => {
                       if (!keyspaceId) {
                         toast.error("Failed to Create Key", {
-                          description: "An unexpected error occurred. Please try again later.",
+                          description:
+                            "An unexpected error occurred. Please try again later.",
                           action: {
                             label: "Contact Support",
-                            onClick: () => window.open("https://support.unkey.dev", "_blank"),
+                            onClick: () =>
+                              window.open(
+                                "https://support.unkey.dev",
+                                "_blank"
+                              ),
                           },
                         });
                         return;
@@ -154,8 +175,14 @@ export const KeyCreatedSuccessDialog = ({
               </div>
             </div>
             <div className="flex flex-col gap-2 items-start w-full mt-6">
-              <div className="text-gray-12 text-sm font-semibold">Key Secret</div>
-              <SecretKey value={keyData.key} title="API Key" className="bg-white dark:bg-black " />
+              <div className="text-gray-12 text-sm font-semibold">
+                Key Secret
+              </div>
+              <SecretKey
+                value={keyData.key}
+                title="API Key"
+                className="bg-white dark:bg-black "
+              />
               <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
                 <CircleInfo className="text-accent-9" size="sm-regular" />
                 <span>
@@ -172,12 +199,16 @@ export const KeyCreatedSuccessDialog = ({
               </div>
             </div>
             <div className="flex flex-col gap-2 items-start w-full mt-8">
-              <div className="text-gray-12 text-sm font-semibold">Try It Out</div>
+              <div className="text-gray-12 text-sm font-semibold">
+                Try It Out
+              </div>
               <div className="w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5">
                 <div className="flex items-start justify-between w-full gap-4 bg-transparent">
                   <div className="mt-2 overflow-x-auto w-full min-w-0">
                     <pre className="ph-no-capture whitespace-pre-wrap break-all text-[11px] pr-2">
-                      {showKeyInSnippet ? snippet : snippet.replace(keyData.key, maskedKey)}
+                      {showKeyInSnippet
+                        ? snippet
+                        : snippet.replace(keyData.key, maskedKey)}
                     </pre>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1 flex-shrink-0">
@@ -189,7 +220,11 @@ export const KeyCreatedSuccessDialog = ({
                     >
                       {showKeyInSnippet ? <EyeSlash /> : <Eye />}
                     </Button>
-                    <Button variant="outline" size="icon" className="bg-grayA-3">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="bg-grayA-3"
+                    >
                       <div className="flex items-center justify-center">
                         <CopyButton value={snippet} />
                       </div>
@@ -200,7 +235,8 @@ export const KeyCreatedSuccessDialog = ({
             </div>
             <div className="mt-6">
               <div className="mt-4 text-center text-gray-10 text-xs leading-6">
-                All set! You can now create another key or explore the docs to learn more
+                All set! You can now create another key or explore the docs to
+                learn more
               </div>
               <div className="flex gap-3 mt-4 items-center justify-center w-full">
                 <Button
@@ -230,7 +266,7 @@ export const KeyCreatedSuccessDialog = ({
             isOpen={isConfirmOpen}
             onOpenChange={setIsConfirmOpen}
             onConfirm={handleConfirmAndClose}
-            triggerRef={dividerRef} // Changed from xButtonRef to dividerRef
+            triggerRef={dividerRef}
             title="You won't see this secret key again!"
             description="Make sure to copy your secret key before closing. It cannot be retrieved later."
             confirmButtonText="Close anyway"
