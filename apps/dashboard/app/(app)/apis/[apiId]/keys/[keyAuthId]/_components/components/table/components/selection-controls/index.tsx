@@ -4,6 +4,7 @@ import { ArrowOppositeDirectionY, Ban, CircleCheck, Trash, XMark } from "@unkey/
 import { Button } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRef, useState } from "react";
+import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
 import { useBatchUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
 
 type SelectionControlsProps = {
@@ -18,17 +19,33 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
   setSelectedKeys,
   getSelectedKeysState,
 }) => {
-  const updateKeyStatus = useBatchUpdateKeyStatus();
-  const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
+  const [isDisableConfirmOpen, setIsDisableConfirmOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const disableButtonRef = useRef<HTMLButtonElement>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
-  const handleDisableKeys = () => {
-    setIsConfirmPopoverOpen(true);
+  const updateKeyStatus = useBatchUpdateKeyStatus();
+  const deleteKey = useDeleteKey(() => {
+    setSelectedKeys(new Set());
+  });
+
+  const handleDisableButtonClick = () => {
+    setIsDisableConfirmOpen(true);
   };
 
   const performDisableKeys = () => {
     updateKeyStatus.mutate({
       enabled: false,
+      keyIds: Array.from(selectedKeys),
+    });
+  };
+
+  const handleDeleteButtonClick = () => {
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const performKeyDeletion = () => {
+    deleteKey.mutate({
       keyIds: Array.from(selectedKeys),
     });
   };
@@ -93,13 +110,21 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
                 className="text-gray-12 font-medium text-[13px]"
                 disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
                 loading={updateKeyStatus.isLoading}
-                onClick={handleDisableKeys}
+                onClick={handleDisableButtonClick}
                 ref={disableButtonRef}
               >
                 <Ban size="sm-regular" />
                 Disable key
               </Button>
-              <Button variant="outline" size="sm" className="text-gray-12 font-medium text-[13px]">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-gray-12 font-medium text-[13px]"
+                disabled={deleteKey.isLoading}
+                loading={deleteKey.isLoading}
+                onClick={handleDeleteButtonClick}
+                ref={deleteButtonRef}
+              >
                 <Trash size="sm-regular" />
                 Delete key
               </Button>
@@ -116,9 +141,10 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
         </div>
       ) : null}
 
+      {/* Confirmation Popover for Disabling Keys */}
       <ConfirmPopover
-        isOpen={isConfirmPopoverOpen}
-        onOpenChange={setIsConfirmPopoverOpen}
+        isOpen={isDisableConfirmOpen}
+        onOpenChange={setIsDisableConfirmOpen}
         onConfirm={performDisableKeys}
         triggerRef={disableButtonRef}
         title="Confirm disabling keys"
@@ -126,6 +152,21 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
           selectedKeys.size > 1 ? "s" : ""
         } and prevent any verification requests from being processed.`}
         confirmButtonText="Disable keys"
+        cancelButtonText="Cancel"
+        variant="danger"
+      />
+
+      {/* Confirmation Popover for Deleting Keys */}
+      <ConfirmPopover
+        isOpen={isDeleteConfirmOpen}
+        onOpenChange={setIsDeleteConfirmOpen}
+        onConfirm={performKeyDeletion}
+        triggerRef={deleteButtonRef}
+        title="Confirm key deletion"
+        description={`This action is irreversible. All data associated with ${
+          selectedKeys.size > 1 ? "these keys" : "this key"
+        } will be permanently deleted.`}
+        confirmButtonText={`Delete key${selectedKeys.size > 1 ? "s" : ""}`}
         cancelButtonText="Cancel"
         variant="danger"
       />
