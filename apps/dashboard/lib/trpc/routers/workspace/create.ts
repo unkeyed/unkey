@@ -1,6 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { auth as authProvider } from "@/lib/auth/server";
 import { type Workspace, db, schema } from "@/lib/db";
+import { env } from "@/lib/env";
 import { freeTierQuotas } from "@/lib/quotas";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -15,12 +16,28 @@ export const createWorkspace = t.procedure
   )
   .mutation(async ({ ctx, input }) => {
     const userId = ctx.user?.id;
+
     if (!userId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message:
           "We are not able to authenticate the user. Please make sure you are logged in and try again",
       });
+    }
+
+    if (env().AUTH_PROVIDER === "local") {
+      // Check if this user already has a workspace
+      const existingWorkspaces = await db.query.workspaces.findMany({
+        where: (workspaces, { eq }) => eq(workspaces.orgId, ctx.tenant.id),
+      });
+
+      if (existingWorkspaces.length > 0) {
+        throw new TRPCError({
+          code: "METHOD_NOT_SUPPORTED",
+          message:
+            "You cannot create additional workspaces in local development mode. Use workOS auth provider if you need to test multi-workspace functionality.",
+        });
+      }
     }
 
     const orgId = await authProvider.createTenant({
