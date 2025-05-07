@@ -5,7 +5,7 @@ import * as React from "react";
 import { cn } from "../lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed px-3",
+  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed",
   {
     variants: {
       variant: {
@@ -387,58 +387,59 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }, [props.keyboard, isClickDisabled]);
     const Comp = asChild ? Slot : "button";
 
-  return (
-    <Comp
-      className={cn(
-        buttonVariants({
-          variant: mappedVariant,
-          color: mappedColor,
-          size,
-          className,
-        }),
-      )}
-      onClick={loading ? undefined : props.onClick}
-      disabled={isVisuallyDisabled} // Only apply disabled attribute when explicitly disabled
-      aria-disabled={isClickDisabled} // For accessibility, still indicate it can't be clicked
-      aria-busy={loading}
-      ref={buttonRef}
-      {...props}
-    >
-      {loading && (
-        <div
-          className="absolute inset-0 flex  items-center justify-center w-full h-full transition-opacity duration-200 px-1"
-          aria-hidden="true"
-        >
-          <AnimatedLoadingSpinner />
-          <span className="sr-only">{loadingLabel}</span>
-        </div>
-      )}
-      <div
+    return (
+      <Comp
         className={cn(
-          "w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200 px-1",
-          {
-            "opacity-0": loading,
-            "opacity-100": !loading,
-          },
+          buttonVariants({
+            variant: mappedVariant,
+            color: mappedColor,
+            size,
+            className,
+          }),
         )}
+        onClick={loading ? undefined : props.onClick}
+        disabled={isVisuallyDisabled} // Only apply disabled attribute when explicitly disabled
+        aria-disabled={isClickDisabled} // For accessibility, still indicate it can't be clicked
+        aria-busy={loading}
+        ref={ref}
+        {...props}
       >
-        {props.children}
-        {props.keyboard ? (
-          <kbd
-            className={cn(
-              keyboardIconVariants({
-                variant:
-                  variant === "primary" ? "primary" : variant === "outline" ? "default" : "ghost",
-              }),
-            )}
+        {loading && (
+          <div
+            className="absolute inset-0 flex items-center justify-center w-full h-full transition-opacity duration-200"
+            aria-hidden="true"
           >
-            {props.keyboard.display}
-          </kbd>
-        ) : null}{" "}
-      </div>
-    </Comp>
-  );
-};
+            <AnimatedLoadingSpinner />
+            <span className="sr-only">{loadingLabel}</span>
+          </div>
+        )}
+        <div
+          className={cn(
+            "w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200",
+            {
+              "opacity-0": loading,
+              "opacity-100": !loading,
+            },
+          )}
+        >
+          {props.children}
+          {props.keyboard ? (
+            <kbd
+              className={cn(
+                keyboardIconVariants({
+                  variant:
+                    variant === "primary" ? "primary" : variant === "outline" ? "default" : "ghost",
+                }),
+              )}
+            >
+              {props.keyboard.display}
+            </kbd>
+          ) : null}{" "}
+        </div>
+      </Comp>
+    );
+  },
+);
 
 // Add CSS for respecting reduced motion preference and adding the spin-slow animation
 if (typeof document !== "undefined") {
