@@ -15,7 +15,7 @@ type ConfirmPopoverProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-  triggerRef?: React.RefObject<HTMLButtonElement>;
+  triggerRef?: React.RefObject<HTMLElement>;
   title?: string;
   description?: string;
   confirmButtonText?: string;
