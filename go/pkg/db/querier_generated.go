@@ -10,6 +10,15 @@ import (
 )
 
 type Querier interface {
+	//CountKeysForKeySpace
+	//
+	//  SELECT
+	//    COUNT(*) as count
+	//  FROM `keys`
+	//  WHERE
+	//    key_auth_id = ?
+	//    AND deleted_at_m IS NULL
+	CountKeysForKeySpace(ctx context.Context, db DBTX, keyAuthID string) (int64, error)
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities WHERE id = ?
@@ -124,6 +133,26 @@ type Querier interface {
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
 	//  WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	//FindKeysForRefill
+	//
+	//  SELECT
+	//    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//    w.id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m
+	//  FROM `keys` k
+	//  JOIN workspaces w ON k.workspace_id = w.id
+	//  WHERE
+	//    k.deleted_at_m IS NULL
+	//    AND k.refill_amount IS NOT NULL
+	//    AND k.refill_amount > k.remaining_requests
+	//    AND CASE
+	//      WHEN ? THEN
+	//        -- If today is last day of month, include keys with refill_day > today OR regular refill condition
+	//        (k.refill_day > ? OR k.refill_day IS NULL OR k.refill_day = ?)
+	//      ELSE
+	//        -- Otherwise, only include keys matching regular refill condition
+	//        (k.refill_day IS NULL OR k.refill_day = ?)
+	//      END
+	FindKeysForRefill(ctx context.Context, db DBTX, arg FindKeysForRefillParams) ([]FindKeysForRefillRow, error)
 	//FindPermissionByWorkspaceAndName
 	//
 	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m FROM `permissions`
@@ -198,6 +227,20 @@ type Querier interface {
 	//  SELECT id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
+	//GetOutdatedKeySpaces
+	//
+	//  SELECT
+	//    ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
+	//  FROM key_auth ka
+	//  WHERE
+	//    ka.deleted_at_m IS NULL
+	//    AND (
+	//      ka.size_last_updated_at IS NULL
+	//      OR ka.size_last_updated_at < ?
+	//    )
+	//  ORDER BY ka.size_last_updated_at ASC
+	//  LIMIT 10000
+	GetOutdatedKeySpaces(ctx context.Context, db DBTX, cutoffTime int64) ([]GetOutdatedKeySpacesRow, error)
 	//HardDeleteWorkspace
 	//
 	//  DELETE FROM `workspaces`
@@ -505,6 +548,14 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
+	//RefillKey
+	//
+	//  UPDATE `keys`
+	//  SET
+	//    remaining_requests = ?,
+	//    last_refill_at = ?
+	//    WHERE id = ?
+	RefillKey(ctx context.Context, db DBTX, arg RefillKeyParams) error
 	//SoftDeleteIdentity
 	//
 	//  UPDATE identities set deleted = 1 WHERE id = ?
@@ -530,6 +581,14 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
+	//UpdateKeySpaceSize
+	//
+	//  UPDATE key_auth
+	//  SET
+	//    size_approx = ?,
+	//    size_last_updated_at = ?
+	//  WHERE id = ?
+	UpdateKeySpaceSize(ctx context.Context, db DBTX, arg UpdateKeySpaceSizeParams) error
 	//UpdateRatelimitOverride
 	//
 	//  UPDATE `ratelimit_overrides`
