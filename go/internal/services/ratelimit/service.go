@@ -86,11 +86,14 @@ type service struct {
 	replayCircuitBreaker circuitbreaker.CircuitBreaker[int64]
 }
 
+// Config defines the configuration options for creating a new rate limiting service.
 type Config struct {
+	// Logger for service operations
 	Logger logging.Logger
 
+	// Clock for time-related operations, can be mocked for testing
 	Clock clock.Clock
-	// If provided, use this counter implementation instead of creating a Redis counter
+	// Counter implementation for distributed counting, if provided
 	Counter counter.Counter
 }
 

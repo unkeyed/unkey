@@ -13,12 +13,34 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
+// RefillWorkflow manages scheduled jobs to refill API keys based on their configured refill schedules.
+// It handles periodic refills of keys that have a refill amount and schedule configured,
+// refreshing their remaining usage quota according to their settings.
 type RefillWorkflow struct {
+	// DB provides database access for finding keys and updating their remaining usage
 	DB           db.Database
+	// Audit is the service used to record audit logs of key refill operations
 	Audit        auditlogs.AuditLogService
+	// HeartbeatURL is an optional URL to ping after successful execution (for monitoring)
 	HeartbeatURL string
 }
 
+// Run executes the key refill workflow as a restate workflow function.
+// It performs the following steps:
+// 1. Finds all keys that need to be refilled based on their schedules
+// 2. Updates each key's remaining usage with the configured refill amount
+// 3. Records an audit log for each refill operation
+// 4. Schedules the next run of the workflow
+// 5. Sends an optional heartbeat ping for monitoring
+//
+// This workflow supports both day-of-month based refills (e.g., "1st of every month")
+// and last-day-of-month refills. It's designed to be executed daily and will only
+// refill keys that are scheduled for the current day.
+//
+// Parameters:
+//   - ctx: The restate workflow context
+//
+// Returns an error if any part of the refill process fails.
 func (w *RefillWorkflow) Run(ctx restate.WorkflowContext) error {
 
 	now := time.Now()

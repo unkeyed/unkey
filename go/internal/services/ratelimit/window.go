@@ -35,7 +35,7 @@ type window struct {
 //   - duration: Length of the window
 //
 // Returns:
-//   - *ratelimitv1.Window: A new window with:
+//   - *window: A new window with:
 //   - Start time aligned to duration boundary
 //   - Counter initialized to 0
 //   - Sequence number set for ordering

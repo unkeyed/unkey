@@ -9,11 +9,31 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
+// CountKeysWorkflow manages scheduled jobs that count and update key space sizes.
+// It periodically scans for outdated key spaces and updates their approximate sizes
+// to provide accurate metrics for monitoring and billing purposes.
 type CountKeysWorkflow struct {
+	// DB provides database access for counting keys and updating metrics
 	DB           db.Database
+	// HeartbeatURL is an optional URL to ping after successful execution (for monitoring)
 	HeartbeatURL string
 }
 
+// Run executes the key counting workflow as a restate workflow function.
+// It performs the following steps:
+// 1. Finds all key spaces that need their counts updated
+// 2. Counts the keys in each key space
+// 3. Updates the key space size approximation in the database
+// 4. Schedules the next run of the workflow
+// 5. Sends an optional heartbeat ping for monitoring
+//
+// This workflow is designed to be executed on a regular schedule and
+// maintains its own scheduling by sending a delayed message to itself.
+//
+// Parameters:
+//   - ctx: The restate workflow context
+//
+// Returns an error if any part of the counting or updating process fails.
 func (w *CountKeysWorkflow) Run(ctx restate.WorkflowContext) error {
 
 	now := time.Now()
