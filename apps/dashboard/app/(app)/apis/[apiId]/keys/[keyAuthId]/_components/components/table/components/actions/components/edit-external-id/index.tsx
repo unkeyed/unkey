@@ -33,7 +33,7 @@ export const EditExternalId = ({
 
   const handleSubmit = () => {
     updateKeyOwner.mutate({
-      keyId: keyDetails.id,
+      keyIds: keyDetails.id,
       ownerType: "v2",
       identity: {
         id: selectedIdentityId,
@@ -59,7 +59,7 @@ export const EditExternalId = ({
   const clearSelection = async () => {
     setSelectedIdentityId(null);
     await updateKeyOwner.mutateAsync({
-      keyId: keyDetails.id,
+      keyIds: keyDetails.id,
       ownerType: "v2",
       identity: {
         id: null,
