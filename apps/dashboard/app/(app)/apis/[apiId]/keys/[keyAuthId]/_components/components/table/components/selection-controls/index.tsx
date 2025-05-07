@@ -1,7 +1,10 @@
+import { ConfirmPopover } from "@/components/confirmation-popover";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { ArrowOppositeDirectionY, Ban, CircleCheck, Trash, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { useBatchUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
 
 type SelectionControlsProps = {
   selectedKeys: Set<string>;
@@ -15,6 +18,21 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
   setSelectedKeys,
   getSelectedKeysState,
 }) => {
+  const updateKeyStatus = useBatchUpdateKeyStatus();
+  const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
+  const disableButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handleDisableKeys = () => {
+    setIsConfirmPopoverOpen(true);
+  };
+
+  const performDisableKeys = () => {
+    updateKeyStatus.mutate({
+      enabled: false,
+      keyIds: Array.from(selectedKeys),
+    });
+  };
+
   return (
     <AnimatePresence>
       {selectedKeys.size > 0 ? (
@@ -57,7 +75,14 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
                 variant="outline"
                 size="sm"
                 className="text-gray-12 font-medium text-[13px]"
-                disabled={getSelectedKeysState() !== "all-disabled"}
+                disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading}
+                loading={updateKeyStatus.isLoading}
+                onClick={() =>
+                  updateKeyStatus.mutate({
+                    enabled: true,
+                    keyIds: Array.from(selectedKeys),
+                  })
+                }
               >
                 <CircleCheck size="sm-regular" />
                 Enable key
@@ -66,7 +91,10 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
                 variant="outline"
                 size="sm"
                 className="text-gray-12 font-medium text-[13px]"
-                disabled={getSelectedKeysState() !== "all-enabled"}
+                disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
+                loading={updateKeyStatus.isLoading}
+                onClick={handleDisableKeys}
+                ref={disableButtonRef}
               >
                 <Ban size="sm-regular" />
                 Disable key
@@ -87,6 +115,20 @@ export const SelectionControls: React.FC<SelectionControlsProps> = ({
           </motion.div>
         </div>
       ) : null}
+
+      <ConfirmPopover
+        isOpen={isConfirmPopoverOpen}
+        onOpenChange={setIsConfirmPopoverOpen}
+        onConfirm={performDisableKeys}
+        triggerRef={disableButtonRef}
+        title="Confirm disabling keys"
+        description={`This will disable ${selectedKeys.size} key${
+          selectedKeys.size > 1 ? "s" : ""
+        } and prevent any verification requests from being processed.`}
+        confirmButtonText="Disable keys"
+        cancelButtonText="Cancel"
+        variant="danger"
+      />
     </AnimatePresence>
   );
 };
