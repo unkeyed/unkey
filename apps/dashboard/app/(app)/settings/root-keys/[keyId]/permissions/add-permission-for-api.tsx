@@ -1,14 +1,8 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { Permission } from "@unkey/db";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { type PropsWithChildren, useState } from "react";
 import { PermissionToggle } from "./permission_toggle";
 import { apiPermissions } from "./permissions";

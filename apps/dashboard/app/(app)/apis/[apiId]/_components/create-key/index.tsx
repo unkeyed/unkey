@@ -7,8 +7,12 @@ import {
   NavigableDialogNav,
   NavigableDialogRoot,
 } from "@/components/dialog-container/navigable-dialog";
+import { NavbarActionButton } from "@/components/navigation/action-button";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
+import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import { Button } from "@unkey/ui";
 import { type FC, useState } from "react";
@@ -28,9 +32,11 @@ const FORM_STORAGE_KEY = "unkey_create_key_form_state";
 export const CreateKeyDialog = ({
   keyspaceId,
   apiId,
+  copyIdValue,
 }: {
   keyspaceId: string | null;
   apiId: string;
+  copyIdValue?: string;
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -132,9 +138,14 @@ export const CreateKeyDialog = ({
 
   return (
     <>
-      <Button className="rounded-lg" onClick={() => setIsSettingsOpen(true)}>
-        New Key
-      </Button>
+      <Navbar.Actions>
+        <NavbarActionButton onClick={() => setIsSettingsOpen(true)}>
+          <Plus />
+          Create new key
+        </NavbarActionButton>
+        <CopyableIDButton value={copyIdValue ?? apiId} />
+      </Navbar.Actions>
+
       <FormProvider {...methods}>
         <form id="new-key-form" onSubmit={handleSubmit(onSubmit)}>
           <NavigableDialogRoot
@@ -186,7 +197,6 @@ export const CreateKeyDialog = ({
           </NavigableDialogRoot>
         </form>
       </FormProvider>
-
       {/* Success Dialog */}
       <KeyCreatedSuccessDialog
         apiId={apiId}

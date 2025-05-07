@@ -23,14 +23,10 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@changesets/cli": "^2.28.1",
-    "@million/lint": "^0.0.73",
     "@types/node": "^22.14.0",
     "@vitest/ui": "^1.6.1",
     "cz-conventional-changelog": "^3.3.0",
-    "is-ci": "^3.0.1",
     "knip": "^5.45.0",
-    "lint-staged": "^15.4.3",
-    "ts-node": "latest",
     "turbo": "^2.4.3",
     "typescript": "^5.7.3",
     "vitest": "^1.6.1"

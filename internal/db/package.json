@@ -13,7 +13,6 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
-    "@unkey/events": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.4.1",
     "drizzle-kit": "0.22.7",

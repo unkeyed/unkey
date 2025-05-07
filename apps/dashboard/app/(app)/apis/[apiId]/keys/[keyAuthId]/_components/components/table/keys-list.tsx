@@ -14,12 +14,14 @@ import {
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
+import { KeysTableActionPopover } from "./components/actions/keys-table-action.popover";
+import { getKeysTableActionItems } from "./components/actions/keys-table-action.popover.constants";
 import { VerificationBarChart } from "./components/bar-chart";
 import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
 import {
+  ActionColumnSkeleton,
   KeyColumnSkeleton,
   LastUsedColumnSkeleton,
   StatusColumnSkeleton,
@@ -183,7 +185,22 @@ export const KeysList = ({
         header: "Status",
         width: "15%",
         render: (key) => {
-          return <StatusDisplay keyData={key} keyAuthId={keyspaceId} />;
+          return (
+            <StatusDisplay
+              keyData={key}
+              keyAuthId={keyspaceId}
+              isSelected={selectedKey?.id === key.id}
+            />
+          );
+        },
+      },
+
+      {
+        key: "action",
+        header: "",
+        width: "15%",
+        render: (key) => {
+          return <KeysTableActionPopover items={getKeysTableActionItems(key)} />;
         },
       },
     ],
@@ -260,7 +277,8 @@ export const KeysList = ({
             {column.key === "usage" && <UsageColumnSkeleton />}
             {column.key === "last_used" && <LastUsedColumnSkeleton />}
             {column.key === "status" && <StatusColumnSkeleton />}
-            {!["key", "value", "usage", "last_used", "status"].includes(column.key) && (
+            {column.key === "action" && <ActionColumnSkeleton />}
+            {!["key", "value", "usage", "last_used", "status", "action"].includes(column.key) && (
               <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />
             )}
           </td>

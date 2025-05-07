@@ -20,18 +20,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -104,10 +98,6 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.refill?.interval === "none") {
-      delete values.refill;
-    }
-    // make sure they aren't sent to the server if they are disabled.
     if (
       values.refill?.interval !== undefined &&
       values.refill?.interval !== "none" &&
@@ -119,29 +109,57 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
       });
       return;
     }
+
     if (!values.refill?.amount && values.refill?.refillDay && values.limitEnabled) {
       form.setError("refill.amount", {
         message: "Please enter the number of uses per interval or remove the refill day",
       });
       return;
     }
+
     if (values.remaining === undefined && values.limitEnabled) {
       form.setError("remaining", { message: "Please enter a value" });
       return;
     }
-    if (!values.limitEnabled) {
-      delete values.refill;
-      delete values.remaining;
-    }
+
     if (values.refill?.interval === "monthly" && !values.refill?.refillDay) {
       values.refill.refillDay = 1;
     }
-    await updateRemaining.mutateAsync({
-      keyId: values.keyId,
-      limitEnabled: values.limitEnabled,
-      remaining: values.remaining,
-      refill: values.refill,
-    });
+
+    if (values.limitEnabled) {
+      // When limit is enabled, construct the full limit object
+      await updateRemaining.mutateAsync({
+        keyId: values.keyId,
+        limit: {
+          enabled: true,
+          data: {
+            remaining: values.remaining!,
+            refill:
+              values.refill?.interval === "none"
+                ? { interval: "none" }
+                : values.refill?.interval === "monthly"
+                  ? {
+                      interval: "monthly",
+                      amount: values.refill.amount!,
+                      refillDay: values.refill.refillDay!,
+                    }
+                  : values.refill?.interval === "daily"
+                    ? {
+                        interval: "daily",
+                        amount: values.refill.amount!,
+                      }
+                    : { interval: "none" },
+          },
+        },
+      });
+    } else {
+      await updateRemaining.mutateAsync({
+        keyId: values.keyId,
+        limit: {
+          enabled: false,
+        },
+      });
+    }
   }
 
   return (

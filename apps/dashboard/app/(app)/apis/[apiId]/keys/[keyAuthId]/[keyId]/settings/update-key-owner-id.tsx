@@ -63,7 +63,7 @@ export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    await updateOwnerId.mutateAsync(values);
+    await updateOwnerId.mutateAsync({ ...values, ownerType: "v1" });
   }
   return (
     <Form {...form}>
