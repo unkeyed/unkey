@@ -1,5 +1,5 @@
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
-import { type Key, db, inArray, schema } from "@/lib/db";
+import { type Key, and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
@@ -118,9 +118,12 @@ const updateOwnerV1 = async (
           ownerId: input.ownerId ?? null,
         })
         .where(
-          inArray(
-            schema.keys.id,
-            keys.map((key) => key.id),
+          and(
+            eq(schema.keys.workspaceId, ctx.workspaceId),
+            inArray(
+              schema.keys.id,
+              keys.map((key) => key.id),
+            ),
           ),
         );
 
@@ -195,9 +198,12 @@ const updateOwnerV2 = async (
           ownerId: null,
         })
         .where(
-          inArray(
-            schema.keys.id,
-            keys.map((key) => key.id),
+          and(
+            eq(schema.keys.workspaceId, ctx.workspaceId),
+            inArray(
+              schema.keys.id,
+              keys.map((key) => key.id),
+            ),
           ),
         );
 

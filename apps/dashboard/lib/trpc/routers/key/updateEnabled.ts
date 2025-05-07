@@ -1,5 +1,5 @@
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
-import { db, inArray, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
@@ -64,7 +64,12 @@ export const updateKeysEnabled = t.procedure
           .set({
             enabled: input.enabled,
           })
-          .where(inArray(schema.keys.id, foundKeyIds))
+          .where(
+            and(
+              inArray(schema.keys.id, foundKeyIds),
+              eq(schema.keys.workspaceId, ctx.workspace.id),
+            ),
+          )
           .catch((_err) => {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",

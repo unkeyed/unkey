@@ -365,9 +365,6 @@ export const KeysList = ({
               )}
               style={{ height: `${rowHeight}px` }}
             >
-              {column.key === "select" && (
-                <div className="h-4 w-4 bg-grayA-3 rounded animate-pulse" />
-              )}
               {column.key === "key" && <KeyColumnSkeleton />}
               {column.key === "value" && <ValueColumnSkeleton />}
               {column.key === "usage" && <UsageColumnSkeleton />}
