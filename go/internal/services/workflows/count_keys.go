@@ -14,7 +14,7 @@ import (
 // to provide accurate metrics for monitoring and billing purposes.
 type CountKeysWorkflow struct {
 	// DB provides database access for counting keys and updating metrics
-	DB           db.Database
+	DB db.Database
 	// HeartbeatURL is an optional URL to ping after successful execution (for monitoring)
 	HeartbeatURL string
 }
@@ -51,7 +51,7 @@ func (w *CountKeysWorkflow) Run(ctx restate.WorkflowContext) error {
 
 	for _, keyring := range keyrings {
 
-		count, err := restate.Run(ctx, func(ctx restate.RunContext) (int64, error) {
+		count, countErr := restate.Run(ctx, func(ctx restate.RunContext) (int64, error) {
 			ctx.Log().Info("counting keys",
 				"keyringID", keyring.KeyAuth.ID,
 				"workspaceID", keyring.KeyAuth.WorkspaceID,
@@ -59,8 +59,8 @@ func (w *CountKeysWorkflow) Run(ctx restate.WorkflowContext) error {
 
 			return db.Query.CountKeysForKeySpace(ctx, w.DB.RO(), keyring.KeyAuth.ID)
 		}, restate.WithName(fmt.Sprintf("counting keys for keyring %s", keyring.KeyAuth.ID)))
-		if err != nil {
-			return err
+		if countErr != nil {
+			return countErr
 		}
 
 		_, err = restate.Run(ctx, func(ctx restate.RunContext) (restate.Void, error) {
@@ -71,7 +71,7 @@ func (w *CountKeysWorkflow) Run(ctx restate.WorkflowContext) error {
 			)
 
 			err = db.Query.UpdateKeySpaceSize(ctx, w.DB.RW(), db.UpdateKeySpaceSizeParams{
-				SizeApprox: int32(count),
+				SizeApprox: int32(count), // nolint:gosec
 				Now:        now.UnixMilli(),
 				KeyAuthID:  keyring.KeyAuth.ID,
 			})
@@ -86,16 +86,19 @@ func (w *CountKeysWorkflow) Run(ctx restate.WorkflowContext) error {
 	interval := time.Minute
 
 	nextInvocation := now.Truncate(interval).Add(interval)
-	delay := nextInvocation.Sub(time.Now())
+	delay := time.Until(nextInvocation)
 
 	// until restate has cron jobs, we just schedule the workflow to run again in 1min
-	restate.WorkflowSend(ctx, "CountKeysWorkflow", fmt.Sprintf("%s", nextInvocation), "Run").
+	restate.WorkflowSend(ctx, "CountKeysWorkflow", nextInvocation.String(), "Run").
 		Send(nil, restate.WithDelay(delay))
 
 	if w.HeartbeatURL != "" {
 		_, err = restate.Run(ctx, func(ctx restate.RunContext) (restate.Void, error) {
-			_, err := http.Get(w.HeartbeatURL)
-			return restate.Void{}, err
+			res, heartbeatErr := http.Get(w.HeartbeatURL)
+			if heartbeatErr != nil {
+				return restate.Void{}, heartbeatErr
+			}
+			return restate.Void{}, res.Body.Close()
 		})
 		if err != nil {
 			return err

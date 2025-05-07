@@ -13,13 +13,13 @@ import (
 // It provides methods to verify API keys and root keys.
 type KeyService interface {
 	// Verify validates an API key hash against the database.
-	// It checks if the key exists, is not deleted, is enabled, and 
+	// It checks if the key exists, is not deleted, is enabled, and
 	// has a valid associated workspace.
 	//
 	// Returns a VerifyResponse containing the authorized workspace ID and key ID,
 	// or an error if verification fails for any reason.
 	Verify(ctx context.Context, hash string) (VerifyResponse, error)
-	
+
 	// VerifyRootKey validates a root API key using bearer authentication from a session.
 	// It extracts the key from the session, verifies it, and updates the session
 	// with the authorized workspace ID.
@@ -34,7 +34,7 @@ type VerifyResponse struct {
 	// For regular keys, this is the key's workspace. For root keys, this is the
 	// workspace specified in ForWorkspaceID.
 	AuthorizedWorkspaceID string
-	
+
 	// KeyID is the unique identifier of the verified key.
-	KeyID                 string
+	KeyID string
 }

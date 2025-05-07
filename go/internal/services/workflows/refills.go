@@ -18,9 +18,9 @@ import (
 // refreshing their remaining usage quota according to their settings.
 type RefillWorkflow struct {
 	// DB provides database access for finding keys and updating their remaining usage
-	DB           db.Database
+	DB db.Database
 	// Audit is the service used to record audit logs of key refill operations
-	Audit        auditlogs.AuditLogService
+	Audit auditlogs.AuditLogService
 	// HeartbeatURL is an optional URL to ping after successful execution (for monitoring)
 	HeartbeatURL string
 }
@@ -45,7 +45,7 @@ func (w *RefillWorkflow) Run(ctx restate.WorkflowContext) error {
 
 	now := time.Now()
 
-	keys, err := restate.Run(ctx, func(ctx restate.RunContext) ([]db.FindKeysForRefillRow, error) {
+	keys, err := restate.Run(ctx, func(ctx restate.RunContext) ([]db.Key, error) {
 
 		firstOfNextMonth := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location())
 		lastDayOfMonth := firstOfNextMonth.Add(-24 * time.Hour)
@@ -54,6 +54,7 @@ func (w *RefillWorkflow) Run(ctx restate.WorkflowContext) error {
 		return db.Query.FindKeysForRefill(ctx, w.DB.RO(), db.FindKeysForRefillParams{
 			Today:            sql.NullInt16{Valid: true, Int16: int16(now.Day())}, // nolint:gosec
 			IsLastDayOfMonth: isLastDayOfMonth,
+			Cutoff:           sql.NullTime{Valid: true, Time: now.Add(-23*time.Hour - 50*time.Minute)},
 		})
 
 	})
@@ -65,16 +66,16 @@ func (w *RefillWorkflow) Run(ctx restate.WorkflowContext) error {
 
 	for _, key := range keys {
 
-		_, err := restate.Run(ctx, func(ctx restate.RunContext) (restate.Void, error) {
+		_, err = restate.Run(ctx, func(ctx restate.RunContext) (restate.Void, error) {
 			ctx.Log().Info("refilling key",
-				"keyID", key.Key.ID,
-				"workspaceID", key.Workspace.ID,
-				"amount", key.Key.RefillAmount.Int32,
+				"keyID", key.ID,
+				"workspaceID", key.WorkspaceID,
+				"amount", key.RefillAmount.Int32,
 			)
 			return restate.Void{}, db.Query.RefillKey(ctx, w.DB.RW(), db.RefillKeyParams{
-				KeyID:        key.Key.ID,
+				KeyID:        key.ID,
 				Now:          sql.NullTime{Valid: true, Time: now},
-				RefillAmount: sql.NullInt32{Valid: true, Int32: key.Key.RefillAmount.Int32},
+				RefillAmount: sql.NullInt32{Valid: true, Int32: key.RefillAmount.Int32},
 			})
 		}, restate.WithName("fetching keys"))
 		if err != nil {
@@ -99,8 +100,8 @@ func (w *RefillWorkflow) Run(ctx restate.WorkflowContext) error {
 			err = w.Audit.Insert(ctx, tx, []auditlog.AuditLog{
 				{
 					Event:       "key.update",
-					WorkspaceID: key.Workspace.ID,
-					Display:     fmt.Sprintf("Refilled %s to %d", key.Key.ID, key.Key.RefillAmount.Int32),
+					WorkspaceID: key.WorkspaceID,
+					Display:     fmt.Sprintf("Refilled %s to %d", key.ID, key.RefillAmount.Int32),
 					Bucket:      "unkey_mutations",
 					ActorType:   "system",
 					ActorID:     "system",
@@ -110,9 +111,9 @@ func (w *RefillWorkflow) Run(ctx restate.WorkflowContext) error {
 					UserAgent:   "",
 					Resources: []auditlog.AuditLogResource{
 						{
-							ID:          key.Key.ID,
-							DisplayName: key.Key.Name.String,
-							Name:        key.Key.Name.String,
+							ID:          key.ID,
+							DisplayName: key.Name.String,
+							Name:        key.Name.String,
 							Meta:        nil,
 							Type:        auditlog.KeyResourceType,
 						},
@@ -130,7 +131,7 @@ func (w *RefillWorkflow) Run(ctx restate.WorkflowContext) error {
 			}
 
 			return restate.Void{}, nil
-		}, restate.WithName(fmt.Sprintf("updating key %s", key.Key.ID)))
+		}, restate.WithName(fmt.Sprintf("updating key %s", key.ID)))
 		if err != nil {
 			return err
 		}
@@ -138,16 +139,19 @@ func (w *RefillWorkflow) Run(ctx restate.WorkflowContext) error {
 	interval := 24 * time.Hour
 
 	nextInvocation := now.Truncate(interval).Add(interval)
-	delay := nextInvocation.Sub(time.Now())
+	delay := time.Until(nextInvocation)
 
 	// until restate has cron jobs, we just schedule the workflow to run again in 24h
-	restate.WorkflowSend(ctx, "RefillWorkflow", fmt.Sprintf("%s", nextInvocation), "Run").
+	restate.WorkflowSend(ctx, "RefillWorkflow", nextInvocation.String(), "Run").
 		Send(nil, restate.WithDelay(delay))
 
 	if w.HeartbeatURL != "" {
 		_, err = restate.Run(ctx, func(ctx restate.RunContext) (restate.Void, error) {
-			_, err := http.Get(w.HeartbeatURL)
-			return restate.Void{}, err
+			res, heartbeatErr := http.Get(w.HeartbeatURL)
+			if heartbeatErr != nil {
+				return restate.Void{}, heartbeatErr
+			}
+			return restate.Void{}, res.Body.Close()
 		})
 		if err != nil {
 			return err

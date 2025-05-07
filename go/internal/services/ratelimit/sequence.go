@@ -40,6 +40,7 @@ import "time"
 //	// Adjacent minutes get consecutive sequences
 //	t3 := time.Date(2024, 1, 1, 12, 31, 0, 0, time.UTC)
 //	seq3 := calculateSequence(t3, time.Minute) // seq1 + 1
+//
 // calculateSequence converts a timestamp to a window sequence number for rate limiting.
 // It ensures consistent window boundaries across all nodes in the cluster by aligning
 // windows to fixed time boundaries based on the duration.

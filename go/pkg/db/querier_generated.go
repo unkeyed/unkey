@@ -136,23 +136,25 @@ type Querier interface {
 	//FindKeysForRefill
 	//
 	//  SELECT
-	//    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-	//    w.id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m
-	//  FROM `keys` k
-	//  JOIN workspaces w ON k.workspace_id = w.id
+	//    id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
+	//  FROM `keys`
 	//  WHERE
-	//    k.deleted_at_m IS NULL
-	//    AND k.refill_amount IS NOT NULL
-	//    AND k.refill_amount > k.remaining_requests
+	//    deleted_at_m IS NULL
+	//    AND refill_amount IS NOT NULL
+	//    AND refill_amount > remaining_requests
+	//    AND (
+	//      last_refill_at < ?
+	//      OR last_refill_at IS NULL
+	//    )
 	//    AND CASE
 	//      WHEN ? THEN
 	//        -- If today is last day of month, include keys with refill_day > today OR regular refill condition
-	//        (k.refill_day > ? OR k.refill_day IS NULL OR k.refill_day = ?)
+	//        (refill_day > ? OR refill_day IS NULL OR refill_day = ?)
 	//      ELSE
 	//        -- Otherwise, only include keys matching regular refill condition
-	//        (k.refill_day IS NULL OR k.refill_day = ?)
+	//        (refill_day IS NULL OR refill_day = ?)
 	//      END
-	FindKeysForRefill(ctx context.Context, db DBTX, arg FindKeysForRefillParams) ([]FindKeysForRefillRow, error)
+	FindKeysForRefill(ctx context.Context, db DBTX, arg FindKeysForRefillParams) ([]Key, error)
 	//FindPermissionByWorkspaceAndName
 	//
 	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m FROM `permissions`

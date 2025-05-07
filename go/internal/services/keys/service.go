@@ -10,13 +10,13 @@ import (
 // Config contains the dependencies needed to create a new key service.
 type Config struct {
 	// Logger for service operations
-	Logger         logging.Logger
+	Logger logging.Logger
 	// Database connection
-	DB             db.Database
+	DB db.Database
 	// Clock for time-related operations
-	Clock          clock.Clock
+	Clock clock.Clock
 	// Cache for API keys by their hash
-	KeyCache       cache.Cache[string, db.Key]
+	KeyCache cache.Cache[string, db.Key]
 	// Cache for workspaces by their ID
 	WorkspaceCache cache.Cache[string, db.Workspace]
 }

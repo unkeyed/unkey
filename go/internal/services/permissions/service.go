@@ -22,13 +22,13 @@ var _ PermissionService = (*service)(nil)
 // Config contains the dependencies needed to create a new permission service.
 type Config struct {
 	// Database connection
-	DB     db.Database
+	DB db.Database
 	// Logger for service operations
 	Logger logging.Logger
 	// Clock for time-related operations
-	Clock  clock.Clock
+	Clock clock.Clock
 	// Cache for permissions by key ID
-	Cache  cache.Cache[string, []string]
+	Cache cache.Cache[string, []string]
 }
 
 // New creates a new permission service with the provided configuration.

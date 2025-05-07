@@ -15,7 +15,7 @@ var _ AuditLogService = (*service)(nil)
 // Config contains the dependencies needed to create a new audit log service.
 type Config struct {
 	// DB is the database connection used to store audit logs
-	DB     db.Database
+	DB db.Database
 	// Logger is used for internal logging of the service
 	Logger logging.Logger
 }
