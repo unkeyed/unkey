@@ -91,7 +91,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
                     <Input
                       type="text"
                       id="apiName"
-                      className="min-w-[16rem]"
+                      className="min-w-[16.5rem]"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {

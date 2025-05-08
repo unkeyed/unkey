@@ -151,7 +151,7 @@ export const CreateKeyDialog = ({
           <NavigableDialogRoot
             isOpen={isSettingsOpen}
             onOpenChange={handleOpenChange}
-            dialogClassName="!min-w-[900px]"
+            dialogClassName="!min-w-[760px]"
           >
             <NavigableDialogHeader
               title="New Key"

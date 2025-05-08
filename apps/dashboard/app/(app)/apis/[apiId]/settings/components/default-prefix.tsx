@@ -85,7 +85,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
                   <FormControl>
                     <Input
                       id="defaultPrefix"
-                      className="w-[16rem]"
+                      className="w-[16.5rem]"
                       {...field}
                       autoComplete="off"
                       onBlur={(e) => {
