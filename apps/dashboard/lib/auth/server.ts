@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import type { BaseAuthProvider } from "./base-provider";
+import { LocalAuthProvider } from "./local";
 import { WorkOSAuthProvider } from "./workos";
 
 type SupportedProviders = "workos" | "local";
@@ -22,6 +23,11 @@ class AuthProvider {
         break;
       }
 
+      case "local": {
+        AuthProvider.initializeLocal();
+        break;
+      }
+
       default:
         throw new Error(`Unsupported AUTH_PROVIDER: ${authProvider}`);
     }
@@ -40,6 +46,10 @@ class AuthProvider {
       apiKey: WORKOS_API_KEY,
       clientId: WORKOS_CLIENT_ID,
     });
+  }
+
+  private static initializeLocal() {
+    AuthProvider.instance = new LocalAuthProvider();
   }
 
   public static getInstance(): BaseAuthProvider {

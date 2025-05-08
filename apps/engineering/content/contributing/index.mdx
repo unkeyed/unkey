@@ -61,14 +61,11 @@ This process helps ensure your contribution aligns with our roadmap and prevents
 
 ### Prerequisites
 
-You need the following services to run Unkey:
+There are no required services to run Unkey. Unkey has a built-in local auth mode with a permanently logged in user belonging to a single organization. Additional users, organizations, and multi-workspace features are not supported with local authentication.
 
+To run in local auth mode, ensure you have the following environment variable set in your `.env` file:
 
-<Callout>
-  We're currently working on making this optional.
-</Callout>
-- [Clerk](https://clerk.com?ref=unkey): Authentication
-
+`AUTH_PROVIDER="local"`
 
 You also need the following tools installed.
 
@@ -76,6 +73,16 @@ You also need the following tools installed.
 - [Node](https://nodejs.org)
 - [pnpm](https://pnpm.io/installation)
 - [Docker](https://www.docker.com/products/docker-desktop)
+
+#### Optional Services
+
+- [WorkOS](https://workos.com/) - Authentication: If you need to work with multi-workspace scenarios, you must have WorkOS credentials within your environment file.
+  - `AUTH_PROVIDER="workos"`
+  - `WORKOS_CLIENT_ID=<your client ID>` 
+  - `WORKOS_API_KEY=<your API key>`
+  - `WORKOS_COOKIE_PASSWORD=<your base64 generated password>`
+- [Stripe](https://stripe.com/) - Billing: In order to work with multi-user workspaces, you need to have your Stripe credentials configured within your environment file to simulate a Pro plan to support features like inviting team members to your workspace.
+  - `STRIPE_SECRET_KEY=<your Stripe secret key>`
 
 
 ### Developing Unkey
@@ -111,13 +118,6 @@ You also need the following tools installed.
   <Callout type="warn">
     Docker must be running for us to spin up the databases and supporting services.
   </Callout>
-
-  You will be prompted to enter the following values:
-
-  - `CLERK_SECRET_KEY`: Your Clerk secret key.
-  - `NEXT_PUBLIC_CLERK_PUBLIC_KEY`: Your Clerk public key.
-
-
 
   We will create the required `.env` files depending on the selection you've made.
 
