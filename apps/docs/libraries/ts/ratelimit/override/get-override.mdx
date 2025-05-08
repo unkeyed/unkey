@@ -42,9 +42,6 @@ How many requests may pass in a given window.
 The window duration in milliseconds.
 </ParamField>
 
-<ParamField body="async" type="boolean">
-Async will return a response immediately, lowering latency at the cost of accuracy.
-</ParamField>
 </Expandable>
 </ResponseField >
 
@@ -52,15 +49,15 @@ Async will return a response immediately, lowering latency at the cost of accura
 <RequestExample>
 ```ts
 const override = await unkey.getOverride({
-  identifier:"user.example", 
+  identifier:"user.example",
   namespaceName: "email.outbound"
 });
 
-``` 
+```
 ```ts
 const override = await unkey.getOverride({
-  identifier:"user.example", 
-  namespaceId: "rlns_1234",  
+  identifier:"user.example",
+  namespaceId: "rlns_1234",
 });
 ```
 </RequestExample>
