@@ -1,19 +1,21 @@
 import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { getIsImpersonator, getOrgId } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { QueryTimeProvider } from "../../providers/query-time-provider";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export default async function Layout({ children }: LayoutProps) {
-  const orgId = await getOrgId();
-  const isImpersonator = await getIsImpersonator();
+  const { orgId, impersonator } = await getAuth();
+
+  const isImpersonator = !!impersonator;
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
@@ -49,7 +51,7 @@ export default async function Layout({ children }: LayoutProps) {
 
               <div className="w-full">
                 {workspace.enabled ? (
-                  children
+                  <QueryTimeProvider>{children}</QueryTimeProvider>
                 ) : (
                   <div className="flex items-center justify-center w-full h-full">
                     <Empty>

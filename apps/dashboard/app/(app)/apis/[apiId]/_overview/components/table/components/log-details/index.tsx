@@ -1,8 +1,8 @@
 "use client";
 import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/logs/constants";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
-import { TimestampInfo } from "@/components/timestamp-info";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
+import { TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
 import { useMemo } from "react";
 import { LogHeader } from "./components/log-header";
@@ -106,7 +106,7 @@ export const KeysOverviewLogDetails = ({
   return (
     <ResizablePanel
       onClose={handleClose}
-      className="absolute right-0 bg-gray-1 dark:bg-black font-mono shadow-2xl overflow-y-auto z-20 p-4"
+      className="absolute max-md:!h-screen max-md:!w-full max-md:!top-0 right-0 bg-gray-1 dark:bg-black font-mono shadow-2xl overflow-y-auto z-20 p-4"
       style={panelStyle}
     >
       <LogHeader log={log} onClose={handleClose} />

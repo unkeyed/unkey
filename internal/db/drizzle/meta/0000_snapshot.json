@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "b652299c-35af-4024-84c7-13f686c5195d",
+  "id": "c0a0a8fb-53ef-426f-9cbc-50d8e7f72b86",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "apis": {
@@ -1307,6 +1307,21 @@
           "autoincrement": false,
           "default": "'default'"
         },
+        "meta": {
+          "name": "meta",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deleted": {
+          "name": "deleted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "bigint",
@@ -1320,24 +1335,12 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
-        },
-        "meta": {
-          "name": "meta",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         }
       },
       "indexes": {
-        "workspace_id_idx": {
-          "name": "workspace_id_idx",
-          "columns": ["workspace_id"],
-          "isUnique": false
-        },
-        "external_id_workspace_id_idx": {
-          "name": "external_id_workspace_id_idx",
-          "columns": ["external_id", "workspace_id"],
+        "workspace_id_external_id_deleted_idx": {
+          "name": "workspace_id_external_id_deleted_idx",
+          "columns": ["workspace_id", "external_id", "deleted"],
           "isUnique": true
         }
       },

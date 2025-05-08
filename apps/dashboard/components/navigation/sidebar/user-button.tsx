@@ -34,7 +34,7 @@ export const UserButton: React.FC = () => {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "px-2 py-1 flex hover:bg-grayA-4 rounded-lg",
+          "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0",
           isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 flex-grow h-8",
         )}
       >
@@ -43,9 +43,7 @@ export const UserButton: React.FC = () => {
             {user?.avatarUrl ? (
               <AvatarImage src={user.avatarUrl} alt="Profile picture" className="rounded-full" />
             ) : null}
-            <AvatarFallback
-              className={cn("bg-gray-2 border border-grayA-6 rounded-full", "size-5")}
-            >
+            <AvatarFallback className={cn("bg-gray-2 rounded-full", "size-5")}>
               {user ? (user?.fullName ?? "U").slice(0, 1).toUpperCase() : null}
             </AvatarFallback>
           </Avatar>

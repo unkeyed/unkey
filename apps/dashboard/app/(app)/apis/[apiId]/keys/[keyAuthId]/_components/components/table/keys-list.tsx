@@ -6,6 +6,7 @@ import { BookBookmark, Focus, Key } from "@unkey/icons";
 import {
   AnimatedLoadingSpinner,
   Button,
+  Checkbox,
   Empty,
   Tooltip,
   TooltipContent,
@@ -14,12 +15,15 @@ import {
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
+import { KeysTableActionPopover } from "./components/actions/keys-table-action.popover";
+import { getKeysTableActionItems } from "./components/actions/keys-table-action.popover.constants";
 import { VerificationBarChart } from "./components/bar-chart";
 import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
+import { SelectionControls } from "./components/selection-controls";
 import {
+  ActionColumnSkeleton,
   KeyColumnSkeleton,
   LastUsedColumnSkeleton,
   StatusColumnSkeleton,
@@ -42,10 +46,26 @@ export const KeysList = ({
   });
   const [selectedKey, setSelectedKey] = useState<KeyDetails | null>(null);
   const [navigatingKeyId, setNavigatingKeyId] = useState<string | null>(null);
+  // Add state for selected keys
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  // Track which row is being hovered
+  const [hoveredKeyId, setHoveredKeyId] = useState<string | null>(null);
 
   const handleLinkClick = useCallback((keyId: string) => {
     setNavigatingKeyId(keyId);
     setSelectedKey(null);
+  }, []);
+
+  const toggleSelection = useCallback((keyId: string) => {
+    setSelectedKeys((prevSelected) => {
+      const newSelected = new Set(prevSelected);
+      if (newSelected.has(keyId)) {
+        newSelected.delete(keyId);
+      } else {
+        newSelected.add(keyId);
+      }
+      return newSelected;
+    });
   }, []);
 
   const columns: Column<KeyDetails>[] = useMemo(
@@ -58,22 +78,44 @@ export const KeysList = ({
         render: (key) => {
           const identity = key.identity?.external_id ?? key.owner_id;
           const isNavigating = key.id === navigatingKeyId;
+          const isSelected = selectedKeys.has(key.id);
+          const isHovered = hoveredKeyId === key.id;
 
-          const iconContainer = isNavigating ? (
-            <div className="size-5 rounded flex items-center justify-center">
-              <AnimatedLoadingSpinner />
-            </div>
-          ) : (
+          const iconContainer = (
             <div
               className={cn(
-                "size-5 rounded flex items-center justify-center",
+                "size-5 rounded flex items-center justify-center cursor-pointer",
                 identity ? "bg-successA-3" : "bg-grayA-3",
+                isSelected && "bg-brand-5",
               )}
+              onMouseEnter={() => setHoveredKeyId(key.id)}
+              onMouseLeave={() => setHoveredKeyId(null)}
             >
-              {identity ? (
-                <Focus size="md-regular" className="text-successA-11" />
+              {isNavigating ? (
+                <AnimatedLoadingSpinner />
               ) : (
-                <Key size="md-regular" />
+                <>
+                  {/* Show icon when not selected and not hovered */}
+                  {!isSelected && !isHovered && (
+                    // biome-ignore lint/complexity/noUselessFragments: <explanation>
+                    <>
+                      {identity ? (
+                        <Focus size="md-regular" className="text-successA-11" />
+                      ) : (
+                        <Key size="md-regular" />
+                      )}
+                    </>
+                  )}
+
+                  {/* Show checkbox when selected or hovered */}
+                  {(isSelected || isHovered) && (
+                    <Checkbox
+                      checked={isSelected}
+                      className="size-4 [&_svg]:size-3"
+                      onCheckedChange={() => toggleSelection(key.id)}
+                    />
+                  )}
+                </>
               )}
             </div>
           );
@@ -130,7 +172,14 @@ export const KeysList = ({
                       {key.id.substring(key.id.length - 4)}
                     </div>
                   </Link>
-                  {key.name && <span className="font-sans text-accent-9">{key.name}</span>}
+                  {key.name && (
+                    <span
+                      className="font-sans text-accent-9 truncate max-w-[120px]"
+                      title={key.name}
+                    >
+                      {key.name}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -147,7 +196,7 @@ export const KeysList = ({
       },
       {
         key: "usage",
-        header: "Usage in last 36H",
+        header: "Usage in last 36h",
         width: "15%",
         render: (key) => (
           <VerificationBarChart
@@ -176,15 +225,74 @@ export const KeysList = ({
         header: "Status",
         width: "15%",
         render: (key) => {
-          return <StatusDisplay keyData={key} keyAuthId={keyspaceId} />;
+          return (
+            <StatusDisplay
+              keyData={key}
+              keyAuthId={keyspaceId}
+              isSelected={selectedKey?.id === key.id}
+            />
+          );
+        },
+      },
+
+      {
+        key: "action",
+        header: "",
+        width: "15%",
+        render: (key) => {
+          return <KeysTableActionPopover items={getKeysTableActionItems(key)} />;
         },
       },
     ],
-    [keyspaceId, selectedKey?.id, apiId, navigatingKeyId, handleLinkClick],
+    [
+      keyspaceId,
+      selectedKey?.id,
+      apiId,
+      navigatingKeyId,
+      handleLinkClick,
+      selectedKeys,
+      toggleSelection,
+      hoveredKeyId,
+    ],
   );
 
+  const getSelectedKeysState = useCallback(() => {
+    if (selectedKeys.size === 0) {
+      return null;
+    }
+
+    let allEnabled = true;
+    let allDisabled = true;
+
+    for (const keyId of selectedKeys) {
+      const key = keys.find((k) => k.id === keyId);
+      if (!key) {
+        continue;
+      }
+
+      if (key.enabled) {
+        allDisabled = false;
+      } else {
+        allEnabled = false;
+      }
+
+      // Early exit if we already found a mix
+      if (!allEnabled && !allDisabled) {
+        break;
+      }
+    }
+
+    if (allEnabled) {
+      return "all-enabled";
+    }
+    if (allDisabled) {
+      return "all-disabled";
+    }
+    return "mixed";
+  }, [selectedKeys, keys]);
+
   return (
-    <div className="flex flex-col gap-8 mb-20">
+    <>
       <VirtualTable
         data={keys}
         isLoading={isLoading}
@@ -199,6 +307,14 @@ export const KeysList = ({
           hide: isLoading,
           buttonText: "Load more keys",
           hasMore,
+          headerContent: (
+            <SelectionControls
+              selectedKeys={selectedKeys}
+              setSelectedKeys={setSelectedKeys}
+              keys={keys}
+              getSelectedKeysState={getSelectedKeysState}
+            />
+          ),
           countInfoText: (
             <div className="flex gap-2">
               <span>Showing</span> <span className="text-accent-12">{keys.length}</span>
@@ -254,13 +370,14 @@ export const KeysList = ({
               {column.key === "usage" && <UsageColumnSkeleton />}
               {column.key === "last_used" && <LastUsedColumnSkeleton />}
               {column.key === "status" && <StatusColumnSkeleton />}
-              {!["key", "value", "usage", "last_used", "status"].includes(column.key) && (
-                <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />
-              )}
+              {column.key === "action" && <ActionColumnSkeleton />}
+              {!["select", "key", "value", "usage", "last_used", "status", "action"].includes(
+                column.key,
+              ) && <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />}
             </td>
           ))
         }
       />
-    </div>
+    </>
   );
 };

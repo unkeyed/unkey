@@ -29,6 +29,7 @@ export const LogsDateTime = () => {
 
   return (
     <DatetimePopover
+      maxDate={new Date()}
       initialTimeValues={timeValues}
       onDateTimeChange={(startTime, endTime, since) => {
         const activeFilters = filters.filter(
@@ -85,7 +86,9 @@ export const LogsDateTime = () => {
           disabled={!title}
         >
           <Calendar className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-medium text-[13px]">{title ?? "Loading..."}</span>
+          <span className="text-gray-12 font-medium text-[13px] max-md:hidden">
+            {title ?? "Loading..."}
+          </span>
         </Button>
       </div>
     </DatetimePopover>

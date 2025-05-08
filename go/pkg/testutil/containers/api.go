@@ -19,7 +19,13 @@ type Cluster struct {
 	Instances []*dockertest.Resource
 }
 
-func (c *Containers) RunAPI(nodes int, mysqlDSN string) Cluster {
+type ApiConfig struct {
+	Nodes         int
+	MysqlDSN      string
+	ClickhouseDSN string
+}
+
+func (c *Containers) RunAPI(config ApiConfig) Cluster {
 
 	// Get the path to the current file
 	_, currentFilePath, _, _ := runtime.Caller(0)
@@ -47,7 +53,7 @@ func (c *Containers) RunAPI(nodes int, mysqlDSN string) Cluster {
 		Instances: []*dockertest.Resource{},
 		Addrs:     []string{},
 	}
-	for i := 0; i < nodes; i++ {
+	for i := 0; i < config.Nodes; i++ {
 		instanceId := uid.New(uid.InstancePrefix)
 		// Define run options
 		// nolint:exhaustruct
@@ -63,8 +69,10 @@ func (c *Containers) RunAPI(nodes int, mysqlDSN string) Cluster {
 				"OTEL_EXPORTER_OTLP_ENDPOINT=http://otel:4318",
 				"OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf",
 				"UNKEY_TEST_MODE=true",
+				"UNKEY_REGION=local_docker",
+				fmt.Sprintf("UNKEY_CLICKHOUSE_URL=%s", config.ClickhouseDSN),
 				fmt.Sprintf("UNKEY_REDIS_URL=%s", redisUrl),
-				fmt.Sprintf("UNKEY_DATABASE_PRIMARY_DSN=%s", mysqlDSN),
+				fmt.Sprintf("UNKEY_DATABASE_PRIMARY=%s", config.MysqlDSN),
 			},
 		}
 
@@ -74,6 +82,7 @@ func (c *Containers) RunAPI(nodes int, mysqlDSN string) Cluster {
 		c.t.Logf("starting %s took %s", instanceId, time.Since(t0))
 
 		c.t.Cleanup(func() {
+			require.NoError(c.t, c.pool.Client.StopContainer(instance.Container.ID, uint(15)))
 			require.NoError(c.t, c.pool.Purge(instance))
 		})
 

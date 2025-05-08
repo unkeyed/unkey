@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"context"
 
+	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 )
 
@@ -37,6 +38,10 @@ func (n *noop) GetBillableVerifications(ctx context.Context, workspaceID string,
 // GetBillableRatelimits implements the Bufferer interface but always returns 0.
 func (n *noop) GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error) {
 	return 0, nil
+}
+
+func (n *noop) Conn() ch.Conn {
+	return nil
 }
 
 // NewNoop creates a new no-op implementation of the Bufferer interface.

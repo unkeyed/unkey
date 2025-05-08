@@ -2,7 +2,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Check } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type FilterOption<T extends string = string> = {
   id: T;
@@ -26,6 +26,13 @@ export const FilterOperatorInput = <T extends string>({
 }: FilterOperatorInputProps<T>) => {
   const [selectedOption, setSelectedOption] = useState<T>(defaultOption);
   const [text, setText] = useState(defaultText);
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Initialize the refs array when options change
+  useEffect(() => {
+    optionRefs.current = optionRefs.current.slice(0, options.length);
+  }, [options.length]);
 
   const handleApply = () => {
     if (text.trim()) {
@@ -33,24 +40,70 @@ export const FilterOperatorInput = <T extends string>({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  // Handle keyboard navigation for options
+  // INFO: Don't move "stopPropagation" to top. We need "ArrowLeft" to propagate so we can close this popover content when "ArrowLeft" triggered.
+  const handleOptionKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    switch (e.key) {
+      case "ArrowDown": {
+        e.stopPropagation();
+        e.preventDefault();
+        // Move to next option or wrap to first
+        const nextIndex = (index + 1) % options.length;
+        optionRefs.current[nextIndex]?.focus();
+        break;
+      }
+
+      case "ArrowUp": {
+        e.stopPropagation();
+        e.preventDefault();
+        // Move to previous option or wrap to last
+        const prevIndex = (index - 1 + options.length) % options.length;
+        optionRefs.current[prevIndex]?.focus();
+        break;
+      }
+
+      case "Enter":
+      case " ":
+        e.stopPropagation();
+        e.preventDefault();
+        setSelectedOption(options[index].id);
+        break;
+
+      case "Tab":
+        if (!e.shiftKey) {
+          e.stopPropagation();
+          e.preventDefault();
+          textareaRef.current?.focus();
+        }
+        break;
+    }
+  };
+
+  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleApply();
+      return;
     }
   };
 
   return (
-    <div className="flex w-[500px]">
-      <div className="flex flex-col gap-2 p-2 w-[180px] border-r border-gray-4 items-center">
-        {options.map((option) => (
+    <div className="flex max-md:flex-col w-full md:w-[500px]">
+      <div className="flex flex-col gap-2 p-2 w-full md:w-[180px] md:border-r border-gray-4 items-center">
+        {options.map((option, index) => (
           <div
             key={option.id}
             className={cn("group relative w-full rounded-lg", "focus-within:outline-none")}
           >
             <button
               type="button"
+              id={`option-${option.id}`}
+              ref={(el) => {
+                optionRefs.current[index] = el;
+              }}
               onClick={() => setSelectedOption(option.id)}
+              onKeyDown={(e) => handleOptionKeyDown(e, index)}
+              aria-selected={selectedOption === option.id}
               className={cn(
                 "w-full inline-flex items-center justify-between",
                 "px-2 py-1.5 rounded-lg",
@@ -71,9 +124,9 @@ export const FilterOperatorInput = <T extends string>({
           </div>
         ))}
       </div>
-      <div className="flex flex-col gap-[14px] py-3 w-[320px] px-3">
+      <div className="flex flex-col gap-[14px] py-3 w-full md:w-[320px] px-3">
         <div className="space-y-2">
-          <p className="text-gray-9 text-xs">
+          <p className="text-gray-9 text-xs" id="filter-operator-title">
             {label}{" "}
             <span className="font-medium text-gray-12">
               {options.find((opt) => opt.id === selectedOption)?.label}
@@ -81,10 +134,11 @@ export const FilterOperatorInput = <T extends string>({
             ...
           </p>
           <Textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter text"
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleTextareaKeyDown}
             className="w-full px-3 py-2 text-sm bg-accent-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-accent-5 border-accent-12 drop-shadow-sm placeholder:text-gray-8"
           />
         </div>

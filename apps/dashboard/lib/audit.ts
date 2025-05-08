@@ -77,6 +77,7 @@ export type UnkeyAuditLog = {
       | "vercelIntegration"
       | "ratelimitNamespace"
       | "ratelimitOverride"
+      | "ratelimit"
       | "gateway"
       | "llmGateway"
       | "webhook"
@@ -87,7 +88,7 @@ export type UnkeyAuditLog = {
 
     id: string;
     name?: string;
-    meta?: Record<string, string | number | boolean | null>;
+    meta?: Record<string, string | number | boolean | null | undefined>;
   }>;
   context: {
     userAgent?: string;
@@ -102,11 +103,30 @@ export async function insertAuditLogs(
   const logs = Array.isArray(logOrLogs) ? logOrLogs : [logOrLogs];
 
   if (logs.length === 0) {
+    console.info("No audit logs to insert");
     return Promise.resolve();
   }
 
+  console.info({
+    message: "Inserting audit logs",
+    count: logs.length,
+    events: logs.map((log) => log.event),
+    workspaceIds: [...new Set(logs.map((log) => log.workspaceId))],
+  });
+
   for (const log of logs) {
     const auditLogId = newId("auditLog");
+
+    console.info({
+      message: "Inserting audit log entry",
+      auditLogId,
+      workspaceId: log.workspaceId,
+      event: log.event,
+      actorType: log.actor.type,
+      actorId: log.actor.id,
+      resourceCount: log.resources.length,
+    });
+
     await db.insert(schema.auditLog).values({
       id: auditLogId,
       workspaceId: log.workspaceId,
@@ -122,7 +142,15 @@ export async function insertAuditLogs(
       actorName: log.actor.name,
       actorMeta: log.actor.meta,
     });
+
     if (log.resources.length > 0) {
+      console.info({
+        message: "Inserting audit log resources",
+        auditLogId,
+        resourceCount: log.resources.length,
+        resourceTypes: log.resources.map((r) => r.type),
+      });
+
       await db.insert(schema.auditLogTarget).values(
         log.resources.map((r) => ({
           workspaceId: log.workspaceId,
@@ -138,4 +166,9 @@ export async function insertAuditLogs(
       );
     }
   }
+
+  console.info({
+    message: "Successfully inserted all audit logs",
+    count: logs.length,
+  });
 }

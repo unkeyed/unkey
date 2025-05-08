@@ -1,11 +1,11 @@
 "use client";
-import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { Ban, BookBookmark } from "@unkey/icons";
+import { TimestampInfo } from "@unkey/ui";
 import { Button, Empty } from "@unkey/ui";
 
 import { useSort } from "@/components/logs/hooks/use-sort";
@@ -192,8 +192,8 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
             <Empty.Description className="text-left">
               No key verification data to show. Once requests are made with API keys, you'll see a
               summary of successful and failed verification attempts.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
+            </Empty.Description>{" "}
+            <Empty.Actions className="mt-4 justify-center md:justify-start">
               <a
                 href="https://www.unkey.com/docs/introduction"
                 target="_blank"

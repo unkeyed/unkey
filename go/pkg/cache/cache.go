@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/maypok86/otter"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -101,14 +100,10 @@ func New[K comparable, V any](config Config[K, V]) (*cache[K, V], error) {
 
 func (c *cache[K, V]) registerMetrics() {
 
-	repeat.Every(10*time.Second, func() {
-
-		stats := c.otter.Stats()
+	repeat.Every(60*time.Second, func() {
 
 		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
 		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(c.otter.Capacity()))
-		metrics.CacheHits.WithLabelValues(c.resource).Set(float64(stats.Hits()))
-		metrics.CacheMisses.WithLabelValues(c.resource).Set(float64(stats.Misses()))
 
 	})
 
@@ -162,12 +157,9 @@ func (c *cache[K, V]) Set(_ context.Context, key K, value V) {
 }
 
 func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
-	timer := prometheus.NewTimer(prometheus.ObserverFunc(func(d float64) {
-		metrics.CacheReadLatency.WithLabelValues(c.resource).Observe(d)
-	}))
 	v, ok := c.otter.Get(key)
 
-	timer.ObserveDuration()
+	metrics.CacheReads.WithLabelValues(c.resource, fmt.Sprintf("%t", ok)).Inc()
 
 	return v, ok
 }

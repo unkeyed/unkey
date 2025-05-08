@@ -6,15 +6,27 @@ export const PENDING_SESSION_COOKIE = "sess-temp";
 export const SIGN_IN_URL = "/auth/sign-in";
 export const SIGN_UP_URL = "/auth/sign-up";
 
+// Local Auth consts
+export const LOCAL_USER_ID = "user_local_admin";
+export const LOCAL_ORG_ID = "org_localdefault"; // org IDs can only have one underscore
+export const LOCAL_ORG_ROLE = "admin";
+
 export interface User {
   id: string;
-  orgId: string | null;
   email: string;
   firstName: string | null;
   lastName: string | null;
   avatarUrl: string | null;
   fullName: string | null;
-  impersonator: unknown | undefined;
+}
+
+export interface AuthenticatedUser extends User {
+  role?: string | null;
+  orgId?: string | null;
+  impersonator?: {
+    email: string;
+    reason?: string | null;
+  };
 }
 
 export interface Organization {
@@ -102,17 +114,27 @@ export interface SessionValidationResult {
   token?: string;
   userId?: string;
   orgId?: string | null;
+  role?: string | null;
+  impersonator?: {
+    email: string;
+    reason?: string | null;
+  };
 }
 
 export interface SessionRefreshResult {
   newToken: string;
   expiresAt: Date;
   session: SessionData | null;
+  impersonator?: {
+    email: string;
+    reason?: string | null;
+  };
 }
 
 export interface SessionData {
   userId: string;
   orgId: string | null;
+  role?: string | null;
 }
 
 // OAuth Types

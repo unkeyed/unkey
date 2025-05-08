@@ -1,24 +1,35 @@
-import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
-export const updateKeyEnabled = t.procedure
+
+export const updateKeysEnabled = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .input(
     z.object({
-      keyId: z.string(),
+      keyIds: z
+        .union([z.string(), z.array(z.string())])
+        .transform((ids) => (Array.isArray(ids) ? ids : [ids])),
       enabled: z.boolean(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const key = await db.query.keys
-      .findFirst({
-        where: (table, { eq, and, isNull }) =>
+    // Ensure we have at least one keyId to update
+    if (input.keyIds.length === 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "At least one keyId must be provided",
+      });
+    }
+
+    const keys = await db.query.keys
+      .findMany({
+        where: (table, { eq, and, isNull, inArray }) =>
           and(
             eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.keyId),
+            inArray(table.id, input.keyIds),
             isNull(table.deletedAtM),
           ),
       })
@@ -26,57 +37,89 @@ export const updateKeyEnabled = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
+            "We were unable to retrieve the keys. Please try again or contact support@unkey.dev",
         });
       });
-    if (!key) {
+
+    if (keys.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the the correct key. Please try again or contact support@unkey.dev.",
+          "We are unable to find any of the specified keys. Please try again or contact support@unkey.dev.",
       });
     }
 
-    await db
-      .transaction(async (tx) => {
+    // Check if any keys were not found
+    const foundKeyIds = keys.map((key) => key.id);
+    const missingKeyIds = input.keyIds.filter((id) => !foundKeyIds.includes(id));
+
+    if (missingKeyIds.length > 0) {
+      console.warn(`Some keys were not found: ${missingKeyIds.join(", ")}`);
+    }
+
+    try {
+      await db.transaction(async (tx) => {
         await tx
           .update(schema.keys)
           .set({
             enabled: input.enabled,
           })
-          .where(eq(schema.keys.id, key.id))
+          .where(
+            and(
+              inArray(schema.keys.id, foundKeyIds),
+              eq(schema.keys.workspaceId, ctx.workspace.id),
+            ),
+          )
           .catch((_err) => {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
+                "We were unable to update enabled status on these keys. Please try again or contact support@unkey.dev",
             });
           });
+
+        const keyIds = keys.map((key) => key.id).join(", ");
+        const description = `Updated enabled status of keys [${keyIds}] to ${
+          input.enabled ? "enabled" : "disabled"
+        }`;
+
+        const resources: UnkeyAuditLog["resources"] = keys.map((key) => ({
+          type: "key",
+          id: key.id,
+          name: key.name || undefined,
+          meta: {
+            enabled: input.enabled,
+            "previous.enabled": key.enabled,
+          },
+        }));
+
         await insertAuditLogs(tx, {
-          workspaceId: key.workspaceId,
+          workspaceId: ctx.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,
           },
           event: "key.update",
-          description: `${input.enabled ? "Enabled" : "Disabled"} ${key.id}`,
-          resources: [
-            {
-              type: "key",
-              id: key.id,
-            },
-          ],
+          description,
+          resources,
           context: {
             location: ctx.audit.location,
             userAgent: ctx.audit.userAgent,
           },
         });
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
-        });
       });
+    } catch (err) {
+      console.error(err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "We were unable to update enabled status on these keys. Please try again or contact support@unkey.dev",
+      });
+    }
+
+    return {
+      enabled: input.enabled,
+      updatedKeyIds: foundKeyIds,
+      missingKeyIds: missingKeyIds.length > 0 ? missingKeyIds : undefined,
+    };
   });

@@ -1,3 +1,4 @@
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
@@ -9,6 +10,7 @@ import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
+const MOBILE_TABLE_HEIGHT = 400;
 const calculateTableLayout = (columns: Column<any>[]) => {
   return columns.map((column) => {
     let width = "auto";
@@ -60,6 +62,9 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const isGridLayout = config.layoutMode === "grid";
     const parentRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const isMobile = useIsMobile();
+
+    const hasPadding = config.containerPadding !== "px-0";
 
     const fixedHeight = useTableHeight(containerRef);
     const tableData = useTableData<TTableData>(realtimeData, historicData);
@@ -79,7 +84,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     );
 
     const containerClassName = cn(
-      "overflow-auto relative",
+      "overflow-auto relative pb-4",
       config.containerPadding || "px-2", // Default to px-2 if containerPadding is not specified
     );
 
@@ -98,7 +103,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
       return (
         <div
-          className="w-full flex flex-col h-full"
+          className="w-full flex flex-col md:h-full"
           style={{ height: `${fixedHeight}px` }}
           ref={containerRef}
         >
@@ -125,7 +130,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
             </thead>
           </table>
           {emptyState ? (
-            <div className="flex-1 flex items-center justify-center h-full">{emptyState}</div>
+            <div className="flex-1 flex items-center justify-center">{emptyState}</div>
           ) : (
             <EmptyState />
           )}
@@ -135,7 +140,11 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
     return (
       <div className="w-full flex flex-col" ref={containerRef}>
-        <div ref={parentRef} className={containerClassName} style={{ height: `${fixedHeight}px` }}>
+        <div
+          ref={parentRef}
+          className={containerClassName}
+          style={isMobile ? { height: MOBILE_TABLE_HEIGHT } : { height: `${fixedHeight}px` }}
+        >
           <table className={tableClassName}>
             <colgroup>
               {colWidths.map((col, idx) => (
@@ -147,7 +156,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
             <thead className="sticky top-0 z-10">
               <tr>
                 <th colSpan={columns.length} className="p-0">
-                  <div className="absolute inset-x-[-8px] top-0 bottom-[0px] bg-gray-1" />
+                  <div
+                    className={cn(
+                      "absolute top-0 bottom-0 bg-gray-1",
+                      hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                    )}
+                  />
                 </th>
               </tr>
               <tr>
@@ -166,7 +180,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               <tr>
                 <th colSpan={columns.length} className="p-0">
                   <div className="relative w-full">
-                    <div className="absolute inset-x-[-8px] border-t border-gray-4" />
+                    <div
+                      className={cn(
+                        "absolute border-t border-gray-4",
+                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                      )}
+                    />
                   </div>
                 </th>
               </tr>

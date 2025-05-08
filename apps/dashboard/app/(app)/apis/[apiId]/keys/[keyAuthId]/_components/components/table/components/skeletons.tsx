@@ -1,7 +1,8 @@
+import { Dots } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 
 export const KeyColumnSkeleton = () => (
-  <div className="flex flex-col items-start w-[225px]">
+  <div className="flex flex-col items-start w-auto">
     <div className="flex gap-4 items-center">
       <div className="bg-grayA-3 size-5 rounded animate-pulse" />
       <div className="flex flex-col gap-1">
@@ -38,11 +39,11 @@ export const UsageColumnSkeleton = ({ maxBars = 30 }: { maxBars?: number }) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
             index
           }`}
-          className="flex flex-col justify-end"
+          className="flex flex-col"
         >
           <div
-            className="w-[3px] bg-grayA-5"
-            style={{ height: `${5 + Math.floor(Math.random() * (28 - 5))}px` }}
+            className="w-[3px] bg-grayA-5 animate-pulse"
+            style={{ height: `${2 + Math.floor(Math.random() * 20)}px` }}
           />
         </div>
       ))}
@@ -66,4 +67,16 @@ export const StatusColumnSkeleton = () => (
     <div className="h-2 w-2 bg-grayA-3 rounded-full animate-pulse" />
     <div className="h-2 w-16 bg-grayA-3 rounded animate-pulse" />
   </div>
+);
+
+export const ActionColumnSkeleton = () => (
+  <button
+    type="button"
+    className={cn(
+      "group size-5 p-0 rounded m-0 items-center flex justify-center animate-pulse",
+      "border border-gray-6",
+    )}
+  >
+    <Dots className="text-gray-11" size="sm-regular" />
+  </button>
 );

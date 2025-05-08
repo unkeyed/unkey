@@ -19,9 +19,10 @@ var (
 	//   metrics.RatelimitBuckets.Set(float64(activeBuckets))
 	RatelimitBuckets = promauto.NewGauge(
 		prometheus.GaugeOpts{
-			Subsystem: "ratelimit",
-			Name:      "buckets",
-			Help:      "Current number of active rate-limit buckets.",
+			Subsystem:   "ratelimit",
+			Name:        "buckets",
+			Help:        "Current number of active rate-limit buckets.",
+			ConstLabels: constLabels,
 		},
 	)
 
@@ -32,9 +33,10 @@ var (
 	//   metrics.RatelimitWindows.Set(float64(activeWindows))
 	RatelimitWindows = promauto.NewGauge(
 		prometheus.GaugeOpts{
-			Subsystem: "ratelimit",
-			Name:      "windows",
-			Help:      "Current number of rate-limit windows.",
+			Subsystem:   "ratelimit",
+			Name:        "windows",
+			Help:        "Current number of rate-limit windows.",
+			ConstLabels: constLabels,
 		},
 	)
 
@@ -45,9 +47,10 @@ var (
 	//   metrics.RatelimitBucketsCreated.Inc()
 	RatelimitBucketsCreated = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Subsystem: "ratelimit",
-			Name:      "buckets_created_total",
-			Help:      "Total number of rate-limit buckets created.",
+			Subsystem:   "ratelimit",
+			Name:        "buckets_created_total",
+			Help:        "Total number of rate-limit buckets created.",
+			ConstLabels: constLabels,
 		},
 	)
 
@@ -58,9 +61,10 @@ var (
 	//   metrics.RatelimitBucketsEvicted.Inc()
 	RatelimitBucketsEvicted = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Subsystem: "ratelimit",
-			Name:      "buckets_evicted_total",
-			Help:      "Total number of rate-limit buckets evicted.",
+			Subsystem:   "ratelimit",
+			Name:        "buckets_evicted_total",
+			Help:        "Total number of rate-limit buckets evicted.",
+			ConstLabels: constLabels,
 		},
 	)
 
@@ -71,9 +75,10 @@ var (
 	//   metrics.RatelimitWindowsCreated.Inc()
 	RatelimitWindowsCreated = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Subsystem: "ratelimit",
-			Name:      "windows_created_total",
-			Help:      "Total number of rate-limit time windows created.",
+			Subsystem:   "ratelimit",
+			Name:        "windows_created_total",
+			Help:        "Total number of rate-limit time windows created.",
+			ConstLabels: constLabels,
 		},
 	)
 
@@ -84,36 +89,28 @@ var (
 	//   metrics.RatelimitWindowsEvicted.Inc()
 	RatelimitWindowsEvicted = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Subsystem: "ratelimit",
-			Name:      "windows_evicted_total",
-			Help:      "Total number of rate-limit time windows evicted.",
+			Subsystem:   "ratelimit",
+			Name:        "windows_evicted_total",
+			Help:        "Total number of rate-limit time windows evicted.",
+			ConstLabels: constLabels,
 		},
 	)
 
-	// RatelimitDecisionsLocal counts how often rate-limit decisions were resolved locally.
+	// RatelimitDecisions counts how often rate-limit decisions were resolved locally or remotely
+	// and whether they were allowed or denied.
 	// This counter helps understand the distribution of decision-making in the cluster.
 	//
 	// Example usage:
-	//   metrics.RatelimitDecisionsLocal.Inc()
-	RatelimitDecisionsLocal = promauto.NewCounter(
+	//   metrics.RatelimitDecisions.WithLabelValues("local", "allowed").Inc()
+	//   metrics.RatelimitDecisions.WithLabelValues("origin", "denied").Inc()
+	RatelimitDecision = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Subsystem: "ratelimit",
-			Name:      "decisions_local_total",
-			Help:      "Total number of rate-limit decisions resolved locally.",
+			Subsystem:   "ratelimit",
+			Name:        "decisions_total",
+			Help:        "Total number of rate-limit decisions.",
+			ConstLabels: constLabels,
 		},
-	)
-
-	// RatelimitDecisionsOrigin counts how often rate-limit decisions were delegated to an origin.
-	// This counter helps understand the centralization of decision-making in the cluster.
-	//
-	// Example usage:
-	//   metrics.RatelimitDecisionsOrigin.Inc()
-	RatelimitDecisionsOrigin = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Subsystem: "ratelimit",
-			Name:      "decisions_origin_total",
-			Help:      "Total number of rate-limit decisions delegated to an origin.",
-		},
+		[]string{"source", "outcome"},
 	)
 
 	// RatelimitRefreshFromOrigin counts how often rate-limits were refreshed from an origin.
@@ -123,9 +120,10 @@ var (
 	//   metrics.RatelimitRefreshFromOrigin.Inc()
 	RatelimitRefreshFromOrigin = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Subsystem: "ratelimit",
-			Name:      "refresh_from_origin_total",
-			Help:      "Total number of refreshes from an origin.",
+			Subsystem:   "ratelimit",
+			Name:        "refresh_from_origin_total",
+			Help:        "Total number of refreshes from an origin.",
+			ConstLabels: constLabels,
 		},
 	)
 
@@ -139,10 +137,11 @@ var (
 	//   defer timer.ObserveDuration()
 	RatelimitOriginSyncLatency = promauto.NewHistogram(
 		prometheus.HistogramOpts{
-			Subsystem: "ratelimit",
-			Name:      "origin_sync_latency_seconds",
-			Help:      "Histogram of origin sync latencies in seconds.",
-			Buckets:   latencyBuckets,
+			Subsystem:   "ratelimit",
+			Name:        "origin_sync_latency_seconds",
+			Help:        "Histogram of origin sync latencies in seconds.",
+			Buckets:     latencyBuckets,
+			ConstLabels: constLabels,
 		},
 	)
 )
