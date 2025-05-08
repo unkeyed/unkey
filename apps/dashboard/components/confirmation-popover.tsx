@@ -83,7 +83,7 @@ export const ConfirmPopover = ({
       <PopoverAnchor virtualRef={anchorRef} />
       <PopoverContent {...mergedPopoverProps}>
         <div className="p-4 w-full">
-          <div className="flex gap-4 items-center justify-start">
+          <div className="flex gap-3 items-center justify-start">
             <div
               className={cn(
                 "flex items-center justify-center rounded size-[22px]",

@@ -75,7 +75,7 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
     try {
       setIsLoading(true);
       await updateKeyStatus.mutateAsync({
-        keyId: keyDetails.id,
+        keyIds: [keyDetails.id],
         enabled: isEnabling,
       });
     } catch {
