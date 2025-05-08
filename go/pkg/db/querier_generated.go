@@ -232,17 +232,19 @@ type Querier interface {
 	//GetOutdatedKeySpaces
 	//
 	//  SELECT
-	//    ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
-	//  FROM key_auth ka
+	//    id,
+	//    workspace_id
+	//  FROM key_auth
 	//  WHERE
-	//    ka.deleted_at_m IS NULL
+	//    deleted_at_m IS NULL
+	//    AND id > ?
 	//    AND (
-	//      ka.size_last_updated_at IS NULL
-	//      OR ka.size_last_updated_at < ?
+	//      size_last_updated_at IS NULL
+	//      OR size_last_updated_at < ?
 	//    )
-	//  ORDER BY ka.size_last_updated_at ASC
-	//  LIMIT 10000
-	GetOutdatedKeySpaces(ctx context.Context, db DBTX, cutoffTime int64) ([]GetOutdatedKeySpacesRow, error)
+	//  ORDER BY id ASC
+	//  LIMIT 1000
+	GetOutdatedKeySpaces(ctx context.Context, db DBTX, arg GetOutdatedKeySpacesParams) ([]GetOutdatedKeySpacesRow, error)
 	//HardDeleteWorkspace
 	//
 	//  DELETE FROM `workspaces`

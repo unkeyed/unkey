@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-lambda-go/lambda"
 	restate "github.com/restatedev/sdk-go"
 	server "github.com/restatedev/sdk-go/server"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
@@ -23,11 +24,6 @@ var Cmd = &cli.Command{
 			Usage:    "DSN for the primary database",
 			Sources:  cli.EnvVars("UNKEY_DATABASE_PRIMARY"),
 			Required: true,
-		},
-		&cli.StringFlag{
-			Name:    "heartbeat-url",
-			Usage:   "Healthcheck URL to send heartbeats",
-			Sources: cli.EnvVars("UNKEY_HEARTBEAT_URL"),
 		},
 		&cli.IntFlag{
 			Name:    "http-port",
@@ -49,6 +45,12 @@ var Cmd = &cli.Command{
 			Name:    "count-keys-heartbeat-url",
 			Usage:   "Healthcheck URL to send heartbeats",
 			Sources: cli.EnvVars("UNKEY_COUNT_KEYS_HEARTBEAT_URL"),
+		},
+		&cli.StringFlag{
+			Name:    "deployment",
+			Usage:   "The deployment target, either 'server' or 'lambda'",
+			Value:   "server",
+			Sources: cli.EnvVars("UNKEY_DEPLOYMENT"),
 		},
 	},
 	Action: run,
@@ -89,10 +91,30 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 		srv.WithIdentityV1(identityV1)
 	}
-	err = srv.Start(ctx, fmt.Sprintf(":%d", cmd.Int("http-port")))
+	deployment := cmd.String("deployment")
+	switch deployment {
+	case "lambda":
+		{
+			logger.Info("creating lambda handler")
+			lambdaHandler, lambdaErr := srv.LambdaHandler()
+			if lambdaErr != nil {
+				return lambdaErr
+			}
+			lambda.Start(lambdaHandler)
+			break
+		}
+	case "server":
+		{
+			err = srv.Start(ctx, fmt.Sprintf(":%d", cmd.Int("http-port")))
 
-	if err != nil {
-		return err
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		{
+			return fmt.Errorf("unknown 'deployment' option: %s", deployment)
+		}
 	}
 
 	return nil

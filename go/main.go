@@ -25,6 +25,8 @@ func main() {
 			quotacheck.Cmd,
 			workflows.Cmd,
 		},
+		// kind of hacky but I needed to run workflows in lambda
+		DefaultCommand: os.Getenv("DEFAULT_COMMAND"),
 	}
 
 	err := app.Run(context.Background(), os.Args)

@@ -34,74 +34,93 @@ type CountKeysWorkflow struct {
 //   - ctx: The restate workflow context
 //
 // Returns an error if any part of the counting or updating process fails.
-func (w *CountKeysWorkflow) Run(ctx restate.WorkflowContext) error {
+func (w *CountKeysWorkflow) Run(wfCtx restate.WorkflowContext) error {
 
 	now := time.Now()
 
-	keyrings, err := restate.Run(ctx, func(ctx restate.RunContext) ([]db.GetOutdatedKeySpacesRow, error) {
+	idCursor := ""
+	for {
+		keyrings, err := restate.Run(wfCtx, func(ctx restate.RunContext) ([]db.GetOutdatedKeySpacesRow, error) {
 
-		return db.Query.GetOutdatedKeySpaces(ctx, w.DB.RO(), now.UnixMilli())
-
-	})
-	if err != nil {
-		return err
-	}
-
-	ctx.Log().Info("Found keyrings for counting", "keyrings", len(keyrings))
-
-	for _, keyring := range keyrings {
-
-		count, countErr := restate.Run(ctx, func(ctx restate.RunContext) (int64, error) {
-			ctx.Log().Info("counting keys",
-				"keyringID", keyring.KeyAuth.ID,
-				"workspaceID", keyring.KeyAuth.WorkspaceID,
-			)
-
-			return db.Query.CountKeysForKeySpace(ctx, w.DB.RO(), keyring.KeyAuth.ID)
-		}, restate.WithName(fmt.Sprintf("counting keys for keyring %s", keyring.KeyAuth.ID)))
-		if countErr != nil {
-			return countErr
-		}
-
-		_, err = restate.Run(ctx, func(ctx restate.RunContext) (restate.Void, error) {
-			ctx.Log().Info("updating counts",
-				"keyringID", keyring.KeyAuth.ID,
-				"workspaceID", keyring.KeyAuth.WorkspaceID,
-				"count", count,
-			)
-
-			err = db.Query.UpdateKeySpaceSize(ctx, w.DB.RW(), db.UpdateKeySpaceSizeParams{
-				SizeApprox: int32(count), // nolint:gosec
-				Now:        now.UnixMilli(),
-				KeyAuthID:  keyring.KeyAuth.ID,
+			return db.Query.GetOutdatedKeySpaces(ctx, w.DB.RO(), db.GetOutdatedKeySpacesParams{
+				IDCursor:   idCursor,
+				CutoffTime: now.UnixMilli(),
 			})
-			return restate.Void{}, err
-		}, restate.WithName(fmt.Sprintf("updating key count for keyring %s", keyring.KeyAuth.ID)))
-		if err != nil {
-			return err
-		}
 
-	}
-
-	interval := time.Minute
-
-	nextInvocation := now.Truncate(interval).Add(interval)
-	delay := time.Until(nextInvocation)
-
-	// until restate has cron jobs, we just schedule the workflow to run again in 1min
-	restate.WorkflowSend(ctx, "CountKeysWorkflow", nextInvocation.String(), "Run").
-		Send(nil, restate.WithDelay(delay))
-
-	if w.HeartbeatURL != "" {
-		_, err = restate.Run(ctx, func(ctx restate.RunContext) (restate.Void, error) {
-			res, heartbeatErr := http.Get(w.HeartbeatURL)
-			if heartbeatErr != nil {
-				return restate.Void{}, heartbeatErr
-			}
-			return restate.Void{}, res.Body.Close()
 		})
 		if err != nil {
 			return err
+		}
+		if len(keyrings) > 0 {
+			idCursor = keyrings[len(keyrings)-1].ID
+		} else {
+			// break out of the infinite loop
+			break
+		}
+
+		wfCtx.Log().Info("Found keyrings for counting", "keyrings", len(keyrings))
+
+		promises := []restate.Selectable{}
+
+		for i, keyring := range keyrings {
+
+			promises = append(promises, restate.RunAsync(wfCtx, func(ctx restate.RunContext) (int64, error) {
+				ctx.Log().Info("counting keys",
+					"keyringID", keyring.ID,
+					"batch", i,
+				)
+
+				keys, countErr := db.Query.CountKeysForKeySpace(ctx, w.DB.RO(), keyring.ID)
+				if countErr != nil {
+					return 0, countErr
+				}
+
+				err = db.Query.UpdateKeySpaceSize(ctx, w.DB.RW(), db.UpdateKeySpaceSizeParams{
+					SizeApprox: int32(keys), // nolint:gosec
+					Now:        now.UnixMilli(),
+					KeyAuthID:  keyring.ID,
+				})
+				if err != nil {
+					return 0, err
+				}
+				return keys, nil
+
+			}, restate.WithName(fmt.Sprintf("updating keys for %s", keyring.ID))))
+
+		}
+
+		selector := restate.Select(wfCtx, promises...)
+		for selector.Remaining() {
+			s, ok := selector.Select().(restate.RunAsyncFuture[int64])
+			if !ok {
+				return fmt.Errorf("unexpected type")
+			}
+			_, err = s.Result()
+			if err != nil {
+				return err
+			}
+		}
+
+		interval := time.Minute
+
+		nextInvocation := now.Truncate(interval).Add(interval)
+		delay := time.Until(nextInvocation)
+
+		// until restate has cron jobs, we just schedule the workflow to run again in 1min
+		restate.WorkflowSend(wfCtx, "CountKeysWorkflow", nextInvocation.String(), "Run").
+			Send(nil, restate.WithDelay(delay))
+
+		if w.HeartbeatURL != "" {
+			_, err = restate.Run(wfCtx, func(ctx restate.RunContext) (restate.Void, error) {
+				res, heartbeatErr := http.Get(w.HeartbeatURL)
+				if heartbeatErr != nil {
+					return restate.Void{}, heartbeatErr
+				}
+				return restate.Void{}, res.Body.Close()
+			})
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

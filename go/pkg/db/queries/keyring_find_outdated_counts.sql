@@ -1,12 +1,14 @@
 -- name: GetOutdatedKeySpaces :many
 SELECT
-  sqlc.embed(ka)
-FROM key_auth ka
+  id,
+  workspace_id
+FROM key_auth
 WHERE
-  ka.deleted_at_m IS NULL
+  deleted_at_m IS NULL
+  AND id > sqlc.arg(id_cursor)
   AND (
-    ka.size_last_updated_at IS NULL
-    OR ka.size_last_updated_at < sqlc.arg(cutoff_time)
+    size_last_updated_at IS NULL
+    OR size_last_updated_at < sqlc.arg(cutoff_time)
   )
-ORDER BY ka.size_last_updated_at ASC
-LIMIT 10000;
+ORDER BY id ASC
+LIMIT 1000;

@@ -11,37 +11,47 @@ import (
 
 const getOutdatedKeySpaces = `-- name: GetOutdatedKeySpaces :many
 SELECT
-  ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
-FROM key_auth ka
+  id,
+  workspace_id
+FROM key_auth
 WHERE
-  ka.deleted_at_m IS NULL
+  deleted_at_m IS NULL
+  AND id > ?
   AND (
-    ka.size_last_updated_at IS NULL
-    OR ka.size_last_updated_at < ?
+    size_last_updated_at IS NULL
+    OR size_last_updated_at < ?
   )
-ORDER BY ka.size_last_updated_at ASC
-LIMIT 10000
+ORDER BY id ASC
+LIMIT 1000
 `
 
+type GetOutdatedKeySpacesParams struct {
+	IDCursor   string `db:"id_cursor"`
+	CutoffTime int64  `db:"cutoff_time"`
+}
+
 type GetOutdatedKeySpacesRow struct {
-	KeyAuth KeyAuth `db:"key_auth"`
+	ID          string `db:"id"`
+	WorkspaceID string `db:"workspace_id"`
 }
 
 // GetOutdatedKeySpaces
 //
 //	SELECT
-//	  ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
-//	FROM key_auth ka
+//	  id,
+//	  workspace_id
+//	FROM key_auth
 //	WHERE
-//	  ka.deleted_at_m IS NULL
+//	  deleted_at_m IS NULL
+//	  AND id > ?
 //	  AND (
-//	    ka.size_last_updated_at IS NULL
-//	    OR ka.size_last_updated_at < ?
+//	    size_last_updated_at IS NULL
+//	    OR size_last_updated_at < ?
 //	  )
-//	ORDER BY ka.size_last_updated_at ASC
-//	LIMIT 10000
-func (q *Queries) GetOutdatedKeySpaces(ctx context.Context, db DBTX, cutoffTime int64) ([]GetOutdatedKeySpacesRow, error) {
-	rows, err := db.QueryContext(ctx, getOutdatedKeySpaces, cutoffTime)
+//	ORDER BY id ASC
+//	LIMIT 1000
+func (q *Queries) GetOutdatedKeySpaces(ctx context.Context, db DBTX, arg GetOutdatedKeySpacesParams) ([]GetOutdatedKeySpacesRow, error) {
+	rows, err := db.QueryContext(ctx, getOutdatedKeySpaces, arg.IDCursor, arg.CutoffTime)
 	if err != nil {
 		return nil, err
 	}
@@ -49,18 +59,7 @@ func (q *Queries) GetOutdatedKeySpaces(ctx context.Context, db DBTX, cutoffTime 
 	var items []GetOutdatedKeySpacesRow
 	for rows.Next() {
 		var i GetOutdatedKeySpacesRow
-		if err := rows.Scan(
-			&i.KeyAuth.ID,
-			&i.KeyAuth.WorkspaceID,
-			&i.KeyAuth.CreatedAtM,
-			&i.KeyAuth.UpdatedAtM,
-			&i.KeyAuth.DeletedAtM,
-			&i.KeyAuth.StoreEncryptedKeys,
-			&i.KeyAuth.DefaultPrefix,
-			&i.KeyAuth.DefaultBytes,
-			&i.KeyAuth.SizeApprox,
-			&i.KeyAuth.SizeLastUpdatedAt,
-		); err != nil {
+		if err := rows.Scan(&i.ID, &i.WorkspaceID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
