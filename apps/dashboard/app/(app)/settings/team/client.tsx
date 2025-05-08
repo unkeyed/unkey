@@ -2,6 +2,7 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { trpc } from "@/lib/trpc/client";
 import {
   Select,
   SelectContent,
@@ -9,8 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { trpc } from "@/lib/trpc/client";
+} from "@unkey/ui";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import Link from "next/link";

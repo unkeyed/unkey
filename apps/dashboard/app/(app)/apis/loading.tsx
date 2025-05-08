@@ -1,3 +1,4 @@
+import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, Key, Magnifier, Nodes, Plus, ProgressBar, Refresh3 } from "@unkey/icons";
 
@@ -29,16 +30,10 @@ export default function Loading() {
         </nav>
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-1">
-            {/* biome-ignore lint/a11y/useButtonType: <explanation> */}
-            <button
-              className="inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap text-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed p-2 text-gray-12 border border-grayA-6 rounded-md focus:border-grayA-12 focus:ring-4 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button disabled:border disabled:border-solid disabled:border-grayA-5 disabled:text-grayA-7 active:bg-grayA-3 h-8 bg-grayA-2 hover:bg-grayA-3"
-              title="Create New Root Key"
-            >
-              <div className="w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200 opacity-100">
-                <Plus />
-                Create new API
-              </div>
-            </button>
+            <NavbarActionButton>
+              <Plus />
+              Create new API
+            </NavbarActionButton>
           </div>
         </div>
       </nav>

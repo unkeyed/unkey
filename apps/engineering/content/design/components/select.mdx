@@ -1,0 +1,78 @@
+---
+title: Select
+description: A customizable select component built with Radix UI
+---
+
+import { SelectExample, SelectExampleVariants } from "./select.example";
+
+The Select component is a customizable dropdown menu built on top of Radix UI's Select primitive. It provides a flexible and accessible way to create select inputs with various styling options.
+
+## Features
+
+- Multiple variants (default, success, warning, error)
+- Left icon support
+- Fully accessible
+- Customizable styling
+- Animated transitions
+- Keyboard navigation
+
+## Variants
+
+The Select component supports four variants:
+
+- `default`: Standard select with gray styling
+- `success`: Green styling for successful states
+- `warning`: Yellow styling for warning states
+- `error`: Red styling for error states
+
+## Usage
+
+<SelectExample />
+
+### Variant Styles
+
+<SelectExampleVariants />
+
+## Props
+
+### SelectTrigger
+
+| Prop | Type | Description |
+|------|------|-------------|
+| variant | "default" \| "success" \| "warning" \| "error" | The visual variant of the select |
+| leftIcon | React.ReactNode | Optional icon to display on the left side |
+| wrapperClassName | string | Additional classes for the wrapper element |
+| className | string | Additional classes for the trigger element |
+
+### SelectContent
+
+| Prop | Type | Description |
+|------|------|-------------|
+| position | "popper" \| "item-aligned" | The positioning strategy for the dropdown |
+| className | string | Additional classes for the content element |
+
+### SelectItem
+
+| Prop | Type | Description |
+|------|------|-------------|
+| value | string | The value of the select item |
+| disabled | boolean | Whether the item is disabled |
+| className | string | Additional classes for the item element |
+
+## Accessibility
+
+The Select component is built with accessibility in mind:
+
+- Keyboard navigation support
+- ARIA attributes
+- Focus management
+- Screen reader support
+- Proper role attributes
+
+## Best Practices
+
+1. Always provide a placeholder or default value
+2. Use appropriate variants for different states
+3. Group related options using SelectGroup
+4. Add icons when they provide additional context
+5. Use disabled state for unavailable options 

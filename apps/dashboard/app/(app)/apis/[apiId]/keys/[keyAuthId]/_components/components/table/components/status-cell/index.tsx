@@ -9,9 +9,10 @@ import { useKeyStatus } from "./use-key-status";
 type StatusDisplayProps = {
   keyData: KeyDetails;
   keyAuthId: string;
+  isSelected: boolean;
 };
 
-export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
+export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayProps) => {
   const { primary, count, isLoading, statuses, isError } = useKeyStatus(keyAuthId, keyData);
   const utils = trpc.useUtils();
 
@@ -30,7 +31,7 @@ export const StatusDisplay = ({ keyAuthId, keyData }: StatusDisplayProps) => {
   if (isLoading) {
     return (
       <div
-        className="flex w-[100px] items-center h-[22px] space-x-1 px-1.5 py-1 rounded-md bg-gray-3"
+        className="flex w-[100px] items-center h-[22px] space-x-1 px-1.5 py-1 rounded-md bg-grayA-3"
         aria-busy="true"
         aria-live="polite"
       >
