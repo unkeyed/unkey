@@ -30,6 +30,7 @@ export const KeyCreatedSuccessDialog = ({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCreateAnother, setIsCreateAnother] = useState(false);
   const xButtonRef = useRef<HTMLButtonElement>(null);
+  const dividerRef = useRef<HTMLDivElement>(null);
 
   if (!keyData) {
     return null;
@@ -102,7 +103,7 @@ export const KeyCreatedSuccessDialog = ({
               <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
                 Key Created
               </div>
-              <div className="text-gray-10 text-[13px] leading-[24px] text-center">
+              <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
                 You've successfully generated a new API key.
                 <br /> Use this key to authenticate requests from your application.
               </div>
@@ -229,14 +230,17 @@ export const KeyCreatedSuccessDialog = ({
             isOpen={isConfirmOpen}
             onOpenChange={setIsConfirmOpen}
             onConfirm={handleConfirmAndClose}
-            triggerRef={xButtonRef}
+            triggerRef={dividerRef}
             title="You won't see this secret key again!"
             description="Make sure to copy your secret key before closing. It cannot be retrieved later."
             confirmButtonText="Close anyway"
             cancelButtonText="Dismiss"
             variant="warning"
             popoverProps={{
+              side: "right",
+              align: "end",
               sideOffset: 5,
+              alignOffset: 30,
               onOpenAutoFocus: (e) => e.preventDefault(),
             }}
           />
