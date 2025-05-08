@@ -57,6 +57,7 @@ export type VirtualTableProps<TTableData> = {
     itemLabel?: string;
     buttonText?: string;
     countInfoText?: React.ReactNode;
+    headerContent?: React.ReactNode;
     hasMore?: boolean;
     hide?: boolean;
   };
