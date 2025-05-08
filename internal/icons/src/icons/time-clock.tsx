@@ -10,11 +10,19 @@
  * https://nucleoapp.com/license
  */
 import type React from "react";
-import type { IconProps } from "../props";
+import { type IconProps, sizeMap } from "../props";
 
-export const TimeClock: React.FC<IconProps> = (props) => {
+export const TimeClock: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
+
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
         <path
           d="M9 1.69v1.31"
@@ -22,7 +30,7 @@ export const TimeClock: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="square"
           strokeMiterlimit="10"
-          strokeWidth="2"
+          strokeWidth={strokeWidth}
         />
         <path
           d="M16.31 9h-1.31"
@@ -30,7 +38,7 @@ export const TimeClock: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="square"
           strokeMiterlimit="10"
-          strokeWidth="2"
+          strokeWidth={strokeWidth}
         />
         <path
           d="M9 16.31v-1.31"
@@ -38,7 +46,7 @@ export const TimeClock: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="square"
           strokeMiterlimit="10"
-          strokeWidth="2"
+          strokeWidth={strokeWidth}
         />
         <path
           d="M1.69 9h1.31"
@@ -46,7 +54,7 @@ export const TimeClock: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="square"
           strokeMiterlimit="10"
-          strokeWidth="2"
+          strokeWidth={strokeWidth}
         />
         <path
           d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"
@@ -54,7 +62,7 @@ export const TimeClock: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="square"
           strokeMiterlimit="10"
-          strokeWidth="2"
+          strokeWidth={strokeWidth}
         />
         <path
           d="M6 5.25l3 3.75h3"
@@ -62,7 +70,7 @@ export const TimeClock: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="square"
           strokeMiterlimit="10"
-          strokeWidth="2"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>

@@ -1,3 +1,29 @@
-export default async function APIKeyDetailPage() {
-  return "Look I'm a page";
+import { fetchApiAndWorkspaceDataFromDb } from "@/app/(app)/apis/[apiId]/actions";
+import { ApisNavbar } from "@/app/(app)/apis/[apiId]/api-id-navbar";
+import { KeyDetailsLogsClient } from "./logs-client";
+
+export const dynamic = "force-dynamic";
+
+export default async function KeyDetailsPage(props: {
+  params: { apiId: string; keyAuthId: string; keyId: string };
+}) {
+  const apiId = props.params.apiId;
+  const keyspaceId = props.params.keyAuthId;
+  const keyId = props.params.keyId;
+
+  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(apiId);
+
+  return (
+    <div className="min-h-screen">
+      <ApisNavbar
+        api={currentApi}
+        activePage={{
+          href: `/apis/${apiId}`,
+          text: "Requests",
+        }}
+        apis={workspaceApis}
+      />
+      <KeyDetailsLogsClient apiId={apiId} keyspaceId={keyspaceId} keyId={keyId} />
+    </div>
+  );
 }

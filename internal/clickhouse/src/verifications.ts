@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Inserter, Querier } from "./client";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
 
+// INSERTION
 export function insertVerification(ch: Inserter) {
   return ch.insert({
     table: "verifications.raw_key_verifications_v1",
@@ -27,6 +28,130 @@ export function insertVerification(ch: Inserter) {
   });
 }
 
+// LOGS
+export const keyDetailsLogsParams = z.object({
+  workspaceId: z.string(),
+  keyspaceId: z.string(),
+  keyId: z.string(),
+  limit: z.number().int(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  outcomes: z
+    .array(
+      z.object({
+        value: z.enum(KEY_VERIFICATION_OUTCOMES),
+        operator: z.literal("is"),
+      }),
+    )
+    .nullable(),
+  cursorTime: z.number().int().nullable(),
+});
+
+export const keyDetailsLog = z.object({
+  request_id: z.string(),
+  time: z.number().int(),
+  region: z.string(),
+  outcome: z.string(),
+  tags: z.array(z.string()),
+});
+
+export type KeyDetailsLog = z.infer<typeof keyDetailsLog>;
+export type KeyDetailsLogsParams = z.infer<typeof keyDetailsLogsParams>;
+
+interface ExtendedParamsKeyDetails extends KeyDetailsLogsParams {
+  [key: string]: unknown;
+}
+
+export function getKeyDetailsLogs(ch: Querier) {
+  return async (args: KeyDetailsLogsParams) => {
+    const paramSchemaExtension: Record<string, z.ZodType> = {};
+    const parameters: ExtendedParamsKeyDetails = { ...args };
+
+    const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
+
+    const outcomeCondition = !hasOutcomeFilters
+      ? "TRUE"
+      : args.outcomes
+          ?.map((filter, index) => {
+            if (filter.operator === "is") {
+              const paramName = `outcomeValue_${index}`;
+              paramSchemaExtension[paramName] = z.string();
+              parameters[paramName] = filter.value;
+              return `outcome = {${paramName}: String}`;
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE";
+
+    let cursorCondition: string;
+
+    // For first page or no cursor provided
+    if (!args.cursorTime) {
+      cursorCondition = `
+      AND ({cursorTime: Nullable(UInt64)} IS NULL)
+      `;
+    } else {
+      cursorCondition = `
+        AND (time < {cursorTime: Nullable(UInt64)})
+        `;
+    }
+
+    const extendedParamsSchema = keyDetailsLogsParams.extend(paramSchemaExtension);
+
+    const baseConditions = `
+      workspace_id = {workspaceId: String}
+      AND key_space_id = {keyspaceId: String}
+      AND key_id = {keyId: String}
+      AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      AND (${outcomeCondition})
+    `;
+
+    // Total count query - counts all matching records without pagination
+    const totalQuery = ch.query({
+      query: `
+        SELECT
+          count(request_id) as total_count
+        FROM verifications.raw_key_verifications_v1
+        WHERE ${baseConditions}`,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.number().int(),
+      }),
+    });
+
+    const query = ch.query({
+      query: `
+      SELECT
+          request_id,
+          time,
+          region,
+          outcome,
+          tags
+      FROM verifications.raw_key_verifications_v1
+      WHERE ${baseConditions}
+          -- Handle pagination using time as cursor
+          ${cursorCondition}
+      ORDER BY time DESC
+      LIMIT {limit: Int}
+      `,
+      params: extendedParamsSchema,
+      schema: keyDetailsLog,
+    });
+
+    const [clickhouseResults, totalResults] = await Promise.all([
+      query(parameters),
+      totalQuery(parameters),
+    ]);
+
+    return {
+      logs: clickhouseResults,
+      totalCount: totalResults.val ? totalResults.val[0].total_count : 0,
+    };
+  };
+}
+
+// TIMESERIES
 export const verificationTimeseriesParams = z.object({
   workspaceId: z.string(),
   keyspaceId: z.string(),
@@ -38,7 +163,7 @@ export const verificationTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   identities: z
@@ -46,7 +171,7 @@ export const verificationTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   keyIds: z
@@ -54,7 +179,7 @@ export const verificationTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   outcomes: z
@@ -62,7 +187,7 @@ export const verificationTimeseriesParams = z.object({
       z.object({
         value: z.enum(KEY_VERIFICATION_OUTCOMES),
         operator: z.literal("is"),
-      })
+      }),
     )
     .nullable(),
 });
@@ -82,12 +207,8 @@ export const verificationTimeseriesDataPoint = z.object({
   }),
 });
 
-export type VerificationTimeseriesDataPoint = z.infer<
-  typeof verificationTimeseriesDataPoint
->;
-export type VerificationTimeseriesParams = z.infer<
-  typeof verificationTimeseriesParams
->;
+export type VerificationTimeseriesDataPoint = z.infer<typeof verificationTimeseriesDataPoint>;
+export type VerificationTimeseriesParams = z.infer<typeof verificationTimeseriesParams>;
 
 type TimeInterval = {
   table: string;
@@ -154,10 +275,7 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
 } as const;
 
-function createVerificationTimeseriesQuery(
-  interval: TimeInterval,
-  whereClause: string
-) {
+function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: string) {
   const intervalUnit = {
     HOUR: "hour",
     HOURS: "hour",
@@ -204,7 +322,7 @@ function createVerificationTimeseriesQuery(
 
 function getVerificationTimeseriesWhereClause(
   params: VerificationTimeseriesParams,
-  additionalConditions: string[] = []
+  additionalConditions: string[] = [],
 ): { whereClause: string; paramSchema: z.ZodType<any> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
@@ -263,21 +381,17 @@ function getVerificationTimeseriesWhereClause(
   }
 
   return {
-    whereClause:
-      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
     paramSchema: verificationTimeseriesParams.extend(paramSchemaExtension),
   };
 }
 
 function createVerificationTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: VerificationTimeseriesParams) => {
-    const { whereClause, paramSchema } = getVerificationTimeseriesWhereClause(
-      args,
-      [
-        "time >= fromUnixTimestamp64Milli({startTime: Int64})",
-        "time <= fromUnixTimestamp64Milli({endTime: Int64})",
-      ]
-    );
+    const { whereClause, paramSchema } = getVerificationTimeseriesWhereClause(args, [
+      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+    ]);
 
     // Create parameters object with filter values
     const parameters = {
@@ -288,7 +402,7 @@ function createVerificationTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`keyIdValue_${index}`]: filter.value,
         }),
-        {}
+        {},
       ) ?? {}),
       ...(args.outcomes?.reduce(
         (acc, filter, index) => ({
@@ -296,7 +410,7 @@ function createVerificationTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`outcomeValue_${index}`]: filter.value,
         }),
-        {}
+        {},
       ) ?? {}),
     };
 
@@ -312,13 +426,9 @@ async function batchVerificationTimeseries(
   ch: Querier,
   interval: TimeInterval,
   args: VerificationTimeseriesParams,
-  maxBatchSize = 15
+  maxBatchSize = 15,
 ) {
-  if (
-    !args.keyIds ||
-    args.keyIds.length === 0 ||
-    args.keyIds.length <= maxBatchSize
-  ) {
+  if (!args.keyIds || args.keyIds.length === 0 || args.keyIds.length <= maxBatchSize) {
     return (await createVerificationTimeseriesQuerier(interval)(ch)(args)).val;
   }
 
@@ -334,9 +444,7 @@ async function batchVerificationTimeseries(
         keyIds: batchKeyIds,
       };
       try {
-        const res = await createVerificationTimeseriesQuerier(interval)(ch)(
-          batchArgs
-        );
+        const res = await createVerificationTimeseriesQuerier(interval)(ch)(batchArgs);
         if (res?.val) {
           return res.val;
         }
@@ -345,23 +453,19 @@ async function batchVerificationTimeseries(
         console.error(`Batch ${batchIndex} query failed:`, error);
         return [];
       }
-    })
+    }),
   );
 
   const successfulResults = batchResults
     .filter((result) => result.status === "fulfilled")
-    .map(
-      (result) =>
-        (result as PromiseFulfilledResult<VerificationTimeseriesDataPoint[]>)
-          .value
-    )
+    .map((result) => (result as PromiseFulfilledResult<VerificationTimeseriesDataPoint[]>).value)
     .filter((value) => Array.isArray(value));
 
   return mergeVerificationTimeseriesResults(successfulResults);
 }
 
 function mergeVerificationTimeseriesResults(
-  results: VerificationTimeseriesDataPoint[][]
+  results: VerificationTimeseriesDataPoint[][],
 ): VerificationTimeseriesDataPoint[] {
   const mergedMap = new Map<number, VerificationTimeseriesDataPoint>();
 
@@ -380,27 +484,19 @@ function mergeVerificationTimeseriesResults(
           y: {
             total: (existingPoint.y.total ?? 0) + (dataPoint.y.total ?? 0),
             valid: (existingPoint.y.valid ?? 0) + (dataPoint.y.valid ?? 0),
-            valid_count:
-              (existingPoint.y.valid_count ?? 0) +
-              (dataPoint.y.valid_count ?? 0),
+            valid_count: (existingPoint.y.valid_count ?? 0) + (dataPoint.y.valid_count ?? 0),
             rate_limited_count:
-              (existingPoint.y.rate_limited_count ?? 0) +
-              (dataPoint.y.rate_limited_count ?? 0),
+              (existingPoint.y.rate_limited_count ?? 0) + (dataPoint.y.rate_limited_count ?? 0),
             insufficient_permissions_count:
               (existingPoint.y.insufficient_permissions_count ?? 0) +
               (dataPoint.y.insufficient_permissions_count ?? 0),
             forbidden_count:
-              (existingPoint.y.forbidden_count ?? 0) +
-              (dataPoint.y.forbidden_count ?? 0),
+              (existingPoint.y.forbidden_count ?? 0) + (dataPoint.y.forbidden_count ?? 0),
             disabled_count:
-              (existingPoint.y.disabled_count ?? 0) +
-              (dataPoint.y.disabled_count ?? 0),
-            expired_count:
-              (existingPoint.y.expired_count ?? 0) +
-              (dataPoint.y.expired_count ?? 0),
+              (existingPoint.y.disabled_count ?? 0) + (dataPoint.y.disabled_count ?? 0),
+            expired_count: (existingPoint.y.expired_count ?? 0) + (dataPoint.y.expired_count ?? 0),
             usage_exceeded_count:
-              (existingPoint.y.usage_exceeded_count ?? 0) +
-              (dataPoint.y.usage_exceeded_count ?? 0),
+              (existingPoint.y.usage_exceeded_count ?? 0) + (dataPoint.y.usage_exceeded_count ?? 0),
           },
         });
       }

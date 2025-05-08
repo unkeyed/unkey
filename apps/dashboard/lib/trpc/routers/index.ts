@@ -27,6 +27,7 @@ import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
 import { deleteRootKeys } from "./key/deleteRootKey";
+import { queryKeyDetailsLogs } from "./key/query-logs";
 import { updateKeysEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
@@ -87,6 +88,7 @@ export const router = t.router({
   key: t.router({
     create: createKey,
     delete: deleteKeys,
+    query: queryKeyDetailsLogs,
     update: t.router({
       enabled: updateKeysEnabled,
       expiration: updateKeyExpiration,

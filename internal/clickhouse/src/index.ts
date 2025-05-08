@@ -57,6 +57,7 @@ import {
   getDailyVerificationTimeseries,
   getFourHourlyVerificationTimeseries,
   getHourlyVerificationTimeseries,
+  getKeyDetailsLogs,
   getMonthlyVerificationTimeseries,
   getSixHourlyVerificationTimeseries,
   getThreeDayVerificationTimeseries,
@@ -103,7 +104,6 @@ export class ClickHouse {
   public get verifications() {
     return {
       insert: insertVerification(this.inserter),
-      logs: getLatestVerifications(this.querier),
       latest: getLatestVerifications(this.querier),
       timeseries: {
         perHour: getHourlyVerificationTimeseries(this.querier),
@@ -174,6 +174,9 @@ export class ClickHouse {
       logs: getLogs(this.querier),
       keys: {
         logs: getKeysOverviewLogs(this.querier),
+      },
+      key: {
+        logs: getKeyDetailsLogs(this.querier),
       },
       timeseries: {
         perMinute: getMinutelyLogsTimeseries(this.querier),
