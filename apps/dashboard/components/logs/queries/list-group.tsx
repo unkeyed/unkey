@@ -142,12 +142,7 @@ export function ListGroup({
           className="flex flex-col h-[24px] pr-2 mt-1.5 w-[24px]"
           onMouseEnter={handleMouseEnter}
         >
-          <InfoTooltip
-            variant="primary"
-            position={{ side: "top" }}
-            content={tooltipMessage}
-            asChild
-          >
+          <InfoTooltip variant="primary" position={{ side: "top" }} content={tooltipMessage}>
             <button
               type="button"
               className={cn(

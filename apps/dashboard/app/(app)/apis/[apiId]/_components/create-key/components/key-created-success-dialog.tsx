@@ -4,17 +4,7 @@ import { ConfirmPopover } from "@/components/confirmation-popover";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
-import * as PopoverPrimitive from "@radix-ui/react-popover";
-import {
-  ArrowRight,
-  Check,
-  CircleInfo,
-  Eye,
-  EyeSlash,
-  Key2,
-  Plus,
-  TriangleWarning2,
-} from "@unkey/icons";
+import { ArrowRight, Check, CircleInfo, Eye, EyeSlash, Key2, Plus } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { useRef, useState } from "react";

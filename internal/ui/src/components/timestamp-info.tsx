@@ -142,7 +142,7 @@ export const TimestampInfo: React.FC<{
       <TooltipContent
         align={align}
         side="right"
-        className="font-mono p-0 bg-gray-1 shadow-2xl text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-grayA-4"
+        className="font-mono p-0 bg-white dark:bg-black shadow-2xl text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-grayA-4"
       >
         <div className="py-3">
           <TooltipRow label="UTC" value={utc} />

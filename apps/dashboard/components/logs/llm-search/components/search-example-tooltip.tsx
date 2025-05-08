@@ -18,7 +18,6 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
 
   return (
     <InfoTooltip
-      variant="secondary"
       content={
         <div>
           <div className="font-medium mb-2 flex items-center gap-2 text-[13px]">

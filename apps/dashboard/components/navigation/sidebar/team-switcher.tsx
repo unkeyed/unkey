@@ -109,7 +109,6 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             <Loading />
           ) : !isCollapsed ? (
             <InfoTooltip
-              asChild
               variant="secondary"
               position={{ side: "bottom" }}
               content={<span className="text-sm font-medium">{props.workspace.name}</span>}

@@ -89,6 +89,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       header: "Key",
       cell: ({ row }) => (
         <InfoTooltip
+          asChild
           variant="secondary"
           content={
             <p>

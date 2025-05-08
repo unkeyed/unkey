@@ -30,7 +30,7 @@ export default function Loading() {
         </nav>
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-1">
-            <NavbarActionButton>
+            <NavbarActionButton title="Create new API">
               <Plus />
               Create new API
             </NavbarActionButton>

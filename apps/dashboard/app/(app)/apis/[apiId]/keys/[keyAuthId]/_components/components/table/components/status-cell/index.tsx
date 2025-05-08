@@ -31,7 +31,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
   if (isLoading) {
     return (
       <div
-        className="flex w-[100px] items-center h-[22px] space-x-1 px-1.5 py-1 rounded-md bg-grayA-3"
+        className="flex w-[100px] items-center h-[22px] space-x-1 px-1.5 py-1 rounded-md bg-gray-3"
         aria-busy="true"
         aria-live="polite"
       >
@@ -58,9 +58,9 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
 
   return (
     <InfoTooltip
-      asChild
+      disabled={false}
       content={
-        <div className="p-0 bg-white dark:bg-black border rounded-lg border-grayA-3 w-72 flex flex-col drop-shadow-xl">
+        <div>
           {statuses && statuses.length > 1 && (
             <div className="border-b border-grayA-3 ">
               <div className="px-4 py-3">
@@ -136,7 +136,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
         </div>
       }
     >
-      <StatusBadge primary={primary} count={count} />
+      <StatusBadge primary={primary} count={count} isSelected={isSelected} />
     </InfoTooltip>
   );
 };

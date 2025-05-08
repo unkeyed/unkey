@@ -3,7 +3,7 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Focus, Key } from "@unkey/icons";
-import { AnimatedLoadingSpinner, Button, Empty, InfoTooltip, Checkbox } from "@unkey/ui";
+import { AnimatedLoadingSpinner, Button, Checkbox, Empty, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
 import React, { useCallback, useMemo, useState } from "react";
@@ -116,7 +116,6 @@ export const KeysList = ({
               <div className="flex gap-4 items-center">
                 {identity ? (
                   <InfoTooltip
-                    variant="secondary"
                     position={{ side: "right" }}
                     content={
                       <div>
@@ -130,7 +129,7 @@ export const KeysList = ({
                             rel="noopener noreferrer"
                             aria-disabled={isNavigating}
                           >
-                            <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
+                            <span className="font-mono bg-gray-1 p-1 rounded">{identity}</span>
                           </Link>
                         ) : (
                           <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>

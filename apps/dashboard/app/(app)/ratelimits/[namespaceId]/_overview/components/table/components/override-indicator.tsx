@@ -26,7 +26,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
     <div className="flex gap-6 items-center pl-2">
       <InfoTooltip
         content={
-          <p className="text-sm">
+          <div className="text-sm">
             {isFullyBlocked ? (
               "All requests have been blocked in this timeframe"
             ) : (
@@ -36,7 +36,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
                 blocked in this timeframe
               </>
             )}
-          </p>
+          </div>
         }
       >
         <div className={cn(hasMoreBlocked ? "block" : "invisible")}>
@@ -78,28 +78,26 @@ type OverrideIndicatorProps = {
 
 const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
   <InfoTooltip
-    variant="secondary"
     content={
       <div className="flex flex-row pr-4 gap-3 items-center justify-center">
         <div
           className={cn(
             style.badge.default,
             "rounded p-1",
-            "bg-accent-4 text-accent-11 group-hover:bg-accent-5",
+            "bg-accent-4 text-accent-12 group-hover:bg-accent-5",
           )}
         >
           <ArrowDotAntiClockwise size="md-regular" />
         </div>
         <div className="flex flex-col gap-1">
           <div className="text-sm flex gap-[10px] items-center">
-            <span className="font-medium text-sm text-accent-12">Custom override in effect</span>
+            <span className="font-medium text-sm">Custom override in effect</span>
             <div className="size-[6px] rounded-full bg-warning-10" />
           </div>
           {log.override && (
             <div className="text-accent-9">
-              Limit set to{" "}
-              <span className="text-accent-12">{formatNumber(log.override.limit)} </span>
-              requests per <span className="text-accent-12">{ms(log.override.duration)}</span>
+              Limit set to <span className="text-gray-12">{formatNumber(log.override.limit)} </span>
+              requests per <span className="text-gray-12">{ms(log.override.duration)}</span>
             </div>
           )}
         </div>
