@@ -6,7 +6,7 @@ import type {
   ApisOverviewResponse,
 } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { BookBookmark } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { Button, Empty, FlexibleContainer } from "@unkey/ui";
 import { useState } from "react";
 import { ApiListGrid } from "./api-list-grid";
 import { ApiListControlCloud } from "./control-cloud";
@@ -22,7 +22,7 @@ export const ApiListClient = ({
   const [apiList, setApiList] = useState<ApiOverview[]>(initialData.apiList);
 
   return (
-    <div className="flex flex-col">
+    <FlexibleContainer width="full" verticalPosition="top" horizontalPosition="center" padding="none">
       <ApiListControls apiList={apiList} onApiListChange={setApiList} onSearch={setIsSearching} />
       <ApiListControlCloud />
       {initialData.apiList.length > 0 ? (
@@ -56,6 +56,6 @@ export const ApiListClient = ({
           </Empty>
         </EmptyComponentSpacer>
       )}
-    </div>
+    </FlexibleContainer>
   );
 };

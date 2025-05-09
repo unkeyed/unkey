@@ -1,6 +1,7 @@
 import { LogsClient } from "@/app/(app)/apis/[apiId]/_overview/logs-client";
 import { fetchApiAndWorkspaceDataFromDb } from "@/app/(app)/apis/[apiId]/actions";
 import { ApisNavbar } from "@/app/(app)/apis/[apiId]/api-id-navbar";
+import { FlexibleContainer } from "@unkey/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(apiId);
 
   return (
-    <div className="min-h-screen">
+    <FlexibleContainer width="full" className="min-h-screen">
       <ApisNavbar
         api={currentApi}
         activePage={{
@@ -20,6 +21,6 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
         apis={workspaceApis}
       />
       <LogsClient apiId={apiId} />
-    </div>
+    </FlexibleContainer>
   );
 }
