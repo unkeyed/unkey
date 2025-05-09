@@ -11,10 +11,6 @@ export const useCreateKey = (
   const trpcUtils = trpc.useUtils();
   const key = trpc.key.create.useMutation({
     onSuccess(data) {
-      toast.success("Key Created Successfully", {
-        description: `Your key ${data.keyId} has been created and is ready to use`,
-        duration: 5000,
-      });
       trpcUtils.api.keys.list.invalidate();
       onSuccess(data);
     },

@@ -3,6 +3,7 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useDelayLoader } from "@/hooks/use-delay-loader";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ export const NestedNavItem = ({
   maxDepth?: number;
   isSubItem?: boolean;
 }) => {
+  const sidebar = useSidebar();
   const [parentIsPending, startParentTransition] = useTransition();
   const showParentLoader = useDelayLoader(parentIsPending);
   const router = useRouter();
@@ -64,7 +66,7 @@ export const NestedNavItem = ({
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
     // If the item has children, toggle the open state
-    if (hasChildren && !isSubItem) {
+    if (sidebar.open && hasChildren && !isSubItem) {
       e.preventDefault();
       setIsOpen((prev) => !prev);
       if (isOpen) {

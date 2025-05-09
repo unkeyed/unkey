@@ -18,7 +18,7 @@ export const RatelimitSetup = () => {
   // Note: We're using the explicitly defined type from the schema file
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "ratelimit.data" as const, // Use as const to make TypeScript recognize this as a literal
+    name: "ratelimit.data" as const,
   });
 
   const ratelimitEnabled = useWatch({
@@ -83,7 +83,7 @@ export const RatelimitSetup = () => {
         </Button>
       </div>
 
-      <div className="max-h-[550px] overflow-y-auto px-1">
+      <div className="px-1">
         {fields.map((field, index) => (
           <div key={field.id} className="space-y-4 w-full border-t border-grayA-3 py-6">
             <div className="flex items-center gap-[14px] w-full">
@@ -113,6 +113,13 @@ export const RatelimitSetup = () => {
               )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormInput
+                className="hidden"
+                type="text"
+                hidden
+                {...register(`ratelimit.data.${index}.id`)}
+              />
+
               <FormInput
                 className="[&_input:first-of-type]:h-[36px]"
                 placeholder="10"

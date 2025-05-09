@@ -6,6 +6,11 @@ export const PENDING_SESSION_COOKIE = "sess-temp";
 export const SIGN_IN_URL = "/auth/sign-in";
 export const SIGN_UP_URL = "/auth/sign-up";
 
+// Local Auth consts
+export const LOCAL_USER_ID = "user_local_admin";
+export const LOCAL_ORG_ID = "org_localdefault"; // org IDs can only have one underscore
+export const LOCAL_ORG_ROLE = "admin";
+
 export interface User {
   id: string;
   email: string;

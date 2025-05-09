@@ -20,13 +20,11 @@ import { z } from "zod";
 
 const formSchema = z.object({
   keyId: z.string(),
-  workspaceId: z.string(),
   enabled: z.boolean(),
 });
 type Props = {
   apiKey: {
     id: string;
-    workspaceId: string;
     enabled: boolean;
   };
 };
@@ -40,7 +38,6 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
     delayError: 100,
     defaultValues: {
       keyId: apiKey.id,
-      workspaceId: apiKey.workspaceId,
       enabled: apiKey.enabled,
     },
   });
@@ -56,7 +53,10 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    await updateEnabled.mutateAsync(values);
+    await updateEnabled.mutateAsync({
+      enabled: values.enabled,
+      keyIds: values.keyId,
+    });
   }
 
   return (

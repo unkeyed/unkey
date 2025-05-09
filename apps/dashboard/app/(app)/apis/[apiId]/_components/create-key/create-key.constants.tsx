@@ -8,6 +8,7 @@ import { GeneralSetup } from "./components/general-setup";
 import { MetadataSetup } from "./components/metadata-setup";
 import { RatelimitSetup } from "./components/ratelimit-setup";
 
+export const UNNAMED_KEY = "Unnamed Key" as const;
 export const SECTIONS = [
   {
     id: "general",

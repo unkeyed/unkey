@@ -28,7 +28,6 @@ async function handler(request) {
       limit: 10,
       duration: 60000,
       namespaceName: "email.outbound",
-      async: true
   })
   if (override.error){
     // handle the error here
@@ -45,4 +44,3 @@ There are four main functions to interact with overrides:
 - [getOverride](/libraries/ts/ratelimit/override/get-override) Gets a ratelimit override.
 - [deleteOverride](/libraries/ts/ratelimit/override/delete-override) Deletes an override.
 - [listOverrides](/libraries/ts/ratelimit/override/list-overrides) Lists all overrides for a namnespace.
-

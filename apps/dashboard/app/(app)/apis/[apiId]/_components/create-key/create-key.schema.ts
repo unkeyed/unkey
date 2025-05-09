@@ -43,6 +43,12 @@ export const keyBytesSchema = z.coerce
   .max(255, { message: "Key length is too long (maximum 255 bytes allowed)" })
   .default(16);
 
+export const nameSchema = z
+  .string()
+  .trim()
+  .max(256, { message: "Name cannot exceed 256 characters" })
+  .optional();
+
 export const generalSchema = z.object({
   bytes: keyBytesSchema,
   prefix: keyPrefixSchema,
@@ -52,7 +58,7 @@ export const generalSchema = z.object({
     .max(256, { message: "External ID cannot exceed 256 characters" })
     .optional()
     .nullish(),
-  name: z.string().trim().max(256, { message: "Name cannot exceed 256 characters" }).optional(),
+  name: nameSchema,
   environment: z
     .string()
     .max(256, { message: "Environment cannot exceed 256 characters" })
@@ -103,6 +109,7 @@ export const refillSchema = z.discriminatedUnion("interval", [
   }),
 ]);
 export const ratelimitItemSchema = z.object({
+  id: z.string().nullish(), // Will be used only for updating case
   name: z
     .string()
     .min(3, { message: "Name is required" })
@@ -312,7 +319,7 @@ export const createKeyInputSchema = z.object({
     })
     .optional(),
   expires: z.number().int().nullish(), // unix timestamp in milliseconds
-  name: z.string().max(256, { message: "Name cannot exceed 256 characters" }).optional(),
+  name: nameSchema,
   ratelimit: z.array(ratelimitItemSchema).optional(),
   enabled: z.boolean().default(true),
   environment: z
