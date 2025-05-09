@@ -139,7 +139,7 @@ export const CreateKeyDialog = ({
   return (
     <>
       <Navbar.Actions>
-        <NavbarActionButton onClick={() => setIsSettingsOpen(true)}>
+        <NavbarActionButton title="Create new key" onClick={() => setIsSettingsOpen(true)}>
           <Plus />
           Create new key
         </NavbarActionButton>
