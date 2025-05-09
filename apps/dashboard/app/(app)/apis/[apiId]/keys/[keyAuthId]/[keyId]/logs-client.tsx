@@ -6,6 +6,7 @@ import { KeyDetailsLogsChart } from "./components/charts";
 import { KeysDetailsLogsControlCloud } from "./components/control-cloud";
 import { KeysDetailsLogsControls } from "./components/controls";
 import { KeyDetailsLogsTable } from "./components/table/logs-table";
+import { KeyDetailsDrawer } from "./components/table/components/log-details";
 
 export const KeyDetailsLogsClient = ({
   keyspaceId,
@@ -15,7 +16,7 @@ export const KeyDetailsLogsClient = ({
   keyspaceId: string;
 }) => {
   const [selectedLog, setSelectedLog] = useState<KeyDetailsLog | null>(null);
-  const [_, setTableDistanceToTop] = useState(0);
+  const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
   const handleDistanceToTop = useCallback((distanceToTop: number) => {
     setTableDistanceToTop(distanceToTop);
@@ -30,7 +31,11 @@ export const KeyDetailsLogsClient = ({
       <KeysDetailsLogsControls keyspaceId={keyspaceId} keyId={keyId} />
       <KeysDetailsLogsControlCloud />
       <div className="flex flex-col">
-        <KeyDetailsLogsChart keyspaceId={keyspaceId} keyId={keyId} onMount={handleDistanceToTop} />
+        <KeyDetailsLogsChart
+          keyspaceId={keyspaceId}
+          keyId={keyId}
+          onMount={handleDistanceToTop}
+        />
         <KeyDetailsLogsTable
           selectedLog={selectedLog}
           onLogSelect={handleSelectedLog}
@@ -38,12 +43,11 @@ export const KeyDetailsLogsClient = ({
           keyId={keyId}
         />
       </div>
-      {/* <KeysOverviewLogDetails */}
-      {/*   apiId={apiId} */}
-      {/*   distanceToTop={tableDistanceToTop} */}
-      {/*   setSelectedLog={handleSelectedLog} */}
-      {/*   log={selectedLog} */}
-      {/* /> */}
+      <KeyDetailsDrawer
+        distanceToTop={tableDistanceToTop}
+        onLogSelect={handleSelectedLog}
+        selectedLog={selectedLog}
+      />
     </div>
   );
 };
