@@ -11,17 +11,17 @@ import type { KeyDetailsLogsPayload } from "../query-logs.schema";
 type UseKeyDetailsLogsQueryParams = {
   limit?: number;
   keyId: string;
-  apiId: string;
   keyspaceId: string;
 };
 
 export function useKeyDetailsLogsQuery({
   keyId,
   keyspaceId,
-  apiId,
   limit = 50,
 }: UseKeyDetailsLogsQueryParams) {
-  const [logsMap, setLogsMap] = useState(() => new Map<string, KeyDetailsLog>());
+  const [logsMap, setLogsMap] = useState(
+    () => new Map<string, KeyDetailsLog>()
+  );
 
   const { filters } = useFilters();
 
@@ -32,7 +32,6 @@ export function useKeyDetailsLogsQuery({
   const queryParams = useMemo(() => {
     const params: KeyDetailsLogsPayload = {
       limit,
-      apiId,
       keyId,
       keyspaceId,
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
@@ -70,8 +69,8 @@ export function useKeyDetailsLogsQuery({
             typeof filter.value === "number"
               ? filter.value
               : typeof filter.value === "string"
-                ? Number(filter.value)
-                : Number.NaN;
+              ? Number(filter.value)
+              : Number.NaN;
 
           if (!Number.isNaN(numValue)) {
             params[filter.field] = numValue;
@@ -88,7 +87,7 @@ export function useKeyDetailsLogsQuery({
     });
 
     return params;
-  }, [filters, limit, timestamp, keyId, keyspaceId, apiId]);
+  }, [filters, limit, timestamp, keyId, keyspaceId]);
 
   const {
     data: logData,
@@ -96,7 +95,7 @@ export function useKeyDetailsLogsQuery({
     fetchNextPage,
     isFetchingNextPage,
     isLoading,
-  } = trpc.key.query.useInfiniteQuery(queryParams, {
+  } = trpc.key.logs.query.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,

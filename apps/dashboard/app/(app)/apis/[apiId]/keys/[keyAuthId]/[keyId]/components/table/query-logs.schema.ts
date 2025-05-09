@@ -5,7 +5,6 @@ export const keyDetailsLogsPayload = z.object({
   limit: z.number().int(),
   startTime: z.number().int(),
   endTime: z.number().int(),
-  apiId: z.string(),
   keyspaceId: z.string(),
   keyId: z.string(),
   since: z.string(),
@@ -15,7 +14,7 @@ export const keyDetailsLogsPayload = z.object({
       z.object({
         value: z.enum(KEY_VERIFICATION_OUTCOMES),
         operator: z.literal("is"),
-      }),
+      })
     )
     .optional()
     .nullable(),

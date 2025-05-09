@@ -4,7 +4,13 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useFilters } from "../../../../hooks/use-filters";
 
-export const LogsSearch = ({ apiId }: { apiId: string }) => {
+export const LogsSearch = ({
+  keyspaceId,
+  keyId,
+}: {
+  keyId: string;
+  keyspaceId: string;
+}) => {
   const { filters, updateFilters } = useFilters();
   const queryLLMForStructuredOutput = trpc.api.keys.llmSearch.useMutation({
     onSuccess(data) {
@@ -18,11 +24,14 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
             style: {
               whiteSpace: "pre-line",
             },
-          },
+          }
         );
         return;
       }
-      const transformedFilters = transformStructuredOutputToFilters(data, filters);
+      const transformedFilters = transformStructuredOutputToFilters(
+        data,
+        filters
+      );
       updateFilters(transformedFilters as any);
     },
     onError(error) {

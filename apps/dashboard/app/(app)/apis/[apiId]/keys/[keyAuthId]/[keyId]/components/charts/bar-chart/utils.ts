@@ -1,6 +1,6 @@
+import { OUTCOME_BACKGROUND_COLORS } from "@/app/(app)/apis/[apiId]/_overview/constants";
+import { formatOutcomeName } from "@/app/(app)/apis/[apiId]/_overview/utils";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { OUTCOME_BACKGROUND_COLORS } from "../../../constants";
-import { formatOutcomeName } from "../../../utils";
 
 /**
  * Maps CSS variables from our design system to actual color values
@@ -29,7 +29,9 @@ export function createOutcomeChartConfig(includedOutcomes?: string[]) {
   // Default to all non-valid outcomes if none specified
   const outcomesToInclude =
     includedOutcomes ||
-    KEY_VERIFICATION_OUTCOMES.filter((outcome) => outcome !== "VALID" && outcome !== "");
+    KEY_VERIFICATION_OUTCOMES.filter(
+      (outcome) => outcome !== "VALID" && outcome !== ""
+    );
 
   // Add each outcome as a chart series option
   outcomesToInclude.forEach((outcome) => {

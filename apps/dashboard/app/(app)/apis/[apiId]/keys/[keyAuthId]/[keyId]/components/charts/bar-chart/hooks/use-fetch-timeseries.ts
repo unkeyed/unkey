@@ -6,39 +6,29 @@ import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { useMemo } from "react";
 import { keyDetailsFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
-import type { KeysOverviewQueryTimeseriesPayload } from "../query-timeseries.schema";
+import type { KeyDetailsQueryTimeseriesPayload } from "../query-timeseries.schema";
 
-export const useFetchVerificationTimeseries = (apiId: string | null) => {
+export const useFetchVerificationTimeseries = (
+  keyId: string,
+  keyspaceId: string
+) => {
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
 
   const queryParams = useMemo(() => {
-    const params: KeysOverviewQueryTimeseriesPayload = {
+    const params: KeyDetailsQueryTimeseriesPayload = {
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
-      keyIds: { filters: [] },
       outcomes: { filters: [] },
-      names: { filters: [] },
-      identities: { filters: [] },
-      apiId: apiId ?? "",
       since: "",
+      keyId,
+      keyspaceId,
     };
-
-    if (!apiId) {
-      return params;
-    }
 
     filters.forEach((filter) => {
       if (!(filter.field in keyDetailsFilterFieldConfig)) {
         return;
       }
-
-      const fieldConfig = keyDetailsFilterFieldConfig[filter.field];
-      const validOperators = fieldConfig.operators;
-
-      const operator = validOperators.includes(filter.operator)
-        ? filter.operator
-        : validOperators[0];
 
       switch (filter.field) {
         case "startTime":
@@ -47,8 +37,8 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
             typeof filter.value === "number"
               ? filter.value
               : typeof filter.value === "string"
-                ? Number(filter.value)
-                : Number.NaN;
+              ? Number(filter.value)
+              : Number.NaN;
 
           if (!Number.isNaN(numValue)) {
             params[filter.field] = numValue;
@@ -63,29 +53,6 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
           break;
         }
 
-        case "keyIds": {
-          if (typeof filter.value === "string" && filter.value.trim()) {
-            const keyIdOperator = operator === "is" || operator === "contains" ? operator : "is";
-
-            params.keyIds?.filters?.push({
-              operator: keyIdOperator,
-              value: filter.value,
-            });
-          }
-          break;
-        }
-
-        case "names":
-        case "identities": {
-          if (typeof filter.value === "string" && filter.value.trim()) {
-            params[filter.field]?.filters?.push({
-              operator,
-              value: filter.value,
-            });
-          }
-          break;
-        }
-
         case "outcomes": {
           type ValidOutcome = (typeof KEY_VERIFICATION_OUTCOMES)[number];
           if (
@@ -93,7 +60,7 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
             KEY_VERIFICATION_OUTCOMES.includes(filter.value as ValidOutcome)
           ) {
             params.outcomes?.filters?.push({
-              operator: "is", // outcomes only support 'is' operator
+              operator: "is",
               value: filter.value as ValidOutcome,
             });
           }
@@ -103,12 +70,14 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
     });
 
     return params;
-  }, [filters, timestamp, apiId]);
+  }, [filters, timestamp, keyId, keyspaceId]);
 
-  const { data, isLoading, isError } = trpc.api.keys.timeseries.useQuery(queryParams, {
-    refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
-    enabled: Boolean(apiId),
-  });
+  const { data, isLoading, isError } = trpc.key.logs.timeseries.useQuery(
+    queryParams,
+    {
+      refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
+    }
+  );
 
   const timeseries = useMemo(() => {
     if (!data?.timeseries) {
@@ -130,7 +99,8 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
         outcomeFields.rate_limited = ts.y.rate_limited_count;
       }
       if (ts.y.insufficient_permissions_count !== undefined) {
-        outcomeFields.insufficient_permissions = ts.y.insufficient_permissions_count;
+        outcomeFields.insufficient_permissions =
+          ts.y.insufficient_permissions_count;
       }
       if (ts.y.forbidden_count !== undefined) {
         outcomeFields.forbidden = ts.y.forbidden_count;

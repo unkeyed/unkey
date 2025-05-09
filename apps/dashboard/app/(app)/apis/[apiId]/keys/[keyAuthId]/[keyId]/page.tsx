@@ -2,8 +2,6 @@ import { fetchApiAndWorkspaceDataFromDb } from "@/app/(app)/apis/[apiId]/actions
 import { ApisNavbar } from "@/app/(app)/apis/[apiId]/api-id-navbar";
 import { KeyDetailsLogsClient } from "./logs-client";
 
-export const dynamic = "force-dynamic";
-
 export default async function KeyDetailsPage(props: {
   params: { apiId: string; keyAuthId: string; keyId: string };
 }) {
@@ -11,7 +9,9 @@ export default async function KeyDetailsPage(props: {
   const keyspaceId = props.params.keyAuthId;
   const keyId = props.params.keyId;
 
-  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(apiId);
+  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(
+    apiId
+  );
 
   return (
     <div className="min-h-screen">
@@ -23,7 +23,7 @@ export default async function KeyDetailsPage(props: {
         }}
         apis={workspaceApis}
       />
-      <KeyDetailsLogsClient apiId={apiId} keyspaceId={keyspaceId} keyId={keyId} />
+      <KeyDetailsLogsClient keyspaceId={keyspaceId} keyId={keyId} />
     </div>
   );
 }
