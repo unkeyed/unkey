@@ -19,9 +19,7 @@ export function useKeyDetailsLogsQuery({
   keyspaceId,
   limit = 50,
 }: UseKeyDetailsLogsQueryParams) {
-  const [logsMap, setLogsMap] = useState(
-    () => new Map<string, KeyDetailsLog>()
-  );
+  const [logsMap, setLogsMap] = useState(() => new Map<string, KeyDetailsLog>());
 
   const { filters } = useFilters();
 
@@ -69,8 +67,8 @@ export function useKeyDetailsLogsQuery({
             typeof filter.value === "number"
               ? filter.value
               : typeof filter.value === "string"
-              ? Number(filter.value)
-              : Number.NaN;
+                ? Number(filter.value)
+                : Number.NaN;
 
           if (!Number.isNaN(numValue)) {
             params[filter.field] = numValue;

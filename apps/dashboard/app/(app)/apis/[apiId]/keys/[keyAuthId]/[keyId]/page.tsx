@@ -9,9 +9,7 @@ export default async function KeyDetailsPage(props: {
   const keyspaceId = props.params.keyAuthId;
   const keyId = props.params.keyId;
 
-  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(
-    apiId
-  );
+  const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(apiId);
 
   return (
     <div className="min-h-screen">

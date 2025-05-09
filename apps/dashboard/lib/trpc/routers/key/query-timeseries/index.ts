@@ -1,15 +1,9 @@
-import { clickhouse } from "@/lib/clickhouse";
-import {
-  ratelimit,
-  requireUser,
-  requireWorkspace,
-  t,
-  withRatelimit,
-} from "@/lib/trpc/trpc";
-import { transformVerificationFilters } from "../../api/keys/timeseries.utils";
 import { keyDetailsQueryTimeseriesPayload } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/charts/bar-chart/query-timeseries.schema";
+import { clickhouse } from "@/lib/clickhouse";
 import { db, isNull } from "@/lib/db";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { transformVerificationFilters } from "../../api/keys/timeseries.utils";
 
 export const keyDetailsVerificationsTimeseries = t.procedure
   .use(requireUser)
@@ -27,7 +21,7 @@ export const keyDetailsVerificationsTimeseries = t.procedure
               and(
                 eq(keysTable.id, input.keyId),
                 eq(keysTable.keyAuthId, input.keyspaceId),
-                isNull(keysTable.deletedAtM)
+                isNull(keysTable.deletedAtM),
               ),
             limit: 1,
             columns: {
@@ -47,18 +41,16 @@ export const keyDetailsVerificationsTimeseries = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message:
-          "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
-    const { params: transformedInputs, granularity } =
-      transformVerificationFilters({
-        ...input,
-        names: null,
-        keyIds: null,
-        identities: null,
-        apiId: "",
-      });
+    const { params: transformedInputs, granularity } = transformVerificationFilters({
+      ...input,
+      names: null,
+      keyIds: null,
+      identities: null,
+      apiId: "",
+    });
 
     const result = await clickhouse.verifications.timeseries[granularity]({
       ...transformedInputs,

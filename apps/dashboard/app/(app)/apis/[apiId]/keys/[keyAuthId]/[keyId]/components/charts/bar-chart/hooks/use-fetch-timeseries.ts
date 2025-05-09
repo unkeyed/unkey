@@ -8,10 +8,7 @@ import { keyDetailsFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { KeyDetailsQueryTimeseriesPayload } from "../query-timeseries.schema";
 
-export const useFetchVerificationTimeseries = (
-  keyId: string,
-  keyspaceId: string
-) => {
+export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string) => {
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
 
@@ -37,8 +34,8 @@ export const useFetchVerificationTimeseries = (
             typeof filter.value === "number"
               ? filter.value
               : typeof filter.value === "string"
-              ? Number(filter.value)
-              : Number.NaN;
+                ? Number(filter.value)
+                : Number.NaN;
 
           if (!Number.isNaN(numValue)) {
             params[filter.field] = numValue;
@@ -72,12 +69,9 @@ export const useFetchVerificationTimeseries = (
     return params;
   }, [filters, timestamp, keyId, keyspaceId]);
 
-  const { data, isLoading, isError } = trpc.key.logs.timeseries.useQuery(
-    queryParams,
-    {
-      refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
-    }
-  );
+  const { data, isLoading, isError } = trpc.key.logs.timeseries.useQuery(queryParams, {
+    refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
+  });
 
   const timeseries = useMemo(() => {
     if (!data?.timeseries) {
@@ -99,8 +93,7 @@ export const useFetchVerificationTimeseries = (
         outcomeFields.rate_limited = ts.y.rate_limited_count;
       }
       if (ts.y.insufficient_permissions_count !== undefined) {
-        outcomeFields.insufficient_permissions =
-          ts.y.insufficient_permissions_count;
+        outcomeFields.insufficient_permissions = ts.y.insufficient_permissions_count;
       }
       if (ts.y.forbidden_count !== undefined) {
         outcomeFields.forbidden = ts.y.forbidden_count;

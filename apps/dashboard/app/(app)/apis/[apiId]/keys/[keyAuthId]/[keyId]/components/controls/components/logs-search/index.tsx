@@ -5,8 +5,8 @@ import { trpc } from "@/lib/trpc/client";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = ({
-  keyspaceId,
-  keyId,
+  keyspaceId: _,
+  keyId: __,
 }: {
   keyId: string;
   keyspaceId: string;
@@ -24,14 +24,11 @@ export const LogsSearch = ({
             style: {
               whiteSpace: "pre-line",
             },
-          }
+          },
         );
         return;
       }
-      const transformedFilters = transformStructuredOutputToFilters(
-        data,
-        filters
-      );
+      const transformedFilters = transformStructuredOutputToFilters(data, filters);
       updateFilters(transformedFilters as any);
     },
     onError(error) {
@@ -60,13 +57,7 @@ export const LogsSearch = ({
       ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
-      onSearch={(query) =>
-        queryLLMForStructuredOutput.mutateAsync({
-          apiId,
-          query,
-          timestamp: Date.now(),
-        })
-      }
+      onSearch={() => null}
     />
   );
 };

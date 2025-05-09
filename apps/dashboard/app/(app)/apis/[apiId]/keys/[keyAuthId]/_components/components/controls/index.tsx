@@ -1,8 +1,5 @@
 import { LogsDateTime } from "@/app/(app)/apis/_components/controls/components/logs-datetime";
-import {
-  ControlsContainer,
-  ControlsLeft,
-} from "@/components/logs/controls-container";
+import { ControlsContainer, ControlsLeft } from "@/components/logs/controls-container";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsSearch } from "./components/logs-search";
 
