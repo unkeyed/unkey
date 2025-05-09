@@ -163,11 +163,39 @@ Deletes an identity and associated rate limits.
 
 ## Progress Tracking
 
-- [ ] `/v2/identities.createIdentity`
-- [ ] `/v2/identities.getIdentity`
-- [ ] `/v2/identities.listIdentities`
-- [ ] `/v2/identities.updateIdentity`
-- [ ] `/v2/identities.deleteIdentity`
+- [x] `/v2/identities.createIdentity`
+- [x] `/v2/identities.getIdentity`
+- [x] `/v2/identities.listIdentities`
+- [x] `/v2/identities.updateIdentity`
+- [x] `/v2/identities.deleteIdentity`
+
+### `/v2/identities.getIdentity` ✅
+
+Successfully implemented the GET identity endpoint with:
+- Ability to fetch identity by either ID or externalId
+- Support for metadata and ratelimits in response
+- Proper permission checks for both wildcard and specific identity permissions
+- Comprehensive test coverage for all paths
+
+### `/v2/identities.listIdentities` ✅
+
+Successfully implemented the list identities endpoint with:
+- Support for pagination using cursor-based pagination
+- Environment filtering
+- Customizable result limits (1-100 items per page)
+- Includes ratelimits for each identity in the response
+- Total count of matching identities
+- Comprehensive tests for all pagination and filtering scenarios
+
+### `/v2/identities.updateIdentity` ✅
+
+Successfully implemented the update identity endpoint with:
+- Support for updating by identityId or externalId
+- Capability to update metadata (including clearing it)
+- Support for managing ratelimits (adding, updating, removing)
+- Comprehensive audit logging for all operations
+- Thorough validation of input data
+- Extensive test coverage for all scenarios
 
 ## Learnings and Best Practices
 

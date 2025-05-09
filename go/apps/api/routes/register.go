@@ -16,6 +16,9 @@ import (
 
 	v2IdentitiesCreateIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	v2IdentitiesDeleteIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_delete_identity"
+	v2IdentitiesGetIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity"
+	v2IdentitiesListIdentities "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_list_identities"
+	v2IdentitiesUpdateIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_update_identity"
 
 	v2PermissionsCreatePermission "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_create_permission"
 	v2PermissionsCreateRole "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_create_role"
@@ -121,6 +124,40 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2IdentitiesDeleteIdentity.New(v2IdentitiesDeleteIdentity.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
+		}),
+	)
+
+	// v2/identities.getIdentity
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2IdentitiesGetIdentity.New(v2IdentitiesGetIdentity.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+		}),
+	)
+
+	// v2/identities.listIdentities
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2IdentitiesListIdentities.New(v2IdentitiesListIdentities.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+		}),
+	)
+
+	// v2/identities.updateIdentity
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2IdentitiesUpdateIdentity.New(v2IdentitiesUpdateIdentity.Services{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
