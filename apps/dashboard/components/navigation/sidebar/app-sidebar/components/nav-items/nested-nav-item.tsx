@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent } from "@radix-ui/react-collapsible";
 import { CaretRight } from "@unkey/icons";
 import { usePathname, useRouter } from "next/navigation";
 import { useLayoutEffect, useState, useTransition } from "react";
+import slugify from "slugify";
 import type { NavItem } from "../../../workspace-navigations";
 import { NavLink } from "../nav-link";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
@@ -51,7 +52,11 @@ export const NestedNavItem = ({
 
     setIsChildrenOpen(!!hasMatchingChild);
 
-    const itemPath = `/${item.label.toLocaleLowerCase()}`;
+    const itemPath = `/${slugify(item.label, {
+      lower: true,
+      replacement: "-",
+    })}`;
+
     if (pathname.startsWith(itemPath)) {
       setIsOpen(true);
     }
