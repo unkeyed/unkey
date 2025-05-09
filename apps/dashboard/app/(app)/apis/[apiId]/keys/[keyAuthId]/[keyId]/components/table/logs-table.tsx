@@ -1,4 +1,6 @@
 "use client";
+import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
+import { CopyButton } from "@/components/dashboard/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
@@ -24,7 +26,6 @@ type LogOutcomeType = (typeof KEY_VERIFICATION_OUTCOMES)[number];
 type LogOutcomeInfo = {
   type: LogOutcomeType;
   label: string;
-  color: string;
   icon: React.ReactNode;
   tooltip: string;
 };
@@ -33,57 +34,49 @@ const LOG_OUTCOME_DEFINITIONS: Record<LogOutcomeType, LogOutcomeInfo> = {
   VALID: {
     type: "VALID",
     label: "Valid",
-    color: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-4",
     icon: <CircleCheck size="sm-regular" />,
     tooltip: "The key was successfully verified.",
   },
   INSUFFICIENT_PERMISSIONS: {
     type: "INSUFFICIENT_PERMISSIONS",
     label: "Unauthorized",
-    color: "bg-errorA-3 text-errorA-11 group-hover:bg-errorA-5",
-    icon: <Lock size="sm-regular" />,
+    icon: <Lock size="sm-regular" className="text-errorA-11" />,
     tooltip: "The key doesn't have sufficient permissions for this operation.",
   },
   RATE_LIMITED: {
     type: "RATE_LIMITED",
     label: "Ratelimited",
-    color: "bg-warningA-3 text-warningA-11 group-hover:bg-warningA-4",
-    icon: <TriangleWarning2 size="sm-regular" className="text-warning-11" />,
+    icon: <TriangleWarning2 size="sm-regular" className="text-warningA-11" />,
     tooltip: "The key has exceeded its rate limit.",
   },
   FORBIDDEN: {
     type: "FORBIDDEN",
     label: "Forbidden",
-    color: "bg-errorA-3 text-errorA-11 group-hover:bg-errorA-4",
-    icon: <Ban size="sm-regular" />,
+    icon: <Ban size="sm-regular" className="text-errorA-11" />,
     tooltip: "The key is not authorized for this operation.",
   },
   DISABLED: {
     type: "DISABLED",
     label: "Disabled",
-    color: "bg-orangeA-3 text-orangeA-11 group-hover:bg-orangeA-4",
-    icon: <ShieldKey size="sm-regular" />,
+    icon: <ShieldKey size="sm-regular" className="text-orangeA-11" />,
     tooltip: "The key has been disabled.",
   },
   EXPIRED: {
     type: "EXPIRED",
     label: "Expired",
-    color: "bg-orangeA-3 text-orangeA-11 group-hover:bg-orangeA-4 ",
-    icon: <TimeClock size="sm-regular" />,
+    icon: <TimeClock size="sm-regular" className="text-orangeA-11" />,
     tooltip: "The key has expired and is no longer valid.",
   },
   USAGE_EXCEEDED: {
     type: "USAGE_EXCEEDED",
     label: "Usage Exceeded",
-    color: "bg-errorA-3 text-errorA-11  group-hover:bg-errorA-4",
-    icon: <TriangleWarning2 size="sm-regular" className="text-error-11" />,
+    icon: <TriangleWarning2 size="sm-regular" className="text-errorA-11" />,
     tooltip: "The key has exceeded its usage limit.",
   },
   "": {
     type: "",
     label: "Unknown",
-    color: "bg-errorA-3 text-errorA-11 group-hover:bg-errorA-4",
-    icon: <ShieldKey size="sm-regular" className="text-gray-11" />,
+    icon: <ShieldKey size="sm-regular" />,
     tooltip: "Unknown verification status.",
   },
 };
@@ -102,32 +95,58 @@ export type StatusStyle = {
 export const STATUS_STYLES = {
   success: {
     base: "text-grayA-9",
-    hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
-    selected: "text-accent-12 bg-grayA-3 hover:text-accent-12",
+    hover: "hover:text-grayA-11 hover:bg-grayA-3 dark:hover:text-grayA-12",
+    selected: "text-grayA-12 bg-grayA-3",
     badge: {
-      default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5",
-      selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5",
+      default: "bg-grayA-3 text-grayA-9 group-hover:bg-grayA-4",
+      selected: "bg-grayA-4 text-grayA-11",
     },
     focusRing: "focus:ring-accent-7",
   },
   warning: {
-    base: "text-warning-11 bg-warning-2",
-    hover: "hover:text-warning-11 hover:bg-warning-3",
-    selected: "text-warning-11 bg-warning-3",
+    base: "text-warningA-11 bg-warning-2",
+    hover: "hover:text-warningA-11 hover:bg-warningA-3",
+    selected: "text-warningA-11 bg-warningA-3",
+    badge: {
+      default: "bg-warningA-3 text-warningA-11 group-hover:bg-warningA-4",
+      selected: "bg-warningA-4 text-warningA-11",
+    },
     focusRing: "focus:ring-warning-7",
   },
   blocked: {
-    base: "text-orange-11 bg-orange-2",
-    hover: "hover:text-orange-11 hover:bg-orange-3",
-    selected: "text-orange-11 bg-orange-3",
+    base: "text-orangeA-11 bg-orange-2",
+    hover: "hover:text-orangeA-11 hover:bg-orangeA-3",
+    selected: "text-orangeA-11 bg-orangeA-3",
+    badge: {
+      default: "bg-orangeA-3 text-orangeA-11 group-hover:bg-orangeA-4",
+      selected: "bg-orangeA-4 text-orangeA-11",
+    },
     focusRing: "focus:ring-orange-7",
   },
   error: {
-    base: "text-error-11 bg-error-2",
-    hover: "hover:text-error-11 hover:bg-error-3",
-    selected: "text-error-11 bg-error-3",
+    base: "text-errorA-11 bg-error-2",
+    hover: "hover:text-errorA-11 hover:bg-errorA-3",
+    selected: "text-errorA-11 bg-errorA-3",
+    badge: {
+      default: "bg-errorA-3 text-errorA-11 group-hover:bg-errorA-4",
+      selected: "bg-errorA-4 text-errorA-11",
+    },
     focusRing: "focus:ring-error-7",
   },
+};
+
+const getStatusType = (outcome: LogOutcomeType): keyof typeof STATUS_STYLES => {
+  switch (outcome) {
+    case "VALID":
+      return "success";
+    case "RATE_LIMITED":
+      return "warning";
+    case "DISABLED":
+    case "EXPIRED":
+      return "blocked";
+    default:
+      return "error";
+  }
 };
 
 export const categorizeSeverity = (outcome: string): keyof typeof STATUS_STYLES => {
@@ -168,22 +187,6 @@ export const KeyDetailsLogsTable = ({ apiId, keyspaceId, keyId }: Props) => {
     keyspaceId,
   });
 
-  const getStatusProperties = (outcome: string) => {
-    const outcomeType =
-      (outcome as LogOutcomeType) in LOG_OUTCOME_DEFINITIONS ? (outcome as LogOutcomeType) : "";
-
-    const outcomeInfo = LOG_OUTCOME_DEFINITIONS[outcomeType];
-
-    return {
-      primary: {
-        label: outcomeInfo.label,
-        color: outcomeInfo.color,
-        icon: outcomeInfo.icon,
-      },
-      count: 0,
-    };
-  };
-
   const getRowClassName = (log: KeyDetailsLog, selected: KeyDetailsLog | null) => {
     const style = getStatusStyle(log);
     const isSelected = selected?.request_id === log.request_id;
@@ -220,7 +223,7 @@ export const KeyDetailsLogsTable = ({ apiId, keyspaceId, keyId }: Props) => {
         header: "Status",
         width: "15%",
         render: (log) => {
-          const statusProps = getStatusProperties(log.outcome);
+          const isSelected = selectedLog?.request_id === log.request_id;
           const outcomeType =
             (log.outcome as LogOutcomeType) in LOG_OUTCOME_DEFINITIONS
               ? (log.outcome as LogOutcomeType)
@@ -231,7 +234,15 @@ export const KeyDetailsLogsTable = ({ apiId, keyspaceId, keyId }: Props) => {
               <Tooltip>
                 <TooltipTrigger className="cursor-default">
                   <div className="flex gap-3 items-center">
-                    <StatusBadge primary={statusProps.primary} />
+                    <StatusBadge
+                      primary={{
+                        label: outcomeInfo.label,
+                        color: isSelected
+                          ? STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.selected
+                          : STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.default,
+                        icon: outcomeInfo.icon,
+                      }}
+                    />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -247,8 +258,8 @@ export const KeyDetailsLogsTable = ({ apiId, keyspaceId, keyId }: Props) => {
         header: "Region",
         width: "15%",
         render: (log) => (
-          <div className="flex items-center uppercase font-mono">
-            <div className="w-full max-w-[65px] truncate whitespace-nowrap" title={log.region}>
+          <div className="flex items-center font-mono">
+            <div className="w-full whitespace-nowrap" title={log.region}>
               {log.region}
             </div>
           </div>
@@ -259,37 +270,128 @@ export const KeyDetailsLogsTable = ({ apiId, keyspaceId, keyId }: Props) => {
         header: "Tags",
         width: "20%",
         render: (log) => {
+          log.tags = [
+            // Normal tag
+            "api",
+            // Medium length tag
+            "production-environment",
+            // Long tag (URL path)
+            "/api/v1/users/profiles/settings/notifications/email/preferences",
+            // Very long tag (250 chars)
+            "https://example.com/very/long/path/that/could/potentially/be/used/as/a/tag/by/someone/who/wants/to/track/specific/requests/with/a/very/detailed/url/structure/including/query/parameters/and/other/information/that/makes/this/tag/extremely/long",
+            // Another long tag with no spaces or special chars
+            "thisIsAVeryLongTagWithNoSpacesOrSpecialCharactersThatSomeoneCouldPotentiallyUseToMarkRequestsInAWayThatMightBreakYourUIIfNotHandledProperly",
+          ];
+
           return (
             <div className="flex flex-wrap gap-1 items-center">
               {log.tags && log.tags.length > 0 ? (
                 log.tags.slice(0, 3).map((tag) => (
-                  <Badge
+                  <RatelimitOverviewTooltip
                     key={tag}
-                    title={tag}
-                    className={cn(
-                      "px-[6px] rounded-md whitespace-nowrap",
-                      selectedLog?.request_id === log.request_id
-                        ? STATUS_STYLES.success.badge.selected
-                        : STATUS_STYLES.success.badge.default,
-                    )}
+                    content={
+                      <div className="max-w-xs">
+                        {tag.length > 60 ? (
+                          <div>
+                            <div className="break-all max-w-[300px] truncate">{tag}</div>
+                            <div className="flex items-center justify-between mt-1.5">
+                              <div className="text-xs opacity-60">({tag.length} characters)</div>
+                              {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                              <div
+                                className="pointer-events-auto"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <CopyButton value={tag} />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between items-start gap-1.5">
+                            <div className="break-all max-w-[300px] truncate">{tag}</div>
+                            {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                            <div
+                              className="pointer-events-auto flex-shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <CopyButton value={tag} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    }
+                    position={{ side: "top", align: "start", sideOffset: 5 }}
+                    asChild
                   >
-                    {tag.length > 15 ? `${tag.substring(0, 12)}...` : tag}
-                  </Badge>
+                    <Badge
+                      variant="success"
+                      className={cn(
+                        "whitespace-nowrap max-w-[150px] truncate",
+                        selectedLog?.request_id === log.request_id
+                          ? STATUS_STYLES.success.badge.selected
+                          : "",
+                      )}
+                    >
+                      {tag.length > 15 ? `${tag.substring(0, 12)}...` : tag}
+                    </Badge>
+                  </RatelimitOverviewTooltip>
                 ))
               ) : (
                 <span className="text-gray-8">—</span>
               )}
               {log.tags && log.tags.length > 3 && (
-                <Badge
-                  className={cn(
-                    "px-[6px] rounded-md whitespace-nowrap",
-                    selectedLog?.request_id === log.request_id
-                      ? STATUS_STYLES.success.badge.selected
-                      : STATUS_STYLES.success.badge.default,
-                  )}
+                <RatelimitOverviewTooltip
+                  content={
+                    <div className="flex flex-col gap-2 py-1 max-w-xs max-h-[300px] overflow-y-auto">
+                      <div className="text-xs opacity-75 font-medium">
+                        {log.tags.length - 3} more tags:
+                      </div>
+                      {log.tags.slice(3).map((tag, idx) => (
+                        <div key={idx + tag} className="text-xs">
+                          {tag.length > 60 ? (
+                            <div>
+                              <div className="break-all max-w-[300px] truncate">{tag}</div>
+                              <div className="flex items-center justify-between mt-1.5">
+                                <div className="text-xs opacity-60">({tag.length} characters)</div>
+                                {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                                <div
+                                  className="pointer-events-auto"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <CopyButton value={tag} />
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex justify-between items-start gap-1.5">
+                              <div className="break-all max-w-[300px] truncate">{tag}</div>
+                              {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                              <div
+                                className="pointer-events-auto flex-shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <CopyButton value={tag} />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  }
+                  position={{ side: "top", align: "start", sideOffset: 5 }}
+                  asChild
                 >
-                  +{log.tags.length - 3}
-                </Badge>
+                  <Badge
+                    variant="success"
+                    className={cn(
+                      "whitespace-nowrap",
+                      selectedLog?.request_id === log.request_id
+                        ? STATUS_STYLES.success.badge.selected
+                        : "",
+                    )}
+                  >
+                    +{log.tags.length - 3}
+                  </Badge>
+                </RatelimitOverviewTooltip>
               )}
             </div>
           );

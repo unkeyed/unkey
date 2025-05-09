@@ -18,7 +18,7 @@ export const StatusBadge = ({ primary }: StatusBadgeProps) => {
           "rounded-md",
         )}
       >
-        {primary.icon && <span>{primary.icon}</span>}
+        {primary.icon && <span className="shrink-0">{primary.icon}</span>}
         <span>{primary.label}</span>
       </div>
     </div>

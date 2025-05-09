@@ -29,7 +29,6 @@ export const TimeClock: React.FC<IconProps> = ({ size = "xl-thin", ...props }) =
           fill="none"
           stroke="currentColor"
           strokeLinecap="square"
-          strokeMiterlimit="10"
           strokeWidth={strokeWidth}
         />
         <path
@@ -37,7 +36,6 @@ export const TimeClock: React.FC<IconProps> = ({ size = "xl-thin", ...props }) =
           fill="none"
           stroke="currentColor"
           strokeLinecap="square"
-          strokeMiterlimit="10"
           strokeWidth={strokeWidth}
         />
         <path
@@ -45,7 +43,6 @@ export const TimeClock: React.FC<IconProps> = ({ size = "xl-thin", ...props }) =
           fill="none"
           stroke="currentColor"
           strokeLinecap="square"
-          strokeMiterlimit="10"
           strokeWidth={strokeWidth}
         />
         <path
@@ -53,7 +50,6 @@ export const TimeClock: React.FC<IconProps> = ({ size = "xl-thin", ...props }) =
           fill="none"
           stroke="currentColor"
           strokeLinecap="square"
-          strokeMiterlimit="10"
           strokeWidth={strokeWidth}
         />
         <path
@@ -61,7 +57,6 @@ export const TimeClock: React.FC<IconProps> = ({ size = "xl-thin", ...props }) =
           fill="none"
           stroke="currentColor"
           strokeLinecap="square"
-          strokeMiterlimit="10"
           strokeWidth={strokeWidth}
         />
         <path
@@ -69,7 +64,6 @@ export const TimeClock: React.FC<IconProps> = ({ size = "xl-thin", ...props }) =
           fill="none"
           stroke="currentColor"
           strokeLinecap="square"
-          strokeMiterlimit="10"
           strokeWidth={strokeWidth}
         />
       </g>
