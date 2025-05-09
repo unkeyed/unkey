@@ -1,15 +1,16 @@
 "use client";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/logs/constants";
-import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { useFetchRequestDetails } from "./components/hooks/use-logs-query";
-import { extractResponseField, safeParseJson } from "@/app/(app)/logs/utils";
+import { LogFooter } from "@/app/(app)/logs/components/table/log-details/components/log-footer";
 import { LogHeader } from "@/app/(app)/logs/components/table/log-details/components/log-header";
 import { LogMetaSection } from "@/app/(app)/logs/components/table/log-details/components/log-meta";
-import { LogFooter } from "@/app/(app)/logs/components/table/log-details/components/log-footer";
 import { LogSection } from "@/app/(app)/logs/components/table/log-details/components/log-section";
+import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/logs/constants";
+import { extractResponseField, safeParseJson } from "@/app/(app)/logs/utils";
+import { toast } from "@/components/ui/toaster";
+import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
+import { useFetchRequestDetails } from "./components/hooks/use-logs-query";
 
 const createPanelStyle = (distanceToTop: number) => ({
   top: `${distanceToTop}px`,
@@ -24,29 +25,48 @@ type Props = {
   onLogSelect: (log: KeyDetailsLog | null) => void;
 };
 
-export const KeyDetailsDrawer = ({
-  distanceToTop,
-  onLogSelect,
-  selectedLog,
-}: Props) => {
-  const panelStyle = useMemo(
-    () => createPanelStyle(distanceToTop),
-    [distanceToTop]
-  );
-
-  const { log } = useFetchRequestDetails({
+export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Props) => {
+  const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
+  const { log, error } = useFetchRequestDetails({
     requestId: selectedLog?.request_id,
   });
+
+  const [errorShown, setErrorShown] = useState(false);
+
+  useEffect(() => {
+    if (!errorShown && selectedLog) {
+      if (error) {
+        toast.error("Error Loading Log Details", {
+          description: `${
+            error.message ||
+            "An unexpected error occurred while fetching log data. Please try again."
+          }`,
+        });
+        setErrorShown(true);
+      } else if (!log) {
+        toast.error("Log Data Unavailable", {
+          description:
+            "Could not retrieve log information for this key. The log may have been deleted or is still processing.",
+        });
+        setErrorShown(true);
+      }
+    }
+
+    if (!selectedLog) {
+      setErrorShown(false);
+    }
+  }, [error, log, selectedLog, errorShown]);
 
   const handleClose = () => {
     onLogSelect(null);
   };
 
   if (!selectedLog) {
-    return;
+    return null;
   }
-  if (!log) {
-    return;
+
+  if (error || !log) {
+    return null;
   }
 
   return (

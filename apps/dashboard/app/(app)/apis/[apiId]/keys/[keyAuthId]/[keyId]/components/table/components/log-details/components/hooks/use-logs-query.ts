@@ -3,13 +3,9 @@ import { useQueryTime } from "@/providers/query-time-provider";
 
 type useFetchRequestDetails = {
   requestId?: string;
-  enabled?: boolean;
 };
 
-export function useFetchRequestDetails({
-  requestId,
-  enabled = true,
-}: useFetchRequestDetails) {
+export function useFetchRequestDetails({ requestId }: useFetchRequestDetails) {
   const { queryTime: timestamp } = useQueryTime();
   const query = trpc.logs.queryLogs.useQuery(
     {
@@ -33,10 +29,10 @@ export function useFetchRequestDetails({
       since: "",
     },
     {
-      enabled: enabled && Boolean(requestId),
+      enabled: Boolean(requestId),
       refetchOnWindowFocus: false,
       refetchOnMount: false,
-    }
+    },
   );
 
   return {

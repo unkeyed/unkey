@@ -55,6 +55,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       isFetchingNextPage,
       loadMoreFooterProps,
       renderSkeletonRow,
+      onRowMouseEnter,
+      onRowMouseLeave,
     } = props;
 
     // Merge configs, allowing specific overrides
@@ -261,6 +263,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       data-index={virtualRow.index}
                       aria-selected={isSelected}
                       onClick={() => onRowClick?.(typedItem)}
+                      onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                      onMouseLeave={() => onRowMouseLeave?.()}
                       onKeyDown={(event) => {
                         if (event.key === "Escape") {
                           event.preventDefault();
@@ -327,6 +331,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       data-index={virtualRow.index}
                       aria-selected={isSelected}
                       onClick={() => onRowClick?.(typedItem)}
+                      onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                      onMouseLeave={() => onRowMouseLeave?.()}
                       onKeyDown={(event) => {
                         if (event.key === "Escape") {
                           event.preventDefault();

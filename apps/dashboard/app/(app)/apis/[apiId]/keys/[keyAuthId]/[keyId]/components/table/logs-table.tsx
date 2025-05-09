@@ -4,7 +4,9 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import { useQueryTime } from "@/providers/query-time-provider";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import {
@@ -18,6 +20,7 @@ import {
 } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
 import { Button, Empty, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { useCallback, useState } from "react";
 import { StatusBadge } from "./components/status-badge";
 import { useKeyDetailsLogsQuery } from "./hooks/use-logs-query";
 
@@ -197,6 +200,42 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       isSelected && style.selected,
     );
   };
+
+  const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
+  const { queryTime: timestamp } = useQueryTime();
+  const utils = trpc.useUtils();
+
+  const handleRowHover = useCallback(
+    (log: KeyDetailsLog) => {
+      if (log.request_id !== hoveredLogId) {
+        setHoveredLogId(log.request_id);
+
+        utils.logs.queryLogs.prefetch({
+          limit: 1,
+          startTime: 0,
+          endTime: timestamp,
+          host: { filters: [] },
+          method: { filters: [] },
+          path: { filters: [] },
+          status: { filters: [] },
+          requestId: {
+            filters: [
+              {
+                operator: "is",
+                value: log.request_id,
+              },
+            ],
+          },
+          since: "",
+        });
+      }
+    },
+    [hoveredLogId, utils.logs.queryLogs, timestamp],
+  );
+
+  const handleRowMouseLeave = useCallback(() => {
+    setHoveredLogId(null);
+  }, []);
 
   const columns = (): Column<KeyDetailsLog>[] => {
     return [
@@ -393,6 +432,8 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         onLoadMore={loadMore}
         columns={columns()}
         onRowClick={onLogSelect}
+        onRowMouseEnter={handleRowHover}
+        onRowMouseLeave={handleRowMouseLeave}
         selectedItem={selectedLog}
         keyExtractor={(log) => log.request_id}
         rowClassName={(log) => getRowClassName(log, selectedLog)}

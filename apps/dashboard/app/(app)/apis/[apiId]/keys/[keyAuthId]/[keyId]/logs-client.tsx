@@ -5,8 +5,8 @@ import { useCallback, useState } from "react";
 import { KeyDetailsLogsChart } from "./components/charts";
 import { KeysDetailsLogsControlCloud } from "./components/control-cloud";
 import { KeysDetailsLogsControls } from "./components/controls";
-import { KeyDetailsLogsTable } from "./components/table/logs-table";
 import { KeyDetailsDrawer } from "./components/table/components/log-details";
+import { KeyDetailsLogsTable } from "./components/table/logs-table";
 
 export const KeyDetailsLogsClient = ({
   keyspaceId,
@@ -31,11 +31,7 @@ export const KeyDetailsLogsClient = ({
       <KeysDetailsLogsControls keyspaceId={keyspaceId} keyId={keyId} />
       <KeysDetailsLogsControlCloud />
       <div className="flex flex-col">
-        <KeyDetailsLogsChart
-          keyspaceId={keyspaceId}
-          keyId={keyId}
-          onMount={handleDistanceToTop}
-        />
+        <KeyDetailsLogsChart keyspaceId={keyspaceId} keyId={keyId} onMount={handleDistanceToTop} />
         <KeyDetailsLogsTable
           selectedLog={selectedLog}
           onLogSelect={handleSelectedLog}
