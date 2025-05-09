@@ -79,28 +79,28 @@ func TestGetApiSuccessfully(t *testing.T) {
 		require.NoError(t, err)
 
 		testCases := []struct {
-			name        string
-			permissions []string
+			name           string
+			permissions    []string
 			expectedStatus int
 		}{
 			{
-				name:        "wildcard permission",
-				permissions: []string{"*"},
+				name:           "wildcard permission",
+				permissions:    []string{"*"},
 				expectedStatus: 403, // The "*" permission isn't directly supported in the handler
 			},
 			{
-				name:        "api wildcard permission",
-				permissions: []string{"api.*.read_api"},
+				name:           "api wildcard permission",
+				permissions:    []string{"api.*.read_api"},
 				expectedStatus: 200,
 			},
 			{
-				name:        "specific api permission",
-				permissions: []string{fmt.Sprintf("api.%s.read_api", apiID)},
+				name:           "specific api permission",
+				permissions:    []string{fmt.Sprintf("api.%s.read_api", apiID)},
 				expectedStatus: 200,
 			},
 			{
-				name:        "multiple permissions including relevant one",
-				permissions: []string{"other.permission", "api.*.read_api"},
+				name:           "multiple permissions including relevant one",
+				permissions:    []string{"other.permission", "api.*.read_api"},
 				expectedStatus: 200,
 			},
 		}

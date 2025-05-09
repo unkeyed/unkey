@@ -6,6 +6,7 @@ package openapi
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/oapi-codegen/runtime"
 )
@@ -131,6 +132,55 @@ type Pagination struct {
 	HasMore *bool `json:"hasMore,omitempty"`
 }
 
+// Permission defines model for Permission.
+type Permission struct {
+	// CreatedAt When the permission was created
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// Description A description of what this permission grants access to
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique identifier for the permission
+	Id string `json:"id"`
+
+	// Name The unique name of the permission
+	Name string `json:"name"`
+
+	// WorkspaceId The workspace this permission belongs to
+	WorkspaceId string `json:"workspaceId"`
+}
+
+// PermissionsCreatePermissionResponseData defines model for PermissionsCreatePermissionResponseData.
+type PermissionsCreatePermissionResponseData struct {
+	// PermissionId The id of the permission. This is used internally
+	PermissionId string `json:"permissionId"`
+}
+
+// PermissionsGetPermissionResponseData defines model for PermissionsGetPermissionResponseData.
+type PermissionsGetPermissionResponseData struct {
+	Permission Permission `json:"permission"`
+}
+
+// PermissionsListPermissionsResponseData defines model for PermissionsListPermissionsResponseData.
+type PermissionsListPermissionsResponseData struct {
+	// Cursor Cursor for pagination
+	Cursor      *string      `json:"cursor,omitempty"`
+	Permissions []Permission `json:"permissions"`
+
+	// Total Total number of permissions
+	Total int `json:"total"`
+}
+
+// PermissionsListRolesResponseData defines model for PermissionsListRolesResponseData.
+type PermissionsListRolesResponseData struct {
+	// Cursor Cursor for pagination
+	Cursor *string               `json:"cursor,omitempty"`
+	Roles  []RoleWithPermissions `json:"roles"`
+
+	// Total Total number of roles
+	Total int `json:"total"`
+}
+
 // PreconditionFailedErrorResponse defines model for PreconditionFailedErrorResponse.
 type PreconditionFailedErrorResponse struct {
 	Error BaseError `json:"error"`
@@ -195,6 +245,27 @@ type RatelimitOverride struct {
 type RatelimitSetOverrideResponseData struct {
 	// OverrideId The id of the override. This is used internally.
 	OverrideId string `json:"overrideId"`
+}
+
+// RoleWithPermissions defines model for RoleWithPermissions.
+type RoleWithPermissions struct {
+	// CreatedAt When the role was created
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// Description A description of what this role represents
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique identifier for the role
+	Id string `json:"id"`
+
+	// Name The unique name of the role
+	Name string `json:"name"`
+
+	// Permissions The permissions assigned to this role
+	Permissions []Permission `json:"permissions"`
+
+	// WorkspaceId The workspace this role belongs to
+	WorkspaceId string `json:"workspaceId"`
 }
 
 // UnauthorizedErrorResponse defines model for UnauthorizedErrorResponse.
@@ -280,6 +351,74 @@ type V2IdentitiesDeleteIdentityResponseBody = map[string]interface{}
 type V2LivenessResponseBody struct {
 	Data LivenessResponseData `json:"data"`
 	Meta Meta                 `json:"meta"`
+}
+
+// V2PermissionsCreatePermissionRequestBody defines model for V2PermissionsCreatePermissionRequestBody.
+type V2PermissionsCreatePermissionRequestBody struct {
+	// Description Explain what this permission does. This is just for your team, your users will not see this.
+	Description *string `json:"description,omitempty"`
+
+	// Name The unique name of your permission
+	Name string `json:"name"`
+}
+
+// V2PermissionsCreatePermissionResponseBody defines model for V2PermissionsCreatePermissionResponseBody.
+type V2PermissionsCreatePermissionResponseBody struct {
+	Data PermissionsCreatePermissionResponseData `json:"data"`
+	Meta Meta                                    `json:"meta"`
+}
+
+// V2PermissionsDeleteRoleRequestBody defines model for V2PermissionsDeleteRoleRequestBody.
+type V2PermissionsDeleteRoleRequestBody struct {
+	// RoleId The id of the role to delete
+	RoleId string `json:"roleId"`
+}
+
+// V2PermissionsDeleteRoleResponseBody defines model for V2PermissionsDeleteRoleResponseBody.
+type V2PermissionsDeleteRoleResponseBody struct {
+	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsGetPermissionRequestBody defines model for V2PermissionsGetPermissionRequestBody.
+type V2PermissionsGetPermissionRequestBody struct {
+	// PermissionId The id of the permission to retrieve
+	PermissionId string `json:"permissionId"`
+}
+
+// V2PermissionsGetPermissionResponseBody defines model for V2PermissionsGetPermissionResponseBody.
+type V2PermissionsGetPermissionResponseBody struct {
+	Data PermissionsGetPermissionResponseData `json:"data"`
+	Meta Meta                                 `json:"meta"`
+}
+
+// V2PermissionsListPermissionsRequestBody defines model for V2PermissionsListPermissionsRequestBody.
+type V2PermissionsListPermissionsRequestBody struct {
+	// Cursor Cursor for pagination
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit The maximum number of permissions to return
+	Limit *int32 `json:"limit,omitempty"`
+}
+
+// V2PermissionsListPermissionsResponseBody defines model for V2PermissionsListPermissionsResponseBody.
+type V2PermissionsListPermissionsResponseBody struct {
+	Data PermissionsListPermissionsResponseData `json:"data"`
+	Meta Meta                                   `json:"meta"`
+}
+
+// V2PermissionsListRolesRequestBody defines model for V2PermissionsListRolesRequestBody.
+type V2PermissionsListRolesRequestBody struct {
+	// Cursor Cursor for pagination
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit The maximum number of roles to return
+	Limit *int32 `json:"limit,omitempty"`
+}
+
+// V2PermissionsListRolesResponseBody defines model for V2PermissionsListRolesResponseBody.
+type V2PermissionsListRolesResponseBody struct {
+	Data PermissionsListRolesResponseData `json:"data"`
+	Meta Meta                             `json:"meta"`
 }
 
 // V2RatelimitDeleteOverrideRequestBody Deletes an existing override.
@@ -400,8 +539,8 @@ type ValidationError struct {
 	Message string `json:"message"`
 }
 
-// CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
-type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody
+// DeleteApiJSONRequestBody defines body for DeleteApi for application/json ContentType.
+type DeleteApiJSONRequestBody = V2ApisCreateApiRequestBody
 
 // GetApiJSONRequestBody defines body for GetApi for application/json ContentType.
 type GetApiJSONRequestBody = V2ApisGetApiRequestBody
@@ -411,6 +550,21 @@ type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequest
 
 // V2IdentitiesDeleteIdentityJSONRequestBody defines body for V2IdentitiesDeleteIdentity for application/json ContentType.
 type V2IdentitiesDeleteIdentityJSONRequestBody = V2IdentitiesDeleteIdentityRequestBody
+
+// CreatePermissionJSONRequestBody defines body for CreatePermission for application/json ContentType.
+type CreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
+
+// DeleteRoleJSONRequestBody defines body for DeleteRole for application/json ContentType.
+type DeleteRoleJSONRequestBody = V2PermissionsDeleteRoleRequestBody
+
+// GetPermissionJSONRequestBody defines body for GetPermission for application/json ContentType.
+type GetPermissionJSONRequestBody = V2PermissionsGetPermissionRequestBody
+
+// ListPermissionsJSONRequestBody defines body for ListPermissions for application/json ContentType.
+type ListPermissionsJSONRequestBody = V2PermissionsListPermissionsRequestBody
+
+// ListRolesJSONRequestBody defines body for ListRoles for application/json ContentType.
+type ListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
 
 // RatelimitDeleteOverrideJSONRequestBody defines body for RatelimitDeleteOverride for application/json ContentType.
 type RatelimitDeleteOverrideJSONRequestBody = V2RatelimitDeleteOverrideRequestBody

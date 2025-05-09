@@ -1,15 +1,26 @@
-# API Migration Plan: TypeScript to Go
+# API & Permissions Migration Plan: TypeScript to Go
 
-This document outlines the plan to migrate the `/v1/api.XXX` routes from TypeScript to Go. We'll ensure the new Go implementations match the existing TypeScript functionality while following Go best practices and integrating with the existing Go codebase structure.
+This document outlines the plan to migrate the `/v1/api.XXX` and `/v1/permissions.XXX` routes from TypeScript to Go. We'll ensure the new Go implementations match the existing TypeScript functionality while following Go best practices and integrating with the existing Go codebase structure.
 
 ## Overview
 
-We need to migrate the following API endpoints from v1 to v2:
+We need to migrate the following endpoints from v1 to v2:
 
+### API Endpoints
 - `/v1/apis.createApi` → `/v2/apis.createApi` ✅ (already implemented)
-- `/v1/apis.deleteApi` → `/v2/apis.deleteApi`
+- `/v1/apis.deleteApi` → `/v2/apis.deleteApi` ✅ (implemented)
 - `/v1/apis.getApi` → `/v2/apis.getApi` ✅ (implemented)
-- `/v1/apis.listKeys` → `/v2/apis.listKeys`
+- `/v1/apis.listKeys` → `/v2/apis.listKeys` ✅ (implemented)
+
+### Permission Endpoints (Priority Order)
+1. `/v1/permissions.createPermission` → `/v2/permissions.createPermission`
+2. `/v1/permissions.getPermission` → `/v2/permissions.getPermission`
+3. `/v1/permissions.listPermissions` → `/v2/permissions.listPermissions`
+4. `/v1/permissions.deletePermission` → `/v2/permissions.deletePermission`
+5. `/v1/permissions.createRole` → `/v2/permissions.createRole` 
+6. `/v1/permissions.getRole` → `/v2/permissions.getRole`
+7. `/v1/permissions.listRoles` → `/v2/permissions.listRoles`
+8. `/v1/permissions.deleteRole` → `/v2/permissions.deleteRole`
 
 ## Migration Strategy
 
@@ -271,33 +282,202 @@ Each endpoint should have tests for:
 
 - [x] `/v2/apis.createApi` - Already implemented
 - [x] `/v2/apis.getApi` - Implemented successfully
-- [ ] `/v2/apis.listKeys` - Next to implement
-- [ ] `/v2/apis.deleteApi` - Last to implement
+- [x] `/v2/apis.listKeys` - Implemented successfully
+- [x] `/v2/apis.deleteApi` - Implemented successfully
 
-## Remaining Work
+## API Endpoints Completion
 
-### `/v2/apis.listKeys` Endpoint
+All planned API endpoints have been successfully migrated from TypeScript to Go:
 
-Similar to the `getApi` endpoint but with pagination and filtering. Key steps:
+- `/v2/apis.createApi` - Creates a new API with the provided name
+- `/v2/apis.getApi` - Retrieves API details by ID
+- `/v2/apis.listKeys` - Lists all keys associated with an API with pagination
+- `/v2/apis.deleteApi` - Deletes an API and all associated keys (with delete protection)
 
-1. Study TypeScript implementation in `/apps/api/src/routes/v1_apis_listKeys.ts`
-2. Add OpenAPI definition in `openapi.json` with request/response schema
-3. Create directory and files for implementation and tests
-4. Implement handler with pagination support
-5. Write comprehensive tests
-6. Register route in `register.go`
+Each endpoint includes comprehensive test coverage:
+- Success cases (200 responses)
+- Validation tests (400 responses)
+- Authentication tests (401 responses)
+- Authorization tests (403 responses)
+- Not Found tests (404 responses)
+- Special cases (e.g., 429 for delete-protected APIs)
 
-### `/v2/apis.deleteApi` Endpoint
+## Permissions Migration Plan
 
-More complex due to potential cascading effects. Key steps:
+Now we'll focus on migrating the permission-related endpoints. The permission system manages roles and permissions that can be assigned to API keys.
 
-1. Study TypeScript implementation in `/apps/api/src/routes/v1_apis_deleteApi.ts`
-2. Add OpenAPI definition in `openapi.json`
-3. Create directory and files for implementation and tests
-4. Implement handler with proper transaction support and audit logging
-5. Handle delete protection if present
-6. Write comprehensive tests
-7. Register route in `register.go`
+### Understanding the Permission System
+
+Permissions in Unkey are organized as follows:
+1. **Permissions** - Individual capabilities that can be assigned to keys (e.g., "read:api", "write:key")
+2. **Roles** - Collections of permissions that can be assigned to keys
+3. **Workspaces** - Permissions and roles are scoped to workspaces
+
+The database schema includes the following tables:
+- `permissions` - Contains individual permissions with name, description, etc.
+- `roles` - Contains roles with name, description, etc.
+- `role_permissions` - Junction table linking roles to permissions
+- `key_permissions` - Links permissions directly to keys
+- `key_roles` - Links roles to keys
+
+### Migration Strategy for Permission Routes
+
+For each permission endpoint, we'll follow the same approach as with API endpoints:
+
+1. Study the TypeScript implementation
+2. Create Go implementation following established patterns
+3. Write comprehensive tests
+4. Ensure validation, authorization, and audit logs match existing implementation
+
+### Implementation Plan for Permission Endpoints
+
+#### `/v2/permissions.createPermission`
+- Create a new permission in a workspace
+- Handle permission naming constraints and uniqueness
+- Add audit logging for permission creation
+- Implementation steps:
+  1. Verify root key authorization with `rbac.*.create_permission` permission
+  2. Validate permission name format (follow identifier pattern)
+  3. Create permission record in database with unique ID
+  4. Handle potential duplicate name errors (return 409 Conflict)
+  5. Create audit log entry for permission creation
+  6. Return the created permission ID
+
+#### `/v2/permissions.getPermission`
+- Retrieve permission details by ID
+- Enforce workspace-level access control
+- Implementation steps:
+  1. Verify root key authorization with `rbac.*.read_permission` permission
+  2. Query database for permission by ID
+  3. Verify permission belongs to authorized workspace
+  4. Return permission details (ID, name, description, etc.)
+
+#### `/v2/permissions.listPermissions`
+- List all permissions in a workspace
+- Support pagination
+- Implementation steps:
+  1. Verify root key authorization with `rbac.*.read_permission` permission
+  2. Query database for permissions in authorized workspace
+  3. Implement pagination with cursor-based approach
+  4. Return paginated list of permissions with total count
+
+#### `/v2/permissions.deletePermission`
+- Delete a permission
+- Handle potential dependencies in roles
+- Include audit logging
+- Implementation steps:
+  1. Verify root key authorization with `rbac.*.delete_permission` permission
+  2. Start database transaction
+  3. Delete all related records in `role_permissions` junction table
+  4. Delete all related records in `key_permissions` table
+  5. Delete the permission record
+  6. Create audit log entry for permission deletion
+  7. Commit transaction
+  8. Return success response
+
+#### `/v2/permissions.createRole`
+- Create a new role with associated permissions
+- Validate permission IDs
+- Add audit logging
+- Implementation steps:
+  1. Verify root key authorization with `rbac.*.create_role` permission
+  2. Validate role name format
+  3. Start database transaction
+  4. Create role record in database with unique ID
+  5. Handle potential duplicate name errors (return 409 Conflict)
+  6. If permission IDs provided, validate they exist and belong to workspace
+  7. Create role-permission relationships in junction table if needed
+  8. Create audit log entry for role creation
+  9. Commit transaction
+  10. Return the created role ID
+
+#### `/v2/permissions.getRole`
+- Retrieve role details by ID
+- Include associated permissions
+- Implementation steps:
+  1. Verify root key authorization with `rbac.*.read_role` permission
+  2. Query database for role by ID with joined permissions
+  3. Verify role belongs to authorized workspace
+  4. Return role details (ID, name, description) and associated permissions
+
+#### `/v2/permissions.listRoles`
+- List all roles in a workspace
+- Support pagination
+- Include permission details
+- Implementation steps:
+  1. Verify root key authorization with `rbac.*.read_role` permission
+  2. Query database for roles in authorized workspace with joined permissions
+  3. Implement pagination with cursor-based approach
+  4. Format response to include role details and associated permissions
+  5. Return paginated list of roles with total count
+
+#### `/v2/permissions.deleteRole`
+- Delete a role
+- Handle relationship cleanup
+- Include audit logging
+- Implementation steps:
+  1. Verify root key authorization with `rbac.*.delete_role` permission
+  2. Start database transaction
+  3. Delete all related records in `role_permissions` junction table
+  4. Delete all related records in `key_roles` table
+  5. Delete the role record
+  6. Create audit log entry for role deletion
+  7. Commit transaction
+  8. Return success response
+
+### Progress Tracking
+
+- [x] `/v2/permissions.createPermission` ✅
+  - [x] Add OpenAPI definitions
+  - [x] Create handler implementation
+  - [x] Implement validation and error handling
+  - [x] Add audit logging
+  - [x] Write tests (200, 400, 401, 403, 409)
+  
+  #### `/v2/permissions.getPermission` ✅
+  - [x] Add OpenAPI definitions
+  - [x] Create handler implementation
+  - [x] Implement validation and error handling
+  - [x] Write tests (200, 400, 401, 403, 404)
+  
+  #### `/v2/permissions.listPermissions` ✅
+  - [x] Add OpenAPI definitions
+  - [x] Create handler implementation with pagination
+  - [x] Implement validation and error handling
+  - [x] Write tests (200, 400, 401, 403)
+  
+  #### `/v2/permissions.deletePermission` ✅
+  - [x] Add OpenAPI definitions
+  - [x] Create handler with transaction support
+  - [x] Implement validation and error handling
+  - [x] Add audit logging
+  - [x] Write tests (200, 400, 401, 403, 404)
+  
+#### `/v2/permissions.createRole` ✅
+- [x] Add OpenAPI definitions
+- [x] Create handler with transaction support
+- [x] Implement permission validation
+- [x] Add audit logging
+- [x] Write tests (200, 400, 401, 403, 409)
+  
+#### `/v2/permissions.getRole` ✅
+- [x] Add OpenAPI definitions
+- [x] Create handler with permission joins
+- [x] Implement validation and error handling
+- [x] Write tests (200, 400, 401, 403, 404)
+  
+#### `/v2/permissions.listRoles` ✅
+- [x] Add OpenAPI definitions
+- [x] Create handler with permission joins and pagination
+- [x] Implement validation and error handling
+- [x] Write tests (200, 400, 401, 403)
+  
+#### `/v2/permissions.deleteRole` ✅
+- [x] Add OpenAPI definitions
+- [x] Create handler with transaction support
+- [x] Implement validation and error handling
+- [x] Implement audit logging
+- [x] Write tests (200, 400, 401, 403, 404)
 
 ## Learnings from Initial Implementation
 
@@ -308,3 +488,16 @@ More complex due to potential cascading effects. Key steps:
 5. Use proper database queries and error handling
 6. Be precise with RBAC permissions checks
 7. Always update the OpenAPI schema before implementation
+8. For endpoints with pagination, return appropriate cursor values and total counts
+9. Handle nullability carefully when mapping database fields to response objects
+10. When dealing with optional parameters, provide sensible defaults (e.g., limit=100)
+11. Use transactions for operations that modify multiple related tables
+12. Clear caches after modifying data to ensure consistency
+13. Implement audit logging for all modification operations
+14. Handle special cases like delete protection with appropriate status codes
+15. Understand and implement relationships between entities (e.g., roles and permissions)
+16. For permission-related operations, ensure proper checks for workspace boundaries
+17. When deleting entities with relationships, handle cascading deletes within transactions
+18. Handle unique constraint violations with appropriate error responses (409 Conflict)
+19. For role and permission operations, be careful with case sensitivity in name matching
+20. Always add complete error test coverage for edge cases like non-existent permissions

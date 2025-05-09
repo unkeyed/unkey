@@ -76,7 +76,7 @@ func TestGetApiInvalidRequest(t *testing.T) {
 	t.Run("valid request", func(t *testing.T) {
 		// Create a test API in the database
 		apiID := "api_valid_test_id"
-		
+
 		req := handler.Request{
 			ApiId: apiID,
 		}

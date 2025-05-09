@@ -599,6 +599,396 @@
       "V2IdentitiesDeleteIdentityResponseBody": {
         "type": "object"
       },
+      "Permission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the permission"
+          },
+          "name": {
+            "type": "string",
+            "description": "The unique name of the permission"
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of what this permission grants access to"
+          },
+          "workspaceId": {
+            "type": "string",
+            "description": "The workspace this permission belongs to"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the permission was created"
+          }
+        },
+        "required": ["id", "name", "workspaceId"]
+      },
+      "V2PermissionsCreatePermissionRequestBody": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The unique name of your permission",
+            "example": "record.write"
+          },
+          "description": {
+            "type": "string",
+            "description": "Explain what this permission does. This is just for your team, your users will not see this.",
+            "example": "record.write can create new dns records for our domains."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PermissionsCreatePermissionResponseData": {
+        "type": "object",
+        "properties": {
+          "permissionId": {
+            "type": "string",
+            "description": "The id of the permission. This is used internally",
+            "example": "perm_123"
+          }
+        },
+        "required": ["permissionId"]
+      },
+      "V2PermissionsCreatePermissionResponseBody": {
+        "type": "object",
+        "required": ["meta", "data"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PermissionsCreatePermissionResponseData"
+          }
+        }
+      },
+      "V2PermissionsGetPermissionRequestBody": {
+        "type": "object",
+        "required": ["permissionId"],
+        "properties": {
+          "permissionId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The id of the permission to retrieve",
+            "example": "perm_123"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PermissionsGetPermissionResponseData": {
+        "type": "object",
+        "properties": {
+          "permission": {
+            "$ref": "#/components/schemas/Permission"
+          }
+        },
+        "required": ["permission"]
+      },
+      "V2PermissionsGetPermissionResponseBody": {
+        "type": "object",
+        "required": ["meta", "data"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PermissionsGetPermissionResponseData"
+          }
+        }
+      },
+      "V2PermissionsListPermissionsRequestBody": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The maximum number of permissions to return",
+            "default": 100,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Cursor for pagination"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PermissionsListPermissionsResponseData": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Cursor for pagination"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of permissions"
+          }
+        },
+        "required": ["permissions", "total"]
+      },
+
+      "V2PermissionsListPermissionsResponseBody": {
+        "type": "object",
+        "required": ["meta", "data"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PermissionsListPermissionsResponseData"
+          }
+        }
+      },
+      "V2PermissionsListRolesRequestBody": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The maximum number of roles to return",
+            "default": 100,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Cursor for pagination"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PermissionsListRolesResponseData": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleWithPermissions"
+            }
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Cursor for pagination"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of roles"
+          }
+        },
+        "required": ["roles", "total"]
+      },
+      "V2PermissionsDeleteRoleRequestBody": {
+        "type": "object",
+        "required": ["roleId"],
+        "properties": {
+          "roleId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The id of the role to delete",
+            "example": "role_123"
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2PermissionsDeleteRoleResponseBody": {
+        "type": "object",
+        "required": ["meta"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        }
+      },
+      "V2PermissionsListRolesResponseBody": {
+        "type": "object",
+        "required": ["meta", "data"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PermissionsListRolesResponseData"
+          }
+        }
+      },
+      "V2PermissionsDeletePermissionRequestBody": {
+        "type": "object",
+        "required": ["permissionId"],
+        "properties": {
+          "permissionId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The id of the permission to delete",
+            "example": "perm_123"
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2PermissionsDeletePermissionResponseBody": {
+        "type": "object",
+        "required": ["meta"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        }
+      },
+      "V2PermissionsCreateRoleRequestBody": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The unique name of your role",
+            "example": "dns.records.manager"
+          },
+          "description": {
+            "type": "string",
+            "description": "Explain what this role does. This is just for your team, your users will not see this.",
+            "example": "dns.records.manager can read and write dns records for our domains."
+          },
+          "permissionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The permission IDs to assign to this role"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PermissionsCreateRoleResponseData": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "string",
+            "description": "The id of the role. This is used internally",
+            "example": "role_123"
+          }
+        },
+        "required": ["roleId"]
+      },
+      "V2PermissionsCreateRoleResponseBody": {
+        "type": "object",
+        "required": ["meta", "data"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PermissionsCreateRoleResponseData"
+          }
+        }
+      },
+      "Role": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the role"
+          },
+          "name": {
+            "type": "string",
+            "description": "The unique name of the role"
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of what this role represents"
+          },
+          "workspaceId": {
+            "type": "string",
+            "description": "The workspace this role belongs to"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the role was created"
+          }
+        },
+        "required": ["id", "name", "workspaceId"]
+      },
+      "RoleWithPermissions": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the role"
+          },
+          "name": {
+            "type": "string",
+            "description": "The unique name of the role"
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of what this role represents"
+          },
+          "workspaceId": {
+            "type": "string",
+            "description": "The workspace this role belongs to"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the role was created"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "description": "The permissions assigned to this role"
+          }
+        },
+        "required": ["id", "name", "workspaceId", "permissions"]
+      },
+      "V2PermissionsGetRoleRequestBody": {
+        "type": "object",
+        "required": ["roleId"],
+        "properties": {
+          "roleId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The id of the role to retrieve",
+            "example": "role_123"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PermissionsGetRoleResponseData": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/RoleWithPermissions"
+          }
+        },
+        "required": ["role"]
+      },
+      "V2PermissionsGetRoleResponseBody": {
+        "type": "object",
+        "required": ["meta", "data"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PermissionsGetRoleResponseData"
+          }
+        }
+      },
       "V2ApisCreateApiRequestBody": {
         "type": "object",
         "required": ["name"],
@@ -801,6 +1191,90 @@
               }
             },
             "description": "Error"
+          }
+        }
+      }
+    },
+    "/v2/permissions.listRoles": {
+      "post": {
+        "tags": ["permissions"],
+        "operationId": "listRoles",
+        "x-speakeasy-name-override": "ListRoles",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PermissionsListRolesRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2PermissionsListRolesResponseBody"
+                }
+              }
+            },
+            "description": "Successfully listed roles"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         }
       }
@@ -1309,11 +1783,337 @@
         }
       }
     },
-    "/v2/apis.createApi": {
+    "/v2/permissions.createPermission": {
+      "post": {
+        "tags": ["permissions"],
+        "operationId": "createPermission",
+        "x-speakeasy-name-override": "CreatePermission",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PermissionsCreatePermissionRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2PermissionsCreatePermissionResponseBody"
+                }
+              }
+            },
+            "description": "Successfully created permission"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - permission with that name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v2/permissions.getPermission": {
+      "post": {
+        "tags": ["permissions"],
+        "operationId": "getPermission",
+        "x-speakeasy-name-override": "GetPermission",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PermissionsGetPermissionRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2PermissionsGetPermissionResponseBody"
+                }
+              }
+            },
+            "description": "Successfully retrieved permission"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v2/permissions.listPermissions": {
+      "post": {
+        "tags": ["permissions"],
+        "operationId": "listPermissions",
+        "x-speakeasy-name-override": "ListPermissions",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PermissionsListPermissionsRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2PermissionsListPermissionsResponseBody"
+                }
+              }
+            },
+            "description": "Successfully listed permissions"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v2/permissions.deleteRole": {
+      "post": {
+        "tags": ["permissions"],
+        "operationId": "deleteRole",
+        "x-speakeasy-name-override": "DeleteRole",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PermissionsDeleteRoleRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2PermissionsDeleteRoleResponseBody"
+                }
+              }
+            },
+            "description": "Successfully deleted role"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - role with that name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v2/apis.deleteApi": {
       "post": {
         "tags": ["apis"],
-        "operationId": "createApi",
-        "x-speakeasy-name-override": "createApi",
+        "operationId": "deleteApi",
+        "x-speakeasy-name-override": "DeleteApi",
         "security": [
           {
             "rootKey": []

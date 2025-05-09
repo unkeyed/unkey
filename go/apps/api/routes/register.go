@@ -10,10 +10,20 @@ import (
 	v2RatelimitSetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 
 	v2ApisCreateApi "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_create_api"
+	v2ApisDeleteApi "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_delete_api"
 	v2ApisGetApi "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_get_api"
+	v2ApisListKeys "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_list_keys"
 
 	v2IdentitiesCreateIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	v2IdentitiesDeleteIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_delete_identity"
+
+	v2PermissionsCreatePermission "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_create_permission"
+	v2PermissionsCreateRole "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_create_role"
+	v2PermissionsDeletePermission "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_permission"
+	v2PermissionsDeleteRole "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_role"
+	v2PermissionsGetPermission "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_permission"
+	v2PermissionsListPermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_permissions"
+	v2PermissionsListRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_roles"
 
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -140,6 +150,115 @@ func Register(srv *zen.Server, svc *Services) {
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
+		}),
+	)
+
+	// v2/apis.listKeys
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2ApisListKeys.New(v2ApisListKeys.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Vault:       svc.Vault,
+		}),
+	)
+
+	// v2/apis.deleteApi
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2ApisDeleteApi.New(v2ApisDeleteApi.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
+			Caches:      svc.Caches,
+		}),
+	)
+
+	// ---------------------------------------------------------------------------
+	// v2/permissions
+
+	// v2/permissions.createPermission
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2PermissionsCreatePermission.New(v2PermissionsCreatePermission.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
+		}),
+	)
+
+	// v2/permissions.getPermission
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2PermissionsGetPermission.New(v2PermissionsGetPermission.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+		}),
+	)
+
+	// v2/permissions.listPermissions
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2PermissionsListPermissions.New(v2PermissionsListPermissions.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+		}),
+	)
+
+	// v2/permissions.deletePermission
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2PermissionsDeletePermission.New(v2PermissionsDeletePermission.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
+		}),
+	)
+
+	// v2/permissions.createRole
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2PermissionsCreateRole.New(v2PermissionsCreateRole.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
+		}),
+	)
+
+	// v2/permissions.listRoles
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2PermissionsListRoles.New(v2PermissionsListRoles.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+		}),
+	)
+
+	// v2/permissions.deleteRole
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2PermissionsDeleteRole.New(v2PermissionsDeleteRole.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
 		}),
 	)
 
