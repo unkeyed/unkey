@@ -626,6 +626,37 @@
         },
         "required": ["apiId", "name"]
       },
+      "V2ApisGetApiRequestBody": {
+        "type": "object",
+        "required": ["apiId"],
+        "properties": {
+          "apiId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The id of the api to fetch",
+            "example": "api_1234"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApisGetApiResponseData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The id of the API",
+            "type": "string"
+          },
+          "workspaceId": {
+            "description": "The id of the workspace that owns the API",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the API",
+            "type": "string"
+          }
+        },
+        "required": ["id", "workspaceId", "name"]
+      },
       "V2ApisCreateApiResponseBody": {
         "type": "object",
         "required": ["meta", "data"],
@@ -635,6 +666,18 @@
           },
           "data": {
             "$ref": "#/components/schemas/ApisCreateApiResponseData"
+          }
+        }
+      },
+      "V2ApisGetApiResponseBody": {
+        "type": "object",
+        "required": ["meta", "data"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ApisGetApiResponseData"
           }
         }
       },
@@ -1323,6 +1366,90 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/v2/apis.getApi": {
+      "post": {
+        "tags": ["apis"],
+        "operationId": "getApi",
+        "x-speakeasy-name-override": "getApi",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2ApisGetApiRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ApisGetApiResponseBody"
+                }
+              }
+            },
+            "description": "Successfully retrieved API"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
                 }
               }
             }

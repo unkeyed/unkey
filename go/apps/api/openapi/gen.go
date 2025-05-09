@@ -23,6 +23,18 @@ type ApisCreateApiResponseData struct {
 	Name string `json:"name"`
 }
 
+// ApisGetApiResponseData defines model for ApisGetApiResponseData.
+type ApisGetApiResponseData struct {
+	// Id The id of the API
+	Id string `json:"id"`
+
+	// Name The name of the API
+	Name string `json:"name"`
+
+	// WorkspaceId The id of the workspace that owns the API
+	WorkspaceId string `json:"workspaceId"`
+}
+
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
 type BadRequestErrorDetails struct {
 	// Detail A human-readable explanation specific to this occurrence of the problem.
@@ -203,6 +215,18 @@ type V2ApisCreateApiResponseBody struct {
 	Meta Meta                      `json:"meta"`
 }
 
+// V2ApisGetApiRequestBody defines model for V2ApisGetApiRequestBody.
+type V2ApisGetApiRequestBody struct {
+	// ApiId The id of the api to fetch
+	ApiId string `json:"apiId"`
+}
+
+// V2ApisGetApiResponseBody defines model for V2ApisGetApiResponseBody.
+type V2ApisGetApiResponseBody struct {
+	Data ApisGetApiResponseData `json:"data"`
+	Meta Meta                   `json:"meta"`
+}
+
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
 	// ExternalId The id of this identity in your system.
@@ -378,6 +402,9 @@ type ValidationError struct {
 
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
 type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody
+
+// GetApiJSONRequestBody defines body for GetApi for application/json ContentType.
+type GetApiJSONRequestBody = V2ApisGetApiRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

@@ -9,6 +9,9 @@ import (
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
 	v2RatelimitSetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 
+	v2ApisCreateApi "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_create_api"
+	v2ApisGetApi "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_get_api"
+
 	v2IdentitiesCreateIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
 	v2IdentitiesDeleteIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_delete_identity"
 
@@ -113,6 +116,30 @@ func Register(srv *zen.Server, svc *Services) {
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
+		}),
+	)
+
+	// ---------------------------------------------------------------------------
+	// v2/apis
+
+	// v2/apis.createApi
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2ApisCreateApi.New(v2ApisCreateApi.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+		}),
+	)
+	// v2/apis.getApi
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2ApisGetApi.New(v2ApisGetApi.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
 		}),
 	)
 
