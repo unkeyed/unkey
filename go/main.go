@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/go/cmd/api"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
+	"github.com/unkeyed/unkey/go/cmd/workflows"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"github.com/urfave/cli/v3"
 )
@@ -22,7 +23,10 @@ func main() {
 			api.Cmd,
 			healthcheck.Cmd,
 			quotacheck.Cmd,
+			workflows.Cmd,
 		},
+		// kind of hacky but I needed to run workflows in lambda
+		DefaultCommand: os.Getenv("DEFAULT_COMMAND"),
 	}
 
 	err := app.Run(context.Background(), os.Args)

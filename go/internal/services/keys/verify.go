@@ -12,6 +12,33 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 )
 
+// Verify validates an API key hash against the database and checks its status.
+// It performs a series of validation checks to ensure the key is valid and usable.
+//
+// The verification process includes:
+// 1. Checking that the key exists in the database
+// 2. Ensuring the key is not deleted
+// 3. Verifying the key is enabled
+// 4. Validating that the associated workspace exists and is enabled
+//
+// The key is looked up using its hash value, which is the SHA-256 hash of the raw key.
+// Results are cached to improve performance for frequently used keys.
+//
+// Parameters:
+//   - ctx: Context for the operation, allowing for cancellation and timeout
+//   - rawKey: The unhashed API key to verify
+//
+// Returns:
+//   - VerifyResponse: Contains the authorized workspace ID and key ID
+//   - error: Details about verification failure, if any occurred
+//
+// Common error cases include:
+//   - Key not found in the database
+//   - Key is deleted or disabled
+//   - Associated workspace is not found or disabled
+//
+// This method is used throughout the system whenever API key authentication is needed,
+// such as when handling API requests or verifying webhook signatures.
 func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, error) {
 	ctx, span := tracing.Start(ctx, "keys.VerifyRootKey")
 	defer span.End()

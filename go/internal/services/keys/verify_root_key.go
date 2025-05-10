@@ -7,6 +7,27 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
+// VerifyRootKey validates a root API key from the Authorization header in a session.
+// It extracts the bearer token from the session, verifies it using the Verify method,
+// and updates the session with the authorized workspace ID.
+//
+// Root keys are special API keys that have different authorization rules than regular keys.
+// They typically authorize access to a workspace specified in the ForWorkspaceID field.
+//
+// Parameters:
+//   - ctx: Context for the operation, allowing for cancellation and timeout
+//   - sess: The session containing authorization information
+//
+// Returns:
+//   - VerifyResponse: Contains the authorized workspace ID and key ID
+//   - error: Details about verification failure, if any occurred
+//
+// The session is modified by setting its WorkspaceID field to the authorized workspace ID
+// if verification succeeds.
+//
+// Common error cases include:
+//   - No bearer token in the Authorization header
+//   - Invalid root key (not found, deleted, or disabled)
 func (s *service) VerifyRootKey(ctx context.Context, sess *zen.Session) (VerifyResponse, error) {
 
 	rootKey, err := zen.Bearer(sess)
