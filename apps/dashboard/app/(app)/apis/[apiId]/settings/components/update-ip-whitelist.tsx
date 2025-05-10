@@ -122,7 +122,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col justify-center items-end w-full h-full lg:mt-6">
+          <div className="flex flex-col justify-center items-end w-full h-full">
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
               <Button type="button" size="lg" variant="primary" color="info">
                 Upgrade to Enterprise

@@ -101,9 +101,9 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           )
         }
         border="bottom"
-        contentWidth="w-full lg:w-[320px]"
+        contentWidth="w-full lg:w-[420px]"
       >
-        <div className="w-full flex justify-end lg:mt-4">
+        <div className="w-full flex justify-end">
           <Button
             variant="outline"
             color="danger"

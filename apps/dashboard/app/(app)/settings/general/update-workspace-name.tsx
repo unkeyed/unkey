@@ -73,15 +73,15 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
         description={"Not customer-facing. Choose a name that is easy to recognize."}
         border="top"
         className="border-b-1"
-        contentWidth="w-full lg:w-[320px]"
+        contentWidth="w-full lg:w-[420px]"
       >
-        <div className="flex flex-row justify-end items-center w-full gap-x-2 mt-2">
+        <div className="flex flex-row justify-end items-center w-full gap-x-2">
           <input type="hidden" name="workspaceId" value={workspace.id} />
           <label htmlFor="workspaceName" className="hidden sr-only">
             Workspace Name
           </label>
           <FormInput
-            className="w-[16rem] lg:h-18"
+            className="w-[21rem]"
             placeholder="Workspace Name"
             minLength={3}
             error={errors.workspaceName?.message}

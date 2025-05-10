@@ -99,7 +99,7 @@ export const RoleClient = ({ role, activeKeys, sortedNestedPermissions }: RoleCl
 
   return (
     <div className="py-3 w-full flex items-center justify-center">
-      <div className="w-[760px] flex flex-col justify-center items-center gap-5">
+      <div className="w-[900px] flex flex-col justify-center items-center gap-5">
         <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
           Role Settings
         </div>
