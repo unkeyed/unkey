@@ -60,7 +60,6 @@ func TestGetApiSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.Equal(t, apiID, res.Body.Data.Id)
-		require.Equal(t, h.Resources().UserWorkspace.ID, res.Body.Data.WorkspaceId)
 		require.Equal(t, apiName, res.Body.Data.Name)
 	})
 
@@ -126,7 +125,6 @@ func TestGetApiSuccessfully(t *testing.T) {
 				if tc.expectedStatus == 200 {
 					require.NotNil(t, res.Body)
 					require.Equal(t, apiID, res.Body.Data.Id)
-					require.Equal(t, h.Resources().UserWorkspace.ID, res.Body.Data.WorkspaceId)
 					require.Equal(t, apiName, res.Body.Data.Name)
 				}
 			})
@@ -165,7 +163,6 @@ func TestGetApiSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.Equal(t, apiID, res.Body.Data.Id)
-		require.Equal(t, h.Resources().UserWorkspace.ID, res.Body.Data.WorkspaceId)
 		require.Equal(t, apiName, res.Body.Data.Name)
 	})
 }

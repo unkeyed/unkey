@@ -85,6 +85,13 @@ func New(svc Services) zen.Route {
 				fault.WithDesc("database error", "Failed to retrieve API information."),
 			)
 		}
+		// Check if API belongs to the authorized workspace
+		if api.WorkspaceID != auth.AuthorizedWorkspaceID {
+			return fault.New("wrong workspace",
+				fault.WithCode(codes.Data.Api.NotFound.URN()),
+				fault.WithDesc("wrong workspace, masking as 404", "The requested API does not exist or has been deleted."),
+			)
+		}
 
 		// Check if API is deleted
 		if api.DeletedAtM.Valid {
@@ -94,22 +101,13 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		// Check if API belongs to the authorized workspace
-		if api.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("wrong workspace",
-				fault.WithCode(codes.Data.Api.NotFound.URN()),
-				fault.WithDesc("wrong workspace, masking as 404", "The requested API does not exist or has been deleted."),
-			)
-		}
-
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
 			Data: openapi.ApisGetApiResponseData{
-				Id:          api.ID,
-				WorkspaceId: api.WorkspaceID,
-				Name:        api.Name,
+				Id:   api.ID,
+				Name: api.Name,
 			},
 		})
 	})

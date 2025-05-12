@@ -37,7 +37,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.NotEmpty(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "The provided root key is invalid")
+		require.Equal(t, "The provided root key is invalid. We could not find the requested key.", res.Body.Error.Detail)
 	})
 
 	t.Run("missing authorization header", func(t *testing.T) {

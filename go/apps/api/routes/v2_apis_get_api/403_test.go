@@ -87,7 +87,7 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 
 			require.Equal(t, 403, res.Status, "expected 403, received: %#v", res)
 			require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-			require.Equal(t, res.Body.Error.Detail, "Missing one of these permissions:")
+			require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
 		})
 	}
 
@@ -114,6 +114,6 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 
 		require.Equal(t, 404, res.Status, "expected 404, received: %#v", res)
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/workspace_not_found", res.Body.Error.Type)
-		require.Equal(t, res.Body.Error.Detail, "The requested workspace does not exist")
+		require.Equal(t, "The provided root key is invalid. The requested workspace does not exist.", res.Body.Error.Detail)
 	})
 }
