@@ -2,9 +2,9 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "workflows"
 main = "src/index.ts"
-compatibility_date = "2024-10-22"
 
 compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-09-23"
 
 [observability]
 enabled = true
