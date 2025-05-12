@@ -76,12 +76,10 @@ type Querier interface {
 	//FindKeyByID
 	//
 	//  SELECT
-	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at
-	//  FROM `keys` k
-	//  LEFT JOIN identities i ON k.identity_id = i.id
-	//  WHERE k.id = ?
-	FindKeyByID(ctx context.Context, db DBTX, id string) (FindKeyByIDRow, error)
+	//      id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
+	//  FROM `keys`
+	//  WHERE id = ?
+	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
 	//FindKeyForVerification
 	//
 	//  WITH direct_permissions AS (
