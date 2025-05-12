@@ -7,6 +7,7 @@ import { KeysDetailsLogsControlCloud } from "./components/control-cloud";
 import { KeysDetailsLogsControls } from "./components/controls";
 import { KeyDetailsDrawer } from "./components/table/components/log-details";
 import { KeyDetailsLogsTable } from "./components/table/logs-table";
+import { KeyDetailsLogsProvider } from "./context/logs";
 
 export const KeyDetailsLogsClient = ({
   keyspaceId,
@@ -27,23 +28,29 @@ export const KeyDetailsLogsClient = ({
   }, []);
 
   return (
-    <div className="flex flex-col">
-      <KeysDetailsLogsControls keyspaceId={keyspaceId} keyId={keyId} />
-      <KeysDetailsLogsControlCloud />
+    <KeyDetailsLogsProvider>
       <div className="flex flex-col">
-        <KeyDetailsLogsChart keyspaceId={keyspaceId} keyId={keyId} onMount={handleDistanceToTop} />
-        <KeyDetailsLogsTable
-          selectedLog={selectedLog}
+        <KeysDetailsLogsControls keyspaceId={keyspaceId} keyId={keyId} />
+        <KeysDetailsLogsControlCloud />
+        <div className="flex flex-col">
+          <KeyDetailsLogsChart
+            keyspaceId={keyspaceId}
+            keyId={keyId}
+            onMount={handleDistanceToTop}
+          />
+          <KeyDetailsLogsTable
+            selectedLog={selectedLog}
+            onLogSelect={handleSelectedLog}
+            keyspaceId={keyspaceId}
+            keyId={keyId}
+          />
+        </div>
+        <KeyDetailsDrawer
+          distanceToTop={tableDistanceToTop}
           onLogSelect={handleSelectedLog}
-          keyspaceId={keyspaceId}
-          keyId={keyId}
+          selectedLog={selectedLog}
         />
       </div>
-      <KeyDetailsDrawer
-        distanceToTop={tableDistanceToTop}
-        onLogSelect={handleSelectedLog}
-        selectedLog={selectedLog}
-      />
-    </div>
+    </KeyDetailsLogsProvider>
   );
 };

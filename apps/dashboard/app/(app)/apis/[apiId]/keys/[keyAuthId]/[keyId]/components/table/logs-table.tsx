@@ -21,6 +21,7 @@ import {
 import { TimestampInfo } from "@unkey/ui";
 import { Button, Empty, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import { useCallback, useState } from "react";
+import { useKeyDetailsLogsContext } from "../../context/logs";
 import { StatusBadge } from "./components/status-badge";
 import { useKeyDetailsLogsQuery } from "./hooks/use-logs-query";
 
@@ -182,10 +183,14 @@ type Props = {
 };
 
 export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelect }: Props) => {
-  const { logs, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useKeyDetailsLogsQuery({
-    keyId,
-    keyspaceId,
-  });
+  const { isLive } = useKeyDetailsLogsContext();
+  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, totalCount } =
+    useKeyDetailsLogsQuery({
+      keyId,
+      keyspaceId,
+      startPolling: isLive,
+      pollIntervalMs: 2000,
+    });
 
   const getRowClassName = (log: KeyDetailsLog, selected: KeyDetailsLog | null) => {
     const style = getStatusStyle(log);
@@ -426,7 +431,8 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
   return (
     <div className="flex flex-col">
       <VirtualTable
-        data={logs}
+        data={historicalLogs}
+        realtimeData={realtimeLogs}
         isLoading={isLoading}
         isFetchingNextPage={isLoadingMore}
         onLoadMore={loadMore}
@@ -443,7 +449,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
           hide: isLoading,
           countInfoText: (
             <div className="flex gap-2">
-              <span>Showing</span> <span className="text-accent-12">{logs.length}</span>
+              <span>Showing</span> <span className="text-accent-12">{historicalLogs.length}</span>
               <span>of</span>
               {totalCount}
               <span>requests</span>
