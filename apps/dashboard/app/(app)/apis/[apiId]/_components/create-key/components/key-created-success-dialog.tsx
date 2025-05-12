@@ -125,6 +125,7 @@ export const KeyCreatedSuccessDialog = ({
                       position={{ side: "bottom", align: "center" }}
                       asChild
                       disabled={!keyData.name}
+                      variant="inverted"
                     >
                       <div className="text-accent-9 text-xs max-w-[160px] truncate">
                         {keyData.name ?? UNNAMED_KEY}

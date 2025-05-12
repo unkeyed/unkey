@@ -32,14 +32,14 @@ export const StatsCard = ({
             <div className="flex flex-col flex-grow min-w-0">
               <div className="flex gap-2 md:gap-3 items-center">
                 <span className="flex-shrink-0">{icon}</span>
-                <InfoTooltip position={{ side: "top" }} content={name}>
+                <InfoTooltip variant="inverted" position={{ side: "top" }} content={name}>
                   <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
                     {name}
                   </div>
                 </InfoTooltip>
               </div>
               {secondaryId && (
-                <InfoTooltip position={{ side: "top" }} content={secondaryId}>
+                <InfoTooltip variant="inverted" position={{ side: "top" }} content={secondaryId}>
                   <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
                     {secondaryId}
                   </div>

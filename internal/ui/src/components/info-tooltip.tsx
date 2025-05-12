@@ -6,7 +6,10 @@ const baseVariant =
   "px-3 py-2 text-xs font-medium shadow-md rounded-lg focus:border focus:border-accent-12 focus:ring-2 focus:ring-grayA-4 focus-visible:outline-none focus:ring-offset-0";
 const variants = {
   primary: ["border border-grayA-4 hover:border-gray-8 bg-white dark:bg-black"],
-  secondary: ["bg-black dark:bg-white text-gray-1 border border-grayA-4"],
+  inverted: ["bg-black dark:bg-white text-gray-1 border border-grayA-4"],
+  secondary: [
+    "bg-gray-12 text-gray-1 px-3 py-2 border border-accent-6 shadow-md font-medium text-xs",
+  ],
 } as const;
 
 type TooltipVariant = keyof typeof variants;

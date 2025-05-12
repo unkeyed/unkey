@@ -238,7 +238,7 @@ export const OverviewAreaChart = ({
                       payload={payload}
                       label={label}
                       active={active}
-                      className="rounded-lg shadow-lg border border-grayA-4 bg-white dark:bg-black"
+                      className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) =>
                         createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)
                       }
