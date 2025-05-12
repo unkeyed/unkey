@@ -90,7 +90,6 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       cell: ({ row }) => (
         <InfoTooltip
           asChild
-          variant="secondary"
           content={
             <p>
               This is the first part of the key to visually match it. We don't store the full key

@@ -109,9 +109,10 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             <Loading />
           ) : !isCollapsed ? (
             <InfoTooltip
-              variant="inverted"
+              variant="primary"
               position={{ side: "bottom" }}
               content={<span className="text-sm font-medium">{props.workspace.name}</span>}
+              className="border-[1px] border-gray-12 "
             >
               <span className="overflow-hidden text-sm font-medium text-ellipsis">
                 {props.workspace.name}

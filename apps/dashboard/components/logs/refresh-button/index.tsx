@@ -49,6 +49,7 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
   return (
     <InfoTooltip
       content="Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
+      variant="secondary"
       position={{ side: "bottom", align: "center" }}
       disabled={isEnabled && !isLoading}
       asChild
