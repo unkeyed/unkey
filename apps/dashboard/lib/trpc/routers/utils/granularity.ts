@@ -29,10 +29,7 @@ export type CompoundTimeseriesGranularity =
   | VerificationTimeseriesGranularity
   | RegularTimeseriesGranularity;
 
-const DEFAULT_GRANULARITY: Record<
-  TimeseriesContext,
-  CompoundTimeseriesGranularity
-> = {
+const DEFAULT_GRANULARITY: Record<TimeseriesContext, CompoundTimeseriesGranularity> = {
   forVerifications: "perHour",
   forRegular: "perMinute",
 };
@@ -55,7 +52,7 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   context: TContext,
   startTime?: number | null,
   endTime?: number | null,
-  allowMinutelyForVerifications = false
+  allowMinutelyForVerifications = true,
 ): TimeseriesConfig<TContext> => {
   const now = Date.now();
   const WEEK_IN_MS = DAY_IN_MS * 7;
@@ -65,8 +62,7 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   // If both are missing, fallback to an appropriate default for the context
   if (!startTime && !endTime) {
     const defaultGranularity = DEFAULT_GRANULARITY[context];
-    const defaultDuration =
-      context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
+    const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
     return {
       granularity: defaultGranularity as TimeseriesGranularityMap[TContext],
       startTime: now - defaultDuration,
@@ -78,8 +74,7 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   // Set default end time if missing
   const effectiveEndTime = endTime ?? now;
   // Set default start time if missing (defaults vary by context)
-  const defaultDuration =
-    context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
+  const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
   const effectiveStartTime = startTime ?? effectiveEndTime - defaultDuration;
   const timeRange = effectiveEndTime - effectiveStartTime;
   let granularity: CompoundTimeseriesGranularity;
@@ -154,9 +149,7 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
  * @param granularity The current timeseries granularity
  * @returns Buffer time in milliseconds
  */
-export const getTimeBufferForGranularity = (
-  granularity: CompoundTimeseriesGranularity
-): number => {
+export const getTimeBufferForGranularity = (granularity: CompoundTimeseriesGranularity): number => {
   // Constants for commonly used durations
   const MINUTE_IN_MS = 60 * 1000;
 
