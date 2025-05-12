@@ -1,8 +1,10 @@
 import { LogsClient } from "@/app/(app)/apis/[apiId]/_overview/logs-client";
 import { fetchApiAndWorkspaceDataFromDb } from "@/app/(app)/apis/[apiId]/actions";
-import { ApisNavbar } from "@/app/(app)/apis/[apiId]/api-id-navbar";
+import dynamic from "next/dynamic";
 
-export const dynamic = "force-dynamic";
+const ApisNavbar = dynamic(() =>
+  import("@/app/(app)/apis/[apiId]/api-id-navbar").then((mod) => mod.ApisNavbar),
+);
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const apiId = props.params.apiId;

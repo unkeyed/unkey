@@ -27,6 +27,7 @@ import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
 import { deleteRootKeys } from "./key/deleteRootKey";
+import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { updateKeysEnabled } from "./key/updateEnabled";
@@ -89,6 +90,7 @@ export const router = t.router({
   key: t.router({
     create: createKey,
     delete: deleteKeys,
+    fetchPermissions: fetchKeyPermissions,
     logs: t.router({
       query: queryKeyDetailsLogs,
       timeseries: keyDetailsVerificationsTimeseries,

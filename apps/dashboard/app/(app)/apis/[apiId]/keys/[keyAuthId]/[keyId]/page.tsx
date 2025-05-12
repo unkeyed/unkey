@@ -1,6 +1,10 @@
 import { fetchApiAndWorkspaceDataFromDb, getKeyDetails } from "@/app/(app)/apis/[apiId]/actions";
-import { ApisNavbar } from "@/app/(app)/apis/[apiId]/api-id-navbar";
+import dynamic from "next/dynamic";
 import { KeyDetailsLogsClient } from "./logs-client";
+
+const ApisNavbar = dynamic(() =>
+  import("@/app/(app)/apis/[apiId]/api-id-navbar").then((mod) => mod.ApisNavbar),
+);
 
 export default async function KeyDetailsPage(props: {
   params: { apiId: string; keyAuthId: string; keyId: string };
