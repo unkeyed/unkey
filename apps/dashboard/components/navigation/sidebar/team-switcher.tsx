@@ -63,6 +63,8 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
 
       // refresh the check mark by invalidating the current user's org data
       utils.user.getCurrentUser.invalidate();
+      utils.api.overview.query.invalidate();
+      utils.ratelimit.namespace.query.invalidate();
 
       // reload data
       router.replace("/");
