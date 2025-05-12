@@ -27,7 +27,7 @@ export default async function KeyDetailsPage(props: {
         apis={workspaceApis}
         keyData={keyData}
       />
-      <KeyDetailsLogsClient keyspaceId={keyspaceId} keyId={keyId} />
+      <KeyDetailsLogsClient keyspaceId={keyspaceId} keyId={keyId} apiId={apiId} />
     </div>
   );
 }

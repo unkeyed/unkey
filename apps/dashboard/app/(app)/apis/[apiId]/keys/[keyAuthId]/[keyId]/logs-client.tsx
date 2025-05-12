@@ -12,9 +12,11 @@ import { KeyDetailsLogsProvider } from "./context/logs";
 export const KeyDetailsLogsClient = ({
   keyspaceId,
   keyId,
+  apiId,
 }: {
   keyId: string;
   keyspaceId: string;
+  apiId: string;
 }) => {
   const [selectedLog, setSelectedLog] = useState<KeyDetailsLog | null>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
@@ -30,7 +32,7 @@ export const KeyDetailsLogsClient = ({
   return (
     <KeyDetailsLogsProvider>
       <div className="flex flex-col">
-        <KeysDetailsLogsControls keyspaceId={keyspaceId} keyId={keyId} />
+        <KeysDetailsLogsControls keyspaceId={keyspaceId} keyId={keyId} apiId={apiId} />
         <KeysDetailsLogsControlCloud />
         <div className="flex flex-col">
           <KeyDetailsLogsChart

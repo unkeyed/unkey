@@ -17,9 +17,11 @@ import { LogsSearch } from "./components/logs-search";
 export function KeysDetailsLogsControls({
   keyspaceId,
   keyId,
+  apiId,
 }: {
   keyId: string;
   keyspaceId: string;
+  apiId: string;
 }) {
   const { data } = trpc.key.fetchPermissions.useQuery({
     keyId,
@@ -29,7 +31,7 @@ export function KeysDetailsLogsControls({
   return (
     <ControlsContainer>
       <ControlsLeft>
-        <LogsSearch keyspaceId={keyspaceId} keyId={keyId} />
+        <LogsSearch apiId={apiId} />
         <LogsFilters />
         <LogsDateTime />
         <AnimatePresence>
