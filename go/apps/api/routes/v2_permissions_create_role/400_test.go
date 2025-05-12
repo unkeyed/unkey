@@ -54,7 +54,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "invalid")
+		require.Equal(t, res.Body.Error.Detail, "invalid")
 	})
 
 	// Test case for empty name
@@ -73,7 +73,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "invalid")
+		require.Equal(t, res.Body.Error.Detail, "invalid")
 	})
 
 	// Test case for malformed JSON body
@@ -107,7 +107,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Equal(t, res.Body.Error.Detail, "not found")
 	})
 
 	// Test for very long description

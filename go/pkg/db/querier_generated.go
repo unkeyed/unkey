@@ -14,10 +14,27 @@ type Querier interface {
 	//
 	//  DELETE FROM identities WHERE id = ?
 	DeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//DeleteKeyPermissionsByPermissionId
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE permission_id = ?
+	DeleteKeyPermissionsByPermissionId(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteKeysByKeyAuthId
+	//
+	//  UPDATE `keys`
+	//  SET deleted_at_m = ?
+	//  WHERE key_auth_id = ?
+	//  AND deleted_at_m IS NULL
+	DeleteKeysByKeyAuthId(ctx context.Context, db DBTX, arg DeleteKeysByKeyAuthIdParams) error
 	//DeleteManyRatelimitsByIDs
 	//
 	//  DELETE FROM ratelimits WHERE id IN (/*SLICE:ids*/?)
 	DeleteManyRatelimitsByIDs(ctx context.Context, db DBTX, ids []string) error
+	//DeletePermission
+	//
+	//  DELETE FROM permissions
+	//  WHERE id = ?
+	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
 	//DeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`
@@ -28,6 +45,11 @@ type Querier interface {
 	//
 	//  DELETE FROM ratelimits WHERE identity_id = ?
 	DeleteRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) error
+	//DeleteRolePermissionsByPermissionId
+	//
+	//  DELETE FROM roles_permissions
+	//  WHERE permission_id = ?
+	DeleteRolePermissionsByPermissionId(ctx context.Context, db DBTX, permissionID string) error
 	//FindApiById
 	//
 	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
@@ -124,11 +146,42 @@ type Querier interface {
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
 	//  WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	//FindKeysByKeyAuthId
+	//
+	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
+	//  FROM `keys`
+	//  WHERE key_auth_id = ?
+	//  AND deleted_at_m IS NULL
+	FindKeysByKeyAuthId(ctx context.Context, db DBTX, keyAuthID string) ([]Key, error)
+	// Finds a permission record by its ID
+	// Returns: The permission record if found
+	//
+	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m
+	//  FROM permissions
+	//  WHERE id = ?
+	//  LIMIT 1
+	FindPermissionById(ctx context.Context, db DBTX, permissionID string) (Permission, error)
+	//FindPermissionByNameAndWorkspace
+	//
+	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m
+	//  FROM permissions
+	//  WHERE name = ?
+	//  AND workspace_id = ?
+	//  LIMIT 1
+	FindPermissionByNameAndWorkspace(ctx context.Context, db DBTX, arg FindPermissionByNameAndWorkspaceParams) (Permission, error)
 	//FindPermissionByWorkspaceAndName
 	//
 	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m FROM `permissions`
 	//  WHERE workspace_id = ? AND name = ?
 	FindPermissionByWorkspaceAndName(ctx context.Context, db DBTX, arg FindPermissionByWorkspaceAndNameParams) (Permission, error)
+	//FindPermissionsByRoleId
+	//
+	//  SELECT p.id, p.workspace_id, p.name, p.description, p.created_at_m, p.updated_at_m
+	//  FROM permissions p
+	//  JOIN roles_permissions rp ON p.id = rp.permission_id
+	//  WHERE rp.role_id = ?
+	//  ORDER BY p.name
+	FindPermissionsByRoleId(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
 	//FindPermissionsForKey
 	//
 	//  WITH direct_permissions AS (
@@ -193,6 +246,23 @@ type Querier interface {
 	//
 	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration FROM ratelimits WHERE identity_id = ?
 	FindRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
+	// Finds a role record by its ID
+	// Returns: The role record if found
+	//
+	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m
+	//  FROM roles
+	//  WHERE id = ?
+	//  LIMIT 1
+	FindRoleById(ctx context.Context, db DBTX, roleID string) (Role, error)
+	// Finds a role record by its name within a specific workspace
+	// Returns: The role record if found
+	//
+	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m
+	//  FROM roles
+	//  WHERE name = ?
+	//  AND workspace_id = ?
+	//  LIMIT 1
+	FindRoleByNameAndWorkspace(ctx context.Context, db DBTX, arg FindRoleByNameAndWorkspaceParams) (Role, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -402,18 +472,19 @@ type Querier interface {
 	InsertKeyring(ctx context.Context, db DBTX, arg InsertKeyringParams) error
 	//InsertPermission
 	//
-	//  INSERT INTO `permissions` (
-	//      id,
-	//      workspace_id,
-	//      name,
-	//      description,
-	//      created_at_m
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
+	//  INSERT INTO permissions (
+	//    id,
+	//    workspace_id,
+	//    name,
+	//    description,
+	//    created_at_m
+	//  )
+	//  VALUES (
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?
 	//  )
 	InsertPermission(ctx context.Context, db DBTX, arg InsertPermissionParams) error
 	//InsertRatelimitNamespace
@@ -462,6 +533,32 @@ type Querier interface {
 	//           ?
 	//      )
 	InsertRatelimitOverride(ctx context.Context, db DBTX, arg InsertRatelimitOverrideParams) error
+	//InsertRole
+	//
+	//  INSERT INTO roles (
+	//    id,
+	//    workspace_Id,
+	//    name,
+	//    description
+	//  )
+	//  VALUES (
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?
+	//  )
+	InsertRole(ctx context.Context, db DBTX, arg InsertRoleParams) error
+	//InsertRolePermission
+	//
+	//  INSERT INTO roles_permissions (
+	//    role_id,
+	//    permission_id
+	//  )
+	//  VALUES (
+	//    ?,
+	//    ?
+	//  )
+	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -505,6 +602,12 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
+	//SoftDeleteApi
+	//
+	//  UPDATE apis
+	//  SET deleted_at_m = ?
+	//  WHERE id = ?
+	SoftDeleteApi(ctx context.Context, db DBTX, arg SoftDeleteApiParams) error
 	//SoftDeleteIdentity
 	//
 	//  UPDATE identities set deleted = 1 WHERE id = ?
@@ -530,6 +633,12 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
+	//UpdateApiDeleteProtection
+	//
+	//  UPDATE apis
+	//  SET delete_protection = ?
+	//  WHERE id = ?
+	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
 	//UpdateRatelimitOverride
 	//
 	//  UPDATE `ratelimit_overrides`

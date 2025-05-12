@@ -2,15 +2,18 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_delete_api"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestDeleteProtection(t *testing.T) {
@@ -42,23 +45,45 @@ func TestDeleteProtection(t *testing.T) {
 
 	// Test case for deleting an API with delete protection enabled
 	t.Run("delete protected API", func(t *testing.T) {
-		// Create an API with delete protection
-		api, err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			Name:             "Protected API",
-			WorkspaceID:      workspace.ID,
-			DeleteProtection: true,
+
+		keyAuthID := uid.New(uid.KeyAuthPrefix)
+		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+			ID:                 keyAuthID,
+			WorkspaceID:        h.Resources().UserWorkspace.ID,
+			CreatedAtM:         h.Clock.Now().UnixMilli(),
+			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
+			DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
+			StoreEncryptedKeys: false,
+		})
+		require.NoError(t, err)
+
+		apiID := uid.New(uid.APIPrefix)
+		err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
+			ID:          apiID,
+			Name:        "Test API",
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+			KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+			CreatedAtM:  time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		err = db.Query.UpdateApiDeleteProtection(ctx, h.DB.RW(), db.UpdateApiDeleteProtectionParams{
+			ApiID:            apiID,
+			DeleteProtection: sql.NullBool{Valid: true, Bool: true},
 		})
 		require.NoError(t, err)
 
 		// Ensure API exists and has delete protection
-		apiBeforeDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), api.ID)
+		apiBeforeDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
-		require.Equal(t, api.ID, apiBeforeDelete.ID)
-		require.True(t, apiBeforeDelete.DeleteProtection)
+		require.Equal(t, apiID, apiBeforeDelete.ID)
+		require.True(t, apiBeforeDelete.DeleteProtection.Valid)
+		require.True(t, apiBeforeDelete.DeleteProtection.Bool)
 
 		// Attempt to delete the API
 		req := handler.Request{
-			ApiId: api.ID,
+			ApiId: apiID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](
@@ -68,14 +93,13 @@ func TestDeleteProtection(t *testing.T) {
 			req,
 		)
 
-		// Should get a 429 Too Many Requests error for delete protected APIs
-		require.Equal(t, 429, res.Status)
+		require.Equal(t, 412, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "protected from deletion")
+		require.Equal(t, "This API has delete protection enabled. Disable it before attempting to delete.", res.Body.Error.Detail)
 
 		// Verify API was NOT deleted
-		apiAfterDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), api.ID)
+		apiAfterDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.False(t, apiAfterDelete.DeletedAtM.Valid, "API should not have been deleted")
 	})

@@ -46,7 +46,7 @@ func TestAuthenticationErrors(t *testing.T) {
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "unauthorized")
+		require.Equal(t, res.Body.Error.Detail, "unauthorized")
 	})
 
 	// Test case for invalid authorization token
@@ -66,7 +66,7 @@ func TestAuthenticationErrors(t *testing.T) {
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "unauthorized")
+		require.Equal(t, res.Body.Error.Detail, "unauthorized")
 	})
 
 	// Test case for malformed authorization header
@@ -86,6 +86,6 @@ func TestAuthenticationErrors(t *testing.T) {
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "unauthorized")
+		require.Equal(t, res.Body.Error.Detail, "unauthorized")
 	})
 }

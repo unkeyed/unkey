@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_update_identity/handler"
 	"github.com/unkeyed/unkey/go/internal/testutil"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 )
 
 func TestBadRequests(t *testing.T) {
@@ -105,8 +103,8 @@ func TestBadRequests(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit/duplicate", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "duplicate ratelimit name")
-		require.Contains(t, res.Body.Error.Detail, "api_calls")
+		require.Equal(t, res.Body.Error.Detail, "duplicate ratelimit name")
+		require.Equal(t, res.Body.Error.Detail, "api_calls")
 	})
 
 	t.Run("metadata too large", func(t *testing.T) {
@@ -125,6 +123,6 @@ func TestBadRequests(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "metadata is too large")
+		require.Equal(t, res.Body.Error.Detail, "metadata is too large")
 	})
 }

@@ -76,7 +76,7 @@ func TestConflictErrors(t *testing.T) {
 		require.Equal(t, 409, res2.Status, "Duplicate role creation should fail with 409")
 		require.NotNil(t, res2.Body)
 		require.NotNil(t, res2.Body.Error)
-		require.Contains(t, res2.Body.Error.Detail, "already exists")
+		require.Equal(t, res2.Body.Error.Detail, "already exists")
 	})
 
 	// Test case for duplicate role name with different case (if case-insensitive)
@@ -119,7 +119,7 @@ func TestConflictErrors(t *testing.T) {
 			// Case-insensitive implementation
 			conflict := testutil.UnmarshalBody[openapi.ConflictErrorResponse](t, res2)
 			require.NotNil(t, conflict.Error)
-			require.Contains(t, conflict.Error.Detail, "already exists")
+			require.Equal(t, conflict.Error.Detail, "already exists")
 		}
 	})
 
@@ -151,6 +151,6 @@ func TestConflictErrors(t *testing.T) {
 		require.Equal(t, 409, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "already exists")
+		require.Equal(t, res.Body.Error.Detail, "already exists")
 	})
 }

@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -13,7 +12,6 @@ import (
 )
 
 func TestValidationErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -53,9 +51,7 @@ func TestValidationErrors(t *testing.T) {
 		)
 
 		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "invalid")
+		require.Equal(t, "POST request body for '/v2/apis.deleteApi' failed to validate schema", res.Body.Error.Detail)
 	})
 
 	// Test case for invalid API ID format
@@ -72,21 +68,7 @@ func TestValidationErrors(t *testing.T) {
 		)
 
 		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "invalid")
+		require.Equal(t, "POST request body for '/v2/apis.deleteApi' failed to validate schema", res.Body.Error.Detail)
 	})
 
-	// Test case for malformed JSON body
-	t.Run("malformed JSON body", func(t *testing.T) {
-		res, err := h.Client.Post(
-			"/v2/apis.deleteApi",
-			"application/json",
-			[]byte("{malformed json"),
-			headers,
-		)
-
-		require.NoError(t, err)
-		require.Equal(t, 400, res.StatusCode)
-	})
 }

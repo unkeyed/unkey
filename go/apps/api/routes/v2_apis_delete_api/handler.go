@@ -2,6 +2,9 @@ package handler
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -10,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
+	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -32,15 +36,12 @@ type Services struct {
 
 func New(svc Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/apis.deleteApi", func(ctx context.Context, s *zen.Session) error {
-		svc.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/apis.deleteApi")
 
-		// 1. Authentication
 		auth, err := svc.Keys.VerifyRootKey(ctx, s)
 		if err != nil {
 			return err
 		}
 
-		// 2. Request validation
 		var req Request
 		err = s.BindBody(&req)
 		if err != nil {
@@ -49,7 +50,6 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		// 3. Permission check
 		permissionCheck, err := svc.Permissions.Check(
 			ctx,
 			auth.KeyID,
@@ -79,7 +79,6 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		// 4. Get API from database (don't use cache for deletion operations)
 		api, err := db.Query.FindApiById(ctx, svc.DB.RO(), req.ApiId)
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -94,14 +93,6 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		// Check if API is deleted
-		if api.DeletedAtM.Valid {
-			return fault.New("api not found",
-				fault.WithCode(codes.Data.Api.NotFound.URN()),
-				fault.WithDesc("api not found", "The requested API does not exist or has been deleted."),
-			)
-		}
-
 		// Check if API belongs to the authorized workspace
 		if api.WorkspaceID != auth.AuthorizedWorkspaceID {
 			return fault.New("wrong workspace",
@@ -110,112 +101,83 @@ func New(svc Services) zen.Route {
 			)
 		}
 
+		// Check if API is deleted
+		if api.DeletedAtM.Valid {
+			return fault.New("api not found",
+				fault.WithCode(codes.Data.Api.NotFound.URN()),
+				fault.WithDesc("api not found", "The requested API does not exist or has been deleted."),
+			)
+		}
+
 		// 5. Check delete protection
-		if api.DeleteProtection {
+		if api.DeleteProtection.Valid && api.DeleteProtection.Bool {
 			return fault.New("delete protected",
-				fault.WithCode(codes.RateLimit.TooManyRequests.URN()),
+				fault.WithCode(codes.App.Protection.ProtectedResource.URN()),
 				fault.WithDesc("api is protected from deletion", "This API has delete protection enabled. Disable it before attempting to delete."),
 			)
 		}
 
 		now := time.Now()
 
-		// 6. Execute deletion in a transaction
-		err = svc.DB.WithTransaction(ctx, func(ctx context.Context, tx db.Tx) error {
-			// Soft delete the API
-			_, err := db.Query.UpdateApiSetDeletedAtM(ctx, tx, req.ApiId, db.NewNullTime(now))
-			if err != nil {
-				return fault.Wrap(err,
-					fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.WithDesc("database error", "Failed to delete API."),
-				)
-			}
-
-			// Create audit log for API deletion
-			err = svc.Auditlogs.CreateAuditLog(ctx, tx, auditlogs.CreateAuditLogParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       "api.delete",
-				ActorType:   "key",
-				ActorID:     auth.KeyID,
-				Description: "Deleted " + req.ApiId,
-				Resources: []auditlogs.Resource{
-					{
-						Type: "api",
-						ID:   req.ApiId,
-					},
-				},
-				Context: auditlogs.Context{
-					Location:  s.Location(),
-					UserAgent: s.UserAgent(),
-				},
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.WithDesc("audit log error", "Failed to create audit log for API deletion."),
-				)
-			}
-
-			// If API has keyAuth, delete associated keys
-			if api.KeyAuthID.Valid {
-				// Find all keys for this keyAuth
-				keys, err := db.Query.FindKeysByKeyAuthId(ctx, tx, api.KeyAuthID.String)
-				if err != nil {
-					return fault.Wrap(err,
-						fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.WithDesc("database error", "Failed to retrieve keys for deletion."),
-					)
-				}
-
-				// Soft delete all keys
-				_, err = db.Query.DeleteKeysByKeyAuthId(ctx, tx, api.KeyAuthID.String, db.NewNullTime(now))
-				if err != nil {
-					return fault.Wrap(err,
-						fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.WithDesc("database error", "Failed to delete keys."),
-					)
-				}
-
-				// Create audit logs for each key deletion
-				for _, key := range keys {
-					err = svc.Auditlogs.CreateAuditLog(ctx, tx, auditlogs.CreateAuditLogParams{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						Event:       "key.delete",
-						ActorType:   "key",
-						ActorID:     auth.KeyID,
-						Description: "Deleted " + key.ID + " as part of " + req.ApiId + " deletion",
-						Resources: []auditlogs.Resource{
-							{
-								Type: "keyAuth",
-								ID:   api.KeyAuthID.String,
-							},
-							{
-								Type: "key",
-								ID:   key.ID,
-							},
-						},
-						Context: auditlogs.Context{
-							Location:  s.Location(),
-							UserAgent: s.UserAgent(),
-						},
-					})
-					if err != nil {
-						return fault.Wrap(err,
-							fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-							fault.WithDesc("audit log error", "Failed to create audit log for key deletion."),
-						)
-					}
-				}
-			}
-
-			return nil
-		})
+		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
-			return err
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
+			)
 		}
 
-		// 7. Clear caches
-		s.ExecutionCtx().WaitUntil(svc.Caches.ApiById.Delete(ctx, req.ApiId))
+		defer func() {
+			rollbackErr := tx.Rollback()
+			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
+			}
+		}()
+
+		// Soft delete the API
+		err = db.Query.SoftDeleteApi(ctx, tx, db.SoftDeleteApiParams{
+			ApiID: req.ApiId,
+			Now:   sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+		})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database error", "Failed to delete API."),
+			)
+		}
+
+		// Create audit log for API deletion
+		err = svc.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Event:       auditlog.APIDeleteEvent,
+			ActorType:   auditlog.RootKeyActor,
+			ActorID:     auth.KeyID,
+			Display:     fmt.Sprintf("Deleted API %s", req.ApiId),
+			Resources: []auditlog.AuditLogResource{
+				{
+					Type: auditlog.APIResourceType,
+					ID:   req.ApiId,
+				},
+			},
+			RemoteIP:  s.Location(),
+			UserAgent: s.UserAgent(),
+		}})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("audit log error", "Failed to create audit log for API deletion."),
+			)
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
+			)
+		}
+
+		svc.Caches.ApiByID.SetNull(ctx, req.ApiId)
 
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{

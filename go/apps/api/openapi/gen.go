@@ -15,15 +15,6 @@ const (
 	RootKeyScopes = "rootKey.Scopes"
 )
 
-// ApisCreateApiResponseData defines model for ApisCreateApiResponseData.
-type ApisCreateApiResponseData struct {
-	// ApiId The id of the API
-	ApiId string `json:"apiId"`
-}
-
-// ApisDeleteApiResponseData defines model for ApisDeleteApiResponseData.
-type ApisDeleteApiResponseData = map[string]interface{}
-
 // ApisGetApiResponseData defines model for ApisGetApiResponseData.
 type ApisGetApiResponseData struct {
 	// Id The id of the API
@@ -279,20 +270,25 @@ type V2ApisCreateApiRequestBody struct {
 
 // V2ApisCreateApiResponseBody defines model for V2ApisCreateApiResponseBody.
 type V2ApisCreateApiResponseBody struct {
-	Data ApisCreateApiResponseData `json:"data"`
-	Meta Meta                      `json:"meta"`
+	Data V2ApisCreateApiResponseData `json:"data"`
+	Meta Meta                        `json:"meta"`
+}
+
+// V2ApisCreateApiResponseData defines model for V2ApisCreateApiResponseData.
+type V2ApisCreateApiResponseData struct {
+	// ApiId The id of the API
+	ApiId string `json:"apiId"`
 }
 
 // V2ApisDeleteApiRequestBody defines model for V2ApisDeleteApiRequestBody.
 type V2ApisDeleteApiRequestBody struct {
-	// Id The id of the API you want to delete. API ids always start with `api_`
-	Id string `json:"id"`
+	// ApiId The id of the API you want to delete. API ids always start with `api_`
+	ApiId string `json:"apiId"`
 }
 
 // V2ApisDeleteApiResponseBody defines model for V2ApisDeleteApiResponseBody.
 type V2ApisDeleteApiResponseBody struct {
-	Data ApisDeleteApiResponseData `json:"data"`
-	Meta Meta                      `json:"meta"`
+	Meta Meta `json:"meta"`
 }
 
 // V2ApisGetApiRequestBody defines model for V2ApisGetApiRequestBody.

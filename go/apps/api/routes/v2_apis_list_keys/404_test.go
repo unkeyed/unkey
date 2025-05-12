@@ -56,7 +56,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Equal(t, res.Body.Error.Detail, "not found")
 	})
 
 	// Test case for API in different workspace
@@ -82,7 +82,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Equal(t, res.Body.Error.Detail, "not found")
 	})
 
 	// Test case for deleted API
@@ -112,7 +112,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Equal(t, res.Body.Error.Detail, "not found")
 	})
 
 	// Test case for API without KeyAuth
@@ -138,6 +138,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 412, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "not set up")
+		require.Equal(t, res.Body.Error.Detail, "not set up")
 	})
 }

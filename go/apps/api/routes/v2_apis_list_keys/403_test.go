@@ -71,7 +71,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Equal(t, res.Body.Error.Detail, "insufficient permissions")
 	})
 
 	// Test case for insufficient permissions - missing read_api
@@ -98,7 +98,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Equal(t, res.Body.Error.Detail, "insufficient permissions")
 	})
 
 	// Test case for permission for different API
@@ -130,7 +130,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Equal(t, res.Body.Error.Detail, "insufficient permissions")
 	})
 
 	// Test case for decrypt permission
@@ -159,6 +159,6 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Equal(t, res.Body.Error.Detail, "insufficient permissions")
 	})
 }

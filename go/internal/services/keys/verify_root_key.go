@@ -14,7 +14,7 @@ func (s *service) VerifyRootKey(ctx context.Context, sess *zen.Session) (VerifyR
 		return VerifyResponse{}, fault.Wrap(err,
 			fault.WithDesc(
 				"no bearer",
-				"You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'",
+				"You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'.",
 			),
 		)
 	}

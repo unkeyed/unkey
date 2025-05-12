@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"testing"
 	"time"
@@ -64,7 +63,7 @@ func TestForbidden(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/auth/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permission")
+		require.Equal(t, res.Body.Error.Detail, "insufficient permission")
 	})
 
 	t.Run("with permission to update identity", func(t *testing.T) {

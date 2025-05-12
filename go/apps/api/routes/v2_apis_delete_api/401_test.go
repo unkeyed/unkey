@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"net/http"
 	"testing"
 
@@ -12,7 +11,6 @@ import (
 )
 
 func TestAuthenticationErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -45,10 +43,10 @@ func TestAuthenticationErrors(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 401, res.Status)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "unauthorized")
+		require.Equal(t, "Authorization header for 'bearer' scheme", res.Body.Error.Detail)
 	})
 
 	// Test case for invalid authorization token
@@ -68,7 +66,7 @@ func TestAuthenticationErrors(t *testing.T) {
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "unauthorized")
+		require.Equal(t, "The provided root key is invalid. We could not find the requested key.", res.Body.Error.Detail)
 	})
 
 	// Test case for malformed authorization header
@@ -85,9 +83,9 @@ func TestAuthenticationErrors(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 401, res.Status)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "unauthorized")
+		require.Equal(t, "You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'. Your authorization header is missing the 'Bearer ' prefix.", res.Body.Error.Detail)
 	})
 }

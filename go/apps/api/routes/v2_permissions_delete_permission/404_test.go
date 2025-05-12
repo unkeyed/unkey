@@ -56,7 +56,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Equal(t, res.Body.Error.Detail, "not found")
 	})
 
 	// Test case for valid-looking but non-existent permission ID
@@ -77,7 +77,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Equal(t, res.Body.Error.Detail, "not found")
 	})
 
 	// Test case for already deleted permission
@@ -110,6 +110,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Equal(t, res.Body.Error.Detail, "not found")
 	})
 }

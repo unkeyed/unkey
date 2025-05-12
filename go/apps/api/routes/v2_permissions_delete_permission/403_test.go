@@ -67,7 +67,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Equal(t, res.Body.Error.Detail, "insufficient permissions")
 
 		// Verify the permission still exists (wasn't deleted)
 		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)

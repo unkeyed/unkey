@@ -2,15 +2,18 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_delete_api"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestAuthorizationErrors(t *testing.T) {
@@ -32,9 +35,26 @@ func TestAuthorizationErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create an API for testing
-	api, err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
+
+	keyAuthID := uid.New(uid.KeyAuthPrefix)
+	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+		ID:                 keyAuthID,
+		WorkspaceID:        h.Resources().UserWorkspace.ID,
+		CreatedAtM:         h.Clock.Now().UnixMilli(),
+		DefaultPrefix:      sql.NullString{Valid: false, String: ""},
+		DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
+		StoreEncryptedKeys: false,
+	})
+	require.NoError(t, err)
+
+	apiID := uid.New(uid.APIPrefix)
+	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
+		ID:          apiID,
 		Name:        "Test API",
-		WorkspaceID: workspace.ID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
@@ -49,7 +69,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ApiId: api.ID,
+			ApiId: apiID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -62,7 +82,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
 	})
 
 	// Test case for permission for different API
@@ -80,7 +100,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ApiId: api.ID, // Using the test API, not the one we have permission for
+			ApiId: apiID, // Using the test API, not the one we have permission for
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -93,16 +113,15 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
 	})
 
 	// Test case for wrong workspace
 	t.Run("wrong workspace", func(t *testing.T) {
 		// Create a different workspace
-		otherWorkspace := h.CreateWorkspace("other-workspace")
 
 		// Create a root key for the other workspace
-		rootKey := h.CreateRootKey(otherWorkspace.ID, "api.*.delete_api")
+		rootKey := h.CreateRootKey(uid.New(uid.TestPrefix), "api.*.delete_api")
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -110,7 +129,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ApiId: api.ID, // API is in the original workspace
+			ApiId: apiID, // API is in the original workspace
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -124,6 +143,6 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Equal(t, "The provided root key is invalid. The requested workspace does not exist.", res.Body.Error.Detail)
 	})
 }

@@ -53,7 +53,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "invalid")
+		require.Equal(t, res.Body.Error.Detail, "invalid")
 	})
 
 	// Test case for limit above maximum

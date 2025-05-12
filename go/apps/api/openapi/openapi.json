@@ -1154,7 +1154,7 @@
         },
         "additionalProperties": false
       },
-      "ApisCreateApiResponseData": {
+      "V2ApisCreateApiResponseData": {
         "type": "object",
         "properties": {
           "apiId": {
@@ -1169,10 +1169,10 @@
       "V2ApisDeleteApiRequestBody": {
         "type": "object",
         "required": [
-          "id"
+          "apiId"
         ],
         "properties": {
-          "id": {
+          "apiId": {
             "type": "string",
             "minLength": 3,
             "description": "The id of the API you want to delete. API ids always start with `api_`",
@@ -1224,7 +1224,7 @@
             "$ref": "#/components/schemas/Meta"
           },
           "data": {
-            "$ref": "#/components/schemas/ApisCreateApiResponseData"
+            "$ref": "#/components/schemas/V2ApisCreateApiResponseData"
           }
         }
       },

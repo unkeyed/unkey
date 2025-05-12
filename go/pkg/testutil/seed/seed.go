@@ -129,11 +129,11 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 		for _, permission := range permissions {
 			permissionID := uid.New(uid.TestPrefix)
 			err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
-				ID:          permissionID,
-				WorkspaceID: s.Resources.RootWorkspace.ID,
-				Name:        permission,
-				Description: sql.NullString{String: "", Valid: false},
-				CreatedAt:   time.Now().UnixMilli(),
+				PermissionID: permissionID,
+				WorkspaceID:  s.Resources.RootWorkspace.ID,
+				Name:         permission,
+				Description:  sql.NullString{String: "", Valid: false},
+				CreatedAtM:   time.Now().UnixMilli(),
 			})
 
 			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
