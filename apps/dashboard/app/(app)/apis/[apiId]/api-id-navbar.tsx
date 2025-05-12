@@ -44,53 +44,27 @@ export const ApisNavbar = ({
   const trpcUtils = trpc.useUtils();
   const [showRBAC, setShowRBAC] = useState(false);
 
+  const keyId = keyData?.id || "";
+  const keyspaceId = api.keyAuthId || "";
+  const shouldFetchPermissions = Boolean(keyId) && Boolean(keyspaceId);
+
   const {
     data: permissionsData,
     isLoading,
     isRefetching,
+    error,
   } = trpc.key.fetchPermissions.useQuery(
     {
-      keyId: keyData?.id || "",
-      keyspaceId: api.keyAuthId || "",
+      keyId,
+      keyspaceId,
     },
     {
-      enabled: showRBAC && Boolean(keyData?.id) && Boolean(api.keyAuthId),
-    },
+      enabled: shouldFetchPermissions,
+    }
   );
 
-  const rolesList =
-    permissionsData?.workspace.roles.map((role) => {
-      return {
-        id: role.id,
-        name: role.name,
-        isActive: permissionsData.roles.some((keyRole) => keyRole.roleId === role.id),
-      };
-    }) || [];
-
-  const calculateTransientPermissionIds = () => {
-    if (!permissionsData) {
-      return new Set<string>();
-    }
-
-    const transientPermissionIds = new Set<string>();
-    const connectedRoleIds = new Set<string>();
-
-    for (const role of permissionsData.roles) {
-      connectedRoleIds.add(role.roleId);
-    }
-
-    for (const role of permissionsData.workspace.roles) {
-      if (connectedRoleIds.has(role.id)) {
-        for (const p of role.permissions) {
-          transientPermissionIds.add(p.permissionId);
-        }
-      }
-    }
-
-    return transientPermissionIds;
-  };
-
-  const transientPermissionIds = calculateTransientPermissionIds();
+  const { transientPermissionIds, rolesList } =
+    calculatePermissionData(permissionsData);
 
   return (
     <>
@@ -117,13 +91,19 @@ export const ApisNavbar = ({
                     }))}
                     shortcutKey="N"
                   >
-                    <div className="text-accent-10 group-hover:text-accent-12">{api.name}</div>
+                    <div className="text-accent-10 group-hover:text-accent-12">
+                      {api.name}
+                    </div>
                   </QuickNavPopover>
                 </Navbar.Breadcrumbs.Link>
               </>
             )}
 
-            <Navbar.Breadcrumbs.Link href={activePage?.href ?? ""} noop active={!keyData}>
+            <Navbar.Breadcrumbs.Link
+              href={activePage?.href ?? ""}
+              noop
+              active={!keyData}
+            >
               <QuickNavPopover
                 items={[
                   {
@@ -165,13 +145,18 @@ export const ApisNavbar = ({
           {keyData?.id ? (
             <div className="flex gap-3 items-center">
               <Navbar.Actions>
-                <NavbarActionButton onClick={() => setShowRBAC(true)}>
+                <NavbarActionButton
+                  onClick={() => setShowRBAC(true)}
+                  disabled={!shouldFetchPermissions}
+                >
                   <ShieldKey size="sm-regular" />
                   Permissions
                 </NavbarActionButton>
               </Navbar.Actions>
               <Navbar.Actions>
-                <KeysTableActionPopover items={getKeysTableActionItems(keyData)}>
+                <KeysTableActionPopover
+                  items={getKeysTableActionItems(keyData)}
+                >
                   <NavbarActionButton>
                     <Gear size="sm-regular" />
                     Settings
@@ -196,7 +181,34 @@ export const ApisNavbar = ({
           <div className="flex justify-center items-center p-4 min-h-[250px] [&_svg]:size-10">
             <AnimatedLoadingSpinner />
           </div>
-        ) : permissionsData ? (
+        ) : error || !permissionsData ? (
+          <div className="flex flex-col items-center justify-center p-8 gap-4 min-h-[250px]">
+            <div className="text-accent-10 text-sm">
+              Could not retrieve permission data
+            </div>
+            <div className="text-accent-10 text-xs max-w-[400px] text-center">
+              There was an error loading the permissions for this key. Please
+              try again or contact support if the issue persists.
+            </div>
+            <Button
+              variant="primary"
+              size="xlg"
+              className="mt-2 w-[200px] h-9 rounded-md focus:ring-4 focus:ring-accent-9 focus:ring-offset-2"
+              loading={isRefetching}
+              onClick={() => {
+                // Refetch permissions data
+                if (keyId && keyspaceId) {
+                  trpcUtils.key.fetchPermissions.invalidate({
+                    keyId,
+                    keyspaceId,
+                  });
+                }
+              }}
+            >
+              Try again
+            </Button>
+          </div>
+        ) : (
           <div className="flex flex-col gap-4 ">
             <div className="flex w-full flex-1 items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -207,39 +219,63 @@ export const ApisNavbar = ({
                   {formatNumber(transientPermissionIds.size)} Permissions
                 </Badge>
               </div>
-              <RBACButtons permissions={permissionsData.workspace.permissions.roles} />
+              <RBACButtons
+                permissions={permissionsData.workspace.permissions.roles}
+              />
             </div>
             <div className="min-h-[250px]">
-              <PermissionList roles={rolesList} keyId={keyData?.id || ""} />
+              {/* Only render PermissionList if we have a valid keyId */}
+              {keyId ? (
+                <PermissionList roles={rolesList} keyId={keyId} />
+              ) : (
+                <div className="flex justify-center items-center p-4">
+                  <div className="text-accent-10 text-sm">No key selected</div>
+                </div>
+              )}
             </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center p-8 gap-4 min-h-[250px]">
-            <div className="text-accent-10 text-sm">Could not retrieve permission data</div>
-            <div className="text-accent-10 text-xs max-w-[400px] text-center">
-              There was an error loading the permissions for this key. Please try again or contact
-              support if the issue persists.
-            </div>
-            <Button
-              variant="primary"
-              size="xlg"
-              className="mt-2 w-[200px] h-9 rounded-md focus:ring-4 focus:ring-accent-9 focus:ring-offset-2"
-              loading={isRefetching}
-              onClick={() => {
-                // Refetch permissions data
-                if (keyData?.id && api.keyAuthId) {
-                  trpcUtils.key.fetchPermissions.invalidate({
-                    keyId: keyData.id,
-                    keyspaceId: api.keyAuthId,
-                  });
-                }
-              }}
-            >
-              Try again
-            </Button>
           </div>
         )}
       </DialogContainer>
     </>
   );
 };
+
+function calculatePermissionData(permissionsData: any) {
+  const transientPermissionIds = new Set<string>();
+  const rolesList: { id: string; name: string; isActive: boolean }[] = [];
+
+  if (!permissionsData) {
+    return { transientPermissionIds, rolesList };
+  }
+
+  // Mimic the original implementation logic
+  const connectedRoleIds = new Set<string>();
+
+  for (const role of permissionsData.roles) {
+    connectedRoleIds.add(role.roleId);
+  }
+
+  for (const role of permissionsData.workspace.roles) {
+    if (connectedRoleIds.has(role.id)) {
+      for (const p of role.permissions) {
+        transientPermissionIds.add(p.permissionId);
+      }
+    }
+  }
+
+  // Build roles list matching the original format
+  const roles = permissionsData.workspace.roles.map((role: any) => {
+    return {
+      id: role.id,
+      name: role.name,
+      isActive: permissionsData.roles.some(
+        (keyRole: any) => keyRole.roleId === role.id
+      ),
+    };
+  });
+
+  return {
+    transientPermissionIds,
+    rolesList: roles,
+  };
+}

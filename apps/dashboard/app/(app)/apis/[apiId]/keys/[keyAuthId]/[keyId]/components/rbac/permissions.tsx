@@ -2,8 +2,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc/client";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+
 export type Role = {
   id: string;
   name: string;
@@ -16,7 +16,12 @@ type PermissionTreeProps = {
 };
 
 export function PermissionList({ roles, keyId }: PermissionTreeProps) {
-  const router = useRouter();
+  const trpcUtils = trpc.useUtils();
+
+  const invalidatePermissions = () => {
+    trpcUtils.key.fetchPermissions.invalidate();
+  };
+
   const connectRole = trpc.rbac.connectRoleToKey.useMutation({
     onMutate: () => {
       toast.loading("Connecting role to key");
@@ -24,7 +29,8 @@ export function PermissionList({ roles, keyId }: PermissionTreeProps) {
     onSuccess: () => {
       toast.dismiss();
       toast.success("Role connected to key");
-      router.refresh();
+
+      invalidatePermissions();
     },
     onError: (error) => {
       toast.dismiss();
@@ -39,7 +45,8 @@ export function PermissionList({ roles, keyId }: PermissionTreeProps) {
     onSuccess: () => {
       toast.dismiss();
       toast.success("Role disconnected from key");
-      router.refresh();
+
+      invalidatePermissions();
     },
     onError: (error) => {
       toast.dismiss();
@@ -55,8 +62,7 @@ export function PermissionList({ roles, keyId }: PermissionTreeProps) {
           <CardDescription>Manage roles for this key</CardDescription>
         </div>
       </CardHeader>
-
-      <CardContent className="pt-6">
+      <CardContent className="p-4">
         <div className="space-y-1">
           {roles.map((role) => (
             <div
@@ -65,6 +71,7 @@ export function PermissionList({ roles, keyId }: PermissionTreeProps) {
             >
               <Checkbox
                 checked={role.isActive}
+                disabled={connectRole.isLoading || disconnectRole.isLoading}
                 onCheckedChange={(checked) => {
                   if (checked) {
                     connectRole.mutate({ keyId: keyId, roleId: role.id });
@@ -78,6 +85,10 @@ export function PermissionList({ roles, keyId }: PermissionTreeProps) {
               </div>
             </div>
           ))}
+
+          {roles.length === 0 && (
+            <div className="text-center py-4 text-sm text-accent-10">No roles available</div>
+          )}
         </div>
       </CardContent>
     </Card>
