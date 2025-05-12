@@ -1,8 +1,13 @@
+import { StatusBadge } from "@/app/(app)/apis/[apiId]/settings/components/status-badge";
 import {
   ControlsContainer,
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
+import { formatNumber } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
+import { Coins } from "@unkey/icons";
+import { AnimatePresence, motion } from "framer-motion";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";
@@ -16,12 +21,86 @@ export function KeysDetailsLogsControls({
   keyId: string;
   keyspaceId: string;
 }) {
+  const { data } = trpc.key.fetchPermissions.useQuery({
+    keyId,
+    keyspaceId,
+  });
+
   return (
     <ControlsContainer>
       <ControlsLeft>
         <LogsSearch keyspaceId={keyspaceId} keyId={keyId} />
         <LogsFilters />
         <LogsDateTime />
+        <AnimatePresence>
+          {data?.remainingCredit !== null && data?.remainingCredit !== undefined ? (
+            <motion.div
+              className="flex items-center"
+              initial={{ opacity: 0, x: -5 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -5 }}
+              transition={{
+                duration: 0.3,
+                ease: "easeOut",
+              }}
+            >
+              <div className="flex flex-col border-r border-gray-4 h-6 mx-2" />
+              <div className="items-center flex justify-center gap-2">
+                <motion.div
+                  className="text-gray-12 font-medium text-[13px] max-md:hidden pl-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.05, duration: 0.2 }}
+                >
+                  Remaining Credits:
+                </motion.div>
+                {data.remainingCredit > 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{
+                      delay: 0.1,
+                      duration: 0.2,
+                      scale: {
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 25,
+                      },
+                    }}
+                  >
+                    <StatusBadge
+                      className="text-xs"
+                      variant="enabled"
+                      text={formatNumber(data.remainingCredit)}
+                      icon={<Coins size="sm-thin" />}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{
+                      delay: 0.1,
+                      duration: 0.2,
+                      scale: {
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 25,
+                      },
+                    }}
+                  >
+                    <StatusBadge
+                      className="text-xs"
+                      variant="disabled"
+                      text="0"
+                      icon={<Coins size="sm-thin" />}
+                    />
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </ControlsLeft>
       <ControlsRight>
         <LogsLiveSwitch />

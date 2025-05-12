@@ -14,6 +14,7 @@ const KeyPermissionsResponseSchema = z.object({
       roles: z.array(z.any()),
     }),
   }),
+  remainingCredit: z.number().nullish(),
 });
 
 const KeyPermissionsRequestSchema = z.object({
@@ -83,7 +84,6 @@ export const fetchKeyPermissions = t.procedure
         });
       }
 
-      // Return the permissions and roles data
       return {
         keyId: key.id,
         keyAuth: key.keyAuth,
@@ -95,6 +95,7 @@ export const fetchKeyPermissions = t.procedure
             roles: key.workspace.permissions,
           },
         },
+        remainingCredit: key.remaining,
       };
     } catch (error) {
       if (error instanceof TRPCError) {

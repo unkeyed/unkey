@@ -60,11 +60,10 @@ export const ApisNavbar = ({
     },
     {
       enabled: shouldFetchPermissions,
-    }
+    },
   );
 
-  const { transientPermissionIds, rolesList } =
-    calculatePermissionData(permissionsData);
+  const { transientPermissionIds, rolesList } = calculatePermissionData(permissionsData);
 
   return (
     <>
@@ -91,19 +90,13 @@ export const ApisNavbar = ({
                     }))}
                     shortcutKey="N"
                   >
-                    <div className="text-accent-10 group-hover:text-accent-12">
-                      {api.name}
-                    </div>
+                    <div className="text-accent-10 group-hover:text-accent-12">{api.name}</div>
                   </QuickNavPopover>
                 </Navbar.Breadcrumbs.Link>
               </>
             )}
 
-            <Navbar.Breadcrumbs.Link
-              href={activePage?.href ?? ""}
-              noop
-              active={!keyData}
-            >
+            <Navbar.Breadcrumbs.Link href={activePage?.href ?? ""} noop active={!keyData}>
               <QuickNavPopover
                 items={[
                   {
@@ -154,9 +147,7 @@ export const ApisNavbar = ({
                 </NavbarActionButton>
               </Navbar.Actions>
               <Navbar.Actions>
-                <KeysTableActionPopover
-                  items={getKeysTableActionItems(keyData)}
-                >
+                <KeysTableActionPopover items={getKeysTableActionItems(keyData)}>
                   <NavbarActionButton>
                     <Gear size="sm-regular" />
                     Settings
@@ -183,12 +174,10 @@ export const ApisNavbar = ({
           </div>
         ) : error || !permissionsData ? (
           <div className="flex flex-col items-center justify-center p-8 gap-4 min-h-[250px]">
-            <div className="text-accent-10 text-sm">
-              Could not retrieve permission data
-            </div>
+            <div className="text-accent-10 text-sm">Could not retrieve permission data</div>
             <div className="text-accent-10 text-xs max-w-[400px] text-center">
-              There was an error loading the permissions for this key. Please
-              try again or contact support if the issue persists.
+              There was an error loading the permissions for this key. Please try again or contact
+              support if the issue persists.
             </div>
             <Button
               variant="primary"
@@ -219,9 +208,7 @@ export const ApisNavbar = ({
                   {formatNumber(transientPermissionIds.size)} Permissions
                 </Badge>
               </div>
-              <RBACButtons
-                permissions={permissionsData.workspace.permissions.roles}
-              />
+              <RBACButtons permissions={permissionsData.workspace.permissions.roles} />
             </div>
             <div className="min-h-[250px]">
               {/* Only render PermissionList if we have a valid keyId */}
@@ -268,9 +255,7 @@ function calculatePermissionData(permissionsData: any) {
     return {
       id: role.id,
       name: role.name,
-      isActive: permissionsData.roles.some(
-        (keyRole: any) => keyRole.roleId === role.id
-      ),
+      isActive: permissionsData.roles.some((keyRole: any) => keyRole.roleId === role.id),
     };
   });
 
