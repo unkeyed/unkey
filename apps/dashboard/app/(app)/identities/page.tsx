@@ -64,7 +64,7 @@ export default async function Page(props: Props) {
 
 const Results: React.FC<{ search?: string; limit?: number }> = async (props) => {
   const search = props.search || "";
-  const limit = props.limit || 10;
+  const limit = props.limit || 100;
 
   const { orgId } = await getAuth();
   const getData = cache(
@@ -100,6 +100,16 @@ const Results: React.FC<{ search?: string; limit?: number }> = async (props) => 
 
   if (!workspace) {
     return redirect("/new");
+  }
+
+  if (search) {
+    // If we have an exact match, we want to display it at the very top
+    const exactMatchIndex = workspace.identities.findIndex(
+      ({ id, externalId }) => search === id || search === externalId,
+    );
+    if (exactMatchIndex > 0) {
+      workspace.identities.unshift(workspace.identities.splice(exactMatchIndex, 1)[0]);
+    }
   }
 
   return (
