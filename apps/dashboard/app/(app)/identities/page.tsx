@@ -102,15 +102,15 @@ const Results: React.FC<{ search?: string; limit?: number }> = async (props) => 
     return redirect("/new");
   }
 
-
   if (search) {
     // If we have an exact match, we want to display it at the very top
-    const exactMatchIndex = workspace.identities.findIndex(({ id, externalId }) => search === id || search === externalId)
+    const exactMatchIndex = workspace.identities.findIndex(
+      ({ id, externalId }) => search === id || search === externalId,
+    );
     if (exactMatchIndex > 0) {
-      workspace.identities.unshift(workspace.identities.splice(exactMatchIndex, 1)[0])
+      workspace.identities.unshift(workspace.identities.splice(exactMatchIndex, 1)[0]);
     }
   }
-
 
   return (
     <>
