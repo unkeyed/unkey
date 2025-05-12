@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -44,18 +45,10 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		// Set default limit if not provided
-		if req.Limit == 0 {
-			req.Limit = 100
-		} else if req.Limit > 100 {
-			req.Limit = 100
-		}
+		limit := ptr.SafeDeref(req.Limit, 100)
 
 		// Handle null cursor
-		cursor := ""
-		if req.Cursor != nil {
-			cursor = *req.Cursor
-		}
+		cursor := ptr.SafeDeref(req.Cursor, "")
 
 		// 3. Permission check
 		permissionCheck, err := svc.Permissions.Check(
@@ -89,7 +82,7 @@ func New(svc Services) zen.Route {
 			db.ListPermissionsParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Cursor:      cursor,
-				Limit:       int(req.Limit),
+				Limit:       limit,
 			},
 		)
 		if err != nil {
@@ -113,7 +106,7 @@ func New(svc Services) zen.Route {
 
 		// 6. Determine next cursor
 		var nextCursor *string
-		if len(permissions) > 0 && len(permissions) == int(req.Limit) {
+		if len(permissions) > 0 && len(permissions) == limit {
 			cursor := permissions[len(permissions)-1].ID
 			nextCursor = &cursor
 		}
