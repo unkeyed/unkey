@@ -19,10 +19,10 @@ const (
 type ApisCreateApiResponseData struct {
 	// ApiId The id of the API
 	ApiId string `json:"apiId"`
-
-	// Name The name of the API
-	Name string `json:"name"`
 }
+
+// ApisDeleteApiResponseData defines model for ApisDeleteApiResponseData.
+type ApisDeleteApiResponseData = map[string]interface{}
 
 // ApisGetApiResponseData defines model for ApisGetApiResponseData.
 type ApisGetApiResponseData struct {
@@ -31,9 +31,6 @@ type ApisGetApiResponseData struct {
 
 	// Name The name of the API
 	Name string `json:"name"`
-
-	// WorkspaceId The id of the workspace that owns the API
-	WorkspaceId string `json:"workspaceId"`
 }
 
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
@@ -283,6 +280,18 @@ type V2ApisCreateApiRequestBody struct {
 // V2ApisCreateApiResponseBody defines model for V2ApisCreateApiResponseBody.
 type V2ApisCreateApiResponseBody struct {
 	Data ApisCreateApiResponseData `json:"data"`
+	Meta Meta                      `json:"meta"`
+}
+
+// V2ApisDeleteApiRequestBody defines model for V2ApisDeleteApiRequestBody.
+type V2ApisDeleteApiRequestBody struct {
+	// Id The id of the API you want to delete. API ids always start with `api_`
+	Id string `json:"id"`
+}
+
+// V2ApisDeleteApiResponseBody defines model for V2ApisDeleteApiResponseBody.
+type V2ApisDeleteApiResponseBody struct {
+	Data ApisDeleteApiResponseData `json:"data"`
 	Meta Meta                      `json:"meta"`
 }
 
@@ -539,8 +548,11 @@ type ValidationError struct {
 	Message string `json:"message"`
 }
 
+// CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
+type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody
+
 // DeleteApiJSONRequestBody defines body for DeleteApi for application/json ContentType.
-type DeleteApiJSONRequestBody = V2ApisCreateApiRequestBody
+type DeleteApiJSONRequestBody = V2ApisDeleteApiRequestBody
 
 // GetApiJSONRequestBody defines body for GetApi for application/json ContentType.
 type GetApiJSONRequestBody = V2ApisGetApiRequestBody

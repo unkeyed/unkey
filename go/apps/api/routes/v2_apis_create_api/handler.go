@@ -164,7 +164,6 @@ func New(svc Services) zen.Route {
 			},
 			Data: openapi.ApisCreateApiResponseData{
 				ApiId: apiId,
-				Name:  req.Name,
 			},
 		})
 	})
