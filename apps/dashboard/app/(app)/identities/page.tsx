@@ -24,7 +24,7 @@ type Props = {
 
 export default async function Page(props: Props) {
   const search = parseAsString.withDefault("").parse(props.searchParams.search ?? "");
-  const limit = parseAsInteger.withDefault(10).parse(props.searchParams.limit ?? "10");
+  const limit = parseAsInteger.withDefault(100).parse(props.searchParams.limit ?? "100")!;
 
   const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
@@ -54,7 +54,7 @@ export default async function Page(props: Props) {
               </Empty>
             }
           >
-            <Results search={search ?? ""} limit={limit ?? 10} />
+            <Results search={search ?? ""} limit={limit} />
           </Suspense>
         </div>
       </PageContent>
@@ -62,10 +62,7 @@ export default async function Page(props: Props) {
   );
 }
 
-const Results: React.FC<{ search?: string; limit?: number }> = async (props) => {
-  const search = props.search || "";
-  const limit = props.limit || 100;
-
+const Results: React.FC<{ search: string; limit: number }> = async (props) => {
   const { orgId } = await getAuth();
   const getData = cache(
     async () =>
@@ -75,8 +72,8 @@ const Results: React.FC<{ search?: string; limit?: number }> = async (props) => 
         with: {
           identities: {
             where: (table, { or, like }) =>
-              or(like(table.externalId, `%${search}%`), like(table.id, `%${search}%`)),
-            limit: limit,
+              or(like(table.externalId, `%${props.search}%`), like(table.id, `%${props.search}%`)),
+            limit: props.limit,
             orderBy: (table, { asc }) => asc(table.id),
             with: {
               ratelimits: {
@@ -93,7 +90,7 @@ const Results: React.FC<{ search?: string; limit?: number }> = async (props) => 
           },
         },
       }),
-    [`${orgId}-${search}-${limit}`],
+    [`${orgId}-${props.search}-${props.limit}`],
   );
 
   const workspace = await getData();
@@ -102,10 +99,10 @@ const Results: React.FC<{ search?: string; limit?: number }> = async (props) => 
     return redirect("/new");
   }
 
-  if (search) {
+  if (props.search) {
     // If we have an exact match, we want to display it at the very top
     const exactMatchIndex = workspace.identities.findIndex(
-      ({ id, externalId }) => search === id || search === externalId,
+      ({ id, externalId }) => props.search === id || props.search === externalId,
     );
     if (exactMatchIndex > 0) {
       workspace.identities.unshift(workspace.identities.splice(exactMatchIndex, 1)[0]);
