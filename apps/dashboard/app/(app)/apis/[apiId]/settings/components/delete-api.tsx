@@ -85,7 +85,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
         }
         description={
           api.deleteProtection ? (
-            <div className="font-normal text-[13px] max-w-[380px]">
+            <div className="font-normal text-[13px]">
               Permanently deletes this API, including all keys and data. This action is locked by
               the <span className="font-medium text-accent-12">Delete Protection</span> feature.
             </div>

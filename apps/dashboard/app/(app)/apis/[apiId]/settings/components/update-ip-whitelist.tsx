@@ -76,10 +76,10 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
           </div>
         }
         description={
-          <div className="font-normal text-[13px] max-w-[380px]">
-            Want to protect your API from unauthorized access? <br />
-            Upgrade to our <span className="font-bold">Enterprise plan</span> to enable IP
-            whitelisting and restrict access to trusted sources.{" "}
+          <div className="font-normal text-[13px]">
+            Want to protect your API from unauthorized access? Upgrade to our{" "}
+            <span className="font-bold">Enterprise plan</span> to enable IP whitelisting and
+            restrict access to trusted sources.{" "}
             <InlineLink
               label="Learn more"
               href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
