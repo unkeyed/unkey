@@ -146,11 +146,24 @@ type Querier interface {
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
 	//FindKeysByKeyAuthId
 	//
-	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
-	//  FROM `keys`
-	//  WHERE key_auth_id = ?
-	//  AND deleted_at_m IS NULL
-	FindKeysByKeyAuthId(ctx context.Context, db DBTX, keyAuthID string) ([]Key, error)
+	//  SELECT
+	//    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//    i.id as identity_id,
+	//    i.external_id as external_id,
+	//    i.meta as identity_meta,
+	//    ek.encrypted as encrypted_key,
+	//    ek.encryption_key_id as encryption_key_id
+	//
+	//  FROM `keys` k
+	//  LEFT JOIN `identities` i ON k.identity_id = i.id
+	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+	//  WHERE k.key_auth_id = ?
+	//  AND k.id >= ?
+	//  AND (? IS NULL OR k.identity_id = ?)
+	//  AND k.deleted_at_m IS NULL
+	//  ORDER BY k.id ASC
+	//  LIMIT ?
+	FindKeysByKeyAuthId(ctx context.Context, db DBTX, arg FindKeysByKeyAuthIdParams) ([]FindKeysByKeyAuthIdRow, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//

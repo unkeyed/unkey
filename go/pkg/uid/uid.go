@@ -32,6 +32,7 @@ const (
 	AuditLogBucketPrefix     Prefix = "buk"
 	AuditLogPrefix           Prefix = "log"
 	InstancePrefix           Prefix = "ins"
+	KeyEncryptionKeyPrefix   Prefix = "kek"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a

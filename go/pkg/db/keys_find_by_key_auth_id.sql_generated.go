@@ -7,54 +7,108 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findKeysByKeyAuthId = `-- name: FindKeysByKeyAuthId :many
-SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
-FROM ` + "`" + `keys` + "`" + `
-WHERE key_auth_id = ?
-AND deleted_at_m IS NULL
+SELECT
+  k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+  i.id as identity_id,
+  i.external_id as external_id,
+  i.meta as identity_meta,
+  ek.encrypted as encrypted_key,
+  ek.encryption_key_id as encryption_key_id
+
+FROM ` + "`" + `keys` + "`" + ` k
+LEFT JOIN ` + "`" + `identities` + "`" + ` i ON k.identity_id = i.id
+LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+WHERE k.key_auth_id = ?
+AND k.id >= ?
+AND (? IS NULL OR k.identity_id = ?)
+AND k.deleted_at_m IS NULL
+ORDER BY k.id ASC
+LIMIT ?
 `
+
+type FindKeysByKeyAuthIdParams struct {
+	KeyAuthID  string         `db:"key_auth_id"`
+	IDCursor   string         `db:"id_cursor"`
+	IdentityID sql.NullString `db:"identity_id"`
+	Limit      int32          `db:"limit"`
+}
+
+type FindKeysByKeyAuthIdRow struct {
+	Key             Key            `db:"key"`
+	IdentityID      sql.NullString `db:"identity_id"`
+	ExternalID      sql.NullString `db:"external_id"`
+	IdentityMeta    []byte         `db:"identity_meta"`
+	EncryptedKey    sql.NullString `db:"encrypted_key"`
+	EncryptionKeyID sql.NullString `db:"encryption_key_id"`
+}
 
 // FindKeysByKeyAuthId
 //
-//	SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
-//	FROM `keys`
-//	WHERE key_auth_id = ?
-//	AND deleted_at_m IS NULL
-func (q *Queries) FindKeysByKeyAuthId(ctx context.Context, db DBTX, keyAuthID string) ([]Key, error) {
-	rows, err := db.QueryContext(ctx, findKeysByKeyAuthId, keyAuthID)
+//	SELECT
+//	  k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+//	  i.id as identity_id,
+//	  i.external_id as external_id,
+//	  i.meta as identity_meta,
+//	  ek.encrypted as encrypted_key,
+//	  ek.encryption_key_id as encryption_key_id
+//
+//	FROM `keys` k
+//	LEFT JOIN `identities` i ON k.identity_id = i.id
+//	LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+//	WHERE k.key_auth_id = ?
+//	AND k.id >= ?
+//	AND (? IS NULL OR k.identity_id = ?)
+//	AND k.deleted_at_m IS NULL
+//	ORDER BY k.id ASC
+//	LIMIT ?
+func (q *Queries) FindKeysByKeyAuthId(ctx context.Context, db DBTX, arg FindKeysByKeyAuthIdParams) ([]FindKeysByKeyAuthIdRow, error) {
+	rows, err := db.QueryContext(ctx, findKeysByKeyAuthId,
+		arg.KeyAuthID,
+		arg.IDCursor,
+		arg.IdentityID,
+		arg.IdentityID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Key
+	var items []FindKeysByKeyAuthIdRow
 	for rows.Next() {
-		var i Key
+		var i FindKeysByKeyAuthIdRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.KeyAuthID,
-			&i.Hash,
-			&i.Start,
-			&i.WorkspaceID,
-			&i.ForWorkspaceID,
-			&i.Name,
-			&i.OwnerID,
+			&i.Key.ID,
+			&i.Key.KeyAuthID,
+			&i.Key.Hash,
+			&i.Key.Start,
+			&i.Key.WorkspaceID,
+			&i.Key.ForWorkspaceID,
+			&i.Key.Name,
+			&i.Key.OwnerID,
+			&i.Key.IdentityID,
+			&i.Key.Meta,
+			&i.Key.Expires,
+			&i.Key.CreatedAtM,
+			&i.Key.UpdatedAtM,
+			&i.Key.DeletedAtM,
+			&i.Key.RefillDay,
+			&i.Key.RefillAmount,
+			&i.Key.LastRefillAt,
+			&i.Key.Enabled,
+			&i.Key.RemainingRequests,
+			&i.Key.RatelimitAsync,
+			&i.Key.RatelimitLimit,
+			&i.Key.RatelimitDuration,
+			&i.Key.Environment,
 			&i.IdentityID,
-			&i.Meta,
-			&i.Expires,
-			&i.CreatedAtM,
-			&i.UpdatedAtM,
-			&i.DeletedAtM,
-			&i.RefillDay,
-			&i.RefillAmount,
-			&i.LastRefillAt,
-			&i.Enabled,
-			&i.RemainingRequests,
-			&i.RatelimitAsync,
-			&i.RatelimitLimit,
-			&i.RatelimitDuration,
-			&i.Environment,
+			&i.ExternalID,
+			&i.IdentityMeta,
+			&i.EncryptedKey,
+			&i.EncryptionKeyID,
 		); err != nil {
 			return nil, err
 		}

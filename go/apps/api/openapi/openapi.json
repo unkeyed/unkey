@@ -249,6 +249,142 @@
           }
         }
       },
+      "Identity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identity ID"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External identity ID"
+          },
+          "meta": {
+            "type": "object",
+            "description": "Identity metadata"
+          }
+        },
+        "required": [
+          "id",
+          "externalId"
+        ]
+      },
+      "KeyCredits": {
+        "type": "object",
+        "description": "Remaining requests for this key",
+        "properties": {
+          "remaining": {
+            "type": "integer",
+            "description": "Remaining credits"
+          },
+          "refill": {
+            "$ref": "#/components/schemas/KeyCreditsRefill"
+          }
+        },
+        "required": [
+          "remaining"
+        ]
+      },
+      "KeyCreditsRefill": {
+        "type": "object",
+        "properties": {
+          "interval": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "monthly"
+            ],
+            "description": "Refill interval"
+          },
+          "amount": {
+            "type": "integer",
+            "description": "Amount to refill"
+          },
+          "refillDay": {
+            "type": "integer",
+            "description": "Day of the month when refill happens (for monthly interval)"
+          },
+          "lastRefillAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Last time the key was refilled (Unix timestamp)"
+          }
+        },
+        "required": [
+          "interval",
+          "amount"
+        ]
+      },
+      "KeyResponse": {
+        "type": "object",
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "description": "The key ID"
+          },
+          "start": {
+            "type": "string",
+            "description": "The first few characters of the key"
+          },
+          "name": {
+            "type": "string",
+            "description": "Optional name for the key"
+          },
+          "meta": {
+            "type": "object",
+            "description": "Optional metadata for the key"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "When the key was created (Unix timestamp)"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "When the key was last updated (Unix timestamp)"
+          },
+          "expires": {
+            "type": "integer",
+            "format": "int64",
+            "description": "When the key expires (Unix timestamp)"
+          },
+          "credits": {
+            "$ref": "#/components/schemas/KeyCredits"
+          },
+          "environment": {
+            "type": "string",
+            "description": "Optional environment tag"
+          },
+          "plaintext": {
+            "type": "string",
+            "description": "The decrypted key value (only included if decrypt=true)"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Roles assigned to this key"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Permissions assigned to this key"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/Identity"
+          }
+        },
+        "required": [
+          "keyId",
+          "start",
+          "createdAt"
+        ]
+      },
       "LivenessResponseData": {
         "type": "object",
         "properties": {
@@ -1154,7 +1290,7 @@
         },
         "additionalProperties": false
       },
-      "V2ApisCreateApiResponseData": {
+      "ApisCreateApiResponseData": {
         "type": "object",
         "properties": {
           "apiId": {
@@ -1224,7 +1360,7 @@
             "$ref": "#/components/schemas/Meta"
           },
           "data": {
-            "$ref": "#/components/schemas/V2ApisCreateApiResponseData"
+            "$ref": "#/components/schemas/ApisCreateApiResponseData"
           }
         }
       },
@@ -1251,6 +1387,70 @@
           },
           "data": {
             "$ref": "#/components/schemas/ApisGetApiResponseData"
+          }
+        }
+      },
+      "V2ApisListKeysRequestBody": {
+        "type": "object",
+        "required": [
+          "apiId"
+        ],
+        "properties": {
+          "apiId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The id of the api to fetch",
+            "example": "api_1234"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of keys to return",
+            "default": 100,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Use this to fetch the next page of results. A new cursor will be returned in the response if there are more results."
+          },
+          "externalId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "If provided, this will only return keys where the `externalId` matches."
+          },
+          "decrypt": {
+            "type": "boolean",
+            "description": "Decrypt and display the raw key. Only possible if the key was encrypted when generated."
+          },
+          "revalidateKeysCache": {
+            "type": "boolean",
+            "default": false,
+            "description": "EXPERIMENTAL: Skip the cache and fetch the keys from the database directly. When you're creating a key and immediately listing all keys to display them to your user, you might want to skip the cache to ensure the key is displayed immediately."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApisListKeysResponseData": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/KeyResponse"
+        }
+      },
+      "V2ApisListKeysResponseBody": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ApisListKeysResponseData"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
           }
         }
       },
@@ -2556,6 +2756,92 @@
               }
             },
             "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/v2/apis.listKeys": {
+      "post": {
+        "tags": [
+          "apis"
+        ],
+        "operationId": "listKeys",
+        "x-speakeasy-name-override": "listKeys",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2ApisListKeysRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ApisListKeysResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         }
       }

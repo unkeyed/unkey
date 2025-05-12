@@ -15,6 +15,18 @@ const (
 	RootKeyScopes = "rootKey.Scopes"
 )
 
+// Defines values for KeyCreditsRefillInterval.
+const (
+	Daily   KeyCreditsRefillInterval = "daily"
+	Monthly KeyCreditsRefillInterval = "monthly"
+)
+
+// ApisCreateApiResponseData defines model for ApisCreateApiResponseData.
+type ApisCreateApiResponseData struct {
+	// ApiId The id of the API
+	ApiId string `json:"apiId"`
+}
+
 // ApisGetApiResponseData defines model for ApisGetApiResponseData.
 type ApisGetApiResponseData struct {
 	// Id The id of the API
@@ -23,6 +35,9 @@ type ApisGetApiResponseData struct {
 	// Name The name of the API
 	Name string `json:"name"`
 }
+
+// ApisListKeysResponseData defines model for ApisListKeysResponseData.
+type ApisListKeysResponseData = []KeyResponse
 
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
 type BadRequestErrorDetails struct {
@@ -87,10 +102,88 @@ type IdentitiesCreateIdentityResponseData struct {
 	IdentityId string `json:"identityId"`
 }
 
+// Identity defines model for Identity.
+type Identity struct {
+	// ExternalId External identity ID
+	ExternalId string `json:"externalId"`
+
+	// Id Identity ID
+	Id string `json:"id"`
+
+	// Meta Identity metadata
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+}
+
 // InternalServerErrorResponse defines model for InternalServerErrorResponse.
 type InternalServerErrorResponse struct {
 	Error BaseError `json:"error"`
 	Meta  Meta      `json:"meta"`
+}
+
+// KeyCredits Remaining requests for this key
+type KeyCredits struct {
+	Refill *KeyCreditsRefill `json:"refill,omitempty"`
+
+	// Remaining Remaining credits
+	Remaining int `json:"remaining"`
+}
+
+// KeyCreditsRefill defines model for KeyCreditsRefill.
+type KeyCreditsRefill struct {
+	// Amount Amount to refill
+	Amount int `json:"amount"`
+
+	// Interval Refill interval
+	Interval KeyCreditsRefillInterval `json:"interval"`
+
+	// LastRefillAt Last time the key was refilled (Unix timestamp)
+	LastRefillAt *int64 `json:"lastRefillAt,omitempty"`
+
+	// RefillDay Day of the month when refill happens (for monthly interval)
+	RefillDay *int `json:"refillDay,omitempty"`
+}
+
+// KeyCreditsRefillInterval Refill interval
+type KeyCreditsRefillInterval string
+
+// KeyResponse defines model for KeyResponse.
+type KeyResponse struct {
+	// CreatedAt When the key was created (Unix timestamp)
+	CreatedAt int64 `json:"createdAt"`
+
+	// Credits Remaining requests for this key
+	Credits *KeyCredits `json:"credits,omitempty"`
+
+	// Environment Optional environment tag
+	Environment *string `json:"environment,omitempty"`
+
+	// Expires When the key expires (Unix timestamp)
+	Expires  *int64    `json:"expires,omitempty"`
+	Identity *Identity `json:"identity,omitempty"`
+
+	// KeyId The key ID
+	KeyId string `json:"keyId"`
+
+	// Meta Optional metadata for the key
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Name Optional name for the key
+	Name *string `json:"name,omitempty"`
+
+	// Permissions Permissions assigned to this key
+	Permissions *[]string `json:"permissions,omitempty"`
+
+	// Plaintext The decrypted key value (only included if decrypt=true)
+	Plaintext *string `json:"plaintext,omitempty"`
+
+	// Roles Roles assigned to this key
+	Roles *[]string `json:"roles,omitempty"`
+
+	// Start The first few characters of the key
+	Start string `json:"start"`
+
+	// UpdatedAt When the key was last updated (Unix timestamp)
+	UpdatedAt *int64 `json:"updatedAt,omitempty"`
 }
 
 // LivenessResponseData defines model for LivenessResponseData.
@@ -270,14 +363,8 @@ type V2ApisCreateApiRequestBody struct {
 
 // V2ApisCreateApiResponseBody defines model for V2ApisCreateApiResponseBody.
 type V2ApisCreateApiResponseBody struct {
-	Data V2ApisCreateApiResponseData `json:"data"`
-	Meta Meta                        `json:"meta"`
-}
-
-// V2ApisCreateApiResponseData defines model for V2ApisCreateApiResponseData.
-type V2ApisCreateApiResponseData struct {
-	// ApiId The id of the API
-	ApiId string `json:"apiId"`
+	Data ApisCreateApiResponseData `json:"data"`
+	Meta Meta                      `json:"meta"`
 }
 
 // V2ApisDeleteApiRequestBody defines model for V2ApisDeleteApiRequestBody.
@@ -301,6 +388,34 @@ type V2ApisGetApiRequestBody struct {
 type V2ApisGetApiResponseBody struct {
 	Data ApisGetApiResponseData `json:"data"`
 	Meta Meta                   `json:"meta"`
+}
+
+// V2ApisListKeysRequestBody defines model for V2ApisListKeysRequestBody.
+type V2ApisListKeysRequestBody struct {
+	// ApiId The id of the api to fetch
+	ApiId string `json:"apiId"`
+
+	// Cursor Use this to fetch the next page of results. A new cursor will be returned in the response if there are more results.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Decrypt Decrypt and display the raw key. Only possible if the key was encrypted when generated.
+	Decrypt *bool `json:"decrypt,omitempty"`
+
+	// ExternalId If provided, this will only return keys where the `externalId` matches.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// Limit The maximum number of keys to return
+	Limit *int `json:"limit,omitempty"`
+
+	// RevalidateKeysCache EXPERIMENTAL: Skip the cache and fetch the keys from the database directly. When you're creating a key and immediately listing all keys to display them to your user, you might want to skip the cache to ensure the key is displayed immediately.
+	RevalidateKeysCache *bool `json:"revalidateKeysCache,omitempty"`
+}
+
+// V2ApisListKeysResponseBody defines model for V2ApisListKeysResponseBody.
+type V2ApisListKeysResponseBody struct {
+	Data       ApisListKeysResponseData `json:"data"`
+	Meta       Meta                     `json:"meta"`
+	Pagination *Pagination              `json:"pagination,omitempty"`
 }
 
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
@@ -552,6 +667,9 @@ type DeleteApiJSONRequestBody = V2ApisDeleteApiRequestBody
 
 // GetApiJSONRequestBody defines body for GetApi for application/json ContentType.
 type GetApiJSONRequestBody = V2ApisGetApiRequestBody
+
+// ListKeysJSONRequestBody defines body for ListKeys for application/json ContentType.
+type ListKeysJSONRequestBody = V2ApisListKeysRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

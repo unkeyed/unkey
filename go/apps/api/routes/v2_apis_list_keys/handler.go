@@ -2,17 +2,22 @@ package handler
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
-	"github.com/unkeyed/unkey/go/internal/services/vault"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -24,20 +29,18 @@ type Services struct {
 	DB          db.Database
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
-	Vault       vault.VaultService
+	Vault       *vault.Service
+	Caches      caches.Caches
 }
 
 func New(svc Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/apis.listKeys", func(ctx context.Context, s *zen.Session) error {
-		svc.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/apis.listKeys")
 
-		// 1. Authentication
 		auth, err := svc.Keys.VerifyRootKey(ctx, s)
 		if err != nil {
 			return err
 		}
 
-		// 2. Request validation
 		var req Request
 		err = s.BindBody(&req)
 		if err != nil {
@@ -46,14 +49,6 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		// Set default limit if not provided
-		if req.Limit == 0 {
-			req.Limit = 100
-		} else if req.Limit > 100 {
-			req.Limit = 100
-		}
-
-		// 3. Permission check
 		permissionCheck, err := svc.Permissions.Check(
 			ctx,
 			auth.KeyID,
@@ -113,7 +108,13 @@ func New(svc Services) zen.Route {
 				fault.WithDesc("database error", "Failed to retrieve API information."),
 			)
 		}
-
+		// Check if API belongs to the authorized workspace
+		if api.WorkspaceID != auth.AuthorizedWorkspaceID {
+			return fault.New("wrong workspace",
+				fault.WithCode(codes.Data.Api.NotFound.URN()),
+				fault.WithDesc("wrong workspace, masking as 404", "The requested API does not exist or has been deleted."),
+			)
+		}
 		// Check if API is deleted
 		if api.DeletedAtM.Valid {
 			return fault.New("api not found",
@@ -122,18 +123,10 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		// Check if API belongs to the authorized workspace
-		if api.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("wrong workspace",
-				fault.WithCode(codes.Data.Api.NotFound.URN()),
-				fault.WithDesc("wrong workspace, masking as 404", "The requested API does not exist or has been deleted."),
-			)
-		}
-
 		// Check if API is set up to handle keys
 		if !api.KeyAuthID.Valid {
 			return fault.New("api not set up for keys",
-				fault.WithCode(codes.Data.Precondition.PreconditionFailed.URN()),
+				fault.WithCode(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.WithDesc("api not set up for keys", "The requested API is not set up to handle keys."),
 			)
 		}
@@ -141,7 +134,10 @@ func New(svc Services) zen.Route {
 		// 5. Query the keys
 		var identityId string
 		if req.ExternalId != nil && *req.ExternalId != "" {
-			identity, err := db.Query.FindIdentityByExternalId(ctx, svc.DB.RO(), auth.AuthorizedWorkspaceID, *req.ExternalId)
+			identity, err := db.Query.FindIdentityByExternalID(ctx, svc.DB.RO(), db.FindIdentityByExternalIDParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				ExternalID:  *req.ExternalId,
+			})
 			if err != nil {
 				if !db.IsNotFound(err) {
 					return fault.Wrap(err,
@@ -154,25 +150,23 @@ func New(svc Services) zen.Route {
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
-					Data: openapi.ApisListKeysResponseData{
-						Keys:  []openapi.Key{},
-						Total: 0,
-					},
+					Data: []openapi.KeyResponse{},
 				})
 			}
 			identityId = identity.ID
 		}
 
+		limit := ptr.SafeDeref(req.Limit, 100)
+		cursor := ptr.SafeDeref(req.Cursor, "")
 		// List keys
-		keys, total, err := db.Query.ListKeysForApi(
+		keys, err := db.Query.FindKeysByKeyAuthId(
 			ctx,
 			svc.DB.RO(),
-			db.ListKeysForApiParams{
-				KeyAuthID:   api.KeyAuthID.String,
-				Limit:       int(req.Limit),
-				Cursor:      req.Cursor,
-				IdentityID:  identityId,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+			db.FindKeysByKeyAuthIdParams{
+				KeyAuthID:  api.KeyAuthID.String,
+				Limit:      int32(limit + 1),
+				IDCursor:   cursor,
+				IdentityID: sql.NullString{Valid: identityId != "", String: identityId},
 			},
 		)
 		if err != nil {
@@ -183,7 +177,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// If user requested decryption, check permissions and decrypt
-		var plaintextMap map[string]string
+		plaintextMap := make(map[string]string)
 		if req.Decrypt != nil && *req.Decrypt {
 			decryptPermission, err := svc.Permissions.Check(
 				ctx,
@@ -214,105 +208,89 @@ func New(svc Services) zen.Route {
 				)
 			}
 
-			plaintextMap = make(map[string]string)
 			for _, key := range keys {
-				if key.Encrypted.Valid {
-					plaintext, err := svc.Vault.Decrypt(ctx, key.WorkspaceID, key.Encrypted.String)
+				if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
+					decrypted, err := svc.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
+						Keyring:   key.Key.WorkspaceID,
+						Encrypted: key.EncryptedKey.String,
+					})
 					if err != nil {
-						svc.Logger.Warn("failed to decrypt key", "keyId", key.ID, "error", err)
+						svc.Logger.Error("failed to decrypt key",
+							"keyId", key.Key.ID,
+							"error", err,
+						)
 						continue
 					}
-					plaintextMap[key.ID] = plaintext
+					plaintextMap[key.Key.ID] = decrypted.GetPlaintext()
 				}
 			}
 		}
 
 		// Transform keys into the response format
-		responseKeys := make([]openapi.Key, 0, len(keys))
+		responseData := make([]openapi.KeyResponse, 0, len(keys))
 		for _, key := range keys {
-			k := openapi.Key{
-				Id:          key.ID,
-				Start:       key.Start,
-				ApiId:       api.ID,
-				WorkspaceId: key.WorkspaceID,
+			k := openapi.KeyResponse{
+				KeyId:     key.Key.ID,
+				Start:     key.Key.Start,
+				CreatedAt: key.Key.CreatedAtM,
 			}
 
-			if key.Name.Valid {
-				k.Name = &key.Name.String
+			if key.Key.Name.Valid {
+				k.Name = ptr.P(key.Key.Name.String)
 			}
 
-			if key.OwnerID.Valid {
-				k.OwnerId = &key.OwnerID.String
-			}
-
-			if key.Meta.Valid {
-				var meta map[string]interface{}
-				if err := key.Meta.Unmarshal(&meta); err == nil {
-					k.Meta = meta
+			if key.Key.Meta.Valid {
+				err = json.Unmarshal([]byte(key.Key.Meta.String), &k.Meta)
+				if err != nil {
+					svc.Logger.Error("unable to unmarshal key metadata",
+						"keyId", key.Key.ID,
+						"error", err,
+					)
 				}
 			}
 
-			if key.CreatedAtM.Valid {
-				createdAt := key.CreatedAtM.Time.Format(http.TimeFormat)
-				k.CreatedAt = &createdAt
+			if key.Key.UpdatedAtM.Valid {
+				k.UpdatedAt = ptr.P(key.Key.UpdatedAtM.Int64)
 			}
 
-			if key.UpdatedAtM.Valid {
-				updatedAt := key.UpdatedAtM.Time.Format(http.TimeFormat)
-				k.UpdatedAt = &updatedAt
+			if key.Key.Expires.Valid {
+				k.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
 			}
 
-			if key.Expires.Valid {
-				expires := key.Expires.Time.Format(http.TimeFormat)
-				k.Expires = &expires
-			}
-
-			if key.RatelimitLimit.Valid && key.RatelimitDuration.Valid {
-				isAsync := key.RatelimitAsync.Valid && key.RatelimitAsync.Bool
-				ratelimitType := "consistent"
-				if isAsync {
-					ratelimitType = "fast"
+			if key.Key.RemainingRequests.Valid {
+				k.Credits = &openapi.KeyCredits{
+					Remaining: int(key.Key.RemainingRequests.Int32),
 				}
-
-				k.Ratelimit = &openapi.KeyRatelimit{
-					Type:           ratelimitType,
-					Limit:          int(key.RatelimitLimit.Int64),
-					Duration:       int(key.RatelimitDuration.Int64),
-					RefillRate:     int(key.RatelimitLimit.Int64),
-					RefillInterval: int(key.RatelimitDuration.Int64),
+				if key.Key.RefillAmount.Valid {
+					k.Credits.Refill = &openapi.KeyCreditsRefill{
+						Amount:    int(key.Key.RemainingRequests.Int32),
+						RefillDay: ptr.P(int(key.Key.RefillDay.Int16)),
+					}
+					if key.Key.LastRefillAt.Valid {
+						k.Credits.Refill.LastRefillAt = ptr.P(key.Key.LastRefillAt.Time.UnixMilli())
+					}
 				}
-			}
-
-			if key.Remaining.Valid {
-				remaining := int(key.Remaining.Int64)
-				k.Remaining = &remaining
-			}
-
-			if key.Environment.Valid {
-				k.Environment = &key.Environment.String
 			}
 
 			// Add plaintext if available
 			if plaintextMap != nil {
-				if plaintext, ok := plaintextMap[key.ID]; ok {
-					k.Plaintext = &plaintext
+				if plaintext, ok := plaintextMap[key.Key.ID]; ok {
+					k.Plaintext = ptr.P(plaintext)
 				}
 			}
 
 			// Add identity information if available
 			if key.IdentityID.Valid {
-				identity, err := db.Query.FindIdentityById(ctx, svc.DB.RO(), key.IdentityID.String)
-				if err == nil {
-					k.Identity = &openapi.KeyIdentity{
-						Id:         identity.ID,
-						ExternalId: identity.ExternalID,
-					}
 
-					if identity.Meta.Valid {
-						var meta map[string]interface{}
-						if err := identity.Meta.Unmarshal(&meta); err == nil {
-							k.Identity.Meta = meta
-						}
+				k.Identity = &openapi.Identity{
+					ExternalId: key.ExternalID.String,
+					Id:         key.IdentityID.String,
+				}
+				if key.IdentityMeta != nil && len(key.IdentityMeta) > 0 {
+					err = json.Unmarshal(key.IdentityMeta, &k.Identity.Meta)
+					if err != nil {
+						return fault.Wrap(err, fault.WithCode(codes.App.Internal.UnexpectedError.URN()),
+							fault.WithDesc("unable to unmarshal identity meta", "We encountered an error while trying to unmarshal the identity meta data."))
 					}
 				}
 			}
@@ -336,8 +314,8 @@ func New(svc Services) zen.Route {
 
 		// Determine the cursor for the next page
 		var nextCursor *string
-		if len(keys) > 0 && len(keys) == int(req.Limit) {
-			cursor := keys[len(keys)-1].ID
+		if len(keys) > 0 && len(keys) >= limit {
+			cursor := keys[len(keys)-1].Key.ID
 			nextCursor = &cursor
 		}
 
@@ -345,10 +323,10 @@ func New(svc Services) zen.Route {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			Data: openapi.ApisListKeysResponseData{
-				Keys:   responseKeys,
-				Total:  int(total),
-				Cursor: nextCursor,
+			Data: []openapi.KeyResponse{},
+			Pagination: &openapi.Pagination{
+				Cursor:  nextCursor,
+				HasMore: ptr.P(len(keys) > limit),
 			},
 		})
 	})

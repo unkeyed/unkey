@@ -34,6 +34,8 @@ type Caches struct {
 	WorkspaceByID cache.Cache[string, db.Workspace]
 
 	ApiByID cache.Cache[string, db.Api]
+
+	IdentityByID cache.Cache[string, db.Identity]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -152,6 +154,19 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	identityByID, err := cache.New(cache.Config[string, db.Identity]{
+		Fresh:   10 * time.Second,
+		Stale:   24 * time.Hour,
+		Logger:  config.Logger,
+		MaxSize: 1_000_000,
+
+		Resource: "identity_by_id",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
 		RatelimitNamespaceByName: middleware.WithTracing(ratelimitNamespace),
 		RatelimitOverridesMatch:  middleware.WithTracing(ratelimitOverridesMatch),
@@ -159,5 +174,6 @@ func New(config Config) (Caches, error) {
 		PermissionsByKeyId:       middleware.WithTracing(permissionsByKeyId),
 		WorkspaceByID:            middleware.WithTracing(workspaceByID),
 		ApiByID:                  middleware.WithTracing(apiById),
+		IdentityByID:             middleware.WithTracing(identityByID),
 	}, nil
 }

@@ -19,19 +19,11 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request struct {
-	// The id of the identity to fetch, use either `identityID` or `externalID`,
-	// if both are provided, `identityID` takes precedence.
-	identityID *string `json:"identityId,omitempty"`
-
-	// The externalId of the identity to fetch, use either `identityID` or `externalID`,
-	// if both are provided, `identityID` takes precedence.
-	externalID *string `json:"externalId,omitempty"`
-}
+type Request = openapi.V2IdentitiesGetIdenty
 
 type Response struct {
-	Meta openapi.Meta                      `json:"meta"`
-	Data openapi.IdentitiesGetIdentityData `json:"data"`
+	Meta openapi.Meta     `json:"meta"`
+	Data openapi.Identity `json:"data"`
 }
 
 type Services struct {
@@ -121,16 +113,21 @@ func New(svc Services) zen.Route {
 		// First try to get the identity
 		if req.identityID != nil {
 			// Find by identityID
-			identity, err = db.Query.GetIdentityByID(ctx, tx, db.GetIdentityByIDParams{
-				ID:          *req.identityID,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+			identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
+				ID:      *req.identityID,
+				Deleted: false,
 			})
-		} else {
+		} else if req.externalID != nil {
 			// Find by externalID
-			identity, err = db.Query.GetIdentityByExternalID(ctx, tx, db.GetIdentityByExternalIDParams{
+			identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 				ExternalID:  *req.externalID,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 			})
+		} else {
+			return fault.New("invalid request",
+				fault.WithCode(codes.App.Validation.InvalidInput.URN()),
+				fault.WithDesc("either identityID or externalID must be provided", "Either identityID or externalID must be provided."),
+			)
 		}
 
 		if err != nil {
@@ -146,7 +143,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// Next, get the ratelimits for this identity
-		ratelimits, err = db.Query.GetRatelimitsByIdentityID(ctx, tx, identity.ID)
+		ratelimits, err = db.Query.FindRatelimitsByIdentityID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fault.Wrap(err,
 				fault.WithDesc("unable to fetch ratelimits", "We're unable to retrieve the identity's ratelimits."),
@@ -171,7 +168,7 @@ func New(svc Services) zen.Route {
 		for _, r := range ratelimits {
 			responseRatelimits = append(responseRatelimits, openapi.Ratelimit{
 				Name:     r.Name,
-				Limit:    int(r.Limit),
+				Limit:    int64(r.Limit),
 				Duration: r.Duration,
 			})
 		}
@@ -180,11 +177,10 @@ func New(svc Services) zen.Route {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			Data: openapi.IdentitiesGetIdentityData{
+			Data: openapi.Identity{
 				Id:         identity.ID,
 				ExternalId: identity.ExternalID,
-				Meta:       metaMap,
-				Ratelimits: responseRatelimits,
+				Meta:       &metaMap,
 			},
 		})
 	})

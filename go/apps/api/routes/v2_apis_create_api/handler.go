@@ -162,7 +162,7 @@ func New(svc Services) zen.Route {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			Data: openapi.V2ApisCreateApiResponseData{
+			Data: openapi.ApisCreateApiResponseData{
 				ApiId: apiId,
 			},
 		})
