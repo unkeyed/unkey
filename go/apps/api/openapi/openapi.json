@@ -230,10 +230,7 @@
             "description": "Identity metadata"
           }
         },
-        "required": [
-          "id",
-          "externalId"
-        ]
+        "required": ["id", "externalId"]
       },
       "KeyCredits": {
         "type": "object",
@@ -247,19 +244,14 @@
             "$ref": "#/components/schemas/KeyCreditsRefill"
           }
         },
-        "required": [
-          "remaining"
-        ]
+        "required": ["remaining"]
       },
       "KeyCreditsRefill": {
         "type": "object",
         "properties": {
           "interval": {
             "type": "string",
-            "enum": [
-              "daily",
-              "monthly"
-            ],
+            "enum": ["daily", "monthly"],
             "description": "Refill interval"
           },
           "amount": {
@@ -276,10 +268,7 @@
             "description": "Last time the key was refilled (Unix timestamp)"
           }
         },
-        "required": [
-          "interval",
-          "amount"
-        ]
+        "required": ["interval", "amount"]
       },
       "KeyResponse": {
         "type": "object",
@@ -344,11 +333,7 @@
             "$ref": "#/components/schemas/Identity"
           }
         },
-        "required": [
-          "keyId",
-          "start",
-          "createdAt"
-        ]
+        "required": ["keyId", "start", "createdAt"]
       },
       "LivenessResponseData": {
         "type": "object",
@@ -1222,9 +1207,7 @@
       },
       "V2ApisListKeysRequestBody": {
         "type": "object",
-        "required": [
-          "apiId"
-        ],
+        "required": ["apiId"],
         "properties": {
           "apiId": {
             "type": "string",
@@ -1268,10 +1251,7 @@
       },
       "V2ApisListKeysResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2556,9 +2536,7 @@
     },
     "/v2/apis.listKeys": {
       "post": {
-        "tags": [
-          "apis"
-        ],
+        "tags": ["apis"],
         "operationId": "listKeys",
         "x-speakeasy-name-override": "listKeys",
         "security": [
