@@ -784,6 +784,83 @@
           }
         }
       },
+      "V2KeysRemoveRolesRequestBody": {
+        "type": "object",
+        "required": [
+          "keyId",
+          "roles"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "description": "The ID of the key from which roles will be removed (begins with 'key_')",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q",
+            "minLength": 3
+          },
+          "roles": {
+            "type": "array",
+            "minItems": 1,
+            "description": "List of roles to remove from the key. Each role can be identified by ID or name (if both are provided in the same object, ID takes precedence). Removing roles that aren't assigned to the key has no effect. This will only remove direct role assignments - roles granted through other mechanisms remain unaffected.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The ID of an existing role (begins with 'role_'). Provide either ID or name. Use ID when you know the exact role identifier and want to ensure you're removing a specific role.",
+                  "example": "role_1n9McEIBSqy44Qy7hzWyM5",
+                  "minLength": 3
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The name of the role. Provide either ID or name. Role names are unique within a workspace and can be used to reference the role when you don't have the ID.",
+                  "example": "admin",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2KeysRemoveRolesResponseData": {
+        "type": "array",
+        "description": "Complete list of all roles directly assigned to the key after the requested roles were removed. The list is always sorted alphabetically by role name for consistency. An empty array indicates the key has no roles assigned.",
+        "items": {
+          "type": "object",
+          "required": [
+            "id",
+            "name"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The unique identifier of the role (begins with 'role_'). This ID can be used in other API calls to reference this specific role.",
+              "example": "role_1n9McEIBSqy44Qy7hzWyM5"
+            },
+            "name": {
+              "type": "string",
+              "description": "The name of the role. This is a human-readable identifier that's unique within your workspace.",
+              "example": "admin"
+            }
+          }
+        }
+      },
+      "V2KeysRemoveRolesResponse": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/V2KeysRemoveRolesResponseData"
+          }
+        }
+      },
       "V2KeysCreateKeyRequestBody": {
         "type": "object",
         "required": [
@@ -4132,6 +4209,161 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/keys.removeRoles": {
+      "post": {
+        "tags": ["keys"],
+        "summary": "Remove roles from an API key",
+        "description": "Removes one or more roles from an existing API key. Roles are collections of permissions, and removing a role will revoke all permissions granted through that role. This endpoint is idempotent - removing roles that aren't assigned to the key has no effect. The operation atomically removes all valid roles, and rollback occurs if any role cannot be removed. After roles are removed, any cached versions of the key are invalidated to ensure consistency.",
+        "operationId": "removeRoles",
+        "x-speakeasy-name-override": "removeRoles",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysRemoveRolesRequestBody"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Removing roles by ID",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "roles": [
+                      {
+                        "id": "role_1n9McEIBSqy44Qy7hzWyM5"
+                      },
+                      {
+                        "id": "role_2a8NdFJCTrz55Ry8Jdkz9r"
+                      }
+                    ]
+                  }
+                },
+                "withNames": {
+                  "summary": "Removing roles by name",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "roles": [
+                      {
+                        "name": "admin"
+                      },
+                      {
+                        "name": "billing_manager"
+                      }
+                    ]
+                  }
+                },
+                "mixed": {
+                  "summary": "Removing roles by mixed identifiers",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "roles": [
+                      {
+                        "id": "role_1n9McEIBSqy44Qy7hzWyM5"
+                      },
+                      {
+                        "name": "billing_manager"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Roles successfully removed from the key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysRemoveRolesResponse"
+                },
+                "examples": {
+                  "standard": {
+                    "summary": "Remaining roles after removal",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1234567890abcdef"
+                      },
+                      "data": [
+                        {
+                          "id": "role_3b9OeGKDUsy66Sz9Kelz0s",
+                          "name": "developer"
+                        }
+                      ]
+                    }
+                  },
+                  "empty": {
+                    "summary": "No roles remaining",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1234567890abcdef"
+                      },
+                      "data": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
                 }
               }
             }

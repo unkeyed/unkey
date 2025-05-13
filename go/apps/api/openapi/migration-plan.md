@@ -407,6 +407,7 @@ All endpoints follow this response pattern:
 - [x] `/v2/keys.updateKey` - For updating API key properties
 - [x] `/v2/keys.whoami` - For identifying the current key
 - [x] `/v2/keys.addRoles` - For adding roles to a key
+- [x] `/v2/keys.removeRoles` - For removing roles from a key
 
 ### Next Endpoints to Implement:
 1. [✅] `/v2/keys.whoami` - For identifying the current key (COMPLETED - OpenAPI spec added to openapi.json)
@@ -414,8 +415,8 @@ All endpoints follow this response pattern:
 3. [✅] `/v2/keys.removePermissions` - For removing permissions from a key (COMPLETED - OpenAPI spec added to openapi.json)
 4. [✅] `/v2/keys.setPermissions` - For setting all permissions on a key (COMPLETED - OpenAPI spec added to openapi.json)
 5. [✅] `/v2/keys.addRoles` - For adding roles to a key (COMPLETED - OpenAPI spec added to openapi.json)
-6. [🔄] `/v2/keys.removeRoles` - For removing roles from a key (NEXT IN QUEUE)
-7. [ ] `/v2/keys.setRoles` - For setting all roles on a key
+6. [✅] `/v2/keys.removeRoles` - For removing roles from a key (COMPLETED - OpenAPI spec added to openapi.json)
+7. [🔄] `/v2/keys.setRoles` - For setting all roles on a key (NEXT IN QUEUE)
 8. [ ] `/v2/keys.updateRemaining` - For updating key usage credits
 
 ### Remaining Tasks:

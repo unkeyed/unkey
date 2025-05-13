@@ -903,6 +903,37 @@ type V2KeysRemovePermissionsResponse struct {
 // V2KeysRemovePermissionsResponseData Empty response object. A successful response indicates the permissions were successfully removed. After removal, any cached versions of the key are invalidated to ensure consistency.
 type V2KeysRemovePermissionsResponseData = map[string]interface{}
 
+// V2KeysRemoveRolesRequestBody defines model for V2KeysRemoveRolesRequestBody.
+type V2KeysRemoveRolesRequestBody struct {
+	// KeyId The ID of the key from which roles will be removed (begins with 'key_')
+	KeyId string `json:"keyId"`
+
+	// Roles List of roles to remove from the key. Each role can be identified by ID or name (if both are provided in the same object, ID takes precedence). Removing roles that aren't assigned to the key has no effect. This will only remove direct role assignments - roles granted through other mechanisms remain unaffected.
+	Roles []struct {
+		// Id The ID of an existing role (begins with 'role_'). Provide either ID or name. Use ID when you know the exact role identifier and want to ensure you're removing a specific role.
+		Id *string `json:"id,omitempty"`
+
+		// Name The name of the role. Provide either ID or name. Role names are unique within a workspace and can be used to reference the role when you don't have the ID.
+		Name *string `json:"name,omitempty"`
+	} `json:"roles"`
+}
+
+// V2KeysRemoveRolesResponse defines model for V2KeysRemoveRolesResponse.
+type V2KeysRemoveRolesResponse struct {
+	// Data Complete list of all roles directly assigned to the key after the requested roles were removed. The list is always sorted alphabetically by role name for consistency. An empty array indicates the key has no roles assigned.
+	Data V2KeysRemoveRolesResponseData `json:"data"`
+	Meta Meta                          `json:"meta"`
+}
+
+// V2KeysRemoveRolesResponseData Complete list of all roles directly assigned to the key after the requested roles were removed. The list is always sorted alphabetically by role name for consistency. An empty array indicates the key has no roles assigned.
+type V2KeysRemoveRolesResponseData = []struct {
+	// Id The unique identifier of the role (begins with 'role_'). This ID can be used in other API calls to reference this specific role.
+	Id string `json:"id"`
+
+	// Name The name of the role. This is a human-readable identifier that's unique within your workspace.
+	Name string `json:"name"`
+}
+
 // V2KeysSetPermissionsRequestBody defines model for V2KeysSetPermissionsRequestBody.
 type V2KeysSetPermissionsRequestBody struct {
 	// KeyId The unique identifier of the key to set permissions on (begins with 'key_')
@@ -1302,6 +1333,9 @@ type GetKeyJSONRequestBody = V2KeysGetKeyRequestBody
 
 // RemovePermissionsJSONRequestBody defines body for RemovePermissions for application/json ContentType.
 type RemovePermissionsJSONRequestBody = V2KeysRemovePermissionsRequestBody
+
+// RemoveRolesJSONRequestBody defines body for RemoveRoles for application/json ContentType.
+type RemoveRolesJSONRequestBody = V2KeysRemoveRolesRequestBody
 
 // SetPermissionsJSONRequestBody defines body for SetPermissions for application/json ContentType.
 type SetPermissionsJSONRequestBody = V2KeysSetPermissionsRequestBody
