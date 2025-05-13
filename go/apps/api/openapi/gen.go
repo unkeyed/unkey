@@ -226,6 +226,9 @@ type KeysCreateKeyResponseData struct {
 	KeyId string `json:"keyId"`
 }
 
+// KeysDeleteKeyResponseData Empty response object. A successful response indicates the key was deleted successfully. Deletion triggers cache invalidation across all regions, but it may take up to 30 seconds for the deletion to be fully propagated due to eventual consistency. During this propagation period, some verification attempts might still succeed in certain regions.
+type KeysDeleteKeyResponseData = map[string]interface{}
+
 // KeysGetKeyResponseData defines model for KeysGetKeyResponseData.
 type KeysGetKeyResponseData struct {
 	// ApiId The ID of the API this key belongs to.
@@ -736,6 +739,22 @@ type V2KeysCreateKeyResponseBody struct {
 	Meta Meta                      `json:"meta"`
 }
 
+// V2KeysDeleteKeyRequestBody defines model for V2KeysDeleteKeyRequestBody.
+type V2KeysDeleteKeyRequestBody struct {
+	// KeyId The unique identifier of the key to delete (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself. Once deleted, verification attempts with this key will fail with code=NOT_FOUND and it will no longer appear in key listings.
+	KeyId string `json:"keyId"`
+
+	// Permanent Controls whether the key should be soft-deleted (default) or permanently erased from the database. Soft deletion marks the key as deleted but preserves its data, allowing potential recovery via direct database operations. Permanent deletion completely removes all traces of the key including its hash and metadata. Use permanent=true for regulatory compliance scenarios (like GDPR), resolving hash collisions during migrations, or when you need to reuse the same key string in the future. CAUTION: Permanent deletion cannot be undone.
+	Permanent *bool `json:"permanent,omitempty"`
+}
+
+// V2KeysDeleteKeyResponseBody defines model for V2KeysDeleteKeyResponseBody.
+type V2KeysDeleteKeyResponseBody struct {
+	// Data Empty response object. A successful response indicates the key was deleted successfully. Deletion triggers cache invalidation across all regions, but it may take up to 30 seconds for the deletion to be fully propagated due to eventual consistency. During this propagation period, some verification attempts might still succeed in certain regions.
+	Data *KeysDeleteKeyResponseData `json:"data,omitempty"`
+	Meta Meta                       `json:"meta"`
+}
+
 // V2KeysGetKeyRequestBody defines model for V2KeysGetKeyRequestBody.
 type V2KeysGetKeyRequestBody struct {
 	// Decrypt Whether to include the plaintext key in the response. This is only possible for keys created with 'recoverable: true' and requires the 'decrypt_key' permission. SECURITY WARNING: This should be used sparingly and only for legitimate recovery purposes. Keys returned this way must be handled securely and not logged or stored insecurely. Most applications should set this to false.
@@ -1025,6 +1044,9 @@ type V2IdentitiesDeleteIdentityJSONRequestBody = V2IdentitiesDeleteIdentityReque
 
 // CreateKeyJSONRequestBody defines body for CreateKey for application/json ContentType.
 type CreateKeyJSONRequestBody = V2KeysCreateKeyRequestBody
+
+// DeleteKeyJSONRequestBody defines body for DeleteKey for application/json ContentType.
+type DeleteKeyJSONRequestBody = V2KeysDeleteKeyRequestBody
 
 // GetKeyJSONRequestBody defines body for GetKey for application/json ContentType.
 type GetKeyJSONRequestBody = V2KeysGetKeyRequestBody

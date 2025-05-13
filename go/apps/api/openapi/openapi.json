@@ -32,6 +32,42 @@
       }
     },
     "schemas": {
+        "V2KeysDeleteKeyRequestBody": {
+          "type": "object",
+          "required": ["keyId"],
+          "properties": {
+            "keyId": {
+              "type": "string",
+              "minLength": 3,
+              "description": "The unique identifier of the key to delete (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself. Once deleted, verification attempts with this key will fail with code=NOT_FOUND and it will no longer appear in key listings.",
+              "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
+            },
+            "permanent": {
+              "type": "boolean",
+              "default": false,
+              "description": "Controls whether the key should be soft-deleted (default) or permanently erased from the database. Soft deletion marks the key as deleted but preserves its data, allowing potential recovery via direct database operations. Permanent deletion completely removes all traces of the key including its hash and metadata. Use permanent=true for regulatory compliance scenarios (like GDPR), resolving hash collisions during migrations, or when you need to reuse the same key string in the future. CAUTION: Permanent deletion cannot be undone.",
+              "example": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "KeysDeleteKeyResponseData": {
+          "type": "object",
+          "properties": {},
+          "description": "Empty response object. A successful response indicates the key was deleted successfully. Deletion triggers cache invalidation across all regions, but it may take up to 30 seconds for the deletion to be fully propagated due to eventual consistency. During this propagation period, some verification attempts might still succeed in certain regions."
+        },
+        "V2KeysDeleteKeyResponseBody": {
+          "type": "object",
+          "required": ["meta"],
+          "properties": {
+            "meta": {
+              "$ref": "#/components/schemas/Meta"
+            },
+            "data": {
+              "$ref": "#/components/schemas/KeysDeleteKeyResponseData"
+            }
+          }
+        },
         "V2KeysGetKeyRequestBody": {
           "type": "object",
           "required": ["keyId"],
@@ -2167,6 +2203,90 @@
     }
   },
   "paths": {
+    "/v2/keys.deleteKey": {
+      "post": {
+        "tags": ["keys"],
+        "operationId": "deleteKey",
+        "x-speakeasy-name-override": "deleteKey",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysDeleteKeyRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysDeleteKeyResponseBody"
+                }
+              }
+            },
+            "description": "Successfully deleted key. The key will immediately fail verification in the current region, but it may take up to 30 seconds for deletion to propagate to all regions due to eventual consistency. After deletion, the key will no longer appear in key listings, and verification attempts will return code=NOT_FOUND. Soft-deleted keys (permanent=false) remain in the database but are marked as deleted, while permanently deleted keys are completely removed."
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/v2/keys.getKey": {
       "post": {
         "tags": ["keys"],

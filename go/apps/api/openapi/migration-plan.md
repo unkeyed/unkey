@@ -1,6 +1,19 @@
 # OpenAPI Migration Plan: TypeScript API to Go API
 
-This document outlines the plan for migrating our OpenAPI specifications from the old TypeScript API to the new Go API with v2 endpoints.
+This document outlines the plan for migrating our OpenAPI specifications from the old TypeScript API to the new Go API with v2 endpoints. The migration is focused on creating a consistent, well-documented API specification that will be used to generate client SDKs and documentation.
+
+## Project Overview
+
+**Objective:** Create OpenAPI specifications for all v2 endpoints in the Go API that match the functionality of the existing v1 TypeScript API while improving documentation, consistency, and usability.
+
+**Status:** In progress - 4 endpoints completed out of 12+ planned endpoints
+
+**Timeline:** No fixed deadline, but prioritizing key management endpoints first
+
+**Repository Structure:**
+- Old TypeScript API: `unkey/apps/api/src/routes/`
+- New Go API: `unkey/go/apps/api/`
+- OpenAPI Specification: `unkey/go/apps/api/openapi/openapi.json`
 
 ## Migration Approach
 
@@ -9,15 +22,72 @@ This document outlines the plan for migrating our OpenAPI specifications from th
 3. Update the OpenAPI schema in `unkey/go/apps/api/openapi/openapi.json`
 4. Test each endpoint
 
+## Detailed Implementation Process
+
+For each endpoint:
+
+1. **Research the TypeScript implementation**:
+   - Read the route handler in `unkey/apps/api/src/routes/v1_*.ts`
+   - Understand request/response structure and validation
+   - Note any special behaviors or edge cases
+
+2. **Design the OpenAPI schema**:
+   - Create request body schema (`V2<Resource><Action>RequestBody`)
+   - Create response data schema (`<Resource><Action>ResponseData`)
+   - Create response body schema (`V2<Resource><Action>ResponseBody`)
+   - Add path definition with appropriate responses
+
+3. **Add to OpenAPI specification**:
+   - Open `unkey/go/apps/api/openapi/openapi.json`
+   - Add schemas to the `components.schemas` section
+   - Add path definition to the `paths` section
+   - Ensure proper JSON formatting
+
+4. **Update migration plan**:
+   - Mark the endpoint as completed
+   - Document any significant changes or decisions
+   - Prepare for the next endpoint
+
+5. **Validate the specification**:
+   - Check for valid JSON format
+   - Verify consistent patterns are followed
+   - Test with OpenAPI validation tools if available
+
 ## Important Notes
 
-- All new endpoints will use the `POST` method only
+- All new endpoints will use the `POST` method only (exception: liveness check remains GET)
 - All new routes will have a `/v2` prefix
 - All responses must follow the "meta" + "data" structure pattern
 - Rename "ownerId" fields to "externalId" for consistency
 - Implement stricter validation and better field descriptions
 - Error responses should follow the new API's error format
 - Focus only on routes marked as "Pending" in the migration plan
+
+## Development Environment Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/unkey/unkey.git
+   ```
+
+2. **Navigate to the API project**:
+   ```bash
+   cd unkey/go/apps/api
+   ```
+
+3. **Review existing OpenAPI specification**:
+   ```bash
+   cat openapi/openapi.json
+   ```
+
+4. **Validate OpenAPI changes**:
+   - Use an OpenAPI validator tool or VS Code extension
+   - Or paste the JSON into the Swagger Editor (https://editor.swagger.io/)
+
+5. **Testing process**:
+   - Update the migration plan after each endpoint is implemented
+   - Manual validation recommended before pushing changes
+   - Coordinate with the team for any significant structural changes
 
 ## Routes to Migrate
 
@@ -28,7 +98,7 @@ This document outlines the plan for migrating our OpenAPI specifications from th
 | `/v1/keys.verifyKey` | `/v2/keys.verifyKey` | Completed | Core verification functionality; no root key auth needed but apiId required |
 | `/v1/keys.createKey` | `/v2/keys.createKey` | Completed | |
 | `/v1/keys.getKey` | `/v2/keys.getKey` | Completed | |
-| `/v1/keys.deleteKey` | `/v2/keys.deleteKey` | Pending | |
+| `/v1/keys.deleteKey` | `/v2/keys.deleteKey` | Completed | |
 | `/v1/keys.updateKey` | `/v2/keys.updateKey` | Pending | |
 | `/v1/keys.whoami` | `/v2/keys.whoami` | Pending | |
 | `/v1/keys.getVerifications` | `/v2/keys.getVerifications` | Skip | |
@@ -172,6 +242,44 @@ Each route implementation must include comprehensive test files that match the e
 - Implement stricter validation for fields (e.g., prefix length, rate limits)
 - Add detailed field descriptions and examples
 - Use the standardized "meta" + "data" response format for all endpoints
+- Proactively enhance descriptions and examples without being prompted:
+  - Include real-world usage scenarios
+  - Add security warnings where appropriate
+  - Explain performance implications and tradeoffs
+  - Clarify relationships between different components
+  - Use rich, nested examples that demonstrate practical applications
+
+## Field Changes and Standardization
+
+The following changes should be applied consistently across all endpoints:
+
+| Old Field (v1) | New Field (v2) | Notes |
+|----------------|---------------|-------|
+| `ownerId` | `externalId` | Consistently renamed for clarity |
+| `remaining` | `credits.remaining` | Moved into credits object |
+| `refill` | `credits.refill` | Moved into credits object |
+| `ratelimit` | `ratelimits[]` | Changed to array of named ratelimits |
+| `environment` | Removed | Field has been removed in v2 |
+
+### Common Required Fields
+
+- Request bodies: Usually require the resource identifier (e.g., `keyId`, `apiId`)
+- Response bodies: Always require `meta` with `requestId`
+- Data objects: Required fields vary by endpoint but are explicitly specified
+
+### Standard Response Structure
+
+All endpoints follow this response pattern:
+```json
+{
+  "meta": {
+    "requestId": "req_123abc"
+  },
+  "data": {
+    // Endpoint-specific data
+  }
+}
+```
 
 ## OpenAPI Structure Patterns
 
@@ -235,18 +343,71 @@ Each route implementation must include comprehensive test files that match the e
    }
    ```
 
+## Common Pitfalls and Solutions
+
+1. **JSON Schema Validation Issues**:
+   - Always run validation after changes
+   - Watch for duplicate keys or missing commas
+   - Make sure required fields actually exist in properties
+
+2. **Inconsistent Naming**:
+   - Follow established patterns for schema names
+   - Maintain consistent casing (camelCase for properties)
+   - Use descriptive names for schemas and properties
+
+3. **Documentation Errors**:
+   - Ensure examples match the described schema
+   - Verify enum values are actually valid options
+   - Make sure all required fields are documented
+
+4. **Common JSON Errors**:
+   - Trailing commas (not allowed in JSON)
+   - Missing commas between properties
+   - Unmatched brackets or braces
+   - Quotes around property names (required)
+
+5. **Schema Hierarchy**:
+   - Maintain proper $ref paths
+   - Avoid circular references
+   - Place new schemas in the appropriate section
+
 ## Migration Progress Tracking
 
-- [x] Implement /v2/keys.verifyKey endpoint
-- [x] Implement /v2/keys.createKey endpoint
-- [x] Implement /v2/keys.getKey endpoint
-- [ ] Complete remaining pending routes
+### Completed Endpoints:
+- [x] `/v2/keys.verifyKey` - For verifying API keys
+- [x] `/v2/keys.createKey` - For creating new API keys
+- [x] `/v2/keys.getKey` - For retrieving API key details
+- [x] `/v2/keys.deleteKey` - For deleting API keys
+
+### Next Endpoints to Implement:
+- [ ] `/v2/keys.updateKey` - For updating API key properties
+- [ ] `/v2/keys.whoami` - For identifying the current key
+- [ ] `/v2/keys.updateRemaining` - For updating key usage credits
+- [ ] `/v2/keys.addPermissions` - For adding permissions to a key
+- [ ] `/v2/keys.removePermissions` - For removing permissions from a key
+- [ ] `/v2/keys.setPermissions` - For setting all permissions on a key
+- [ ] `/v2/keys.addRoles` - For adding roles to a key
+- [ ] `/v2/keys.removeRoles` - For removing roles from a key
+- [ ] `/v2/keys.setRoles` - For setting all roles on a key
+
+### Remaining Tasks:
+- [ ] Complete all pending routes
 - [ ] Write comprehensive tests for each route
 - [ ] Validate all migrated endpoints
 - [ ] Update documentation
 - [ ] Test with real clients
+- [ ] Get final approval from the team
 
-## Implementation Learnings
+## Implementation Priority
+
+1. Key management endpoints (currently in progress)
+2. API management endpoints
+3. Identity management endpoints
+4. Analytics endpoints
+
+Each endpoint should be implemented sequentially, updating this document after completion.
+
+## Implementation Details and Learnings
 
 ### /v2/keys.verifyKey (Completed)
 
@@ -277,9 +438,18 @@ Each route implementation must include comprehensive test files that match the e
    - Recommended using key-value pairs for analytics tags
    - Added detailed descriptions of error codes and their meanings
 
+5. Source Files:
+   - TypeScript original: `unkey/apps/api/src/routes/v1_keys_verifyKey.ts`
+   - OpenAPI changes in: `unkey/go/apps/api/openapi/openapi.json`
+
+6. Key Considerations:
+   - This endpoint does NOT require authentication (unlike most other endpoints)
+   - The endpoint will return a 200 OK even when verification fails (check the `valid` field)
+   - The verification codes follow a specific enum of possible values
+
 ## Key Routes Migration Plan
 
-### Keys.createKey (Completed)
+### /v2/keys.createKey (Completed)
 
 1. Schema Improvements:
    - Removed the deprecated `ownerId` field
@@ -302,7 +472,17 @@ Each route implementation must include comprehensive test files that match the e
    - Added examples for complex objects like meta and ratelimits
    - Provided explanations about when to use features like recoverable keys
 
-### Keys.getKey (Completed)
+4. Source Files:
+   - TypeScript original: `unkey/apps/api/src/routes/v1_keys_createKey.ts`
+   - OpenAPI changes in: `unkey/go/apps/api/openapi/openapi.json`
+
+5. Key Considerations:
+   - Authentication with a root key is required with permissions to create keys
+   - The `apiId` field is mandatory and validates against accessible APIs
+   - The response includes both the key ID (for reference) and the actual key (for distribution)
+   - The encryption and security model is complex and detailed in the docs
+
+### /v2/keys.getKey (Completed)
 
 1. Schema Improvements:
    - Converted the GET endpoint with query parameters to a POST endpoint with a JSON body
@@ -324,6 +504,17 @@ Each route implementation must include comprehensive test files that match the e
    - Added security warnings about handling decrypted keys
    - Clarified the relationship between keys and identities
    - Explained how different ratelimit and credit configurations work
+
+4. Source Files:
+   - TypeScript original: `unkey/apps/api/src/routes/v1_keys_getKey.ts`
+   - Referenced schema: `unkey/apps/api/src/routes/schema.ts`
+   - OpenAPI changes in: `unkey/go/apps/api/openapi/openapi.json`
+
+5. Key Considerations:
+   - Authentication with appropriate permissions is required
+   - Decryption of keys requires special permissions and is opt-in only
+   - The response contains potentially sensitive information and should be handled accordingly
+   - Workspace isolation is enforced for security
    
 ### Keys.deleteKey (Next in queue)
 
@@ -345,30 +536,85 @@ Each route implementation must include comprehensive test files that match the e
    - Testing key decryption with proper permissions
    - Verifying authentication and authorization requirements
 
-### Keys.verifyKey
+### /v2/keys.deleteKey (Completed)
 
-1. Define schema components:
-   - `V2KeysVerifyKeyRequestBody` - similar to v1 with apiId (required), key, etc.
-   - `KeysVerifyKeyResponseData` - containing verification result
-   - `V2KeysVerifyKeyResponseBody` - wrapping meta and data fields
+1. Schema Improvements:
+   - Created a simple but effective request schema with keyId and permanent parameters
+   - Added clear descriptions about soft vs permanent deletion
+   - Maintained an empty response body structure with proper meta/data pattern
+   - Used consistent field naming and validation rules
+   
+2. Documentation Improvements:
+   - Added detailed explanation of deletion propagation time
+   - Clarified the difference between soft and permanent deletion
+   - Explained use cases for permanent deletion (hash conflicts, complete removal)
+   - Added clear examples with proper formatting
+   
+3. Design Considerations:
+   - Kept the API simple with minimal required parameters
+   - Maintained backward compatibility with v1 behavior
+   - Added appropriate error responses for all potential error cases
+   - Included cache invalidation notes in the documentation
 
-2. Add path entry:
-   - Path: `/v2/keys.verifyKey`
+4. Source Files:
+   - TypeScript original: `unkey/apps/api/src/routes/v1_keys_deleteKey.ts`
+   - OpenAPI changes in: `unkey/go/apps/api/openapi/openapi.json`
+
+5. Key Considerations:
+   - Authentication with delete permissions is required
+   - Soft deletion is the default, permanent deletion is opt-in
+   - There's a propagation delay of up to 30 seconds for deletion to take effect in all regions
+   - Audit logs are created for deletion operations
+   - Cache invalidation happens automatically
+
+### /v2/keys.updateKey (Next in queue)
+
+#### Implementation Plan
+
+1. Schema components:
+   - `V2KeysUpdateKeyRequestBody` - with keyId and updateable properties
+   - `KeysUpdateKeyResponseData` - with updated key information
+   - `V2KeysUpdateKeyResponseBody` - wrapping meta and data fields
+
+2. Path entry:
+   - Path: `/v2/keys.updateKey`
    - Method: POST
-   - Security: optional (verification works without auth)
-   - Include standard responses plus specific verification error responses
-   - Make apiId a required field (different from v1)
+   - Security: rootKey authentication
+   - Include standard responses (200, 400, 401, 403, 404, 500)
 
-3. Test cases to implement:
-   - Verify valid key with various configurations
-   - Test ratelimit functionality
-   - Test ratelimit override
-   - Test permission verification
-   - Test role verification
-   - Test disabled keys
-   - Test expired keys
-   - Test keys with remaining uses
-   - Test keys with identities
-   - Test keys with metadata
-   - Test deleted keys/APIs scenarios
-   - Verify that requests without apiId are rejected
+3. Design considerations:
+   - Which fields should be updatable and which should not
+   - Partial updates vs. full replacements
+   - Validation rules for each field
+   - Proper documentation of update behaviors
+
+4. Source files to reference:
+   - TypeScript original: `unkey/apps/api/src/routes/v1_keys_updateKey.ts`
+
+## Additional Resources
+
+### Reference Implementations
+
+- **TypeScript API Routes**: `unkey/apps/api/src/routes/`
+- **Go API Routes**: `unkey/go/apps/api/routes/`
+- **OpenAPI Specification**: `unkey/go/apps/api/openapi/openapi.json`
+
+### Documentation
+
+- **Field Naming Conventions**: See the "Field Changes and Standardization" section
+- **Response Patterns**: See the "Standard Response Structure" section
+- **Schema Patterns**: See the "OpenAPI Structure Patterns" section
+
+### Validation
+
+- Recommend using [Swagger Editor](https://editor.swagger.io/) for validation
+- VS Code extensions like "OpenAPI (Swagger) Editor" are helpful
+- Validate changes before committing
+
+### Handover Notes
+
+1. Start by reviewing the completed endpoints in the migration plan
+2. Examine the TypeScript implementation of the next endpoint in line
+3. Follow the implementation process described in this document
+4. Update the migration plan after completing each endpoint
+5. Maintain consistent naming, structure, and documentation quality
