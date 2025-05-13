@@ -26,7 +26,7 @@ This document outlines the plan for migrating our OpenAPI specifications from th
 | TypeScript Route | Go Route | Status | Notes |
 |------------------|----------|--------|-------|
 | `/v1/keys.verifyKey` | `/v2/keys.verifyKey` | Completed | Core verification functionality; no root key auth needed but apiId required |
-| `/v1/keys.createKey` | `/v2/keys.createKey` | Pending | |
+| `/v1/keys.createKey` | `/v2/keys.createKey` | Completed | |
 | `/v1/keys.getKey` | `/v2/keys.getKey` | Pending | |
 | `/v1/keys.deleteKey` | `/v2/keys.deleteKey` | Pending | |
 | `/v1/keys.updateKey` | `/v2/keys.updateKey` | Pending | |
@@ -237,7 +237,9 @@ Each route implementation must include comprehensive test files that match the e
 
 ## Migration Progress Tracking
 
-- [ ] Complete pending routes
+- [x] Implement /v2/keys.verifyKey endpoint
+- [x] Implement /v2/keys.createKey endpoint
+- [ ] Complete remaining pending routes
 - [ ] Write comprehensive tests for each route
 - [ ] Validate all migrated endpoints
 - [ ] Update documentation
@@ -245,7 +247,7 @@ Each route implementation must include comprehensive test files that match the e
 
 ## Implementation Learnings
 
-### keys.verifyKey
+### /v2/keys.verifyKey (Completed)
 
 1. Schema Improvements:
    - Made `apiId` a required field with validation (length 3-255 chars)
@@ -276,28 +278,47 @@ Each route implementation must include comprehensive test files that match the e
 
 ## Key Routes Migration Plan
 
-### Keys.createKey
+### Keys.createKey (Completed)
+
+1. Schema Improvements:
+   - Removed the deprecated `ownerId` field
+   - Renamed "remaining" to "credits" and organized all credits-related options in their own object
+   - Replaced the singular "ratelimit" field with "ratelimits" plural array
+   - Removed the "environment" field
+   - Made credits.remaining required when credits is specified
+   - Ensured all ratelimit objects require name, limit, and duration
+   - Added detailed field descriptions and examples
+   
+2. Response Structure:
+   - Implemented the "meta" + "data" pattern for the response
+   - Enhanced descriptions for keyId and key fields with security guidance
+   - Added detailed examples that demonstrate proper key format
+
+3. Documentation Improvements:
+   - Added guidance about key strength through byteLength parameter
+   - Included clear security recommendations (e.g., not storing keys)
+   - Explained the tradeoffs between credits and ratelimits
+   - Added examples for complex objects like meta and ratelimits
+   - Provided explanations about when to use features like recoverable keys
+   
+### Keys.getKey (Next in queue)
 
 1. Define schema components:
-   - `V2KeysCreateKeyRequestBody` - based on v1 but with any new fields needed
-   - `KeysCreateKeyResponseData` - containing keyId and key properties
-   - `V2KeysCreateKeyResponseBody` - wrapping meta and data fields
+   - `V2KeysGetKeyRequestBody` - containing keyId parameter
+   - `KeysGetKeyResponseData` - containing key properties
+   - `V2KeysGetKeyResponseBody` - wrapping meta and data fields
 
 2. Add path entry:
-   - Path: `/v2/keys.createKey`
+   - Path: `/v2/keys.getKey`
    - Method: POST
    - Security: rootKey
-   - Include standard responses (200, 400, 401, 403, 500)
+   - Include standard responses (200, 400, 401, 403, 404, 500)
 
 3. Test cases to implement:
-   - Create key with basic fields
-   - Create key with all optional fields
-   - Create key with permissions
-   - Create key with roles
-   - Create key with ratelimits
-   - Create key with remaining uses
-   - Test validation error scenarios
-   - Test permission error scenarios
+   - Get existing key with different field combinations
+   - Test retrieval with various permission scenarios
+   - Test not found errors
+   - Test authentication and authorization errors
 
 ### Keys.verifyKey
 

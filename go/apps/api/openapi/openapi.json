@@ -32,6 +32,201 @@
       }
     },
     "schemas": {
+      "V2KeysCreateKeyRequestBody": {
+        "type": "object",
+        "required": ["apiId"],
+        "properties": {
+          "apiId": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 255,
+            "description": "The ID of the API where this key should be created. Each key is associated with exactly one API, which helps segregate keys between different environments (dev/prod) and services.",
+            "example": "api_2cGKbMxRjIzhCxo1IdjH3a"
+          },
+          "prefix": {
+            "type": "string",
+            "maxLength": 16,
+            "description": "Optional prefix for the key that helps identify its purpose. The underscore is automatically added (e.g., 'prod' becomes 'prod_xxxxxxxxx'). Use prefixes like 'prod', 'dev', or service names to help users understand the key's purpose at a glance.",
+            "example": "prod"
+          },
+          "name": {
+            "type": "string",
+            "description": "A human-readable name for the key for your internal reference. This is shown in dashboards and logs but never exposed to end users.",
+            "example": "Payment Service Production Key"
+          },
+          "byteLength": {
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 255,
+            "default": 16,
+            "description": "Controls the cryptographic strength and length of the generated key. Higher values provide more security but result in longer keys. The default (16 bytes) provides 2^128 possible combinations, sufficient for most uses.",
+            "example": 24
+          },
+          "externalId": {
+            "type": "string",
+            "description": "Your user's unique identifier, creating a link between Unkey and your system. This ID is returned during verification so you can identify which customer/entity is making the request. Use consistent IDs from your user management system.",
+            "example": "user_912a841d"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Arbitrary JSON metadata to associate with this key. This is useful for storing additional context like subscription plans, feature flags, or any custom data you'd like to access during verification without additional database lookups.",
+            "example": {
+              "plan": "enterprise",
+              "featureFlags": {
+                "betaAccess": true,
+                "concurrentConnections": 10
+              },
+              "customerName": "Acme Corp"
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "description": "Roles to assign to this key for permission management. Each role represents a collection of permissions and must already exist in your workspace. During verification, all permissions from these roles will be checked against requested permissions.",
+            "example": ["api_admin", "billing_reader"]
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "description": "Individual permissions to assign directly to this key. These are checked during verification alongside any permissions granted via roles. Use structured naming like 'resource.action' for clarity.",
+            "example": ["documents.read", "documents.write", "settings.view"]
+          },
+          "expires": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp (in milliseconds) when this key will automatically expire. Use temporary keys for time-limited access, one-time operations, or emergency access. After expiration, the key will fail verification with code EXPIRED.",
+            "example": 1704067200000
+          },
+          "credits": {
+            "type": "object",
+            "required": ["remaining"],
+            "properties": {
+              "remaining": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Number of times this key can be used before becoming invalid. Set to null for unlimited uses.",
+                "example": 1000
+              },
+              "refill": {
+                "type": "object",
+                "properties": {
+                  "interval": {
+                    "type": "string",
+                    "enum": ["daily", "monthly"],
+                    "description": "How often the credits should be refilled."
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of credits to add during each refill."
+                  },
+                  "refillDay": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 31,
+                    "description": "For monthly refills, the day of month when refills occur."
+                  }
+                },
+                "required": ["interval", "amount"],
+                "description": "Configuration for automatic credit refills."
+              }
+            },
+            "description": "Usage limits configuration for this key. Credits provide a way to limit the number of times a key can be used. Unlike ratelimits, these are guaranteed to be globally consistent (using database transactions) but add latency to verifications."
+          },
+          "ratelimits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "limit", "duration"],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Identifier for this ratelimit. Use descriptive names like 'requests' or 'computations'.",
+                  "example": "requests"
+                },
+                "limit": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 1,
+                  "description": "Maximum number of operations allowed within the time window.",
+                  "example": 100
+                },
+                "duration": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 1000,
+                  "description": "Duration of the ratelimit window in milliseconds.",
+                  "example": 60000
+                }
+              }
+            },
+            "description": "Array of ratelimits to apply to this key. Ratelimits provide protection against abuse by limiting how frequently a key can be used. Multiple named ratelimits can be used for different resources or operations (e.g., 'requests' for overall usage, 'computations' for expensive operations).",
+            "example": [
+              {
+                "name": "requests",
+                "limit": 100,
+                "duration": 60000
+              },
+              {
+                "name": "heavy_operations",
+                "limit": 10,
+                "duration": 3600000
+              }
+            ]
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Controls whether the key is active upon creation. Disabled keys will fail verification with code DISABLED. This is useful for preparing keys that will be activated later or temporarily disabling access without deleting the key.",
+            "example": true
+          },
+          "recoverable": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, the plaintext key is stored in an encrypted vault, allowing it to be retrieved later. Use with caution as this reduces security by keeping a recoverable copy of the key. Best used for development keys or when absolutely necessary.",
+            "example": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "KeysCreateKeyResponseData": {
+        "type": "object",
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "description": "The unique identifier for this key in Unkey's system. This is not secret and can be stored as a reference for later operations like updating or deleting the key.",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
+          },
+          "key": {
+            "type": "string",
+            "description": "The full generated API key that should be provided to your user. This is the only time you'll receive the complete key value - Unkey only stores a hashed version. Never store this value yourself; pass it securely to your end user.",
+            "example": "prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT"
+          }
+        },
+        "required": ["keyId", "key"]
+      },
+      "V2KeysCreateKeyResponseBody": {
+        "type": "object",
+        "required": ["meta", "data"],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KeysCreateKeyResponseData"
+          }
+        }
+      },
       "Meta": {
         "type": "object",
         "required": [
@@ -1747,6 +1942,90 @@
     }
   },
   "paths": {
+    "/v2/keys.createKey": {
+      "post": {
+        "tags": ["keys"],
+        "operationId": "createKey",
+        "x-speakeasy-name-override": "createKey",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysCreateKeyRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysCreateKeyResponseBody"
+                }
+              }
+            },
+            "description": "Successfully created key"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/v2/ratelimit.limit": {
       "post": {
         "tags": [
