@@ -32,7 +32,232 @@
       }
     },
     "schemas": {
-      "V2KeysCreateKeyRequestBody": {
+        "V2KeysGetKeyRequestBody": {
+          "type": "object",
+          "required": ["keyId"],
+          "properties": {
+            "keyId": {
+              "type": "string",
+              "minLength": 3,
+              "description": "The unique identifier of the key to retrieve (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself. You can find this ID in the creation response, key listings, or in the dashboard.",
+              "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
+            },
+            "decrypt": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether to include the plaintext key in the response. This is only possible for keys created with 'recoverable: true' and requires the 'decrypt_key' permission. SECURITY WARNING: This should be used sparingly and only for legitimate recovery purposes. Keys returned this way must be handled securely and not logged or stored insecurely. Most applications should set this to false."
+            }
+          },
+          "additionalProperties": false
+        },
+        "KeysGetKeyResponseData": {
+          "type": "object",
+          "required": ["id", "start", "workspaceId", "createdAt", "enabled"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The unique identifier of the key in Unkey's system.",
+              "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
+            },
+            "start": {
+              "type": "string",
+              "description": "The first few characters of the key to visually identify it without exposing the full key. Used in dashboards and logs to help users recognize which key is being used without revealing sensitive information. Typically includes the prefix if one was specified.",
+              "example": "prod_5j1"
+            },
+            "workspaceId": {
+              "type": "string",
+              "description": "The ID of the workspace that owns this key.",
+              "example": "ws_1234abcd"
+            },
+            "apiId": {
+              "type": "string",
+              "description": "The ID of the API this key belongs to.",
+              "example": "api_2cGKbMxRjIzhCxo1IdjH3a"
+            },
+            "name": {
+              "type": "string",
+              "description": "A descriptive name for the key for internal reference. Shown in dashboards and logs but never exposed to end users.",
+              "example": "Payment Service Production Key"
+            },
+            "externalId": {
+              "type": "string",
+              "description": "Your user's unique identifier, creating a link between Unkey and your system. This ID is returned during verification so you can identify which customer/entity is making the request without performing additional database lookups. Use consistent identifiers that match your primary user/tenant identifiers for seamless integration.",
+              "example": "user_912a841d"
+            },
+            "meta": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Arbitrary JSON metadata associated with this key. This can include additional context like subscription plans, feature flags, or any custom data. Metadata is stored as-is and returned during verification, allowing you to access important information without additional database queries. Consider including data relevant to authorization decisions, usage tracking, and user context.",
+              "example": {
+                "plan": "enterprise",
+                "limits": {
+                  "storage": "500GB",
+                  "compute": "1000 minutes/month"
+                },
+                "contactInfo": {
+                  "primaryEmail": "admin@example.com",
+                  "technicalContact": "tech@example.com"
+                },
+                "integrations": {
+                  "slack": true,
+                  "github": {
+                    "enabled": true,
+                    "repositories": 10
+                  }
+                },
+                "lastActivityTimestamp": 1671048264000
+              }
+            },
+            "createdAt": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Unix timestamp (in milliseconds) when the key was created.",
+              "example": 1671048264000
+            },
+            "updatedAt": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Unix timestamp (in milliseconds) when the key was last updated.",
+              "example": 1671135600000
+            },
+            "expires": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Unix timestamp (in milliseconds) when this key will automatically expire. If null, the key has no expiration.",
+              "example": 1704067200000
+            },
+            "credits": {
+              "type": "object",
+              "properties": {
+                "remaining": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "The number of times this key can still be used before becoming invalid.",
+                  "example": 753
+                },
+                "refill": {
+                  "type": "object",
+                  "required": ["interval", "amount"],
+                  "properties": {
+                    "interval": {
+                      "type": "string",
+                      "enum": ["daily", "monthly"],
+                      "description": "How often the credits are automatically refilled."
+                    },
+                    "amount": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Number of credits added during each refill."
+                    },
+                    "refillDay": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 31,
+                      "description": "For monthly refills, the day of month when refills occur."
+                    },
+                    "lastRefillAt": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Unix timestamp (in milliseconds) when credits were last refilled."
+                    }
+                  },
+                  "description": "Configuration for automatic credit refills."
+                }
+              },
+              "description": "Usage limits configuration for this key. Credits provide a way to limit the number of times a key can be used before becoming invalid. Unlike ratelimits, credits are globally consistent (using database transactions) providing 100% accuracy at the cost of slightly higher latency. Ideal for monetization, usage quotas, or strict limits that must not be exceeded. See the 'refill' field for automatic replenishment options."
+            },
+            "ratelimits": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "limit", "duration"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Identifier for this ratelimit.",
+                    "example": "requests"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Maximum number of operations allowed within the time window.",
+                    "example": 100
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Duration of the ratelimit window in milliseconds.",
+                    "example": 60000
+                  },
+                  "async": {
+                    "type": "boolean",
+                    "description": "Whether this ratelimit uses fast (async=true) or consistent (async=false) mode. Fast mode has lower latency but less accuracy.",
+                    "default": true
+                  }
+                }
+              },
+              "description": "Array of ratelimits applied to this key. Multiple named ratelimits can control different aspects of key usage. For example, a 'requests' ratelimit might control overall API calls while a separate 'computations' limit manages access to resource-intensive operations. Ratelimits are optimized for performance and typically add minimal latency to verifications. They can be shared across keys through identities."
+            },
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of role names assigned to this key. Roles are collections of permissions.",
+              "example": ["api_admin", "billing_reader"]
+            },
+            "permissions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of permission names directly assigned to this key.",
+              "example": ["documents.read", "documents.write", "settings.view"]
+            },
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether the key is currently active. Disabled keys will fail verification with code=DISABLED. Toggling this allows you to temporarily suspend access without deleting the key, which is useful for maintenance, account freezing, or debugging. Can be updated using the updateKey endpoint.",
+              "example": true
+            },
+            "plaintext": {
+              "type": "string",
+              "description": "The full API key in plaintext. Only included when 'decrypt' is true and the key was created with 'recoverable: true'. SECURITY RISK: This field contains the actual secret key which should never be logged, stored in databases, or exposed in any frontend code. It should only be displayed directly to users through secure channels. Most applications should avoid setting decrypt=true unless absolutely necessary."
+            },
+            "identity": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The unique ID of the identity in Unkey's system."
+                },
+                "externalId": {
+                  "type": "string",
+                  "description": "Your identifier for this identity in your system."
+                },
+                "meta": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "Additional metadata associated with this identity."
+                }
+              },
+              "required": ["id", "externalId"],
+              "description": "The identity associated with this key, if any. Identities allow resource sharing (like ratelimits) across multiple keys belonging to the same user/entity. This enables scenarios like issuing separate keys for different devices/services while maintaining global usage limits for the user. An identity's externalId typically matches your user ID or tenant ID."
+            }
+          }
+        },
+        "V2KeysGetKeyResponseBody": {
+          "type": "object",
+          "required": ["meta", "data"],
+          "properties": {
+            "meta": {
+              "$ref": "#/components/schemas/Meta"
+            },
+            "data": {
+              "$ref": "#/components/schemas/KeysGetKeyResponseData"
+            }
+          }
+        },
+        "V2KeysCreateKeyRequestBody": {
         "type": "object",
         "required": ["apiId"],
         "properties": {
@@ -1942,6 +2167,90 @@
     }
   },
   "paths": {
+    "/v2/keys.getKey": {
+      "post": {
+        "tags": ["keys"],
+        "operationId": "getKey",
+        "x-speakeasy-name-override": "getKey",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysGetKeyRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysGetKeyResponseBody"
+                }
+              }
+            },
+            "description": "Successfully retrieved key"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/v2/keys.createKey": {
       "post": {
         "tags": ["keys"],

@@ -27,7 +27,7 @@ This document outlines the plan for migrating our OpenAPI specifications from th
 |------------------|----------|--------|-------|
 | `/v1/keys.verifyKey` | `/v2/keys.verifyKey` | Completed | Core verification functionality; no root key auth needed but apiId required |
 | `/v1/keys.createKey` | `/v2/keys.createKey` | Completed | |
-| `/v1/keys.getKey` | `/v2/keys.getKey` | Pending | |
+| `/v1/keys.getKey` | `/v2/keys.getKey` | Completed | |
 | `/v1/keys.deleteKey` | `/v2/keys.deleteKey` | Pending | |
 | `/v1/keys.updateKey` | `/v2/keys.updateKey` | Pending | |
 | `/v1/keys.whoami` | `/v2/keys.whoami` | Pending | |
@@ -239,6 +239,7 @@ Each route implementation must include comprehensive test files that match the e
 
 - [x] Implement /v2/keys.verifyKey endpoint
 - [x] Implement /v2/keys.createKey endpoint
+- [x] Implement /v2/keys.getKey endpoint
 - [ ] Complete remaining pending routes
 - [ ] Write comprehensive tests for each route
 - [ ] Validate all migrated endpoints
@@ -300,25 +301,49 @@ Each route implementation must include comprehensive test files that match the e
    - Explained the tradeoffs between credits and ratelimits
    - Added examples for complex objects like meta and ratelimits
    - Provided explanations about when to use features like recoverable keys
+
+### Keys.getKey (Completed)
+
+1. Schema Improvements:
+   - Converted the GET endpoint with query parameters to a POST endpoint with a JSON body
+   - Changed "ownerId" to "externalId" for consistency
+   - Restructured "remaining" and "refill" into a credits object
+   - Converted "ratelimit" to an array of "ratelimits" with named limits
+   - Made required fields explicit in both request and response schemas
+   - Added comprehensive field validations
+
+2. Response Structure:
+   - Implemented the standard "meta" + "data" pattern
+   - Enhanced the key object structure with clear field groupings
+   - Included opt-in plaintext key retrieval with proper security warnings
+   - Maintained all fields from the v1 response in a more organized structure
+
+3. Documentation Improvements:
+   - Added detailed descriptions explaining the purpose of each field
+   - Included rich examples showing realistic data structures
+   - Added security warnings about handling decrypted keys
+   - Clarified the relationship between keys and identities
+   - Explained how different ratelimit and credit configurations work
    
-### Keys.getKey (Next in queue)
+### Keys.deleteKey (Next in queue)
 
-1. Define schema components:
-   - `V2KeysGetKeyRequestBody` - containing keyId parameter
-   - `KeysGetKeyResponseData` - containing key properties
-   - `V2KeysGetKeyResponseBody` - wrapping meta and data fields
+1. Schema components:
+   - Created `V2KeysGetKeyRequestBody` with keyId and decrypt parameters
+   - Implemented `KeysGetKeyResponseData` with comprehensive key properties
+   - Added `V2KeysGetKeyResponseBody` with the meta/data wrapper pattern
 
-2. Add path entry:
-   - Path: `/v2/keys.getKey`
-   - Method: POST
-   - Security: rootKey
-   - Include standard responses (200, 400, 401, 403, 404, 500)
+2. Path entry:
+   - Added path: `/v2/keys.getKey`
+   - Used POST method with JSON body
+   - Required rootKey authentication
+   - Included all standard responses with proper status codes and descriptions
 
-3. Test cases to implement:
-   - Get existing key with different field combinations
-   - Test retrieval with various permission scenarios
-   - Test not found errors
-   - Test authentication and authorization errors
+3. Test scenarios to consider:
+   - Retrieving keys with various field combinations (with/without meta, permissions, etc.)
+   - Testing permission boundary enforcement (workspace isolation)
+   - Handling not found cases gracefully
+   - Testing key decryption with proper permissions
+   - Verifying authentication and authorization requirements
 
 ### Keys.verifyKey
 
