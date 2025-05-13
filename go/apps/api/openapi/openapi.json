@@ -626,6 +626,87 @@
           }
         }
       },
+      "V2KeysSetPermissionsRequestBody": {
+        "type": "object",
+        "required": [
+          "keyId",
+          "permissions"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "description": "The unique identifier of the key to set permissions on (begins with 'key_')",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q",
+            "minLength": 3
+          },
+          "permissions": {
+            "type": "array",
+            "description": "The permissions to set for this key. This completely replaces all existing direct permissions on the key. An empty array will remove all direct permissions from the key. Permissions granted through roles are not affected.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The ID of an existing permission (begins with 'perm_'). Provide either ID or name. Using ID is more precise and less prone to naming conflicts.",
+                  "example": "perm_1n9McEIBSqy44Qy7hzWyM5",
+                  "minLength": 3
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The name of the permission. Provide either ID or name. Names should match exactly with the permission name as it was defined.",
+                  "example": "documents.write",
+                  "minLength": 1
+                },
+                "create": {
+                  "type": "boolean",
+                  "description": "When true, if a permission with this name doesn't exist, it will be automatically created. Only works when specifying name, not ID. Requires the rbac.*.create_permission permission on your root key.",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2KeysSetPermissionsResponseData": {
+        "type": "array",
+        "description": "Complete list of all permissions now assigned to the key after the set operation (replaces all previous direct permissions)",
+        "items": {
+          "type": "object",
+          "required": [
+            "id",
+            "name"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The unique identifier of the permission",
+              "example": "perm_1n9McEIBSqy44Qy7hzWyM5"
+            },
+            "name": {
+              "type": "string",
+              "description": "The name of the permission",
+              "example": "documents.write"
+            }
+          }
+        }
+      },
+      "V2KeysSetPermissionsResponse": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/V2KeysSetPermissionsResponseData"
+          }
+        }
+      },
       "V2KeysCreateKeyRequestBody": {
         "type": "object",
         "required": [
@@ -2563,6 +2644,363 @@
     }
   },
   "paths": {
+    "/v2/keys.setPermissions": {
+      "post": {
+        "tags": ["keys"],
+        "summary": "Set (replace) all permissions on an API key",
+        "description": "Sets the permissions for an existing API key by replacing all existing direct permissions with the provided ones. Unlike addPermissions or removePermissions which modify existing permissions, this endpoint completely replaces the permission set. Providing an empty permissions array will remove all direct permissions from the key. This makes it useful for synchronizing key permissions with an external system or for reset operations. Only affects direct permissions on the key, not permissions granted through roles. Changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.",
+        "operationId": "setPermissions",
+        "x-speakeasy-name-override": "setPermissions",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysSetPermissionsRequestBody"
+              },
+              "examples": {
+                "removeAll": {
+                  "summary": "Remove all permissions from key",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": []
+                  }
+                },
+                "basic": {
+                  "summary": "Set permissions using IDs",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "id": "perm_1n9McEIBSqy44Qy7hzWyM5"
+                      },
+                      {
+                        "id": "perm_2zF4mNyP9BsRj2aQwDxVkT"
+                      }
+                    ]
+                  }
+                },
+                "withNames": {
+                  "summary": "Set permissions using names",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "name": "documents.write"
+                      },
+                      {
+                        "name": "documents.delete"
+                      }
+                    ]
+                  }
+                },
+                "withCreation": {
+                  "summary": "Set with permission creation",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "name": "documents.write"
+                      },
+                      {
+                        "name": "reports.export",
+                        "create": true
+                      },
+                      {
+                        "name": "reports.schedule",
+                        "create": true
+                      }
+                    ]
+                  }
+                },
+                "mixed": {
+                  "summary": "Mix of ID and name references",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "id": "perm_1n9McEIBSqy44Qy7hzWyM5"
+                      },
+                      {
+                        "name": "documents.delete"
+                      },
+                      {
+                        "name": "reports.view",
+                        "create": true
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permissions successfully set on the key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysSetPermissionsResponse"
+                },
+                "examples": {
+                  "standard": {
+                    "summary": "Complete list of permissions",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_2cGKbMxRyIzhCxo1Idjz8q"
+                      },
+                      "data": [
+                        {
+                          "id": "perm_1n9McEIBSqy44Qy7hzWyM5",
+                          "name": "documents.write"
+                        },
+                        {
+                          "id": "perm_2zF4mNyP9BsRj2aQwDxVkT",
+                          "name": "documents.delete"
+                        },
+                        {
+                          "id": "perm_3qRsTu2vWxYzAbCdEfGhIj",
+                          "name": "reports.view"
+                        }
+                      ]
+                    }
+                  },
+                  "empty": {
+                    "summary": "All permissions removed",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_3qRsTu2vWxYzAbCdEfGhIj"
+                      },
+                      "data": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid keyId format, missing required fields, or malformed permission entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                },
+                "examples": {
+                  "invalidKeyId": {
+                    "summary": "Invalid keyId format",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_5zAbCdEfGhIjKlMnOpQrSt"
+                      },
+                      "error": {
+                        "title": "Bad Request",
+                        "detail": "keyId must start with 'key_'",
+                        "status": 400,
+                        "type": "bad_request"
+                      }
+                    }
+                  },
+                  "emptyPermissions": {
+                    "summary": "Empty permissions array",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_6aBcDeFgHiJkLmNoPqRsT"
+                      },
+                      "error": {
+                        "title": "Bad Request",
+                        "detail": "At least one permission must be specified",
+                        "status": 400,
+                        "type": "bad_request"
+                      }
+                    }
+                  },
+                  "missingIdentifier": {
+                    "summary": "Permission missing both id and name",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_7bCdEfGhIjKlMnOpQrStUv"
+                      },
+                      "error": {
+                        "title": "Bad Request",
+                        "detail": "Each permission must include either id or name",
+                        "status": 400,
+                        "type": "bad_request"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Missing or invalid authentication credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                },
+                "examples": {
+                  "invalidRootKey": {
+                    "summary": "Invalid root key provided",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_9tUv3wXyZaAbCdEfGhIjKl"
+                      },
+                      "error": {
+                        "title": "Unauthorized",
+                        "detail": "The root key provided is invalid or has been revoked.",
+                        "status": 401,
+                        "type": "unauthorized"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions (requires 'rbac.*.add_permission_to_key' and 'rbac.*.remove_permission_from_key' and potentially 'rbac.*.create_permission')",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                },
+                "examples": {
+                  "missingAddPermission": {
+                    "summary": "Missing add permission",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_0uVwX4yZaAbCdEfGhIjKl"
+                      },
+                      "error": {
+                        "title": "Forbidden",
+                        "detail": "Your root key requires the 'rbac.*.add_permission_to_key' permission to perform this operation",
+                        "status": 403,
+                        "type": "forbidden"
+                      }
+                    }
+                  },
+                  "missingRemovePermission": {
+                    "summary": "Missing remove permission",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1vWxYzAbCdEfGhIjKlMnOp"
+                      },
+                      "error": {
+                        "title": "Forbidden",
+                        "detail": "Your root key requires the 'rbac.*.remove_permission_from_key' permission to perform this operation",
+                        "status": 403,
+                        "type": "forbidden"
+                      }
+                    }
+                  },
+                  "missingCreatePermission": {
+                    "summary": "Cannot create new permissions",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_4bVcWdXeYfZgHiJkLmNoPq"
+                      },
+                      "error": {
+                        "title": "Forbidden",
+                        "detail": "Your root key requires the 'rbac.*.create_permission' permission to create new permissions",
+                        "status": 403,
+                        "type": "forbidden"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Key not found or specified permission IDs don't exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                },
+                "examples": {
+                  "keyNotFound": {
+                    "summary": "Key not found",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_2wXyZaAbCdEfGhIjKlMnOp"
+                      },
+                      "error": {
+                        "title": "Not Found",
+                        "detail": "Key key_2cGKbMxRyIzhCxo1Idjz8q not found",
+                        "status": 404,
+                        "type": "not_found"
+                      }
+                    }
+                  },
+                  "permissionNotFound": {
+                    "summary": "Permission not found",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_3xYzAbCdEfGhIjKlMnOpQr"
+                      },
+                      "error": {
+                        "title": "Not Found",
+                        "detail": "Permission perm_1n9McEIBSqy44Qy7hzWyM5 not found and not allowed to create",
+                        "status": 404,
+                        "type": "not_found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - An unexpected error occurred while processing the request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                },
+                "examples": {
+                  "databaseError": {
+                    "summary": "Database error",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_4yZaAbCdEfGhIjKlMnOpQrS"
+                      },
+                      "error": {
+                        "title": "Internal Server Error",
+                        "detail": "An unexpected error occurred while processing your request. Please try again later.",
+                        "status": 500,
+                        "type": "internal_server_error"
+                      }
+                    }
+                  },
+                  "cachingError": {
+                    "summary": "Cache invalidation error",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_5zAbCdEfGhIjKlMnOpQrSt"
+                      },
+                      "error": {
+                        "title": "Internal Server Error",
+                        "detail": "The permissions were successfully set but there was an error invalidating cached keys. Some systems may temporarily see stale data.",
+                        "status": 500,
+                        "type": "internal_server_error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/keys.removePermissions": {
       "post": {
         "tags": ["keys"],
@@ -2583,6 +3021,13 @@
                 "$ref": "#/components/schemas/V2KeysRemovePermissionsRequestBody"
               },
               "examples": {
+                "removeAll": {
+                  "summary": "Remove all permissions from key",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": []
+                  }
+                },
                 "basic": {
                   "summary": "Remove permissions using IDs",
                   "value": {

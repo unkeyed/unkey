@@ -839,6 +839,40 @@ type V2KeysRemovePermissionsResponse struct {
 // V2KeysRemovePermissionsResponseData Empty response object. A successful response indicates the permissions were successfully removed. After removal, any cached versions of the key are invalidated to ensure consistency.
 type V2KeysRemovePermissionsResponseData = map[string]interface{}
 
+// V2KeysSetPermissionsRequestBody defines model for V2KeysSetPermissionsRequestBody.
+type V2KeysSetPermissionsRequestBody struct {
+	// KeyId The unique identifier of the key to set permissions on (begins with 'key_')
+	KeyId string `json:"keyId"`
+
+	// Permissions The permissions to set for this key. This completely replaces all existing direct permissions on the key. An empty array will remove all direct permissions from the key. Permissions granted through roles are not affected.
+	Permissions []struct {
+		// Create When true, if a permission with this name doesn't exist, it will be automatically created. Only works when specifying name, not ID. Requires the rbac.*.create_permission permission on your root key.
+		Create *bool `json:"create,omitempty"`
+
+		// Id The ID of an existing permission (begins with 'perm_'). Provide either ID or name. Using ID is more precise and less prone to naming conflicts.
+		Id *string `json:"id,omitempty"`
+
+		// Name The name of the permission. Provide either ID or name. Names should match exactly with the permission name as it was defined.
+		Name *string `json:"name,omitempty"`
+	} `json:"permissions"`
+}
+
+// V2KeysSetPermissionsResponse defines model for V2KeysSetPermissionsResponse.
+type V2KeysSetPermissionsResponse struct {
+	// Data Complete list of all permissions now assigned to the key after the set operation (replaces all previous direct permissions)
+	Data V2KeysSetPermissionsResponseData `json:"data"`
+	Meta Meta                             `json:"meta"`
+}
+
+// V2KeysSetPermissionsResponseData Complete list of all permissions now assigned to the key after the set operation (replaces all previous direct permissions)
+type V2KeysSetPermissionsResponseData = []struct {
+	// Id The unique identifier of the permission
+	Id string `json:"id"`
+
+	// Name The name of the permission
+	Name string `json:"name"`
+}
+
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
 	// Credits Usage limits configuration for this key. Set to null to disable usage limits. Omit this field to leave it unchanged. Note: Cannot set refill when credits is null; setting refillDay requires interval to be 'monthly'.
@@ -1189,6 +1223,9 @@ type GetKeyJSONRequestBody = V2KeysGetKeyRequestBody
 
 // RemovePermissionsJSONRequestBody defines body for RemovePermissions for application/json ContentType.
 type RemovePermissionsJSONRequestBody = V2KeysRemovePermissionsRequestBody
+
+// SetPermissionsJSONRequestBody defines body for SetPermissions for application/json ContentType.
+type SetPermissionsJSONRequestBody = V2KeysSetPermissionsRequestBody
 
 // UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
 type UpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody

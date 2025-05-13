@@ -4,7 +4,7 @@ This document outlines the plan for migrating our OpenAPI specifications from th
 
 ## Summary of Progress (Last Updated: October 2023)
 
-**Current Status:** 5 of 12+ planned endpoints completed (42% complete), 1 ready for implementation (whoami), 2 completed (addPermissions, removePermissions)
+**Current Status:** 5 of 12+ planned endpoints completed (42% complete), 1 ready for implementation (whoami), 3 completed (addPermissions, removePermissions, setPermissions)
 
 **Completed Endpoints:**
 1. ✅ `/v2/keys.verifyKey` - Core verification functionality
@@ -210,7 +210,7 @@ For each endpoint:
 
 1. Continue with key management endpoints in this order:
    - Implement the `/v2/keys.whoami` endpoint next (OpenAPI schema is completed and validated)
-   - Proceed with the remaining key permissions endpoint (setPermissions)
+   - Move on to key roles endpoints (addRoles, removeRoles, setRoles)
    - Implement key roles endpoints (addRoles, removeRoles, setRoles)
    - Complete remaining key operations (updateRemaining)
 
@@ -405,7 +405,7 @@ All endpoints follow this response pattern:
 1. [🔄] `/v2/keys.whoami` - For identifying the current key (READY FOR IMPLEMENTATION - OpenAPI spec completed and validated)
 2. [✅] `/v2/keys.addPermissions` - For adding permissions to a key (COMPLETED - OpenAPI spec added to openapi.json)
 3. [✅] `/v2/keys.removePermissions` - For removing permissions from a key (COMPLETED - OpenAPI spec added to openapi.json)
-4. [ ] `/v2/keys.setPermissions` - For setting all permissions on a key
+4. [✅] `/v2/keys.setPermissions` - For setting all permissions on a key (COMPLETED - OpenAPI spec added to openapi.json)
 5. [ ] `/v2/keys.addRoles` - For adding roles to a key
 6. [ ] `/v2/keys.removeRoles` - For removing roles from a key
 7. [ ] `/v2/keys.setRoles` - For setting all roles on a key
@@ -427,321 +427,6 @@ All endpoints follow this response pattern:
 4. Analytics endpoints
 
 Each endpoint should be implemented sequentially, updating this document after completion.
-
-### /v2/keys.addPermissions (COMPLETED)
-
-#### Implementation Plan
-
-1. Schema components:
-   - `V2KeysAddPermissionsRequestBody` - with keyId and array of permissions to add
-   - `KeysAddPermissionsResponseData` - with array of permissions now assigned to the key
-   - `V2KeysAddPermissionsResponse` - wrapping meta and data fields in standard response format
-
-2. Path entry:
-   - Path: `/v2/keys.addPermissions`
-   - Method: POST
-   - Security: rootKey authentication
-   - Include standard responses (200, 400, 401, 403, 404, 500)
-
-3. Implementation details:
-   - Check if requested permissions exist or need to be created
-   - Authorize both permission creation and permission assignment
-   - Associate permissions with the key
-   - Return the full set of permissions now assigned to the key
-   - Invalidate key cache
-
-4. Source files to reference:
-   - TypeScript original: `unkey/apps/api/src/routes/v1_keys_addPermissions.ts`
-   - Permission implementation in Go: `unkey/go/apps/api/routes/v2_permissions_*/*.go`
-   - OpenAPI spec: `unkey/go/apps/api/openapi/openapi.json`
-
-#### Schema Structure
-
-```json
-{
-  "V2KeysAddPermissionsRequestBody": {
-    "type": "object",
-    "required": ["keyId", "permissions"],
-    "properties": {
-      "keyId": {
-        "type": "string",
-        "description": "The ID of the key to which permissions will be added (begins with 'key_')",
-        "example": "key_2cGKbMxRyIzhCxo1Idjz8q",
-        "minLength": 3
-      },
-      "permissions": {
-        "type": "array",
-        "minItems": 1,
-        "description": "List of permissions to add to the key. Each permission can be identified by ID or name. If both are provided, ID takes precedence.",
-        "items": {
-          "type": "object",
-          "properties": {
-            "id": {
-              "type": "string",
-              "description": "The ID of an existing permission (begins with 'perm_'). Provide either ID or name.",
-              "example": "perm_1n9McEIBSqy44Qy7hzWyM5",
-              "minLength": 3
-            },
-            "name": {
-              "type": "string",
-              "description": "The name of the permission. Provide either ID or name.",
-              "example": "documents.write",
-              "minLength": 1
-            },
-            "create": {
-              "type": "boolean",
-              "description": "When true, if a permission with this name doesn't exist, it will be automatically created. Only works when specifying name, not ID. Requires the rbac.*.create_permission permission on your root key.",
-              "default": false
-            }
-          },
-          "additionalProperties": false
-        }
-      }
-    },
-    "additionalProperties": false
-  }
-}
-```
-
-```json
-{
-  "V2KeysAddPermissionsResponseData": {
-    "type": "array",
-    "description": "Complete list of all permissions now assigned to the key (including those that were already assigned)",
-    "items": {
-      "type": "object",
-      "required": ["id", "name"],
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "The unique identifier of the permission",
-          "example": "perm_1n9McEIBSqy44Qy7hzWyM5"
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the permission",
-          "example": "documents.write"
-        }
-      }
-    }
-  }
-}
-```
-
-```json
-{
-  "V2KeysAddPermissionsResponse": {
-    "type": "object",
-    "required": ["meta", "data"],
-    "properties": {
-      "meta": {
-        "$ref": "#/components/schemas/Meta"
-      },
-      "data": {
-        "$ref": "#/components/schemas/V2KeysAddPermissionsResponseData"
-      }
-    }
-  }
-}
-```
-
-```json
-{
-  "/v2/keys.addPermissions": {
-    "post": {
-      "tags": ["keys"],
-      "summary": "Add permissions to an API key",
-      "description": "Assigns one or more permissions to an existing API key. Permissions grant specific capabilities that can be checked during key verification.",
-      "operationId": "addPermissions",
-      "x-speakeasy-name-override": "addPermissions",
-      "security": [
-        {
-          "rootKey": []
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/V2KeysAddPermissionsRequestBody"
-            },
-            "examples": {
-              "basic": {
-                "summary": "Add permissions using IDs",
-                "value": {
-                  "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
-                  "permissions": [
-                    {
-                      "id": "perm_1n9McEIBSqy44Qy7hzWyM5"
-                    },
-                    {
-                      "id": "perm_2zF4mNyP9BsRj2aQwDxVkT"
-                    }
-                  ]
-                }
-              },
-              "withNames": {
-                "summary": "Add permissions using names",
-                "value": {
-                  "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
-                  "permissions": [
-                    {
-                      "name": "documents.write"
-                    },
-                    {
-                      "name": "documents.delete"
-                    }
-                  ]
-                }
-              },
-              "withCreation": {
-                "summary": "Add and create new permissions",
-                "value": {
-                  "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
-                  "permissions": [
-                    {
-                      "name": "reports.export",
-                      "create": true
-                    },
-                    {
-                      "name": "reports.schedule",
-                      "create": true
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "Permissions successfully added to the key",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/V2KeysAddPermissionsResponse"
-              },
-              "examples": {
-                "standard": {
-                  "summary": "Complete list of permissions",
-                  "value": {
-                    "meta": {
-                      "requestId": "req_2cGKbMxRyIzhCxo1Idjz8q"
-                    },
-                    "data": [
-                      {
-                        "id": "perm_1n9McEIBSqy44Qy7hzWyM5",
-                        "name": "documents.write"
-                      },
-                      {
-                        "id": "perm_2zF4mNyP9BsRj2aQwDxVkT",
-                        "name": "documents.delete"
-                      },
-                      {
-                        "id": "perm_3qRsTu2vWxYzAbCdEfGhIj",
-                        "name": "documents.read"
-                      },
-                      {
-                        "id": "perm_4bVcWdXeYfZgHiJkLmNoPq",
-                        "name": "reports.export"
-                      },
-                      {
-                        "id": "perm_5sTu2vWxYzAbCdEfGhIjKl",
-                        "name": "reports.schedule"
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BadRequest",
-          "description": "Bad Request - Invalid keyId or permissions format"
-        },
-        "401": {
-          "$ref": "#/components/responses/Unauthorized",
-          "description": "Unauthorized - The root API key is missing or invalid"
-        },
-        "403": {
-          "$ref": "#/components/responses/Forbidden",
-          "description": "Forbidden - Insufficient permissions to add permissions to keys or create new permissions"
-        },
-        "404": {
-          "$ref": "#/components/responses/NotFound",
-          "description": "Not Found - The key or specified permission IDs don't exist"
-        },
-        "500": {
-          "$ref": "#/components/responses/InternalServerError",
-          "description": "Internal Server Error - An unexpected error occurred while processing the request"
-        }
-      }
-    }
-  }
-}
-```
-
-**Endpoint Documentation:**
-
-The `/v2/keys.addPermissions` endpoint allows you to add one or more permissions to an existing API key. Permissions grant specific capabilities that can be checked during key verification to implement fine-grained access control.
-
-This endpoint supports:
-1. Adding existing permissions by ID
-2. Adding existing permissions by name
-3. Creating and adding new permissions in a single operation (when `create: true` is specified)
-
-You need the following permissions on your root key to use this endpoint:
-- `rbac.*.add_permission_to_key` to add permissions to keys
-- `rbac.*.create_permission` if you're using the `create: true` option
-
-**Example Request:**
-```json
-{
-  "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
-  "permissions": [
-    {
-      "name": "documents.write"
-    },
-    {
-      "name": "documents.delete"
-    },
-    {
-      "name": "reports.export",
-      "create": true
-    }
-  ]
-}
-```
-
-**Example Response:**
-```json
-{
-  "meta": {
-    "requestId": "req_2cGKbMxRyIzhCxo1Idjz8q"
-  },
-  "data": [
-    {
-      "id": "perm_1n9McEIBSqy44Qy7hzWyM5",
-      "name": "documents.write"
-    },
-    {
-      "id": "perm_2zF4mNyP9BsRj2aQwDxVkT",
-      "name": "documents.delete"
-    },
-    {
-      "id": "perm_3qRsTu2vWxYzAbCdEfGhIj",
-      "name": "documents.read"
-    },
-    {
-      "id": "perm_4bVcWdXeYfZgHiJkLmNoPq",
-      "name": "reports.export"
-    }
-  ]
-}
-```
 
 **Implementation Notes:**
 - The response includes ALL permissions assigned to the key (both newly added and previously existing)
@@ -803,7 +488,7 @@ You need the following permissions on your root key to use this endpoint:
    - Made credits.remaining required when credits is specified
    - Ensured all ratelimit objects require name, limit, and duration
    - Added detailed field descriptions and examples
-   
+
 2. Response Structure:
    - Implemented the "meta" + "data" pattern for the response
    - Enhanced descriptions for keyId and key fields with security guidance
@@ -859,7 +544,7 @@ You need the following permissions on your root key to use this endpoint:
    - Decryption of keys requires special permissions and is opt-in only
    - The response contains potentially sensitive information and should be handled accordingly
    - Workspace isolation is enforced for security
-   
+
 ### Keys.deleteKey (Next in queue)
 
 1. Schema components:
@@ -887,13 +572,13 @@ You need the following permissions on your root key to use this endpoint:
    - Added clear descriptions about soft vs permanent deletion
    - Maintained an empty response body structure with proper meta/data pattern
    - Used consistent field naming and validation rules
-   
+
 2. Documentation Improvements:
    - Added detailed explanation of deletion propagation time
    - Clarified the difference between soft and permanent deletion
    - Explained use cases for permanent deletion (hash conflicts, complete removal)
    - Added clear examples with proper formatting
-   
+
 3. Design Considerations:
    - Kept the API simple with minimal required parameters
    - Maintained backward compatibility with v1 behavior
@@ -919,13 +604,13 @@ You need the following permissions on your root key to use this endpoint:
    - Removed roles and permissions fields (handled by specialized endpoints)
    - Replaced deprecated `ratelimit` field with array-based `ratelimits`
    - Maintained the empty response structure with proper meta/data pattern
-   
+
 2. Documentation Improvements:
    - Clearly documented the partial update behavior (omit vs. null)
    - Added detailed field descriptions with examples
    - Included propagation time estimates for changes
    - Provided clear examples of valid update operations
-   
+
 3. Design Considerations:
    - Simplified the endpoint by moving permission/role management to specialized endpoints
    - Used JSON types to enforce field validations
@@ -966,7 +651,7 @@ You need the following permissions on your root key to use this endpoint:
 
 4. Key response fields:
    - `id` - The ID of the key
-   - `name` - Optional name of the key 
+   - `name` - Optional name of the key
    - `remaining` - Optional remaining number of requests
    - `identity` - Optional identity information (id, externalId)
    - `meta` - Optional metadata associated with the key
@@ -1251,6 +936,179 @@ The endpoint requires bearer authentication and performs proper authorization ch
 - The `createdAt` timestamp is in Unix milliseconds format
 - The endpoint returns a 404 error if the key doesn't exist or if the requester doesn't have permission to see it
 
+### /v2/keys.setPermissions (COMPLETED)
+
+#### Implementation Plan
+
+1. Schema components:
+   - `V2KeysSetPermissionsRequestBody` - with keyId and array of permissions to set
+   - `V2KeysSetPermissionsResponseData` - with array of permissions now assigned to the key
+   - `V2KeysSetPermissionsResponse` - wrapping meta and data fields in standard response format
+
+2. Path entry:
+   - Path: `/v2/keys.setPermissions`
+   - Method: POST
+   - Security: rootKey authentication
+   - Include standard responses (200, 400, 401, 403, 404, 500)
+
+3. Implementation details:
+   - Replace all existing direct permissions with the provided set
+   - Handle both adding new permissions and removing existing ones not in the new set
+   - Support creation of new permissions via the `create` flag
+   - Authorize both permission creation, addition, and removal operations
+   - Invalidate key cache after successful update
+   - Audit log all permission changes (additions, removals, and creations)
+
+4. Source files to reference:
+   - TypeScript original: `unkey/apps/api/src/routes/v1_keys_setPermissions.ts`
+   - Permission implementation in Go: `unkey/go/apps/api/routes/v2_permissions_*/*.go`
+   - OpenAPI spec: `unkey/go/apps/api/openapi/openapi.json`
+
+#### Schema Structure
+
+```json
+{
+  "V2KeysSetPermissionsRequestBody": {
+    "type": "object",
+    "required": [
+      "keyId",
+      "permissions"
+    ],
+    "properties": {
+      "keyId": {
+        "type": "string",
+        "description": "The unique identifier of the key to set permissions on (begins with 'key_')",
+        "example": "key_2cGKbMxRyIzhCxo1Idjz8q",
+        "minLength": 3
+      },
+      "permissions": {
+        "type": "array",
+        "description": "The permissions to set for this key. This completely replaces all existing direct permissions on the key. An empty array will remove all direct permissions from the key. Permissions granted through roles are not affected.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The ID of an existing permission (begins with 'perm_'). Provide either ID or name. Using ID is more precise and less prone to naming conflicts.",
+              "example": "perm_1n9McEIBSqy44Qy7hzWyM5",
+              "minLength": 3
+            },
+            "name": {
+              "type": "string",
+              "description": "The name of the permission. Provide either ID or name. Names should match exactly with the permission name as it was defined.",
+              "example": "documents.write",
+              "minLength": 1
+            },
+            "create": {
+              "type": "boolean",
+              "description": "When true, if a permission with this name doesn't exist, it will be automatically created. Only works when specifying name, not ID. Requires the rbac.*.create_permission permission on your root key.",
+              "default": false
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": false
+  }
+}
+```
+
+```json
+{
+  "V2KeysSetPermissionsResponse": {
+    "type": "object",
+    "required": [
+      "meta",
+      "data"
+    ],
+    "properties": {
+      "meta": {
+        "$ref": "#/components/schemas/Meta"
+      },
+      "data": {
+        "$ref": "#/components/schemas/V2KeysSetPermissionsResponseData"
+      }
+    }
+  }
+}
+```
+
+**Endpoint Documentation:**
+
+The `/v2/keys.setPermissions` endpoint allows you to completely replace all direct permissions on an API key with a new set. Unlike the `addPermissions` or `removePermissions` endpoints which modify the existing permission set, this endpoint performs a wholesale replacement of permissions. Providing an empty permissions array will remove all direct permissions from the key.
+
+Key features of this endpoint:
+1. Replaces all existing direct permissions with the new set provided
+2. Allows creation of new permissions on-the-fly with the `create` flag
+3. Permissions can be referenced by ID or name
+4. Only affects direct permissions, not those granted through roles
+5. Requires both add and remove permission capabilities
+
+This endpoint is particularly useful for:
+- Synchronizing key permissions with an external system
+- Performing a complete permissions reset
+- Implementing role-based access control systems that manage permissions in bulk
+
+**Example Request:**
+```json
+{
+  "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+  "permissions": [
+    {
+      "id": "perm_1n9McEIBSqy44Qy7hzWyM5"
+    },
+    {
+      "name": "documents.delete"
+    },
+    {
+      "name": "reports.view",
+      "create": true
+    }
+  ]
+}
+```
+
+**Example Request (Remove All Permissions):**
+```json
+{
+  "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+  "permissions": []
+}
+```
+
+**Example Response:**
+```json
+{
+  "meta": {
+    "requestId": "req_2cGKbMxRyIzhCxo1Idjz8q"
+  },
+  "data": [
+    {
+      "id": "perm_1n9McEIBSqy44Qy7hzWyM5",
+      "name": "documents.write"
+    },
+    {
+      "id": "perm_2zF4mNyP9BsRj2aQwDxVkT",
+      "name": "documents.delete"
+    },
+    {
+      "id": "perm_3qRsTu2vWxYzAbCdEfGhIj",
+      "name": "reports.view"
+    }
+  ]
+}
+```
+
+**Implementation Notes:**
+- This operation requires multiple permissions: `rbac.*.add_permission_to_key` and `rbac.*.remove_permission_from_key`
+- If using the `create` flag, the `rbac.*.create_permission` permission is also required
+- The operation is atomic - all permissions are added/removed in a single transaction
+- Providing an empty permissions array will remove all direct permissions from the key
+- All changes are logged to the audit log with appropriate event types
+- The response includes the complete list of permissions now assigned to the key (could be an empty array)
+- After permissions are set, any cached versions of the key are invalidated
+
 ## Additional Resources
 
 ### Reference Implementations
@@ -1297,7 +1155,7 @@ The endpoint requires bearer authentication and performs proper authorization ch
        "type": "string",
        "nullable": true
      }
-     
+
      // INCORRECT:
      "field": {
        "type": ["string", "null"]
