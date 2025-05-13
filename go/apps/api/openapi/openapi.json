@@ -567,6 +567,65 @@
           }
         }
       },
+      "V2KeysRemovePermissionsRequestBody": {
+        "type": "object",
+        "required": [
+          "keyId",
+          "permissions"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "description": "The unique identifier of the key from which permissions will be removed (begins with 'key_')",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q",
+            "minLength": 3
+          },
+          "permissions": {
+            "type": "array",
+            "minItems": 1,
+            "description": "List of permissions to remove from the key. Each permission can be identified by ID or name (if both are provided in the same object, ID takes precedence). This operation only affects direct permissions on the key, not permissions granted through roles. Removing permissions that aren't assigned to the key is a no-op and doesn't cause an error.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The ID of the permission to remove (begins with 'perm_'). Provide either ID or name. Using ID is more precise and less prone to naming conflicts.",
+                  "example": "perm_1n9McEIBSqy44Qy7hzWyM5",
+                  "minLength": 3
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The name of the permission to remove. Provide either ID or name. Names should match exactly with the permission name as it was defined.",
+                  "example": "documents.write",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2KeysRemovePermissionsResponseData": {
+        "type": "object",
+        "description": "Empty response object. A successful response indicates the permissions were successfully removed. After removal, any cached versions of the key are invalidated to ensure consistency.",
+        "additionalProperties": false
+      },
+      "V2KeysRemovePermissionsResponse": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/V2KeysRemovePermissionsResponseData"
+          }
+        }
+      },
       "V2KeysCreateKeyRequestBody": {
         "type": "object",
         "required": [
@@ -2504,6 +2563,269 @@
     }
   },
   "paths": {
+    "/v2/keys.removePermissions": {
+      "post": {
+        "tags": ["keys"],
+        "summary": "Remove permissions from an API key",
+        "description": "Removes one or more permissions from an existing API key. This endpoint allows you to revoke specific capabilities from a key while leaving the key otherwise intact. This only affects direct permissions on the key, not permissions granted through roles. When permissions are removed, it takes effect immediately for new verifications, though existing authorized sessions may continue until their cache expires. Removing permissions that aren't assigned to the key is a no-op and doesn't cause an error.",
+        "operationId": "removePermissions",
+        "x-speakeasy-name-override": "removePermissions",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysRemovePermissionsRequestBody"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Remove permissions using IDs",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "id": "perm_1n9McEIBSqy44Qy7hzWyM5"
+                      },
+                      {
+                        "id": "perm_2zF4mNyP9BsRj2aQwDxVkT"
+                      }
+                    ]
+                  }
+                },
+                "withNames": {
+                  "summary": "Remove permissions using names",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "name": "documents.write"
+                      },
+                      {
+                        "name": "documents.delete"
+                      }
+                    ]
+                  }
+                },
+                "mixed": {
+                  "summary": "Mix of ID and name references",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "id": "perm_1n9McEIBSqy44Qy7hzWyM5"
+                      },
+                      {
+                        "name": "reports.export"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permissions successfully removed from the key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysRemovePermissionsResponse"
+                },
+                "examples": {
+                  "standard": {
+                    "summary": "Successful removal",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_2cGKbMxRyIzhCxo1Idjz8q"
+                      },
+                      "data": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid keyId format, missing required fields, or malformed permission entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                },
+                "examples": {
+                  "invalidKeyId": {
+                    "summary": "Invalid keyId format",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_5zAbCdEfGhIjKlMnOpQrSt"
+                      },
+                      "error": {
+                        "title": "Bad Request",
+                        "detail": "keyId must start with 'key_'",
+                        "status": 400,
+                        "type": "bad_request"
+                      }
+                    }
+                  },
+                  "emptyPermissions": {
+                    "summary": "Empty permissions array",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_6aBcDeFgHiJkLmNoPqRsT"
+                      },
+                      "error": {
+                        "title": "Bad Request",
+                        "detail": "At least one permission must be specified",
+                        "status": 400,
+                        "type": "bad_request"
+                      }
+                    }
+                  },
+                  "missingIdentifier": {
+                    "summary": "Permission missing both id and name",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_7bCdEfGhIjKlMnOpQrStUv"
+                      },
+                      "error": {
+                        "title": "Bad Request",
+                        "detail": "Each permission must include either id or name",
+                        "status": 400,
+                        "type": "bad_request"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Missing or invalid authentication credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                },
+                "examples": {
+                  "invalidRootKey": {
+                    "summary": "Invalid root key provided",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_9tUv3wXyZaAbCdEfGhIjKl"
+                      },
+                      "error": {
+                        "title": "Unauthorized",
+                        "detail": "The root key provided is invalid or has been revoked.",
+                        "status": 401,
+                        "type": "unauthorized"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions (requires 'rbac.*.remove_permission_from_key')",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                },
+                "examples": {
+                  "missingPermission": {
+                    "summary": "Missing required permission",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_0uVwX4yZaAbCdEfGhIjKl"
+                      },
+                      "error": {
+                        "title": "Forbidden",
+                        "detail": "Your root key requires the 'rbac.*.remove_permission_from_key' permission to perform this operation",
+                        "status": 403,
+                        "type": "forbidden"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                },
+                "examples": {
+                  "keyNotFound": {
+                    "summary": "Key not found",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_2wXyZaAbCdEfGhIjKlMnOp"
+                      },
+                      "error": {
+                        "title": "Not Found",
+                        "detail": "Key key_2cGKbMxRyIzhCxo1Idjz8q not found",
+                        "status": 404,
+                        "type": "not_found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - An unexpected error occurred while processing the request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                },
+                "examples": {
+                  "databaseError": {
+                    "summary": "Database error",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_4yZaAbCdEfGhIjKlMnOpQrS"
+                      },
+                      "error": {
+                        "title": "Internal Server Error",
+                        "detail": "An unexpected error occurred while processing your request. Please try again later.",
+                        "status": 500,
+                        "type": "internal_server_error"
+                      }
+                    }
+                  },
+                  "cachingError": {
+                    "summary": "Cache invalidation error",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_5zAbCdEfGhIjKlMnOpQrSt"
+                      },
+                      "error": {
+                        "title": "Internal Server Error",
+                        "detail": "The permissions were successfully removed but there was an error invalidating cached keys. Some systems may temporarily see stale data.",
+                        "status": 500,
+                        "type": "internal_server_error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/keys.addPermissions": {
       "post": {
         "tags": [

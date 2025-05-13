@@ -4,7 +4,7 @@ This document outlines the plan for migrating our OpenAPI specifications from th
 
 ## Summary of Progress (Last Updated: October 2023)
 
-**Current Status:** 5 of 12+ planned endpoints completed (42% complete), 1 ready for implementation (whoami), 1 completed (addPermissions)
+**Current Status:** 5 of 12+ planned endpoints completed (42% complete), 1 ready for implementation (whoami), 2 completed (addPermissions, removePermissions)
 
 **Completed Endpoints:**
 1. ✅ `/v2/keys.verifyKey` - Core verification functionality
@@ -210,7 +210,7 @@ For each endpoint:
 
 1. Continue with key management endpoints in this order:
    - Implement the `/v2/keys.whoami` endpoint next (OpenAPI schema is completed and validated)
-   - Proceed with remaining key permissions endpoints (removePermissions, setPermissions)
+   - Proceed with the remaining key permissions endpoint (setPermissions)
    - Implement key roles endpoints (addRoles, removeRoles, setRoles)
    - Complete remaining key operations (updateRemaining)
 
@@ -404,7 +404,7 @@ All endpoints follow this response pattern:
 ### Next Endpoints to Implement:
 1. [🔄] `/v2/keys.whoami` - For identifying the current key (READY FOR IMPLEMENTATION - OpenAPI spec completed and validated)
 2. [✅] `/v2/keys.addPermissions` - For adding permissions to a key (COMPLETED - OpenAPI spec added to openapi.json)
-3. [ ] `/v2/keys.removePermissions` - For removing permissions from a key
+3. [✅] `/v2/keys.removePermissions` - For removing permissions from a key (COMPLETED - OpenAPI spec added to openapi.json)
 4. [ ] `/v2/keys.setPermissions` - For setting all permissions on a key
 5. [ ] `/v2/keys.addRoles` - For adding roles to a key
 6. [ ] `/v2/keys.removeRoles` - For removing roles from a key

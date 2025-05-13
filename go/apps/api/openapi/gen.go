@@ -814,6 +814,31 @@ type V2KeysGetKeyResponseBody struct {
 	Meta Meta                   `json:"meta"`
 }
 
+// V2KeysRemovePermissionsRequestBody defines model for V2KeysRemovePermissionsRequestBody.
+type V2KeysRemovePermissionsRequestBody struct {
+	// KeyId The unique identifier of the key from which permissions will be removed (begins with 'key_')
+	KeyId string `json:"keyId"`
+
+	// Permissions List of permissions to remove from the key. Each permission can be identified by ID or name (if both are provided in the same object, ID takes precedence). This operation only affects direct permissions on the key, not permissions granted through roles. Removing permissions that aren't assigned to the key is a no-op and doesn't cause an error.
+	Permissions []struct {
+		// Id The ID of the permission to remove (begins with 'perm_'). Provide either ID or name. Using ID is more precise and less prone to naming conflicts.
+		Id *string `json:"id,omitempty"`
+
+		// Name The name of the permission to remove. Provide either ID or name. Names should match exactly with the permission name as it was defined.
+		Name *string `json:"name,omitempty"`
+	} `json:"permissions"`
+}
+
+// V2KeysRemovePermissionsResponse defines model for V2KeysRemovePermissionsResponse.
+type V2KeysRemovePermissionsResponse struct {
+	// Data Empty response object. A successful response indicates the permissions were successfully removed. After removal, any cached versions of the key are invalidated to ensure consistency.
+	Data V2KeysRemovePermissionsResponseData `json:"data"`
+	Meta Meta                                `json:"meta"`
+}
+
+// V2KeysRemovePermissionsResponseData Empty response object. A successful response indicates the permissions were successfully removed. After removal, any cached versions of the key are invalidated to ensure consistency.
+type V2KeysRemovePermissionsResponseData = map[string]interface{}
+
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
 	// Credits Usage limits configuration for this key. Set to null to disable usage limits. Omit this field to leave it unchanged. Note: Cannot set refill when credits is null; setting refillDay requires interval to be 'monthly'.
@@ -1161,6 +1186,9 @@ type DeleteKeyJSONRequestBody = V2KeysDeleteKeyRequestBody
 
 // GetKeyJSONRequestBody defines body for GetKey for application/json ContentType.
 type GetKeyJSONRequestBody = V2KeysGetKeyRequestBody
+
+// RemovePermissionsJSONRequestBody defines body for RemovePermissions for application/json ContentType.
+type RemovePermissionsJSONRequestBody = V2KeysRemovePermissionsRequestBody
 
 // UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
 type UpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody
