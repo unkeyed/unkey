@@ -62,7 +62,7 @@ export function NavigableDialogRoot<TStepName extends string>({
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent
           className={cn(
-            "drop-shadow-2xl border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0",
+            "drop-shadow-2xl border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
             dialogClassName,
           )}
           onOpenAutoFocus={(e) => {
@@ -214,7 +214,7 @@ export function NavigableDialogContent<TStepName extends string>({
 
   return (
     <div className="flex-1 min-w-0 overflow-y-auto">
-      <DefaultDialogContentArea className={cn(className)}>
+      <DefaultDialogContentArea className={cn("min-h-[70vh] lg:min-h-[50vh]", className)}>
         {items.map((item) => (
           <div key={item.id} className={cn("w-full", item.id !== activeId && "hidden")}>
             {item.content}
@@ -226,6 +226,12 @@ export function NavigableDialogContent<TStepName extends string>({
 }
 
 // Main container for the nav and content
-export function NavigableDialogBody({ children }: { children: ReactNode }) {
-  return <div className="flex overflow-hidden">{children}</div>;
+export function NavigableDialogBody({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={cn("flex flex-grow overflow-hidden", className)}>{children}</div>;
 }
