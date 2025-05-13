@@ -32,6 +32,140 @@
       }
     },
     "schemas": {
+        "V2KeysUpdateKeyRequestBody": {
+          "type": "object",
+          "required": ["keyId"],
+          "properties": {
+            "keyId": {
+              "type": "string",
+              "minLength": 3,
+              "description": "The unique identifier of the key to update (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself.",
+              "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
+            },
+            "name": {
+              "type": ["string", "null"],
+              "description": "A descriptive name for the key for internal reference. Set to null to remove the name. Omit this field to leave it unchanged.",
+              "example": "Payment Service Production Key"
+            },
+            "externalId": {
+              "type": ["string", "null"],
+              "description": "Your user's unique identifier, creating a link between Unkey and your system. Set to null to disconnect this key from any identity. Omit this field to leave it unchanged.",
+              "example": "user_912a841d"
+            },
+            "meta": {
+              "type": ["object", "null"],
+              "additionalProperties": true,
+              "description": "Arbitrary JSON metadata to associate with this key. Set to null to remove all metadata. Omit this field to leave it unchanged.",
+              "example": {
+                "plan": "enterprise",
+                "limits": {
+                  "storage": "500GB",
+                  "compute": "1000 minutes/month"
+                }
+              }
+            },
+            "expires": {
+              "type": ["integer", "null"],
+              "format": "int64",
+              "description": "Unix timestamp (in milliseconds) when this key will automatically expire. Set to null to remove expiration. Omit this field to leave it unchanged.",
+              "example": 1704067200000
+            },
+            "credits": {
+              "type": ["object", "null"],
+              "properties": {
+                "remaining": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Number of times this key can be used before becoming invalid. Required when specifying credits.",
+                  "example": 1000
+                },
+                "refill": {
+                  "type": ["object", "null"],
+                  "properties": {
+                    "interval": {
+                      "type": "string",
+                      "enum": ["daily", "monthly"],
+                      "description": "How often the credits should be refilled. For 'monthly' refills, you can specify the day of month using 'refillDay'."
+                    },
+                    "amount": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Number of credits to add during each refill."
+                    },
+                    "refillDay": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 31,
+                      "description": "For monthly refills, the day of month when refills occur. Cannot be used with 'daily' interval."
+                    }
+                  },
+                  "required": ["interval", "amount"],
+                  "description": "Configuration for automatic credit refills. Set to null to disable refills. Omit this field to leave it unchanged."
+                }
+              },
+              "required": ["remaining"],
+              "description": "Usage limits configuration for this key. Set to null to disable usage limits. Omit this field to leave it unchanged. Note: Cannot set refill when credits is null; setting refillDay requires interval to be 'monthly'."
+            },
+            "ratelimits": {
+              "type": ["array", "null"],
+              "items": {
+                "type": "object",
+                "required": ["name", "limit", "duration"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Identifier for this ratelimit. Use descriptive names like 'requests' or 'computations'.",
+                    "example": "requests"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "format": "int32",
+                    "minimum": 1,
+                    "description": "Maximum number of operations allowed within the time window.",
+                    "example": 100
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "format": "int32",
+                    "minimum": 1000,
+                    "description": "Duration of the ratelimit window in milliseconds.",
+                    "example": 60000
+                  },
+                  "async": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether this ratelimit uses fast (async=true) or consistent (async=false) mode. Fast mode has lower latency but less accuracy."
+                  }
+                }
+              },
+              "description": "Array of ratelimits to apply to this key. Set to null to disable all ratelimits. Omit this field to leave it unchanged. Replaces the deprecated 'ratelimit' field from v1."
+            },
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether the key is currently active. Disabled keys will fail verification with code=DISABLED. Omit this field to leave it unchanged.",
+              "example": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "KeysUpdateKeyResponseData": {
+          "type": "object",
+          "properties": {},
+          "description": "Empty response object. A successful response indicates the key was updated successfully. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays."
+        },
+        "V2KeysUpdateKeyResponseBody": {
+          "type": "object",
+          "required": ["meta"],
+          "properties": {
+            "meta": {
+              "$ref": "#/components/schemas/Meta"
+            },
+            "data": {
+              "$ref": "#/components/schemas/KeysUpdateKeyResponseData"
+            }
+          }
+        },
         "V2KeysDeleteKeyRequestBody": {
           "type": "object",
           "required": ["keyId"],
@@ -2203,6 +2337,90 @@
     }
   },
   "paths": {
+    "/v2/keys.updateKey": {
+      "post": {
+        "tags": ["keys"],
+        "operationId": "updateKey",
+        "x-speakeasy-name-override": "updateKey",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysUpdateKeyRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysUpdateKeyResponseBody"
+                }
+              }
+            },
+            "description": "Successfully updated key. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation. This endpoint supports partial updates - only include fields you want to modify. To explicitly remove/disable a feature, set its field to null. Fields not included in the request will remain unchanged."
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/v2/keys.deleteKey": {
       "post": {
         "tags": ["keys"],
