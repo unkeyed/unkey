@@ -17,7 +17,9 @@
       "maxElapsedTime": 10000,
       "exponent": 1.5
     },
-    "statusCodes": ["5XX"],
+    "statusCodes": [
+      "5XX"
+    ],
     "retryConnectionErrors": true
   },
   "components": {
@@ -32,7 +34,9 @@
     "schemas": {
       "Meta": {
         "type": "object",
-        "required": ["requestId"],
+        "required": [
+          "requestId"
+        ],
         "properties": {
           "requestId": {
             "description": "A unique id for this request. Please always provide this to support.",
@@ -89,7 +93,12 @@
           }
         },
         "type": "object",
-        "required": ["detail", "status", "title", "type"]
+        "required": [
+          "detail",
+          "status",
+          "title",
+          "type"
+        ]
       },
       "ValidationError": {
         "additionalProperties": false,
@@ -108,7 +117,10 @@
           }
         },
         "type": "object",
-        "required": ["message", "location"]
+        "required": [
+          "message",
+          "location"
+        ]
       },
       "BadRequestErrorDetails": {
         "allOf": [
@@ -126,13 +138,18 @@
                 "type": "array"
               }
             },
-            "required": ["errors"]
+            "required": [
+              "errors"
+            ]
           }
         ]
       },
       "NotFoundErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -144,7 +161,10 @@
       },
       "ConflictErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -156,7 +176,10 @@
       },
       "UnauthorizedErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -168,7 +191,10 @@
       },
       "ForbiddenErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -180,7 +206,10 @@
       },
       "PreconditionFailedErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -192,7 +221,10 @@
       },
       "BadRequestErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -204,7 +236,10 @@
       },
       "InternalServerErrorResponse": {
         "type": "object",
-        "required": ["meta", "error"],
+        "required": [
+          "meta",
+          "error"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -230,7 +265,10 @@
             "description": "Identity metadata"
           }
         },
-        "required": ["id", "externalId"]
+        "required": [
+          "id",
+          "externalId"
+        ]
       },
       "KeyCredits": {
         "type": "object",
@@ -244,14 +282,19 @@
             "$ref": "#/components/schemas/KeyCreditsRefill"
           }
         },
-        "required": ["remaining"]
+        "required": [
+          "remaining"
+        ]
       },
       "KeyCreditsRefill": {
         "type": "object",
         "properties": {
           "interval": {
             "type": "string",
-            "enum": ["daily", "monthly"],
+            "enum": [
+              "daily",
+              "monthly"
+            ],
             "description": "Refill interval"
           },
           "amount": {
@@ -268,7 +311,10 @@
             "description": "Last time the key was refilled (Unix timestamp)"
           }
         },
-        "required": ["interval", "amount"]
+        "required": [
+          "interval",
+          "amount"
+        ]
       },
       "KeyResponse": {
         "type": "object",
@@ -333,7 +379,11 @@
             "$ref": "#/components/schemas/Identity"
           }
         },
-        "required": ["keyId", "start", "createdAt"]
+        "required": [
+          "keyId",
+          "start",
+          "createdAt"
+        ]
       },
       "LivenessResponseData": {
         "type": "object",
@@ -344,11 +394,16 @@
             "type": "string"
           }
         },
-        "required": ["message"]
+        "required": [
+          "message"
+        ]
       },
       "V2LivenessResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -391,7 +446,11 @@
             "minimum": 0
           }
         },
-        "required": ["identifier", "limit", "duration"],
+        "required": [
+          "identifier",
+          "limit",
+          "duration"
+        ],
         "type": "object"
       },
       "RatelimitSetOverrideResponseData": {
@@ -402,11 +461,16 @@
             "type": "string"
           }
         },
-        "required": ["overrideId"]
+        "required": [
+          "overrideId"
+        ]
       },
       "V2RatelimitSetOverrideResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -439,12 +503,17 @@
             "maxLength": 255
           }
         },
-        "required": ["identifier"],
+        "required": [
+          "identifier"
+        ],
         "type": "object"
       },
       "V2RatelimitGetOverrideResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -489,7 +558,10 @@
       },
       "V2RatelimitListOverridesResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -537,7 +609,12 @@
             "minimum": 1
           }
         },
-        "required": ["namespace", "identifier", "limit", "duration"],
+        "required": [
+          "namespace",
+          "identifier",
+          "limit",
+          "duration"
+        ],
         "type": "object"
       },
       "RatelimitLimitResponseData": {
@@ -567,11 +644,19 @@
             "type": "string"
           }
         },
-        "required": ["limit", "remaining", "reset", "success"]
+        "required": [
+          "limit",
+          "remaining",
+          "reset",
+          "success"
+        ]
       },
       "V2RatelimitLimitResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -604,7 +689,9 @@
             "maxLength": 255
           }
         },
-        "required": ["identifier"],
+        "required": [
+          "identifier"
+        ],
         "type": "object"
       },
       "RatelimitDeleteOverrideResponseData": {
@@ -613,7 +700,10 @@
       },
       "V2RatelimitDeleteOverrideResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -625,7 +715,9 @@
       },
       "V2IdentitiesCreateIdentityRequestBody": {
         "type": "object",
-        "required": ["externalId"],
+        "required": [
+          "externalId"
+        ],
         "properties": {
           "externalId": {
             "type": "string",
@@ -648,7 +740,11 @@
       },
       "Ratelimit": {
         "type": "object",
-        "required": ["name", "limit", "duration"],
+        "required": [
+          "name",
+          "limit",
+          "duration"
+        ],
         "properties": {
           "name": {
             "description": "The name of this limit. You will need to use this again when verifying a key.",
@@ -677,11 +773,16 @@
             "type": "string"
           }
         },
-        "required": ["identityId"]
+        "required": [
+          "identityId"
+        ]
       },
       "V2IdentitiesCreateIdentityResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -710,10 +811,14 @@
         },
         "oneOf": [
           {
-            "required": ["externalId"]
+            "required": [
+              "externalId"
+            ]
           },
           {
-            "required": ["identityId"]
+            "required": [
+              "identityId"
+            ]
           }
         ]
       },
@@ -745,11 +850,17 @@
             "description": "When the permission was created"
           }
         },
-        "required": ["id", "name", "workspaceId"]
+        "required": [
+          "id",
+          "name",
+          "workspaceId"
+        ]
       },
       "V2PermissionsCreatePermissionRequestBody": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -774,11 +885,16 @@
             "example": "perm_123"
           }
         },
-        "required": ["permissionId"]
+        "required": [
+          "permissionId"
+        ]
       },
       "V2PermissionsCreatePermissionResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -790,7 +906,9 @@
       },
       "V2PermissionsGetPermissionRequestBody": {
         "type": "object",
-        "required": ["permissionId"],
+        "required": [
+          "permissionId"
+        ],
         "properties": {
           "permissionId": {
             "type": "string",
@@ -808,11 +926,16 @@
             "$ref": "#/components/schemas/Permission"
           }
         },
-        "required": ["permission"]
+        "required": [
+          "permission"
+        ]
       },
       "V2PermissionsGetPermissionResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -858,11 +981,17 @@
             "description": "Total number of permissions"
           }
         },
-        "required": ["permissions", "total"]
+        "required": [
+          "permissions",
+          "total"
+        ]
       },
       "V2PermissionsListPermissionsResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -908,11 +1037,16 @@
             "description": "Total number of roles"
           }
         },
-        "required": ["roles", "total"]
+        "required": [
+          "roles",
+          "total"
+        ]
       },
       "V2PermissionsDeleteRoleRequestBody": {
         "type": "object",
-        "required": ["roleId"],
+        "required": [
+          "roleId"
+        ],
         "properties": {
           "roleId": {
             "type": "string",
@@ -925,7 +1059,9 @@
       },
       "V2PermissionsDeleteRoleResponseBody": {
         "type": "object",
-        "required": ["meta"],
+        "required": [
+          "meta"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -934,7 +1070,10 @@
       },
       "V2PermissionsListRolesResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -946,7 +1085,9 @@
       },
       "V2PermissionsDeletePermissionRequestBody": {
         "type": "object",
-        "required": ["permissionId"],
+        "required": [
+          "permissionId"
+        ],
         "properties": {
           "permissionId": {
             "type": "string",
@@ -959,7 +1100,9 @@
       },
       "V2PermissionsDeletePermissionResponseBody": {
         "type": "object",
-        "required": ["meta"],
+        "required": [
+          "meta"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -968,7 +1111,9 @@
       },
       "V2PermissionsCreateRoleRequestBody": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -1000,11 +1145,16 @@
             "example": "role_123"
           }
         },
-        "required": ["roleId"]
+        "required": [
+          "roleId"
+        ]
       },
       "V2PermissionsCreateRoleResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1039,7 +1189,11 @@
             "description": "When the role was created"
           }
         },
-        "required": ["id", "name", "workspaceId"]
+        "required": [
+          "id",
+          "name",
+          "workspaceId"
+        ]
       },
       "RoleWithPermissions": {
         "type": "object",
@@ -1073,11 +1227,18 @@
             "description": "The permissions assigned to this role"
           }
         },
-        "required": ["id", "name", "workspaceId", "permissions"]
+        "required": [
+          "id",
+          "name",
+          "workspaceId",
+          "permissions"
+        ]
       },
       "V2PermissionsGetRoleRequestBody": {
         "type": "object",
-        "required": ["roleId"],
+        "required": [
+          "roleId"
+        ],
         "properties": {
           "roleId": {
             "type": "string",
@@ -1095,11 +1256,16 @@
             "$ref": "#/components/schemas/RoleWithPermissions"
           }
         },
-        "required": ["role"]
+        "required": [
+          "role"
+        ]
       },
       "V2PermissionsGetRoleResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1111,7 +1277,9 @@
       },
       "V2ApisCreateApiRequestBody": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -1130,11 +1298,15 @@
             "type": "string"
           }
         },
-        "required": ["apiId"]
+        "required": [
+          "apiId"
+        ]
       },
       "V2ApisDeleteApiRequestBody": {
         "type": "object",
-        "required": ["apiId"],
+        "required": [
+          "apiId"
+        ],
         "properties": {
           "apiId": {
             "type": "string",
@@ -1147,7 +1319,9 @@
       },
       "V2ApisGetApiRequestBody": {
         "type": "object",
-        "required": ["apiId"],
+        "required": [
+          "apiId"
+        ],
         "properties": {
           "apiId": {
             "type": "string",
@@ -1170,11 +1344,17 @@
             "type": "string"
           }
         },
-        "required": ["id", "name"]
+        "required": [
+          "id",
+          "name"
+        ]
       },
       "V2ApisCreateApiResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1186,7 +1366,9 @@
       },
       "V2ApisDeleteApiResponseBody": {
         "type": "object",
-        "required": ["meta"],
+        "required": [
+          "meta"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1195,7 +1377,10 @@
       },
       "V2ApisGetApiResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1207,7 +1392,9 @@
       },
       "V2ApisListKeysRequestBody": {
         "type": "object",
-        "required": ["apiId"],
+        "required": [
+          "apiId"
+        ],
         "properties": {
           "apiId": {
             "type": "string",
@@ -1251,7 +1438,10 @@
       },
       "V2ApisListKeysResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1299,14 +1489,269 @@
             "minimum": 0
           }
         },
-        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"]
+        "required": [
+          "namespaceId",
+          "overrideId",
+          "duration",
+          "identifier",
+          "limit"
+        ]
+      },
+      "V2KeysVerifyKeyRequestBody": {
+        "type": "object",
+        "required": [
+          "apiId",
+          "key"
+        ],
+        "properties": {
+          "apiId": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 255,
+            "description": "The ID of the API where the key belongs to. Required to ensure keys from development environments aren't leaking into production and vice versa.",
+            "example": "api_1234"
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The key to verify. Never store API keys yourself.",
+            "example": "sk_1234"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "maxItems": 10,
+            "description": "Tags do not influence the outcome of a verification. They can be added to filter or aggregate historical verification data for your analytics needs.",
+            "example": [
+              "path=/v1/users/123",
+              "region=us-east-1"
+            ]
+          },
+          "permissions": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "A single permission to check"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "and",
+                      "or"
+                    ],
+                    "description": "Logical operator to apply to the permissions"
+                  },
+                  "permissions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "List of permissions to check"
+                  }
+                },
+                "required": [
+                  "type",
+                  "permissions"
+                ]
+              }
+            ],
+            "description": "Perform RBAC permission checks"
+          },
+          "credits": {
+            "type": "object",
+            "properties": {
+              "cost": {
+                "type": "integer",
+                "format": "int32",
+                "default": 1,
+                "description": "How many tokens should be deducted from the current credits. Set it to 0 to make it free."
+              }
+            },
+            "description": "Customize the behavior of deducting remaining uses. When some of your endpoints are more expensive than others, you can set a custom cost for each."
+          },
+          "ratelimits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The name of the ratelimit.",
+                  "example": "tokens"
+                },
+                "cost": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "default": 1,
+                  "description": "Optionally override how expensive this operation is and how many tokens are deducted from the current limit."
+                },
+                "limit": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Optionally override the limit."
+                },
+                "duration": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Optionally override the ratelimit window duration."
+                }
+              }
+            },
+            "description": "You can check against multiple ratelimits when verifying a key."
+          }
+        },
+        "additionalProperties": false
+      },
+      "KeysVerifyKeyResponseData": {
+        "type": "object",
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "description": "The id of the key"
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the key is valid or not."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the key, give keys a name to easily identify their purpose"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "The id of the tenant associated with this key."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Any additional metadata stored with the key"
+          },
+          "expires": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The unix timestamp in milliseconds when the key will expire. If null or undefined, the key is not expiring."
+          },
+          "credits": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The number of requests that can be made with this key before it becomes invalid. If null or undefined, the key has no request limit."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Sets the key to be enabled or disabled. Disabled keys will not verify."
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "VALID",
+              "NOT_FOUND",
+              "FORBIDDEN",
+              "USAGE_EXCEEDED",
+              "RATE_LIMITED",
+              "UNAUTHORIZED",
+              "DISABLED",
+              "INSUFFICIENT_PERMISSIONS",
+              "EXPIRED"
+            ],
+            "description": "A machine readable code why the key is not valid. Possible values are: VALID, NOT_FOUND, FORBIDDEN, USAGE_EXCEEDED, RATE_LIMITED, UNAUTHORIZED, DISABLED, INSUFFICIENT_PERMISSIONS, EXPIRED"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A list of all the permissions this key is connected to."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A list of all the roles this key is connected to."
+          },
+          "environment": {
+            "type": "string",
+            "description": "The environment of the key, this is what was set when you created the key"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/Identity",
+            "description": "The associated identity of this key."
+          },
+          "ratelimits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "limit",
+                "remaining",
+                "reset"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the ratelimit"
+                },
+                "limit": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Maximum number of requests that can be made inside a window"
+                },
+                "remaining": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Remaining requests after this verification"
+                },
+                "reset": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "Unix timestamp in milliseconds when the ratelimit will reset"
+                }
+              }
+            },
+            "description": "Ratelimit information for the key"
+          }
+        },
+        "required": [
+          "valid",
+          "code"
+        ]
+      },
+      "V2KeysVerifyKeyResponseBody": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KeysVerifyKeyResponseData"
+          }
+        }
       }
     }
   },
   "paths": {
     "/v2/ratelimit.limit": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "ratelimit.limit",
         "x-speakeasy-name-override": "limit",
         "security": [
@@ -1390,7 +1835,9 @@
     },
     "/v2/permissions.listRoles": {
       "post": {
-        "tags": ["permissions"],
+        "tags": [
+          "permissions"
+        ],
         "operationId": "listRoles",
         "x-speakeasy-name-override": "ListRoles",
         "security": [
@@ -1474,7 +1921,9 @@
     },
     "/v2/ratelimit.setOverride": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "ratelimit.setOverride",
         "x-speakeasy-name-override": "setOverride",
         "security": [
@@ -1558,7 +2007,9 @@
     },
     "/v2/ratelimit.getOverride": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "ratelimit.getOverride",
         "x-speakeasy-name-override": "getOverride",
         "security": [
@@ -1642,7 +2093,9 @@
     },
     "/v2/ratelimit.listOverrides": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "ratelimit.listOverrides",
         "x-speakeasy-name-override": "listOverrides",
         "security": [
@@ -1726,7 +2179,9 @@
     },
     "/v2/ratelimit.deleteOverride": {
       "post": {
-        "tags": ["ratelimit"],
+        "tags": [
+          "ratelimit"
+        ],
         "operationId": "ratelimit.deleteOverride",
         "x-speakeasy-name-override": "deleteOverride",
         "security": [
@@ -1810,7 +2265,9 @@
     },
     "/v2/identities.createIdentity": {
       "post": {
-        "tags": ["identities"],
+        "tags": [
+          "identities"
+        ],
         "operationId": "identities.createIdentity",
         "x-speakeasy-name-override": "createIdentity",
         "security": [
@@ -1894,7 +2351,9 @@
     },
     "/v2/identities.deleteIdentity": {
       "post": {
-        "tags": ["identities"],
+        "tags": [
+          "identities"
+        ],
         "operationId": "v2.identities.deleteIdentity",
         "x-speakeasy-name-override": "deleteIdentity",
         "security": [
@@ -1978,7 +2437,9 @@
     },
     "/v2/permissions.createPermission": {
       "post": {
-        "tags": ["permissions"],
+        "tags": [
+          "permissions"
+        ],
         "operationId": "createPermission",
         "x-speakeasy-name-override": "CreatePermission",
         "security": [
@@ -2062,7 +2523,9 @@
     },
     "/v2/permissions.getPermission": {
       "post": {
-        "tags": ["permissions"],
+        "tags": [
+          "permissions"
+        ],
         "operationId": "getPermission",
         "x-speakeasy-name-override": "GetPermission",
         "security": [
@@ -2146,7 +2609,9 @@
     },
     "/v2/permissions.listPermissions": {
       "post": {
-        "tags": ["permissions"],
+        "tags": [
+          "permissions"
+        ],
         "operationId": "listPermissions",
         "x-speakeasy-name-override": "ListPermissions",
         "security": [
@@ -2220,7 +2685,9 @@
     },
     "/v2/permissions.deleteRole": {
       "post": {
-        "tags": ["permissions"],
+        "tags": [
+          "permissions"
+        ],
         "operationId": "deleteRole",
         "x-speakeasy-name-override": "DeleteRole",
         "security": [
@@ -2304,7 +2771,9 @@
     },
     "/v2/apis.createApi": {
       "post": {
-        "tags": ["apis"],
+        "tags": [
+          "apis"
+        ],
         "operationId": "createApi",
         "x-speakeasy-name-override": "createApi",
         "security": [
@@ -2378,7 +2847,9 @@
     },
     "/v2/apis.deleteApi": {
       "post": {
-        "tags": ["apis"],
+        "tags": [
+          "apis"
+        ],
         "operationId": "deleteApi",
         "x-speakeasy-name-override": "deleteApi",
         "security": [
@@ -2452,7 +2923,9 @@
     },
     "/v2/apis.getApi": {
       "post": {
-        "tags": ["apis"],
+        "tags": [
+          "apis"
+        ],
         "operationId": "getApi",
         "x-speakeasy-name-override": "getApi",
         "security": [
@@ -2536,7 +3009,9 @@
     },
     "/v2/apis.listKeys": {
       "post": {
-        "tags": ["apis"],
+        "tags": [
+          "apis"
+        ],
         "operationId": "listKeys",
         "x-speakeasy-name-override": "listKeys",
         "security": [
@@ -2621,7 +3096,9 @@
     "/v2/liveness": {
       "get": {
         "x-speakeasy-ignore": "true",
-        "tags": ["liveness"],
+        "tags": [
+          "liveness"
+        ],
         "operationId": "liveness",
         "description": "This endpoint checks if the service is alive.",
         "responses": {
@@ -2657,6 +3134,87 @@
           }
         },
         "summary": "Liveness check"
+      }
+    },
+    "/v2/keys.verifyKey": {
+      "post": {
+        "tags": [
+          "keys"
+        ],
+        "operationId": "verifyKey",
+        "x-speakeasy-name-override": "verifyKey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysVerifyKeyRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysVerifyKeyResponseBody"
+                }
+              }
+            },
+            "description": "Verification result"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        }
       }
     }
   }

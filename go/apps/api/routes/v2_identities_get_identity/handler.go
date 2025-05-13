@@ -19,7 +19,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2IdentitiesGetIdenty
+type Request = openapi.
 
 type Response struct {
 	Meta openapi.Meta     `json:"meta"`

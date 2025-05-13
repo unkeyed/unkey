@@ -21,6 +21,25 @@ const (
 	Monthly KeyCreditsRefillInterval = "monthly"
 )
 
+// Defines values for KeysVerifyKeyResponseDataCode.
+const (
+	DISABLED                KeysVerifyKeyResponseDataCode = "DISABLED"
+	EXPIRED                 KeysVerifyKeyResponseDataCode = "EXPIRED"
+	FORBIDDEN               KeysVerifyKeyResponseDataCode = "FORBIDDEN"
+	INSUFFICIENTPERMISSIONS KeysVerifyKeyResponseDataCode = "INSUFFICIENT_PERMISSIONS"
+	NOTFOUND                KeysVerifyKeyResponseDataCode = "NOT_FOUND"
+	RATELIMITED             KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
+	UNAUTHORIZED            KeysVerifyKeyResponseDataCode = "UNAUTHORIZED"
+	USAGEEXCEEDED           KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
+	VALID                   KeysVerifyKeyResponseDataCode = "VALID"
+)
+
+// Defines values for V2KeysVerifyKeyRequestBodyPermissions1Type.
+const (
+	And V2KeysVerifyKeyRequestBodyPermissions1Type = "and"
+	Or  V2KeysVerifyKeyRequestBodyPermissions1Type = "or"
+)
+
 // ApisCreateApiResponseData defines model for ApisCreateApiResponseData.
 type ApisCreateApiResponseData struct {
 	// ApiId The id of the API
@@ -185,6 +204,64 @@ type KeyResponse struct {
 	// UpdatedAt When the key was last updated (Unix timestamp)
 	UpdatedAt *int64 `json:"updatedAt,omitempty"`
 }
+
+// KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
+type KeysVerifyKeyResponseData struct {
+	// Code A machine readable code why the key is not valid. Possible values are: VALID, NOT_FOUND, FORBIDDEN, USAGE_EXCEEDED, RATE_LIMITED, UNAUTHORIZED, DISABLED, INSUFFICIENT_PERMISSIONS, EXPIRED
+	Code KeysVerifyKeyResponseDataCode `json:"code"`
+
+	// Credits The number of requests that can be made with this key before it becomes invalid. If null or undefined, the key has no request limit.
+	Credits *int32 `json:"credits,omitempty"`
+
+	// Enabled Sets the key to be enabled or disabled. Disabled keys will not verify.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Environment The environment of the key, this is what was set when you created the key
+	Environment *string `json:"environment,omitempty"`
+
+	// Expires The unix timestamp in milliseconds when the key will expire. If null or undefined, the key is not expiring.
+	Expires *int64 `json:"expires,omitempty"`
+
+	// ExternalId The id of the tenant associated with this key.
+	ExternalId *string   `json:"externalId,omitempty"`
+	Identity   *Identity `json:"identity,omitempty"`
+
+	// KeyId The id of the key
+	KeyId *string `json:"keyId,omitempty"`
+
+	// Meta Any additional metadata stored with the key
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Name The name of the key, give keys a name to easily identify their purpose
+	Name *string `json:"name,omitempty"`
+
+	// Permissions A list of all the permissions this key is connected to.
+	Permissions *[]string `json:"permissions,omitempty"`
+
+	// Ratelimits Ratelimit information for the key
+	Ratelimits *[]struct {
+		// Limit Maximum number of requests that can be made inside a window
+		Limit int32 `json:"limit"`
+
+		// Name The name of the ratelimit
+		Name string `json:"name"`
+
+		// Remaining Remaining requests after this verification
+		Remaining int32 `json:"remaining"`
+
+		// Reset Unix timestamp in milliseconds when the ratelimit will reset
+		Reset int64 `json:"reset"`
+	} `json:"ratelimits,omitempty"`
+
+	// Roles A list of all the roles this key is connected to.
+	Roles *[]string `json:"roles,omitempty"`
+
+	// Valid Whether the key is valid or not.
+	Valid bool `json:"valid"`
+}
+
+// KeysVerifyKeyResponseDataCode A machine readable code why the key is not valid. Possible values are: VALID, NOT_FOUND, FORBIDDEN, USAGE_EXCEEDED, RATE_LIMITED, UNAUTHORIZED, DISABLED, INSUFFICIENT_PERMISSIONS, EXPIRED
+type KeysVerifyKeyResponseDataCode string
 
 // LivenessResponseData defines model for LivenessResponseData.
 type LivenessResponseData struct {
@@ -467,6 +544,68 @@ type V2IdentitiesDeleteIdentityRequestBody1 = interface{}
 // V2IdentitiesDeleteIdentityResponseBody defines model for V2IdentitiesDeleteIdentityResponseBody.
 type V2IdentitiesDeleteIdentityResponseBody = map[string]interface{}
 
+// V2KeysVerifyKeyRequestBody defines model for V2KeysVerifyKeyRequestBody.
+type V2KeysVerifyKeyRequestBody struct {
+	// ApiId The ID of the API where the key belongs to. Required to ensure keys from development environments aren't leaking into production and vice versa.
+	ApiId string `json:"apiId"`
+
+	// Credits Customize the behavior of deducting remaining uses. When some of your endpoints are more expensive than others, you can set a custom cost for each.
+	Credits *struct {
+		// Cost How many tokens should be deducted from the current credits. Set it to 0 to make it free.
+		Cost *int32 `json:"cost,omitempty"`
+	} `json:"credits,omitempty"`
+
+	// Key The key to verify. Never store API keys yourself.
+	Key string `json:"key"`
+
+	// Permissions Perform RBAC permission checks
+	Permissions *V2KeysVerifyKeyRequestBody_Permissions `json:"permissions,omitempty"`
+
+	// Ratelimits You can check against multiple ratelimits when verifying a key.
+	Ratelimits *[]struct {
+		// Cost Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+		Cost *int32 `json:"cost,omitempty"`
+
+		// Duration Optionally override the ratelimit window duration.
+		Duration *int32 `json:"duration,omitempty"`
+
+		// Limit Optionally override the limit.
+		Limit *int32 `json:"limit,omitempty"`
+
+		// Name The name of the ratelimit.
+		Name string `json:"name"`
+	} `json:"ratelimits,omitempty"`
+
+	// Tags Tags do not influence the outcome of a verification. They can be added to filter or aggregate historical verification data for your analytics needs.
+	Tags *[]string `json:"tags,omitempty"`
+}
+
+// V2KeysVerifyKeyRequestBodyPermissions0 A single permission to check
+type V2KeysVerifyKeyRequestBodyPermissions0 = string
+
+// V2KeysVerifyKeyRequestBodyPermissions1 defines model for .
+type V2KeysVerifyKeyRequestBodyPermissions1 struct {
+	// Permissions List of permissions to check
+	Permissions []string `json:"permissions"`
+
+	// Type Logical operator to apply to the permissions
+	Type V2KeysVerifyKeyRequestBodyPermissions1Type `json:"type"`
+}
+
+// V2KeysVerifyKeyRequestBodyPermissions1Type Logical operator to apply to the permissions
+type V2KeysVerifyKeyRequestBodyPermissions1Type string
+
+// V2KeysVerifyKeyRequestBody_Permissions Perform RBAC permission checks
+type V2KeysVerifyKeyRequestBody_Permissions struct {
+	union json.RawMessage
+}
+
+// V2KeysVerifyKeyResponseBody defines model for V2KeysVerifyKeyResponseBody.
+type V2KeysVerifyKeyResponseBody struct {
+	Data KeysVerifyKeyResponseData `json:"data"`
+	Meta Meta                      `json:"meta"`
+}
+
 // V2LivenessResponseBody defines model for V2LivenessResponseBody.
 type V2LivenessResponseBody struct {
 	Data LivenessResponseData `json:"data"`
@@ -677,6 +816,9 @@ type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequest
 // V2IdentitiesDeleteIdentityJSONRequestBody defines body for V2IdentitiesDeleteIdentity for application/json ContentType.
 type V2IdentitiesDeleteIdentityJSONRequestBody = V2IdentitiesDeleteIdentityRequestBody
 
+// VerifyKeyJSONRequestBody defines body for VerifyKey for application/json ContentType.
+type VerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
+
 // CreatePermissionJSONRequestBody defines body for CreatePermission for application/json ContentType.
 type CreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
 
@@ -814,5 +956,67 @@ func (t *V2IdentitiesDeleteIdentityRequestBody) UnmarshalJSON(b []byte) error {
 		}
 	}
 
+	return err
+}
+
+// AsV2KeysVerifyKeyRequestBodyPermissions0 returns the union data inside the V2KeysVerifyKeyRequestBody_Permissions as a V2KeysVerifyKeyRequestBodyPermissions0
+func (t V2KeysVerifyKeyRequestBody_Permissions) AsV2KeysVerifyKeyRequestBodyPermissions0() (V2KeysVerifyKeyRequestBodyPermissions0, error) {
+	var body V2KeysVerifyKeyRequestBodyPermissions0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2KeysVerifyKeyRequestBodyPermissions0 overwrites any union data inside the V2KeysVerifyKeyRequestBody_Permissions as the provided V2KeysVerifyKeyRequestBodyPermissions0
+func (t *V2KeysVerifyKeyRequestBody_Permissions) FromV2KeysVerifyKeyRequestBodyPermissions0(v V2KeysVerifyKeyRequestBodyPermissions0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2KeysVerifyKeyRequestBodyPermissions0 performs a merge with any union data inside the V2KeysVerifyKeyRequestBody_Permissions, using the provided V2KeysVerifyKeyRequestBodyPermissions0
+func (t *V2KeysVerifyKeyRequestBody_Permissions) MergeV2KeysVerifyKeyRequestBodyPermissions0(v V2KeysVerifyKeyRequestBodyPermissions0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2KeysVerifyKeyRequestBodyPermissions1 returns the union data inside the V2KeysVerifyKeyRequestBody_Permissions as a V2KeysVerifyKeyRequestBodyPermissions1
+func (t V2KeysVerifyKeyRequestBody_Permissions) AsV2KeysVerifyKeyRequestBodyPermissions1() (V2KeysVerifyKeyRequestBodyPermissions1, error) {
+	var body V2KeysVerifyKeyRequestBodyPermissions1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2KeysVerifyKeyRequestBodyPermissions1 overwrites any union data inside the V2KeysVerifyKeyRequestBody_Permissions as the provided V2KeysVerifyKeyRequestBodyPermissions1
+func (t *V2KeysVerifyKeyRequestBody_Permissions) FromV2KeysVerifyKeyRequestBodyPermissions1(v V2KeysVerifyKeyRequestBodyPermissions1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2KeysVerifyKeyRequestBodyPermissions1 performs a merge with any union data inside the V2KeysVerifyKeyRequestBody_Permissions, using the provided V2KeysVerifyKeyRequestBodyPermissions1
+func (t *V2KeysVerifyKeyRequestBody_Permissions) MergeV2KeysVerifyKeyRequestBodyPermissions1(v V2KeysVerifyKeyRequestBodyPermissions1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2KeysVerifyKeyRequestBody_Permissions) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *V2KeysVerifyKeyRequestBody_Permissions) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
 	return err
 }

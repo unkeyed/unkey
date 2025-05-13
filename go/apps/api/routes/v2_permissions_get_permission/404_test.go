@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_permission"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestNotFoundErrors(t *testing.T) {

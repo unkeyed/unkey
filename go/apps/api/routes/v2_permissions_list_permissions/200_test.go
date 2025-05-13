@@ -11,8 +11,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestSuccess(t *testing.T) {
