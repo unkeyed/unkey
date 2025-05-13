@@ -741,6 +741,37 @@ type V2KeysAddPermissionsResponseData = []struct {
 	Name string `json:"name"`
 }
 
+// V2KeysAddRolesRequestBody defines model for V2KeysAddRolesRequestBody.
+type V2KeysAddRolesRequestBody struct {
+	// KeyId The ID of the key to which roles will be added (begins with 'key_')
+	KeyId string `json:"keyId"`
+
+	// Roles List of roles to add to the key. Each role can be identified by ID or name (if both are provided in the same object, ID takes precedence). Duplicate roles are automatically handled (adding the same role twice has no effect). Roles are collections of permissions that provide a convenient way to assign multiple permissions at once. During key verification, all permissions granted through roles are checked.
+	Roles []struct {
+		// Id The ID of an existing role (begins with 'role_'). Provide either ID or name. Use ID when you know the exact role identifier and want to ensure you're referencing a specific role.
+		Id *string `json:"id,omitempty"`
+
+		// Name The name of the role. Provide either ID or name. Role names are unique within a workspace and can be used to reference the role when you don't have the ID.
+		Name *string `json:"name,omitempty"`
+	} `json:"roles"`
+}
+
+// V2KeysAddRolesResponse defines model for V2KeysAddRolesResponse.
+type V2KeysAddRolesResponse struct {
+	// Data Complete list of all roles directly assigned to the key (including both newly added roles and those that were already assigned). The list is always sorted alphabetically by role name for consistency. An empty array indicates the key has no roles assigned.
+	Data V2KeysAddRolesResponseData `json:"data"`
+	Meta Meta                       `json:"meta"`
+}
+
+// V2KeysAddRolesResponseData Complete list of all roles directly assigned to the key (including both newly added roles and those that were already assigned). The list is always sorted alphabetically by role name for consistency. An empty array indicates the key has no roles assigned.
+type V2KeysAddRolesResponseData = []struct {
+	// Id The unique identifier of the role (begins with 'role_'). This ID can be used in other API calls to reference this specific role.
+	Id string `json:"id"`
+
+	// Name The name of the role. This is a human-readable identifier that's unique within your workspace.
+	Name string `json:"name"`
+}
+
 // V2KeysCreateKeyRequestBody defines model for V2KeysCreateKeyRequestBody.
 type V2KeysCreateKeyRequestBody struct {
 	// ApiId The ID of the API where this key should be created. Each key is associated with exactly one API, which helps segregate keys between different environments (dev/prod) and services.
@@ -1256,6 +1287,9 @@ type V2IdentitiesDeleteIdentityJSONRequestBody = V2IdentitiesDeleteIdentityReque
 
 // AddPermissionsJSONRequestBody defines body for AddPermissions for application/json ContentType.
 type AddPermissionsJSONRequestBody = V2KeysAddPermissionsRequestBody
+
+// AddRolesJSONRequestBody defines body for AddRoles for application/json ContentType.
+type AddRolesJSONRequestBody = V2KeysAddRolesRequestBody
 
 // CreateKeyJSONRequestBody defines body for CreateKey for application/json ContentType.
 type CreateKeyJSONRequestBody = V2KeysCreateKeyRequestBody

@@ -392,6 +392,11 @@ All endpoints follow this response pattern:
    - Avoid circular references
    - Place new schemas in the appropriate section
 
+6. **Error Response References**:
+   - Use full schema references for error responses, not response component references
+   - Correct format is `"$ref": "#/components/schemas/BadRequestErrorResponse"`, not `"$ref": "#/components/responses/BadRequest"`
+   - Each error response should include description and content with appropriate schema reference
+
 ## Migration Progress Tracking
 
 ### Completed Endpoints:
@@ -400,14 +405,16 @@ All endpoints follow this response pattern:
 - [x] `/v2/keys.getKey` - For retrieving API key details
 - [x] `/v2/keys.deleteKey` - For deleting API keys
 - [x] `/v2/keys.updateKey` - For updating API key properties
+- [x] `/v2/keys.whoami` - For identifying the current key
+- [x] `/v2/keys.addRoles` - For adding roles to a key
 
 ### Next Endpoints to Implement:
-1. [🔄] `/v2/keys.whoami` - For identifying the current key (READY FOR IMPLEMENTATION - OpenAPI spec completed and validated)
+1. [✅] `/v2/keys.whoami` - For identifying the current key (COMPLETED - OpenAPI spec added to openapi.json)
 2. [✅] `/v2/keys.addPermissions` - For adding permissions to a key (COMPLETED - OpenAPI spec added to openapi.json)
 3. [✅] `/v2/keys.removePermissions` - For removing permissions from a key (COMPLETED - OpenAPI spec added to openapi.json)
 4. [✅] `/v2/keys.setPermissions` - For setting all permissions on a key (COMPLETED - OpenAPI spec added to openapi.json)
-5. [ ] `/v2/keys.addRoles` - For adding roles to a key
-6. [ ] `/v2/keys.removeRoles` - For removing roles from a key
+5. [✅] `/v2/keys.addRoles` - For adding roles to a key (COMPLETED - OpenAPI spec added to openapi.json)
+6. [🔄] `/v2/keys.removeRoles` - For removing roles from a key (NEXT IN QUEUE)
 7. [ ] `/v2/keys.setRoles` - For setting all roles on a key
 8. [ ] `/v2/keys.updateRemaining` - For updating key usage credits
 
@@ -628,7 +635,7 @@ Each endpoint should be implemented sequentially, updating this document after c
    - Improved documentation of validation rules
    - Cache invalidation period is clearly documented
 
-### /v2/keys.whoami (NEXT IN QUEUE)
+### /v2/keys.whoami (COMPLETED)
 
 #### Implementation Plan
 
