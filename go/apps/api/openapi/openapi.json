@@ -2053,6 +2053,87 @@
           }
         }
       },
+      "V2IdentitiesGetIdentityRequestBody": {
+        "type": "object",
+        "properties": {
+          "identityId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The Unkey identity ID to retrieve (begins with 'id_'). Use either identityId or externalId to specify which identity to fetch. If both are provided, identityId takes precedence.",
+            "example": "id_1234567890abcdef"
+          },
+          "externalId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The external ID of the identity to retrieve. This is the ID from your own system that was used during identity creation. Use either identityId or externalId to specify which identity to fetch. If both are provided, identityId takes precedence.",
+            "example": "user_abc123"
+          }
+        },
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "identityId"
+            ]
+          },
+          {
+            "required": [
+              "externalId"
+            ]
+          }
+        ]
+      },
+      "IdentitiesGetIdentityResponseData": {
+        "type": "object",
+        "required": [
+          "id",
+          "externalId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for this identity in Unkey's system (begins with 'id_').",
+            "example": "id_1234567890abcdef"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "The external identifier for this identity in your system. This is the ID you provided during identity creation.",
+            "example": "user_abc123"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Custom metadata associated with this identity. This can include any JSON-serializable data you stored with the identity during creation or updates.",
+            "example": {
+              "name": "Alice Smith",
+              "email": "alice@example.com",
+              "plan": "premium"
+            }
+          },
+          "ratelimits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ratelimit"
+            },
+            "description": "Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used."
+          }
+        }
+      },
+      "V2IdentitiesGetIdentityResponseBody": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/IdentitiesGetIdentityResponseData"
+          }
+        }
+      },
       "V2IdentitiesDeleteIdentityRequestBody": {
         "additionalProperties": false,
         "type": "object",
@@ -6403,6 +6484,140 @@
               }
             },
             "description": "Error"
+          }
+        }
+      }
+    },
+    "/v2/identities.getIdentity": {
+      "post": {
+        "tags": [
+          "identities"
+        ],
+        "summary": "Retrieve identity information",
+        "description": "Retrieves detailed information about a specific identity by its Unkey ID or external ID.\n\nIdentities in Unkey represent entities in your system (users, organizations, etc.) that can be associated with multiple API keys. This endpoint provides access to:\n- Identity metadata that was stored during creation\n- Rate limiting configurations that apply across all keys for this identity\n- Mapping between your system's external IDs and Unkey's internal IDs\n\nThis endpoint is useful for:\n- Checking if an identity exists\n- Retrieving metadata associated with an identity\n- Viewing rate limit configurations\n- Finding the Unkey ID for an identity when you only have the external ID\n\nYou must provide either the identityId or externalId parameter to identify which identity to retrieve.",
+        "operationId": "identities.getIdentity",
+        "x-speakeasy-name-override": "getIdentity",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2IdentitiesGetIdentityRequestBody"
+              },
+              "examples": {
+                "byIdentityId": {
+                  "summary": "Retrieve by Unkey identity ID",
+                  "value": {
+                    "identityId": "id_1234567890abcdef"
+                  }
+                },
+                "byExternalId": {
+                  "summary": "Retrieve by external ID",
+                  "value": {
+                    "externalId": "user_abc123"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the identity information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2IdentitiesGetIdentityResponseBody"
+                },
+                "examples": {
+                  "standard": {
+                    "summary": "Identity with metadata and rate limits",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+                      },
+                      "data": {
+                        "id": "id_1234567890abcdef",
+                        "externalId": "user_abc123",
+                        "meta": {
+                          "name": "Alice Smith",
+                          "email": "alice@example.com",
+                          "plan": "premium",
+                          "companyId": "company_xyz"
+                        },
+                        "ratelimits": [
+                          {
+                            "name": "api_requests",
+                            "limit": 1000,
+                            "duration": 60000
+                          },
+                          {
+                            "name": "heavy_operations",
+                            "limit": 100,
+                            "duration": 3600000
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Missing both identityId and externalId, or other validation issues",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions to access this identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - The specified identity doesn't exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            }
           }
         }
       }

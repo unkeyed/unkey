@@ -189,6 +189,21 @@ type IdentitiesCreateIdentityResponseData struct {
 	IdentityId string `json:"identityId"`
 }
 
+// IdentitiesGetIdentityResponseData defines model for IdentitiesGetIdentityResponseData.
+type IdentitiesGetIdentityResponseData struct {
+	// ExternalId The external identifier for this identity in your system. This is the ID you provided during identity creation.
+	ExternalId string `json:"externalId"`
+
+	// Id The unique identifier for this identity in Unkey's system (begins with 'id_').
+	Id string `json:"id"`
+
+	// Meta Custom metadata associated with this identity. This can include any JSON-serializable data you stored with the identity during creation or updates.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used.
+	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
+}
+
 // Identity defines model for Identity.
 type Identity struct {
 	// ExternalId External identity ID
@@ -957,6 +972,30 @@ type V2IdentitiesDeleteIdentityRequestBody1 = interface{}
 
 // V2IdentitiesDeleteIdentityResponseBody Empty response object. A successful response indicates the identity was deleted successfully. The operation is immediate and permanent - the identity and all its associated data are removed from the system. Any API keys previously associated with this identity remain valid but are no longer linked to this identity.
 type V2IdentitiesDeleteIdentityResponseBody struct {
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2IdentitiesGetIdentityRequestBody defines model for V2IdentitiesGetIdentityRequestBody.
+type V2IdentitiesGetIdentityRequestBody struct {
+	// ExternalId The external ID of the identity to retrieve. This is the ID from your own system that was used during identity creation. Use either identityId or externalId to specify which identity to fetch. If both are provided, identityId takes precedence.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// IdentityId The Unkey identity ID to retrieve (begins with 'id_'). Use either identityId or externalId to specify which identity to fetch. If both are provided, identityId takes precedence.
+	IdentityId *string `json:"identityId,omitempty"`
+	union      json.RawMessage
+}
+
+// V2IdentitiesGetIdentityRequestBody0 defines model for .
+type V2IdentitiesGetIdentityRequestBody0 = interface{}
+
+// V2IdentitiesGetIdentityRequestBody1 defines model for .
+type V2IdentitiesGetIdentityRequestBody1 = interface{}
+
+// V2IdentitiesGetIdentityResponseBody defines model for V2IdentitiesGetIdentityResponseBody.
+type V2IdentitiesGetIdentityResponseBody struct {
+	Data IdentitiesGetIdentityResponseData `json:"data"`
+
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
@@ -2010,6 +2049,9 @@ type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequest
 // V2IdentitiesDeleteIdentityJSONRequestBody defines body for V2IdentitiesDeleteIdentity for application/json ContentType.
 type V2IdentitiesDeleteIdentityJSONRequestBody = V2IdentitiesDeleteIdentityRequestBody
 
+// IdentitiesGetIdentityJSONRequestBody defines body for IdentitiesGetIdentity for application/json ContentType.
+type IdentitiesGetIdentityJSONRequestBody = V2IdentitiesGetIdentityRequestBody
+
 // AddPermissionsJSONRequestBody defines body for AddPermissions for application/json ContentType.
 type AddPermissionsJSONRequestBody = V2KeysAddPermissionsRequestBody
 
@@ -2162,6 +2204,116 @@ func (t V2IdentitiesDeleteIdentityRequestBody) MarshalJSON() ([]byte, error) {
 }
 
 func (t *V2IdentitiesDeleteIdentityRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["externalId"]; found {
+		err = json.Unmarshal(raw, &t.ExternalId)
+		if err != nil {
+			return fmt.Errorf("error reading 'externalId': %w", err)
+		}
+	}
+
+	if raw, found := object["identityId"]; found {
+		err = json.Unmarshal(raw, &t.IdentityId)
+		if err != nil {
+			return fmt.Errorf("error reading 'identityId': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsV2IdentitiesGetIdentityRequestBody0 returns the union data inside the V2IdentitiesGetIdentityRequestBody as a V2IdentitiesGetIdentityRequestBody0
+func (t V2IdentitiesGetIdentityRequestBody) AsV2IdentitiesGetIdentityRequestBody0() (V2IdentitiesGetIdentityRequestBody0, error) {
+	var body V2IdentitiesGetIdentityRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2IdentitiesGetIdentityRequestBody0 overwrites any union data inside the V2IdentitiesGetIdentityRequestBody as the provided V2IdentitiesGetIdentityRequestBody0
+func (t *V2IdentitiesGetIdentityRequestBody) FromV2IdentitiesGetIdentityRequestBody0(v V2IdentitiesGetIdentityRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2IdentitiesGetIdentityRequestBody0 performs a merge with any union data inside the V2IdentitiesGetIdentityRequestBody, using the provided V2IdentitiesGetIdentityRequestBody0
+func (t *V2IdentitiesGetIdentityRequestBody) MergeV2IdentitiesGetIdentityRequestBody0(v V2IdentitiesGetIdentityRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2IdentitiesGetIdentityRequestBody1 returns the union data inside the V2IdentitiesGetIdentityRequestBody as a V2IdentitiesGetIdentityRequestBody1
+func (t V2IdentitiesGetIdentityRequestBody) AsV2IdentitiesGetIdentityRequestBody1() (V2IdentitiesGetIdentityRequestBody1, error) {
+	var body V2IdentitiesGetIdentityRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2IdentitiesGetIdentityRequestBody1 overwrites any union data inside the V2IdentitiesGetIdentityRequestBody as the provided V2IdentitiesGetIdentityRequestBody1
+func (t *V2IdentitiesGetIdentityRequestBody) FromV2IdentitiesGetIdentityRequestBody1(v V2IdentitiesGetIdentityRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2IdentitiesGetIdentityRequestBody1 performs a merge with any union data inside the V2IdentitiesGetIdentityRequestBody, using the provided V2IdentitiesGetIdentityRequestBody1
+func (t *V2IdentitiesGetIdentityRequestBody) MergeV2IdentitiesGetIdentityRequestBody1(v V2IdentitiesGetIdentityRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2IdentitiesGetIdentityRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.ExternalId != nil {
+		object["externalId"], err = json.Marshal(t.ExternalId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'externalId': %w", err)
+		}
+	}
+
+	if t.IdentityId != nil {
+		object["identityId"], err = json.Marshal(t.IdentityId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'identityId': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2IdentitiesGetIdentityRequestBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	if err != nil {
 		return err

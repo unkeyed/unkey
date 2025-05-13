@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity/handler"
-	"github.com/unkeyed/unkey/go/internal/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
 func TestBadRequests(t *testing.T) {

@@ -19,12 +19,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.
-
-type Response struct {
-	Meta openapi.Meta     `json:"meta"`
-	Data openapi.Identity `json:"data"`
-}
+type Request = openapi.V2IdentitiesGetIdentityRequestBody
+type Response = openapi.V2IdentitiesGetIdentityResponseBody
 
 type Services struct {
 	Logger      logging.Logger
@@ -40,17 +36,13 @@ func New(svc Services) zen.Route {
 			return err
 		}
 
-		// nolint:exhaustruct
-		req := Request{}
-		err = s.BindBody(&req)
+		req, err := zen.BindBody[Request](s)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
-			)
+			return err
 		}
 
 		// Validate that at least one of identityID or externalID is provided
-		if req.identityID == nil && req.externalID == nil {
+		if req.IdentityId == nil && req.ExternalId == nil {
 			return fault.New("missing required field",
 				fault.WithCode(codes.App.Validation.InvalidInput.URN()),
 				fault.WithDesc("missing required field", "Provide either identityId or externalId"),
@@ -67,12 +59,12 @@ func New(svc Services) zen.Route {
 		)
 
 		// Add specific identity permission if identityID is provided
-		if req.identityID != nil {
+		if req.IdentityId != nil {
 			permissionCheck = rbac.Or(
 				permissionCheck,
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Identity,
-					ResourceID:   *req.identityID,
+					ResourceID:   *req.IdentityId,
 					Action:       rbac.ReadIdentity,
 				}),
 			)
@@ -111,16 +103,16 @@ func New(svc Services) zen.Route {
 		}()
 
 		// First try to get the identity
-		if req.identityID != nil {
+		if req.IdentityId != nil {
 			// Find by identityID
 			identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
-				ID:      *req.identityID,
+				ID:      *req.IdentityId,
 				Deleted: false,
 			})
-		} else if req.externalID != nil {
+		} else if req.ExternalId != nil {
 			// Find by externalID
 			identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-				ExternalID:  *req.externalID,
+				ExternalID:  *req.ExternalId,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 			})
 		} else {
@@ -177,10 +169,11 @@ func New(svc Services) zen.Route {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			Data: openapi.Identity{
+			Data: openapi.IdentitiesGetIdentityResponseData{
 				Id:         identity.ID,
 				ExternalId: identity.ExternalID,
 				Meta:       &metaMap,
+				Ratelimits: &responseRatelimits,
 			},
 		})
 	})

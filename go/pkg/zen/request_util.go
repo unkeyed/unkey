@@ -1,0 +1,24 @@
+package zen
+
+import (
+	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/fault"
+)
+
+// BindBody binds the request body to the given struct.
+// If it fails, an error is returned, that you can directly return from your handler.
+func BindBody[T any](s *Session) (T, error) {
+
+	// nolint:exhaustruct
+	var req T
+	err := s.BindBody(&req)
+	if err != nil {
+		return req, fault.Wrap(err,
+			fault.WithCode(codes.App.Validation.InvalidInput.URN()),
+			fault.WithDesc("invalid request body", "The request body is invalid."),
+		)
+	}
+
+	return req, nil
+
+}
