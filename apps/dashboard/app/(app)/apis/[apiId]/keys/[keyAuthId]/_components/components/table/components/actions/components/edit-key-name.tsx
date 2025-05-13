@@ -121,16 +121,6 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
           <div className="space-y-4">
             <FormInput
               className="[&_input:first-of-type]:h-[36px]"
-              placeholder="Key ID"
-              label="Name"
-              maxLength={256}
-              readOnly
-              defaultValue={keyDetails.id}
-              description="An identifier for the API, used in some API calls."
-              variant="default"
-            />
-            <FormInput
-              className="[&_input:first-of-type]:h-[36px]"
               placeholder="Key Name"
               label="Name"
               defaultValue={keyDetails.name ?? ""}
