@@ -861,6 +861,172 @@
           }
         }
       },
+      "V2KeysSetRolesRequestBody": {
+        "type": "object",
+        "required": [
+          "keyId",
+          "roles"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "description": "The ID of the key for which to set roles (begins with 'key_')",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q",
+            "minLength": 3
+          },
+          "roles": {
+            "type": "array",
+            "description": "Complete list of roles to assign to the key. This operation replaces all existing direct role assignments with this new set. Each role can be identified by ID or name (if both are provided in the same object, ID takes precedence). Providing an empty array removes all direct role assignments from the key.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The ID of an existing role (begins with 'role_'). Provide either ID or name. Use ID when you know the exact role identifier and want to ensure you're referencing a specific role.",
+                  "example": "role_1n9McEIBSqy44Qy7hzWyM5",
+                  "minLength": 3
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The name of the role. Provide either ID or name. Role names are unique within a workspace and can be used to reference the role when you don't have the ID.",
+                  "example": "admin",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2KeysSetRolesResponseData": {
+        "type": "array",
+        "description": "Complete list of all roles now directly assigned to the key. The list is always sorted alphabetically by role name for consistency. An empty array indicates the key has no roles assigned.",
+        "items": {
+          "type": "object",
+          "required": [
+            "id",
+            "name"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The unique identifier of the role (begins with 'role_'). This ID can be used in other API calls to reference this specific role.",
+              "example": "role_1n9McEIBSqy44Qy7hzWyM5"
+            },
+            "name": {
+              "type": "string",
+              "description": "The name of the role. This is a human-readable identifier that's unique within your workspace.",
+              "example": "admin"
+            }
+          }
+        }
+      },
+      "V2KeysSetRolesResponse": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/V2KeysSetRolesResponseData"
+          }
+        }
+      },
+      "V2KeysUpdateRemainingRequestBody": {
+        "type": "object",
+        "required": [
+          "keyId",
+          "remaining"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "description": "The ID of the key to update (begins with 'key_')",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q",
+            "minLength": 3
+          },
+          "remaining": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The new value for the remaining credits. This will replace the current value, not increment or decrement it. Use a value of -1 to indicate unlimited usage. Remaining credits only apply to keys that use the credits feature, and are decremented each time the key is verified successfully.",
+            "example": 1000
+          },
+          "overwriteRefillSettings": {
+            "type": "boolean",
+            "description": "When true, any existing refill settings will be removed if the key has them. This effectively converts a key with automatic refills to a key with a fixed number of credits. When false or omitted, existing refill settings are preserved.",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "KeysUpdateRemainingResponseData": {
+        "type": "object",
+        "required": [
+          "remaining"
+        ],
+        "properties": {
+          "remaining": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The updated remaining credits value for the key. A value of -1 indicates unlimited usage.",
+            "example": 1000
+          },
+          "refillSettings": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "interval": {
+                "type": "string",
+                "enum": [
+                  "daily",
+                  "weekly",
+                  "monthly",
+                  "never"
+                ],
+                "description": "The interval at which credits are automatically refilled."
+              },
+              "amount": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "The number of credits to add on each refill."
+              },
+              "refillDay": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 31,
+                "description": "For monthly refills, the day of the month on which to refill. For weekly refills, 1 = Monday, 7 = Sunday."
+              },
+              "lastRefillAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The timestamp when the last automatic refill occurred."
+              }
+            },
+            "description": "If the key has automatic refill settings, they are included here. If null, the key does not have automatic refills configured."
+          }
+        }
+      },
+      "V2KeysUpdateRemainingResponse": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KeysUpdateRemainingResponseData"
+          }
+        }
+      },
       "V2KeysCreateKeyRequestBody": {
         "type": "object",
         "required": [
@@ -4307,6 +4473,297 @@
                   },
                   "empty": {
                     "summary": "No roles remaining",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1234567890abcdef"
+                      },
+                      "data": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/keys.updateRemaining": {
+      "post": {
+        "tags": ["keys"],
+        "summary": "Update remaining credits for an API key",
+        "description": "Sets the remaining number of credits for a key. This endpoint is used to manually adjust the credit balance for keys that use the credits feature. Credits are decremented each time the key is successfully verified (unless the 'cost' parameter is 0). This is useful for implementing usage-based pricing, quotas, or limiting access based on a subscription plan. You can set credits to -1 to indicate unlimited usage. You can also optionally remove any automatic refill settings from the key, effectively converting it from a key with periodic refills to one with a fixed credit allocation.",
+        "operationId": "updateRemaining",
+        "x-speakeasy-name-override": "updateRemaining",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysUpdateRemainingRequestBody"
+              },
+              "examples": {
+                "setCredits": {
+                  "summary": "Set remaining credits",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "remaining": 1000
+                  }
+                },
+                "setUnlimited": {
+                  "summary": "Set unlimited usage",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "remaining": -1
+                  }
+                },
+                "removeRefills": {
+                  "summary": "Remove refill settings",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "remaining": 500,
+                    "overwriteRefillSettings": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Remaining credits successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysUpdateRemainingResponse"
+                },
+                "examples": {
+                  "withRefills": {
+                    "summary": "Updated with refill settings preserved",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1234567890abcdef"
+                      },
+                      "data": {
+                        "remaining": 1000,
+                        "refillSettings": {
+                          "interval": "monthly",
+                          "amount": 1000,
+                          "refillDay": 1,
+                          "lastRefillAt": "2023-01-01T00:00:00Z"
+                        }
+                      }
+                    }
+                  },
+                  "withoutRefills": {
+                    "summary": "Updated with refills removed",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1234567890abcdef"
+                      },
+                      "data": {
+                        "remaining": 500,
+                        "refillSettings": null
+                      }
+                    }
+                  },
+                  "unlimited": {
+                    "summary": "Set to unlimited usage",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1234567890abcdef"
+                      },
+                      "data": {
+                        "remaining": -1,
+                        "refillSettings": null
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/keys.setRoles": {
+      "post": {
+        "tags": ["keys"],
+        "summary": "Set roles for an API key",
+        "description": "Replaces all existing direct role assignments on a key with the provided set of roles. This is a replacement operation, not an incremental update. Providing an empty roles array removes all direct role assignments from the key. Roles are collections of permissions that provide a convenient way to manage access control. This endpoint is useful for completely resetting a key's role assignments or making bulk changes in a single call. After roles are set, any cached versions of the key are invalidated to ensure consistency.",
+        "operationId": "setRoles",
+        "x-speakeasy-name-override": "setRoles",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysSetRolesRequestBody"
+              },
+              "examples": {
+                "standard": {
+                  "summary": "Setting multiple roles",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "roles": [
+                      {
+                        "id": "role_1n9McEIBSqy44Qy7hzWyM5"
+                      },
+                      {
+                        "name": "developer"
+                      }
+                    ]
+                  }
+                },
+                "removeAll": {
+                  "summary": "Removing all roles",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "roles": []
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Roles successfully set for the key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysSetRolesResponse"
+                },
+                "examples": {
+                  "standard": {
+                    "summary": "Roles after update",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1234567890abcdef"
+                      },
+                      "data": [
+                        {
+                          "id": "role_1n9McEIBSqy44Qy7hzWyM5",
+                          "name": "admin"
+                        },
+                        {
+                          "id": "role_3b9OeGKDUsy66Sz9Kelz0s",
+                          "name": "developer"
+                        }
+                      ]
+                    }
+                  },
+                  "empty": {
+                    "summary": "All roles removed",
                     "value": {
                       "meta": {
                         "requestId": "req_1234567890abcdef"

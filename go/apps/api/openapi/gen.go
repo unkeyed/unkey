@@ -28,6 +28,14 @@ const (
 	KeysGetKeyResponseDataCreditsRefillIntervalMonthly KeysGetKeyResponseDataCreditsRefillInterval = "monthly"
 )
 
+// Defines values for KeysUpdateRemainingResponseDataRefillSettingsInterval.
+const (
+	KeysUpdateRemainingResponseDataRefillSettingsIntervalDaily   KeysUpdateRemainingResponseDataRefillSettingsInterval = "daily"
+	KeysUpdateRemainingResponseDataRefillSettingsIntervalMonthly KeysUpdateRemainingResponseDataRefillSettingsInterval = "monthly"
+	KeysUpdateRemainingResponseDataRefillSettingsIntervalNever   KeysUpdateRemainingResponseDataRefillSettingsInterval = "never"
+	KeysUpdateRemainingResponseDataRefillSettingsIntervalWeekly  KeysUpdateRemainingResponseDataRefillSettingsInterval = "weekly"
+)
+
 // Defines values for KeysVerifyKeyResponseDataCode.
 const (
 	DISABLED                KeysVerifyKeyResponseDataCode = "DISABLED"
@@ -49,8 +57,8 @@ const (
 
 // Defines values for V2KeysUpdateKeyRequestBodyCreditsRefillInterval.
 const (
-	V2KeysUpdateKeyRequestBodyCreditsRefillIntervalDaily   V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "daily"
-	V2KeysUpdateKeyRequestBodyCreditsRefillIntervalMonthly V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "monthly"
+	Daily   V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "daily"
+	Monthly V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "monthly"
 )
 
 // Defines values for V2KeysVerifyKeyRequestBodyPermissions1Type.
@@ -367,6 +375,30 @@ type KeysGetKeyResponseDataCreditsRefillInterval string
 
 // KeysUpdateKeyResponseData Empty response object. A successful response indicates the key was updated successfully. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays.
 type KeysUpdateKeyResponseData = map[string]interface{}
+
+// KeysUpdateRemainingResponseData defines model for KeysUpdateRemainingResponseData.
+type KeysUpdateRemainingResponseData struct {
+	// RefillSettings If the key has automatic refill settings, they are included here. If null, the key does not have automatic refills configured.
+	RefillSettings nullable.Nullable[struct {
+		// Amount The number of credits to add on each refill.
+		Amount *int64 `json:"amount,omitempty"`
+
+		// Interval The interval at which credits are automatically refilled.
+		Interval *KeysUpdateRemainingResponseDataRefillSettingsInterval `json:"interval,omitempty"`
+
+		// LastRefillAt The timestamp when the last automatic refill occurred.
+		LastRefillAt *time.Time `json:"lastRefillAt,omitempty"`
+
+		// RefillDay For monthly refills, the day of the month on which to refill. For weekly refills, 1 = Monday, 7 = Sunday.
+		RefillDay *int `json:"refillDay,omitempty"`
+	}] `json:"refillSettings,omitempty"`
+
+	// Remaining The updated remaining credits value for the key. A value of -1 indicates unlimited usage.
+	Remaining int64 `json:"remaining"`
+}
+
+// KeysUpdateRemainingResponseDataRefillSettingsInterval The interval at which credits are automatically refilled.
+type KeysUpdateRemainingResponseDataRefillSettingsInterval string
 
 // KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
 type KeysVerifyKeyResponseData struct {
@@ -968,6 +1000,37 @@ type V2KeysSetPermissionsResponseData = []struct {
 	Name string `json:"name"`
 }
 
+// V2KeysSetRolesRequestBody defines model for V2KeysSetRolesRequestBody.
+type V2KeysSetRolesRequestBody struct {
+	// KeyId The ID of the key for which to set roles (begins with 'key_')
+	KeyId string `json:"keyId"`
+
+	// Roles Complete list of roles to assign to the key. This operation replaces all existing direct role assignments with this new set. Each role can be identified by ID or name (if both are provided in the same object, ID takes precedence). Providing an empty array removes all direct role assignments from the key.
+	Roles []struct {
+		// Id The ID of an existing role (begins with 'role_'). Provide either ID or name. Use ID when you know the exact role identifier and want to ensure you're referencing a specific role.
+		Id *string `json:"id,omitempty"`
+
+		// Name The name of the role. Provide either ID or name. Role names are unique within a workspace and can be used to reference the role when you don't have the ID.
+		Name *string `json:"name,omitempty"`
+	} `json:"roles"`
+}
+
+// V2KeysSetRolesResponse defines model for V2KeysSetRolesResponse.
+type V2KeysSetRolesResponse struct {
+	// Data Complete list of all roles now directly assigned to the key. The list is always sorted alphabetically by role name for consistency. An empty array indicates the key has no roles assigned.
+	Data V2KeysSetRolesResponseData `json:"data"`
+	Meta Meta                       `json:"meta"`
+}
+
+// V2KeysSetRolesResponseData Complete list of all roles now directly assigned to the key. The list is always sorted alphabetically by role name for consistency. An empty array indicates the key has no roles assigned.
+type V2KeysSetRolesResponseData = []struct {
+	// Id The unique identifier of the role (begins with 'role_'). This ID can be used in other API calls to reference this specific role.
+	Id string `json:"id"`
+
+	// Name The name of the role. This is a human-readable identifier that's unique within your workspace.
+	Name string `json:"name"`
+}
+
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
 	// Credits Usage limits configuration for this key. Set to null to disable usage limits. Omit this field to leave it unchanged. Note: Cannot set refill when credits is null; setting refillDay requires interval to be 'monthly'.
@@ -1030,6 +1093,24 @@ type V2KeysUpdateKeyResponseBody struct {
 	// Data Empty response object. A successful response indicates the key was updated successfully. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays.
 	Data *KeysUpdateKeyResponseData `json:"data,omitempty"`
 	Meta Meta                       `json:"meta"`
+}
+
+// V2KeysUpdateRemainingRequestBody defines model for V2KeysUpdateRemainingRequestBody.
+type V2KeysUpdateRemainingRequestBody struct {
+	// KeyId The ID of the key to update (begins with 'key_')
+	KeyId string `json:"keyId"`
+
+	// OverwriteRefillSettings When true, any existing refill settings will be removed if the key has them. This effectively converts a key with automatic refills to a key with a fixed number of credits. When false or omitted, existing refill settings are preserved.
+	OverwriteRefillSettings *bool `json:"overwriteRefillSettings,omitempty"`
+
+	// Remaining The new value for the remaining credits. This will replace the current value, not increment or decrement it. Use a value of -1 to indicate unlimited usage. Remaining credits only apply to keys that use the credits feature, and are decremented each time the key is verified successfully.
+	Remaining int64 `json:"remaining"`
+}
+
+// V2KeysUpdateRemainingResponse defines model for V2KeysUpdateRemainingResponse.
+type V2KeysUpdateRemainingResponse struct {
+	Data KeysUpdateRemainingResponseData `json:"data"`
+	Meta Meta                            `json:"meta"`
 }
 
 // V2KeysVerifyKeyRequestBody defines model for V2KeysVerifyKeyRequestBody.
@@ -1340,8 +1421,14 @@ type RemoveRolesJSONRequestBody = V2KeysRemoveRolesRequestBody
 // SetPermissionsJSONRequestBody defines body for SetPermissions for application/json ContentType.
 type SetPermissionsJSONRequestBody = V2KeysSetPermissionsRequestBody
 
+// SetRolesJSONRequestBody defines body for SetRoles for application/json ContentType.
+type SetRolesJSONRequestBody = V2KeysSetRolesRequestBody
+
 // UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
 type UpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody
+
+// UpdateRemainingJSONRequestBody defines body for UpdateRemaining for application/json ContentType.
+type UpdateRemainingJSONRequestBody = V2KeysUpdateRemainingRequestBody
 
 // VerifyKeyJSONRequestBody defines body for VerifyKey for application/json ContentType.
 type VerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody

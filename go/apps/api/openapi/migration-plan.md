@@ -408,6 +408,8 @@ All endpoints follow this response pattern:
 - [x] `/v2/keys.whoami` - For identifying the current key
 - [x] `/v2/keys.addRoles` - For adding roles to a key
 - [x] `/v2/keys.removeRoles` - For removing roles from a key
+- [x] `/v2/keys.setRoles` - For setting all roles on a key
+- [x] `/v2/keys.updateRemaining` - For updating key usage credits
 
 ### Next Endpoints to Implement:
 1. [✅] `/v2/keys.whoami` - For identifying the current key (COMPLETED - OpenAPI spec added to openapi.json)
@@ -416,11 +418,11 @@ All endpoints follow this response pattern:
 4. [✅] `/v2/keys.setPermissions` - For setting all permissions on a key (COMPLETED - OpenAPI spec added to openapi.json)
 5. [✅] `/v2/keys.addRoles` - For adding roles to a key (COMPLETED - OpenAPI spec added to openapi.json)
 6. [✅] `/v2/keys.removeRoles` - For removing roles from a key (COMPLETED - OpenAPI spec added to openapi.json)
-7. [🔄] `/v2/keys.setRoles` - For setting all roles on a key (NEXT IN QUEUE)
-8. [ ] `/v2/keys.updateRemaining` - For updating key usage credits
+7. [✅] `/v2/keys.setRoles` - For setting all roles on a key (COMPLETED - OpenAPI spec added to openapi.json)
+8. [✅] `/v2/keys.updateRemaining` - For updating key usage credits (COMPLETED - OpenAPI spec added to openapi.json)
 
 ### Remaining Tasks:
-- [ ] Complete all pending routes
+- [x] Complete all pending routes
 - [ ] Write comprehensive tests for each route
 - [ ] Validate all migrated endpoints
 - [ ] Update documentation
