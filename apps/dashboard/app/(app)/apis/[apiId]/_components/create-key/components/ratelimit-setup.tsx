@@ -83,7 +83,7 @@ export const RatelimitSetup = () => {
         </Button>
       </div>
 
-      <div className="max-h-[550px] overflow-y-auto px-1">
+      <div className="px-1">
         {fields.map((field, index) => (
           <div key={field.id} className="space-y-4 w-full border-t border-grayA-3 py-6">
             <div className="flex items-center gap-[14px] w-full">
