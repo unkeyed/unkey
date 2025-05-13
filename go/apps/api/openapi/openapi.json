@@ -2394,6 +2394,113 @@
           "limit"
         ]
       },
+      "V2KeysWhoamiRequestBody": {
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The API key to identify and retrieve information about",
+            "example": "sk_1234567890abcdef",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "KeyWhoamiData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the key",
+            "example": "key_1234567890abcdef"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "The human-readable name of the key (optional)",
+            "example": "Production API Key"
+          },
+          "remaining": {
+            "type": "integer",
+            "nullable": true,
+            "format": "int64",
+            "description": "The remaining number of requests for the key (null means unlimited)",
+            "example": 1000
+          },
+          "identity": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The unique identity ID associated with the key",
+                "example": "id_1234567890abcdef"
+              },
+              "externalId": {
+                "type": "string",
+                "description": "The external identity ID associated with the key (e.g., user ID in your system)",
+                "example": "user_12345"
+              }
+            },
+            "required": [
+              "id",
+              "externalId"
+            ],
+            "description": "The identity object associated with the key (null if no identity is associated)"
+          },
+          "meta": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Custom metadata associated with the key (null if no metadata is present)",
+            "example": {
+              "role": "admin",
+              "plan": "premium",
+              "teamId": "team_12345"
+            }
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The timestamp in milliseconds when the key was created",
+            "example": 1620000000000
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the key is enabled and can be used",
+            "example": true
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true,
+            "description": "The environment the key is associated with (e.g., production, staging, development)",
+            "example": "production"
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "enabled"
+        ]
+      },
+      "V2KeysWhoamiResponse": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KeyWhoamiData"
+          }
+        }
+      },
       "V2KeysVerifyKeyRequestBody": {
         "type": "object",
         "required": [
@@ -2644,9 +2751,147 @@
     }
   },
   "paths": {
+    "/v2/keys.whoami": {
+      "post": {
+        "tags": [
+          "keys"
+        ],
+        "summary": "Get information about an API key",
+        "description": "Retrieves detailed information about an API key without incrementing its usage counter",
+        "operationId": "whoami",
+        "x-speakeasy-name-override": "whoami",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysWhoamiRequestBody"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic key lookup",
+                  "value": {
+                    "key": "sk_1234567890abcdef"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Key information successfully retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysWhoamiResponse"
+                },
+                "examples": {
+                  "full": {
+                    "summary": "Complete key information",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1234567890abcdef"
+                      },
+                      "data": {
+                        "id": "key_1234567890abcdef",
+                        "name": "Production API Key",
+                        "remaining": 1000,
+                        "identity": {
+                          "id": "id_1234567890abcdef",
+                          "externalId": "user_12345"
+                        },
+                        "meta": {
+                          "role": "admin",
+                          "plan": "premium",
+                          "teamId": "team_12345"
+                        },
+                        "createdAt": 1620000000000,
+                        "enabled": true,
+                        "environment": "production"
+                      }
+                    }
+                  },
+                  "minimal": {
+                    "summary": "Key with minimal information",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1234567890abcdef"
+                      },
+                      "data": {
+                        "id": "key_1234567890abcdef",
+                        "createdAt": 1620000000000,
+                        "enabled": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/v2/keys.setPermissions": {
       "post": {
-        "tags": ["keys"],
+        "tags": [
+          "keys"
+        ],
         "summary": "Set (replace) all permissions on an API key",
         "description": "Sets the permissions for an existing API key by replacing all existing direct permissions with the provided ones. Unlike addPermissions or removePermissions which modify existing permissions, this endpoint completely replaces the permission set. Providing an empty permissions array will remove all direct permissions from the key. This makes it useful for synchronizing key permissions with an external system or for reset operations. Only affects direct permissions on the key, not permissions granted through roles. Changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.",
         "operationId": "setPermissions",
@@ -3003,7 +3248,9 @@
     },
     "/v2/keys.removePermissions": {
       "post": {
-        "tags": ["keys"],
+        "tags": [
+          "keys"
+        ],
         "summary": "Remove permissions from an API key",
         "description": "Removes one or more permissions from an existing API key. This endpoint allows you to revoke specific capabilities from a key while leaving the key otherwise intact. This only affects direct permissions on the key, not permissions granted through roles. When permissions are removed, it takes effect immediately for new verifications, though existing authorized sessions may continue until their cache expires. Removing permissions that aren't assigned to the key is a no-op and doesn't cause an error.",
         "operationId": "removePermissions",

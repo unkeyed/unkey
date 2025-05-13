@@ -224,6 +224,39 @@ type KeyResponse struct {
 	UpdatedAt *int64 `json:"updatedAt,omitempty"`
 }
 
+// KeyWhoamiData defines model for KeyWhoamiData.
+type KeyWhoamiData struct {
+	// CreatedAt The timestamp in milliseconds when the key was created
+	CreatedAt int64 `json:"createdAt"`
+
+	// Enabled Whether the key is enabled and can be used
+	Enabled bool `json:"enabled"`
+
+	// Environment The environment the key is associated with (e.g., production, staging, development)
+	Environment nullable.Nullable[string] `json:"environment,omitempty"`
+
+	// Id The unique identifier of the key
+	Id string `json:"id"`
+
+	// Identity The identity object associated with the key (null if no identity is associated)
+	Identity nullable.Nullable[struct {
+		// ExternalId The external identity ID associated with the key (e.g., user ID in your system)
+		ExternalId string `json:"externalId"`
+
+		// Id The unique identity ID associated with the key
+		Id string `json:"id"`
+	}] `json:"identity,omitempty"`
+
+	// Meta Custom metadata associated with the key (null if no metadata is present)
+	Meta nullable.Nullable[map[string]interface{}] `json:"meta,omitempty"`
+
+	// Name The human-readable name of the key (optional)
+	Name nullable.Nullable[string] `json:"name,omitempty"`
+
+	// Remaining The remaining number of requests for the key (null means unlimited)
+	Remaining nullable.Nullable[int64] `json:"remaining,omitempty"`
+}
+
 // KeysCreateKeyResponseData defines model for KeysCreateKeyResponseData.
 type KeysCreateKeyResponseData struct {
 	// Key The full generated API key that should be provided to your user. This is the only time you'll receive the complete key value - Unkey only stores a hashed version. Never store this value yourself; pass it securely to your end user.
@@ -999,6 +1032,18 @@ type V2KeysVerifyKeyResponseBody struct {
 	Meta Meta                      `json:"meta"`
 }
 
+// V2KeysWhoamiRequestBody defines model for V2KeysWhoamiRequestBody.
+type V2KeysWhoamiRequestBody struct {
+	// Key The API key to identify and retrieve information about
+	Key string `json:"key"`
+}
+
+// V2KeysWhoamiResponse defines model for V2KeysWhoamiResponse.
+type V2KeysWhoamiResponse struct {
+	Data KeyWhoamiData `json:"data"`
+	Meta Meta          `json:"meta"`
+}
+
 // V2LivenessResponseBody defines model for V2LivenessResponseBody.
 type V2LivenessResponseBody struct {
 	Data LivenessResponseData `json:"data"`
@@ -1232,6 +1277,9 @@ type UpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody
 
 // VerifyKeyJSONRequestBody defines body for VerifyKey for application/json ContentType.
 type VerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
+
+// WhoamiJSONRequestBody defines body for Whoami for application/json ContentType.
+type WhoamiJSONRequestBody = V2KeysWhoamiRequestBody
 
 // CreatePermissionJSONRequestBody defines body for CreatePermission for application/json ContentType.
 type CreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
