@@ -485,6 +485,88 @@
           }
         }
       },
+      "V2KeysAddPermissionsRequestBody": {
+        "type": "object",
+        "required": [
+          "keyId",
+          "permissions"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "description": "The ID of the key to which permissions will be added (begins with 'key_')",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q",
+            "minLength": 3
+          },
+          "permissions": {
+            "type": "array",
+            "minItems": 1,
+            "description": "List of permissions to add to the key. Each permission can be identified by ID or name (if both are provided in the same object, ID takes precedence). Duplicate permissions are automatically handled (adding the same permission twice has no effect). Permissions follow a hierarchical naming structure (e.g., 'documents.read', 'documents.write') and are checked during key verification to control access to protected resources. Note that in addition to direct permissions added here, keys may also have permissions granted through roles (use /v2/keys.addRoles for role management).",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The ID of an existing permission (begins with 'perm_'). Provide either ID or name. Use ID when you know the exact permission identifier and want to ensure you're referencing a specific permission.",
+                  "example": "perm_1n9McEIBSqy44Qy7hzWyM5",
+                  "minLength": 3
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The name of the permission. Provide either ID or name. Permission names typically follow a 'resource.action' format (e.g., 'documents.read', 'users.delete'). Use consistent naming patterns to create logical permission hierarchies.",
+                  "example": "documents.write",
+                  "minLength": 1
+                },
+                "create": {
+                  "type": "boolean",
+                  "description": "When true, if a permission with this name doesn't exist, it will be automatically created. Only works when specifying name, not ID. Requires the rbac.*.create_permission permission on your root key. SECURITY CONSIDERATION: Use this flag carefully as it creates permission entities in your workspace and could lead to permission proliferation if not properly managed.",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2KeysAddPermissionsResponseData": {
+        "type": "array",
+        "description": "Complete list of all permissions directly assigned to the key (including both newly added permissions and those that were already assigned). Note that this list does not include permissions granted through roles - see /v2/keys.getKey for complete permission information. Use this comprehensive list to track the key's current direct permission state. The list is always sorted alphabetically by permission name for consistency. An empty array indicates the key has no direct permissions assigned.",
+        "items": {
+          "type": "object",
+          "required": [
+            "id",
+            "name"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The unique identifier of the permission (begins with 'perm_'). This ID can be used in other API calls to reference this specific permission.",
+              "example": "perm_1n9McEIBSqy44Qy7hzWyM5"
+            },
+            "name": {
+              "type": "string",
+              "description": "The name of the permission, typically following a 'resource.action' pattern like 'documents.read'. This name is checked during verification to determine if a key has access to a specific action. For wildcard permissions, you can use patterns like 'documents.*' (grants all document permissions) during verification, but each specific permission must be added individually here.",
+              "example": "documents.write"
+            }
+          }
+        }
+      },
+      "V2KeysAddPermissionsResponse": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/V2KeysAddPermissionsResponseData"
+          }
+        }
+      },
       "V2KeysCreateKeyRequestBody": {
         "type": "object",
         "required": [
@@ -2422,6 +2504,385 @@
     }
   },
   "paths": {
+    "/v2/keys.addPermissions": {
+      "post": {
+        "tags": [
+          "keys"
+        ],
+        "summary": "Add permissions to an API key",
+        "description": "Assigns one or more permissions to an existing API key. Permissions define access control capabilities that are validated during key verification using the /v2/keys.verifyKey endpoint. Each permission typically follows a 'resource.action' naming pattern (e.g., 'documents.read', 'users.create'). A key can have both direct permissions (added via this endpoint) and indirect permissions (granted through roles). During verification, both types are checked. This endpoint is idempotent - adding the same permission multiple times has no additional effect. The operation atomically adds all valid permissions, and rollback occurs if any permission cannot be added. After permissions are added, any cached versions of the key are invalidated to ensure consistency.",
+        "operationId": "addPermissions",
+        "x-speakeasy-name-override": "addPermissions",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysAddPermissionsRequestBody"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Add permissions using IDs",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "id": "perm_1n9McEIBSqy44Qy7hzWyM5"
+                      },
+                      {
+                        "id": "perm_2zF4mNyP9BsRj2aQwDxVkT"
+                      }
+                    ]
+                  }
+                },
+                "withNames": {
+                  "summary": "Add permissions using names",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "name": "documents.write"
+                      },
+                      {
+                        "name": "documents.delete"
+                      }
+                    ]
+                  }
+                },
+                "withCreation": {
+                  "summary": "Add and create new permissions",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "name": "reports.export",
+                        "create": true
+                      },
+                      {
+                        "name": "reports.schedule",
+                        "create": true
+                      }
+                    ]
+                  }
+                },
+                "mixed": {
+                  "summary": "Mix ID and name references",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "id": "perm_1n9McEIBSqy44Qy7hzWyM5"
+                      },
+                      {
+                        "name": "documents.publish"
+                      },
+                      {
+                        "name": "analytics.view",
+                        "create": true
+                      }
+                    ]
+                  }
+                },
+                "hierarchical": {
+                  "summary": "Using hierarchical permission naming",
+                  "value": {
+                    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+                    "permissions": [
+                      {
+                        "name": "billing.invoices.create",
+                        "create": true
+                      },
+                      {
+                        "name": "billing.invoices.view",
+                        "create": true
+                      },
+                      {
+                        "name": "billing.payments.process",
+                        "create": true
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permissions successfully added to the key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2KeysAddPermissionsResponse"
+                },
+                "examples": {
+                  "standard": {
+                    "summary": "Complete list of permissions",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_2cGKbMxRyIzhCxo1Idjz8q"
+                      },
+                      "data": [
+                        {
+                          "id": "perm_1n9McEIBSqy44Qy7hzWyM5",
+                          "name": "documents.write"
+                        },
+                        {
+                          "id": "perm_2zF4mNyP9BsRj2aQwDxVkT",
+                          "name": "documents.delete"
+                        },
+                        {
+                          "id": "perm_3qRsTu2vWxYzAbCdEfGhIj",
+                          "name": "documents.read"
+                        },
+                        {
+                          "id": "perm_4bVcWdXeYfZgHiJkLmNoPq",
+                          "name": "reports.export"
+                        },
+                        {
+                          "id": "perm_5sTu2vWxYzAbCdEfGhIjKl",
+                          "name": "reports.schedule"
+                        }
+                      ]
+                    }
+                  },
+                  "hierarchical": {
+                    "summary": "Key with hierarchical permissions",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_7zF4mNyP9BsRj2aQwDxVkT"
+                      },
+                      "data": [
+                        {
+                          "id": "perm_1n9McEIBSqy44Qy7hzWyM5",
+                          "name": "billing.invoices.create"
+                        },
+                        {
+                          "id": "perm_2zF4mNyP9BsRj2aQwDxVkT",
+                          "name": "billing.invoices.view"
+                        },
+                        {
+                          "id": "perm_3qRsTu2vWxYzAbCdEfGhIj",
+                          "name": "billing.payments.process"
+                        },
+                        {
+                          "id": "perm_4bVcWdXeYfZgHiJkLmNoPq",
+                          "name": "billing.settings.read"
+                        },
+                        {
+                          "id": "perm_5sTu2vWxYzAbCdEfGhIjKl",
+                          "name": "billing.settings.write"
+                        }
+                      ]
+                    }
+                  },
+                  "empty": {
+                    "summary": "Key with no permissions",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_8sTu2vWxYzAbCdEfGhIjKl"
+                      },
+                      "data": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid keyId format, missing required fields, or malformed permission entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                },
+                "examples": {
+                  "invalidKeyId": {
+                    "summary": "Invalid keyId format",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_5zAbCdEfGhIjKlMnOpQrSt"
+                      },
+                      "error": {
+                        "title": "Bad Request",
+                        "detail": "keyId must start with 'key_'",
+                        "status": 400,
+                        "type": "bad_request"
+                      }
+                    }
+                  },
+                  "emptyPermissions": {
+                    "summary": "Empty permissions array",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_6aBcDeFgHiJkLmNoPqRsT"
+                      },
+                      "error": {
+                        "title": "Bad Request",
+                        "detail": "At least one permission must be specified",
+                        "status": 400,
+                        "type": "bad_request"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Missing or invalid authentication credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                },
+                "examples": {
+                  "invalidRootKey": {
+                    "summary": "Invalid root key provided",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_9tUv3wXyZaAbCdEfGhIjKl"
+                      },
+                      "error": {
+                        "title": "Unauthorized",
+                        "detail": "The root key provided is invalid or has been revoked.",
+                        "status": 401,
+                        "type": "unauthorized"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions (requires 'rbac.*.add_permission_to_key' and potentially 'rbac.*.create_permission')",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                },
+                "examples": {
+                  "missingPermission": {
+                    "summary": "Missing required permission",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_0uVwX4yZaAbCdEfGhIjKl"
+                      },
+                      "error": {
+                        "title": "Forbidden",
+                        "detail": "Your root key requires the 'rbac.*.add_permission_to_key' permission to perform this operation",
+                        "status": 403,
+                        "type": "forbidden"
+                      }
+                    }
+                  },
+                  "missingCreatePermission": {
+                    "summary": "Cannot create new permissions",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_1vWxYzAbCdEfGhIjKlMnOp"
+                      },
+                      "error": {
+                        "title": "Forbidden",
+                        "detail": "Your root key requires the 'rbac.*.create_permission' permission to create new permissions",
+                        "status": 403,
+                        "type": "forbidden"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Key not found or specified permission IDs don't exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                },
+                "examples": {
+                  "keyNotFound": {
+                    "summary": "Key not found",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_2wXyZaAbCdEfGhIjKlMnOp"
+                      },
+                      "error": {
+                        "title": "Not Found",
+                        "detail": "Key key_2cGKbMxRyIzhCxo1Idjz8q not found",
+                        "status": 404,
+                        "type": "not_found"
+                      }
+                    }
+                  },
+                  "permissionNotFound": {
+                    "summary": "Permission not found",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_3xYzAbCdEfGhIjKlMnOpQr"
+                      },
+                      "error": {
+                        "title": "Not Found",
+                        "detail": "Permission perm_1n9McEIBSqy44Qy7hzWyM5 not found",
+                        "status": 404,
+                        "type": "not_found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - An unexpected error occurred while processing the request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                },
+                "examples": {
+                  "databaseError": {
+                    "summary": "Database error",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_4yZaAbCdEfGhIjKlMnOpQrS"
+                      },
+                      "error": {
+                        "title": "Internal Server Error",
+                        "detail": "An unexpected error occurred while processing your request. Please try again later.",
+                        "status": 500,
+                        "type": "internal_server_error"
+                      }
+                    }
+                  },
+                  "cachingError": {
+                    "summary": "Cache invalidation error",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_5zAbCdEfGhIjKlMnOpQrSt"
+                      },
+                      "error": {
+                        "title": "Internal Server Error",
+                        "detail": "The permissions were successfully added but there was an error invalidating cached keys. Some systems may temporarily see stale data.",
+                        "status": 500,
+                        "type": "internal_server_error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/keys.updateKey": {
       "post": {
         "tags": [

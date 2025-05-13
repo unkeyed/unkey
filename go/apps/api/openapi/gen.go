@@ -674,6 +674,40 @@ type V2IdentitiesDeleteIdentityRequestBody1 = interface{}
 // V2IdentitiesDeleteIdentityResponseBody defines model for V2IdentitiesDeleteIdentityResponseBody.
 type V2IdentitiesDeleteIdentityResponseBody = map[string]interface{}
 
+// V2KeysAddPermissionsRequestBody defines model for V2KeysAddPermissionsRequestBody.
+type V2KeysAddPermissionsRequestBody struct {
+	// KeyId The ID of the key to which permissions will be added (begins with 'key_')
+	KeyId string `json:"keyId"`
+
+	// Permissions List of permissions to add to the key. Each permission can be identified by ID or name (if both are provided in the same object, ID takes precedence). Duplicate permissions are automatically handled (adding the same permission twice has no effect). Permissions follow a hierarchical naming structure (e.g., 'documents.read', 'documents.write') and are checked during key verification to control access to protected resources. Note that in addition to direct permissions added here, keys may also have permissions granted through roles (use /v2/keys.addRoles for role management).
+	Permissions []struct {
+		// Create When true, if a permission with this name doesn't exist, it will be automatically created. Only works when specifying name, not ID. Requires the rbac.*.create_permission permission on your root key. SECURITY CONSIDERATION: Use this flag carefully as it creates permission entities in your workspace and could lead to permission proliferation if not properly managed.
+		Create *bool `json:"create,omitempty"`
+
+		// Id The ID of an existing permission (begins with 'perm_'). Provide either ID or name. Use ID when you know the exact permission identifier and want to ensure you're referencing a specific permission.
+		Id *string `json:"id,omitempty"`
+
+		// Name The name of the permission. Provide either ID or name. Permission names typically follow a 'resource.action' format (e.g., 'documents.read', 'users.delete'). Use consistent naming patterns to create logical permission hierarchies.
+		Name *string `json:"name,omitempty"`
+	} `json:"permissions"`
+}
+
+// V2KeysAddPermissionsResponse defines model for V2KeysAddPermissionsResponse.
+type V2KeysAddPermissionsResponse struct {
+	// Data Complete list of all permissions directly assigned to the key (including both newly added permissions and those that were already assigned). Note that this list does not include permissions granted through roles - see /v2/keys.getKey for complete permission information. Use this comprehensive list to track the key's current direct permission state. The list is always sorted alphabetically by permission name for consistency. An empty array indicates the key has no direct permissions assigned.
+	Data V2KeysAddPermissionsResponseData `json:"data"`
+	Meta Meta                             `json:"meta"`
+}
+
+// V2KeysAddPermissionsResponseData Complete list of all permissions directly assigned to the key (including both newly added permissions and those that were already assigned). Note that this list does not include permissions granted through roles - see /v2/keys.getKey for complete permission information. Use this comprehensive list to track the key's current direct permission state. The list is always sorted alphabetically by permission name for consistency. An empty array indicates the key has no direct permissions assigned.
+type V2KeysAddPermissionsResponseData = []struct {
+	// Id The unique identifier of the permission (begins with 'perm_'). This ID can be used in other API calls to reference this specific permission.
+	Id string `json:"id"`
+
+	// Name The name of the permission, typically following a 'resource.action' pattern like 'documents.read'. This name is checked during verification to determine if a key has access to a specific action. For wildcard permissions, you can use patterns like 'documents.*' (grants all document permissions) during verification, but each specific permission must be added individually here.
+	Name string `json:"name"`
+}
+
 // V2KeysCreateKeyRequestBody defines model for V2KeysCreateKeyRequestBody.
 type V2KeysCreateKeyRequestBody struct {
 	// ApiId The ID of the API where this key should be created. Each key is associated with exactly one API, which helps segregate keys between different environments (dev/prod) and services.
@@ -1115,6 +1149,9 @@ type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequest
 
 // V2IdentitiesDeleteIdentityJSONRequestBody defines body for V2IdentitiesDeleteIdentity for application/json ContentType.
 type V2IdentitiesDeleteIdentityJSONRequestBody = V2IdentitiesDeleteIdentityRequestBody
+
+// AddPermissionsJSONRequestBody defines body for AddPermissions for application/json ContentType.
+type AddPermissionsJSONRequestBody = V2KeysAddPermissionsRequestBody
 
 // CreateKeyJSONRequestBody defines body for CreateKey for application/json ContentType.
 type CreateKeyJSONRequestBody = V2KeysCreateKeyRequestBody
