@@ -17,8 +17,8 @@ const (
 
 // Defines values for KeyCreditsRefillInterval.
 const (
-	Daily   KeyCreditsRefillInterval = "daily"
-	Monthly KeyCreditsRefillInterval = "monthly"
+	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
+	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
 )
 
 // Defines values for KeysVerifyKeyResponseDataCode.
@@ -32,6 +32,12 @@ const (
 	UNAUTHORIZED            KeysVerifyKeyResponseDataCode = "UNAUTHORIZED"
 	USAGEEXCEEDED           KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
 	VALID                   KeysVerifyKeyResponseDataCode = "VALID"
+)
+
+// Defines values for V2KeysCreateKeyRequestBodyCreditsRefillInterval.
+const (
+	V2KeysCreateKeyRequestBodyCreditsRefillIntervalDaily   V2KeysCreateKeyRequestBodyCreditsRefillInterval = "daily"
+	V2KeysCreateKeyRequestBodyCreditsRefillIntervalMonthly V2KeysCreateKeyRequestBodyCreditsRefillInterval = "monthly"
 )
 
 // Defines values for V2KeysVerifyKeyRequestBodyPermissions1Type.
@@ -203,6 +209,15 @@ type KeyResponse struct {
 
 	// UpdatedAt When the key was last updated (Unix timestamp)
 	UpdatedAt *int64 `json:"updatedAt,omitempty"`
+}
+
+// KeysCreateKeyResponseData defines model for KeysCreateKeyResponseData.
+type KeysCreateKeyResponseData struct {
+	// Key The full generated API key that should be provided to your user. This is the only time you'll receive the complete key value - Unkey only stores a hashed version. Never store this value yourself; pass it securely to your end user.
+	Key string `json:"key"`
+
+	// KeyId The unique identifier for this key in Unkey's system. This is not secret and can be stored as a reference for later operations like updating or deleting the key.
+	KeyId string `json:"keyId"`
 }
 
 // KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
@@ -544,6 +559,81 @@ type V2IdentitiesDeleteIdentityRequestBody1 = interface{}
 // V2IdentitiesDeleteIdentityResponseBody defines model for V2IdentitiesDeleteIdentityResponseBody.
 type V2IdentitiesDeleteIdentityResponseBody = map[string]interface{}
 
+// V2KeysCreateKeyRequestBody defines model for V2KeysCreateKeyRequestBody.
+type V2KeysCreateKeyRequestBody struct {
+	// ApiId The ID of the API where this key should be created. Each key is associated with exactly one API, which helps segregate keys between different environments (dev/prod) and services.
+	ApiId string `json:"apiId"`
+
+	// ByteLength Controls the cryptographic strength and length of the generated key. Higher values provide more security but result in longer keys. The default (16 bytes) provides 2^128 possible combinations, sufficient for most uses.
+	ByteLength *int `json:"byteLength,omitempty"`
+
+	// Credits Usage limits configuration for this key. Credits provide a way to limit the number of times a key can be used. Unlike ratelimits, these are guaranteed to be globally consistent (using database transactions) but add latency to verifications.
+	Credits *struct {
+		// Refill Configuration for automatic credit refills.
+		Refill *struct {
+			// Amount Number of credits to add during each refill.
+			Amount int `json:"amount"`
+
+			// Interval How often the credits should be refilled.
+			Interval V2KeysCreateKeyRequestBodyCreditsRefillInterval `json:"interval"`
+
+			// RefillDay For monthly refills, the day of month when refills occur.
+			RefillDay *int `json:"refillDay,omitempty"`
+		} `json:"refill,omitempty"`
+
+		// Remaining Number of times this key can be used before becoming invalid. Set to null for unlimited uses.
+		Remaining int32 `json:"remaining"`
+	} `json:"credits,omitempty"`
+
+	// Enabled Controls whether the key is active upon creation. Disabled keys will fail verification with code DISABLED. This is useful for preparing keys that will be activated later or temporarily disabling access without deleting the key.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Expires Unix timestamp (in milliseconds) when this key will automatically expire. Use temporary keys for time-limited access, one-time operations, or emergency access. After expiration, the key will fail verification with code EXPIRED.
+	Expires *int64 `json:"expires,omitempty"`
+
+	// ExternalId Your user's unique identifier, creating a link between Unkey and your system. This ID is returned during verification so you can identify which customer/entity is making the request. Use consistent IDs from your user management system.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// Meta Arbitrary JSON metadata to associate with this key. This is useful for storing additional context like subscription plans, feature flags, or any custom data you'd like to access during verification without additional database lookups.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Name A human-readable name for the key for your internal reference. This is shown in dashboards and logs but never exposed to end users.
+	Name *string `json:"name,omitempty"`
+
+	// Permissions Individual permissions to assign directly to this key. These are checked during verification alongside any permissions granted via roles. Use structured naming like 'resource.action' for clarity.
+	Permissions *[]string `json:"permissions,omitempty"`
+
+	// Prefix Optional prefix for the key that helps identify its purpose. The underscore is automatically added (e.g., 'prod' becomes 'prod_xxxxxxxxx'). Use prefixes like 'prod', 'dev', or service names to help users understand the key's purpose at a glance.
+	Prefix *string `json:"prefix,omitempty"`
+
+	// Ratelimits Array of ratelimits to apply to this key. Ratelimits provide protection against abuse by limiting how frequently a key can be used. Multiple named ratelimits can be used for different resources or operations (e.g., 'requests' for overall usage, 'computations' for expensive operations).
+	Ratelimits *[]struct {
+		// Duration Duration of the ratelimit window in milliseconds.
+		Duration int32 `json:"duration"`
+
+		// Limit Maximum number of operations allowed within the time window.
+		Limit int32 `json:"limit"`
+
+		// Name Identifier for this ratelimit. Use descriptive names like 'requests' or 'computations'.
+		Name string `json:"name"`
+	} `json:"ratelimits,omitempty"`
+
+	// Recoverable If true, the plaintext key is stored in an encrypted vault, allowing it to be retrieved later. Use with caution as this reduces security by keeping a recoverable copy of the key. Best used for development keys or when absolutely necessary.
+	Recoverable *bool `json:"recoverable,omitempty"`
+
+	// Roles Roles to assign to this key for permission management. Each role represents a collection of permissions and must already exist in your workspace. During verification, all permissions from these roles will be checked against requested permissions.
+	Roles *[]string `json:"roles,omitempty"`
+}
+
+// V2KeysCreateKeyRequestBodyCreditsRefillInterval How often the credits should be refilled.
+type V2KeysCreateKeyRequestBodyCreditsRefillInterval string
+
+// V2KeysCreateKeyResponseBody defines model for V2KeysCreateKeyResponseBody.
+type V2KeysCreateKeyResponseBody struct {
+	Data KeysCreateKeyResponseData `json:"data"`
+	Meta Meta                      `json:"meta"`
+}
+
 // V2KeysVerifyKeyRequestBody defines model for V2KeysVerifyKeyRequestBody.
 type V2KeysVerifyKeyRequestBody struct {
 	// ApiId The ID of the API where the key belongs to. Required to ensure keys from development environments aren't leaking into production and vice versa.
@@ -815,6 +905,9 @@ type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequest
 
 // V2IdentitiesDeleteIdentityJSONRequestBody defines body for V2IdentitiesDeleteIdentity for application/json ContentType.
 type V2IdentitiesDeleteIdentityJSONRequestBody = V2IdentitiesDeleteIdentityRequestBody
+
+// CreateKeyJSONRequestBody defines body for CreateKey for application/json ContentType.
+type CreateKeyJSONRequestBody = V2KeysCreateKeyRequestBody
 
 // VerifyKeyJSONRequestBody defines body for VerifyKey for application/json ContentType.
 type VerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
