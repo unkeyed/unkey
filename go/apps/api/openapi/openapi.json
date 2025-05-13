@@ -1,7 +1,8 @@
 {
   "info": {
     "title": "Unkey API",
-    "version": "2.0.0"
+    "version": "2.0.0",
+    "description": "Unkey API provides comprehensive API key management services including creation, verification, and management of API keys with fine-grained permissions, rate limiting, and analytics.\n\nThis API uses HTTP Bearer authentication with root keys. Most endpoints require specific permissions associated with your root key. When making requests, include your root key in the Authorization header:\n```\nAuthorization: Bearer your_root_key_here\n```\n\nAll responses follow a consistent structure with a 'meta' object containing request metadata and a 'data' object containing the actual response data. Error responses include detailed information about what went wrong and how to fix it."
   },
   "openapi": "3.0.1",
   "servers": [
@@ -22,12 +23,18 @@
     ],
     "retryConnectionErrors": true
   },
+  "security": [
+    {
+      "rootKey": []
+    }
+  ],
   "components": {
     "securitySchemes": {
       "rootKey": {
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "root key",
+        "description": "Unkey uses API keys (root keys) for authentication. These keys authorize access to management operations in the API.\n\nTo authenticate, include your root key in the Authorization header of each request:\n```\nAuthorization: Bearer your_root_key_here\n```\n\nRoot keys have specific permissions attached to them, controlling what operations they can perform. Key permissions follow a hierarchical structure with patterns like 'resource.resource_id.action' (e.g., 'apis.*.create_key', 'apis.*.read_api').\n\nSecurity best practices:\n- Keep root keys secure and never expose them in client-side code\n- Use different root keys for different environments\n- Rotate keys periodically, especially after team member departures\n- Create keys with minimal necessary permissions following least privilege principle\n- Monitor key usage with audit logs.",
         "x-speakeasy-example": "UNKEY_ROOT_KEY"
       }
     },
@@ -1276,12 +1283,13 @@
         ],
         "properties": {
           "requestId": {
-            "description": "A unique id for this request. Please always provide this to support.",
+            "description": "A unique id for this request. Always include this ID when contacting support about a specific API request. This identifier allows Unkey's support team to trace the exact request through logs and diagnostic systems to provide faster assistance.",
             "example": "req_123",
             "type": "string"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team."
       },
       "Pagination": {
         "type": "object",
@@ -1302,29 +1310,30 @@
       "BaseError": {
         "properties": {
           "detail": {
-            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "description": "A human-readable explanation specific to this occurrence of the problem. This provides detailed information about what went wrong and potential remediation steps. The message is intended to be helpful for developers troubleshooting the issue.",
             "example": "Property foo is required but is missing.",
             "type": "string"
           },
           "instance": {
-            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "description": "A URI reference that identifies the specific occurrence of the problem. This can be used to look up additional information about this specific error instance in logs or error tracking systems, and is particularly useful when reporting issues to support.",
             "example": "https://example.com/error-log/abc123",
             "format": "uri",
             "type": "string"
           },
           "status": {
-            "description": "HTTP status code",
+            "description": "HTTP status code that corresponds to this error. This will match the status code in the HTTP response. Common codes include 400 (Bad Request), 401 (Unauthorized), 403 (Forbidden), 404 (Not Found), 409 (Conflict), and 500 (Internal Server Error).",
             "example": 404,
             "format": "int",
             "type": "integer"
           },
           "title": {
-            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
-            "type": "string"
+            "description": "A short, human-readable summary of the problem type. This is a concise, fixed string that categorizes the error and remains consistent between occurrences of the same error type. It provides a quick way to identify the category of error.",
+            "type": "string",
+            "example": "Not Found"
           },
           "type": {
-            "description": "A URI reference to human-readable documentation for the error.",
-            "example": "https://example.com/errors/example",
+            "description": "A URI reference to human-readable documentation for the error. This link points to detailed documentation about this specific error type, including possible causes and solutions. It's designed to help developers understand and resolve the issue.",
+            "example": "https://unkey.dev/errors/not-found",
             "format": "uri",
             "type": "string"
           }
@@ -1335,29 +1344,34 @@
           "status",
           "title",
           "type"
-        ]
+        ],
+        "description": "Standard error structure that provides detailed information about errors encountered during API operations. This follows a problem details format that includes both machine-readable error codes and human-readable explanations. All error responses in the API include this structure to provide consistent, actionable error information."
       },
       "ValidationError": {
         "additionalProperties": false,
         "properties": {
           "location": {
-            "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
-            "type": "string"
+            "description": "JSON path indicating exactly where in the request the error occurred. This helps pinpoint the problematic field or parameter. Examples include:\n- 'body.name' (field in request body)\n- 'body.items[3].tags' (nested array element)\n- 'path.apiId' (path parameter)\n- 'query.limit' (query parameter)\n\nUse this location to identify exactly which part of your request needs correction.",
+            "type": "string",
+            "example": "body.permissions[0].name"
           },
           "message": {
-            "description": "Error message text",
-            "type": "string"
+            "description": "Detailed error message explaining what validation rule was violated. This provides specific information about why the field or parameter was rejected, such as format errors, invalid values, or constraint violations.",
+            "type": "string",
+            "example": "Must be at least 3 characters long"
           },
           "fix": {
-            "description": "A human-readable message describing how to fix the error.",
-            "type": "string"
+            "description": "A human-readable suggestion describing how to fix the error. This provides practical guidance on what changes would satisfy the validation requirements. Not all validation errors include fix suggestions, but when present, they offer specific remediation advice.",
+            "type": "string",
+            "example": "Ensure the name uses only alphanumeric characters, underscores, and hyphens"
           }
         },
         "type": "object",
         "required": [
           "message",
           "location"
-        ]
+        ],
+        "description": "Detailed information about a specific validation error in a request. Each validation error pinpoints exactly what part of the request failed validation, why it failed, and how to fix it. Multiple validation errors may be returned in a single response when there are issues with multiple fields or parameters."
       },
       "BadRequestErrorDetails": {
         "allOf": [
@@ -1368,7 +1382,7 @@
             "type": "object",
             "properties": {
               "errors": {
-                "description": "Optional list of individual error details",
+                "description": "List of individual validation errors that occurred in the request. Each error provides specific details about what failed validation, where the error occurred in the request, and suggestions for fixing it. This granular information helps developers quickly identify and resolve multiple issues in a single request without having to make repeated API calls.",
                 "items": {
                   "$ref": "#/components/schemas/ValidationError"
                 },
@@ -1379,7 +1393,8 @@
               "errors"
             ]
           }
-        ]
+        ],
+        "description": "Extended error details specifically for bad request (400) errors. This builds on the BaseError structure by adding an array of individual validation errors that provide specific information about each validation failure in the request. This is particularly useful for requests with multiple fields that might have different validation issues simultaneously."
       },
       "NotFoundErrorResponse": {
         "type": "object",
@@ -1394,7 +1409,8 @@
           "error": {
             "$ref": "#/components/schemas/BaseError"
           }
-        }
+        },
+        "description": "Error response when the requested resource cannot be found. This typically indicates that the resource either doesn't exist, has been deleted, or the caller doesn't have permission to see it. Common scenarios include looking up non-existent keys, APIs, permissions, or identities. When receiving this error, verify that the resource identifier is correct and that the resource hasn't been deleted."
       },
       "ConflictErrorResponse": {
         "type": "object",
@@ -1409,7 +1425,8 @@
           "error": {
             "$ref": "#/components/schemas/BaseError"
           }
-        }
+        },
+        "description": "Error response for conflicts with the current state of a resource. This typically occurs when trying to create a resource that already exists (like an identity with a duplicate externalId) or when performing an operation that conflicts with the resource's current state. When receiving this error, the request should be modified to resolve the conflict before retrying, or a different operation should be used instead."
       },
       "UnauthorizedErrorResponse": {
         "type": "object",
@@ -1424,7 +1441,8 @@
           "error": {
             "$ref": "#/components/schemas/BaseError"
           }
-        }
+        },
+        "description": "Error response when authentication has failed or credentials are missing. This occurs when:\n\n- The Authorization header is missing\n- The root key is invalid or has been revoked\n- The root key format is incorrect\n- The authentication token has expired\n\nTo fix this error:\n1. Ensure you're including the Authorization header with format: 'Bearer your_root_key'\n2. Verify your root key is valid and has not been revoked in the Unkey dashboard\n3. Check that you're using the correct root key for the environment\n4. If using a new key, ensure it was created successfully\n\nFor security reasons, the specific reason for authentication failure may be intentionally vague in the error message. Check your Unkey dashboard for more detailed information about your root keys."
       },
       "ForbiddenErrorResponse": {
         "type": "object",
@@ -1439,7 +1457,8 @@
           "error": {
             "$ref": "#/components/schemas/BaseError"
           }
-        }
+        },
+        "description": "Error response when the caller is authenticated but lacks permission to perform the requested operation. This occurs when:\n\n- The root key doesn't have the required permissions for the operation\n- The caller is trying to access resources from a different workspace\n- The caller is attempting to access another user's resources\n- The operation violates a policy restriction\n\nUnlike Unauthorized (401) which indicates authentication issues, Forbidden (403) indicates authorization problems for an authenticated caller.\n\nTo fix this error:\n1. Check the permissions assigned to your root key in the Unkey dashboard\n2. Verify you're operating within the correct workspace\n3. Ensure you have the necessary scope to access the requested resource\n4. Request additional permissions if needed from your workspace administrator\n\nPermission patterns in Unkey follow a hierarchical structure:\n- 'resource.*' grants all permissions for a resource\n- 'resource.read' grants read-only access\n- 'resource.write' grants write access\n\nCommon permission requirements for endpoints include:\n- keys.create - For creating new API keys\n- keys.read - For retrieving key information\n- keys.update - For modifying existing keys\n- keys.delete - For removing keys\n- apis.* - For managing API namespaces"
       },
       "PreconditionFailedErrorResponse": {
         "type": "object",
@@ -1454,7 +1473,8 @@
           "error": {
             "$ref": "#/components/schemas/BaseError"
           }
-        }
+        },
+        "description": "Error response for when the service is available but in a degraded state. This occurs when preconditions for normal operation aren't fully met. This could happen when dependent services are experiencing issues, when the system is in maintenance mode, or when certain features are temporarily disabled. Clients should proceed with caution and may want to retry non-critical operations later."
       },
       "BadRequestErrorResponse": {
         "type": "object",
@@ -1469,7 +1489,8 @@
           "error": {
             "$ref": "#/components/schemas/BadRequestErrorDetails"
           }
-        }
+        },
+        "description": "Error response for invalid requests that cannot be processed due to client-side errors. This typically occurs when request parameters are missing, malformed, or fail validation rules. The response includes detailed information about the specific errors in the request, including the location of each error and suggestions for fixing it. When receiving this error, check the 'errors' array in the response for specific validation issues that need to be addressed before retrying."
       },
       "InternalServerErrorResponse": {
         "type": "object",
@@ -1484,7 +1505,8 @@
           "error": {
             "$ref": "#/components/schemas/BaseError"
           }
-        }
+        },
+        "description": "Error response for unexpected server-side issues that prevented the request from being processed correctly. This is typically caused by problems with the service infrastructure, database connectivity issues, unexpected exceptions, or service failures. When receiving this error, clients should implement appropriate retry strategies with backoff and report the issue if it persists. The requestId in the meta object is essential for troubleshooting and should be included in any support inquiries."
       },
       "Identity": {
         "type": "object",
@@ -1626,14 +1648,15 @@
         "type": "object",
         "properties": {
           "message": {
-            "description": "Whether we're alive or not",
+            "description": "Status message indicating the health of the service. A value of 'OK' indicates that the service is functioning properly and ready to accept requests. Any other value indicates a potential issue with the service health.",
             "example": "OK",
             "type": "string"
           }
         },
         "required": [
           "message"
-        ]
+        ],
+        "description": "Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy."
       },
       "V2LivenessResponseBody": {
         "type": "object",
@@ -1651,33 +1674,33 @@
         }
       },
       "V2RatelimitSetOverrideRequestBody": {
-        "description": "Sets a new or overwrites an existing override.",
+        "description": "Sets a new or overwrites an existing rate limit override. Overrides allow you to apply special rate limit rules to specific identifiers, providing custom limits that differ from the default.\n\nOverrides are useful for:\n- Granting higher limits to premium users or trusted partners\n- Implementing stricter limits for suspicious or abusive users\n- Creating tiered access levels with different quotas\n- Implementing temporary rate limit adjustments\n- Prioritizing important clients with higher limits",
         "additionalProperties": false,
         "properties": {
           "namespaceId": {
-            "description": "The id of the namespace. Either namespaceId or namespaceName must be provided",
+            "description": "The unique ID of the rate limit namespace. Either namespaceId or namespaceName must be provided, but not both. Using namespaceId guarantees you're targeting the exact namespace intended, even if names change, making it ideal for automation and scripts.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
           "namespaceName": {
-            "description": "The name of the namespace. Either namespaceId or namespaceName must be provided",
+            "description": "The name of the rate limit namespace. Either namespaceId or namespaceName must be provided, but not both. Using namespaceName is more human-readable and convenient for manual operations and configurations.",
             "type": "string"
           },
           "duration": {
-            "description": "The duration in milliseconds for the rate limit window.",
+            "description": "The duration in milliseconds for the rate limit window. This defines how long the rate limit counter accumulates before resetting to zero.\n\nConsiderations:\n- This can differ from the default duration for the namespace\n- Longer durations create stricter limits that take longer to reset\n- Shorter durations allow more frequent bursts of activity\n- Common values: 60000 (1 minute), 3600000 (1 hour), 86400000 (1 day)",
             "format": "int64",
             "type": "integer",
             "minimum": 1000
           },
           "identifier": {
-            "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
+            "description": "Identifier of the entity receiving this custom rate limit. This can be:\n\n- A specific user ID for individual custom limits\n- An IP address for location-based rules\n- An email domain for organization-wide policies\n- Any other string that identifies the target entity\n\nWildcards (*) can be used to create pattern-matching rules that apply to multiple identifiers. For example:\n- 'premium_*' would match all identifiers starting with 'premium_'\n- '*_admin' would match all identifiers ending with '_admin'\n- '*suspicious*' would match any identifier containing 'suspicious'\n\nMore detailed information on wildcard pattern rules is available at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
           "limit": {
-            "description": "The maximum number of requests allowed.",
+            "description": "The maximum number of requests allowed for this override. This defines the custom quota for the specified identifier(s).\n\nSpecial values:\n- Higher than default: For premium or trusted entities\n- Lower than default: For suspicious or abusive entities\n- 0: To completely block access (useful for ban implementation)\n\nThis limit entirely replaces the default limit for matching identifiers.",
             "format": "int64",
             "type": "integer",
             "minimum": 0
@@ -1694,7 +1717,7 @@
         "type": "object",
         "properties": {
           "overrideId": {
-            "description": "The id of the override. This is used internally.",
+            "description": "The unique identifier for the newly created or updated rate limit override. This ID can be used to:\n\n- Reference this specific override in subsequent API calls\n- Delete or modify this override later\n- Track which override is being applied in rate limit responses\n- Associate override effects with specific rules in analytics\n\nStore this ID if you need to manage the override in the future.",
             "type": "string"
           }
         },
@@ -1718,23 +1741,23 @@
         }
       },
       "V2RatelimitGetOverrideRequestBody": {
-        "description": "Gets the configuration of an existing override.",
+        "description": "Gets the configuration of an existing rate limit override. Use this to retrieve details about custom rate limit rules that have been created for specific identifiers within a namespace.\n\nThis endpoint is useful for:\n- Verifying override configurations\n- Checking current limits for specific entities\n- Auditing rate limit policies\n- Debugging rate limiting behavior\n- Retrieving override settings for modification",
         "additionalProperties": false,
         "properties": {
           "namespaceId": {
-            "description": "The id of the namespace. Either namespaceId or namespaceName must be provided",
+            "description": "The unique ID of the rate limit namespace. Either namespaceId or namespaceName must be provided, but not both. Using namespaceId is more precise and less prone to naming conflicts, making it ideal for scripts and automated operations.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
           "namespaceName": {
-            "description": "The name of the namespace. Either namespaceId or namespaceName must be provided",
+            "description": "The name of the rate limit namespace. Either namespaceId or namespaceName must be provided, but not both. Using namespaceName is more human-readable and easier to work with for manual operations and configurations.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
           "identifier": {
-            "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
+            "description": "The exact identifier pattern for the override you want to retrieve. This must match exactly as it was specified when creating the override.\n\nImportant notes:\n- This is case-sensitive and must match exactly\n- Include any wildcards (*) that were part of the original pattern\n- For example, if the override was created for 'premium_*', you must use 'premium_*' here, not a specific ID like 'premium_user1'\n\nThis field is used to look up the specific override configuration for this pattern.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
@@ -1764,21 +1787,21 @@
         "additionalProperties": false,
         "properties": {
           "namespaceId": {
-            "description": "The id of the namespace to list overrides for.",
+            "description": "The unique ID of the rate limit namespace to list overrides for. Either namespaceId or namespaceName must be provided, but not both. Using namespaceId guarantees you're targeting the exact namespace intended, even if names change over time.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
           "namespaceName": {
-            "description": "The name of the namespace to list overrides for.",
+            "description": "The name of the rate limit namespace to list overrides for. Either namespaceId or namespaceName must be provided, but not both. Using namespaceName is more human-readable and convenient for manual operations and dashboards.",
             "type": "string"
           },
           "cursor": {
-            "description": "Pagination cursor from a previous response",
+            "description": "Pagination cursor from a previous response. Include this when fetching subsequent pages of results. Each response containing more results than the requested limit will include a cursor value in the pagination object that can be used here.",
             "type": "string"
           },
           "limit": {
-            "description": "Maximum number of results to return",
+            "description": "Maximum number of override entries to return in a single response. Use this to control response size and loading performance.\n\n- Lower values (10-20): Better for UI displays and faster response times\n- Higher values (50-100): Better for data exports or bulk operations\n- Default (10): Suitable for most dashboard views\n\nResults exceeding this limit will be paginated, with a cursor provided for fetching subsequent pages.",
             "type": "integer",
             "default": 10,
             "minimum": 1,
@@ -1815,32 +1838,32 @@
         "additionalProperties": false,
         "properties": {
           "namespace": {
-            "description": "The namespace name for the rate limit.",
+            "description": "The namespace name for the rate limit. Namespaces provide a way to organize and segment different rate limits in your application.\n\nBest practices for namespaces:\n- Use descriptive, hierarchical names (e.g., 'auth.login', 'api.requests', 'media.uploads')\n- Create separate namespaces for different resources or operations\n- Keep naming conventions consistent across your application\n- Consider service or feature-based namespaces for easier monitoring\n\nNamespaces are unique within your workspace, so choose names that clearly indicate their purpose.",
             "type": "string",
             "example": "sms.sign_up",
             "minLength": 1,
             "maxLength": 255
           },
           "cost": {
-            "description": "The cost of the request. Defaults to 1 if not provided.",
+            "description": "The cost of the request against the rate limit. This allows different operations to consume varying amounts of the rate limit quota.\n\nCommon use cases:\n- Set to 1 (default) for standard operations\n- Set higher values (e.g., 5, 10) for resource-intensive operations\n- Set to 0 for operations that should be tracked but not count against limits\n- Use weighted costs to implement fair queuing or priority systems\n\nWhen the total accrued cost exceeds the limit within the duration window, subsequent requests will be rejected.",
             "format": "int64",
             "type": "integer",
             "default": 1,
             "minimum": 0
           },
           "duration": {
-            "description": "The duration in milliseconds for the rate limit window.",
+            "description": "The duration in milliseconds for the rate limit window. After this period elapses, the rate limit counter resets.\n\nCommon values:\n- 1000 (1 second): For very strict, per-second limits\n- 60000 (1 minute): For standard API rate limiting\n- 3600000 (1 hour): For less frequent but resource-intensive operations\n- 86400000 (24 hours): For daily quotas\n\nThe duration affects how quickly users can retry after hitting limits. Shorter durations allow faster recovery but may be less effective against certain abuse patterns.",
             "format": "int64",
             "type": "integer",
             "minimum": 1000,
             "maximum": 86400000
           },
           "identifier": {
-            "description": "The identifier for the rate limit.",
+            "description": "The unique identifier for the entity being rate limited. This defines the scope of the rate limit and is typically:\n\n- A user ID for per-user limits\n- An IP address for anonymous rate limiting\n- An API key ID for per-key limits\n- A session ID for per-session limits\n- A tenant/organization ID for organizational limits\n\nThe same identifier can be used across different namespaces to apply multiple types of limits to the same entity.",
             "type": "string"
           },
           "limit": {
-            "description": "The maximum number of requests allowed.",
+            "description": "The maximum number of operations (adjusted by cost) allowed within the time window. When this limit is reached, subsequent requests will be rejected with a RATE_LIMITED response.\n\nConsiderations for setting limits:\n- Balance between user experience and resource protection\n- Different limits for different user tiers or subscription levels\n- Higher limits for authenticated vs. unauthenticated requests\n- System capacity and scaling limitations\n- Business requirements and fair usage policies",
             "format": "int64",
             "type": "integer",
             "minimum": 1
@@ -1858,26 +1881,26 @@
         "type": "object",
         "properties": {
           "limit": {
-            "description": "The maximum number of requests allowed.",
+            "description": "The maximum number of operations allowed within the time window. This reflects either the default limit specified in the request or an override limit if one exists for this identifier.\n\nThis value helps clients understand their total quota for the current window.",
             "format": "int64",
             "type": "integer"
           },
           "remaining": {
-            "description": "The number of requests remaining in the current window.",
+            "description": "The number of operations remaining in the current window before the rate limit is exceeded. Applications should use this value to:\n\n- Implement client-side throttling before hitting limits\n- Display usage information to end users\n- Trigger alerts when approaching limits\n- Adjust request patterns based on available capacity\n\nWhen this reaches zero, requests will be rejected until the window resets.",
             "format": "int64",
             "type": "integer"
           },
           "reset": {
-            "description": "The time in milliseconds when the rate limit will reset.",
+            "description": "The Unix timestamp in milliseconds when the rate limit window will reset and 'remaining' will return to 'limit'.\n\nThis timestamp enables clients to:\n- Calculate and display wait times to users\n- Implement intelligent retry mechanisms\n- Schedule requests to resume after the reset\n- Implement exponential backoff when needed\n\nThe reset time is based on a sliding window from the first request in the current window.",
             "format": "int64",
             "type": "integer"
           },
           "success": {
-            "description": "Whether the request passed the ratelimit. If false, the request must be blocked.",
+            "description": "Whether the request passed the rate limit check. If true, the request is allowed to proceed. If false, the request has exceeded the rate limit and should be blocked or rejected.\n\nYou MUST check this field to determine if the request should proceed, as the endpoint always returns HTTP 200 even when rate limited.",
             "type": "boolean"
           },
           "overrideId": {
-            "description": "The override that was used. May be empty",
+            "description": "If a rate limit override was applied for this identifier, this field contains the ID of the override that was used. Empty when no override is in effect.\n\nThis can be useful for:\n- Debugging which override rule was matched\n- Tracking the effects of specific overrides\n- Understanding why limits differ from default values\n- Audit logging of special rate limit rules",
             "type": "string"
           }
         },
@@ -1904,23 +1927,23 @@
         }
       },
       "V2RatelimitDeleteOverrideRequestBody": {
-        "description": "Deletes an existing override.",
+        "description": "Deletes an existing rate limit override. This permanently removes a custom rate limit rule, reverting affected identifiers back to the default rate limits for the namespace.\n\nUse this endpoint when you need to:\n- Remove special rate limit rules that are no longer needed\n- Reset entities back to standard rate limits\n- Clean up temporary overrides\n- Remove outdated tiering or custom limit rules\n- Fix misconfigured overrides\n\nOnce deleted, the override cannot be recovered, and the operation takes effect immediately.",
         "additionalProperties": false,
         "properties": {
           "namespaceId": {
-            "description": "The id of the namespace. Either namespaceId or namespaceName must be provided",
+            "description": "The unique ID of the rate limit namespace containing the override. Either namespaceId or namespaceName must be provided, but not both. Using namespaceId is more precise and less prone to naming conflicts, making it ideal for automation and scripts.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
           "namespaceName": {
-            "description": "The name of the namespace. Either namespaceId or namespaceName must be provided",
+            "description": "The name of the rate limit namespace containing the override. Either namespaceId or namespaceName must be provided, but not both. Using namespaceName is more human-readable and convenient for manual operations and configurations.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
           "identifier": {
-            "description": "Identifier of the override to delete",
+            "description": "The exact identifier pattern of the override to delete. This must match exactly as it was specified when creating the override.\n\nImportant notes:\n- This is case-sensitive and must match exactly\n- Include any wildcards (*) that were part of the original pattern\n- For example, if the override was created for 'premium_*', you must use 'premium_*' here, not a specific ID\n\nAfter deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
@@ -1933,7 +1956,8 @@
       },
       "RatelimitDeleteOverrideResponseData": {
         "type": "object",
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Empty response object. A successful response indicates the override was successfully deleted. The operation is immediate - as soon as this response is received, the override no longer exists and affected identifiers have reverted to using the default rate limit for the namespace. No other data is returned as part of the deletion operation."
       },
       "V2RatelimitDeleteOverrideResponseBody": {
         "type": "object",
@@ -2047,19 +2071,19 @@
           }
         },
         "oneOf": [
-                  {
-                    "required": [
-                      "externalId"
-                    ],
-                    "description": "Identify by external ID from your system"
-                  },
-                  {
-                    "required": [
-                      "identityId"
-                    ],
-                    "description": "Identify by Unkey's internal identity ID"
-                  }
-                ]
+          {
+            "required": [
+              "externalId"
+            ],
+            "description": "Identify by external ID from your system"
+          },
+          {
+            "required": [
+              "identityId"
+            ],
+            "description": "Identify by Unkey's internal identity ID"
+          }
+        ]
       },
       "V2IdentitiesDeleteIdentityResponseBody": {
         "type": "object",
@@ -2069,7 +2093,9 @@
             "$ref": "#/components/schemas/Meta"
           }
         },
-        "required": ["meta"]
+        "required": [
+          "meta"
+        ]
       },
       "Permission": {
         "type": "object",
@@ -2530,8 +2556,8 @@
           "name": {
             "type": "string",
             "minLength": 3,
-            "description": "The name for your API. This is not customer facing.",
-            "example": "my-api"
+            "description": "The name for your API. This is an internal identifier used for organization and not shown to end users. APIs are containers for groups of keys and provide isolation between different environments or services.\n\nBest practices for API names:\n- Use descriptive names that identify the purpose or environment\n- Include environment indicators (e.g., 'payment-service-production', 'auth-service-staging')\n- Use consistent naming conventions across your organization\n- Keep names relatively short but informative\n\nCommon patterns include:\n- Environment separation: 'production-api', 'staging-api', 'development-api'\n- Service-based: 'payment-service', 'user-management', 'data-analytics'\n- Product-based: 'premium-tier', 'free-tier', 'internal-tools'",
+            "example": "payment-service-production"
           }
         },
         "additionalProperties": false
@@ -2540,8 +2566,9 @@
         "type": "object",
         "properties": {
           "apiId": {
-            "description": "The id of the API",
-            "type": "string"
+            "description": "The unique identifier for the newly created API (begins with 'api_'). This ID is used in all subsequent operations related to this API, including key creation, key verification, and API management. Store this ID securely as it's required when creating keys within this API namespace.",
+            "type": "string",
+            "example": "api_2cGKbMxRjIzhCxo1IdjH3a"
           }
         },
         "required": [
@@ -2557,7 +2584,7 @@
           "apiId": {
             "type": "string",
             "minLength": 3,
-            "description": "The id of the API you want to delete. API ids always start with `api_`",
+            "description": "The id of the API you want to delete (begins with 'api_').\n\nWARNING: Deleting an API has significant consequences:\n- All keys associated with this API will be invalidated immediately\n- Verification attempts for these keys will fail with code=NOT_FOUND\n- This action cannot be undone\n\nBefore deletion, ensure that:\n- You have the correct API ID (check the environment/service)\n- You have migrated any needed keys to a new API\n- You have updated all client applications to use new keys\n- You have backed up any important metadata or analytics",
             "example": "api_VNcuGfVjUkrVcWJmda0A"
           }
         },
@@ -2572,7 +2599,7 @@
           "apiId": {
             "type": "string",
             "minLength": 1,
-            "description": "The id of the api to fetch",
+            "description": "The ID of the API to retrieve (begins with 'api_'). This identifier uniquely references a specific API in your workspace. Use this endpoint to verify an API exists, check its name, or retrieve its ID when you only have the name stored.",
             "example": "api_1234"
           }
         },
@@ -2582,12 +2609,14 @@
         "type": "object",
         "properties": {
           "id": {
-            "description": "The id of the API",
-            "type": "string"
+            "description": "The unique identifier of the API (begins with 'api_'). This ID is used in all operations related to this API, including key creation, key verification, and API management.",
+            "type": "string",
+            "example": "api_1234567890abcdef"
           },
           "name": {
-            "description": "The name of the API",
-            "type": "string"
+            "description": "The name of the API as specified during creation. This is an internal identifier used for organization and is not shown to end users. The name helps identify the purpose or environment of this API.",
+            "type": "string",
+            "example": "payment-service-production"
           }
         },
         "required": [
@@ -2645,33 +2674,36 @@
           "apiId": {
             "type": "string",
             "minLength": 1,
-            "description": "The id of the api to fetch",
+            "description": "The ID of the API whose keys you want to list (begins with 'api_'). This endpoint returns all keys associated with this specific API, subject to pagination and any additional filters provided.",
             "example": "api_1234"
           },
           "limit": {
             "type": "integer",
-            "description": "The maximum number of keys to return",
+            "description": "The maximum number of keys to return in a single request. Use this to control response size and loading performance. Higher values return more keys but may increase response time. Lower values may require more pagination requests but provide faster initial loading.",
             "default": 100,
             "minimum": 1,
             "maximum": 100
           },
           "cursor": {
             "type": "string",
-            "description": "Use this to fetch the next page of results. A new cursor will be returned in the response if there are more results."
+            "description": "Pagination cursor from a previous response. Use this to fetch subsequent pages of results when the response contains hasMore=true. Each response containing additional results will include a new cursor value in the pagination object.",
+            "example": "cursor_eyJsYXN0S2V5SWQiOiJrZXlfMjNld3MiLCJsYXN0Q3JlYXRlZEF0IjoxNjcyNTI0MjM0MDAwfQ=="
           },
           "externalId": {
             "type": "string",
             "minLength": 3,
-            "description": "If provided, this will only return keys where the `externalId` matches."
+            "description": "Optional filter to return only keys associated with a specific external ID. This is useful when you need to find all keys belonging to a particular user, organization, or entity in your system. The value must exactly match the externalId set during key creation.",
+            "example": "user_5bf93ab218e"
           },
           "decrypt": {
             "type": "boolean",
-            "description": "Decrypt and display the raw key. Only possible if the key was encrypted when generated."
+            "description": "When true, attempts to include the plaintext key value in the response. SECURITY WARNING:\n- This requires special permissions on the calling root key\n- Only works for keys created with 'recoverable: true'\n- Exposes sensitive key material in the response\n- Should only be used in secure administrative contexts\n- Never enable this in user-facing applications",
+            "default": false
           },
           "revalidateKeysCache": {
             "type": "boolean",
             "default": false,
-            "description": "EXPERIMENTAL: Skip the cache and fetch the keys from the database directly. When you're creating a key and immediately listing all keys to display them to your user, you might want to skip the cache to ensure the key is displayed immediately."
+            "description": "EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:\n- You've just created a key and need to display it immediately\n- You need absolute certainty about the current key state\n- You're debugging cache consistency issues\n\nThis parameter comes with a performance cost and should be used sparingly."
           }
         },
         "additionalProperties": false
@@ -2705,31 +2737,31 @@
         "additionalProperties": false,
         "properties": {
           "namespaceId": {
-            "description": "The id of the namespace.",
+            "description": "The unique identifier of the rate limit namespace this override belongs to. This links the override to a specific namespace context, ensuring the override only applies within that namespace.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
           "overrideId": {
-            "description": "The id of the override.",
+            "description": "The unique identifier of this specific rate limit override. This ID is generated when the override is created and can be used for management operations like updating or deleting the override.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
           "duration": {
-            "description": "The duration in milliseconds for the rate limit window.",
+            "description": "The duration in milliseconds for this override's rate limit window. This may differ from the default duration for the namespace, allowing custom time windows for specific entities. After this duration elapses, the rate limit counter for affected identifiers resets to zero.",
             "format": "int64",
             "type": "integer",
             "minimum": 1000
           },
           "identifier": {
-            "description": "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
+            "description": "The identifier pattern this override applies to. This determines which entities receive the custom rate limit.\n\nThis can be:\n- An exact identifier for a specific entity\n- A pattern with wildcards for matching multiple entities\n\nWildcard examples:\n- 'admin_*' matches any identifier starting with 'admin_'\n- '*_test' matches any identifier ending with '_test'\n- '*premium*' matches any identifier containing 'premium'\n\nMore complex patterns can combine multiple wildcards. Detailed documentation on pattern matching rules is available at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
           },
           "limit": {
-            "description": "The maximum number of requests allowed.",
+            "description": "The maximum number of requests allowed for entities matching this override. This replaces the default limit for the namespace when applied.\n\nCommon use cases:\n- Higher limits for premium customers\n- Reduced limits for abusive or suspicious entities\n- Zero limit to completely block specific patterns\n- Custom tier-based limits for different customer segments",
             "format": "int64",
             "type": "integer",
             "minimum": 0
@@ -5200,6 +5232,8 @@
         "tags": [
           "keys"
         ],
+        "summary": "Delete an API key",
+        "description": "Permanently deletes an API key, preventing it from being used for future verification attempts. This endpoint is used when a key is no longer needed, has been compromised, or needs to be revoked.\n\nWhen a key is deleted:\n- Verification attempts will fail with code=NOT_FOUND\n- The key no longer appears in API key listings\n- Historical verification data is preserved for analytics\n\nThis endpoint supports two deletion modes:\n- Soft deletion (default): Marks the key as deleted but preserves its data\n- Permanent deletion: Completely removes all traces of the key from the database\n\nPermanent deletion is useful for regulatory compliance (e.g., GDPR), resolving hash collisions during migrations, or when you need to reuse the same key string in the future.",
         "operationId": "deleteKey",
         "x-speakeasy-name-override": "deleteKey",
         "security": [
@@ -5286,6 +5320,8 @@
         "tags": [
           "keys"
         ],
+        "summary": "Retrieve detailed information about an API key",
+        "description": "Retrieves comprehensive information about a specific API key by its ID. This endpoint provides access to all key properties, metadata, permissions, and usage limits.\n\nThis is particularly useful for:\n- Displaying key details in administrative interfaces\n- Checking key configuration before making updates\n- Retrieving metadata associated with a key\n- Verifying permissions and role assignments\n- Checking expiration dates and usage limits\n\nWith appropriate permissions and if the key was created with the recoverable option, this endpoint can also return the complete plaintext key value, though this should be used with caution for security reasons.",
         "operationId": "getKey",
         "x-speakeasy-name-override": "getKey",
         "security": [
@@ -5545,6 +5581,8 @@
         "tags": [
           "ratelimit"
         ],
+        "summary": "Apply rate limiting to any identifier",
+        "description": "Checks and enforces rate limits for any identifier in your application. This is the core rate limiting endpoint that provides flexible, namespace-based rate limiting for any entity in your system.\n\nUnlike API key-based rate limiting, this endpoint can be used to limit any identifiable entity:\n- Anonymous users by IP address\n- Authenticated users by user ID\n- Organizations by organization ID\n- API clients by client ID\n- Specific actions or resources by custom identifiers\n\nThe endpoint is designed for high-performance rate limiting with predictable behavior. It returns information about limit status, remaining capacity, and reset times that can be communicated to consumers of your API or service.\n\nFeatures:\n- Namespace-based organization for different limit types\n- Custom costs for variable-weight operations\n- Flexible time windows (1 second to 24 hours)\n- Override support for custom limits for specific identifiers\n- Consistent sliding window implementation\n\nImplementation tips:\n- Always check the 'success' field to determine if the request should proceed\n- Use the 'reset' time to implement intelligent client-side retry logic\n- Leverage the 'remaining' count to display usage information to users\n- Store the namespaceId after first use to avoid name lookups in high-volume scenarios\n- Consider using smaller durations for security-critical operations",
         "operationId": "ratelimit.limit",
         "x-speakeasy-name-override": "limit",
         "security": [
@@ -5557,6 +5595,36 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/V2RatelimitLimitRequestBody"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic rate limit check",
+                  "value": {
+                    "namespace": "api.requests",
+                    "identifier": "user_abc123",
+                    "limit": 100,
+                    "duration": 60000
+                  }
+                },
+                "ipLimit": {
+                  "summary": "IP-based rate limiting",
+                  "value": {
+                    "namespace": "auth.login",
+                    "identifier": "203.0.113.42",
+                    "limit": 5,
+                    "duration": 60000
+                  }
+                },
+                "weightedCost": {
+                  "summary": "Operation with variable cost",
+                  "value": {
+                    "namespace": "api.heavy_operations",
+                    "identifier": "user_def456",
+                    "limit": 50,
+                    "duration": 3600000,
+                    "cost": 5
+                  }
+                }
               }
             }
           },
@@ -5568,10 +5636,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/V2RatelimitLimitResponseBody"
+                },
+                "examples": {
+                  "allowed": {
+                    "summary": "Request allowed",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+                      },
+                      "data": {
+                        "limit": 100,
+                        "remaining": 99,
+                        "reset": 1714582980000,
+                        "success": true
+                      }
+                    }
+                  },
+                  "limitReached": {
+                    "summary": "Rate limit exceeded",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQY"
+                      },
+                      "data": {
+                        "limit": 100,
+                        "remaining": 0,
+                        "reset": 1714582980000,
+                        "success": false
+                      }
+                    }
+                  },
+                  "withOverride": {
+                    "summary": "With custom override applied",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQZ"
+                      },
+                      "data": {
+                        "limit": 1000,
+                        "remaining": 995,
+                        "reset": 1714582980000,
+                        "success": true,
+                        "overrideId": "ovr_2cGKbMxRyIzhCxo1Idjz8q"
+                      }
+                    }
+                  }
                 }
               }
             },
-            "description": "Identity successfully created. The response includes the generated identity ID that uniquely identifies this identity within Unkey's system. This operation creates the identity record, but doesn't automatically associate it with any keys - use the createKey endpoint with this externalId to create keys linked to this identity."
+            "description": "Rate limit check completed. Even when the rate limit is exceeded, this endpoint returns HTTP 200 OK - you must check the 'success' field in the response to determine if the request is allowed. When success=false, the client should be prevented from proceeding with their request."
           },
           "400": {
             "description": "Bad request",
@@ -5631,6 +5744,8 @@
         "tags": [
           "permissions"
         ],
+        "summary": "List all roles in a workspace",
+        "description": "Retrieves a paginated list of all roles defined in the workspace, including their assigned permissions. This endpoint is essential for role-based access control (RBAC) administration.\n\nRoles are collections of permissions that can be assigned to API keys, providing a convenient way to manage access control at scale. This endpoint allows you to:\n- View all available roles for assignment\n- Inspect which permissions are granted by each role\n- Build role management interfaces\n- Audit your RBAC configuration\n\nResults are paginated and sorted alphabetically by role name. Each role includes its complete set of assigned permissions.",
         "operationId": "listRoles",
         "x-speakeasy-name-override": "ListRoles",
         "security": [
@@ -5717,6 +5832,8 @@
         "tags": [
           "ratelimit"
         ],
+        "summary": "Create or update a custom rate limit for specific identifiers",
+        "description": "Creates a new or updates an existing rate limit override for specific identifiers within a namespace.\n\nOverrides allow you to implement special rate limiting rules that differ from the default limits. This is essential for:\n\n- Creating tiered rate limits for different customer segments\n- Implementing premium tiers with higher limits\n- Applying stricter limits to suspicious or abusive users\n- Setting emergency limits during system stress\n- Creating customized rate limiting policies\n\nWhen an override exists, it completely replaces the default rate limit for matching identifiers. The override takes effect immediately and will be applied to the very next rate limit check that matches the identifier pattern.\n\nWildcard patterns can be used to create powerful matching rules that apply to groups of identifiers without having to create individual overrides for each one.",
         "operationId": "ratelimit.setOverride",
         "x-speakeasy-name-override": "setOverride",
         "security": [
@@ -5729,6 +5846,35 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/V2RatelimitSetOverrideRequestBody"
+              },
+              "examples": {
+                "premium": {
+                  "summary": "Higher limit for premium user",
+                  "value": {
+                    "namespaceName": "api.requests",
+                    "identifier": "premium_user_123",
+                    "limit": 1000,
+                    "duration": 60000
+                  }
+                },
+                "wildcardPattern": {
+                  "summary": "Pattern matching with wildcard",
+                  "value": {
+                    "namespaceId": "ns_1234567890abcdef",
+                    "identifier": "premium_*",
+                    "limit": 500,
+                    "duration": 60000
+                  }
+                },
+                "blockAbusive": {
+                  "summary": "Block abusive user",
+                  "value": {
+                    "namespaceName": "api.requests",
+                    "identifier": "abusive_user_456",
+                    "limit": 0,
+                    "duration": 3600000
+                  }
+                }
               }
             }
           },
@@ -5803,6 +5949,8 @@
         "tags": [
           "ratelimit"
         ],
+        "summary": "Retrieve a specific rate limit override",
+        "description": "Retrieves the details of a specific rate limit override by its identifier pattern.\n\nThis endpoint allows you to inspect the current configuration of an override, including:\n- The exact identifier pattern it matches\n- The custom limit value applied\n- The duration of the rate limit window\n- The namespace it belongs to\n\nThis is particularly useful for:\n- Auditing your rate limiting policies\n- Verifying override configurations\n- Retrieving settings before making modifications\n- Debugging rate limiting behavior\n\nThe identifier must match exactly as it was specified when creating the override, including any wildcard patterns.",
         "operationId": "ratelimit.getOverride",
         "x-speakeasy-name-override": "getOverride",
         "security": [
@@ -5815,6 +5963,22 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/V2RatelimitGetOverrideRequestBody"
+              },
+              "examples": {
+                "byNameAndId": {
+                  "summary": "Get specific override",
+                  "value": {
+                    "namespaceName": "api.requests",
+                    "identifier": "premium_user_123"
+                  }
+                },
+                "wildcardPattern": {
+                  "summary": "Get wildcard pattern override",
+                  "value": {
+                    "namespaceId": "ns_1234567890abcdef",
+                    "identifier": "premium_*"
+                  }
+                }
               }
             }
           },
@@ -5889,6 +6053,8 @@
         "tags": [
           "ratelimit"
         ],
+        "summary": "List all rate limit overrides for a namespace",
+        "description": "Retrieves a paginated list of all rate limit overrides defined for a specific namespace.\n\nThis endpoint is essential for:\n- Auditing your rate limiting policies\n- Reviewing all custom rate limit rules\n- Building administrative dashboards\n- Finding patterns in your override configurations\n- Managing and cleaning up overrides\n\nThe response includes detailed information about each override, including the identifier patterns, limits, and durations. For namespaces with many overrides, results are paginated and can be retrieved in chunks using the cursor parameter.",
         "operationId": "ratelimit.listOverrides",
         "x-speakeasy-name-override": "listOverrides",
         "security": [
@@ -5901,6 +6067,29 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/V2RatelimitListOverridesRequestBody"
+              },
+              "examples": {
+                "byNamespaceName": {
+                  "summary": "List all overrides by namespace name",
+                  "value": {
+                    "namespaceName": "api.requests",
+                    "limit": 20
+                  }
+                },
+                "byNamespaceId": {
+                  "summary": "List overrides by namespace ID",
+                  "value": {
+                    "namespaceId": "ns_1234567890abcdef",
+                    "limit": 50
+                  }
+                },
+                "pagination": {
+                  "summary": "Fetch next page of results",
+                  "value": {
+                    "namespaceId": "ns_1234567890abcdef",
+                    "cursor": "cursor_eyJsYXN0SWQiOiJvdnJfM2RITGNOeVN6SnppRHlwMkpla2E5ciJ9"
+                  }
+                }
               }
             }
           },
@@ -5975,6 +6164,8 @@
         "tags": [
           "ratelimit"
         ],
+        "summary": "Delete a rate limit override",
+        "description": "Permanently removes a rate limit override from a namespace. Once deleted, the affected identifiers will immediately revert to using the default rate limits for that namespace.\n\nThis endpoint is useful for:\n- Removing temporary overrides that are no longer needed\n- Resetting entities back to standard rate limits\n- Cleaning up outdated rate limiting rules\n- Removing emergency rate limit adjustments\n- Correcting misconfigured overrides\n\nThe deletion operation is immediate and permanent - once an override is deleted, it cannot be recovered. If you need to reinstate an override after deletion, you must create it again using the setOverride endpoint.",
         "operationId": "ratelimit.deleteOverride",
         "x-speakeasy-name-override": "deleteOverride",
         "security": [
@@ -5987,6 +6178,22 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/V2RatelimitDeleteOverrideRequestBody"
+              },
+              "examples": {
+                "specificOverride": {
+                  "summary": "Delete specific identifier override",
+                  "value": {
+                    "namespaceName": "api.requests",
+                    "identifier": "premium_user_123"
+                  }
+                },
+                "wildcardPattern": {
+                  "summary": "Delete wildcard pattern override",
+                  "value": {
+                    "namespaceId": "ns_1234567890abcdef",
+                    "identifier": "premium_*"
+                  }
+                }
               }
             }
           },
@@ -6319,8 +6526,10 @@
         "tags": [
           "permissions"
         ],
-        "operationId": "createPermission",
-        "x-speakeasy-name-override": "CreatePermission",
+        "summary": "Delete a permission",
+        "description": "Permanently removes a permission from the workspace. This endpoint is used when a permission is no longer needed or when cleaning up unused permissions.\n\nWhen a permission is deleted:\n- All direct assignments to API keys are removed\n- The permission is removed from any roles it was assigned to\n- The permission's name becomes available for reuse\n\nImportant: This operation cannot be undone, and it immediately affects all API keys and roles that had this permission assigned. Consider carefully before deleting permissions that are actively in use.",
+        "operationId": "deletePermission",
+        "x-speakeasy-name-override": "DeletePermission",
         "security": [
           {
             "rootKey": []
@@ -6405,6 +6614,8 @@
         "tags": [
           "permissions"
         ],
+        "summary": "Retrieve details about a specific permission",
+        "description": "Retrieves detailed information about a specific permission by its ID. This endpoint allows you to inspect a permission's properties, including its name, description, and workspace association.\n\nThis is useful for:\n- Verifying a permission exists before assigning it\n- Retrieving permission details for display in administrative interfaces\n- Checking permission configuration before making updates\n- Building permission management tools\n\nPermissions are the fundamental building blocks of access control in Unkey's RBAC system, representing specific capabilities that can be granted to API keys either directly or through roles.",
         "operationId": "getPermission",
         "x-speakeasy-name-override": "GetPermission",
         "security": [
@@ -6491,6 +6702,8 @@
         "tags": [
           "permissions"
         ],
+        "summary": "List all permissions in a workspace",
+        "description": "Retrieves a paginated list of all permissions defined in the workspace. This endpoint is essential for permission management and RBAC administration.\n\nPermissions are the fundamental building blocks of access control in Unkey, representing specific actions or capabilities that can be granted to API keys either directly or through roles.\n\nThis endpoint allows you to:\n- View all available permissions for assignment\n- Build permission management interfaces\n- Audit your RBAC configuration\n- Identify existing permissions before creating new ones\n\nResults are paginated and typically sorted alphabetically by permission name.",
         "operationId": "listPermissions",
         "x-speakeasy-name-override": "ListPermissions",
         "security": [
@@ -6567,6 +6780,8 @@
         "tags": [
           "permissions"
         ],
+        "summary": "Delete a role",
+        "description": "Permanently removes a role from the workspace. This endpoint is used when a role is no longer needed or needs to be replaced with a different role structure.\n\nWhen a role is deleted:\n- All keys that had this role assigned will lose the permissions granted by this role\n- The role will no longer appear in role listings\n- The role's name becomes available for reuse\n\nImportant: This operation cannot be undone, and it immediately affects all API keys that had this role assigned. Consider carefully before deleting roles that are actively in use by many keys.",
         "operationId": "deleteRole",
         "x-speakeasy-name-override": "DeleteRole",
         "security": [
@@ -6653,6 +6868,8 @@
         "tags": [
           "apis"
         ],
+        "summary": "Create a new API namespace for organizing keys",
+        "description": "Creates a new API namespace that serves as a container for related API keys.\n\nAPIs in Unkey provide important functionality:\n- They organize keys into logical groups for easier management\n- They isolate keys between different environments (dev/staging/production)\n- They enforce security boundaries between services or products\n- They provide a foundation for permission scoping and access control\n\nCommon use cases for creating separate APIs include:\n- Separating development, staging, and production environments\n- Isolating different services or microservices from each other\n- Creating boundaries between different products or teams\n- Implementing multi-tenant isolation for SaaS applications\n\nYou'll use the resulting API ID when creating keys to associate them with this API namespace. During key verification, you must provide the same API ID to ensure keys can't be used across different environments or services.",
         "operationId": "createApi",
         "x-speakeasy-name-override": "createApi",
         "security": [
@@ -6665,6 +6882,26 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/V2ApisCreateApiRequestBody"
+              },
+              "examples": {
+                "production": {
+                  "summary": "Production API",
+                  "value": {
+                    "name": "payment-service-production"
+                  }
+                },
+                "staging": {
+                  "summary": "Staging environment",
+                  "value": {
+                    "name": "payment-service-staging"
+                  }
+                },
+                "serviceSpecific": {
+                  "summary": "Service-specific API",
+                  "value": {
+                    "name": "analytics-service"
+                  }
+                }
               }
             }
           },
@@ -6676,10 +6913,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/V2ApisCreateApiResponseBody"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "Successfully created API",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+                      },
+                      "data": {
+                        "apiId": "api_2cGKbMxRjIzhCxo1IdjH3a"
+                      }
+                    }
+                  }
                 }
               }
             },
-            "description": "Successfully created API"
+            "description": "Successfully created a new API namespace. The response includes the unique API ID that you'll need for creating keys within this namespace. This ID should be stored securely as it's required for all operations related to this API."
           },
           "400": {
             "description": "Bad request",
@@ -6729,6 +6979,8 @@
         "tags": [
           "apis"
         ],
+        "summary": "Delete an API and invalidate all its associated keys",
+        "description": "Permanently deletes an API namespace and invalidates all keys associated with it.\n\nWARNING: This is a destructive operation with significant consequences:\n- All keys associated with this API will be invalidated immediately\n- Verification attempts for these keys will fail with code=NOT_FOUND\n- Historical analytics data for the API and its keys will be preserved\n- This action cannot be undone\n\nCommon reasons to delete an API include:\n- Removing test or development environments no longer needed\n- Retiring deprecated services or products\n- Cleaning up unused resources\n- Implementing security isolation after compromise\n\nBefore deletion, ensure that:\n- You have the correct API ID (check the environment/service)\n- You have migrated any needed keys to a new API\n- You have updated all client applications to use new keys\n- You have backed up any important metadata or analytics",
         "operationId": "deleteApi",
         "x-speakeasy-name-override": "deleteApi",
         "security": [
@@ -6741,6 +6993,14 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/V2ApisDeleteApiRequestBody"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Delete an API",
+                  "value": {
+                    "apiId": "api_VNcuGfVjUkrVcWJmda0A"
+                  }
+                }
               }
             }
           },
@@ -6752,10 +7012,20 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/V2ApisDeleteApiResponseBody"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "Successful deletion",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+                      }
+                    }
+                  }
                 }
               }
             },
-            "description": "Successfully deleted the API"
+            "description": "API successfully deleted. All keys associated with this API have been invalidated and will no longer work for verification. The API ID can no longer be used for any operations, and new keys cannot be created with this API ID. This operation is immediate and cannot be undone."
           },
           "400": {
             "description": "Bad request",
@@ -6805,6 +7075,8 @@
         "tags": [
           "apis"
         ],
+        "summary": "Retrieve information about an API namespace",
+        "description": "Retrieves detailed information about a specific API namespace.\n\nThis endpoint is useful for:\n- Verifying an API exists before attempting to use it\n- Retrieving the name of an API when you only have its ID\n- Checking if you have access to a particular API\n- Confirming API details before performing operations on it\n\nThe information returned is minimal by design, as APIs are primarily organizational containers. Most of the valuable data lies in the keys associated with an API, which can be retrieved using the apis.listKeys endpoint.",
         "operationId": "getApi",
         "x-speakeasy-name-override": "getApi",
         "security": [
@@ -6817,6 +7089,14 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/V2ApisGetApiRequestBody"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Retrieve API by ID",
+                  "value": {
+                    "apiId": "api_1234"
+                  }
+                }
               }
             }
           },
@@ -6828,10 +7108,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/V2ApisGetApiResponseBody"
+                },
+                "examples": {
+                  "standard": {
+                    "summary": "API details response",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+                      },
+                      "data": {
+                        "id": "api_1234567890abcdef",
+                        "name": "payment-service-production"
+                      }
+                    }
+                  }
                 }
               }
             },
-            "description": "Successfully retrieved API"
+            "description": "Successfully retrieved API information. The response includes the API's unique identifier and its name. This confirms the API exists and provides its basic details."
           },
           "400": {
             "description": "Bad request",
@@ -6891,6 +7185,8 @@
         "tags": [
           "apis"
         ],
+        "summary": "List all keys associated with an API namespace",
+        "description": "Retrieves a paginated list of all API keys associated with a specific API namespace.\n\nThis endpoint is essential for:\n- Building admin dashboards for API key management\n- Auditing active keys for security reviews\n- Finding keys associated with specific users or organizations\n- Monitoring key usage and distribution\n- Identifying keys that need rotation or updates\n\nThe response includes detailed information about each key, including its metadata, permissions, and usage limits. For large APIs with many keys, results are paginated and can be filtered by externalId to find keys for specific users or entities.\n\nNote that for security reasons, the full key values are never returned unless specifically requested with decrypt=true, and then only for keys created with recoverable=true and when the caller has sufficient permissions.",
         "operationId": "listKeys",
         "x-speakeasy-name-override": "listKeys",
         "security": [
@@ -6903,6 +7199,29 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/V2ApisListKeysRequestBody"
+              },
+              "examples": {
+                "basicListing": {
+                  "summary": "List all keys for an API",
+                  "value": {
+                    "apiId": "api_1234"
+                  }
+                },
+                "filteredListing": {
+                  "summary": "List keys for specific user",
+                  "value": {
+                    "apiId": "api_1234",
+                    "externalId": "user_5bf93ab218e",
+                    "limit": 50
+                  }
+                },
+                "paginatedRequest": {
+                  "summary": "Fetch next page of results",
+                  "value": {
+                    "apiId": "api_1234",
+                    "cursor": "cursor_eyJsYXN0S2V5SWQiOiJrZXlfMjNld3MiLCJsYXN0Q3JlYXRlZEF0IjoxNjcyNTI0MjM0MDAwfQ=="
+                  }
+                }
               }
             }
           },
@@ -6914,10 +7233,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/V2ApisListKeysResponseBody"
+                },
+                "examples": {
+                  "standardResponse": {
+                    "summary": "Successful key listing",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+                      },
+                      "data": [
+                        {
+                          "keyId": "key_1a2b3c4d5e6f",
+                          "start": "prod_abc",
+                          "name": "Production Admin Key",
+                          "createdAt": 1671048264000,
+                          "permissions": [
+                            "admin.read",
+                            "admin.write"
+                          ],
+                          "meta": {
+                            "owner": "alice@example.com",
+                            "department": "Engineering"
+                          }
+                        },
+                        {
+                          "keyId": "key_2b3c4d5e6f7g",
+                          "start": "prod_def",
+                          "name": "CI/CD Pipeline Key",
+                          "createdAt": 1671135600000,
+                          "permissions": [
+                            "deploy.trigger",
+                            "logs.read"
+                          ]
+                        }
+                      ],
+                      "pagination": {
+                        "cursor": "cursor_eyJsYXN0S2V5SWQiOiJrZXlfMmIzYzRkNWU2ZjdnIiwibGFzdENyZWF0ZWRBdCI6MTY3MTEzNTYwMDAwMH0=",
+                        "hasMore": true
+                      }
+                    }
+                  }
                 }
               }
             },
-            "description": "OK"
+            "description": "Successfully retrieved the list of keys for this API. The response includes key details such as IDs, names, creation dates, and associated metadata. For security, the actual key values are not included unless specifically requested with decrypt=true. If there are more keys than the requested limit, the pagination object will include a cursor for fetching the next page and hasMore=true."
           },
           "400": {
             "description": "Bad Request",
@@ -6978,47 +7337,98 @@
         "tags": [
           "liveness"
         ],
+        "security": [],
         "operationId": "liveness",
-        "description": "This endpoint checks if the service is alive.",
+        "description": "Checks if the Unkey API service is functioning correctly and ready to handle requests. This endpoint provides a simple health check mechanism that can be used by load balancers, monitoring tools, and orchestration systems to verify service availability.\n\nUnlike other endpoints, this one:\n- Does not require authentication\n- Has minimal processing overhead\n- Responds quickly with a simple status\n- Performs basic internal health verification\n\nBest practices for using this endpoint:\n- Include in automated monitoring systems\n- Use for health checks in container orchestration\n- Set appropriate alerting thresholds on failures\n- Implement exponential backoff when retrying after failures",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/V2LivenessResponseBody"
+                },
+                "examples": {
+                  "healthy": {
+                    "summary": "Healthy service",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+                      },
+                      "data": {
+                        "message": "OK"
+                      }
+                    }
+                  }
                 }
               }
             },
-            "description": "OK"
+            "description": "Service is healthy and ready to process requests. The response includes a simple 'OK' message indicating normal operation. Monitoring systems can use this as confirmation that the service is functioning properly."
           },
           "412": {
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PreconditionFailedErrorResponse"
+                },
+                "examples": {
+                  "degraded": {
+                    "summary": "Service in degraded state",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+                      },
+                      "error": {
+                        "title": "Precondition Failed",
+                        "detail": "Service is in a degraded state. Some functionality may be limited.",
+                        "status": 412,
+                        "type": "https://unkey.dev/errors/precondition-failed"
+                      }
+                    }
+                  }
                 }
               }
             },
-            "description": "Precondition Failed"
+            "description": "Service is operational but in a degraded state. Some functionality may be limited or running with reduced performance. While the core service is running, some dependent systems or features might be unavailable. This status suggests caution when using the service."
           },
           "500": {
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/InternalServerErrorResponse"
+                },
+                "examples": {
+                  "unhealthy": {
+                    "summary": "Service unhealthy",
+                    "value": {
+                      "meta": {
+                        "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQY"
+                      },
+                      "error": {
+                        "title": "Internal Server Error",
+                        "detail": "The service is currently experiencing issues and may not be fully operational.",
+                        "status": 500,
+                        "type": "https://unkey.dev/errors/internal-server-error"
+                      }
+                    }
+                  }
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Service is unhealthy and unable to process requests properly. This indicates a significant issue with the service that requires attention. Clients should refrain from making other API calls as they are likely to fail. Monitoring systems should trigger alerts when receiving this response."
           }
         },
-        "summary": "Liveness check"
+        "summary": "Check service health and availability"
       }
     },
     "/v2/keys.verifyKey": {
       "post": {
         "tags": [
           "keys"
+        ],
+        "security": [
+          {
+            "rootKey": []
+          }
         ],
         "summary": "Verify an API key's validity and permissions",
         "description": "This is the core endpoint for authenticating and authorizing API key usage in your application. It checks if a key is valid, hasn't expired, has sufficient remaining credits, isn't rate limited, and has the required permissions.\n\nWhen a key is verified, several checks occur:\n- Key existence and format validation\n- Expiration check\n- Enabled/disabled status verification\n- Credits deduction (if configured)\n- Rate limit enforcement (if configured)\n- Permission verification (if requested)\n\nThis endpoint is designed for high-performance verification with global edge caching. Use it in your API authentication middleware to protect your endpoints. For high-volume applications, consider enabling async rate limiting for improved performance at the cost of slightly reduced accuracy.\n\nUnlike most other endpoints, this one does not require authentication with a root key.",
