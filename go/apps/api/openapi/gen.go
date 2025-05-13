@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/oapi-codegen/runtime"
 )
 
@@ -42,8 +43,14 @@ const (
 
 // Defines values for V2KeysCreateKeyRequestBodyCreditsRefillInterval.
 const (
-	Daily   V2KeysCreateKeyRequestBodyCreditsRefillInterval = "daily"
-	Monthly V2KeysCreateKeyRequestBodyCreditsRefillInterval = "monthly"
+	V2KeysCreateKeyRequestBodyCreditsRefillIntervalDaily   V2KeysCreateKeyRequestBodyCreditsRefillInterval = "daily"
+	V2KeysCreateKeyRequestBodyCreditsRefillIntervalMonthly V2KeysCreateKeyRequestBodyCreditsRefillInterval = "monthly"
+)
+
+// Defines values for V2KeysUpdateKeyRequestBodyCreditsRefillInterval.
+const (
+	V2KeysUpdateKeyRequestBodyCreditsRefillIntervalDaily   V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "daily"
+	V2KeysUpdateKeyRequestBodyCreditsRefillIntervalMonthly V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "monthly"
 )
 
 // Defines values for V2KeysVerifyKeyRequestBodyPermissions1Type.
@@ -324,6 +331,9 @@ type KeysGetKeyResponseData struct {
 
 // KeysGetKeyResponseDataCreditsRefillInterval How often the credits are automatically refilled.
 type KeysGetKeyResponseDataCreditsRefillInterval string
+
+// KeysUpdateKeyResponseData Empty response object. A successful response indicates the key was updated successfully. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays.
+type KeysUpdateKeyResponseData = map[string]interface{}
 
 // KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
 type KeysVerifyKeyResponseData struct {
@@ -770,6 +780,70 @@ type V2KeysGetKeyResponseBody struct {
 	Meta Meta                   `json:"meta"`
 }
 
+// V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
+type V2KeysUpdateKeyRequestBody struct {
+	// Credits Usage limits configuration for this key. Set to null to disable usage limits. Omit this field to leave it unchanged. Note: Cannot set refill when credits is null; setting refillDay requires interval to be 'monthly'.
+	Credits nullable.Nullable[struct {
+		// Refill Configuration for automatic credit refills. Set to null to disable refills. Omit this field to leave it unchanged.
+		Refill nullable.Nullable[struct {
+			// Amount Number of credits to add during each refill.
+			Amount int `json:"amount"`
+
+			// Interval How often the credits should be refilled. For 'monthly' refills, you can specify the day of month using 'refillDay'.
+			Interval V2KeysUpdateKeyRequestBodyCreditsRefillInterval `json:"interval"`
+
+			// RefillDay For monthly refills, the day of month when refills occur. Cannot be used with 'daily' interval.
+			RefillDay *int `json:"refillDay,omitempty"`
+		}] `json:"refill,omitempty"`
+
+		// Remaining Number of times this key can be used before becoming invalid. Required when specifying credits.
+		Remaining int32 `json:"remaining"`
+	}] `json:"credits,omitempty"`
+
+	// Enabled Whether the key is currently active. Disabled keys will fail verification with code=DISABLED. Omit this field to leave it unchanged.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Expires Unix timestamp (in milliseconds) when this key will automatically expire. Set to null to remove expiration. Omit this field to leave it unchanged.
+	Expires nullable.Nullable[int64] `json:"expires,omitempty"`
+
+	// ExternalId Your user's unique identifier, creating a link between Unkey and your system. Set to null to disconnect this key from any identity. Omit this field to leave it unchanged.
+	ExternalId nullable.Nullable[string] `json:"externalId,omitempty"`
+
+	// KeyId The unique identifier of the key to update (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself.
+	KeyId string `json:"keyId"`
+
+	// Meta Arbitrary JSON metadata to associate with this key. Set to null to remove all metadata. Omit this field to leave it unchanged.
+	Meta nullable.Nullable[map[string]interface{}] `json:"meta,omitempty"`
+
+	// Name A descriptive name for the key for internal reference. Set to null to remove the name. Omit this field to leave it unchanged.
+	Name nullable.Nullable[string] `json:"name,omitempty"`
+
+	// Ratelimits Array of ratelimits to apply to this key. Set to null to disable all ratelimits. Omit this field to leave it unchanged. Replaces the deprecated 'ratelimit' field from v1.
+	Ratelimits nullable.Nullable[[]struct {
+		// Async Whether this ratelimit uses fast (async=true) or consistent (async=false) mode. Fast mode has lower latency but less accuracy.
+		Async *bool `json:"async,omitempty"`
+
+		// Duration Duration of the ratelimit window in milliseconds.
+		Duration int32 `json:"duration"`
+
+		// Limit Maximum number of operations allowed within the time window.
+		Limit int32 `json:"limit"`
+
+		// Name Identifier for this ratelimit. Use descriptive names like 'requests' or 'computations'.
+		Name string `json:"name"`
+	}] `json:"ratelimits,omitempty"`
+}
+
+// V2KeysUpdateKeyRequestBodyCreditsRefillInterval How often the credits should be refilled. For 'monthly' refills, you can specify the day of month using 'refillDay'.
+type V2KeysUpdateKeyRequestBodyCreditsRefillInterval string
+
+// V2KeysUpdateKeyResponseBody defines model for V2KeysUpdateKeyResponseBody.
+type V2KeysUpdateKeyResponseBody struct {
+	// Data Empty response object. A successful response indicates the key was updated successfully. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays.
+	Data *KeysUpdateKeyResponseData `json:"data,omitempty"`
+	Meta Meta                       `json:"meta"`
+}
+
 // V2KeysVerifyKeyRequestBody defines model for V2KeysVerifyKeyRequestBody.
 type V2KeysVerifyKeyRequestBody struct {
 	// ApiId The ID of the API where the key belongs to. Required to ensure keys from development environments aren't leaking into production and vice versa.
@@ -1050,6 +1124,9 @@ type DeleteKeyJSONRequestBody = V2KeysDeleteKeyRequestBody
 
 // GetKeyJSONRequestBody defines body for GetKey for application/json ContentType.
 type GetKeyJSONRequestBody = V2KeysGetKeyRequestBody
+
+// UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
+type UpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody
 
 // VerifyKeyJSONRequestBody defines body for VerifyKey for application/json ContentType.
 type VerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody

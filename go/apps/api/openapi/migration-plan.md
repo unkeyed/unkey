@@ -2,9 +2,9 @@
 
 This document outlines the plan for migrating our OpenAPI specifications from the old TypeScript API to the new Go API with v2 endpoints. The migration is focused on creating a consistent, well-documented API specification that will be used to generate client SDKs and documentation.
 
-## Summary of Progress (Last Updated: April 2023)
+## Summary of Progress (Last Updated: September 2023)
 
-**Current Status:** 5 of 12+ planned endpoints completed (42% complete)
+**Current Status:** 5 of 12+ planned endpoints completed (42% complete), 1 ready for implementation (OpenAPI spec completed and validated)
 
 **Completed Endpoints:**
 1. ✅ `/v2/keys.verifyKey` - Core verification functionality
@@ -18,6 +18,7 @@ This document outlines the plan for migrating our OpenAPI specifications from th
 **Key Improvements Made:**
 - Standardized response structures with meta/data pattern
 - Enhanced field validation and documentation
+- Consistent error handling patterns
 - Renamed fields for clarity (ownerId → externalId)
 - Reorganized related properties into logical groups
 - Provided comprehensive examples and descriptions
@@ -208,7 +209,7 @@ For each endpoint:
 ## Next Steps
 
 1. Continue with key management endpoints in this order:
-   - Implement `/v2/keys.whoami` endpoint next
+   - Implement the `/v2/keys.whoami` endpoint next (OpenAPI schema is completed and validated)
    - Proceed with key permissions endpoints (addPermissions, removePermissions, setPermissions)
    - Implement key roles endpoints (addRoles, removeRoles, setRoles)
    - Complete remaining key operations (updateRemaining)
@@ -401,7 +402,7 @@ All endpoints follow this response pattern:
 - [x] `/v2/keys.updateKey` - For updating API key properties
 
 ### Next Endpoints to Implement:
-1. [ ] `/v2/keys.whoami` - For identifying the current key (NEXT)
+1. [🔄] `/v2/keys.whoami` - For identifying the current key (READY FOR IMPLEMENTATION - OpenAPI spec completed and validated)
 2. [ ] `/v2/keys.addPermissions` - For adding permissions to a key
 3. [ ] `/v2/keys.removePermissions` - For removing permissions from a key
 4. [ ] `/v2/keys.setPermissions` - For setting all permissions on a key
@@ -624,24 +625,308 @@ Each endpoint should be implemented sequentially, updating this document after c
 #### Implementation Plan
 
 1. Schema components:
-   - `V2KeysUpdateKeyRequestBody` - with keyId and updateable properties
-   - `KeysUpdateKeyResponseData` - with updated key information
-   - `V2KeysUpdateKeyResponseBody` - wrapping meta and data fields
+   - `V2KeysWhoamiRequestBody` - with key field for the API key to identify
+   - `KeyWhoamiData` - with key information (id, name, remaining, identity, meta, etc.)
+   - `V2KeysWhoamiResponse` - wrapping meta and data fields in standard response format
 
 2. Path entry:
-   - Path: `/v2/keys.updateKey`
+   - Path: `/v2/keys.whoami`
    - Method: POST
-   - Security: rootKey authentication
+   - Security: bearer token authentication
    - Include standard responses (200, 400, 401, 403, 404, 500)
 
-3. Design considerations:
-   - Which fields should be updatable and which should not
-   - Partial updates vs. full replacements
-   - Validation rules for each field
-   - Proper documentation of update behaviors
+3. Implementation details:
+   - Hash the provided key for secure lookup
+   - Use cache with stale-while-revalidate pattern for performant lookups
+   - Check for root key authorization with appropriate RBAC permissions
+   - Format response according to standardized structure
 
-4. Source files to reference:
-   - TypeScript original: `unkey/apps/api/src/routes/v1_keys_updateKey.ts`
+4. Key response fields:
+   - `id` - The ID of the key
+   - `name` - Optional name of the key 
+   - `remaining` - Optional remaining number of requests
+   - `identity` - Optional identity information (id, externalId)
+   - `meta` - Optional metadata associated with the key
+   - `createdAt` - Timestamp when the key was created
+   - `enabled` - Whether the key is enabled
+   - `environment` - Optional environment the key is associated with
+
+5. Source files to reference:
+   - TypeScript original: `unkey/apps/api/src/routes/v1_keys_whoami.ts`
+   - Use existing Go key-related endpoints as implementation reference
+
+6. Testing considerations:
+   - Test cases for valid keys with various configurations
+   - Test cases for non-existent keys
+   - Test cases for authorization failures
+   - Verify correct cache behavior
+
+#### Schema Structure
+
+```json
+{
+  "V2KeysWhoamiRequestBody": {
+    "type": "object",
+    "required": ["key"],
+    "properties": {
+      "key": {
+        "type": "string",
+        "description": "The API key to identify and retrieve information about",
+        "example": "sk_1234567890abcdef",
+        "minLength": 1
+      }
+    },
+    "additionalProperties": false
+  }
+}
+```
+
+```json
+{
+  "KeyWhoamiData": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "The unique identifier of the key",
+        "example": "key_1234567890abcdef"
+      },
+      "name": {
+        "type": "string",
+        "nullable": true,
+        "description": "The human-readable name of the key (optional)",
+        "example": "Production API Key"
+      },
+      "remaining": {
+        "type": "integer",
+        "nullable": true,
+        "format": "int64",
+        "description": "The remaining number of requests for the key (null means unlimited)",
+        "example": 1000
+      },
+      "identity": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identity ID associated with the key",
+            "example": "id_1234567890abcdef"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "The external identity ID associated with the key (e.g., user ID in your system)",
+            "example": "user_12345"
+          }
+        },
+        "required": ["id", "externalId"],
+        "description": "The identity object associated with the key (null if no identity is associated)"
+      },
+      "meta": {
+        "type": "object",
+        "nullable": true,
+        "additionalProperties": true,
+        "description": "Custom metadata associated with the key (null if no metadata is present)",
+        "example": {
+          "role": "admin",
+          "plan": "premium",
+          "teamId": "team_12345"
+        }
+      },
+      "createdAt": {
+        "type": "integer",
+        "format": "int64",
+        "description": "The timestamp in milliseconds when the key was created",
+        "example": 1620000000000
+      },
+      "enabled": {
+        "type": "boolean",
+        "description": "Whether the key is enabled and can be used",
+        "example": true
+      },
+      "environment": {
+        "type": "string",
+        "nullable": true,
+        "description": "The environment the key is associated with (e.g., production, staging, development)",
+        "example": "production"
+      }
+    },
+    "required": ["id", "createdAt", "enabled"]
+  }
+}
+```
+
+```json
+{
+  "V2KeysWhoamiResponse": {
+    "type": "object",
+    "required": ["meta", "data"],
+    "properties": {
+      "meta": {
+        "$ref": "#/components/schemas/Meta"
+      },
+      "data": {
+        "$ref": "#/components/schemas/KeyWhoamiData"
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "/v2/keys.whoami": {
+    "post": {
+      "tags": ["keys"],
+      "summary": "Get information about an API key",
+      "description": "Retrieves detailed information about an API key without incrementing its usage counter",
+      "operationId": "whoami",
+      "x-speakeasy-name-override": "whoami",
+      "security": [
+        {
+          "rootKey": []
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2KeysWhoamiRequestBody"
+            },
+            "examples": {
+              "basic": {
+                "summary": "Basic key lookup",
+                "value": {
+                  "key": "sk_1234567890abcdef"
+                }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Key information successfully retrieved",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2KeysWhoamiResponse"
+              },
+              "examples": {
+                "full": {
+                  "summary": "Complete key information",
+                  "value": {
+                    "meta": {
+                      "requestId": "req_1234567890abcdef"
+                    },
+                    "data": {
+                      "id": "key_1234567890abcdef",
+                      "name": "Production API Key",
+                      "remaining": 1000,
+                      "identity": {
+                        "id": "id_1234567890abcdef",
+                        "externalId": "user_12345"
+                      },
+                      "meta": {
+                        "role": "admin",
+                        "plan": "premium",
+                        "teamId": "team_12345"
+                      },
+                      "createdAt": 1620000000000,
+                      "enabled": true,
+                      "environment": "production"
+                    }
+                  }
+                },
+                "minimal": {
+                  "summary": "Key with minimal information",
+                  "value": {
+                    "meta": {
+                      "requestId": "req_1234567890abcdef"
+                    },
+                    "data": {
+                      "id": "key_1234567890abcdef",
+                      "createdAt": 1620000000000,
+                      "enabled": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BadRequest"
+        },
+        "401": {
+          "$ref": "#/components/responses/Unauthorized"
+        },
+        "403": {
+          "$ref": "#/components/responses/Forbidden"
+        },
+        "404": {
+          "$ref": "#/components/responses/NotFound"
+        },
+        "500": {
+          "$ref": "#/components/responses/InternalServerError"
+        }
+      }
+    }
+  }
+}
+```
+
+**Endpoint Documentation:**
+
+The `/v2/keys.whoami` endpoint allows clients to retrieve detailed information about an API key by providing the key itself. This endpoint is useful for:
+
+1. Verifying key validity without incrementing usage counters
+2. Retrieving key metadata and configuration
+3. Checking key status (enabled/disabled)
+4. Determining remaining usage limits
+5. Identifying associated identity information
+
+The endpoint requires bearer authentication and performs proper authorization checks to ensure the requester has permission to access the key information. The response includes comprehensive details about the key in the standardized meta/data response format.
+
+**Example Request:**
+```json
+{
+  "key": "sk_1234567890abcdef"
+}
+```
+
+**Example Response:**
+```json
+{
+  "meta": {
+    "requestId": "req_1234567890abcdef"
+  },
+  "data": {
+    "id": "key_1234567890abcdef",
+    "name": "Production API Key",
+    "remaining": 1000,
+    "identity": {
+      "id": "id_1234567890abcdef",
+      "externalId": "user_12345"
+    },
+    "meta": {
+      "role": "admin",
+      "plan": "premium",
+      "teamId": "team_12345"
+    },
+    "createdAt": 1620000000000,
+    "enabled": true,
+    "environment": "production"
+  }
+}
+```
+
+**Implementation Notes:**
+- The `key` parameter should be the full API key string that the client wants information about
+- Fields like `name`, `remaining`, `identity`, `meta`, and `environment` may be null if not set
+- The `createdAt` timestamp is in Unix milliseconds format
+- The endpoint returns a 404 error if the key doesn't exist or if the requester doesn't have permission to see it
 
 ## Additional Resources
 
@@ -665,18 +950,37 @@ Each endpoint should be implemented sequentially, updating this document after c
 
 ### Handover Notes for Next Developer
 
-1. Start by reviewing the five completed endpoints in the migration plan
-2. The next endpoint to implement is `/v2/keys.whoami` - begin by examining the TypeScript implementation in `unkey/apps/api/src/routes/v1_keys_whoami.ts`
+1. Start by reading the "Detailed Implementation Process" section to understand the general workflow
+2. The next endpoint to implement is `/v2/keys.whoami` - begin by examining the TypeScript implementation in `unkey/apps/api/src/routes/v1_keys_whoami.ts` and using the validated OpenAPI schema defined in this document
 3. Follow these implementation steps:
-   - Create the request/response schemas in the OpenAPI spec
-   - Add the path definition
-   - Ensure thorough field descriptions and examples
-   - Update the migration plan after completion
+   - Use the validated OpenAPI schema components defined in the migration plan
+   - Create the handler function and route registration
+   - Follow the pattern from existing endpoints like `/v2/keys.verifyKey`
+   - Write tests for success and error cases (200, 400, 401, 403, 404, 500)
+   - Update the migration plan to mark the endpoint as completed
+   - Move on to the next endpoint in the priority list
 4. Key patterns to maintain:
    - All responses use meta/data pattern
+   - Follow consistent naming conventions (e.g., KeyWhoamiData)
+   - Ensure proper documentation for all fields
    - All descriptions should be comprehensive with examples
    - Remove deprecated fields (like "ownerId")
    - Organize related properties into logical groups
+5. Important notes about OpenAPI schema definitions:
+   - For nullable fields, use `"nullable": true` with a single type rather than the array syntax:
+     ```json
+     // CORRECT:
+     "field": {
+       "type": "string",
+       "nullable": true
+     }
+     
+     // INCORRECT:
+     "field": {
+       "type": ["string", "null"]
+     }
+     ```
+   - Validate your schema with Scalar: `npx @scalar/cli@latest validate ./openapi.json`
    - Follow existing naming and structure conventions
 5. Refer to the "Implementation Details and Learnings" sections of completed endpoints for guidance
 6. Consider separating complex functionality into dedicated endpoints (as we did with permissions/roles)

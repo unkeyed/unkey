@@ -32,404 +32,464 @@
       }
     },
     "schemas": {
-        "V2KeysUpdateKeyRequestBody": {
-          "type": "object",
-          "required": ["keyId"],
-          "properties": {
-            "keyId": {
-              "type": "string",
-              "minLength": 3,
-              "description": "The unique identifier of the key to update (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself.",
-              "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
-            },
-            "name": {
-              "type": ["string", "null"],
-              "description": "A descriptive name for the key for internal reference. Set to null to remove the name. Omit this field to leave it unchanged.",
-              "example": "Payment Service Production Key"
-            },
-            "externalId": {
-              "type": ["string", "null"],
-              "description": "Your user's unique identifier, creating a link between Unkey and your system. Set to null to disconnect this key from any identity. Omit this field to leave it unchanged.",
-              "example": "user_912a841d"
-            },
-            "meta": {
-              "type": ["object", "null"],
-              "additionalProperties": true,
-              "description": "Arbitrary JSON metadata to associate with this key. Set to null to remove all metadata. Omit this field to leave it unchanged.",
-              "example": {
-                "plan": "enterprise",
-                "limits": {
-                  "storage": "500GB",
-                  "compute": "1000 minutes/month"
-                }
-              }
-            },
-            "expires": {
-              "type": ["integer", "null"],
-              "format": "int64",
-              "description": "Unix timestamp (in milliseconds) when this key will automatically expire. Set to null to remove expiration. Omit this field to leave it unchanged.",
-              "example": 1704067200000
-            },
-            "credits": {
-              "type": ["object", "null"],
-              "properties": {
-                "remaining": {
-                  "type": "integer",
-                  "format": "int32",
-                  "description": "Number of times this key can be used before becoming invalid. Required when specifying credits.",
-                  "example": 1000
-                },
-                "refill": {
-                  "type": ["object", "null"],
-                  "properties": {
-                    "interval": {
-                      "type": "string",
-                      "enum": ["daily", "monthly"],
-                      "description": "How often the credits should be refilled. For 'monthly' refills, you can specify the day of month using 'refillDay'."
-                    },
-                    "amount": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "description": "Number of credits to add during each refill."
-                    },
-                    "refillDay": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 31,
-                      "description": "For monthly refills, the day of month when refills occur. Cannot be used with 'daily' interval."
-                    }
-                  },
-                  "required": ["interval", "amount"],
-                  "description": "Configuration for automatic credit refills. Set to null to disable refills. Omit this field to leave it unchanged."
-                }
-              },
-              "required": ["remaining"],
-              "description": "Usage limits configuration for this key. Set to null to disable usage limits. Omit this field to leave it unchanged. Note: Cannot set refill when credits is null; setting refillDay requires interval to be 'monthly'."
-            },
-            "ratelimits": {
-              "type": ["array", "null"],
-              "items": {
-                "type": "object",
-                "required": ["name", "limit", "duration"],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Identifier for this ratelimit. Use descriptive names like 'requests' or 'computations'.",
-                    "example": "requests"
-                  },
-                  "limit": {
-                    "type": "integer",
-                    "format": "int32",
-                    "minimum": 1,
-                    "description": "Maximum number of operations allowed within the time window.",
-                    "example": 100
-                  },
-                  "duration": {
-                    "type": "integer",
-                    "format": "int32",
-                    "minimum": 1000,
-                    "description": "Duration of the ratelimit window in milliseconds.",
-                    "example": 60000
-                  },
-                  "async": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Whether this ratelimit uses fast (async=true) or consistent (async=false) mode. Fast mode has lower latency but less accuracy."
-                  }
-                }
-              },
-              "description": "Array of ratelimits to apply to this key. Set to null to disable all ratelimits. Omit this field to leave it unchanged. Replaces the deprecated 'ratelimit' field from v1."
-            },
-            "enabled": {
-              "type": "boolean",
-              "description": "Whether the key is currently active. Disabled keys will fail verification with code=DISABLED. Omit this field to leave it unchanged.",
-              "example": true
-            }
-          },
-          "additionalProperties": false
-        },
-        "KeysUpdateKeyResponseData": {
-          "type": "object",
-          "properties": {},
-          "description": "Empty response object. A successful response indicates the key was updated successfully. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays."
-        },
-        "V2KeysUpdateKeyResponseBody": {
-          "type": "object",
-          "required": ["meta"],
-          "properties": {
-            "meta": {
-              "$ref": "#/components/schemas/Meta"
-            },
-            "data": {
-              "$ref": "#/components/schemas/KeysUpdateKeyResponseData"
-            }
-          }
-        },
-        "V2KeysDeleteKeyRequestBody": {
-          "type": "object",
-          "required": ["keyId"],
-          "properties": {
-            "keyId": {
-              "type": "string",
-              "minLength": 3,
-              "description": "The unique identifier of the key to delete (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself. Once deleted, verification attempts with this key will fail with code=NOT_FOUND and it will no longer appear in key listings.",
-              "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
-            },
-            "permanent": {
-              "type": "boolean",
-              "default": false,
-              "description": "Controls whether the key should be soft-deleted (default) or permanently erased from the database. Soft deletion marks the key as deleted but preserves its data, allowing potential recovery via direct database operations. Permanent deletion completely removes all traces of the key including its hash and metadata. Use permanent=true for regulatory compliance scenarios (like GDPR), resolving hash collisions during migrations, or when you need to reuse the same key string in the future. CAUTION: Permanent deletion cannot be undone.",
-              "example": false
-            }
-          },
-          "additionalProperties": false
-        },
-        "KeysDeleteKeyResponseData": {
-          "type": "object",
-          "properties": {},
-          "description": "Empty response object. A successful response indicates the key was deleted successfully. Deletion triggers cache invalidation across all regions, but it may take up to 30 seconds for the deletion to be fully propagated due to eventual consistency. During this propagation period, some verification attempts might still succeed in certain regions."
-        },
-        "V2KeysDeleteKeyResponseBody": {
-          "type": "object",
-          "required": ["meta"],
-          "properties": {
-            "meta": {
-              "$ref": "#/components/schemas/Meta"
-            },
-            "data": {
-              "$ref": "#/components/schemas/KeysDeleteKeyResponseData"
-            }
-          }
-        },
-        "V2KeysGetKeyRequestBody": {
-          "type": "object",
-          "required": ["keyId"],
-          "properties": {
-            "keyId": {
-              "type": "string",
-              "minLength": 3,
-              "description": "The unique identifier of the key to retrieve (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself. You can find this ID in the creation response, key listings, or in the dashboard.",
-              "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
-            },
-            "decrypt": {
-              "type": "boolean",
-              "default": false,
-              "description": "Whether to include the plaintext key in the response. This is only possible for keys created with 'recoverable: true' and requires the 'decrypt_key' permission. SECURITY WARNING: This should be used sparingly and only for legitimate recovery purposes. Keys returned this way must be handled securely and not logged or stored insecurely. Most applications should set this to false."
-            }
-          },
-          "additionalProperties": false
-        },
-        "KeysGetKeyResponseData": {
-          "type": "object",
-          "required": ["id", "start", "workspaceId", "createdAt", "enabled"],
-          "properties": {
-            "id": {
-              "type": "string",
-              "description": "The unique identifier of the key in Unkey's system.",
-              "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
-            },
-            "start": {
-              "type": "string",
-              "description": "The first few characters of the key to visually identify it without exposing the full key. Used in dashboards and logs to help users recognize which key is being used without revealing sensitive information. Typically includes the prefix if one was specified.",
-              "example": "prod_5j1"
-            },
-            "workspaceId": {
-              "type": "string",
-              "description": "The ID of the workspace that owns this key.",
-              "example": "ws_1234abcd"
-            },
-            "apiId": {
-              "type": "string",
-              "description": "The ID of the API this key belongs to.",
-              "example": "api_2cGKbMxRjIzhCxo1IdjH3a"
-            },
-            "name": {
-              "type": "string",
-              "description": "A descriptive name for the key for internal reference. Shown in dashboards and logs but never exposed to end users.",
-              "example": "Payment Service Production Key"
-            },
-            "externalId": {
-              "type": "string",
-              "description": "Your user's unique identifier, creating a link between Unkey and your system. This ID is returned during verification so you can identify which customer/entity is making the request without performing additional database lookups. Use consistent identifiers that match your primary user/tenant identifiers for seamless integration.",
-              "example": "user_912a841d"
-            },
-            "meta": {
-              "type": "object",
-              "additionalProperties": true,
-              "description": "Arbitrary JSON metadata associated with this key. This can include additional context like subscription plans, feature flags, or any custom data. Metadata is stored as-is and returned during verification, allowing you to access important information without additional database queries. Consider including data relevant to authorization decisions, usage tracking, and user context.",
-              "example": {
-                "plan": "enterprise",
-                "limits": {
-                  "storage": "500GB",
-                  "compute": "1000 minutes/month"
-                },
-                "contactInfo": {
-                  "primaryEmail": "admin@example.com",
-                  "technicalContact": "tech@example.com"
-                },
-                "integrations": {
-                  "slack": true,
-                  "github": {
-                    "enabled": true,
-                    "repositories": 10
-                  }
-                },
-                "lastActivityTimestamp": 1671048264000
-              }
-            },
-            "createdAt": {
-              "type": "integer",
-              "format": "int64",
-              "description": "Unix timestamp (in milliseconds) when the key was created.",
-              "example": 1671048264000
-            },
-            "updatedAt": {
-              "type": "integer",
-              "format": "int64",
-              "description": "Unix timestamp (in milliseconds) when the key was last updated.",
-              "example": 1671135600000
-            },
-            "expires": {
-              "type": "integer",
-              "format": "int64",
-              "description": "Unix timestamp (in milliseconds) when this key will automatically expire. If null, the key has no expiration.",
-              "example": 1704067200000
-            },
-            "credits": {
-              "type": "object",
-              "properties": {
-                "remaining": {
-                  "type": "integer",
-                  "format": "int32",
-                  "description": "The number of times this key can still be used before becoming invalid.",
-                  "example": 753
-                },
-                "refill": {
-                  "type": "object",
-                  "required": ["interval", "amount"],
-                  "properties": {
-                    "interval": {
-                      "type": "string",
-                      "enum": ["daily", "monthly"],
-                      "description": "How often the credits are automatically refilled."
-                    },
-                    "amount": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "description": "Number of credits added during each refill."
-                    },
-                    "refillDay": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 31,
-                      "description": "For monthly refills, the day of month when refills occur."
-                    },
-                    "lastRefillAt": {
-                      "type": "integer",
-                      "format": "int64",
-                      "description": "Unix timestamp (in milliseconds) when credits were last refilled."
-                    }
-                  },
-                  "description": "Configuration for automatic credit refills."
-                }
-              },
-              "description": "Usage limits configuration for this key. Credits provide a way to limit the number of times a key can be used before becoming invalid. Unlike ratelimits, credits are globally consistent (using database transactions) providing 100% accuracy at the cost of slightly higher latency. Ideal for monetization, usage quotas, or strict limits that must not be exceeded. See the 'refill' field for automatic replenishment options."
-            },
-            "ratelimits": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["name", "limit", "duration"],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Identifier for this ratelimit.",
-                    "example": "requests"
-                  },
-                  "limit": {
-                    "type": "integer",
-                    "format": "int32",
-                    "description": "Maximum number of operations allowed within the time window.",
-                    "example": 100
-                  },
-                  "duration": {
-                    "type": "integer",
-                    "format": "int32",
-                    "description": "Duration of the ratelimit window in milliseconds.",
-                    "example": 60000
-                  },
-                  "async": {
-                    "type": "boolean",
-                    "description": "Whether this ratelimit uses fast (async=true) or consistent (async=false) mode. Fast mode has lower latency but less accuracy.",
-                    "default": true
-                  }
-                }
-              },
-              "description": "Array of ratelimits applied to this key. Multiple named ratelimits can control different aspects of key usage. For example, a 'requests' ratelimit might control overall API calls while a separate 'computations' limit manages access to resource-intensive operations. Ratelimits are optimized for performance and typically add minimal latency to verifications. They can be shared across keys through identities."
-            },
-            "roles": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "List of role names assigned to this key. Roles are collections of permissions.",
-              "example": ["api_admin", "billing_reader"]
-            },
-            "permissions": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "List of permission names directly assigned to this key.",
-              "example": ["documents.read", "documents.write", "settings.view"]
-            },
-            "enabled": {
-              "type": "boolean",
-              "description": "Whether the key is currently active. Disabled keys will fail verification with code=DISABLED. Toggling this allows you to temporarily suspend access without deleting the key, which is useful for maintenance, account freezing, or debugging. Can be updated using the updateKey endpoint.",
-              "example": true
-            },
-            "plaintext": {
-              "type": "string",
-              "description": "The full API key in plaintext. Only included when 'decrypt' is true and the key was created with 'recoverable: true'. SECURITY RISK: This field contains the actual secret key which should never be logged, stored in databases, or exposed in any frontend code. It should only be displayed directly to users through secure channels. Most applications should avoid setting decrypt=true unless absolutely necessary."
-            },
-            "identity": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "description": "The unique ID of the identity in Unkey's system."
-                },
-                "externalId": {
-                  "type": "string",
-                  "description": "Your identifier for this identity in your system."
-                },
-                "meta": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "description": "Additional metadata associated with this identity."
-                }
-              },
-              "required": ["id", "externalId"],
-              "description": "The identity associated with this key, if any. Identities allow resource sharing (like ratelimits) across multiple keys belonging to the same user/entity. This enables scenarios like issuing separate keys for different devices/services while maintaining global usage limits for the user. An identity's externalId typically matches your user ID or tenant ID."
-            }
-          }
-        },
-        "V2KeysGetKeyResponseBody": {
-          "type": "object",
-          "required": ["meta", "data"],
-          "properties": {
-            "meta": {
-              "$ref": "#/components/schemas/Meta"
-            },
-            "data": {
-              "$ref": "#/components/schemas/KeysGetKeyResponseData"
-            }
-          }
-        },
-        "V2KeysCreateKeyRequestBody": {
+      "V2KeysUpdateKeyRequestBody": {
         "type": "object",
-        "required": ["apiId"],
+        "required": [
+          "keyId"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The unique identifier of the key to update (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself.",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "A descriptive name for the key for internal reference. Set to null to remove the name. Omit this field to leave it unchanged.",
+            "example": "Payment Service Production Key"
+          },
+          "externalId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Your user's unique identifier, creating a link between Unkey and your system. Set to null to disconnect this key from any identity. Omit this field to leave it unchanged.",
+            "example": "user_912a841d"
+          },
+          "meta": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Arbitrary JSON metadata to associate with this key. Set to null to remove all metadata. Omit this field to leave it unchanged.",
+            "example": {
+              "plan": "enterprise",
+              "limits": {
+                "storage": "500GB",
+                "compute": "1000 minutes/month"
+              }
+            }
+          },
+          "expires": {
+            "type": "integer",
+            "nullable": true,
+            "format": "int64",
+            "description": "Unix timestamp (in milliseconds) when this key will automatically expire. Set to null to remove expiration. Omit this field to leave it unchanged.",
+            "example": 1704067200000
+          },
+          "credits": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "remaining": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Number of times this key can be used before becoming invalid. Required when specifying credits.",
+                "example": 1000
+              },
+              "refill": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "interval": {
+                    "type": "string",
+                    "enum": [
+                      "daily",
+                      "monthly"
+                    ],
+                    "description": "How often the credits should be refilled. For 'monthly' refills, you can specify the day of month using 'refillDay'."
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of credits to add during each refill."
+                  },
+                  "refillDay": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 31,
+                    "description": "For monthly refills, the day of month when refills occur. Cannot be used with 'daily' interval."
+                  }
+                },
+                "required": [
+                  "interval",
+                  "amount"
+                ],
+                "description": "Configuration for automatic credit refills. Set to null to disable refills. Omit this field to leave it unchanged."
+              }
+            },
+            "required": [
+              "remaining"
+            ],
+            "description": "Usage limits configuration for this key. Set to null to disable usage limits. Omit this field to leave it unchanged. Note: Cannot set refill when credits is null; setting refillDay requires interval to be 'monthly'."
+          },
+          "ratelimits": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "limit",
+                "duration"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Identifier for this ratelimit. Use descriptive names like 'requests' or 'computations'.",
+                  "example": "requests"
+                },
+                "limit": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 1,
+                  "description": "Maximum number of operations allowed within the time window.",
+                  "example": 100
+                },
+                "duration": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 1000,
+                  "description": "Duration of the ratelimit window in milliseconds.",
+                  "example": 60000
+                },
+                "async": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether this ratelimit uses fast (async=true) or consistent (async=false) mode. Fast mode has lower latency but less accuracy."
+                }
+              }
+            },
+            "description": "Array of ratelimits to apply to this key. Set to null to disable all ratelimits. Omit this field to leave it unchanged. Replaces the deprecated 'ratelimit' field from v1."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the key is currently active. Disabled keys will fail verification with code=DISABLED. Omit this field to leave it unchanged.",
+            "example": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "KeysUpdateKeyResponseData": {
+        "type": "object",
+        "properties": {},
+        "description": "Empty response object. A successful response indicates the key was updated successfully. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays."
+      },
+      "V2KeysUpdateKeyResponseBody": {
+        "type": "object",
+        "required": [
+          "meta"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KeysUpdateKeyResponseData"
+          }
+        }
+      },
+      "V2KeysDeleteKeyRequestBody": {
+        "type": "object",
+        "required": [
+          "keyId"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The unique identifier of the key to delete (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself. Once deleted, verification attempts with this key will fail with code=NOT_FOUND and it will no longer appear in key listings.",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
+          },
+          "permanent": {
+            "type": "boolean",
+            "default": false,
+            "description": "Controls whether the key should be soft-deleted (default) or permanently erased from the database. Soft deletion marks the key as deleted but preserves its data, allowing potential recovery via direct database operations. Permanent deletion completely removes all traces of the key including its hash and metadata. Use permanent=true for regulatory compliance scenarios (like GDPR), resolving hash collisions during migrations, or when you need to reuse the same key string in the future. CAUTION: Permanent deletion cannot be undone.",
+            "example": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "KeysDeleteKeyResponseData": {
+        "type": "object",
+        "properties": {},
+        "description": "Empty response object. A successful response indicates the key was deleted successfully. Deletion triggers cache invalidation across all regions, but it may take up to 30 seconds for the deletion to be fully propagated due to eventual consistency. During this propagation period, some verification attempts might still succeed in certain regions."
+      },
+      "V2KeysDeleteKeyResponseBody": {
+        "type": "object",
+        "required": [
+          "meta"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KeysDeleteKeyResponseData"
+          }
+        }
+      },
+      "V2KeysGetKeyRequestBody": {
+        "type": "object",
+        "required": [
+          "keyId"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The unique identifier of the key to retrieve (starts with 'key_'). This is the database ID returned from createKey, not the actual API key string itself. You can find this ID in the creation response, key listings, or in the dashboard.",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
+          },
+          "decrypt": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to include the plaintext key in the response. This is only possible for keys created with 'recoverable: true' and requires the 'decrypt_key' permission. SECURITY WARNING: This should be used sparingly and only for legitimate recovery purposes. Keys returned this way must be handled securely and not logged or stored insecurely. Most applications should set this to false."
+          }
+        },
+        "additionalProperties": false
+      },
+      "KeysGetKeyResponseData": {
+        "type": "object",
+        "required": [
+          "id",
+          "start",
+          "workspaceId",
+          "createdAt",
+          "enabled"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the key in Unkey's system.",
+            "example": "key_2cGKbMxRyIzhCxo1Idjz8q"
+          },
+          "start": {
+            "type": "string",
+            "description": "The first few characters of the key to visually identify it without exposing the full key. Used in dashboards and logs to help users recognize which key is being used without revealing sensitive information. Typically includes the prefix if one was specified.",
+            "example": "prod_5j1"
+          },
+          "workspaceId": {
+            "type": "string",
+            "description": "The ID of the workspace that owns this key.",
+            "example": "ws_1234abcd"
+          },
+          "apiId": {
+            "type": "string",
+            "description": "The ID of the API this key belongs to.",
+            "example": "api_2cGKbMxRjIzhCxo1IdjH3a"
+          },
+          "name": {
+            "type": "string",
+            "description": "A descriptive name for the key for internal reference. Shown in dashboards and logs but never exposed to end users.",
+            "example": "Payment Service Production Key"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "Your user's unique identifier, creating a link between Unkey and your system. This ID is returned during verification so you can identify which customer/entity is making the request without performing additional database lookups. Use consistent identifiers that match your primary user/tenant identifiers for seamless integration.",
+            "example": "user_912a841d"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Arbitrary JSON metadata associated with this key. This can include additional context like subscription plans, feature flags, or any custom data. Metadata is stored as-is and returned during verification, allowing you to access important information without additional database queries. Consider including data relevant to authorization decisions, usage tracking, and user context.",
+            "example": {
+              "plan": "enterprise",
+              "limits": {
+                "storage": "500GB",
+                "compute": "1000 minutes/month"
+              },
+              "contactInfo": {
+                "primaryEmail": "admin@example.com",
+                "technicalContact": "tech@example.com"
+              },
+              "integrations": {
+                "slack": true,
+                "github": {
+                  "enabled": true,
+                  "repositories": 10
+                }
+              },
+              "lastActivityTimestamp": 1671048264000
+            }
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp (in milliseconds) when the key was created.",
+            "example": 1671048264000
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp (in milliseconds) when the key was last updated.",
+            "example": 1671135600000
+          },
+          "expires": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp (in milliseconds) when this key will automatically expire. If null, the key has no expiration.",
+            "example": 1704067200000
+          },
+          "credits": {
+            "type": "object",
+            "properties": {
+              "remaining": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The number of times this key can still be used before becoming invalid.",
+                "example": 753
+              },
+              "refill": {
+                "type": "object",
+                "required": [
+                  "interval",
+                  "amount"
+                ],
+                "properties": {
+                  "interval": {
+                    "type": "string",
+                    "enum": [
+                      "daily",
+                      "monthly"
+                    ],
+                    "description": "How often the credits are automatically refilled."
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of credits added during each refill."
+                  },
+                  "refillDay": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 31,
+                    "description": "For monthly refills, the day of month when refills occur."
+                  },
+                  "lastRefillAt": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Unix timestamp (in milliseconds) when credits were last refilled."
+                  }
+                },
+                "description": "Configuration for automatic credit refills."
+              }
+            },
+            "description": "Usage limits configuration for this key. Credits provide a way to limit the number of times a key can be used before becoming invalid. Unlike ratelimits, credits are globally consistent (using database transactions) providing 100% accuracy at the cost of slightly higher latency. Ideal for monetization, usage quotas, or strict limits that must not be exceeded. See the 'refill' field for automatic replenishment options."
+          },
+          "ratelimits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "limit",
+                "duration"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Identifier for this ratelimit.",
+                  "example": "requests"
+                },
+                "limit": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Maximum number of operations allowed within the time window.",
+                  "example": 100
+                },
+                "duration": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Duration of the ratelimit window in milliseconds.",
+                  "example": 60000
+                },
+                "async": {
+                  "type": "boolean",
+                  "description": "Whether this ratelimit uses fast (async=true) or consistent (async=false) mode. Fast mode has lower latency but less accuracy.",
+                  "default": true
+                }
+              }
+            },
+            "description": "Array of ratelimits applied to this key. Multiple named ratelimits can control different aspects of key usage. For example, a 'requests' ratelimit might control overall API calls while a separate 'computations' limit manages access to resource-intensive operations. Ratelimits are optimized for performance and typically add minimal latency to verifications. They can be shared across keys through identities."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of role names assigned to this key. Roles are collections of permissions.",
+            "example": [
+              "api_admin",
+              "billing_reader"
+            ]
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of permission names directly assigned to this key.",
+            "example": [
+              "documents.read",
+              "documents.write",
+              "settings.view"
+            ]
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the key is currently active. Disabled keys will fail verification with code=DISABLED. Toggling this allows you to temporarily suspend access without deleting the key, which is useful for maintenance, account freezing, or debugging. Can be updated using the updateKey endpoint.",
+            "example": true
+          },
+          "plaintext": {
+            "type": "string",
+            "description": "The full API key in plaintext. Only included when 'decrypt' is true and the key was created with 'recoverable: true'. SECURITY RISK: This field contains the actual secret key which should never be logged, stored in databases, or exposed in any frontend code. It should only be displayed directly to users through secure channels. Most applications should avoid setting decrypt=true unless absolutely necessary."
+          },
+          "identity": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The unique ID of the identity in Unkey's system."
+              },
+              "externalId": {
+                "type": "string",
+                "description": "Your identifier for this identity in your system."
+              },
+              "meta": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Additional metadata associated with this identity."
+              }
+            },
+            "required": [
+              "id",
+              "externalId"
+            ],
+            "description": "The identity associated with this key, if any. Identities allow resource sharing (like ratelimits) across multiple keys belonging to the same user/entity. This enables scenarios like issuing separate keys for different devices/services while maintaining global usage limits for the user. An identity's externalId typically matches your user ID or tenant ID."
+          }
+        }
+      },
+      "V2KeysGetKeyResponseBody": {
+        "type": "object",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KeysGetKeyResponseData"
+          }
+        }
+      },
+      "V2KeysCreateKeyRequestBody": {
+        "type": "object",
+        "required": [
+          "apiId"
+        ],
         "properties": {
           "apiId": {
             "type": "string",
@@ -483,7 +543,10 @@
               "maxLength": 512
             },
             "description": "Roles to assign to this key for permission management. Each role represents a collection of permissions and must already exist in your workspace. During verification, all permissions from these roles will be checked against requested permissions.",
-            "example": ["api_admin", "billing_reader"]
+            "example": [
+              "api_admin",
+              "billing_reader"
+            ]
           },
           "permissions": {
             "type": "array",
@@ -493,7 +556,11 @@
               "maxLength": 512
             },
             "description": "Individual permissions to assign directly to this key. These are checked during verification alongside any permissions granted via roles. Use structured naming like 'resource.action' for clarity.",
-            "example": ["documents.read", "documents.write", "settings.view"]
+            "example": [
+              "documents.read",
+              "documents.write",
+              "settings.view"
+            ]
           },
           "expires": {
             "type": "integer",
@@ -503,7 +570,9 @@
           },
           "credits": {
             "type": "object",
-            "required": ["remaining"],
+            "required": [
+              "remaining"
+            ],
             "properties": {
               "remaining": {
                 "type": "integer",
@@ -516,7 +585,10 @@
                 "properties": {
                   "interval": {
                     "type": "string",
-                    "enum": ["daily", "monthly"],
+                    "enum": [
+                      "daily",
+                      "monthly"
+                    ],
                     "description": "How often the credits should be refilled."
                   },
                   "amount": {
@@ -531,7 +603,10 @@
                     "description": "For monthly refills, the day of month when refills occur."
                   }
                 },
-                "required": ["interval", "amount"],
+                "required": [
+                  "interval",
+                  "amount"
+                ],
                 "description": "Configuration for automatic credit refills."
               }
             },
@@ -541,7 +616,11 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["name", "limit", "duration"],
+              "required": [
+                "name",
+                "limit",
+                "duration"
+              ],
               "properties": {
                 "name": {
                   "type": "string",
@@ -608,11 +687,17 @@
             "example": "prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT"
           }
         },
-        "required": ["keyId", "key"]
+        "required": [
+          "keyId",
+          "key"
+        ]
       },
       "V2KeysCreateKeyResponseBody": {
         "type": "object",
-        "required": ["meta", "data"],
+        "required": [
+          "meta",
+          "data"
+        ],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2339,7 +2424,9 @@
   "paths": {
     "/v2/keys.updateKey": {
       "post": {
-        "tags": ["keys"],
+        "tags": [
+          "keys"
+        ],
         "operationId": "updateKey",
         "x-speakeasy-name-override": "updateKey",
         "security": [
@@ -2423,7 +2510,9 @@
     },
     "/v2/keys.deleteKey": {
       "post": {
-        "tags": ["keys"],
+        "tags": [
+          "keys"
+        ],
         "operationId": "deleteKey",
         "x-speakeasy-name-override": "deleteKey",
         "security": [
@@ -2507,7 +2596,9 @@
     },
     "/v2/keys.getKey": {
       "post": {
-        "tags": ["keys"],
+        "tags": [
+          "keys"
+        ],
         "operationId": "getKey",
         "x-speakeasy-name-override": "getKey",
         "security": [
@@ -2591,7 +2682,9 @@
     },
     "/v2/keys.createKey": {
       "post": {
-        "tags": ["keys"],
+        "tags": [
+          "keys"
+        ],
         "operationId": "createKey",
         "x-speakeasy-name-override": "createKey",
         "security": [
