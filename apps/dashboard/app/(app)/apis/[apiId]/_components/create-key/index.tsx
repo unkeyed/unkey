@@ -171,7 +171,6 @@ export const CreateKeyDialog = ({
                   id: section.id,
                   content: section.content(),
                 }))}
-                className="min-h-[70vh] lg:min-h-[50vh]"
               />
             </NavigableDialogBody>
             <NavigableDialogFooter>
