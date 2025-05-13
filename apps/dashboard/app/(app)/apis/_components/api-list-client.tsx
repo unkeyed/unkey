@@ -22,7 +22,7 @@ export const ApiListClient = ({
   const [apiList, setApiList] = useState<ApiOverview[]>(initialData.apiList);
 
   return (
-    <FlexibleContainer width="full" verticalPosition="top" horizontalPosition="center" padding="none">
+    <FlexibleContainer padding="none">
       <ApiListControls apiList={apiList} onApiListChange={setApiList} onSearch={setIsSearching} />
       <ApiListControlCloud />
       {initialData.apiList.length > 0 ? (

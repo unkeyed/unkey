@@ -1,62 +1,115 @@
 "use client";
-import { FlexibleContainer } from "@unkey/ui";
 import { RenderComponentWithSnippet } from "@/app/components/render";
+import { Row } from "@/app/components/row";
+import { FlexibleContainer } from "@unkey/ui";
 
-export const FlexibleContainerExample = () => {
-    return (
-        <FlexibleContainer width="full" verticalPosition="top" horizontalPosition="left">
-            <div className="border border-1-accent-12 bg-accent-4 p-4 text-center rounded-xl">Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.</div>
-        </FlexibleContainer>
-    )
-}
+export const DefaultExample = () => {
+  return (
+    <RenderComponentWithSnippet>
+      <Row>
+        <div className="flex flex-col">
+          <FlexibleContainer className="bg-accent-6">
+            <div className="min-w-full min-h-full bg-accent-9">
+              Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien
+              vitae pellentesque sem placerat.
+            </div>
+          </FlexibleContainer>
+        </div>
+      </Row>
+    </RenderComponentWithSnippet>
+  );
+};
 
-export const FlexibleContainerExampleLarge = () => {
-    return (
-        <RenderComponentWithSnippet>
-            <FlexibleContainer width="large" >
-                <div className="border border-1-accent-12 bg-accent-4 p-4 text-center rounded-xl">Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.</div>
-            </FlexibleContainer>
-        </RenderComponentWithSnippet>
-    )
-}
+export const SmallExample = () => {
+  return (
+    <RenderComponentWithSnippet>
+      <Row>
+        <div className="flex flex-col">
+          <FlexibleContainer className="bg-accent-6" padding="small">
+            <div className="min-w-full min-h-full bg-accent-9">
+              Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien
+              vitae pellentesque sem placerat.
+            </div>
+          </FlexibleContainer>
+        </div>
+      </Row>
+    </RenderComponentWithSnippet>
+  );
+};
 
-export const FlexibleContainerExampleMedium = () => {
-    return (
-        <RenderComponentWithSnippet>
-            <FlexibleContainer width="medium" >
-                <div className="border border-1-accent-12 bg-accent-4 p-4 text-center rounded-xl">Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.</div>
-            </FlexibleContainer>
-        </RenderComponentWithSnippet>
-    )
-}
+export const MediumExample = () => {
+  return (
+    <RenderComponentWithSnippet>
+      <Row>
+        <div className="flex flex-col">
+          <FlexibleContainer className="bg-accent-6" padding="medium">
+            <div className="min-w-full min-h-full bg-accent-9">
+              Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien
+              vitae pellentesque sem placerat.
+            </div>
+          </FlexibleContainer>
+        </div>
+      </Row>
+    </RenderComponentWithSnippet>
+  );
+};
 
-export const FlexibleContainerExampleSmall = () => {
-    return (
-        <RenderComponentWithSnippet>
-            <FlexibleContainer width="small" >
-                <div className="border border-1-accent-12 bg-accent-4 p-4 text-center rounded-xl">Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.</div>
-            </FlexibleContainer>
-        </RenderComponentWithSnippet>
-    )
-}
+export const LargeExample = () => {
+  return (
+    <RenderComponentWithSnippet>
+      <Row>
+        <div className="flex flex-col">
+          <FlexibleContainer className="bg-accent-6" padding="large">
+            <div className="min-w-full min-h-full bg-accent-9">
+              Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien
+              vitae pellentesque sem placerat.
+            </div>
+          </FlexibleContainer>
+        </div>
+      </Row>
+    </RenderComponentWithSnippet>
+  );
+};
 
-export const FlexibleContainerExampleXSmall = () => {
-    return (
-        <RenderComponentWithSnippet>
-            <FlexibleContainer width="xsmall" >
-                <div className="border border-1-accent-12 bg-accent-4 p-4 text-center rounded-xl">Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.</div>
-            </FlexibleContainer>
-        </RenderComponentWithSnippet>
-    )
-}
-
-
-export const FlexibleContainerExampleXXSmall = () => {
-    return (
-        <RenderComponentWithSnippet>
-            <FlexibleContainer width="xsmall" >
-                <div className="border border-1-accent-12 bg-accent-4 p-4 text-center rounded-xl">Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.</div>
-            </FlexibleContainer>
-        </RenderComponentWithSnippet>
-    )
-}
+export const CustomExample = () => {
+  return (
+    <RenderComponentWithSnippet>
+      <div className="flex flex-row gap-2 w-full h-full">
+        <div className="flex flex-col gap-2 w-full">
+          <FlexibleContainer
+            padding="small"
+            justify="start"
+            align="start"
+            className="border bg-accent-6 flex-row"
+          >
+            <div className="w-fit h-44 bg-accent-9 p-2">Justify Start Align Start</div>
+          </FlexibleContainer>
+          <FlexibleContainer
+            padding="small"
+            justify="center"
+            align="center"
+            className="border bg-accent-6 flex-row"
+          >
+            <div className="w-fit h-44 bg-accent-9 p-2">Justify Center Align Center</div>
+          </FlexibleContainer>
+          <FlexibleContainer
+            padding="small"
+            justify="end"
+            align="end"
+            className="border bg-accent-6 flex-col"
+          >
+            <div className="w-fit h-44 bg-accent-9 p-2">Justify End Align End</div>
+          </FlexibleContainer>
+        </div>
+        {/* Needed to get height to work properly in RenderComponentWithSnippet */}
+        <div className="flex flex-col gap-2">
+          <div className="w-fit bg-accent-9 p-2">Outside Container</div>
+          <div className="w-fit bg-accent-9 p-2">Outside Container</div>
+          <div className="w-fit bg-accent-9 p-2">Outside Container</div>
+          <div className="w-fit bg-accent-9 p-2">Outside Container</div>
+          <div className="w-fit bg-accent-9 p-2">Outside Container</div>
+        </div>
+      </div>
+    </RenderComponentWithSnippet>
+  );
+};

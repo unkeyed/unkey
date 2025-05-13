@@ -1,8 +1,4 @@
-import {
-  ControlsContainer,
-  ControlsLeft,
-  ControlsRight,
-} from "@/components/logs/controls-container";
+import { ControlsContainer, ControlsLeft, ControlsRight } from "@unkey/ui";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsRefresh } from "./components/logs-refresh";

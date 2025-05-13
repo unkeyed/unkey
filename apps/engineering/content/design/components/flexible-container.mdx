@@ -3,13 +3,65 @@ title: FlexibleContainer
 description: A responsive container component that centers content and provides consistent padding with configurable maximum widths.
 ---
 import { 
-    FlexibleContainerExample
+    DefaultExample,
+    SmallExample,
+    MediumExample,
+    CustomExample,
+    LargeExample
 } from "./container/flexible-container.example"
 
-## Usage
+## Overview
 
-### Full Width
+The `FlexibleContainer` component is a versatile layout component that helps organize content with configurable padding, alignment, and justification options. It's built using Tailwind CSS and provides a consistent way to handle spacing and alignment across your application.
 
-<div>
-    <FlexibleContainerExample/>
-</div>
+## Examples
+
+### Default - No Padding
+
+The default container with no padding and centered content.
+
+<DefaultExample/>
+
+### Small Padding
+
+Container with small padding (px-4 py-2).
+
+<SmallExample/>
+
+### Medium Padding
+
+Container with medium padding (px-6 py-4).
+
+<MediumExample/>
+
+### Large Padding
+
+Container with large padding (px-8 py-6)
+
+<LargeExample/>
+
+### Custom Alignment
+
+Example containers with justify and align set.
+
+<CustomExample/>
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `padding` | `'none' \| 'small' \| 'medium' \| 'large'` | `'none'` | Controls the padding around the container |
+| `align` | `'center' \| 'start' \| 'end'` | `'center'` | Controls vertical alignment of content |
+| `justify` | `'center' \| 'start' \| 'end'` | `'center'` | Controls horizontal alignment of content |
+| `className` | `string` | - | Additional CSS classes to apply |
+
+## Best Practices
+
+- Use consistent padding sizes throughout your application for visual harmony
+- Choose appropriate alignment based on your content type and layout needs
+- Combine with other layout components for complex layouts
+- Use the `className` prop to extend or override default styles when needed
+
+## Accessibility
+
+The FlexibleContainer maintains proper spacing and alignment which helps create a clear visual hierarchy, benefiting users with visual impairments or cognitive disabilities.

@@ -11,7 +11,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   const { currentApi, workspaceApis } = await fetchApiAndWorkspaceDataFromDb(apiId);
 
   return (
-    <FlexibleContainer width="full" className="min-h-screen">
+    <FlexibleContainer>
       <ApisNavbar
         api={currentApi}
         activePage={{

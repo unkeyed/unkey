@@ -1,9 +1,5 @@
-import {
-  ControlsContainer,
-  ControlsLeft,
-  ControlsRight,
-} from "@unkey/ui";
 import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
+import { ControlsContainer, ControlsLeft, ControlsRight } from "@unkey/ui";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
