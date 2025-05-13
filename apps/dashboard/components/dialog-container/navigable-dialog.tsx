@@ -199,7 +199,6 @@ export function NavigableDialogNav<TStepName extends string>({
   );
 }
 
-// Content area component
 export function NavigableDialogContent<TStepName extends string>({
   items,
   className,
@@ -211,15 +210,29 @@ export function NavigableDialogContent<TStepName extends string>({
   className?: string;
 }) {
   const { activeId } = useNavigableDialog<TStepName>();
-
   return (
     <div className="flex-1 min-w-0 overflow-y-auto">
-      <DefaultDialogContentArea className={cn("min-h-[70vh] lg:min-h-[50vh]", className)}>
-        {items.map((item) => (
-          <div key={item.id} className={cn("w-full", item.id !== activeId && "hidden")}>
-            {item.content}
-          </div>
-        ))}
+      <DefaultDialogContentArea className={cn("min-h-[70vh] xl:min-h-[50vh] h-full", className)}>
+        <div className="h-full relative">
+          {items.map((item) => {
+            const isActive = item.id === activeId;
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  "w-full absolute inset-0 overflow-y-auto scrollbar-hide",
+                  "transition-all duration-300 ease-out",
+                  isActive
+                    ? "opacity-100 translate-x-0 z-10"
+                    : "opacity-0 translate-x-5 z-0 pointer-events-none",
+                )}
+                aria-hidden={!isActive}
+              >
+                <div className="h-full">{item.content}</div>
+              </div>
+            );
+          })}
+        </div>
       </DefaultDialogContentArea>
     </div>
   );
