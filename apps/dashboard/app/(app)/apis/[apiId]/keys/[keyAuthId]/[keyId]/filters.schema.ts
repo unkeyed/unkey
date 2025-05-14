@@ -8,8 +8,8 @@ import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 import { getOutcomeColor } from "../../../_overview/utils";
 
-const ALLOWED_OPERATOR = ["is"] as const;
-export type KeyDetailsFilterOperator = (typeof ALLOWED_OPERATOR)[number];
+export const ALLOWED_OPERATOR = ["is"] as const;
+export type KeyDetailsFilterOperator = z.infer<typeof keyDetailsFilterOperatorEnum>;
 
 export const keyDetailsFilterFieldConfig: FilterFieldConfigs = {
   startTime: {
@@ -32,8 +32,7 @@ export const keyDetailsFilterFieldConfig: FilterFieldConfigs = {
   } as const,
 };
 
-export const keyDetailsFilterOperatorEnum = z.enum(["is"]);
-
+export const keyDetailsFilterOperatorEnum = z.enum(ALLOWED_OPERATOR);
 export const keyDetailsFilterFieldEnum = z.enum(["startTime", "endTime", "since", "outcomes"]);
 
 export const filterOutputSchema = createFilterOutputSchema(

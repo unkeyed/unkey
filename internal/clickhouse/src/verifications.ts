@@ -51,7 +51,7 @@ export const keyDetailsLog = z.object({
   request_id: z.string(),
   time: z.number().int(),
   region: z.string(),
-  outcome: z.string(),
+  outcome: z.enum(KEY_VERIFICATION_OUTCOMES),
   tags: z.array(z.string()),
 });
 
