@@ -125,7 +125,7 @@ func TestConflictErrors(t *testing.T) {
 	// Test case for creating a role using existing database records
 	t.Run("existing role in database", func(t *testing.T) {
 		// Directly insert a role into the database
-		roleID := id.NewRole()
+		roleID := uid.New(uid.TestPrefix)
 		roleName := "test.existing.role"
 
 		_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{

@@ -31,7 +31,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a test role to try to retrieve
-	roleID := id.NewRole()
+	roleID := uid.New(uid.TestPrefix)
 	roleName := "test.role.access"
 
 	_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{

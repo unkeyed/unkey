@@ -41,7 +41,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for getting a role with permissions
 	t.Run("get role with permissions", func(t *testing.T) {
 		// First, create a role to retrieve
-		roleID := id.NewRole()
+		roleID := uid.New(uid.TestPrefix)
 		roleName := "test.get.role"
 		roleDesc := "Test role for get endpoint"
 		createdAt := time.Now()
@@ -56,7 +56,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create some permissions to assign to the role
-		permIDs := []string{id.NewPermission(), id.NewPermission()}
+		permIDs := []string{uid.New(uid.PermissionPrefix), uid.New(uid.PermissionPrefix)}
 		for i, permID := range permIDs {
 			_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 				ID:          permID,
@@ -120,7 +120,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for getting a role without permissions
 	t.Run("get role without permissions", func(t *testing.T) {
 		// Create a role with no permissions
-		roleID := id.NewRole()
+		roleID := uid.New(uid.TestPrefix)
 		roleName := "test.get.role.no.perms"
 		roleDesc := "Test role with no permissions"
 

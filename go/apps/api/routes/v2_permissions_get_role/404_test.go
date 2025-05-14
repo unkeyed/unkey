@@ -59,7 +59,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for valid-looking but non-existent role ID
 	t.Run("valid-looking but non-existent role ID", func(t *testing.T) {
-		nonExistentID := id.NewRole() // Generate a valid ID format that doesn't exist
+		nonExistentID := uid.New(uid.TestPrefix) // Generate a valid ID format that doesn't exist
 
 		req := handler.Request{
 			RoleId: nonExistentID,
@@ -81,7 +81,7 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for already deleted role
 	t.Run("already deleted role", func(t *testing.T) {
 		// First, create a role
-		roleID := id.NewRole()
+		roleID := uid.New(uid.TestPrefix)
 		_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			ID:          roleID,
 			WorkspaceID: workspace.ID,

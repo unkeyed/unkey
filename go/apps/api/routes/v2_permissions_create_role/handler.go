@@ -73,7 +73,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 4. Prepare role creation
-		roleID := id.NewRole()
+		roleID := uid.New(uid.RolePrefix)
 		var description string
 		if req.Description != nil {
 			description = *req.Description

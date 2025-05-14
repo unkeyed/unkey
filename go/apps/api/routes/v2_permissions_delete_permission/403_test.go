@@ -10,8 +10,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/id"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestAuthorizationErrors(t *testing.T) {
@@ -32,7 +32,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a test permission to try to delete
-	permissionID := id.NewPermission()
+	permissionID := uid.New(uid.PermissionPrefix)
 	permissionName := "test.permission.delete.auth"
 
 	_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{

@@ -31,7 +31,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a test permission to try to retrieve
-	permissionID := id.NewPermission()
+	permissionID := uid.New(uid.PermissionPrefix)
 	permissionName := "test.permission.access"
 
 	_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{

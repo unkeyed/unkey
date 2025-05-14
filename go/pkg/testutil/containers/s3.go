@@ -3,6 +3,7 @@ package containers
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
@@ -19,7 +20,9 @@ type S3 struct {
 // NewS3 runs a minion container and returns the URL
 // The caller is responsible for stopping the container when done.
 func (c *Containers) RunS3(t *testing.T) S3 {
-
+	defer func(start time.Time) {
+		c.t.Logf("starting S3 took %s", time.Since(start))
+	}(time.Now())
 	user := "minio_root_user"
 	password := "minio_root_password"
 

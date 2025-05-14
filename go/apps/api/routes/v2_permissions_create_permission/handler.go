@@ -72,7 +72,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 4. Create permission
-		permissionID := id.NewPermission()
+		permissionID := uid.New(uid.PermissionPrefix)
 
 		// Check for existing permission with the same name in this workspace
 		existingPerm, err := db.Query.FindPermissionByNameAndWorkspace(ctx, svc.DB.RO(), req.Name, auth.AuthorizedWorkspaceID)

@@ -31,7 +31,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	// Create some test permissions to later try to list
 	_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		ID:          id.NewPermission(),
+		ID:          uid.New(uid.PermissionPrefix),
 		WorkspaceID: workspace.ID,
 		Name:        "test.permission.auth",
 		Description: db.NewNullString("Test permission for authorization tests"),
@@ -72,7 +72,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		// Create permissions in the other workspace
 		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			ID:          id.NewPermission(),
+			ID:          uid.New(uid.PermissionPrefix),
 			WorkspaceID: otherWorkspace.ID,
 			Name:        "other.workspace.permission",
 			Description: db.NewNullString("This permission is in a different workspace"),

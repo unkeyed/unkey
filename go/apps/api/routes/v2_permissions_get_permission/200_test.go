@@ -41,7 +41,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for getting a permission
 	t.Run("get permission with all fields", func(t *testing.T) {
 		// First, create a permission to retrieve
-		permissionID := id.NewPermission()
+		permissionID := uid.New(uid.PermissionPrefix)
 		permissionName := "test.get.permission"
 		permissionDesc := "Test permission for get endpoint"
 		createdAt := time.Now()
@@ -84,7 +84,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for getting a permission without description
 	t.Run("get permission without description", func(t *testing.T) {
 		// First, create a permission to retrieve, without a description
-		permissionID := id.NewPermission()
+		permissionID := uid.New(uid.PermissionPrefix)
 		permissionName := "test.get.permission.no.desc"
 
 		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{

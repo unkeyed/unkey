@@ -10,8 +10,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_role"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/id"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestNotFound(t *testing.T) {
@@ -42,7 +42,7 @@ func TestNotFound(t *testing.T) {
 
 	t.Run("nonexistent role", func(t *testing.T) {
 		// Generate a role ID that doesn't exist in the database
-		nonexistentRoleID := id.NewRole()
+		nonexistentRoleID := uid.New(uid.TestPrefix)
 
 		req := handler.Request{
 			RoleId: nonexistentRoleID,
@@ -63,7 +63,7 @@ func TestNotFound(t *testing.T) {
 		anotherWorkspace := h.CreateWorkspace()
 
 		// Create a role in another workspace
-		roleID := id.NewRole()
+		roleID := uid.New(uid.TestPrefix)
 		roleName := "test.role.other.workspace"
 		roleDesc := "Test role in another workspace"
 		createdAt := time.Now()

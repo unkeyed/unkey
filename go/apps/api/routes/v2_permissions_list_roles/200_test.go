@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_roles"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
@@ -47,7 +46,7 @@ func TestSuccess(t *testing.T) {
 
 	// Create permissions
 	for i := 0; i < 5; i++ {
-		permID := id.NewPermission()
+		permID := uid.New(uid.PermissionPrefix)
 		permissionIDs = append(permissionIDs, permID)
 
 		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
@@ -62,7 +61,7 @@ func TestSuccess(t *testing.T) {
 
 	// Create roles with permissions
 	for i := 0; i < 10; i++ {
-		roleID := id.NewRole()
+		roleID := uid.New(uid.TestPrefix)
 		roleIDs = append(roleIDs, roleID)
 
 		_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{

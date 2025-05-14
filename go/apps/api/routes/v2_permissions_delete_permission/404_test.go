@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/id"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -84,7 +83,7 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for already deleted permission
 	t.Run("already deleted permission", func(t *testing.T) {
 		// First, create a permission
-		permissionID := id.NewPermission()
+		permissionID := uid.New(uid.PermissionPrefix)
 		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			ID:          permissionID,
 			WorkspaceID: workspace.ID,

@@ -44,7 +44,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for deleting a role with permissions
 	t.Run("delete role with permissions", func(t *testing.T) {
 		// Create a role to delete
-		roleID := id.NewRole()
+		roleID := uid.New(uid.TestPrefix)
 		roleName := "test.delete.role"
 		roleDesc := "Test role for deletion"
 		createdAt := time.Now()
@@ -59,7 +59,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create some permissions to assign to the role
-		permIDs := []string{id.NewPermission(), id.NewPermission()}
+		permIDs := []string{uid.New(uid.PermissionPrefix), uid.New(uid.PermissionPrefix)}
 		for i, permID := range permIDs {
 			_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 				ID:          permID,
@@ -144,7 +144,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for deleting a role without permissions or key assignments
 	t.Run("delete role without relationships", func(t *testing.T) {
 		// Create a role with no permissions or key assignments
-		roleID := id.NewRole()
+		roleID := uid.New(uid.TestPrefix)
 		roleName := "test.delete.role.no.rels"
 		roleDesc := "Test role with no relationships for deletion"
 

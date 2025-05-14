@@ -59,7 +59,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for valid-looking but non-existent permission ID
 	t.Run("valid-looking but non-existent permission ID", func(t *testing.T) {
-		nonExistentID := id.NewPermission() // Generate a valid ID format that doesn't exist
+		nonExistentID := uid.New(uid.PermissionPrefix) // Generate a valid ID format that doesn't exist
 
 		req := handler.Request{
 			PermissionId: nonExistentID,

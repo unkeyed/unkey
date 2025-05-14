@@ -105,8 +105,8 @@ func TestSuccess(t *testing.T) {
 
 		// First, create some permissions to assign to the role
 		permissionIDs := []string{
-			id.NewPermission(),
-			id.NewPermission(),
+			uid.New(uid.PermissionPrefix),
+			uid.New(uid.PermissionPrefix),
 		}
 
 		// Insert the permissions

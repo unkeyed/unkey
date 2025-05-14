@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
@@ -46,11 +45,11 @@ func TestSuccess(t *testing.T) {
 		Name        string
 		Description string
 	}{
-		{id.NewPermission(), "test.permission.1", "Description for test permission 1"},
-		{id.NewPermission(), "test.permission.2", "Description for test permission 2"},
-		{id.NewPermission(), "test.permission.3", "Description for test permission 3"},
-		{id.NewPermission(), "test.permission.4", "Description for test permission 4"},
-		{id.NewPermission(), "test.permission.5", "Description for test permission 5"},
+		{uid.New(uid.PermissionPrefix), "test.permission.1", "Description for test permission 1"},
+		{uid.New(uid.PermissionPrefix), "test.permission.2", "Description for test permission 2"},
+		{uid.New(uid.PermissionPrefix), "test.permission.3", "Description for test permission 3"},
+		{uid.New(uid.PermissionPrefix), "test.permission.4", "Description for test permission 4"},
+		{uid.New(uid.PermissionPrefix), "test.permission.5", "Description for test permission 5"},
 	}
 
 	// Insert test permissions into the database
@@ -68,7 +67,7 @@ func TestSuccess(t *testing.T) {
 	// Create permissions in a different workspace to test isolation
 	otherWorkspace := h.CreateWorkspace("other-workspace")
 	_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		ID:          id.NewPermission(),
+		ID:          uid.New(uid.PermissionPrefix),
 		WorkspaceID: otherWorkspace.ID,
 		Name:        "other.workspace.permission",
 		Description: db.NewNullString("This permission is in a different workspace"),
