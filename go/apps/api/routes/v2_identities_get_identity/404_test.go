@@ -24,6 +24,8 @@ func TestNotFound(t *testing.T) {
 		Permissions: h.Permissions,
 	})
 
+	h.Register(route)
+
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

@@ -33,6 +33,7 @@ type Services struct {
 
 func New(svc Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/identities.getIdentity", func(ctx context.Context, s *zen.Session) error {
+
 		auth, err := svc.Keys.VerifyRootKey(ctx, s)
 		if err != nil {
 			return err
@@ -41,14 +42,6 @@ func New(svc Services) zen.Route {
 		req, err := zen.BindBody[Request](s)
 		if err != nil {
 			return err
-		}
-
-		// Validate that at least one of IdentityId or ExternalId is provided
-		if req.IdentityId == nil && req.ExternalId == nil {
-			return fault.New("missing required field",
-				fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-				fault.WithDesc("missing required field", "Provide either identityId or externalId"),
-			)
 		}
 
 		// Find the identity based on either IdentityId or ExternalId

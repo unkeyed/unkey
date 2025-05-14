@@ -24,6 +24,8 @@ func TestForbidden(t *testing.T) {
 		Permissions: h.Permissions,
 	})
 
+	h.Register(route)
+
 	// Create a root key with no permissions
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
 	headers := http.Header{

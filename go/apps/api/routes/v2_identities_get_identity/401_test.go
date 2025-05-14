@@ -24,6 +24,8 @@ func TestUnauthorized(t *testing.T) {
 		Permissions: h.Permissions,
 	})
 
+	h.Register(route)
+
 	t.Run("missing Authorization header", func(t *testing.T) {
 		req := handler.Request{
 			IdentityId: strPtr("identity_123"),

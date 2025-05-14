@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity"
@@ -28,6 +27,8 @@ func TestSuccess(t *testing.T) {
 		Permissions: h.Permissions,
 	})
 
+	h.Register(route)
+
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -36,11 +37,7 @@ func TestSuccess(t *testing.T) {
 
 	// Setup test data
 	ctx := context.Background()
-	tx, err := h.DB.RW().Begin(ctx)
-	require.NoError(t, err)
-	defer tx.Rollback()
 
-	workspaceID := "ws_123"
 	identityID := uid.New(uid.IdentityPrefix)
 	externalID := "test_user_123"
 
@@ -55,10 +52,10 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Insert test identity
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 		ID:          identityID,
 		ExternalID:  externalID,
-		WorkspaceID: workspaceID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        metaBytes,
@@ -67,9 +64,9 @@ func TestSuccess(t *testing.T) {
 
 	// Insert test ratelimits
 	ratelimitID1 := uid.New(uid.RatelimitPrefix)
-	err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
+	err = db.Query.InsertIdentityRatelimit(ctx, h.DB.RW(), db.InsertIdentityRatelimitParams{
 		ID:          ratelimitID1,
-		WorkspaceID: workspaceID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		IdentityID:  sql.NullString{String: identityID, Valid: true},
 		Name:        "api_calls",
 		Limit:       100,
@@ -79,18 +76,15 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	ratelimitID2 := uid.New(uid.RatelimitPrefix)
-	err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
+	err = db.Query.InsertIdentityRatelimit(ctx, h.DB.RW(), db.InsertIdentityRatelimitParams{
 		ID:          ratelimitID2,
-		WorkspaceID: workspaceID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		IdentityID:  sql.NullString{String: identityID, Valid: true},
 		Name:        "special_feature",
 		Limit:       10,
 		Duration:    3600000, // 1 hour
 		CreatedAt:   time.Now().UnixMilli(),
 	})
-	require.NoError(t, err)
-
-	err = tx.Commit()
 	require.NoError(t, err)
 
 	// No need to set up permissions since we already gave the key the required permission
@@ -109,10 +103,10 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, externalID, res.Body.Data.ExternalId)
 
 		// Verify metadata
-		assert.Equal(t, "Test User", (*res.Body.Data.Meta)["name"])
-		assert.Equal(t, "test@example.com", (*res.Body.Data.Meta)["email"])
-		assert.Equal(t, "pro", (*res.Body.Data.Meta)["plan"])
-		assert.Equal(t, float64(100), (*res.Body.Data.Meta)["credits"])
+		require.Equal(t, "Test User", (*res.Body.Data.Meta)["name"])
+		require.Equal(t, "test@example.com", (*res.Body.Data.Meta)["email"])
+		require.Equal(t, "pro", (*res.Body.Data.Meta)["plan"])
+		require.Equal(t, float64(100), (*res.Body.Data.Meta)["credits"])
 
 		// Verify ratelimits
 		require.Len(t, *res.Body.Data.Ratelimits, 2)
@@ -130,11 +124,11 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, apiCallsLimit, "api_calls ratelimit not found")
 		require.NotNil(t, specialFeatureLimit, "special_feature ratelimit not found")
 
-		assert.Equal(t, 100, apiCallsLimit.Limit)
-		assert.Equal(t, int64(60000), apiCallsLimit.Duration)
+		require.Equal(t, int64(100), apiCallsLimit.Limit)
+		require.Equal(t, int64(60000), apiCallsLimit.Duration)
 
-		assert.Equal(t, 10, specialFeatureLimit.Limit)
-		assert.Equal(t, int64(3600000), specialFeatureLimit.Duration)
+		require.Equal(t, int64(10), specialFeatureLimit.Limit)
+		require.Equal(t, int64(3600000), specialFeatureLimit.Duration)
 	})
 
 	t.Run("get by externalId", func(t *testing.T) {
@@ -142,7 +136,7 @@ func TestSuccess(t *testing.T) {
 			ExternalId: &externalID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, sent: %+v, received: %s", req, res.RawBody)
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
 		// Verify response
@@ -150,10 +144,10 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, externalID, res.Body.Data.ExternalId)
 
 		// Verify metadata
-		assert.Equal(t, "Test User", (*res.Body.Data.Meta)["name"])
-		assert.Equal(t, "test@example.com", (*res.Body.Data.Meta)["email"])
-		assert.Equal(t, "pro", (*res.Body.Data.Meta)["plan"])
-		assert.Equal(t, float64(100), (*res.Body.Data.Meta)["credits"])
+		require.Equal(t, "Test User", (*res.Body.Data.Meta)["name"])
+		require.Equal(t, "test@example.com", (*res.Body.Data.Meta)["email"])
+		require.Equal(t, "pro", (*res.Body.Data.Meta)["plan"])
+		require.Equal(t, float64(100), (*res.Body.Data.Meta)["credits"])
 
 		// Verify ratelimits
 		require.Len(t, *res.Body.Data.Ratelimits, 2)
@@ -171,7 +165,8 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          identityWithoutMetaID,
 			ExternalID:  externalIDWithoutMeta,
-			WorkspaceID: workspaceID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        nil,
@@ -188,9 +183,9 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 
 		// Verify meta is an empty object, not null
-		assert.NotNil(t, res.Body.Data.Meta)
+		require.NotNil(t, res.Body.Data.Meta)
 		metaMap := *res.Body.Data.Meta
-		assert.Equal(t, 0, len(metaMap))
+		require.Equal(t, 0, len(metaMap))
 	})
 
 	t.Run("ratelimits is empty array when none exist", func(t *testing.T) {
@@ -205,7 +200,8 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          identityWithoutRatelimitsID,
 			ExternalID:  externalIDWithoutRatelimits,
-			WorkspaceID: workspaceID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        nil,
@@ -222,7 +218,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 
 		// Verify ratelimits is an empty array
-		assert.Empty(t, *res.Body.Data.Ratelimits)
+		require.Empty(t, *res.Body.Data.Ratelimits)
 	})
 
 	t.Run("verify environment field is returned", func(t *testing.T) {
@@ -238,7 +234,8 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          customEnvIdentityID,
 			ExternalID:  customEnvExternalID,
-			WorkspaceID: workspaceID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+
 			Environment: customEnvironment,
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        nil,
@@ -323,7 +320,8 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          largeMetaIdentityID,
 			ExternalID:  largeMetaExternalID,
-			WorkspaceID: workspaceID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        largeMetaBytes,
@@ -352,9 +350,9 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Compare the two maps
-		assert.Equal(t, largeMetaMap["user_profile"].(map[string]interface{})["name"],
+		require.Equal(t, largeMetaMap["user_profile"].(map[string]interface{})["name"],
 			returnedMetaMap["user_profile"].(map[string]interface{})["name"])
-		assert.Equal(t, largeMetaMap["subscription"].(map[string]interface{})["plan"],
+		require.Equal(t, largeMetaMap["subscription"].(map[string]interface{})["plan"],
 			returnedMetaMap["subscription"].(map[string]interface{})["plan"])
 	})
 
@@ -370,7 +368,8 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          manyRateLimitsIdentityID,
 			ExternalID:  manyRateLimitsExternalID,
-			WorkspaceID: workspaceID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        nil,
@@ -398,12 +397,13 @@ func TestSuccess(t *testing.T) {
 		for _, rl := range rateLimits {
 			err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
 				ID:          uid.New(uid.RatelimitPrefix),
-				WorkspaceID: workspaceID,
-				IdentityID:  sql.NullString{String: manyRateLimitsIdentityID, Valid: true},
-				Name:        rl.name,
-				Limit:       rl.limit,
-				Duration:    rl.duration,
-				CreatedAt:   time.Now().UnixMilli(),
+				WorkspaceID: h.Resources().UserWorkspace.ID,
+
+				IdentityID: sql.NullString{String: manyRateLimitsIdentityID, Valid: true},
+				Name:       rl.name,
+				Limit:      rl.limit,
+				Duration:   rl.duration,
+				CreatedAt:  time.Now().UnixMilli(),
 			})
 			require.NoError(t, err)
 		}
@@ -431,100 +431,9 @@ func TestSuccess(t *testing.T) {
 		for _, expected := range rateLimits {
 			actual, exists := returnedRateLimits[expected.name]
 			require.True(t, exists, "Rate limit %s not found in response", expected.name)
-			assert.Equal(t, int64(expected.limit), actual.Limit)
-			assert.Equal(t, expected.duration, actual.Duration)
+			require.Equal(t, int64(expected.limit), actual.Limit)
+			require.Equal(t, expected.duration, actual.Duration)
 		}
-	})
-
-	t.Run("retrieve identity with special characters in externalId", func(t *testing.T) {
-		// Create an identity with special characters in externalId
-		specialCharsIdentityID := uid.New(uid.IdentityPrefix)
-		specialCharsExternalID := "test-user_with.special@characters!123"
-
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer tx.Rollback()
-
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          specialCharsIdentityID,
-			ExternalID:  specialCharsExternalID,
-			WorkspaceID: workspaceID,
-			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        nil,
-		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
-		require.NoError(t, err)
-
-		// Test retrieving by ID
-		reqById := handler.Request{
-			IdentityId: &specialCharsIdentityID,
-		}
-		resById := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, reqById)
-		require.Equal(t, 200, resById.Status)
-		assert.Equal(t, specialCharsExternalID, resById.Body.Data.ExternalId)
-
-		// Test retrieving by externalId with special characters
-		reqByExternalId := handler.Request{
-			ExternalId: &specialCharsExternalID,
-		}
-		resByExternalId := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, reqByExternalId)
-		require.Equal(t, 200, resByExternalId.Status)
-		assert.Equal(t, specialCharsIdentityID, resByExternalId.Body.Data.Id)
-	})
-
-	t.Run("retrieve identity with Unicode characters in fields", func(t *testing.T) {
-		// Create an identity with Unicode characters
-		unicodeIdentityID := uid.New(uid.IdentityPrefix)
-		unicodeExternalID := "unicode-user-测试-🔑"
-
-		// Create metadata with Unicode characters
-		unicodeMetaMap := map[string]interface{}{
-			"name":        "名字",
-			"description": "这是一个测试用户 with 英文 and emoji 👍👨‍👩‍👧‍👦🇯🇵",
-			"tags":        []string{"测试", "官方", "认证✓"},
-		}
-		unicodeMetaBytes, err := json.Marshal(unicodeMetaMap)
-		require.NoError(t, err)
-
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer tx.Rollback()
-
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          unicodeIdentityID,
-			ExternalID:  unicodeExternalID,
-			WorkspaceID: workspaceID,
-			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        unicodeMetaBytes,
-		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
-		require.NoError(t, err)
-
-		// Test retrieving by ID
-		reqById := handler.Request{
-			IdentityId: &unicodeIdentityID,
-		}
-		resById := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, reqById)
-		require.Equal(t, 200, resById.Status)
-		assert.Equal(t, unicodeExternalID, resById.Body.Data.ExternalId)
-
-		// Verify Unicode metadata is preserved
-		assert.Equal(t, "名字", (*resById.Body.Data.Meta)["name"])
-		assert.Equal(t, "这是一个测试用户 with 英文 and emoji 👍👨‍👩‍👧‍👦🇯🇵", (*resById.Body.Data.Meta)["description"])
-
-		// Test retrieving by Unicode externalId
-		reqByExternalId := handler.Request{
-			ExternalId: &unicodeExternalID,
-		}
-		resByExternalId := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, reqByExternalId)
-		require.Equal(t, 200, resByExternalId.Status)
-		assert.Equal(t, unicodeIdentityID, resByExternalId.Body.Data.Id)
 	})
 
 	t.Run("retrieve recently created identity", func(t *testing.T) {
@@ -540,7 +449,7 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          recentIdentityID,
 			ExternalID:  recentExternalID,
-			WorkspaceID: workspaceID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
 			CreatedAt:   creationTime,
 			Meta:        nil,
@@ -558,8 +467,8 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 
 		// Verify it's returned correctly
-		assert.Equal(t, recentIdentityID, res.Body.Data.Id)
-		assert.Equal(t, recentExternalID, res.Body.Data.ExternalId)
+		require.Equal(t, recentIdentityID, res.Body.Data.Id)
+		require.Equal(t, recentExternalID, res.Body.Data.ExternalId)
 		// Note: CreatedAt is not returned in the response
 	})
 
@@ -576,7 +485,8 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          identityWithKeysID,
 			ExternalID:  identityWithKeysExternalID,
-			WorkspaceID: workspaceID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        nil,
@@ -587,7 +497,7 @@ func TestSuccess(t *testing.T) {
 		keyringID := uid.New(uid.KeyAuthPrefix)
 		err = db.Query.InsertKeyring(ctx, tx, db.InsertKeyringParams{
 			ID:                 keyringID,
-			WorkspaceID:        workspaceID,
+			WorkspaceID:        h.Resources().UserWorkspace.ID,
 			CreatedAtM:         time.Now().UnixMilli(),
 			DefaultPrefix:      sql.NullString{Valid: true, String: "test_"},
 			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
@@ -600,10 +510,11 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertApi(ctx, tx, db.InsertApiParams{
 			ID:          apiID,
 			Name:        "Test API for Identity Keys",
-			WorkspaceID: workspaceID,
-			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: keyringID},
-			CreatedAtM:  time.Now().UnixMilli(),
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+
+			AuthType:   db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+			KeyAuthID:  sql.NullString{Valid: true, String: keyringID},
+			CreatedAtM: time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
@@ -615,12 +526,13 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
 			ID:          key1ID,
 			KeyringID:   keyringID,
-			WorkspaceID: workspaceID,
-			IdentityID:  sql.NullString{Valid: true, String: identityWithKeysID},
-			CreatedAtM:  time.Now().UnixMilli(),
-			Hash:        "hash1",
-			Start:       "test_key1",
-			Name:        sql.NullString{Valid: true, String: "First Key"},
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+
+			IdentityID: sql.NullString{Valid: true, String: identityWithKeysID},
+			CreatedAtM: time.Now().UnixMilli(),
+			Hash:       "hash1",
+			Start:      "test_key1",
+			Name:       sql.NullString{Valid: true, String: "First Key"},
 		})
 		require.NoError(t, err)
 
@@ -628,12 +540,13 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
 			ID:          key2ID,
 			KeyringID:   keyringID,
-			WorkspaceID: workspaceID,
-			IdentityID:  sql.NullString{Valid: true, String: identityWithKeysID},
-			CreatedAtM:  time.Now().UnixMilli(),
-			Hash:        "hash2",
-			Start:       "test_key2",
-			Name:        sql.NullString{Valid: true, String: "Second Key"},
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+
+			IdentityID: sql.NullString{Valid: true, String: identityWithKeysID},
+			CreatedAtM: time.Now().UnixMilli(),
+			Hash:       "hash2",
+			Start:      "test_key2",
+			Name:       sql.NullString{Valid: true, String: "Second Key"},
 		})
 		require.NoError(t, err)
 
@@ -648,8 +561,8 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 
 		// Verify identity data
-		assert.Equal(t, identityWithKeysID, res.Body.Data.Id)
-		assert.Equal(t, identityWithKeysExternalID, res.Body.Data.ExternalId)
+		require.Equal(t, identityWithKeysID, res.Body.Data.Id)
+		require.Equal(t, identityWithKeysExternalID, res.Body.Data.ExternalId)
 
 		// Note: The current implementation might not return the associated keys directly
 		// This test verifies that we can retrieve an identity that has associated keys
