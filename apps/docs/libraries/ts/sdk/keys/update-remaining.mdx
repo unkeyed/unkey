@@ -2,6 +2,35 @@
 title: "Update Remaining"
 description: "Update the remaining usage of a key."
 ---
+<RequestExample>
+```ts
+const { result, error } =await unkey.keys.updateRemaining({
+  keyId: "xyz_AS5HDkXXPot2MMoPHD8jnL",
+  value: 300,
+  op: "set"
+});
+
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+console.log(result)
+```
+
+</RequestExample>
+
+<ResponseExample>
+```ts
+{
+  result: {
+    "remaining": 300
+  }
+}
+```
+
+</ResponseExample>
 
 ## Request
 
@@ -26,26 +55,3 @@ description: "Update the remaining usage of a key."
 </ResponseField>
 </Expandable>
 </ResponseField>
-
-<RequestExample>
-
-```ts
-await unkey.keys.updateRemaining({
-  keyId: "xyz_AS5HDkXXPot2MMoPHD8jnL",
-  value: 300,
-  op: "set"
-});
-```
-
-</RequestExample>
-
-<ResponseExample>
-```ts
-{
-  result: {
-    "remaining": 300
-  }
-}
-```
-
-</ResponseExample>

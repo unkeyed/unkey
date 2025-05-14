@@ -3,6 +3,33 @@ title: "Delete Override"
 description: "Deletes an override"
 ---
 
+<RequestExample>
+
+```ts
+const {result,error} = await unkey.ratelimits.deleteOverride({
+    identifier: "user_123",
+    namespaceName: "email.outbound",
+})
+
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+
+console.log(result);
+```
+</RequestExample>
+
+<ResponseExample>
+    ```ts
+    {
+      result: {}
+    }
+    ```
+</ResponseExample>
+
 ## Request
 <ParamField body="identifier" type="string" required>
 Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
@@ -22,23 +49,6 @@ Namespaces group different limits together for better analytics. You might have 
 
 
 ## Response
-
-No response, but if no error is returned the override has been deleted successfully.
-
-
-<RequestExample>
-
-```ts
-await unkey.ratelimits.deleteOverride({
-    identifier: "user_123",
-    namespaceName: "email.outbound",
-})
-```
-```ts
-await unkey.ratelimits.deleteOverride({
-    identifier: "user_123",
-    namespaceId: "rlns_1234",
-})
-```
-
-</RequestExample>
+<ResponseField name="result">
+    `{}`
+</ResponseField>

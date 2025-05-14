@@ -315,7 +315,13 @@
                           "libraries/ts/sdk/keys/update",
                           "libraries/ts/sdk/keys/update-remaining",
                           "libraries/ts/sdk/keys/delete",
-                          "libraries/ts/sdk/keys/verifications"
+                          "libraries/ts/sdk/keys/verifications",
+                          "libraries/ts/sdk/keys/add-permission",
+                          "libraries/ts/sdk/keys/remove-permission",
+                          "libraries/ts/sdk/keys/set-permission",
+                          "libraries/ts/sdk/keys/add-roles",
+                          "libraries/ts/sdk/keys/remove-roles",
+                          "libraries/ts/sdk/keys/set-roles"
                         ]
                       },
                       {

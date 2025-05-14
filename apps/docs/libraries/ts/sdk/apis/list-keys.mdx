@@ -139,13 +139,19 @@ In milliseconds
 <RequestExample>
 
 ```ts
-const listKeys = await unkey.apis.listKeys({
+const { result, error } = await unkey.apis.listKeys({
   apiId: "api_QUGih1EMtBy9eSSf3vujmF",
   limit: 100,
 })
 
-console.log(listKeys)
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
 
+console.log(result)
 ```
 
 </RequestExample>
@@ -153,7 +159,8 @@ console.log(listKeys)
 <ResponseExample>
 ```ts
 {
-  "keys": [
+  result: {
+    keys: [
     {
       "id": "key_HPnfviesBEKHnZBFFiY4fg",
       "apiId": "api_QUGih1EMtBy9eSSf3vujmF",
@@ -171,6 +178,7 @@ console.log(listKeys)
     ...
   ],
   "total": 4
+  }
 }
 ```
 

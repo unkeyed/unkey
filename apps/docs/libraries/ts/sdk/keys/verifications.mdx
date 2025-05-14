@@ -72,6 +72,14 @@ The number of requests that exceeded the usage limit.
 
 ```ts
 const { result, error } = await unkey.keys.getVerifications({ keyId: "key_123" });
+
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+console.log(result)
 ```
 
 
@@ -79,16 +87,7 @@ const { result, error } = await unkey.keys.getVerifications({ keyId: "key_123" 
 </RequestExample>
 
 <ResponseExample>
-```ts Success
-
-const { result, error } = await unkey.keys.getVerifications({ keyId: "key_123" });
-
-if (error){
-  // error will be undefined if the request was successful
-}
-
-
-// result
+```json
 {
   verifications: [
     {
@@ -103,20 +102,7 @@ if (error){
       rateLimited: 11,
       usageExceeded: 20
     },
-    // ...
   ]
-
 }
-```
-
-```ts Error
-const { result, error } = await unkey.keys.getVerifications({ keyId: "key_123" });
-
-if (error){
-  console.log(error.message);
-  // => "Key not found"
-}
-
-
 ```
 </ResponseExample>

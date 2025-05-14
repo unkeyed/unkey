@@ -3,6 +3,31 @@ title: "Delete"
 description: "Permanently delete an API and revoke all keys associated with it."
 ---
 
+<RequestExample>
+
+```ts
+const { result, error } = await unkey.apis.delete({ apiId: "api_123" });
+
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+
+console.log(result);
+```
+
+</RequestExample>
+<ResponseExample>
+```ts
+{
+  result: {}
+}
+```
+</ResponseExample>
+
+
 ## Request
 
 <ParamField body="apiId" type="string" required>
@@ -11,13 +36,6 @@ description: "Permanently delete an API and revoke all keys associated with it."
 
 ## Response
 
-No response, but if no error is returned the API has been deleted successfully.
-
-<RequestExample>
-
-```ts
-await unkey.apis.delete({ apiId: "api_123" });
-```
-
-</RequestExample>
-
+<ResponseField name="result">
+  `{}`
+</ResponseField>
