@@ -4,10 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { LogFooter } from "@/app/(app)/logs/components/table/log-details/components/log-footer";
 import { LogHeader } from "@/app/(app)/logs/components/table/log-details/components/log-header";
-import { LogMetaSection } from "@/app/(app)/logs/components/table/log-details/components/log-meta";
 import { LogSection } from "@/app/(app)/logs/components/table/log-details/components/log-section";
 import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/logs/constants";
-import { extractResponseField, safeParseJson } from "@/app/(app)/logs/utils";
+import { safeParseJson } from "@/app/(app)/logs/utils";
 import { toast } from "@/components/ui/toaster";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { useFetchRequestDetails } from "./components/hooks/use-logs-query";
@@ -102,13 +101,6 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
       />
       <div className="mt-3" />
       <LogFooter log={log} />
-      <LogMetaSection
-        content={
-          JSON.stringify(extractResponseField(log, "meta"), null, 2) === "null"
-            ? "<EMPTY>"
-            : JSON.stringify(extractResponseField(log, "meta"), null, 2)
-        }
-      />
     </ResizablePanel>
   );
 };
