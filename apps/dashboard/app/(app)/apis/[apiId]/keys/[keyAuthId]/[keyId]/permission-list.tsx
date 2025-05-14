@@ -1,7 +1,7 @@
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc/client";
+import { Checkbox } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 export type Role = {
