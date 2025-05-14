@@ -4,46 +4,46 @@ This document outlines test scenarios for the API endpoint that deletes an API.
 
 ## Happy Path Scenarios
 
-- [ ] Successfully delete an API with valid ID
-- [ ] Delete API without any associated keys
-- [ ] Delete API with associated keys (verify cascade behavior is correct)
-- [ ] Verify appropriate success response is returned
-- [ ] Verify audit log is created for the deletion
-- [ ] Delete API with delete protection disabled
-- [ ] Verify all associated resources are properly cleaned up
+- [x] Successfully delete an API with valid ID
+- [x] Delete API without any associated keys
+- [x] Delete API with associated keys (verify cascade behavior is correct)
+- [x] Verify appropriate success response is returned
+- [x] Verify audit log is created for the deletion
+- [x] Delete API with delete protection disabled
+- [x] Verify all associated resources are properly cleaned up
 
 ## Error Cases
 
-- [ ] Attempt to delete non-existent API ID
-- [ ] Attempt to delete API with invalid ID format
-- [ ] Attempt to delete API with empty ID
-- [ ] Attempt to delete API with delete protection enabled
-- [ ] Attempt to delete already deleted API
-- [ ] Attempt to delete API with malformed request
+- [x] Attempt to delete non-existent API ID
+- [x] Attempt to delete API with invalid ID format
+- [x] Attempt to delete API with empty ID
+- [x] Attempt to delete API with delete protection enabled
+- [x] Attempt to delete already deleted API
+- [x] Attempt to delete API with malformed request
 
 ## Security Tests
 
-- [ ] Attempt to delete API without authentication
-- [ ] Attempt to delete API with invalid authentication
+- [x] Attempt to delete API without authentication
+- [x] Attempt to delete API with invalid authentication
 - [ ] Attempt to delete API with expired token
-- [ ] Attempt to delete API with insufficient permissions
-- [ ] Attempt to delete API from another workspace (should be forbidden)
+- [x] Attempt to delete API with insufficient permissions
+- [x] Attempt to delete API from another workspace (should be forbidden)
 - [ ] Verify correct permissions allow API deletion:
   - [ ] Test with wildcard permission ("*")
-  - [ ] Test with specific permission ("api.*.delete_api")
-  - [ ] Test with multiple permissions including the required one
+  - [x] Test with specific permission ("api.*.delete_api")
+  - [x] Test with multiple permissions including the required one
 
 ## Database Verification
 
-- [ ] Verify API record is correctly marked as deleted in database
-- [ ] Verify associated resources are handled according to deletion policy
-- [ ] Verify delete timestamp is correctly set
-- [ ] Verify workspace ID is validated during deletion
+- [x] Verify API record is correctly marked as deleted in database
+- [x] Verify associated resources are handled according to deletion policy
+- [x] Verify delete timestamp is correctly set
+- [x] Verify workspace ID is validated during deletion
 
 ## Edge Cases
 
 - [ ] Delete API with large number of associated resources
-- [ ] Delete API that was just created
+- [x] Delete API that was just created
 - [ ] Delete API immediately after modifying it
 - [ ] Delete API with active verification requests
 - [ ] Attempt to delete API during high system load

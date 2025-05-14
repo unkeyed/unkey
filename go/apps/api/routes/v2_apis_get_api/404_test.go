@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -81,7 +82,50 @@ func TestGetApiNotFound(t *testing.T) {
 		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 
-	// Note: We can't easily test with deleted API since we don't have direct access to delete APIs
+	// Test with soft-deleted API
+	t.Run("deleted api", func(t *testing.T) {
+		// Create an API
+		apiID := uid.New(uid.APIPrefix)
+		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
+			ID:          apiID,
+			Name:        "to-be-deleted-api",
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			CreatedAtM:  time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Verify it exists
+		api, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		require.NoError(t, err)
+		require.Equal(t, apiID, api.ID)
+		require.False(t, api.DeletedAtM.Valid)
+
+		// Mark API as deleted by setting DeletedAtM
+		err = db.Query.SoftDeleteApi(ctx, h.DB.RW(), db.SoftDeleteApiParams{
+			ApiID: apiID,
+			Now:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+		require.NoError(t, err)
+
+		// Verify it's marked as deleted
+		deletedApi, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		require.NoError(t, err)
+		require.True(t, deletedApi.DeletedAtM.Valid)
+
+		// Attempt to get the deleted API
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+			h,
+			route,
+			headers,
+			handler.Request{
+				ApiId: apiID,
+			},
+		)
+
+		require.Equal(t, 404, res.Status)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/api_not_found", res.Body.Error.Type)
+		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
+	})
 
 	// Test with empty API ID
 	t.Run("empty api id", func(t *testing.T) {

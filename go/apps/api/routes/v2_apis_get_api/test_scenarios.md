@@ -4,51 +4,55 @@ This document outlines test scenarios for the API endpoint that retrieves API de
 
 ## Happy Path Scenarios
 
-- [ ] Successfully retrieve an existing API by ID
-- [ ] Retrieve API with all associated fields populated
-- [ ] Retrieve API with minimal fields populated
-- [ ] Verify response structure matches specification
-- [ ] Verify all expected fields are returned (name, ID, creation timestamp, etc.)
-- [ ] Verify API with auth type "key" returns correct configuration
-- [ ] Verify API with delete protection enabled shows correct flag
+- [x] Successfully retrieve an existing API by ID
+- [x] Retrieve API with all associated fields populated
+- [x] Retrieve API with minimal fields populated
+- [x] Verify response structure matches specification
+- [x] Verify all expected fields are returned (name, ID, creation timestamp, etc.)
+- [x] Verify API with auth type "key" returns correct configuration
+- [x] Verify API with delete protection enabled shows correct flag
 
 ## Error Cases
 
-- [ ] Attempt to retrieve non-existent API ID
-- [ ] Attempt to retrieve API with invalid ID format
-- [ ] Attempt to retrieve API with empty ID
-- [ ] Attempt to retrieve deleted API (if soft delete is used)
-- [ ] Attempt to retrieve API with malformed request
+- [x] Attempt to retrieve non-existent API ID
+- [x] Attempt to retrieve API with invalid ID format
+- [x] Attempt to retrieve API with empty ID
+- [x] Attempt to retrieve deleted API (if soft delete is used)
+- [x] Attempt to retrieve API with malformed request
 
 ## Security Tests
 
-- [ ] Attempt to retrieve API without authentication
-- [ ] Attempt to retrieve API with invalid authentication
-- [ ] Attempt to retrieve API with expired token
-- [ ] Attempt to retrieve API with insufficient permissions
-- [ ] Attempt to retrieve API from another workspace (should be forbidden)
-- [ ] Verify correct permissions allow API retrieval:
-  - [ ] Test with wildcard permission ("*")
-  - [ ] Test with specific permission ("api.*.get_api")
-  - [ ] Test with multiple permissions including the required one
+- [x] Attempt to retrieve API without authentication
+- [x] Attempt to retrieve API with invalid authentication
+- [ ] ~~Attempt to retrieve API with expired token~~ *(Not applicable - tokens don't have time-based expiration in this implementation)*
+- [x] Attempt to retrieve API with insufficient permissions
+- [x] Attempt to retrieve API from another workspace (should be forbidden)
+- [x] Verify correct permissions allow API retrieval:
+  - [x] Test with wildcard permission ("*")
+  - [x] Test with specific permission ("api.*.get_api")
+  - [x] Test with multiple permissions including the required one
 
 ## Database Verification
 
-- [ ] Verify returned data matches database record
-- [ ] Verify sensitive fields are not exposed
-- [ ] Verify timestamps are correctly formatted
-- [ ] Verify relationships are correctly represented (if applicable)
+- [x] Verify returned data matches database record
+- [x] Verify sensitive fields are not exposed
+- [x] Verify timestamps are correctly formatted
+- [x] Verify relationships are correctly represented (if applicable)
 
 ## Edge Cases
 
-- [ ] Retrieve API with very long name
-- [ ] Retrieve API with special characters in name
-- [ ] Retrieve API created at edge of time boundary (e.g., during DST change)
-- [ ] Retrieve API with Unicode characters in fields
-- [ ] Retrieve recently created API
-- [ ] Retrieve API that was recently updated
+- [x] Retrieve API with very long name
+- [x] Retrieve API with special characters in name
+- [ ] Retrieve API with edge of time boundary (e.g., during DST change)
+- [x] Retrieve API with Unicode characters in fields
+- [x] Retrieve recently created API
+- [x] Retrieve API that was recently updated
 
 ## Performance Tests
+
+> Note: Performance tests were intentionally excluded because they add limited value in their current form 
+> and tend to be brittle across different environments. In a real-world project, performance testing 
+> would be better implemented as separate load tests with proper benchmarking tools.
 
 - [ ] Measure response time for API retrieval
 - [ ] Test concurrent retrieval of same API
@@ -57,8 +61,8 @@ This document outlines test scenarios for the API endpoint that retrieves API de
 
 ## Integration Tests
 
-- [ ] Verify newly created API can be retrieved immediately
-- [ ] Verify changes to API are reflected in subsequent retrievals
+- [x] Verify newly created API can be retrieved immediately
+- [x] Verify changes to API are reflected in subsequent retrievals
 - [ ] Verify consistency between list APIs and get API endpoints
 - [ ] Verify audit logging works correctly for API retrieval
 - [ ] Verify metrics are correctly recorded for API retrieval operations
