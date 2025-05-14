@@ -24,10 +24,11 @@ export class CountKeys extends WorkflowEntrypoint<Env, Params> {
 
     const keySpaces = await step.do("fetch outdated keyspaces", async () =>
       db.query.keyAuth.findMany({
-        where: (table, { or, and, isNull, lt }) =>
+        where: (table, { or, and, isNull, lt, not, like }) =>
           and(
             isNull(table.deletedAtM),
             or(isNull(table.sizeLastUpdatedAt), lt(table.sizeLastUpdatedAt, now - 600_000)),
+            not(like(table.id, "test_%")),
           ),
         orderBy: (table, { asc }) => asc(table.sizeLastUpdatedAt),
         limit: 200,

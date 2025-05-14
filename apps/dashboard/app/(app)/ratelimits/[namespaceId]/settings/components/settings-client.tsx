@@ -53,7 +53,7 @@ export const SettingsClient = ({ namespace }: Props) => {
   return (
     <>
       <div className="py-3 w-full flex items-center justify-center">
-        <div className="w-[760px] flex flex-col justify-center items-center gap-5 mx-6">
+        <div className="w-[900px] flex flex-col justify-center items-center gap-5 mx-6">
           <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
             Ratelimit Settings
           </div>
@@ -69,7 +69,7 @@ export const SettingsClient = ({ namespace }: Props) => {
                 }
                 border="top"
                 className="border-b-1"
-                contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
+                contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
               >
                 <div className="flex flex-row justify-end items-center gap-x-2 mt-2">
                   <Input
@@ -100,7 +100,7 @@ export const SettingsClient = ({ namespace }: Props) => {
                     readOnly
                     defaultValue={namespace.id}
                     placeholder="Namespace name"
-                    className="w-[315px] focus:ring-0 focus:ring-offset-0"
+                    className="w-[322px] focus:ring-0 focus:ring-offset-0"
                     rightIcon={
                       <button
                         type="button"

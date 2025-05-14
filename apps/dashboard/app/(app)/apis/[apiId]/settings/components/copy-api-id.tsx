@@ -10,11 +10,11 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
         <div className="max-w-[380px]">An identifier for the API, used in some API calls.</div>
       }
       border="bottom"
-      contentWidth="w-full lg:w-[320px] justify-end items-end"
+      contentWidth="w-full lg:w-[420px] justify-end items-center"
     >
-      <div className="flex flex-row justify-end items-center gap-x-2 mt-1">
+      <div className="flex flex-row justify-end items-center gap-x-2">
         <Input
-          className="min-w-[315px] focus:ring-0 focus:ring-offset-0"
+          className="min-w-[322px] focus:ring-0 focus:ring-offset-0"
           readOnly
           defaultValue={apiId}
           placeholder="API ID"
