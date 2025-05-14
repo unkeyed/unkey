@@ -1,7 +1,7 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
+import { TooltipProvider } from "@unkey/ui";
 import "@/styles/tailwind/tailwind.css";
 import "@unkey/ui/css";
 

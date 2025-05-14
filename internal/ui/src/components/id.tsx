@@ -2,7 +2,7 @@
 import { TaskChecked, TaskUnchecked } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
+import { InfoTooltip } from "./info-tooltip";
 
 type IdProps = {
   /**
@@ -55,20 +55,15 @@ export const Id: React.FC<IdProps> = ({ className, value, truncate, ...props }) 
       {...props}
     >
       {truncateValue}
-      <Tooltip>
-        <div className="absolute flex h-8 w-8 top-0 right-0 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity">
-          <TooltipTrigger asChild>
-            <div className=" flex justify-end border w-full border-none h-full bg-accent-1">
-              {!isCopied ? (
-                <TaskUnchecked className="item-end my-auto mr-2 bg-gray-1" />
-              ) : (
-                <TaskChecked className="item-end my-auto mr-2 bg-gray-1" />
-              )}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Copy ID</TooltipContent>
+      <InfoTooltip position={{ side: "bottom" }} content={value}>
+        <div className=" flex justify-end border w-full border-none h-full bg-accent-1">
+          {!isCopied ? (
+            <TaskUnchecked className="item-end my-auto mr-2 bg-gray-1" />
+          ) : (
+            <TaskChecked className="item-end my-auto mr-2 bg-gray-1" />
+          )}
         </div>
-      </Tooltip>
+      </InfoTooltip>
     </button>
   );
 };

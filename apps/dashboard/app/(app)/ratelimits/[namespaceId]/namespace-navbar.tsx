@@ -85,7 +85,9 @@ export const NamespaceNavbar = ({
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <NavbarActionButton onClick={() => setOpen(true)}>Override Identifier</NavbarActionButton>
+          <NavbarActionButton title="Override Identifier" onClick={() => setOpen(true)}>
+            Override Identifier
+          </NavbarActionButton>
           <CopyableIDButton value={namespace.id} />
         </Navbar.Actions>
       </Navbar>

@@ -22,7 +22,7 @@ import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@unkey/ui";
+import { Button, InfoTooltip } from "@unkey/ui";
 import {
   ArrowUpDown,
   Check,
@@ -102,15 +102,17 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       accessorKey: "start",
       header: "Key",
       cell: ({ row }) => (
-        <Tooltip>
-          <TooltipTrigger>
-            <Badge variant="secondary">{row.getValue("start")}...</Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            This is the first part of the key to visually match it. We don't store the full key for
-            security reasons.
-          </TooltipContent>
-        </Tooltip>
+        <InfoTooltip
+          asChild
+          content={
+            <p>
+              This is the first part of the key to visually match it. We don't store the full key
+              for security reasons.
+            </p>
+          }
+        >
+          <Badge variant="secondary">{row.getValue("start")}...</Badge>
+        </InfoTooltip>
       ),
     },
     {
