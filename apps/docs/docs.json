@@ -337,6 +337,16 @@
                         ]
                       },
                       {
+                        "group": "Identities",
+                        "pages": [
+                          "libraries/ts/sdk/identities/create-identity",
+                          "libraries/ts/sdk/identities/get-identity",
+                          "libraries/ts/sdk/identities/update-identity",
+                          "libraries/ts/sdk/identities/list-identity",
+                          "libraries/ts/sdk/identities/delete-identity"
+                        ]
+                      },
+                      {
                         "group": "Ratelimits",
                         "pages": [
                           "libraries/ts/sdk/ratelimits/limit",
@@ -420,7 +430,12 @@
                         ]
                       }
                     ]
-                  },
+                  }
+                ]
+              },
+              {
+                "group": "Community Libraries",
+                "pages": [
                   {
                     "group": "Elixir",
                     "pages": [

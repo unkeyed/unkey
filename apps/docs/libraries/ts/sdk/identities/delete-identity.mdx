@@ -1,13 +1,13 @@
 ---
-title: "Delete A Permission"
-description: "Delete a permission from the Unkey system"
+title: "Delete An Identity"
+description: "Delete an identity. This will not revoke the keys associated with the identity."
 ---
 
 <RequestExample>
 
 ```ts
-const { result, error } = await unkey.permissions.deletePermission({
-  permissionId: "perm_1234",
+const { result, error } = await unkey.identities.delete({
+  identityId: "id_1234"
 });
 
 if (error) {
@@ -16,6 +16,7 @@ if (error) {
   console.error(error.message);
   return;
 }
+
 console.log(result);
 ```
 
@@ -29,17 +30,10 @@ console.log(result);
 ```
 </ResponseExample>
 
-
-<Note>
-To use this function, your root key must have the `rbac.*.delete_permission`
-</Note>
-
 ## Request
 
-<ParamField body="permissionId" type="string" required>
-    The id of the permission to delete
-
-    Example: `"perm_123"`
+<ParamField path="identityId" type="string" required>
+  The ID of the identity you want to delete.
 </ParamField>
 
 ## Response
