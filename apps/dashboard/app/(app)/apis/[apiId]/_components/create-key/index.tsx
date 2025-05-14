@@ -151,7 +151,7 @@ export const CreateKeyDialog = ({
           <NavigableDialogRoot
             isOpen={isSettingsOpen}
             onOpenChange={handleOpenChange}
-            dialogClassName="!min-w-[760px] max-h-[90vh] overflow-y-auto"
+            dialogClassName="w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[940px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]"
           >
             <NavigableDialogHeader
               title="New Key"
@@ -171,7 +171,6 @@ export const CreateKeyDialog = ({
                   id: section.id,
                   content: section.content(),
                 }))}
-                className="min-h-[600px]"
               />
             </NavigableDialogBody>
             <NavigableDialogFooter>
