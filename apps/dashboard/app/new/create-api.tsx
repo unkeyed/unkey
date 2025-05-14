@@ -10,12 +10,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { Code2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -91,7 +90,7 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
                     <FormLabel>API Name</FormLabel>
                     <FormMessage className="text-xs" />
                     <FormControl>
-                      <Input {...field} />
+                      <FormInput {...field} />
                     </FormControl>
                     <FormDescription>
                       <p>What should your api be called?</p>
@@ -106,7 +105,7 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
                   variant="primary"
                   disabled={createApi.isLoading || !form.formState.isValid}
                   type="submit"
-                  className="w-full"
+                  className="w-full h-9"
                 >
                   {createApi.isLoading ? <Loading /> : "Create API"}
                 </Button>

@@ -9,14 +9,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import { FormInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { Plus } from "lucide-react";
+import {  Plus } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -125,10 +124,9 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input
+                    <FormInput
                       placeholder="hey@unkey.dev"
                       {...field}
-                      className=" dark:focus:border-gray-700"
                     />
                   </FormControl>
                   <FormMessage />

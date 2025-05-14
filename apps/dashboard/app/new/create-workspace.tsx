@@ -10,13 +10,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useTransition } from "react";
@@ -126,7 +125,7 @@ export const CreateWorkspace: React.FC = () => {
                   <FormLabel>Name</FormLabel>
                   <FormMessage className="text-xs" />
                   <FormControl>
-                    <Input {...field} />
+                    <FormInput {...field} />
                   </FormControl>
                   <FormDescription>What should your workspace be called?</FormDescription>
                 </FormItem>
@@ -138,7 +137,7 @@ export const CreateWorkspace: React.FC = () => {
                 variant="primary"
                 disabled={createWorkspace.isLoading || isPending || !form.formState.isValid}
                 type="submit"
-                className="w-full"
+                className="w-full h-9"
               >
                 {createWorkspace.isLoading || isPending ? <Loading /> : "Create Workspace"}
               </Button>
