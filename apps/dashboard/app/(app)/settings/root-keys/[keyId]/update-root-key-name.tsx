@@ -1,13 +1,6 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
@@ -34,11 +27,11 @@ type Props = {
 
 export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
-  
+
   const {
     handleSubmit,
     control,
-    formState: { errors, isValid, isSubmitting },
+    formState: { errors, isValid },
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -74,15 +67,15 @@ export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
         <CardContent className="flex justify-between item-center pt-2 mb-10">
           <div className={cn("flex flex-col space-y-2 w-full")}>
             <input type="hidden" name="keyId" value={apiKey.id} />
-            
+
             <Controller
               control={control}
               name="name"
               render={({ field }) => (
-                <FormInput 
+                <FormInput
                   {...field}
-                  type="string" 
-                  className="h-8 max-w-sm" 
+                  type="string"
+                  className="h-8 max-w-sm"
                   autoComplete="off"
                   description="Give your root key a name. This is optional and not customer facing."
                   wrapperClassName="w-full h-full"
@@ -93,8 +86,8 @@ export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
           </div>
         </CardContent>
         <CardFooter className="justify-end">
-          <Button 
-            disabled={updateName.isLoading || !isValid} 
+          <Button
+            disabled={updateName.isLoading || !isValid}
             type="submit"
             loading={updateName.isLoading}
           >
