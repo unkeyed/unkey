@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"testing"
 	"time"
 
@@ -74,8 +75,8 @@ func TestForbidden(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/auth/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Equal(t, res.Body.Error.Detail, "insufficient permission")
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Regexp(t, regexp.MustCompile(`^Missing one of these permissions: \[.*\], have: \[.*\]$`), res.Body.Error.Detail)
 	})
 
 	t.Run("permission for specific identity only", func(t *testing.T) {
@@ -92,8 +93,8 @@ func TestForbidden(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, specificHeaders, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/auth/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Equal(t, res.Body.Error.Detail, "insufficient permission")
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Regexp(t, regexp.MustCompile(`^Missing one of these permissions: \[.*\], have: \[.*\]$`), res.Body.Error.Detail)
 
 		// Try to access the permitted identity, should succeed
 		req = handler.Request{
@@ -118,7 +119,7 @@ func TestForbidden(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, specificHeaders, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/auth/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Equal(t, res.Body.Error.Detail, "insufficient permission")
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Regexp(t, regexp.MustCompile(`^Missing one of these permissions: \[.*\], have: \[.*\]$`), res.Body.Error.Detail)
 	})
 }

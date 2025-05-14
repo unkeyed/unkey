@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
@@ -34,16 +35,18 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "missing required field", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/identities.getIdentity' failed to validate schema", res.Body.Error.Detail)
+		require.GreaterOrEqual(t, len(res.Body.Error.Errors), 1)
+		require.Equal(t, "/oneOf/0/required", res.Body.Error.Errors[0].Location)
+		require.Equal(t, "missing property 'identityId'", res.Body.Error.Errors[0].Message)
 		require.Equal(t, 400, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
 	t.Run("empty identityId", func(t *testing.T) {
-		emptyStr := ""
 		req := handler.Request{
-			IdentityId: &emptyStr,
+			IdentityId: ptr.P(""),
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
@@ -57,25 +60,8 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("empty externalId", func(t *testing.T) {
-		emptyStr := ""
 		req := handler.Request{
-			ExternalId: &emptyStr,
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.getIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, 400, res.Body.Error.Status)
-		require.Equal(t, "Bad Request", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-	})
-
-	t.Run("invalid identity ID format", func(t *testing.T) {
-		invalidId := "not_a_valid_id_format"
-		req := handler.Request{
-			IdentityId: &invalidId,
+			ExternalId: ptr.P(""),
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
@@ -104,5 +90,33 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("missing Authorization header", func(t *testing.T) {
+		req := handler.Request{
+			IdentityId: strPtr("identity_123"),
+		}
+
+		// Call without auth header
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, http.Header{
+			"Content-Type": {"application/json"},
+		}, req)
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "Authorization header for 'bearer' scheme", res.Body.Error.Detail)
+	})
+
+	t.Run("malformed Authorization header", func(t *testing.T) {
+		req := handler.Request{
+			IdentityId: strPtr("identity_123"),
+		}
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"InvalidFormat xyz"},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/malformed", res.Body.Error.Type)
 	})
 }

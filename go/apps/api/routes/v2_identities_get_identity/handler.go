@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -86,7 +85,7 @@ func New(svc Services) zen.Route {
 			if errors.Is(err, sql.ErrNoRows) {
 				return fault.New("identity not found",
 					fault.WithCode(codes.Data.Identity.NotFound.URN()),
-					fault.WithDesc("identity not found", fmt.Sprintf("Identity not found in this workspace")),
+					fault.WithDesc("identity not found", "This identity does not exist."),
 				)
 			}
 			return fault.Wrap(err,

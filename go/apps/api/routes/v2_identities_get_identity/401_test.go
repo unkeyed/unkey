@@ -26,32 +26,6 @@ func TestUnauthorized(t *testing.T) {
 
 	h.Register(route)
 
-	t.Run("missing Authorization header", func(t *testing.T) {
-		req := handler.Request{
-			IdentityId: strPtr("identity_123"),
-		}
-
-		// Call without auth header
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, nil, req)
-		require.Equal(t, http.StatusUnauthorized, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/auth/authorization/missing_credential", res.Body.Error.Type)
-		require.Equal(t, "You need to provide credentials to access this resource.", res.Body.Error.Detail)
-	})
-
-	t.Run("malformed Authorization header", func(t *testing.T) {
-		req := handler.Request{
-			IdentityId: strPtr("identity_123"),
-		}
-
-		// Invalid format
-		headers := http.Header{
-			"Authorization": {"InvalidFormat xyz"},
-		}
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusUnauthorized, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/auth/authorization/bearer_format", res.Body.Error.Type)
-	})
-
 	t.Run("invalid root key", func(t *testing.T) {
 		req := handler.Request{
 			IdentityId: strPtr("identity_123"),
@@ -59,10 +33,11 @@ func TestUnauthorized(t *testing.T) {
 
 		// Non-existent key
 		headers := http.Header{
+			"Content-Type":  {"application/json"},
 			"Authorization": {"Bearer invalid_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/auth/authentication/invalid_key", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/key_not_found", res.Body.Error.Type)
 	})
 }
