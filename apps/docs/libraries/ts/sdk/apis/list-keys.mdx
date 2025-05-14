@@ -3,6 +3,54 @@ title: "List Keys"
 description: "Get a list of keys belonging to an API"
 ---
 
+<RequestExample>
+
+```ts
+const { result, error } = await unkey.apis.listKeys({
+  apiId: "api_QUGih1EMtBy9eSSf3vujmF",
+  limit: 100,
+})
+
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+
+console.log(result)
+```
+
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  result: {
+    keys: [
+    {
+      "id": "key_HPnfviesBEKHnZBFFiY4fg",
+      "apiId": "api_QUGih1EMtBy9eSSf3vujmF",
+      "workspaceId": "ws_o17fS1LvwtRswPdncAcUM",
+      "start": "key_Crg",
+      "createdAt": 1687642066782,
+      "expires": null,
+      "ratelimit": {
+        "type": "fast",
+        "limit": 11,
+        "refillRate": 11,
+        "refillInterval": 11
+      }
+    },
+    ...
+  ],
+  "total": 4
+  }
+}
+```
+
+</ResponseExample>
+
 ## Request
 
 <ParamField body="apiId" type="string" required>
@@ -135,51 +183,3 @@ In milliseconds
 
 </Expandable>
 </ResponseField>
-
-<RequestExample>
-
-```ts
-const { result, error } = await unkey.apis.listKeys({
-  apiId: "api_QUGih1EMtBy9eSSf3vujmF",
-  limit: 100,
-})
-
-if (error) {
-  // handle potential network or bad request error
-  // a link to our docs will be in the `error.docs` field
-  console.error(error.message);
-  return;
-}
-
-console.log(result)
-```
-
-</RequestExample>
-
-<ResponseExample>
-```ts
-{
-  result: {
-    keys: [
-    {
-      "id": "key_HPnfviesBEKHnZBFFiY4fg",
-      "apiId": "api_QUGih1EMtBy9eSSf3vujmF",
-      "workspaceId": "ws_o17fS1LvwtRswPdncAcUM",
-      "start": "key_Crg",
-      "createdAt": 1687642066782,
-      "expires": null,
-      "ratelimit": {
-        "type": "fast",
-        "limit": 11,
-        "refillRate": 11,
-        "refillInterval": 11
-      }
-    },
-    ...
-  ],
-  "total": 4
-  }
-}
-```
-
-</ResponseExample>
