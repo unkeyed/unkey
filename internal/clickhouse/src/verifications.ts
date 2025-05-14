@@ -194,6 +194,23 @@ type TimeInterval = {
 };
 
 const INTERVALS: Record<string, TimeInterval> = {
+  // Minute-based intervals
+  minute: {
+    table: "verifications.key_verifications_per_minute_v1",
+    step: "MINUTE",
+    stepSize: 1,
+  },
+  fiveMinutes: {
+    table: "verifications.key_verifications_per_minute_v1",
+    step: "MINUTE",
+    stepSize: 5,
+  },
+  thirtyMinutes: {
+    table: "verifications.key_verifications_per_minute_v1",
+    step: "MINUTE",
+    stepSize: 30,
+  },
+  // Hour-based intervals
   hour: {
     table: "verifications.key_verifications_per_hour_v3",
     step: "HOUR",
@@ -201,24 +218,25 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
   twoHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 2,
   },
   fourHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 4,
   },
   sixHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 6,
   },
   twelveHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 12,
   },
+  // Day-based intervals
   day: {
     table: "verifications.key_verifications_per_day_v3",
     step: "DAY",
@@ -226,17 +244,17 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
   threeDays: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 3,
   },
   week: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 7,
   },
   twoWeeks: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 14,
   },
   // Monthly-based intervals
@@ -247,29 +265,25 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
   quarter: {
     table: "verifications.key_verifications_per_month_v3",
-    step: "MONTHS",
+    step: "MONTH",
     stepSize: 3,
   },
 } as const;
 
 function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: string) {
   const intervalUnit = {
+    MINUTE: "minute",
     HOUR: "hour",
-    HOURS: "hour",
     DAY: "day",
-    DAYS: "day",
     MONTH: "month",
-    MONTHS: "month",
   }[interval.step];
 
   // For millisecond step calculation
   const msPerUnit = {
+    MINUTE: 60_000,
     HOUR: 3600_000,
-    HOURS: 3600_000,
     DAY: 86400_000,
-    DAYS: 86400_000,
     MONTH: 2592000_000,
-    MONTHS: 2592000_000,
   }[interval.step];
 
   const stepMs = msPerUnit! * interval.stepSize;
@@ -484,38 +498,46 @@ function mergeVerificationTimeseriesResults(
   return Array.from(mergedMap.values()).sort((a, b) => a.x - b.x);
 }
 
+// Minute-based timeseries
+export const getMinutelyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.minute, args);
+export const getFiveMinutelyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.fiveMinutes, args);
+export const getThirtyMinutelyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.thirtyMinutes, args);
+
+// Hour-based timeseries
 export const getHourlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.hour, args);
-
 export const getTwoHourlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.twoHours, args);
-
 export const getFourHourlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.fourHours, args);
-
 export const getSixHourlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.sixHours, args);
-
 export const getTwelveHourlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.twelveHours, args);
 
+// Day-based timeseries
 export const getDailyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.day, args);
-
 export const getThreeDayVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.threeDays, args);
-
 export const getWeeklyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.week, args);
 
+// Month-based timeseries
 export const getMonthlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.month, args);
