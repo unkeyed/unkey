@@ -74,7 +74,10 @@
                   {
                     "group": "Identities",
                     "icon": "fingerprint",
-                    "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+                    "pages": [
+                      "concepts/identities/overview",
+                      "concepts/identities/ratelimits"
+                    ]
                   }
                 ]
               },
@@ -344,6 +347,33 @@
                               "libraries/ts/sdk/ratelimits/overrides/get-override",
                               "libraries/ts/sdk/ratelimits/overrides/list-overrides",
                               "libraries/ts/sdk/ratelimits/overrides/delete-override"
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "group": "Migrations",
+                        "pages": [
+                          "libraries/ts/sdk/migrations/migrate-to-unkey"
+                        ]
+                      },
+                      {
+                        "group": "Permissions",
+                        "pages": [
+                          {
+                            "group": "Roles",
+                            "pages": [
+                              "libraries/ts/sdk/permissions/create-role",
+                              "libraries/ts/sdk/permissions/get-role",
+                              "libraries/ts/sdk/permissions/delete-role"
+                            ]
+                          },
+                          {
+                            "group": "Permissions",
+                            "pages": [
+                              "libraries/ts/sdk/permissions/create-permission",
+                              "libraries/ts/sdk/permissions/get-permission",
+                              "libraries/ts/sdk/permissions/delete-permission"
                             ]
                           }
                         ]
