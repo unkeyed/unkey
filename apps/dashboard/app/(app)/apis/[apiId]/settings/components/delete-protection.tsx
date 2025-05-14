@@ -88,16 +88,15 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       }
       description={
         api.deleteProtection ? (
-          <div>Disabling this allows the API, along with all keys and data, to be deleted.</div>
+          <p>Disabling this allows the API, along with all keys and data, to be deleted.</p>
         ) : (
-          <div>Enabling this prevents the API from being deleted.</div>
+          <p>Enabling this prevents the API from being deleted.</p>
         )
       }
       border="top"
       className="border-b-1"
-      contentWidth="w-full lg:w-[320px]"
     >
-      <div className="flex w-full gap-2 lg:items-center justify-end lg:mt-1">
+      <div className="flex w-full gap-2 lg:items-center justify-end">
         {api.deleteProtection ? (
           <Button
             type="button"

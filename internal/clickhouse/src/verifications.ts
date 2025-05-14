@@ -225,12 +225,12 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
   fiveMinutes: {
     table: "verifications.key_verifications_per_minute_v1",
-    step: "MINUTES",
+    step: "MINUTE",
     stepSize: 5,
   },
   thirtyMinutes: {
     table: "verifications.key_verifications_per_minute_v1",
-    step: "MINUTES",
+    step: "MINUTE",
     stepSize: 30,
   },
   // Hour-based intervals
@@ -241,22 +241,22 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
   twoHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 2,
   },
   fourHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 4,
   },
   sixHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 6,
   },
   twelveHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 12,
   },
   // Day-based intervals
@@ -267,17 +267,17 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
   threeDays: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 3,
   },
   week: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 7,
   },
   twoWeeks: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 14,
   },
   // Monthly-based intervals
@@ -288,7 +288,7 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
   quarter: {
     table: "verifications.key_verifications_per_month_v3",
-    step: "MONTHS",
+    step: "MONTH",
     stepSize: 3,
   },
 } as const;
@@ -296,25 +296,17 @@ const INTERVALS: Record<string, TimeInterval> = {
 function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: string) {
   const intervalUnit = {
     MINUTE: "minute",
-    MINUTES: "minute",
     HOUR: "hour",
-    HOURS: "hour",
     DAY: "day",
-    DAYS: "day",
     MONTH: "month",
-    MONTHS: "month",
   }[interval.step];
 
   // For millisecond step calculation
   const msPerUnit = {
     MINUTE: 60_000,
-    MINUTES: 60_000,
     HOUR: 3600_000,
-    HOURS: 3600_000,
     DAY: 86400_000,
-    DAYS: 86400_000,
     MONTH: 2592000_000,
-    MONTHS: 2592000_000,
   }[interval.step];
 
   const stepMs = msPerUnit! * interval.stepSize;

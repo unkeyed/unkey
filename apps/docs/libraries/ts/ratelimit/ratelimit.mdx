@@ -3,22 +3,11 @@ title: "Ratelimit"
 description: "Serverless ratelimiting"
 ---
 
-> ( Globally consistent, fast ) - choose two
 
 `@unkey/ratelimit` is a library for fast global ratelimiting in serverless functions.
 
 
-**TLDR:**
-```ts
-const { success } = await unkey.limit("my-user-id")
-if (!success){
-  // reject request
-}
-// handle request
-```
-
-
-<Card icon="github" title="github.com/unkeyed/sdks/tree/main/ts/ratelimit" href="https://github.com/unkeyed/sdks/tree/main/ts/ratelimit"/>
+<Card icon="github" title="github.com/unkeyed/sdks/tree/main/ratelimit/ts" href="https://github.com/unkeyed/sdks/tree/main/ratelimit/ts"/>
 
 
 ## Install
@@ -58,7 +47,6 @@ const unkey = new Ratelimit({
   namespace: "my-app",
   limit: 10,
   duration: "30s",
-  async: true
 })
 ```
 
@@ -230,28 +218,6 @@ Expensive requests may use up more resources. You can specify a cost to the requ
 
 
 
-</ParamField>
-
-<ParamField body="async" type="boolean" default={false}>
-Do not wait for a response from the origin. Faster but less accurate.
-
-We observe a 97%+ accuracy when using `async` mode with significantly lower latency.
-</ParamField>
-
-
-<ParamField body="meta" type=" Record<string, string | number | boolean | null>;">
-Record arbitrary data about this request. This does not affect the limit itself but can help you debug later.
-</ParamField>
-
-<ParamField body="resources" type="Array<{
-    type: string;
-    id: string;
-    name?: string;
-    meta?: Record<string, string | number | boolean | null>;
-  }>">
-Specify which resources this request would access and we'll create a papertrail for you.
-
-See [app.unkey.com/audit](https://app.unkey.com/audit) for details.
 </ParamField>
 
 

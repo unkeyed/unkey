@@ -55,6 +55,8 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   context: TContext,
   startTime?: number | null,
   endTime?: number | null,
+  // INFO: We'll delete this once key details is merged. Required for accumulating data for minutely charts before merging the key details.
+  allowMinutelyForVerifications = false,
 ): TimeseriesConfig<TContext> => {
   const now = Date.now();
   const WEEK_IN_MS = DAY_IN_MS * 7;
