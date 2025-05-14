@@ -1,25 +1,30 @@
 package handler_test
 
 import (
+	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	"github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity/handler"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := handler.New(handler.Services{
-		Logger:      h.Logger(),
-		DB:          h.Database(),
-		Keys:        h.Keys(),
-		Permissions: h.Permissions(),
+		Logger:      h.Logger,
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Permissions: h.Permissions,
 	})
 
-	rootKeyID := h.CreateRootKey()
-	headers := testutil.RootKeyAuth(rootKeyID)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
 
 	t.Run("missing both identityId and externalId", func(t *testing.T) {
 		req := handler.Request{}
@@ -37,7 +42,7 @@ func TestBadRequests(t *testing.T) {
 	t.Run("empty identityId", func(t *testing.T) {
 		emptyStr := ""
 		req := handler.Request{
-			identityID: &emptyStr,
+			IdentityId: &emptyStr,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
@@ -53,7 +58,7 @@ func TestBadRequests(t *testing.T) {
 	t.Run("empty externalId", func(t *testing.T) {
 		emptyStr := ""
 		req := handler.Request{
-			externalID: &emptyStr,
+			ExternalId: &emptyStr,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)

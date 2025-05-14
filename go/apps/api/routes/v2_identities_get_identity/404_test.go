@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -14,22 +15,22 @@ import (
 func TestNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := handler.New(handler.Services{
-		Logger:      h.Logger(),
-		DB:          h.Database(),
-		Keys:        h.Keys(),
-		Permissions: h.Permissions(),
+		Logger:      h.Logger,
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Permissions: h.Permissions,
 	})
 
-	rootKeyID := h.CreateRootKey()
-	headers := testutil.RootKeyAuth(rootKeyID)
-
-	// Setup permissions to allow reading any identity
-	h.SetupPermissions(t, rootKeyID, h.DefaultWorkspaceID(), "identity.*.read_identity", true)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
 
 	t.Run("identity ID does not exist", func(t *testing.T) {
 		nonExistentID := uid.New(uid.IdentityPrefix)
 		req := handler.Request{
-			identityID: &nonExistentID,
+			IdentityId: &nonExistentID,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d", res.Status)
@@ -43,7 +44,7 @@ func TestNotFound(t *testing.T) {
 	t.Run("external ID does not exist", func(t *testing.T) {
 		nonExistentExternalID := "non_existent_external_id"
 		req := handler.Request{
-			externalID: &nonExistentExternalID,
+			ExternalId: &nonExistentExternalID,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d", res.Status)

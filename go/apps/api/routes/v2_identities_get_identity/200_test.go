@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -25,11 +27,15 @@ func TestSuccess(t *testing.T) {
 		Permissions: h.Permissions,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
 
 	// Setup test data
 	ctx := context.Background()
-	tx, err := h.Database().RW().Begin(ctx)
+	tx, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)
 	defer tx.Rollback()
 
@@ -86,18 +92,18 @@ func TestSuccess(t *testing.T) {
 	err = tx.Commit()
 	require.NoError(t, err)
 
-	// Set up permissions
-	h.SetupPermissions(t, rootKeyID, h.DefaultWorkspaceID(), "identity.*.read_identity", true)
+	// No need to set up permissions since we already gave the key the required permission
 
 	t.Run("get by identityId", func(t *testing.T) {
 		req := handler.Request{
-			identityID: &identityID,
+			IdentityId: &identityID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
 		// Verify response
+
 		require.Equal(t, identityID, res.Body.Data.Id)
 		require.Equal(t, externalID, res.Body.Data.ExternalId)
 
@@ -132,7 +138,7 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("get by externalId", func(t *testing.T) {
 		req := handler.Request{
-			externalID: &externalID,
+			ExternalId: &externalID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, sent: %+v, received: %s", req, res.RawBody)
@@ -157,7 +163,7 @@ func TestSuccess(t *testing.T) {
 		identityWithoutMetaID := uid.New(uid.IdentityPrefix)
 		externalIDWithoutMeta := "test_user_no_meta"
 
-		tx, err := h.Database().RW().Begin(ctx)
+		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
 		defer tx.Rollback()
 
@@ -175,7 +181,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			identityID: &identityWithoutMetaID,
+			IdentityId: &identityWithoutMetaID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -190,7 +196,7 @@ func TestSuccess(t *testing.T) {
 		identityWithoutRatelimitsID := uid.New(uid.IdentityPrefix)
 		externalIDWithoutRatelimits := "test_user_no_ratelimits"
 
-		tx, err := h.Database().RW().Begin(ctx)
+		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
 		defer tx.Rollback()
 
@@ -208,7 +214,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			identityID: &identityWithoutRatelimitsID,
+			IdentityId: &identityWithoutRatelimitsID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)

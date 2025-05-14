@@ -1,27 +1,33 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	"github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity/handler"
-	"github.com/unkeyed/unkey/go/internal/testutil"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity"
+	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
+
+// Helper function for creating string pointers
+func strPtr(s string) *string {
+	return &s
+}
 
 func TestUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := handler.New(handler.Services{
-		Logger:      h.Logger(),
-		DB:          h.Database(),
-		Keys:        h.Keys(),
-		Permissions: h.Permissions(),
+		Logger:      h.Logger,
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Permissions: h.Permissions,
 	})
 
 	t.Run("missing Authorization header", func(t *testing.T) {
 		req := handler.Request{
-			identityID: testutil.Ptr("identity_123"),
+			IdentityId: strPtr("identity_123"),
 		}
 
 		// Call without auth header
@@ -33,12 +39,12 @@ func TestUnauthorized(t *testing.T) {
 
 	t.Run("malformed Authorization header", func(t *testing.T) {
 		req := handler.Request{
-			identityID: testutil.Ptr("identity_123"),
+			IdentityId: strPtr("identity_123"),
 		}
 
 		// Invalid format
-		headers := map[string]string{
-			"Authorization": "InvalidFormat xyz",
+		headers := http.Header{
+			"Authorization": {"InvalidFormat xyz"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
@@ -47,12 +53,12 @@ func TestUnauthorized(t *testing.T) {
 
 	t.Run("invalid root key", func(t *testing.T) {
 		req := handler.Request{
-			identityID: testutil.Ptr("identity_123"),
+			IdentityId: strPtr("identity_123"),
 		}
 
 		// Non-existent key
-		headers := map[string]string{
-			"Authorization": "Bearer invalid_key",
+		headers := http.Header{
+			"Authorization": {"Bearer invalid_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)

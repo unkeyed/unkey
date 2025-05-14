@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/id"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestNotFoundErrors(t *testing.T) {
@@ -61,7 +62,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for valid-looking but non-existent permission ID
 	t.Run("valid-looking but non-existent permission ID", func(t *testing.T) {
-		nonExistentID := id.NewPermission() // Generate a valid ID format that doesn't exist
+		nonExistentID := uid.New(uid.PermissionPrefix) // Generate a valid ID format that doesn't exist
 
 		req := handler.Request{
 			PermissionId: nonExistentID,

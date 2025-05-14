@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	"github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_update_identity/handler"
-	"github.com/unkeyed/unkey/go/internal/testutil"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_update_identity"
+	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
 func TestUnauthorized(t *testing.T) {

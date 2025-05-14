@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
@@ -43,7 +42,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for deleting a permission
 	t.Run("delete permission", func(t *testing.T) {
 		// First, create a permission to delete
-		permissionID := id.NewPermission()
+		permissionID := uid.New(uid.PermissionPrefix)
 		permissionName := "test.delete.permission"
 		permissionDesc := "Test permission to be deleted"
 
@@ -93,7 +92,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for deleting a permission with relationships
 	t.Run("delete permission with relationships", func(t *testing.T) {
 		// Create a permission with role and key relationships
-		permissionID := id.NewPermission()
+		permissionID := uid.New(uid.PermissionPrefix)
 		permissionName := "test.delete.permission.with.relations"
 
 		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{

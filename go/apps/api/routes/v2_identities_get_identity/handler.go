@@ -20,6 +20,8 @@ import (
 )
 
 type Request = openapi.V2IdentitiesGetIdentityRequestBody
+
+// Response defines the response body for this endpoint
 type Response = openapi.V2IdentitiesGetIdentityResponseBody
 
 type Services struct {
@@ -41,7 +43,7 @@ func New(svc Services) zen.Route {
 			return err
 		}
 
-		// Validate that at least one of identityID or externalID is provided
+		// Validate that at least one of IdentityId or ExternalId is provided
 		if req.IdentityId == nil && req.ExternalId == nil {
 			return fault.New("missing required field",
 				fault.WithCode(codes.App.Validation.InvalidInput.URN()),
@@ -49,42 +51,7 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		// If identityId is provided, we use it to check permissions
-		permissionCheck := rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   "*",
-				Action:       rbac.ReadIdentity,
-			}),
-		)
-
-		// Add specific identity permission if identityID is provided
-		if req.IdentityId != nil {
-			permissionCheck = rbac.Or(
-				permissionCheck,
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Identity,
-					ResourceID:   *req.IdentityId,
-					Action:       rbac.ReadIdentity,
-				}),
-			)
-		}
-
-		permissions, err := svc.Permissions.Check(ctx, auth.KeyID, permissionCheck)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
-			)
-		}
-
-		if !permissions.Valid {
-			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissions.Message, permissions.Message),
-			)
-		}
-
-		// Find the identity based on either identityId or externalId
+		// Find the identity based on either IdentityId or ExternalId
 		var identity db.Identity
 		var ratelimits []db.Ratelimit
 
@@ -104,13 +71,13 @@ func New(svc Services) zen.Route {
 
 		// First try to get the identity
 		if req.IdentityId != nil {
-			// Find by identityID
+			// Find by IdentityId
 			identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
 				ID:      *req.IdentityId,
 				Deleted: false,
 			})
 		} else if req.ExternalId != nil {
-			// Find by externalID
+			// Find by ExternalId
 			identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 				ExternalID:  *req.ExternalId,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -118,7 +85,7 @@ func New(svc Services) zen.Route {
 		} else {
 			return fault.New("invalid request",
 				fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-				fault.WithDesc("either identityID or externalID must be provided", "Either identityID or externalID must be provided."),
+				fault.WithDesc("either identityId or externalId must be provided", "Either identityId or externalId must be provided."),
 			)
 		}
 
@@ -131,6 +98,34 @@ func New(svc Services) zen.Route {
 			}
 			return fault.Wrap(err,
 				fault.WithDesc("unable to find identity", "We're unable to retrieve the identity."),
+			)
+		}
+
+		// Check permissions using either wildcard or the specific identity ID
+		permissionCheck := rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   "*",
+				Action:       rbac.ReadIdentity,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   identity.ID,
+				Action:       rbac.ReadIdentity,
+			}),
+		)
+
+		permissions, err := svc.Permissions.Check(ctx, auth.KeyID, permissionCheck)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
+			)
+		}
+
+		if !permissions.Valid {
+			return fault.New("insufficient permissions",
+				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
+				fault.WithDesc(permissions.Message, permissions.Message),
 			)
 		}
 
