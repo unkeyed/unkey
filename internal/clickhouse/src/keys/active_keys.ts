@@ -60,6 +60,23 @@ type TimeInterval = {
 };
 
 const ACTIVE_KEYS_INTERVALS: Record<string, TimeInterval> = {
+  // Minute-based intervals
+  minute: {
+    table: "verifications.key_verifications_per_minute_v1",
+    step: "MINUTE",
+    stepSize: 1,
+  },
+  fiveMinutes: {
+    table: "verifications.key_verifications_per_minute_v1",
+    step: "MINUTE",
+    stepSize: 5,
+  },
+  thirtyMinutes: {
+    table: "verifications.key_verifications_per_minute_v1",
+    step: "MINUTE",
+    stepSize: 30,
+  },
+  // Hour-based intervals
   hour: {
     table: "verifications.key_verifications_per_hour_v3",
     step: "HOUR",
@@ -67,24 +84,25 @@ const ACTIVE_KEYS_INTERVALS: Record<string, TimeInterval> = {
   },
   twoHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 2,
   },
   fourHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 4,
   },
   sixHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 6,
   },
   twelveHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 12,
   },
+  // Day-based intervals
   day: {
     table: "verifications.key_verifications_per_day_v3",
     step: "DAY",
@@ -92,19 +110,20 @@ const ACTIVE_KEYS_INTERVALS: Record<string, TimeInterval> = {
   },
   threeDays: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 3,
   },
   week: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 7,
   },
   twoWeeks: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 14,
   },
+  // Monthly-based intervals
   month: {
     table: "verifications.key_verifications_per_month_v3",
     step: "MONTH",
@@ -112,29 +131,26 @@ const ACTIVE_KEYS_INTERVALS: Record<string, TimeInterval> = {
   },
   quarter: {
     table: "verifications.key_verifications_per_month_v3",
-    step: "MONTHS",
+    step: "MONTH",
     stepSize: 3,
   },
 } as const;
 
 function createActiveKeysTimeseriesQuery(interval: TimeInterval, whereClause: string) {
   const intervalUnit = {
+    MINUTE: "minute",
     HOUR: "hour",
-    HOURS: "hour",
     DAY: "day",
     DAYS: "day",
     MONTH: "month",
-    MONTHS: "month",
   }[interval.step];
 
   // For millisecond step calculation
   const msPerUnit = {
+    MINUTE: 60_000,
     HOUR: 3600_000,
-    HOURS: 3600_000,
     DAY: 86400_000,
-    DAYS: 86400_000,
     MONTH: 2592000_000,
-    MONTHS: 2592000_000,
   }[interval.step];
 
   const stepMs = msPerUnit! * interval.stepSize;
@@ -264,7 +280,18 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
     })(parameters);
   };
 }
+// Minute-based timeseries
+export const getMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.minute,
+);
+export const getFiveMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.fiveMinutes,
+);
+export const getThirtyMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.thirtyMinutes,
+);
 
+// Hour-based timeseries
 export const getHourlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
   ACTIVE_KEYS_INTERVALS.hour,
 );
@@ -280,6 +307,8 @@ export const getSixHourlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerie
 export const getTwelveHourlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
   ACTIVE_KEYS_INTERVALS.twelveHours,
 );
+
+// Day-based timeseries
 export const getDailyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
   ACTIVE_KEYS_INTERVALS.day,
 );
@@ -292,6 +321,8 @@ export const getWeeklyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
 export const getTwoWeeklyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
   ACTIVE_KEYS_INTERVALS.twoWeeks,
 );
+
+// Month-based timeseries
 export const getMonthlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
   ACTIVE_KEYS_INTERVALS.month,
 );

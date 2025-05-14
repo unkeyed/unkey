@@ -52,6 +52,8 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   context: TContext,
   startTime?: number | null,
   endTime?: number | null,
+  // INFO: We'll delete this once key details is merged. Required for accumulating data for minutely charts before merging the key details.
+  allowMinutelyForVerifications = false,
 ): TimeseriesConfig<TContext> => {
   const now = Date.now();
   const WEEK_IN_MS = DAY_IN_MS * 7;
@@ -62,7 +64,6 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   if (!startTime && !endTime) {
     const defaultGranularity = DEFAULT_GRANULARITY[context];
     const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
-
     return {
       granularity: defaultGranularity as TimeseriesGranularityMap[TContext],
       startTime: now - defaultDuration,
@@ -76,9 +77,7 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   // Set default start time if missing (defaults vary by context)
   const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
   const effectiveStartTime = startTime ?? effectiveEndTime - defaultDuration;
-
   const timeRange = effectiveEndTime - effectiveStartTime;
-
   let granularity: CompoundTimeseriesGranularity;
 
   if (context === "forVerifications") {
@@ -93,7 +92,25 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
     } else if (timeRange >= WEEK_IN_MS) {
       granularity = "perHour";
     } else {
-      granularity = "perHour";
+      // Use the minutely granularity only if allowMinutelyForVerifications is true
+      if (allowMinutelyForVerifications) {
+        if (timeRange >= DAY_IN_MS * 3) {
+          granularity = "perHour";
+        } else if (timeRange >= DAY_IN_MS) {
+          granularity = "perHour";
+        } else if (timeRange >= HOUR_IN_MS * 16) {
+          granularity = "perHour";
+        } else if (timeRange >= HOUR_IN_MS * 8) {
+          granularity = "per30Minutes";
+        } else if (timeRange >= HOUR_IN_MS * 4) {
+          granularity = "per5Minutes";
+        } else {
+          granularity = "perMinute";
+        }
+      } else {
+        // Fall back to hourly granularity if minutely is disabled
+        granularity = "perHour";
+      }
     }
   } else {
     if (timeRange >= DAY_IN_MS * 7) {
