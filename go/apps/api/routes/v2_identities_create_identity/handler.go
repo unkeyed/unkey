@@ -101,6 +101,35 @@ func New(svc Services) zen.Route {
 			meta = rawMeta
 		}
 
+		// Validate rate limits
+		if req.Ratelimits != nil {
+			for _, ratelimit := range *req.Ratelimits {
+				// Validate rate limit name is provided
+				if ratelimit.Name == "" {
+					return fault.New("invalid rate limit",
+						fault.WithCode(codes.App.Validation.InvalidInput.URN()),
+						fault.WithDesc("missing rate limit name", "Rate limit name is required."),
+					)
+				}
+
+				// Validate rate limit value is positive
+				if ratelimit.Limit <= 0 {
+					return fault.New("invalid rate limit",
+						fault.WithCode(codes.App.Validation.InvalidInput.URN()),
+						fault.WithDesc("invalid rate limit value", "Rate limit value must be greater than zero."),
+					)
+				}
+
+				// Validate duration is at least 1000ms (1 second)
+				if ratelimit.Duration < 1000 {
+					return fault.New("invalid rate limit",
+						fault.WithCode(codes.App.Validation.InvalidInput.URN()),
+						fault.WithDesc("invalid rate limit duration", "Rate limit duration must be at least 1000ms (1 second)."),
+					)
+				}
+			}
+		}
+
 		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,

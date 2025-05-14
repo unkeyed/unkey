@@ -15,11 +15,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-// Helper function for creating string pointers
-func strPtr(s string) *string {
-	return &s
-}
-
 func TestForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := handler.New(handler.Services{

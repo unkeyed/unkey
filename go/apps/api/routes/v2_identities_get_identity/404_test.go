@@ -1,13 +1,16 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -53,5 +56,47 @@ func TestNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("deleted identity", func(t *testing.T) {
+		// Create an identity that we'll mark as deleted
+		ctx := context.Background()
+		deletedIdentityID := uid.New(uid.IdentityPrefix)
+		deletedExternalID := "test_deleted_identity"
+
+		tx, err := h.DB.RW().Begin(ctx)
+		require.NoError(t, err)
+		defer tx.Rollback()
+
+		// Insert the identity
+		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+			ID:          deletedIdentityID,
+			ExternalID:  deletedExternalID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Environment: "default",
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Mark it as deleted
+		err = db.Query.SoftDeleteIdentity(ctx, tx, deletedIdentityID)
+		require.NoError(t, err)
+
+		err = tx.Commit()
+		require.NoError(t, err)
+
+		// Try to retrieve the deleted identity by ID
+		reqById := handler.Request{
+			IdentityId: &deletedIdentityID,
+		}
+		resById := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, reqById)
+		require.Equal(t, http.StatusNotFound, resById.Status, "expected 404 for deleted identity (by ID)")
+
+		// Try to retrieve the deleted identity by externalId
+		reqByExternalId := handler.Request{
+			ExternalId: &deletedExternalID,
+		}
+		resByExternalId := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, reqByExternalId)
+		require.Equal(t, http.StatusNotFound, resByExternalId.Status, "expected 404 for deleted identity (by externalId)")
 	})
 }

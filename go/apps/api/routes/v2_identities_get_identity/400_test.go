@@ -70,4 +70,38 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
+
+	t.Run("invalid identity ID format", func(t *testing.T) {
+		invalidId := "not_a_valid_id_format"
+		req := handler.Request{
+			IdentityId: &invalidId,
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/identities.getIdentity' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, 400, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("both identityId and externalId provided", func(t *testing.T) {
+		identityId := "id_123456789"
+		externalId := "external_123"
+		req := handler.Request{
+			IdentityId: &identityId,
+			ExternalId: &externalId,
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/identities.getIdentity' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, 400, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
 }

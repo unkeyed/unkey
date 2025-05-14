@@ -101,12 +101,13 @@ func TestBadRequests(t *testing.T) {
 		require.Nil(t, res.Body.Error.Instance)
 	})
 
-	t.Run("invalid ratelimit", func(t *testing.T) {
+	// Test for missing name in rate limit
+	t.Run("missing rate limit name", func(t *testing.T) {
 		req := openapi.V2IdentitiesCreateIdentityRequestBody{
 			ExternalId: uid.New("test"),
 			Ratelimits: &[]openapi.Ratelimit{
 				{
-					Duration: 1,
+					Duration: 1000,
 					Limit:    1,
 				},
 			},
@@ -123,6 +124,81 @@ func TestBadRequests(t *testing.T) {
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 		require.Nil(t, res.Body.Error.Instance)
 	})
+
+	// Test for negative limit value
+	t.Run("negative rate limit value", func(t *testing.T) {
+		req := openapi.V2IdentitiesCreateIdentityRequestBody{
+			ExternalId: uid.New("test"),
+			Ratelimits: &[]openapi.Ratelimit{
+				{
+					Name:     "test_limit",
+					Duration: 1000, // valid duration
+					Limit:    -10,  // negative limit
+				},
+			},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "Rate limit value must be greater than zero.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Nil(t, res.Body.Error.Instance)
+	})
+
+	// Test for zero limit value
+	t.Run("zero rate limit value", func(t *testing.T) {
+		req := openapi.V2IdentitiesCreateIdentityRequestBody{
+			ExternalId: uid.New("test"),
+			Ratelimits: &[]openapi.Ratelimit{
+				{
+					Name:     "test_limit",
+					Duration: 1000, // valid duration
+					Limit:    0,    // zero limit
+				},
+			},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "Rate limit value must be greater than zero.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Nil(t, res.Body.Error.Instance)
+	})
+
+	// Test for duration less than 1000ms
+	t.Run("duration less than 1000ms", func(t *testing.T) {
+		req := openapi.V2IdentitiesCreateIdentityRequestBody{
+			ExternalId: uid.New("test"),
+			Ratelimits: &[]openapi.Ratelimit{
+				{
+					Name:     "test_limit",
+					Duration: 999, // less than 1000ms
+					Limit:    100, // valid limit
+				},
+			},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "Rate limit duration must be at least 1000ms (1 second).", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Nil(t, res.Body.Error.Instance)
+	})
+
+	// Note: Testing invalid JSON directly is difficult because the Go JSON unmarshaller
+	// would reject it before our handler even sees it. This is handled at the framework level.
 
 	t.Run("missing authorization header", func(t *testing.T) {
 		headers := http.Header{
