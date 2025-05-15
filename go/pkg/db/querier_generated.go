@@ -595,6 +595,23 @@ type Querier interface {
 	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	//ListIdentities
+	//
+	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  FROM identities
+	//  WHERE workspace_id = ?
+	//  AND deleted = ?
+	//  AND id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error)
+	//ListIdentityRatelimits
+	//
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration
+	//  FROM ratelimits
+	//  WHERE identity_id = ?
+	//  ORDER BY id ASC
+	ListIdentityRatelimits(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListRatelimitOverrides
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides

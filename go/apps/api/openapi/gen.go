@@ -204,6 +204,9 @@ type IdentitiesGetIdentityResponseData struct {
 	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
 }
 
+// IdentitiesListIdentitiesResponseData List of identities matching the specified criteria.
+type IdentitiesListIdentitiesResponseData = []Identity
+
 // Identity defines model for Identity.
 type Identity struct {
 	// ExternalId External identity ID
@@ -214,6 +217,9 @@ type Identity struct {
 
 	// Meta Identity metadata
 	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Identity ratelimits
+	Ratelimits []Ratelimit `json:"ratelimits"`
 }
 
 // InternalServerErrorResponse Error response for unexpected server-side issues that prevented the request from being processed correctly. This is typically caused by problems with the service infrastructure, database connectivity issues, unexpected exceptions, or service failures. When receiving this error, clients should implement appropriate retry strategies with backoff and report the issue if it persists. The requestId in the meta object is essential for troubleshooting and should be included in any support inquiries.
@@ -544,7 +550,7 @@ type Pagination struct {
 	Cursor *string `json:"cursor,omitempty"`
 
 	// HasMore Indicates if more results exist beyond this page
-	HasMore *bool `json:"hasMore,omitempty"`
+	HasMore bool `json:"hasMore"`
 }
 
 // Permission defines model for Permission.
@@ -998,6 +1004,25 @@ type V2IdentitiesGetIdentityResponseBody struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2IdentitiesListIdentitiesRequestBody defines model for V2IdentitiesListIdentitiesRequestBody.
+type V2IdentitiesListIdentitiesRequestBody struct {
+	// Cursor Pagination cursor from a previous response. Use this to fetch subsequent pages of results when the response contains a cursor value.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit The maximum number of identities to return in a single request. Use this to control response size and loading performance.
+	Limit *int `json:"limit,omitempty"`
+}
+
+// V2IdentitiesListIdentitiesResponseBody defines model for V2IdentitiesListIdentitiesResponseBody.
+type V2IdentitiesListIdentitiesResponseBody struct {
+	// Data List of identities matching the specified criteria.
+	Data IdentitiesListIdentitiesResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team.
+	Meta       Meta       `json:"meta"`
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2KeysAddPermissionsRequestBody defines model for V2KeysAddPermissionsRequestBody.
@@ -2051,6 +2076,9 @@ type V2IdentitiesDeleteIdentityJSONRequestBody = V2IdentitiesDeleteIdentityReque
 
 // IdentitiesGetIdentityJSONRequestBody defines body for IdentitiesGetIdentity for application/json ContentType.
 type IdentitiesGetIdentityJSONRequestBody = V2IdentitiesGetIdentityRequestBody
+
+// IdentitiesListIdentitiesJSONRequestBody defines body for IdentitiesListIdentities for application/json ContentType.
+type IdentitiesListIdentitiesJSONRequestBody = V2IdentitiesListIdentitiesRequestBody
 
 // AddPermissionsJSONRequestBody defines body for AddPermissions for application/json ContentType.
 type AddPermissionsJSONRequestBody = V2KeysAddPermissionsRequestBody
