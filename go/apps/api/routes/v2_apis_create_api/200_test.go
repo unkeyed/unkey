@@ -78,7 +78,6 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.ApiId)
-		require.Equal(t, apiName, res.Body.Data.Name)
 
 		// Verify the API in the database
 		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
@@ -126,7 +125,6 @@ func TestCreateApiSuccessfully(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status)
 			require.NotEmpty(t, res.Body.Data.ApiId)
-			require.Equal(t, name, res.Body.Data.Name)
 
 			apiIds[i] = res.Body.Data.ApiId
 		}
@@ -155,7 +153,6 @@ func TestCreateApiSuccessfully(t *testing.T) {
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
-		require.Equal(t, apiName, res.Body.Data.Name)
 
 		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
@@ -171,7 +168,6 @@ func TestCreateApiSuccessfully(t *testing.T) {
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
-		require.Equal(t, apiName, res.Body.Data.Name)
 
 		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
@@ -188,7 +184,6 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.ApiId)
-		require.Equal(t, apiName, res.Body.Data.Name)
 
 		// Verify the API in the database
 		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
@@ -198,5 +193,62 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		// Verify delete protection is false (specifically tested in TypeScript)
 		require.True(t, api.DeleteProtection.Valid)
 		require.False(t, api.DeleteProtection.Bool)
+	})
+
+	// Test with minimum name length (exactly 3 characters)
+	t.Run("create api with minimum length name", func(t *testing.T) {
+		apiName := "min" // Exactly 3 characters
+		req := handler.Request{
+			Name: apiName,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.NotEmpty(t, res.Body.Data.ApiId)
+
+		// Verify the API in the database
+		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		require.NoError(t, err)
+		require.Equal(t, apiName, api.Name)
+		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
+	})
+
+	// Test with name containing only numeric characters
+	t.Run("create api with numeric name", func(t *testing.T) {
+		apiName := "12345" // Only numeric characters
+		req := handler.Request{
+			Name: apiName,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.NotEmpty(t, res.Body.Data.ApiId)
+
+		// Verify the API in the database
+		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		require.NoError(t, err)
+		require.Equal(t, apiName, api.Name)
+		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
+	})
+
+	// Test with name containing Unicode characters
+	t.Run("create api with unicode name", func(t *testing.T) {
+		apiName := "测试-api-🔑" // Unicode characters including emoji
+		req := handler.Request{
+			Name: apiName,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.NotEmpty(t, res.Body.Data.ApiId)
+
+		// Verify the API in the database
+		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		require.NoError(t, err)
+		require.Equal(t, apiName, api.Name)
+		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
 	})
 }

@@ -78,7 +78,7 @@ func TestCreateApi_Forbidden(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, req.Name, api.Name)
 				} else {
-					require.Equal(t, http.StatusForbidden, res.Status, "Expected 403 for permission: %v", tc.permissions)
+					require.Equal(t, http.StatusForbidden, res.Status, "Expected 403 for permission: %v, got: %s", tc.permissions, res.RawBody)
 				}
 			})
 		}

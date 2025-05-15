@@ -63,6 +63,7 @@ type Config struct {
 //	}
 func New(config Config) (*Server, error) {
 	mux := http.NewServeMux()
+
 	srv := &http.Server{
 		Handler: mux,
 		// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/

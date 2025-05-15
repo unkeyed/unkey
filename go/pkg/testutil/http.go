@@ -21,6 +21,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/go/pkg/vault"
+	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
@@ -44,6 +46,7 @@ type Harness struct {
 	Auditlogs   auditlogs.AuditLogService
 	ClickHouse  clickhouse.ClickHouse
 	Ratelimit   ratelimit.Service
+	Vault       *vault.Service
 	seeder      *seed.Seeder
 }
 
@@ -122,6 +125,22 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	s3 := cont.RunS3(t)
+
+	vaultStorage, err := storage.NewS3(storage.S3Config{
+		S3URL:             s3.HostURL,
+		S3Bucket:          "test",
+		S3AccessKeyId:     s3.AccessKeyId,
+		S3AccessKeySecret: s3.AccessKeySecret,
+		Logger:            logger,
+	})
+	require.NoError(t, err)
+	v, err := vault.New(vault.Config{
+		Logger:     logger,
+		Storage:    vaultStorage,
+		MasterKeys: []string{"abcdef", "ghijkl"},
+	})
+
 	// Create seeder
 	seeder := seed.New(t, db)
 
@@ -136,6 +155,7 @@ func NewHarness(t *testing.T) *Harness {
 		Keys:        keyService,
 		Permissions: permissionService,
 		Ratelimit:   ratelimitService,
+		Vault:       v,
 		ClickHouse:  ch,
 		DB:          db,
 		seeder:      seeder,
@@ -183,6 +203,29 @@ type TestResponse[TBody any] struct {
 	Headers http.Header
 	Body    *TBody
 	RawBody string
+}
+
+func CallRaw[Res any](h *Harness, req *http.Request) TestResponse[Res] {
+	rr := httptest.NewRecorder()
+
+	h.srv.Mux().ServeHTTP(rr, req)
+	rawBody := rr.Body.Bytes()
+
+	res := TestResponse[Res]{
+		Status:  rr.Code,
+		Headers: rr.Header(),
+		RawBody: string(rawBody),
+		Body:    nil,
+	}
+
+	var responseBody Res
+	err := json.Unmarshal(rawBody, &responseBody)
+	require.NoError(h.t, err)
+
+	res.Body = &responseBody
+
+	return res
+
 }
 
 func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Header, req Req) TestResponse[Res] {
