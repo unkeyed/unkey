@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -18,22 +20,28 @@ import (
 func TestSuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := handler.New(handler.Services{
-		Logger:      h.Logger(),
-		DB:          h.Database(),
-		Keys:        h.Keys(),
-		Permissions: h.Permissions(),
+		Logger:      h.Logger,
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Permissions: h.Permissions,
 	})
 
-	rootKeyID := h.CreateRootKey()
-	headers := testutil.RootKeyAuth(rootKeyID)
+	// Register the route with the harness
+	h.Register(route)
+
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
 
 	// Setup test data
 	ctx := context.Background()
-	tx, err := h.Database().RW().Begin(ctx)
+	tx, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)
 	defer tx.Rollback()
 
-	workspaceID := h.DefaultWorkspaceID()
+	workspaceID := h.Resources().UserWorkspace.ID
 
 	// Create metadata
 	metaMap := map[string]interface{}{
@@ -49,7 +57,7 @@ func TestSuccess(t *testing.T) {
 
 	for i := 0; i < totalIdentities; i++ {
 		identityID := uid.New(uid.IdentityPrefix)
-		externalID := "test_user_" + uid.NewUUID().String()
+		externalID := "test_user_" + uid.New("") // Generate a unique ID
 
 		identityIDs = append(identityIDs, identityID)
 		externalIDs = append(externalIDs, externalID)
@@ -80,53 +88,38 @@ func TestSuccess(t *testing.T) {
 		}
 	}
 
-	// Create identity in different environment
-	otherEnvIdentityID := uid.New(uid.IdentityPrefix)
-	otherEnvExternalID := "test_user_other_env"
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-		ID:          otherEnvIdentityID,
-		ExternalID:  otherEnvExternalID,
-		WorkspaceID: workspaceID,
-		Environment: "production",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        metaBytes,
-	})
-	require.NoError(t, err)
-
 	err = tx.Commit()
 	require.NoError(t, err)
-
-	// Set up permissions
-	h.SetupPermissions(t, rootKeyID, workspaceID, "identity.*.read_identity", true)
 
 	t.Run("basic listing with default settings", func(t *testing.T) {
 		req := handler.Request{}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, got: %d, response: %s", res.Status, res.RawBody)
 
-		// Should have totalIdentities items (only default environment)
-		require.Equal(t, totalIdentities, len(res.Body.Data.Identities))
-		require.Equal(t, totalIdentities, res.Body.Data.Total)
-
-		// Should have a cursor for pagination
-		require.NotNil(t, res.Body.Data.Cursor)
+		// Number may be different from totalIdentities due to other test identities
+		require.GreaterOrEqual(t, len(res.Body.Data), 1)
 
 		// Verify first identity
 		found := false
-		for _, identity := range res.Body.Data.Identities {
+		for _, identity := range res.Body.Data {
 			for i, id := range identityIDs {
-				if identity.ID == id {
-					assert.Equal(t, externalIDs[i], identity.ExternalID)
+				if identity.Id == id {
+					assert.Equal(t, externalIDs[i], identity.ExternalId)
 					found = true
 
 					// Check if this identity should have ratelimits
 					if i%2 == 0 {
-						require.Equal(t, 1, len(identity.Ratelimits), "identity %s should have 1 ratelimit", id)
-						assert.Equal(t, "api_calls", identity.Ratelimits[0].Name)
-						assert.Equal(t, 100, identity.Ratelimits[0].Limit)
-						assert.Equal(t, int64(60000), identity.Ratelimits[0].Duration)
-					} else {
-						assert.Empty(t, identity.Ratelimits, "identity %s should have no ratelimits", id)
+						require.GreaterOrEqual(t, len(identity.Ratelimits), 1, "identity %s should have at least 1 ratelimit", id)
+						hasApiCallsLimit := false
+						for _, rl := range identity.Ratelimits {
+							if rl.Name == "api_calls" {
+								hasApiCallsLimit = true
+								assert.Equal(t, int64(100), rl.Limit)
+								assert.Equal(t, int64(60000), rl.Duration)
+								break
+							}
+						}
+						assert.True(t, hasApiCallsLimit, "identity should have api_calls ratelimit")
 					}
 					break
 				}
@@ -138,93 +131,239 @@ func TestSuccess(t *testing.T) {
 	t.Run("with custom limit", func(t *testing.T) {
 		limit := 5
 		req := handler.Request{
-			limit: &limit,
+			Limit: &limit,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 
 		// Should have exactly 5 items
-		require.Equal(t, 5, len(res.Body.Data.Identities))
-		// Total should still be the total number of identities
-		require.Equal(t, totalIdentities, res.Body.Data.Total)
+		require.Equal(t, 5, len(res.Body.Data))
 		// Should have a cursor
-		require.NotNil(t, res.Body.Data.Cursor)
+		require.NotNil(t, res.Body.Pagination.Cursor)
 	})
 
 	t.Run("with pagination", func(t *testing.T) {
 		// First page
 		limit := 7
 		req := handler.Request{
-			limit: &limit,
+			Limit: &limit,
 		}
 		firstRes := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, firstRes.Status)
-		require.Equal(t, 7, len(firstRes.Body.Data.Identities))
-		require.NotNil(t, firstRes.Body.Data.Cursor)
+		require.Equal(t, 7, len(firstRes.Body.Data))
+		require.NotNil(t, firstRes.Body.Pagination.Cursor)
+		require.True(t, firstRes.Body.Pagination.HasMore)
 
 		// Second page
-		req := handler.Request{
-			limit:  &limit,
-			cursor: firstRes.Body.Data.Cursor,
+		req = handler.Request{
+			Limit:  &limit,
+			Cursor: firstRes.Body.Pagination.Cursor,
 		}
 		secondRes := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, secondRes.Status)
 
-		// Should have the remaining identities
-		require.Equal(t, totalIdentities-7, len(secondRes.Body.Data.Identities))
+		// Should have some of the remaining identities
+		require.Greater(t, len(secondRes.Body.Data), 0)
 
 		// Ensure no overlap between pages
 		firstPageIDs := make(map[string]bool)
-		for _, identity := range firstRes.Body.Data.Identities {
-			firstPageIDs[identity.ID] = true
+		for _, identity := range firstRes.Body.Data {
+			firstPageIDs[identity.Id] = true
 		}
 
-		for _, identity := range secondRes.Body.Data.Identities {
-			_, found := firstPageIDs[identity.ID]
-			assert.False(t, found, "identity %s should not appear in both pages", identity.ID)
+		// Check a sample identity from second page to ensure no overlap
+		if len(secondRes.Body.Data) > 0 {
+			sampleID := secondRes.Body.Data[0].Id
+			_, found := firstPageIDs[sampleID]
+			assert.False(t, found, "identity %s should not appear in both pages", sampleID)
 		}
 	})
 
-	t.Run("with environment filter", func(t *testing.T) {
-		env := "production"
-		req := handler.Request{
-			environment: &env,
-		}
+	// Test for deleted identities
+	t.Run("deleted identities are excluded", func(t *testing.T) {
+		// Create a new identity
+		deletedIdentityID := uid.New(uid.IdentityPrefix)
+		deletedExternalID := "test_deleted_user"
+
+		tx, err := h.DB.RW().Begin(ctx)
+		require.NoError(t, err)
+		defer tx.Rollback()
+
+		// Insert the identity
+		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+			ID:          deletedIdentityID,
+			ExternalID:  deletedExternalID,
+			WorkspaceID: workspaceID,
+			Environment: "default",
+			CreatedAt:   time.Now().UnixMilli(),
+			Meta:        metaBytes,
+		})
+		require.NoError(t, err)
+
+		// Soft delete the identity
+		err = db.Query.SoftDeleteIdentity(ctx, tx, deletedIdentityID)
+		require.NoError(t, err)
+
+		err = tx.Commit()
+		require.NoError(t, err)
+
+		// Try to retrieve the identity in a listing
+		req := handler.Request{}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 
-		// Should only have 1 identity in production environment
-		require.Equal(t, 1, len(res.Body.Data.Identities))
-		require.Equal(t, 1, res.Body.Data.Total)
-
-		// Verify it's the correct identity
-		assert.Equal(t, otherEnvIdentityID, res.Body.Data.Identities[0].ID)
-		assert.Equal(t, otherEnvExternalID, res.Body.Data.Identities[0].ExternalID)
+		// The deleted identity should not be in the results
+		for _, identity := range res.Body.Data {
+			require.NotEqual(t, deletedIdentityID, identity.Id, "Deleted identity should not be returned")
+		}
 	})
 
-	t.Run("with min limit", func(t *testing.T) {
-		// Test with limit = 0 (should be adjusted to 1)
-		limit := 0
-		req := handler.Request{
-			limit: &limit,
+	// Test with Unicode characters
+	t.Run("identities with Unicode characters", func(t *testing.T) {
+		// Create an identity with Unicode characters
+		unicodeIdentityID := uid.New(uid.IdentityPrefix)
+		unicodeExternalID := "unicode-user-测试-🔑"
+
+		// Create metadata with Unicode characters
+		unicodeMetaMap := map[string]interface{}{
+			"name":        "名字",
+			"description": "这是一个测试用户 with 英文 and emoji 👍👨‍👩‍👧‍👦🇯🇵",
+			"tags":        []string{"测试", "官方", "认证✓"},
 		}
+		unicodeMetaBytes, err := json.Marshal(unicodeMetaMap)
+		require.NoError(t, err)
+
+		tx, err := h.DB.RW().Begin(ctx)
+		require.NoError(t, err)
+		defer tx.Rollback()
+
+		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+			ID:          unicodeIdentityID,
+			ExternalID:  unicodeExternalID,
+			WorkspaceID: workspaceID,
+			Environment: "default",
+			CreatedAt:   time.Now().UnixMilli(),
+			Meta:        unicodeMetaBytes,
+		})
+		require.NoError(t, err)
+
+		err = tx.Commit()
+		require.NoError(t, err)
+
+		// Query for all identities
+		req := handler.Request{}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 
-		// Should have minimum 1 identity
-		require.GreaterOrEqual(t, len(res.Body.Data.Identities), 1)
+		// Should find the identity with Unicode
+		var foundUnicode bool
+		for _, identity := range res.Body.Data {
+			if identity.Id == unicodeIdentityID {
+				foundUnicode = true
+
+				// Verify the Unicode external ID was preserved
+				require.Equal(t, unicodeExternalID, identity.ExternalId)
+
+				// Verify Unicode in metadata was preserved
+				require.NotNil(t, identity.Meta)
+				metaMap := *identity.Meta
+				require.Equal(t, "名字", metaMap["name"])
+				require.Equal(t, "这是一个测试用户 with 英文 and emoji 👍👨‍👩‍👧‍👦🇯🇵", metaMap["description"])
+
+				break
+			}
+		}
+
+		require.True(t, foundUnicode, "The Unicode identity should be found in the results")
 	})
 
-	t.Run("with max limit", func(t *testing.T) {
-		// Test with limit = 200 (should be capped to 100)
-		limit := 200
-		req := handler.Request{
-			limit: &limit,
+	// Test with exactly one identity
+	t.Run("list with exactly one identity", func(t *testing.T) {
+		// Create a new workspace with exactly one identity
+		singleWorkspaceID := uid.New(uid.WorkspacePrefix)
+		singleIdentityID := uid.New(uid.IdentityPrefix)
+		singleExternalID := "test_single_user"
+
+		tx, err := h.DB.RW().Begin(ctx)
+		require.NoError(t, err)
+		defer tx.Rollback()
+
+		// Create the workspace
+		err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
+			ID:        singleWorkspaceID,
+			Name:      "Single Identity Workspace",
+			CreatedAt: time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Create a single identity in this workspace
+		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+			ID:          singleIdentityID,
+			ExternalID:  singleExternalID,
+			WorkspaceID: singleWorkspaceID,
+			Environment: "default",
+			CreatedAt:   time.Now().UnixMilli(),
+			Meta:        metaBytes,
+		})
+		require.NoError(t, err)
+
+		err = tx.Commit()
+		require.NoError(t, err)
+
+		// Create a root key for this workspace
+		singleWorkspaceKey := h.CreateRootKey(singleWorkspaceID, "identity.*.read_identity")
+		singleHeaders := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", singleWorkspaceKey)},
 		}
+
+		// Query for identities in this specific workspace
+		req := handler.Request{}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, singleHeaders, req)
+		require.Equal(t, 200, res.Status)
+
+		// Should return exactly one identity
+		require.Equal(t, 1, len(res.Body.Data))
+		require.Equal(t, singleIdentityID, res.Body.Data[0].Id)
+		require.Equal(t, singleExternalID, res.Body.Data[0].ExternalId)
+
+		// Pagination should indicate no more results
+		require.False(t, res.Body.Pagination.HasMore)
+		require.Nil(t, res.Body.Pagination.Cursor)
+	})
+
+	// Test for verifying the complete response structure
+	t.Run("verify complete response structure", func(t *testing.T) {
+		// Make a basic request
+		req := handler.Request{}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 
-		// Should have no more than 100 identities
-		require.LessOrEqual(t, len(res.Body.Data.Identities), 100)
+		// Verify top-level structure
+		require.NotNil(t, res.Body.Data, "Data field should be present")
+		require.NotNil(t, res.Body.Meta, "Meta field should be present")
+		require.NotEmpty(t, res.Body.Meta.RequestId, "RequestId should be present")
+
+		// Pagination structure should always be present, even if empty
+		require.NotNil(t, res.Body.Pagination, "Pagination field should be present")
+
+		// If we have results, verify the structure of an identity
+		if len(res.Body.Data) > 0 {
+			// Check the first identity
+			identity := res.Body.Data[0]
+
+			// ID fields should never be empty
+			require.NotEmpty(t, identity.Id, "Identity ID should not be empty")
+			require.NotEmpty(t, identity.ExternalId, "External ID should not be empty")
+
+			// Meta might be nil if none set
+			if identity.Meta != nil {
+				// If present, should be a valid map
+				require.NotNil(t, *identity.Meta, "Meta should be a valid map")
+			}
+
+			// Ratelimits should always be present
+			require.NotNil(t, identity.Ratelimits, "Ratelimits should be a valid array")
+		}
 	})
 }

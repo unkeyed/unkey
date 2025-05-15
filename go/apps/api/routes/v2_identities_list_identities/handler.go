@@ -45,6 +45,7 @@ func New(svc Services) zen.Route {
 		limit := ptr.SafeDeref(req.Limit, 100)
 		cursor := ptr.SafeDeref(req.Cursor)
 
+		// Query one extra record to check if there are more results
 		identities, err := db.Query.ListIdentities(ctx, svc.DB.RO(), db.ListIdentitiesParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Deleted:     false,
@@ -57,6 +58,16 @@ func New(svc Services) zen.Route {
 				fault.WithDesc("unable to list identities", "We're unable to list the identities."),
 			)
 		}
+
+		// Check if we have more results than the requested limit
+		hasMore := len(identities) > limit
+		var newCursor *string
+		if hasMore {
+			newCursor = ptr.P(identities[len(identities)-1].ID)
+			// Trim the results to the requested limit
+			identities = identities[:limit]
+		}
+		// Check permissions for all identities before processing
 		for _, id := range identities {
 			// Check permissions
 			permissionCheck := rbac.Or(
@@ -85,12 +96,11 @@ func New(svc Services) zen.Route {
 					fault.WithDesc(permissions.Message, permissions.Message),
 				)
 			}
-
 		}
 
 		// Process the results and get ratelimits for each identity
 		data := make([]openapi.Identity, 0, len(identities))
-		for i, identity := range identities {
+		for _, identity := range identities {
 			// Fetch ratelimits for this identity
 			ratelimits, err := db.Query.ListIdentityRatelimits(ctx, svc.DB.RO(), sql.NullString{Valid: true, String: identity.ID})
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -109,21 +119,30 @@ func New(svc Services) zen.Route {
 				})
 			}
 
-			// Add this identity with its ratelimits to results
-			data[i] = openapi.Identity{
-
+			// Create a new identity with its ratelimits
+			newIdentity := openapi.Identity{
 				Id:         identity.ID,
 				ExternalId: identity.ExternalID,
 				Ratelimits: formattedRatelimits,
 			}
+
+			// Add metadata if available
 			if identity.Meta != nil && len(identity.Meta) > 0 {
-				err = json.Unmarshal(identity.Meta, data[i].Meta)
+				// Initialize the Meta field with an empty map
+				metaMap := make(map[string]interface{})
+				newIdentity.Meta = &metaMap
+
+				// Unmarshal the identity metadata into the map
+				err = json.Unmarshal(identity.Meta, &metaMap)
 				if err != nil {
 					return fault.Wrap(err,
 						fault.WithDesc("unable to unmarshal identity metadata", "We're unable to parse the metadata for the identity."),
 					)
 				}
 			}
+
+			// Append the identity to the results
+			data = append(data, newIdentity)
 		}
 
 		response := Response{
@@ -132,14 +151,9 @@ func New(svc Services) zen.Route {
 			},
 			Data: data,
 			Pagination: openapi.Pagination{
-				HasMore: false,
-				Cursor:  nil,
+				HasMore: hasMore,
+				Cursor:  newCursor,
 			},
-		}
-
-		if len(identities) > limit {
-			response.Pagination.Cursor = ptr.P(identities[len(identities)-1].ID)
-			response.Pagination.HasMore = true
 		}
 
 		return s.JSON(http.StatusOK, response)

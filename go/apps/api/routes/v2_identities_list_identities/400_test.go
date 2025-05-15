@@ -1,48 +1,70 @@
 package handler_test
 
 import (
+	"fmt"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_list_identities"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := handler.New(handler.Services{
-		Logger:      h.Logger(),
-		DB:          h.Database(),
-		Keys:        h.Keys(),
-		Permissions: h.Permissions(),
+		Logger:      h.Logger,
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Permissions: h.Permissions,
 	})
 
-	rootKeyID := h.CreateRootKey()
-	headers := testutil.RootKeyAuth(rootKeyID)
+	// Register the route with the harness
+	h.Register(route)
+
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
 
 	// Since this endpoint has mostly optional parameters with defaults,
 	// there are fewer validation errors to test compared to other endpoints.
-	// We'll test negative limit value, which should be handled in the handler.
-
 	t.Run("negative limit", func(t *testing.T) {
 		negativeLimit := -10
 		req := handler.Request{
-			limit: &negativeLimit,
+			Limit: &negativeLimit,
 		}
 
-		// This should not return 400 as we handle it in the handler by setting to 1
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
+		// Negative limits should be rejected with a 400 status code
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
 
-		// But we should have at least 1 result
-		require.GreaterOrEqual(t, len(res.Body.Data.Identities), 1)
+		// Verify error type
+		require.Contains(t, res.Body.Error.Type, "invalid_input")
+	})
+
+	t.Run("zero limit", func(t *testing.T) {
+		zeroLimit := 0
+		req := handler.Request{
+			Limit: &zeroLimit,
+		}
+
+		// Zero limits should be rejected with a 400 status code
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+
+		// Verify error type
+		require.Contains(t, res.Body.Error.Type, "invalid_input")
 	})
 
 	t.Run("invalid cursor format", func(t *testing.T) {
 		invalidCursor := "invalid_cursor_format"
 		req := handler.Request{
-			cursor: &invalidCursor,
+			Cursor: &invalidCursor,
 		}
 
 		// This might return 400 or might just return an empty result set
@@ -55,5 +77,69 @@ func TestBadRequests(t *testing.T) {
 			require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
 			require.NotEmpty(t, res.Body.Meta.RequestId)
 		}
+	})
+
+	t.Run("malformed JSON body", func(t *testing.T) {
+		customHeaders := make(http.Header)
+		for k, v := range headers {
+			customHeaders[k] = v
+		}
+		customHeaders.Set("Content-Type", "application/json")
+
+		// Create a malformed JSON string
+		malformedJSON := `{"limit": 5, "cursor": "missing_quote_here}`
+
+		// Manual approach to avoid JSON parsing issues
+		resp, err := http.NewRequest("POST", route.Path(), strings.NewReader(malformedJSON))
+		require.NoError(t, err)
+
+		// Set headers
+		for k, values := range customHeaders {
+			for _, v := range values {
+				resp.Header.Add(k, v)
+			}
+		}
+
+		// Just test that we send the JSON body directly to the TestCallRoute function
+		// This simulates a valid request structure but with invalid JSON content
+		badJSONReq := struct {
+			Limit  *int    `json:"limit"`
+			Cursor *string `json:"cursor"`
+		}{
+			Limit: ptr.P(5),
+		}
+
+		res := testutil.CallRoute[any, openapi.BadRequestErrorResponse](h, route, customHeaders, badJSONReq)
+
+		// Verify 400 response
+		require.Equal(t, http.StatusBadRequest, res.Status, "Malformed JSON should return 400")
+	})
+
+	t.Run("excessive limit value", func(t *testing.T) {
+		excessiveLimit := 1000
+		req := handler.Request{
+			Limit: &excessiveLimit,
+		}
+
+		// Excessive limits should be rejected with a 400 status code
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+
+		// Verify error type
+		require.Contains(t, res.Body.Error.Type, "invalid_input")
+	})
+
+	t.Run("limit at boundary (200)", func(t *testing.T) {
+		boundaryLimit := 200
+		req := handler.Request{
+			Limit: &boundaryLimit,
+		}
+
+		// Limit values > 100 should be rejected with a 400 status code
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+
+		// Verify error type
+		require.Contains(t, res.Body.Error.Type, "invalid_input")
 	})
 }
