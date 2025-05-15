@@ -74,10 +74,7 @@
                   {
                     "group": "Identities",
                     "icon": "fingerprint",
-                    "pages": [
-                      "concepts/identities/overview",
-                      "concepts/identities/ratelimits"
-                    ]
+                    "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
                   }
                 ]
               },
@@ -363,9 +360,7 @@
                       },
                       {
                         "group": "Migrations",
-                        "pages": [
-                          "libraries/ts/sdk/migrations/migrate-to-unkey"
-                        ]
+                        "pages": ["libraries/ts/sdk/migrations/migrate-to-unkey"]
                       },
                       {
                         "group": "Permissions",
