@@ -68,9 +68,7 @@ console.log(result);
 ## Response
 
 <ResponseField name="identities" type="object[]" required >
-  Attach ratelimits to this identity.
-
-  When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits.
+    A list of identity objects, each containing its `id`, `externalId`, and associated `ratelimits`.
 
   <Expandable title="properties">
 <ResponseField name="id" type="string" required>

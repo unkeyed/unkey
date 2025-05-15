@@ -21,10 +21,10 @@ console.log(result)
     ```json
     {
       "result": {
-        "id": 'key_123',
-        "start": '3ZHF3',
-        "apiId": 'api_123',
-        "workspaceId": 'ws_123',
+        "id": "key_123",
+        "start": "3ZHF3",
+        "apiId": "api_123",
+        "workspaceId": "ws_123",
         "meta": {},
         "createdAt": 1747222842094,
         "roles": [],
@@ -158,7 +158,7 @@ The key in plaintext
 </ResponseField>
 
 <ResponseField name="identity" type="object" required>
-Unkey allows you to refill remaining verifications on a key on a regular interval.
+    Information about the associated identity, including its `id`, `externalId`, and `meta`.
 <Expandable>
     <ResponseField name="id" type="string">
     The id of the identity
