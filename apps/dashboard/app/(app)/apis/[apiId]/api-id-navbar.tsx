@@ -157,7 +157,7 @@ export const ApisNavbar = ({
               </Navbar.Actions>
             </div>
           ) : (
-            <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
+            api.keyAuthId && <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
           )}
         </Navbar>
       </div>
@@ -227,7 +227,18 @@ export const ApisNavbar = ({
   );
 };
 
-function calculatePermissionData(permissionsData: any) {
+type WorkspaceRole = {
+  id: string;
+  name: string;
+  permissions: { permissionId: string }[];
+};
+
+type PermissionsResponse = {
+  roles: { roleId: string }[];
+  workspace: { roles: WorkspaceRole[]; permissions: { roles: unknown } };
+};
+
+function calculatePermissionData(permissionsData?: PermissionsResponse) {
   const transientPermissionIds = new Set<string>();
   const rolesList: { id: string; name: string; isActive: boolean }[] = [];
 

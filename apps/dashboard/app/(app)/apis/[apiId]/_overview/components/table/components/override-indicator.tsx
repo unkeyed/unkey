@@ -5,6 +5,7 @@ import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
 import { AnimatedLoadingSpinner } from "@unkey/ui";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked-percentage";
 
@@ -43,6 +44,7 @@ const getWarningMessage = (severity: string, errorRate: number) => {
 };
 
 export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierColumnProps) => {
+  const router = useRouter();
   const errorPercentage = getErrorPercentage(log);
   const severity = getErrorSeverity(log);
   const hasErrors = severity !== "none";
@@ -56,12 +58,9 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
 
       onNavigate?.();
 
-      // Continue with navigation after a short delay to show spinner
-      setTimeout(() => {
-        window.location.href = `/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`;
-      }, 50); // Small delay to ensure state update and spinner shows
+      router.push(`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`);
     },
-    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate],
+    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router.push],
   );
 
   return (

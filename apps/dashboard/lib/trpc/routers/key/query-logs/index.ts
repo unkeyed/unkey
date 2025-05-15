@@ -56,6 +56,13 @@ export const queryKeyDetailsLogs = t.procedure
       });
     }
 
+    if (!workspace.keys || workspace.keys.length === 0) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Key not found in the specified workspace.",
+      });
+    }
+
     const transformedFilters = transformKeyDetailsFilters(input, workspace.id);
     const result = await clickhouse.api.key.logs(transformedFilters);
 

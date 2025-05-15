@@ -4,7 +4,6 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-
 import { Separator } from "@/components/ui/separator";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
@@ -25,10 +24,14 @@ export function KeysDetailsLogsControls({
   keyspaceId: string;
   apiId: string;
 }) {
-  const { data } = trpc.key.fetchPermissions.useQuery({
+  const { data, error, isLoading } = trpc.key.fetchPermissions.useQuery({
     keyId,
     keyspaceId,
   });
+
+  // Safe access to remaining credit with fallback
+  const hasRemainingCredit =
+    data?.remainingCredit !== null && data?.remainingCredit !== undefined && !isLoading && !error;
 
   return (
     <ControlsContainer>
@@ -37,7 +40,7 @@ export function KeysDetailsLogsControls({
         <LogsFilters />
         <LogsDateTime />
         <AnimatePresence>
-          {data?.remainingCredit !== null && data?.remainingCredit !== undefined ? (
+          {hasRemainingCredit ? (
             <motion.div
               className="flex items-center"
               initial={{ opacity: 0, x: -5 }}
@@ -61,7 +64,7 @@ export function KeysDetailsLogsControls({
                 >
                   Remaining Credits:
                 </motion.div>
-                {data.remainingCredit > 0 ? (
+                {(data?.remainingCredit ?? 0) > 0 ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.97 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -78,7 +81,7 @@ export function KeysDetailsLogsControls({
                     <StatusBadge
                       className="text-xs"
                       variant="enabled"
-                      text={formatNumber(data.remainingCredit)}
+                      text={formatNumber(data?.remainingCredit ?? 0)}
                       icon={<Coins size="sm-thin" />}
                     />
                   </motion.div>
