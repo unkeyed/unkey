@@ -4,6 +4,8 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
+
+import { Separator } from "@/components/ui/separator";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { Coins } from "@unkey/icons";
@@ -46,10 +48,13 @@ export function KeysDetailsLogsControls({
                 ease: "easeOut",
               }}
             >
-              <div className="flex flex-col border-r border-gray-4 h-6 mx-2" />
+              <Separator
+                orientation="vertical"
+                className="flex items-center justify-center h-4 mx-1 my-auto"
+              />
               <div className="items-center flex justify-center gap-2">
                 <motion.div
-                  className="text-gray-12 font-medium text-[13px] max-md:hidden pl-2"
+                  className="text-gray-12 font-medium text-[13px] max-md:hidden pl-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.05, duration: 0.2 }}
