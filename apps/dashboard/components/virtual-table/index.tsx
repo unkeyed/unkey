@@ -108,7 +108,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           ref={containerRef}
         >
           <table className={tableClassName}>
-            <thead className="sticky top-0 z-10">
+            <thead className="sticky top-0 z-10 bg-white dark:bg-black">
               <tr>
                 {columns.map((column) => (
                   <th
@@ -152,7 +152,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 <col key={idx} style={{ width: col.width }} />
               ))}
             </colgroup>
-            <thead className={cn("sticky top-0 z-10 bg-white dark:bg-black")}>
+            <thead className="sticky top-0 z-10 bg-white dark:bg-black">
               <tr>
                 {columns.map((column) => (
                   <th
