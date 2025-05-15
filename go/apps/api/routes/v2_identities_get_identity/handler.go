@@ -107,18 +107,9 @@ func New(svc Services) zen.Route {
 			}),
 		)
 
-		permissions, err := svc.Permissions.Check(ctx, auth.KeyID, permissionCheck)
+		err = svc.Permissions.Check(ctx, auth.KeyID, permissionCheck)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
-			)
-		}
-
-		if !permissions.Valid {
-			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissions.Message, permissions.Message),
-			)
+			return err
 		}
 
 		// Next, get the ratelimits for this identity

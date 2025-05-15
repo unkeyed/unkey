@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -13,7 +12,6 @@ import (
 )
 
 func TestAuthorizationErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -50,19 +48,19 @@ func TestAuthorizationErrors(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, http.StatusForbidden, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Equal(t, "Missing permission: 'rbac.*.create_permission'", res.Body.Error.Detail)
 	})
 
 	// Test case for wrong workspace
 	t.Run("wrong workspace", func(t *testing.T) {
-		// Create a different workspace
-		otherWorkspace := h.CreateWorkspace("other-workspace")
+		// Use a non-existent workspace ID
+		otherWorkspaceID := "ws_nonexistent"
 
 		// Create a root key for the other workspace with all permissions
-		rootKey := h.CreateRootKey(otherWorkspace.ID, "rbac.*.create_permission")
+		rootKey := h.CreateRootKey(otherWorkspaceID, "rbac.*.create_permission")
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -74,16 +72,15 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		// This is generally masked as a 404 or 403 depending on the implementation
-		// Try both types to be safe
-		res, err := h.Client.Post(
-			"/v2/permissions.createPermission",
-			"application/json",
-			testutil.MustMarshal(req),
+		// Use CallRoute and check for error response
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+			h,
+			route,
 			headers,
+			req,
 		)
 
-		require.NoError(t, err)
-		require.True(t, res.StatusCode == 403 || res.StatusCode == 404,
-			"Expected 403 or 404 status code, got %d", res.StatusCode)
+		require.True(t, res.Status == http.StatusForbidden || res.Status == http.StatusNotFound,
+			"Expected 403 or 404 status code, got %d", res.Status)
 	})
 }

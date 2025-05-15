@@ -2274,13 +2274,15 @@
           "name": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 512,
             "description": "The unique name of your permission",
             "example": "record.write"
           },
           "description": {
             "type": "string",
             "description": "Explain what this permission does. This is just for your team, your users will not see this.",
-            "example": "record.write can create new dns records for our domains."
+            "example": "record.write can create new dns records for our domains.",
+            "maxLength": 512
           }
         },
         "additionalProperties": false
@@ -2527,13 +2529,15 @@
           "name": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 512,
             "description": "The unique name of your role",
             "example": "dns.records.manager"
           },
           "description": {
             "type": "string",
             "description": "Explain what this role does. This is just for your team, your users will not see this.",
-            "example": "dns.records.manager can read and write dns records for our domains."
+            "example": "dns.records.manager can read and write dns records for our domains.",
+            "maxLength": 512
           },
           "permissionIds": {
             "type": "array",

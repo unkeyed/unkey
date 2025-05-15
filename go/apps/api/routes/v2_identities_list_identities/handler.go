@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
-	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -83,19 +82,11 @@ func New(svc Services) zen.Route {
 				}),
 			)
 
-			permissions, err := svc.Permissions.Check(ctx, auth.KeyID, permissionCheck)
+			err = svc.Permissions.Check(ctx, auth.KeyID, permissionCheck)
 			if err != nil {
-				return fault.Wrap(err,
-					fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
-				)
+				return err
 			}
 
-			if !permissions.Valid {
-				return fault.New("insufficient permissions",
-					fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-					fault.WithDesc(permissions.Message, permissions.Message),
-				)
-			}
 		}
 
 		// Process the results and get ratelimits for each identity

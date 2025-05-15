@@ -2,17 +2,22 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
+	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -29,121 +34,113 @@ type Services struct {
 
 func New(svc Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/permissions.createPermission", func(ctx context.Context, s *zen.Session) error {
-		svc.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.createPermission")
 
-		// 1. Authentication
 		auth, err := svc.Keys.VerifyRootKey(ctx, s)
 		if err != nil {
 			return err
 		}
 
-		// 2. Request validation
-		var req Request
-		err = s.BindBody(&req)
+		req, err := zen.BindBody[Request](s)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
-			)
+			return err
 		}
 
-		// 3. Permission check
-		permissionCheck, err := svc.Permissions.Check(
+		err = svc.Permissions.Check(
 			ctx,
 			auth.KeyID,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Rbac,
-					ResourceID:   "*",
-					Action:       rbac.CreatePermission,
-				}),
-			),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Rbac,
+				ResourceID:   "*",
+				Action:       rbac.CreatePermission,
+			}),
 		)
+
 		if err != nil {
-			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
-			)
+			return err
 		}
 
-		if !permissionCheck.Valid {
-			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissionCheck.Message, permissionCheck.Message),
-			)
-		}
-
-		// 4. Create permission
 		permissionID := uid.New(uid.PermissionPrefix)
 
-		// Check for existing permission with the same name in this workspace
-		existingPerm, err := db.Query.FindPermissionByNameAndWorkspace(ctx, svc.DB.RO(), req.Name, auth.AuthorizedWorkspaceID)
-		if err == nil && existingPerm != nil {
-			// Permission with this name already exists
-			return fault.New("permission already exists",
-				fault.WithCode(codes.Data.Permission.AlreadyExists.URN()),
-				fault.WithDesc("permission already exists",
-					"A permission with name \""+req.Name+"\" already exists in this workspace"),
+		description := ptr.SafeDeref(req.Description)
+
+		// Create permission in a transaction with audit log
+		tx, err := svc.DB.RW().Begin(ctx)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
 			)
 		}
 
-		var description string
-		if req.Description != nil {
-			description = *req.Description
-		}
+		defer func() {
+			if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+				svc.Logger.Error("failed to rollback transaction", "error", err)
+			}
+		}()
 
-		// Create permission in a transaction with audit log
-		err = svc.DB.WithTransaction(ctx, func(ctx context.Context, tx db.Tx) error {
-			// Insert the permission
-			_, err := db.Query.InsertPermission(ctx, tx, db.InsertPermissionParams{
-				ID:          permissionID,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Name:        req.Name,
-				Description: db.NewNullString(description),
-			})
-			if err != nil {
-				if db.IsDuplicate(err) {
-					return fault.New("permission already exists",
-						fault.WithCode(codes.Data.Permission.AlreadyExists.URN()),
-						fault.WithDesc("permission already exists",
-							"A permission with name \""+req.Name+"\" already exists in this workspace"),
-					)
-				}
-				return fault.Wrap(err,
-					fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.WithDesc("database error", "Failed to create permission."),
+		// Insert the permission
+		err = db.Query.InsertPermission(ctx, tx, db.InsertPermissionParams{
+			PermissionID: permissionID,
+			WorkspaceID:  auth.AuthorizedWorkspaceID,
+			Name:         req.Name,
+			Description:  sql.NullString{Valid: description != "", String: description},
+			CreatedAtM:   time.Now().UnixMilli(),
+		})
+		if err != nil {
+			if db.IsDuplicateKeyError(err) {
+
+				return fault.New("permission already exists",
+					fault.WithCode(codes.UnkeyDataErrorsIdentityDuplicate), // Reuse the identity duplicate code for conflict status
+					fault.WithDesc("already exists",
+						"A permission with name \""+req.Name+"\" already exists in this workspace"),
 				)
 			}
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database error", "Failed to create permission."),
+			)
+		}
 
-			// Create audit log
-			err = svc.Auditlogs.CreateAuditLog(ctx, tx, auditlogs.CreateAuditLogParams{
+		// Create audit log
+		err = svc.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       "permission.create",
-				ActorType:   "key",
+				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
-				Description: "Created " + permissionID,
-				Resources: []auditlogs.Resource{
+				ActorName:   "root key",
+				Display:     "Created " + permissionID,
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
 					{
-						Type: "permission",
-						ID:   permissionID,
+						Type:        "permission",
+						ID:          permissionID,
+						Name:        req.Name,
+						DisplayName: req.Name,
 						Meta: map[string]interface{}{
 							"name":        req.Name,
 							"description": description,
 						},
 					},
 				},
-				Context: auditlogs.Context{
-					Location:  s.Location(),
-					UserAgent: s.UserAgent(),
-				},
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.WithDesc("audit log error", "Failed to create audit log for permission creation."),
-				)
-			}
-
-			return nil
+			},
 		})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("audit log error", "Failed to create audit log for permission creation."),
+			)
+		}
+
+		// Commit the transaction
+		err = tx.Commit()
+		if err != nil {
+			return fault.Wrap(err,
+				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
+			)
+		}
 		if err != nil {
 			return err
 		}

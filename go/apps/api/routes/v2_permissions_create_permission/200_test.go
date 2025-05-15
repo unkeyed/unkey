@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_create_permission"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
@@ -53,35 +53,33 @@ func TestSuccess(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 200, res.Status)
+		require.Equal(t, http.StatusOK, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
 		require.NotEmpty(t, res.Body.Data.PermissionId)
 		require.True(t, len(res.Body.Data.PermissionId) > 0, "PermissionId should not be empty")
 
 		// Verify permission was created in database
-		perm, err := h.DB.RO().QueryContext(ctx,
-			`SELECT "id", "name", "description", "workspaceId" FROM "permissions" WHERE "id" = $1`,
-			res.Body.Data.PermissionId)
+		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), res.Body.Data.PermissionId)
 		require.NoError(t, err)
-		require.True(t, perm.Next(), "Permission should exist in database")
-
-		var id, name, desc, wsID string
-		err = perm.Scan(&id, &name, &desc, &wsID)
-		require.NoError(t, err)
-		require.Equal(t, res.Body.Data.PermissionId, id)
-		require.Equal(t, req.Name, name)
-		require.Equal(t, description, desc)
-		require.Equal(t, workspace.ID, wsID)
-		perm.Close()
+		require.Equal(t, res.Body.Data.PermissionId, perm.ID)
+		require.Equal(t, req.Name, perm.Name)
+		require.Equal(t, description, perm.Description.String)
+		require.Equal(t, workspace.ID, perm.WorkspaceID)
 
 		// Verify audit log was created
-		auditLogs, err := h.DB.RO().QueryContext(ctx,
-			`SELECT * FROM "auditlogs" WHERE "event" = 'permission.create' AND "resourceId" = $1`,
-			res.Body.Data.PermissionId)
+		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), res.Body.Data.PermissionId)
 		require.NoError(t, err)
-		require.True(t, auditLogs.Next(), "Audit log for permission creation should exist")
-		auditLogs.Close()
+		require.NotEmpty(t, auditLogs, "Audit log for permission creation should exist")
+
+		foundCreateEvent := false
+		for _, log := range auditLogs {
+			if log.AuditLog.Event == "permission.create" {
+				foundCreateEvent = true
+				break
+			}
+		}
+		require.True(t, foundCreateEvent, "Should find a permission.create audit log event")
 	})
 
 	// Test case for creating a permission without description
@@ -97,25 +95,17 @@ func TestSuccess(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 200, res.Status)
+		require.Equal(t, http.StatusOK, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
 		require.NotEmpty(t, res.Body.Data.PermissionId)
 
 		// Verify permission was created in database
-		perm, err := h.DB.RO().QueryContext(ctx,
-			`SELECT "id", "name", "description", "workspaceId" FROM "permissions" WHERE "id" = $1`,
-			res.Body.Data.PermissionId)
+		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), res.Body.Data.PermissionId)
 		require.NoError(t, err)
-		require.True(t, perm.Next(), "Permission should exist in database")
-
-		var id, name, desc, wsID string
-		err = perm.Scan(&id, &name, &desc, &wsID)
-		require.NoError(t, err)
-		require.Equal(t, res.Body.Data.PermissionId, id)
-		require.Equal(t, req.Name, name)
-		require.Empty(t, desc, "Description should be empty")
-		require.Equal(t, workspace.ID, wsID)
-		perm.Close()
+		require.Equal(t, res.Body.Data.PermissionId, perm.ID)
+		require.Equal(t, req.Name, perm.Name)
+		require.False(t, perm.Description.Valid, "Description should be empty")
+		require.Equal(t, workspace.ID, perm.WorkspaceID)
 	})
 }
