@@ -2,7 +2,9 @@ import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
+import type { CacheNamespaces } from "@/pkg/cache/namespaces";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
 import { buildUnkeyQuery, type unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
@@ -222,23 +224,33 @@ export const registerV1KeysGetVerifications = (app: App) =>
     const verificationsFromAllKeys = await Promise.all(
       ids.map(({ keyId, keySpaceId }) => {
         return cache.verificationsByKeyId.swr(`${keyId}:${start}-${end}`, async () => {
-          const res = await analytics.getVerificationsDaily({
-            workspaceId: authorizedWorkspaceId,
-            keySpaceId: keySpaceId,
-            keyId: keyId,
-            start: start ? start : now - 24 * 60 * 60 * 1000,
-            end: end ? end : now,
-          });
-          if (res.err) {
-            throw new Error(res.err.message);
-          }
-          return res.val;
+          const res = await analytics
+            .getVerificationsDaily({
+              workspaceId: authorizedWorkspaceId,
+              keyspaceId: keySpaceId,
+              keyId: keyId,
+              startTime: start ? start : now - 24 * 60 * 60 * 1000,
+              endTime: end ? end : now,
+              identities: null,
+              keyIds: null,
+              outcomes: null,
+              names: null,
+            })
+            .catch((err) => {
+              throw new Error(err.message);
+            });
+
+          return transformData(res);
         });
       }),
     );
 
     const verifications: {
-      [time: number]: { success: number; rateLimited: number; usageExceeded: number };
+      [time: number]: {
+        success: number;
+        rateLimited: number;
+        usageExceeded: number;
+      };
     } = {};
     for (const dataPoint of verificationsFromAllKeys) {
       if (dataPoint.err) {
@@ -247,7 +259,11 @@ export const registerV1KeysGetVerifications = (app: App) =>
       }
       for (const d of dataPoint.val!) {
         if (!verifications[d.time]) {
-          verifications[d.time] = { success: 0, rateLimited: 0, usageExceeded: 0 };
+          verifications[d.time] = {
+            success: 0,
+            rateLimited: 0,
+            usageExceeded: 0,
+          };
         }
         switch (d.outcome) {
           case "VALID":
@@ -283,3 +299,38 @@ export const registerV1KeysGetVerifications = (app: App) =>
       ),
     });
   });
+
+function transformData(
+  data: VerificationTimeseriesDataPoint[] | undefined,
+): CacheNamespaces["verificationsByKeyId"] {
+  if (!data || !data.length) {
+    return [];
+  }
+
+  const verificationsByKeyId = data.flatMap((item) => {
+    const time = item.x;
+    const outcomes: Array<{ outcome: string; count: number }> = [
+      { outcome: "valid", count: item.y.valid_count },
+      { outcome: "rate_limited", count: item.y.rate_limited_count },
+      {
+        outcome: "insufficient_permissions",
+        count: item.y.insufficient_permissions_count,
+      },
+      { outcome: "forbidden", count: item.y.forbidden_count },
+      { outcome: "disabled", count: item.y.disabled_count },
+      { outcome: "expired", count: item.y.expired_count },
+      { outcome: "usage_exceeded", count: item.y.usage_exceeded_count },
+    ];
+
+    // Only include outcomes with non-zero counts
+    return outcomes
+      .filter((outcome) => outcome.count > 0)
+      .map((outcome) => ({
+        time,
+        count: outcome.count,
+        outcome: outcome.outcome,
+      }));
+  });
+
+  return verificationsByKeyId;
+}

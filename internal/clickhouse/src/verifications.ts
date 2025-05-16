@@ -1,24 +1,8 @@
 import { z } from "zod";
 import type { Inserter, Querier } from "./client";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
-import { dateTimeToUnix } from "./util";
 
-const outcome = z.enum(KEY_VERIFICATION_OUTCOMES);
-
-const params = z.object({
-  workspaceId: z.string(),
-  keySpaceId: z.string(),
-  keyId: z.string().optional(),
-  start: z.number().int(),
-  end: z.number().int(),
-});
-const schema = z.object({
-  time: dateTimeToUnix,
-  outcome,
-  count: z.number().int(),
-  tags: z.array(z.string()),
-});
-
+// INSERTION
 export function insertVerification(ch: Inserter) {
   return ch.insert({
     table: "verifications.raw_key_verifications_v1",
@@ -44,91 +28,130 @@ export function insertVerification(ch: Inserter) {
   });
 }
 
-export function getVerificationsPerHour(ch: Querier) {
-  return async (args: z.input<typeof params>) => {
-    const query = `
-    SELECT
-      time,
-      outcome,
-      sum(count) as count,
-      tags
-    FROM verifications.key_verifications_per_hour_v3
-    WHERE
-      workspace_id = {workspaceId: String}
-    AND key_space_id = {keySpaceId: String}
-    AND time >= fromUnixTimestamp64Milli({start: Int64})
-    AND time <= fromUnixTimestamp64Milli({end: Int64})
-    ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome, tags
-    ORDER BY time ASC
-    WITH FILL
-      FROM toStartOfHour(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfHour(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 HOUR
-    ;`;
+// LOGS
+export const keyDetailsLogsParams = z.object({
+  workspaceId: z.string(),
+  keyspaceId: z.string(),
+  keyId: z.string(),
+  limit: z.number().int(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  outcomes: z
+    .array(
+      z.object({
+        value: z.enum(KEY_VERIFICATION_OUTCOMES),
+        operator: z.literal("is"),
+      }),
+    )
+    .nullable(),
+  cursorTime: z.number().int().nullable(),
+});
 
-    return ch.query({
-      query,
-      params,
-      schema,
-    })(args);
+export const keyDetailsLog = z.object({
+  request_id: z.string(),
+  time: z.number().int(),
+  region: z.string(),
+  outcome: z.enum(KEY_VERIFICATION_OUTCOMES),
+  tags: z.array(z.string()),
+});
+
+export type KeyDetailsLog = z.infer<typeof keyDetailsLog>;
+export type KeyDetailsLogsParams = z.infer<typeof keyDetailsLogsParams>;
+
+interface ExtendedParamsKeyDetails extends KeyDetailsLogsParams {
+  [key: string]: unknown;
+}
+
+export function getKeyDetailsLogs(ch: Querier) {
+  return async (args: KeyDetailsLogsParams) => {
+    const paramSchemaExtension: Record<string, z.ZodType> = {};
+    const parameters: ExtendedParamsKeyDetails = { ...args };
+
+    const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
+
+    const outcomeCondition = !hasOutcomeFilters
+      ? "TRUE"
+      : args.outcomes
+          ?.map((filter, index) => {
+            if (filter.operator === "is") {
+              const paramName = `outcomeValue_${index}`;
+              paramSchemaExtension[paramName] = z.string();
+              parameters[paramName] = filter.value;
+              return `outcome = {${paramName}: String}`;
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE";
+
+    let cursorCondition: string;
+
+    // For first page or no cursor provided
+    if (!args.cursorTime) {
+      cursorCondition = `
+      AND ({cursorTime: Nullable(UInt64)} IS NULL)
+      `;
+    } else {
+      cursorCondition = `
+        AND (time < {cursorTime: Nullable(UInt64)})
+        `;
+    }
+
+    const extendedParamsSchema = keyDetailsLogsParams.extend(paramSchemaExtension);
+
+    const baseConditions = `
+      workspace_id = {workspaceId: String}
+      AND key_space_id = {keyspaceId: String}
+      AND key_id = {keyId: String}
+      AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      AND (${outcomeCondition})
+    `;
+
+    // Total count query - counts all matching records without pagination
+    const totalQuery = ch.query({
+      query: `
+        SELECT
+          count(request_id) as total_count
+        FROM verifications.raw_key_verifications_v1
+        WHERE ${baseConditions}`,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.number().int(),
+      }),
+    });
+
+    const query = ch.query({
+      query: `
+      SELECT
+          request_id,
+          time,
+          region,
+          outcome,
+          tags
+      FROM verifications.raw_key_verifications_v1
+      WHERE ${baseConditions}
+          -- Handle pagination using time as cursor
+          ${cursorCondition}
+      ORDER BY time DESC
+      LIMIT {limit: Int}
+      `,
+      params: extendedParamsSchema,
+      schema: keyDetailsLog,
+    });
+
+    const [clickhouseResults, totalResults] = await Promise.all([
+      query(parameters),
+      totalQuery(parameters),
+    ]);
+
+    return {
+      logs: clickhouseResults,
+      totalCount: totalResults.val ? totalResults.val[0].total_count : 0,
+    };
   };
 }
 
-export function getVerificationsPerDay(ch: Querier) {
-  return async (args: z.input<typeof params>) => {
-    const query = `
-    SELECT
-      time,
-      outcome,
-      sum(count) as count,
-      tags
-    FROM verifications.key_verifications_per_day_v3
-    WHERE
-      workspace_id = {workspaceId: String}
-    AND key_space_id = {keySpaceId: String}
-    AND time >= fromUnixTimestamp64Milli({start: Int64})
-    AND time <= fromUnixTimestamp64Milli({end: Int64})
-    ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome, tags
-    ORDER BY time ASC
-    WITH FILL
-      FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 DAY
-    ;`;
-
-    return ch.query({ query, params, schema })(args);
-  };
-}
-
-export function getVerificationsPerMonth(ch: Querier) {
-  return async (args: z.input<typeof params>) => {
-    const query = `
-    SELECT
-      time,
-      outcome,
-      sum(count) as count,
-      tags
-    FROM verifications.key_verifications_per_month_v3
-    WHERE
-      workspace_id = {workspaceId: String}
-    AND key_space_id = {keySpaceId: String}
-    AND time >= fromUnixTimestamp64Milli({start: Int64})
-    AND time <= fromUnixTimestamp64Milli({end: Int64})
-    ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome, tags
-    ORDER BY time ASC
-    WITH FILL
-      FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 MONTH
-    ;`;
-
-    return ch.query({ query, params, schema })(args);
-  };
-}
-
+// TIMESERIES
 export const verificationTimeseriesParams = z.object({
   workspaceId: z.string(),
   keyspaceId: z.string(),
