@@ -28,7 +28,7 @@ export const useFeedback = () => {
 const feedbackSchema = z.object({
   severity: z.enum(["p0", "p1", "p2", "p3"]),
   issueType: z.enum(["bug", "feature", "security", "payment", "question"]),
-  message: z.string().min(20, "Feedback must contain at least 20 characters"),
+  message: z.string().trim().min(20, "Feedback must contain at least 20 characters"),
 });
 
 type FormValues = z.infer<typeof feedbackSchema>;
