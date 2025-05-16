@@ -1,9 +1,8 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Code } from "@/components/ui/code";
-import { Button, Loading } from "@unkey/ui";
+import { Button, Loading, CopyButton } from "@unkey/ui";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";

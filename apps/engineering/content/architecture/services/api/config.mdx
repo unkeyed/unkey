@@ -51,6 +51,22 @@ You should now be able to access the API at
 $ curl http://localhost:7070/v2/liveness
 {"message":"we're cooking"}%
 ```
+
+By default, the API uses HTTP. To enable HTTPS with TLS, provide certificate and key files using the `--tls-cert-file` and `--tls-key-file` flags:
+
+```bash
+unkey api \
+  --database-primary="mysql://unkey:password@tcp(localhost:3306)/unkey?parseTime=true" \
+  --tls-cert-file="/path/to/server.crt" \
+  --tls-key-file="/path/to/server.key"
+```
+
+Then access it with HTTPS:
+
+```bash
+$ curl https://localhost:7070/v2/liveness
+{"message":"we're cooking"}%
+```
 </Step>
 
 
@@ -92,10 +108,12 @@ These options control the fundamental behavior of the API server.
 </Property>
 
 <Property name="--http-port | UNKEY_HTTP_PORT" type="int" default="7070" required={false}>
-  HTTP port for the API server to listen on. This port must be accessible by all clients that will interact with the API. In containerized environments, ensure this port is properly exposed.
+  Port for the API server to listen on for HTTP or HTTPS connections. When TLS is configured (using --tls-cert-file and --tls-key-file), the server will use HTTPS on this port. Otherwise, it will use HTTP. This port must be accessible by all clients that will interact with the API. In containerized environments, ensure this port is properly exposed.
 
   **Examples:**
-  - `--http-port=7070` - Default port
+  - `--http-port=7070` - Default port for HTTP
+  - `--http-port=443` - Standard HTTPS port (when using TLS)
+  - `--http-port=8443` - Common alternative HTTPS port (when using TLS)
 </Property>
 
 <Property name="--test-mode | UNKEY_TEST_MODE" type="boolean" defaultValue={false} required={false}>
@@ -250,15 +268,53 @@ These options configure analytics storage and observability for the Unkey API.
   - `--redis-url=redis://user:password@redis-master.default.svc.cluster.local:6379/0?tls=true`
 </Property>
 
+## TLS Configuration
+
+These options allow you to enable HTTPS by providing TLS certificate and key files. Both flags must be provided together to enable HTTPS.
+
+<Property name="--tls-cert-file | UNKEY_TLS_CERT_FILE" type="string" required={false}>
+  Path to the TLS certificate file in PEM format. This certificate will be used for securing HTTPS connections to the API server.
+  
+  For production use, this should be a certificate signed by a trusted certificate authority (CA). For development or internal use, a self-signed certificate may be sufficient.
+
+  This flag must be used together with `--tls-key-file`. If either is provided without the other, the server will return an error at startup.
+
+  **Examples:**
+  - `--tls-cert-file=/path/to/server.crt` - Path to certificate file
+  - `--tls-cert-file=/etc/ssl/certs/unkey-api.crt` - Standard location in Linux systems
+</Property>
+
+<Property name="--tls-key-file | UNKEY_TLS_KEY_FILE" type="string" required={false}>
+  Path to the TLS private key file in PEM format. This key must correspond to the certificate provided in `--tls-cert-file`.
+  
+  The private key file should be kept secure with restricted permissions (0600 recommended). Never commit private keys to source control.
+
+  **Examples:**
+  - `--tls-key-file=/path/to/server.key` - Path to key file
+  - `--tls-key-file=/etc/ssl/private/unkey-api.key` - Standard location in Linux systems
+</Property>
+
 ## Deployment Examples
 
-### Single-Node
+### Single-Node (HTTP)
 
 ```bash
 unkey api \
   --database-primary="mysql://root:password@localhost:3306/unkey?parseTime=true" \
   --color=true \
   --http-port=8080 \
+  --region=dev-local
+```
+
+### Single-Node (HTTPS)
+
+```bash
+unkey api \
+  --database-primary="mysql://root:password@localhost:3306/unkey?parseTime=true" \
+  --color=true \
+  --http-port=8443 \
+  --tls-cert-file="/path/to/server.crt" \
+  --tls-key-file="/path/to/server.key" \
   --region=dev-local
 ```
 
@@ -284,6 +340,9 @@ services:
       UNKEY_DATABASE_PRIMARY_DSN: "mysql://unkey:password@tcp(mysql:3900)/unkey?parseTime=true"
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
       UNKEY_PROMETHEUS_PORT: 9090
+      # Uncomment for HTTPS:
+      # UNKEY_TLS_CERT_FILE: "/etc/ssl/certs/unkey-api.crt"
+      # UNKEY_TLS_KEY_FILE: "/etc/ssl/private/unkey-api.key"
 ```
 
 
@@ -300,4 +359,18 @@ unkey api \
   --clickhouse-url="clickhouse://user:password@clickhouse.example.com:9000/unkey" \
   --otel=true \
   --prometheus-port=9090
+```
+
+### Production with HTTPS
+
+```bash
+unkey api \
+  --platform="aws" \
+  --region="us-east-1" \
+  --image="ghcr.io/unkeyed/unkey:latest" \
+  --database-primary="mysql://user:password@primary.mysql.example.com:3306/unkey?parseTime=true" \
+  --redis-url="redis://user:password@redis.example.com:6379" \
+  --tls-cert-file="/etc/ssl/certs/unkey-api.crt" \
+  --tls-key-file="/etc/ssl/private/unkey-api.key" \
+  --http-port=443
 ```

@@ -79,12 +79,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     });
 
     const tableClassName = cn(
-      "w-full bg-white dark:bg-black ",
+      "w-full",
       isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
     );
 
     const containerClassName = cn(
-      "overflow-auto relative pb-4",
+      "overflow-auto relative pb-4 bg-white dark:bg-black ",
       config.containerPadding || "px-2", // Default to px-2 if containerPadding is not specified
     );
 
@@ -108,7 +108,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           ref={containerRef}
         >
           <table className={tableClassName}>
-            <thead className="sticky top-0 z-10">
+            <thead className="sticky top-0 z-10 bg-white dark:bg-black">
               <tr>
                 {columns.map((column) => (
                   <th
@@ -152,18 +152,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 <col key={idx} style={{ width: col.width }} />
               ))}
             </colgroup>
-
-            <thead className="sticky top-0 z-10">
-              <tr>
-                <th colSpan={columns.length} className="p-0">
-                  <div
-                    className={cn(
-                      "absolute top-0 bottom-0 bg-gray-1",
-                      hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                    )}
-                  />
-                </th>
-              </tr>
+            <thead className="sticky top-0 z-10 bg-white dark:bg-black">
               <tr>
                 {columns.map((column) => (
                   <th

@@ -1,6 +1,5 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -14,7 +13,7 @@ import {
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty, Loading } from "@unkey/ui";
+import { Button, CopyButton, Empty, Loading } from "@unkey/ui";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";

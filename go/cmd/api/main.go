@@ -5,6 +5,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/tls"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/urfave/cli/v3"
 )
@@ -101,6 +102,22 @@ var Cmd = &cli.Command{
 			Required: false,
 		},
 
+		// TLS Configuration
+		&cli.StringFlag{
+			Name:      "tls-cert-file",
+			Usage:     "Path to TLS certificate file for HTTPS. Both cert and key must be provided to enable HTTPS.",
+			Sources:   cli.EnvVars("UNKEY_TLS_CERT_FILE"),
+			Required:  false,
+			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:      "tls-key-file",
+			Usage:     "Path to TLS key file for HTTPS. Both cert and key must be provided to enable HTTPS.",
+			Sources:   cli.EnvVars("UNKEY_TLS_KEY_FILE"),
+			Required:  false,
+			TakesFile: true,
+		},
+
 		&cli.FloatFlag{
 			Name:     "otel-trace-sampling-rate",
 			Usage:    "Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25",
@@ -121,6 +138,23 @@ var Cmd = &cli.Command{
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
+	// Check if TLS flags are properly set (both or none)
+	tlsCertFile := cmd.String("tls-cert-file")
+	tlsKeyFile := cmd.String("tls-key-file")
+	if (tlsCertFile == "" && tlsKeyFile != "") || (tlsCertFile != "" && tlsKeyFile == "") {
+		return cli.Exit("Both --tls-cert-file and --tls-key-file must be provided to enable HTTPS", 1)
+	}
+
+	// Initialize TLS config if TLS flags are provided
+	var tlsConfig *tls.Config
+	if tlsCertFile != "" && tlsKeyFile != "" {
+		var err error
+		tlsConfig, err = tls.NewFromFiles(tlsCertFile, tlsKeyFile)
+		if err != nil {
+			return cli.Exit("Failed to load TLS configuration: "+err.Error(), 1)
+		}
+	}
+
 	config := api.Config{
 		// Basic configuration
 		Platform: cmd.String("platform"),
@@ -138,6 +172,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// OpenTelemetry configuration
 		OtelEnabled:           cmd.Bool("otel"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
+
+		// TLS Configuration
+		TLSConfig: tlsConfig,
 
 		InstanceID:     cmd.String("instance-id"),
 		RedisUrl:       cmd.String("redis-url"),

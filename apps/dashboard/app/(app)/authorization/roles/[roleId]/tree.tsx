@@ -1,9 +1,9 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronRight } from "@unkey/icons";
+import { CopyButton } from "@unkey/ui";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { PermissionToggle } from "./permission-toggle";

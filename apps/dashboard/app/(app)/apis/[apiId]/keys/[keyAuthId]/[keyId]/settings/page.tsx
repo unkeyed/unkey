@@ -1,9 +1,9 @@
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { PageContent } from "@/components/page-content";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getAuth } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
+import { CopyButton } from "@unkey/ui";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
