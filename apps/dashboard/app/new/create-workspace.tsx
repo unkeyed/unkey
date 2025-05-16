@@ -1,6 +1,5 @@
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
 import {
   Form,
   FormControl,
@@ -16,7 +15,7 @@ import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@unkey/ui";
+import { Button, Loading } from "@unkey/ui";
 import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useTransition } from "react";

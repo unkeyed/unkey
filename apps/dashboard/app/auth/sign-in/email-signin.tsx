@@ -1,5 +1,5 @@
-import { Loading } from "@/components/dashboard/loading";
 import { Input } from "@/components/ui/input";
+import { Loading } from "@unkey/ui";
 import { type FormEvent, useEffect, useState } from "react";
 import { useSignIn } from "../hooks";
 import { LastUsed, useLastUsed } from "./last_used";

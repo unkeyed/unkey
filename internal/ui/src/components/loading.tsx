@@ -1,3 +1,5 @@
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
 import type { SVGProps } from "react";
 
 export function Loading({
@@ -11,6 +13,7 @@ export function Loading({
       width={width}
       height={height}
       viewBox="0 0 24 24"
+      aria-label="Loading"
       xmlns="http://www.w3.org/2000/svg"
     >
       <circle cx="4" cy="12" r="3">

@@ -22,7 +22,7 @@ import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@unkey/ui";
+import { Button, Loading } from "@unkey/ui";
 import {
   ArrowUpDown,
   Check,
@@ -36,7 +36,6 @@ import {
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loading } from "../loading";
 import { DataTable } from "./table";
 type Column = {
   id: string;

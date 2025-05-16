@@ -2,11 +2,10 @@
 import { revalidate } from "@/app/actions";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
-import { Button } from "@unkey/ui";
+import { Button, Loading } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
 
-import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,

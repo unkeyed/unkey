@@ -1,8 +1,8 @@
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import { Loading } from "@unkey/ui";
 import { OTPInput, type SlotProps } from "input-otp";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSignIn } from "../hooks";
