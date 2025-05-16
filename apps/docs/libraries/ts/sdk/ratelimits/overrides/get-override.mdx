@@ -3,6 +3,37 @@ title: "Get Override"
 description: "Gets a ratelimit override"
 ---
 
+<RequestExample>
+```ts
+const { result, error } = await unkey.ratelimits.getOverride({
+  identifier:"user.example",
+  namespaceName: "email.outbound"
+});
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+
+console.log(result);
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "result": {
+    "id": "rlor_4567",
+    "identifier": "user.example",
+    "limit": 10,
+    "duration": 60000,
+    "async": false
+  }
+}
+```
+</ResponseExample>
+
 ## Request
 <ParamField body="identifier" type="string" required>
 Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
@@ -47,33 +78,3 @@ Async will return a response immediately, lowering latency at the cost of accura
 </ParamField>
 </Expandable>
 </ResponseField >
-
-
-<RequestExample>
-```ts
-const override = await unkey.ratelimits.getOverride({
-  identifier:"user.example",
-  nameSpaceId:"rlns_12345",
-});
-```
-```ts
-const override = await unkey.ratelimits.getOverride({
-  identifier:"user.example",
-  namespaceName: "email.outbound"
-});
-```
-</RequestExample>
-
-<ResponseExample>
-```ts
-{
-  result: {
-    id: "rlor_4567",
-    identifier: "user.example",
-    limit: 10,
-    duration: 60000,
-    async: false
-  }
-}
-```
-</ResponseExample>

@@ -1,37 +1,31 @@
 ---
-title: "Create"
-description: "Create an api key for your users"
+title: "Migrate key to Unkey"
+description: "Add existing keys to unkey by specifying the key hash and other settings"
 ---
 
 <RequestExample>
 
 ```ts
-const { result, error } = await unkey.keys.create({
-  apiId: "api_123",
-  prefix: "xyz",
-  byteLength: 16,
-  externalId: "user_1234",
-  meta: {
-    hello: "world",
+const { result, error } = await unkey.migrations.createKeys([
+  {
+    apiId: "api_123",
+    prefix: "xyz",
+    byteLength: 16,
+    externalId: "user_1234",
+    plaintext: "prod_plaintext",
   },
-  expires: 1686941966471,
-  ratelimit: {
-    async: true,
-    duration: 1000,
-    limit: 10,
+  {
+    apiId: "api_123",
+    prefix: "xyz",
+    byteLength: 16,
+    externalId: "user_5678",
+    hash: {
+      value:
+        "00c0116331ffb5cc407f8f64ad58decc8b9d2e8a7b42746ba28e96ecb22b748c",
+      variant: "sha256_base64",
+    },
   },
-  remaining: 1000,
-  environment: "test",
-  name: "My Key",
-  permissions: ["email.test"],
-  roles: ["domain.manager"],
-  refill: {
-    interval: "monthly",
-    amount: 100,
-    refillDay: 15,
-  },
-  enabled: true,
-});
+]);
 
 if (error) {
   // handle potential network or bad request error
@@ -40,8 +34,7 @@ if (error) {
   return;
 }
 
-console.log(result)
-
+console.log(result);
 ```
 
 </RequestExample>
@@ -49,10 +42,10 @@ console.log(result)
 <ResponseExample>
 ```json
 {
-  "result": {
-    "key": "xyz_AS5HDkXXPot2MMoPHD8jnL"
-    "keyId": "key_YALWkHZaA4neUa1JJoXTAw"
-	}
+  "keyIds": [
+    "key_123",
+    "key_456"
+  ]
 }
 ```
 
@@ -91,6 +84,25 @@ The default is `16 bytes`, or 2<sup>128</sup> possible combinations
    </ParamField>
 <ParamField body="name" type="string" >
  A way to easily identify the key by giving it a name.
+</ParamField>
+
+
+ <ParamField body="plaintext" type="string" >
+     The raw key in plaintext. If provided, unkey encrypts this value and stores it securely. Provide either hash or plaintext
+  </ParamField>
+<ParamField body="hash" type="Object" >
+  Provide either hash or plaintext
+    <Expandable title="properties">
+        <ParamField body="value" type="string" >
+            The hashed and encoded key
+        </ParamField>
+        <ParamField body="variant" type="string" >
+        The algorithm for hashing and encoding, currently only sha256 and base64 are supported
+
+        Available options: `sha256_base64`
+        </ParamField>
+    </Expandable>
+
 </ParamField>
 
 <ParamField body="meta" type="object" >

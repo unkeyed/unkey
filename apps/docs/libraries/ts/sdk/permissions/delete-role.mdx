@@ -1,12 +1,14 @@
 ---
-title: "Delete"
-description: "Permanently delete an API and revoke all keys associated with it."
+title: "Delete A Role"
+description: "Delete a role from the Unkey system"
 ---
 
 <RequestExample>
 
 ```ts
-const { result, error } = await unkey.apis.delete({ apiId: "api_123" });
+const { result, error } = await unkey.permissions.deleteRole({
+  roleId: "role_45TTRKT5Yh28M6Qj",
+});
 
 if (error) {
   // handle potential network or bad request error
@@ -14,11 +16,11 @@ if (error) {
   console.error(error.message);
   return;
 }
-
 console.log(result);
 ```
 
 </RequestExample>
+
 <ResponseExample>
 ```json
 {
@@ -28,14 +30,19 @@ console.log(result);
 </ResponseExample>
 
 
+<Note>
+To use this function, your root key must have the `rbac.*.delete_role`
+</Note>
+
 ## Request
 
-<ParamField body="apiId" type="string" required>
-  The id of the api to be deleted.
+<ParamField body="roleId" type="string" required>
+    The id of the role to delete
+
+    Example: `"role_123"`
 </ParamField>
 
 ## Response
-
 <ResponseField name="result">
-  `{}`
+    `{}`
 </ResponseField>
