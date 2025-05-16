@@ -1,0 +1,55 @@
+---
+title: Loading
+description: A customizable animated loading indicator component
+---
+import { LoadingExample, LoadingWithDurationExample, LoadingCustomExample, LoadingWithClassNameExample } from "./loading/loading.example";
+
+# Loading Component
+
+The Loading component is a simple yet customizable animated loading indicator that displays three pulsating circles in a row.
+
+## Usage
+
+```tsx
+import { Loading } from "@unkey/ui";
+
+function MyComponent() {
+  return <Loading />;
+}
+```
+
+## Examples
+
+### Default Loading
+
+<LoadingExample />
+
+### Custom Size
+
+<LoadingCustomExample />
+
+### Custom Animation Speed
+
+<LoadingWithDurationExample />
+
+### Custom Color
+
+The loading indicator inherits its color from the parent element's text color using the `fill-current` class.
+
+## Props
+
+The Loading component accepts the following props:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `width` | `number` | `24` | The width of the loading indicator in pixels |
+| `height` | `number` | `24` | The height of the loading indicator in pixels |
+| `dur` | `string` | `"0.75s"` | The duration of one complete animation cycle |
+
+Additionally, the component accepts all standard SVG element props as it renders an SVG under the hood.
+
+## Implementation Details
+
+The loading animation is implemented using SVG animations (`<animate>`) that smoothly transition the radius of three circles between their maximum (3) and minimum (0.2) values. The animations are chained together with precise timing to create a smooth wave-like effect.
+
+The component is built with accessibility in mind and can be styled using Tailwind CSS classes through its parent elements.
