@@ -58,9 +58,11 @@ export class CloudflareStore<TNamespace extends string, TValue = any>
         }),
       );
     }
+
     if (!res) {
       return Ok(undefined);
     }
+
     const raw = await res.text();
     try {
       const entry = superjson.parse(raw) as Entry<TValue>;
@@ -138,5 +140,19 @@ export class CloudflareStore<TNamespace extends string, TValue = any>
           }),
         ),
       );
+  }
+
+  public async getMany(
+    namespace: TNamespace,
+    keys: string[],
+  ): Promise<Result<Record<string, Entry<TValue> | undefined>, CacheError>> {
+    return Ok();
+  }
+
+  public async setMany(
+    namespace: TNamespace,
+    entries: Record<string, Entry<TValue>>,
+  ): Promise<Result<void, CacheError>> {
+    return Ok();
   }
 }
