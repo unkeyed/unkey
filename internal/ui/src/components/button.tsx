@@ -441,35 +441,49 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         {...props}
       >
-        {/* Loading state */}
-        {loading && (
-          <div className="flex items-center justify-center gap-2 py-2 px-3" aria-hidden="true">
+        <div className="relative flex items-center justify-center py-2 px-3 w-full">
+          <div
+            className={cn(
+              "flex items-center justify-center gap-2 w-full transition-all duration-300 ease-in-out",
+              loading
+                ? "opacity-100 transform scale-100"
+                : "opacity-0 transform scale-95 pointer-events-none absolute inset-0",
+            )}
+            aria-hidden={!loading}
+          >
             <AnimatedLoadingSpinner />
             {loadingLabel && <span className="text-sm font-medium ml-1">{loadingLabel}</span>}
             <span className="sr-only">Loading</span>
           </div>
-        )}
 
-        {/* Normal content */}
-        <div
-          className={cn("flex items-center justify-center gap-2 py-2 px-3", {
-            hidden: loading,
-            "inline-flex": !loading,
-          })}
-        >
-          {props.children}
-          {props.keyboard ? (
-            <kbd
-              className={cn(
-                keyboardIconVariants({
-                  variant:
-                    variant === "primary" ? "primary" : variant === "outline" ? "default" : "ghost",
-                }),
-              )}
-            >
-              {props.keyboard.display}
-            </kbd>
-          ) : null}
+          {/* Normal content */}
+          <div
+            className={cn(
+              "flex items-center justify-center gap-2 w-full transition-all duration-300 ease-in-out",
+              loading
+                ? "opacity-0 transform scale-95 pointer-events-none absolute inset-0"
+                : "opacity-100 transform scale-100",
+            )}
+            aria-hidden={loading}
+          >
+            {props.children}
+            {props.keyboard ? (
+              <kbd
+                className={cn(
+                  keyboardIconVariants({
+                    variant:
+                      variant === "primary"
+                        ? "primary"
+                        : variant === "outline"
+                          ? "default"
+                          : "ghost",
+                  }),
+                )}
+              >
+                {props.keyboard.display}
+              </kbd>
+            ) : null}
+          </div>
         </div>
       </Comp>
     );
