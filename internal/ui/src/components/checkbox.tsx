@@ -15,19 +15,19 @@ const checkboxVariants = cva(
         default: "",
         primary: [
           "border-grayA-6 data-[state=checked]:bg-accent-12 data-[state=checked]:border-transparent",
-          "focus:ring-2 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-grayA-4 disabled:data-[state=checked]:bg-grayA-6",
           "transition-all duration-200 ease-in-out",
         ],
         outline: [
           "border-grayA-6 bg-transparent data-[state=checked]:bg-transparent data-[state=checked]:border-grayA-8",
-          "focus:border-grayA-12 focus:ring-2 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-grayA-12 focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-grayA-5 disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
         ghost: [
           "border-grayA-6 bg-transparent hover:bg-grayA-2 data-[state=checked]:bg-transparent data-[state=checked]:border-grayA-8",
-          "focus:border-grayA-12 focus:ring-2 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-grayA-12 focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-grayA-4 disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
@@ -58,7 +58,7 @@ const checkboxVariants = cva(
         color: "danger",
         className: [
           "border-errorA-6 data-[state=checked]:bg-error-9 data-[state=checked]:border-transparent",
-          "focus:border-error-11 focus:ring-2 focus:ring-error-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-error-11 focus:ring focus:ring-error-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-errorA-4 disabled:data-[state=checked]:bg-error-6",
           "transition-all duration-200 ease-in-out",
         ],
@@ -68,7 +68,7 @@ const checkboxVariants = cva(
         color: "danger",
         className: [
           "border-errorA-6 data-[state=checked]:border-error-9",
-          "focus:border-error-11 focus:ring-2 focus:ring-error-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-error-11 focus:ring focus:ring-error-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-errorA-4 disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
@@ -78,7 +78,7 @@ const checkboxVariants = cva(
         color: "danger",
         className: [
           "border-errorA-6 hover:bg-error-3 data-[state=checked]:border-error-9",
-          "focus:border-error-11 focus:ring-2 focus:ring-error-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-error-11 focus:ring focus:ring-error-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-errorA-4 disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
@@ -89,7 +89,7 @@ const checkboxVariants = cva(
         color: "warning",
         className: [
           "border-warningA-6 data-[state=checked]:bg-warning-8 data-[state=checked]:border-transparent",
-          "focus:border-warning-11 focus:ring-2 focus:ring-warning-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-warning-11 focus:ring focus:ring-warning-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-warningA-4 disabled:data-[state=checked]:bg-warning-6",
           "transition-all duration-200 ease-in-out",
         ],
@@ -99,7 +99,7 @@ const checkboxVariants = cva(
         color: "warning",
         className: [
           "border-warningA-6 data-[state=checked]:border-warning-9",
-          "focus:border-warning-11 focus:ring-2 focus:ring-warning-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-warning-11 focus:ring focus:ring-warning-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-warningA-4 disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
@@ -109,7 +109,7 @@ const checkboxVariants = cva(
         color: "warning",
         className: [
           "border-warningA-6 hover:bg-warning-3 data-[state=checked]:border-warning-9",
-          "focus:border-warning-11 focus:ring-2 focus:ring-warning-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-warning-11 focus:ring focus:ring-warning-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-warningA-4 disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
@@ -120,7 +120,7 @@ const checkboxVariants = cva(
         color: "success",
         className: [
           "border-successA-6 data-[state=checked]:bg-success-9 data-[state=checked]:border-transparent",
-          "focus:border-success-11 focus:ring-2 focus:ring-success-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-success-11 focus:ring focus:ring-success-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-successA-4 disabled:data-[state=checked]:bg-success-6",
           "transition-all duration-200 ease-in-out",
         ],
@@ -130,7 +130,7 @@ const checkboxVariants = cva(
         color: "success",
         className: [
           "border-successA-6 data-[state=checked]:border-success-9",
-          "focus:border-success-11 focus:ring-2 focus:ring-success-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-success-11 focus:ring focus:ring-success-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-successA-4 disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
@@ -140,7 +140,7 @@ const checkboxVariants = cva(
         color: "success",
         className: [
           "border-successA-6 hover:bg-success-3 data-[state=checked]:border-success-9",
-          "focus:border-success-11 focus:ring-2 focus:ring-success-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-success-11 focus:ring focus:ring-success-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-successA-4 disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
@@ -151,7 +151,7 @@ const checkboxVariants = cva(
         color: "info",
         className: [
           "border-infoA-6 data-[state=checked]:bg-info-9 data-[state=checked]:border-transparent",
-          "focus:border-info-11 focus:ring-2 focus:ring-info-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-info-11 focus:ring focus:ring-info-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-infoA-4 disabled:data-[state=checked]:bg-info-6",
           "transition-all duration-200 ease-in-out",
         ],
@@ -161,7 +161,7 @@ const checkboxVariants = cva(
         color: "info",
         className: [
           "border-infoA-6 data-[state=checked]:border-info-9",
-          "focus:border-info-11 focus:ring-2 focus:ring-info-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-info-11 focus:ring focus:ring-info-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-infoA-4 disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
@@ -171,18 +171,21 @@ const checkboxVariants = cva(
         color: "info",
         className: [
           "border-infoA-6 hover:bg-info-3 data-[state=checked]:border-info-9",
-          "focus:border-info-11 focus:ring-2 focus:ring-info-6 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border-info-11 focus:ring focus:ring-info-4 focus-visible:outline-none focus:ring-offset-0",
           "disabled:border-infoA-4 disabled:opacity-70",
           "transition-all duration-200 ease-in-out",
         ],
       },
     ],
-  },
+  }
 );
 
 const checkmarkVariants = cva("flex items-center justify-center");
 
-const VARIANT_MAP: Record<string, { variant: CheckboxVariant; color?: CheckboxColor }> = {
+const VARIANT_MAP: Record<
+  string,
+  { variant: CheckboxVariant; color?: CheckboxColor }
+> = {
   default: { variant: "primary" },
   destructive: { variant: "primary", color: "danger" },
 };
@@ -257,8 +260,12 @@ export type DocumentedCheckboxProps = VariantProps<typeof checkboxVariants> & {
   onCheckedChange?: (checked: boolean) => void;
 };
 
-type CheckboxVariant = NonNullable<VariantProps<typeof checkboxVariants>["variant"]>;
-type CheckboxColor = NonNullable<VariantProps<typeof checkboxVariants>["color"]>;
+type CheckboxVariant = NonNullable<
+  VariantProps<typeof checkboxVariants>["variant"]
+>;
+type CheckboxColor = NonNullable<
+  VariantProps<typeof checkboxVariants>["color"]
+>;
 type CheckboxSize = NonNullable<VariantProps<typeof checkboxVariants>["size"]>;
 
 export type CheckboxProps = VariantProps<typeof checkboxVariants> &
@@ -268,50 +275,53 @@ export type CheckboxProps = VariantProps<typeof checkboxVariants> &
     size?: CheckboxSize;
   };
 
-const Checkbox = React.forwardRef<React.ElementRef<typeof CheckboxPrimitive.Root>, CheckboxProps>(
-  ({ className, variant, color = "default", size, ...props }, ref) => {
-    let mappedVariant: CheckboxVariant = "primary";
-    let mappedColor: CheckboxColor = color;
+const Checkbox = React.forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  CheckboxProps
+>(({ className, variant, color = "default", size, ...props }, ref) => {
+  let mappedVariant: CheckboxVariant = "primary";
+  let mappedColor: CheckboxColor = color;
 
-    if (variant === null || variant === undefined) {
-      mappedVariant = "primary";
-    } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
-      const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
-      mappedVariant = mapping.variant;
-      if (mapping.color) {
-        mappedColor = mapping.color;
-      }
-    } else {
-      mappedVariant = variant as CheckboxVariant;
+  if (variant === null || variant === undefined) {
+    mappedVariant = "primary";
+  } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
+    const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
+    mappedVariant = mapping.variant;
+    if (mapping.color) {
+      mappedColor = mapping.color;
     }
+  } else {
+    mappedVariant = variant as CheckboxVariant;
+  }
 
-    const iconSize = getIconSize(size);
+  const iconSize = getIconSize(size);
 
-    const checkmarkColor =
-      mappedColor === "default" && mappedVariant === "primary"
-        ? "text-white dark:text-black"
-        : "text-white";
+  const checkmarkColor =
+    mappedColor === "default" && mappedVariant === "primary"
+      ? "text-white dark:text-black"
+      : "text-white";
 
-    return (
-      <CheckboxPrimitive.Root
-        ref={ref}
-        className={cn(
-          checkboxVariants({
-            variant: mappedVariant,
-            color: mappedColor,
-            size,
-            className,
-          }),
-        )}
-        {...props}
+  return (
+    <CheckboxPrimitive.Root
+      ref={ref}
+      className={cn(
+        checkboxVariants({
+          variant: mappedVariant,
+          color: mappedColor,
+          size,
+          className,
+        })
+      )}
+      {...props}
+    >
+      <CheckboxPrimitive.Indicator
+        className={cn(checkmarkVariants(), checkmarkColor)}
       >
-        <CheckboxPrimitive.Indicator className={cn(checkmarkVariants(), checkmarkColor)}>
-          <Check size={iconSize} />
-        </CheckboxPrimitive.Indicator>
-      </CheckboxPrimitive.Root>
-    );
-  },
-);
+        <Check size={iconSize} />
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
+  );
+});
 
 Checkbox.displayName = CheckboxPrimitive.Root.displayName;
 
