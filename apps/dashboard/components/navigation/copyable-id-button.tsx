@@ -1,6 +1,5 @@
-import { Button } from "@unkey/ui";
+import { Button, CopyButton } from "@unkey/ui";
 import { useRef } from "react";
-import { CopyButton } from "../dashboard/copy-button";
 
 type CopyableIDButtonProps = {
   value: string;

@@ -75,6 +75,7 @@ func New(config Config) (*zen.Server, error) {
 	z, err := zen.New(zen.Config{
 		Logger: config.Logger,
 		Flags:  nil,
+		TLS:    nil,
 	})
 
 	if err != nil {

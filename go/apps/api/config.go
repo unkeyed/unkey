@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/tls"
 )
 
 type Config struct {
@@ -47,10 +48,15 @@ type Config struct {
 
 	PrometheusPort int
 	Clock          clock.Clock
+
+	// --- TLS configuration ---
+
+	// TLSConfig provides HTTPS support when set
+	TLSConfig *tls.Config
 }
 
 func (c Config) Validate() error {
-
-	// nothing to validate yet
+	// TLS configuration is validated when it's created from files
+	// Other validations may be added here in the future
 	return nil
 }

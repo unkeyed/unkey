@@ -1,7 +1,6 @@
 "use client";
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
-import { Button, Empty } from "@unkey/ui";
+import { Button, CopyButton, Empty } from "@unkey/ui";
 import { BookOpen } from "lucide-react";
 import { type PropsWithChildren, useState } from "react";
 import { RatelimitListControlCloud } from "./control-cloud";
