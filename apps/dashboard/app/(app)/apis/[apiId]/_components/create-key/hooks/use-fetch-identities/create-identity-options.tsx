@@ -1,7 +1,13 @@
-import { CopyButton } from "@/components/dashboard/copy-button";
 import type { Identity } from "@/lib/db";
 import { User } from "@unkey/icons";
-import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import {
+  Button,
+  CopyButton,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@unkey/ui";
 
 type IdentitySelectorProps = {
   identities: Omit<Identity, "deleted">[];

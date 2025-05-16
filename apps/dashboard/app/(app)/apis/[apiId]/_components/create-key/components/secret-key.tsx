@@ -1,9 +1,8 @@
 "use client"; // Keep if needed
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { cn } from "@/lib/utils";
 import { CircleLock, Eye, EyeSlash } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, CopyButton } from "@unkey/ui";
 import { useState } from "react";
 
 const maskKey = (key: string): string => {
