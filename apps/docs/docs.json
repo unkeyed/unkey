@@ -315,7 +315,13 @@
                           "libraries/ts/sdk/keys/update",
                           "libraries/ts/sdk/keys/update-remaining",
                           "libraries/ts/sdk/keys/delete",
-                          "libraries/ts/sdk/keys/verifications"
+                          "libraries/ts/sdk/keys/verifications",
+                          "libraries/ts/sdk/keys/add-permission",
+                          "libraries/ts/sdk/keys/remove-permission",
+                          "libraries/ts/sdk/keys/set-permission",
+                          "libraries/ts/sdk/keys/add-roles",
+                          "libraries/ts/sdk/keys/remove-roles",
+                          "libraries/ts/sdk/keys/set-roles"
                         ]
                       },
                       {
@@ -325,6 +331,16 @@
                           "libraries/ts/sdk/apis/get",
                           "libraries/ts/sdk/apis/list-keys",
                           "libraries/ts/sdk/apis/delete"
+                        ]
+                      },
+                      {
+                        "group": "Identities",
+                        "pages": [
+                          "libraries/ts/sdk/identities/create-identity",
+                          "libraries/ts/sdk/identities/get-identity",
+                          "libraries/ts/sdk/identities/update-identity",
+                          "libraries/ts/sdk/identities/list-identity",
+                          "libraries/ts/sdk/identities/delete-identity"
                         ]
                       },
                       {
@@ -338,6 +354,31 @@
                               "libraries/ts/sdk/ratelimits/overrides/get-override",
                               "libraries/ts/sdk/ratelimits/overrides/list-overrides",
                               "libraries/ts/sdk/ratelimits/overrides/delete-override"
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "group": "Migrations",
+                        "pages": ["libraries/ts/sdk/migrations/migrate-to-unkey"]
+                      },
+                      {
+                        "group": "Permissions",
+                        "pages": [
+                          {
+                            "group": "Roles",
+                            "pages": [
+                              "libraries/ts/sdk/permissions/create-role",
+                              "libraries/ts/sdk/permissions/get-role",
+                              "libraries/ts/sdk/permissions/delete-role"
+                            ]
+                          },
+                          {
+                            "group": "Permissions",
+                            "pages": [
+                              "libraries/ts/sdk/permissions/create-permission",
+                              "libraries/ts/sdk/permissions/get-permission",
+                              "libraries/ts/sdk/permissions/delete-permission"
                             ]
                           }
                         ]
@@ -384,7 +425,12 @@
                         ]
                       }
                     ]
-                  },
+                  }
+                ]
+              },
+              {
+                "group": "Community Libraries",
+                "pages": [
                   {
                     "group": "Elixir",
                     "pages": [

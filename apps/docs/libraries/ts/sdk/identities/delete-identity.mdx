@@ -1,12 +1,14 @@
 ---
-title: "Delete"
-description: "Permanently delete an API and revoke all keys associated with it."
+title: "Delete An Identity"
+description: "Delete an identity. This will not revoke the keys associated with the identity."
 ---
 
 <RequestExample>
 
 ```ts
-const { result, error } = await unkey.apis.delete({ apiId: "api_123" });
+const { result, error } = await unkey.identities.delete({
+  identityId: "id_1234"
+});
 
 if (error) {
   // handle potential network or bad request error
@@ -19,6 +21,7 @@ console.log(result);
 ```
 
 </RequestExample>
+
 <ResponseExample>
 ```json
 {
@@ -27,15 +30,13 @@ console.log(result);
 ```
 </ResponseExample>
 
-
 ## Request
 
-<ParamField body="apiId" type="string" required>
-  The id of the api to be deleted.
+<ParamField path="identityId" type="string" required>
+  The ID of the identity you want to delete.
 </ParamField>
 
 ## Response
-
 <ResponseField name="result">
-  `{}`
+    `{}`
 </ResponseField>
