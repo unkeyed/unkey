@@ -2,10 +2,13 @@ import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import {
   getDailyActiveKeysTimeseries,
+  getFiveMinutelyActiveKeysTimeseries,
   getFourHourlyActiveKeysTimeseries,
   getHourlyActiveKeysTimeseries,
+  getMinutelyActiveKeysTimeseries,
   getMonthlyActiveKeysTimeseries,
   getSixHourlyActiveKeysTimeseries,
+  getThirtyMinutelyActiveKeysTimeseries,
   getThreeDayActiveKeysTimeseries,
   getTwelveHourlyActiveKeysTimeseries,
   getTwoHourlyActiveKeysTimeseries,
@@ -55,16 +58,17 @@ import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
   getDailyVerificationTimeseries,
+  getFiveMinutelyVerificationTimeseries,
   getFourHourlyVerificationTimeseries,
   getHourlyVerificationTimeseries,
+  getKeyDetailsLogs,
+  getMinutelyVerificationTimeseries,
   getMonthlyVerificationTimeseries,
   getSixHourlyVerificationTimeseries,
+  getThirtyMinutelyVerificationTimeseries,
   getThreeDayVerificationTimeseries,
   getTwelveHourlyVerificationTimeseries,
   getTwoHourlyVerificationTimeseries,
-  getVerificationsPerDay,
-  getVerificationsPerHour,
-  getVerificationsPerMonth,
   getWeeklyVerificationTimeseries,
   insertVerification,
 } from "./verifications";
@@ -106,31 +110,41 @@ export class ClickHouse {
   public get verifications() {
     return {
       insert: insertVerification(this.inserter),
-      logs: getLatestVerifications(this.querier),
-      perHour: getVerificationsPerHour(this.querier),
-      perDay: getVerificationsPerDay(this.querier),
-      perMonth: getVerificationsPerMonth(this.querier),
       latest: getLatestVerifications(this.querier),
       timeseries: {
+        // Minute-based granularity
+        perMinute: getMinutelyVerificationTimeseries(this.querier),
+        per5Minutes: getFiveMinutelyVerificationTimeseries(this.querier),
+        per30Minutes: getThirtyMinutelyVerificationTimeseries(this.querier),
+        // Hour-based granularity
         perHour: getHourlyVerificationTimeseries(this.querier),
         per2Hours: getTwoHourlyVerificationTimeseries(this.querier),
         per4Hours: getFourHourlyVerificationTimeseries(this.querier),
         per6Hours: getSixHourlyVerificationTimeseries(this.querier),
         per12Hours: getTwelveHourlyVerificationTimeseries(this.querier),
+        // Day-based granularity
         perDay: getDailyVerificationTimeseries(this.querier),
         per3Days: getThreeDayVerificationTimeseries(this.querier),
         perWeek: getWeeklyVerificationTimeseries(this.querier),
+        // Month-based granularity
         perMonth: getMonthlyVerificationTimeseries(this.querier),
       },
       activeKeysTimeseries: {
+        // Minute-based granularity
+        perMinute: getMinutelyActiveKeysTimeseries(this.querier),
+        per5Minutes: getFiveMinutelyActiveKeysTimeseries(this.querier),
+        per30Minutes: getThirtyMinutelyActiveKeysTimeseries(this.querier),
+        // Hour-based granularity
         perHour: getHourlyActiveKeysTimeseries(this.querier),
         per2Hours: getTwoHourlyActiveKeysTimeseries(this.querier),
         per4Hours: getFourHourlyActiveKeysTimeseries(this.querier),
         per6Hours: getSixHourlyActiveKeysTimeseries(this.querier),
         per12Hours: getTwelveHourlyActiveKeysTimeseries(this.querier),
+        // Day-based granularity
         perDay: getDailyActiveKeysTimeseries(this.querier),
         per3Days: getThreeDayActiveKeysTimeseries(this.querier),
         perWeek: getWeeklyActiveKeysTimeseries(this.querier),
+        // Month-based granularity
         perMonth: getMonthlyActiveKeysTimeseries(this.querier),
       },
     };
@@ -180,6 +194,9 @@ export class ClickHouse {
       logs: getLogs(this.querier),
       keys: {
         logs: getKeysOverviewLogs(this.querier),
+      },
+      key: {
+        logs: getKeyDetailsLogs(this.querier),
       },
       timeseries: {
         perMinute: getMinutelyLogsTimeseries(this.querier),

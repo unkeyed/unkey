@@ -3,6 +3,8 @@ import { ClickHouse } from "./index";
 
 import { ClickHouseContainer } from "./testutil";
 
+const waitForMaterializedViews = (ms = 5000) => new Promise((resolve) => setTimeout(resolve, ms));
+
 test(
   "tags are inserted correctly",
   {
@@ -38,7 +40,7 @@ test(
       const { err: insertErr } = await ch.verifications.insert(verification);
       expect(insertErr).toBeUndefined();
 
-      const latestVerifications = await ch.verifications.logs({
+      const latestVerifications = await ch.verifications.latest({
         workspaceId: verification.workspace_id,
         keySpaceId: verification.key_space_id,
         keyId: verification.key_id,
@@ -53,7 +55,7 @@ test(
 );
 
 describe("materialized views", () => {
-  for (const mv of ["per_hour", "per_day", "per_month"]) {
+  for (const mv of ["hour", "day", "month"]) {
     describe(mv, () => {
       const verificationsWithTags: Array<Array<string>> = [
         [],
@@ -64,7 +66,6 @@ describe("materialized views", () => {
         ["A", "B", "D"],
         ["B", "A", "C"],
       ];
-
       test(
         `returns ${verificationsWithTags.length} verifications in total`,
         {
@@ -72,19 +73,18 @@ describe("materialized views", () => {
         },
         async (t) => {
           const container = await ClickHouseContainer.start(t);
-
           const ch = new ClickHouse({ url: container.url() });
-
           const workspaceId = crypto.randomUUID();
-          const keySpaceId = crypto.randomUUID();
+          const keyspaceId = crypto.randomUUID();
           const keyId = crypto.randomUUID();
 
+          // Insert test verifications
           const { err: insertErr } = await ch.verifications.insert(
             verificationsWithTags.map((tags, i) => ({
               request_id: i.toString(),
               time: Date.now(),
               workspace_id: workspaceId,
-              key_space_id: keySpaceId,
+              key_space_id: keyspaceId,
               key_id: keyId,
               outcome: "VALID",
               region: "test",
@@ -92,43 +92,52 @@ describe("materialized views", () => {
             })),
           );
           expect(insertErr).toBeUndefined();
-          const allVerifications = await ch.verifications.logs({
+
+          // Verify records were inserted using latest
+          const allVerifications = await ch.verifications.latest({
             workspaceId,
-            keySpaceId,
+            keySpaceId: keyspaceId,
             keyId,
             limit: 50,
           });
 
-          /**
-           * Assert all of the rows have been written to clickhouse
-           */
           expect(allVerifications.err).toBeUndefined();
           expect(allVerifications.val!.length).toBe(verificationsWithTags.length);
 
-          /**
-           * Wait for materialized views to be updated
-           */
-          await new Promise((r) => setTimeout(r, 5000));
+          // Wait for materialized views to update
+          await waitForMaterializedViews();
 
-          const q = {
-            per_hour: ch.verifications.perHour,
-            per_day: ch.verifications.perDay,
-            per_month: ch.verifications.perMonth,
-          }[mv]!;
-          const mvRes = await q({
+          // Get the appropriate materialized view function based on the timeseries granularity
+          const timeseriesFunction = {
+            hour: ch.verifications.timeseries.perHour,
+            day: ch.verifications.timeseries.perDay,
+            month: ch.verifications.timeseries.perMonth,
+          }[mv];
+
+          // Make sure the function exists
+          expect(timeseriesFunction).toBeDefined();
+
+          // Query the materialized view
+          const mvRes = await timeseriesFunction?.({
             workspaceId,
-            keySpaceId,
+            keyspaceId,
             keyId,
-            start: Date.now() - 60 * 24 * 60 * 60 * 1000,
-            end: Date.now(),
+            startTime: Date.now() - 60 * 24 * 60 * 60 * 1000, // 60 days ago
+            endTime: Date.now() + 10000, // Add buffer to current time
+            names: null, // Required parameter
+            identities: null, // Required parameter
+            keyIds: null, // Required parameter
+            outcomes: null, // Required parameter
           });
 
-          expect(mvRes.err).toBeUndefined();
-
-          const total = mvRes.val!.reduce((sum, v) => {
-            return sum + v.count;
+          // Calculate total verification count from all data points
+          const totalVerifications = mvRes!.reduce((sum, dataPoint) => {
+            // The total property in y contains the count
+            return sum + dataPoint.y.total;
           }, 0);
-          expect(total).toBe(verificationsWithTags.length);
+
+          // Verify the total count matches our verification count
+          expect(totalVerifications).toBe(verificationsWithTags.length);
         },
       );
     });

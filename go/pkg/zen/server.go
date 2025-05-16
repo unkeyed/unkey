@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/tls"
 )
 
 // Server manages HTTP server configuration, route registration, and lifecycle.
@@ -26,6 +27,7 @@ type Server struct {
 	mux         *http.ServeMux
 	srv         *http.Server
 	flags       Flags
+	tlsConfig   *tls.Config
 
 	sessions sync.Pool
 }
@@ -38,9 +40,12 @@ type Flags struct {
 
 // Config configures the behavior of a Server instance.
 type Config struct {
-
 	// Logger provides structured logging for the server. If nil, logging is disabled.
 	Logger logging.Logger
+
+	// TLS configuration for HTTPS connections.
+	// If this is provided, the server will use HTTPS.
+	TLS *tls.Config
 
 	Flags *Flags
 }
@@ -95,6 +100,7 @@ func New(config Config) (*Server, error) {
 		mux:         mux,
 		srv:         srv,
 		flags:       flags,
+		tlsConfig:   config.TLS,
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
@@ -143,6 +149,9 @@ func (s *Server) Flags() Flags {
 // Listen starts the HTTP server on the specified address.
 // This method blocks until the server shuts down or encounters an error.
 // Once listening, the server will not start again if Listen is called multiple times.
+// If TLS configuration is provided, the server will use HTTPS.
+//
+// The provided context is used to gracefully shut down the server when the context is canceled.
 //
 // Example:
 //
@@ -164,9 +173,45 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 
 	s.srv.Addr = addr
 
-	s.logger.Info("listening", "srv", "http", "addr", addr)
+	// Set up context handling for graceful shutdown
+	serverCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	err := s.srv.ListenAndServe()
+	// Handle context cancellation in a separate goroutine
+	go func() {
+		select {
+		case <-ctx.Done():
+			s.logger.Info("shutting down server due to context cancellation")
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer shutdownCancel()
+
+			err := s.Shutdown(shutdownCtx)
+			if err != nil {
+				s.logger.Error("error during server shutdown", "error", err.Error())
+			}
+		case <-serverCtx.Done():
+			// Server stopped on its own
+		}
+	}()
+
+	var err error
+
+	// Check if TLS should be used
+	if s.tlsConfig != nil {
+		s.logger.Info("listening", "srv", "https", "addr", addr)
+
+		s.srv.TLSConfig = s.tlsConfig
+
+		// ListenAndServeTLS with empty strings will use the certificates from TLSConfig
+		err = s.srv.ListenAndServeTLS("", "")
+	} else {
+		s.logger.Info("listening", "srv", "http", "addr", addr)
+		err = s.srv.ListenAndServe()
+	}
+
+	// Cancel the server context since the server has stopped
+	cancel()
+
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fault.Wrap(err, fault.WithDesc("listening failed", ""))
 	}
@@ -226,7 +271,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 }
 
 // Shutdown gracefully stops the HTTP server, allowing in-flight requests
-// to complete before returning.
+// to complete before returning or the context is canceled.
 //
 // Example:
 //
@@ -236,10 +281,12 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 //	if err := server.Shutdown(ctx); err != nil {
 //	    log.Printf("server shutdown error: %v", err)
 //	}
-func (s *Server) Shutdown() error {
+func (s *Server) Shutdown(ctx context.Context) error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	err := s.srv.Close()
+	s.isListening = false
+	s.mu.Unlock()
+
+	err := s.srv.Shutdown(ctx)
 	if err != nil {
 		return fault.Wrap(err)
 	}

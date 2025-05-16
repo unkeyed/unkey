@@ -1,11 +1,9 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Code } from "@/components/ui/code";
-import { Button, Checkbox, Input } from "@unkey/ui";
-
+import { Button, Checkbox, Input,CopyButton } from "@unkey/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {

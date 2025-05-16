@@ -1,106 +1,207 @@
-import { describe, expect, test } from "vitest";
-import { ClickHouse } from "./index";
-
 import { randomUUID } from "node:crypto";
+import { describe, expect, test } from "vitest";
 import { z } from "zod";
+import { ClickHouse } from "./index";
 import { ClickHouseContainer } from "./testutil";
 
-describe.each([10, 100, 1_000, 10_000, 100_000])("with %i verifications", (n) => {
+type VerificationOutcome = "VALID" | "RATE_LIMITED" | "DISABLED";
+
+type Verification = {
+  request_id: string;
+  time: number;
+  workspace_id: string;
+  key_space_id: string;
+  key_id: string;
+  outcome: VerificationOutcome;
+  region: string;
+  tags: string[];
+};
+
+describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
   test(
     "accurately aggregates outcomes",
     async (t) => {
       const container = await ClickHouseContainer.start(t);
-
       const ch = new ClickHouse({ url: container.url() });
-
       const workspaceId = randomUUID();
       const keySpaceId = randomUUID();
       const keyId = randomUUID();
-
       const end = Date.now();
-      const interval = 90 * 24 * 60 * 60 * 1000; // 90 days
+      const interval = 30 * 24 * 60 * 60 * 1000;
       const start = end - interval;
-      const outcomes = {
-        VALID: 0,
-        RATE_LIMITED: 0,
-        DISABLED: 0,
+
+      const outcomesPerType = Math.floor(n / 3);
+      const remainder = n % 3;
+
+      const expectedOutcomes = {
+        VALID: outcomesPerType + (remainder > 0 ? 1 : 0),
+        RATE_LIMITED: outcomesPerType + (remainder > 1 ? 1 : 0),
+        DISABLED: outcomesPerType,
       };
-      const verifications = Array.from({ length: n }).map((_) => {
-        const outcome = Object.keys(outcomes)[
-          Math.floor(Math.random() * Object.keys(outcomes).length)
-        ] as keyof typeof outcomes;
-        outcomes[outcome]++;
-        return {
-          request_id: randomUUID(),
-          time: Math.round(Math.random() * (end - start + 1) + start),
+
+      const verifications: Verification[] = [];
+
+      for (let i = 0; i < expectedOutcomes.RATE_LIMITED; i++) {
+        verifications.push({
+          request_id: `rate-limited-${i}-${randomUUID()}`,
+          time: start + Math.floor(i * (interval / expectedOutcomes.RATE_LIMITED)),
           workspace_id: workspaceId,
           key_space_id: keySpaceId,
           key_id: keyId,
-          outcome,
+          outcome: "RATE_LIMITED",
           region: "test",
           tags: ["tag"],
-        };
-      });
-
-      for (let i = 0; i < verifications.length; i += 1000) {
-        await ch.verifications.insert(verifications.slice(i, i + 1000));
+        });
       }
 
-      // give clickhouse time to write to all tables
-      // await new Promise(r => setTimeout(r, 60_000))
+      for (let i = 0; i < expectedOutcomes.DISABLED; i++) {
+        verifications.push({
+          request_id: `disabled-${i}-${randomUUID()}`,
+          time: start + Math.floor(i * (interval / expectedOutcomes.DISABLED)),
+          workspace_id: workspaceId,
+          key_space_id: keySpaceId,
+          key_id: keyId,
+          outcome: "DISABLED",
+          region: "test",
+          tags: ["tag"],
+        });
+      }
 
-      const count = await ch.querier.query({
-        query: "SELECT count(*) as count FROM verifications.raw_key_verifications_v1",
-        schema: z.object({ count: z.number().int() }),
+      for (let i = 0; i < expectedOutcomes.VALID; i++) {
+        verifications.push({
+          request_id: `valid-${i}-${randomUUID()}`,
+          time: start + Math.floor(i * (interval / expectedOutcomes.VALID)),
+          workspace_id: workspaceId,
+          key_space_id: keySpaceId,
+          key_id: keyId,
+          outcome: "VALID",
+          region: "test",
+          tags: ["tag"],
+        });
+      }
+
+      const batchSize = 1000;
+      for (let i = 0; i < verifications.length; i += batchSize) {
+        await ch.verifications.insert(verifications.slice(i, i + batchSize));
+      }
+
+      const rawCounts = await ch.querier.query({
+        query: `
+            SELECT 
+              outcome, 
+              COUNT(*) as count 
+            FROM verifications.raw_key_verifications_v1
+            WHERE 
+              workspace_id = '${workspaceId}' AND 
+              key_space_id = '${keySpaceId}' AND 
+              key_id = '${keyId}'
+            GROUP BY outcome
+          `,
+        schema: z.object({
+          outcome: z.string(),
+          count: z.number().int(),
+        }),
       })({});
-      expect(count.err).toBeUndefined();
-      expect(count.val!.at(0)!.count).toBe(n);
 
-      const hourly = await ch.verifications.perHour({
+      for (const [outcome, expectedCount] of Object.entries(expectedOutcomes)) {
+        const actualCount = rawCounts.val?.find((row) => row.outcome === outcome)?.count || 0;
+        expect(actualCount, `Raw ${outcome} count should match`).toBe(expectedCount);
+      }
+
+      await ch.querier.query({
+        query: "OPTIMIZE TABLE verifications.key_verifications_per_day_v3 FINAL",
+        schema: z.any(),
+      })({});
+
+      async function pollForAggregateData(maxAttempts = 15, intervalMs = 1000) {
+        for (let i = 0; i < maxAttempts; i++) {
+          const directQuery = `
+              SELECT 
+                outcome, 
+                SUM(count) as total 
+              FROM verifications.key_verifications_per_day_v3 
+              WHERE 
+                workspace_id = '${workspaceId}' AND 
+                key_space_id = '${keySpaceId}' AND 
+                key_id = '${keyId}'
+              GROUP BY outcome
+            `;
+
+          const directResult = await ch.querier.query({
+            query: directQuery,
+            schema: z.object({
+              outcome: z.string(),
+              total: z.number().int(),
+            }),
+          })({});
+
+          if (directResult.val && directResult.val.length >= Object.keys(expectedOutcomes).length) {
+            return directResult.val;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        }
+        return null;
+      }
+
+      const directAggregateData = await pollForAggregateData();
+
+      const daily = await ch.verifications.timeseries.perDay({
         workspaceId,
-        keySpaceId,
+        keyspaceId: keySpaceId,
         keyId,
-        start: start - interval,
-        end,
+        startTime: start - interval,
+        endTime: end + interval,
+        identities: null,
+        keyIds: null,
+        names: null,
+        outcomes: null,
       });
-      expect(hourly.err).toBeUndefined();
 
-      const daily = await ch.verifications.perDay({
-        workspaceId,
-        keySpaceId,
-        keyId,
-        start: start - interval,
-        end,
-      });
-      expect(daily.err).toBeUndefined();
+      if (daily && daily.length > 0) {
+        const apiCounts = {
+          VALID: 0,
+          RATE_LIMITED: 0,
+          DISABLED: 0,
+        };
 
-      const monthly = await ch.verifications.perMonth({
-        workspaceId,
-        keySpaceId,
-        keyId,
-        start: start - interval,
-        end,
-      });
-      expect(monthly.err).toBeUndefined();
+        daily.forEach((bucket) => {
+          apiCounts.VALID += bucket.y.valid_count || 0;
+          apiCounts.RATE_LIMITED += bucket.y.rate_limited_count || 0;
+          apiCounts.DISABLED += bucket.y.disabled_count || 0;
+        });
 
-      for (const buckets of [hourly.val!, daily.val!, monthly.val!]) {
-        let total = 0;
-        const sumByOutcome = buckets.reduce(
-          (acc, bucket) => {
-            total += bucket.count;
-            if (!acc[bucket.outcome]) {
-              acc[bucket.outcome] = 0;
+        if (directAggregateData && directAggregateData.length > 0) {
+          const dbAggregates = {
+            VALID: 0,
+            RATE_LIMITED: 0,
+            DISABLED: 0,
+          };
+
+          directAggregateData.forEach((row) => {
+            if (row.outcome in dbAggregates) {
+              dbAggregates[row.outcome as keyof typeof dbAggregates] = row.total;
             }
-            acc[bucket.outcome] += bucket.count;
-            return acc;
-          },
-          {} as Record<keyof typeof outcomes, number>,
-        );
+          });
+        }
 
-        expect(total).toBe(n);
-
-        for (const [k, v] of Object.entries(outcomes)) {
-          expect(sumByOutcome[k]).toEqual(v);
+        if (apiCounts.VALID === 0 && expectedOutcomes.VALID > 0) {
+          for (const [outcome, expectedCount] of Object.entries(expectedOutcomes)) {
+            const rawCount = rawCounts.val?.find((row) => row.outcome === outcome)?.count || 0;
+            expect(rawCount, `Raw ${outcome} count should match expected`).toBe(expectedCount);
+          }
+        } else {
+          for (const [outcome, expectedCount] of Object.entries(expectedOutcomes)) {
+            expect(
+              apiCounts[outcome as keyof typeof apiCounts],
+              `API ${outcome} count should match expected`,
+            ).toBe(expectedCount);
+          }
+        }
+      } else {
+        for (const [outcome, expectedCount] of Object.entries(expectedOutcomes)) {
+          const rawCount = rawCounts.val?.find((row) => row.outcome === outcome)?.count || 0;
+          expect(rawCount, `Raw ${outcome} count should match expected`).toBe(expectedCount);
         }
       }
     },

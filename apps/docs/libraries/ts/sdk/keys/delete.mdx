@@ -3,6 +3,30 @@ title: "Delete"
 description: "Delete an api key for your users"
 ---
 
+<RequestExample>
+
+```ts
+const { result, error } = await unkey.keys.delete({
+  keyId: "key_123",
+});
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+console.log(result)
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "result": {}
+}
+```
+</ResponseExample>
+
 ## Request
 
 <ParamField path="keyId" type="string" required>
@@ -10,13 +34,6 @@ description: "Delete an api key for your users"
 </ParamField>
 
 ## Response
-
-No response, but if no error is returned the key has been revoked successfully.
-
-<RequestExample>
-
-```ts
-await unkey.keys.delete({ keyId: "key_123" });
-```
-
-</RequestExample>
+<ResponseField name="result">
+    `{}`
+</ResponseField>
