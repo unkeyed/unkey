@@ -1,6 +1,5 @@
 "use client";
 import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
@@ -18,6 +17,7 @@ import {
   TimeClock,
   TriangleWarning2,
 } from "@unkey/icons";
+import { CopyButton } from "@unkey/ui";
 import { TimestampInfo } from "@unkey/ui";
 import { Button, Empty, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import { useCallback, useState } from "react";
