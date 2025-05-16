@@ -4,6 +4,7 @@ import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChevronExpandY, Gauge } from "@unkey/icons";
+import { FlexibleContainer } from "@unkey/ui";
 import { CreateKeyDialog } from "./_components/create-key";
 
 export const ApisNavbar = ({
@@ -29,7 +30,7 @@ export const ApisNavbar = ({
 }) => {
   const isMobile = useIsMobile();
   return (
-    <div className="w-full">
+    <FlexibleContainer padding="none" className="m-0 p-0 justify-start items-start">
       <Navbar className="w-full flex justify-between">
         <Navbar.Breadcrumbs className="flex-1 w-full" icon={<Gauge />}>
           {!isMobile && (
@@ -98,6 +99,6 @@ export const ApisNavbar = ({
         </Navbar.Breadcrumbs>
         <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
       </Navbar>
-    </div>
+    </FlexibleContainer>
   );
 };
