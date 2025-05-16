@@ -14,7 +14,7 @@ export const LoadingExample = () => {
 export const LoadingWithDurationExample = () => {
   return (
     <RenderComponentWithSnippet>
-      <Loading dur={"1s"} />
+      <Loading dur="1s" />
     </RenderComponentWithSnippet>
   );
 };

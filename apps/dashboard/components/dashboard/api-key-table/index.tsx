@@ -22,8 +22,7 @@ import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@unkey/ui";
-import { Loading } from "@unkey/ui/src/components/loading";
+import { Button, Loading } from "@unkey/ui";
 import {
   ArrowUpDown,
   Check,

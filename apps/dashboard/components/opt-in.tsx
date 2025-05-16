@@ -1,16 +1,14 @@
 "use client";
 
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { PostHogEvent } from "@/providers/PostHogProvider";
 import type { Workspace } from "@unkey/db";
-import { Button } from "@unkey/ui";
-import { Empty } from "@unkey/ui";
+import { Button, Empty, Loading } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
 
-import { toast } from "@/components/ui/toaster";
-import { PostHogEvent } from "@/providers/PostHogProvider";
-import { Loading } from "@unkey/ui/src/components/loading";
 type Props = {
   title: string;
   description: string;
