@@ -116,7 +116,7 @@ func False(value bool, message ...string) error {
 //	if err := assert.Empty(getRemaining(), "No items should remain after cleanup"); err != nil {
 //	    return fault.Wrap(err, fault.WithDesc("cleanup incomplete", ""))
 //	}
-func Empty[T ~string | ~[]any | ~map[any]any](value T, message ...string) error {
+func Empty[T ~string | ~[]any | []byte | ~map[any]any](value T, message ...string) error {
 	if len(value) != 0 {
 		errorMsg := "value is not empty"
 		if len(message) > 0 {
@@ -136,7 +136,7 @@ func Empty[T ~string | ~[]any | ~map[any]any](value T, message ...string) error 
 //	if err := assert.NotEmpty(request.IDs, "At least one ID must be provided"); err != nil {
 //	    return fault.Wrap(err, fault.WithDesc("IDs cannot be empty", "Please provide at least one ID"))
 //	}
-func NotEmpty[T ~string | ~[]any | ~map[any]any](value T, message ...string) error {
+func NotEmpty[T ~string | ~[]any | []byte | ~map[any]any](value T, message ...string) error {
 	if len(value) == 0 {
 		errorMsg := "value is empty"
 		if len(message) > 0 {
