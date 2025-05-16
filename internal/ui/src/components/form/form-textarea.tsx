@@ -1,10 +1,6 @@
 import React from "react";
 import { cn } from "../../lib/utils";
-import {
-  type DocumentedTextareaProps,
-  Textarea,
-  type TextareaProps,
-} from "../textarea";
+import { type DocumentedTextareaProps, Textarea, type TextareaProps } from "../textarea";
 import { FormDescription, FormLabel } from "./form-helpers";
 
 // Hack to populate fumadocs' AutoTypeTable
@@ -18,10 +14,7 @@ export type DocumentedFormTextareaProps = DocumentedTextareaProps & {
 
 export type FormTextareaProps = TextareaProps & DocumentedFormTextareaProps;
 
-export const FormTextarea = React.forwardRef<
-  HTMLTextAreaElement,
-  FormTextareaProps
->(
+export const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
   (
     {
       label,
@@ -37,7 +30,7 @@ export const FormTextarea = React.forwardRef<
       wrapperClassName,
       ...props
     },
-    ref
+    ref,
   ) => {
     const textareaVariant = error ? "error" : variant;
     const textareaId = id || React.useId();
@@ -45,9 +38,7 @@ export const FormTextarea = React.forwardRef<
     const errorId = `${textareaId}-error`;
 
     return (
-      <fieldset
-        className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}
-      >
+      <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
         <FormLabel
           label={label}
           required={required}
@@ -63,9 +54,7 @@ export const FormTextarea = React.forwardRef<
           leftIcon={leftIcon}
           rightIcon={rightIcon}
           wrapperClassName={wrapperClassName}
-          aria-describedby={
-            error ? errorId : description ? descriptionId : undefined
-          }
+          aria-describedby={error ? errorId : description ? descriptionId : undefined}
           aria-invalid={!!error}
           aria-required={required}
           {...props}
@@ -79,7 +68,7 @@ export const FormTextarea = React.forwardRef<
         />
       </fieldset>
     );
-  }
+  },
 );
 
 FormTextarea.displayName = "FormTextarea";

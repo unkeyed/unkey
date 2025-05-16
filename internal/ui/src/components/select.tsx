@@ -32,7 +32,7 @@ const selectTriggerVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 const selectWrapperVariants = cva("relative flex items-center w-full", {
@@ -50,9 +50,7 @@ const selectWrapperVariants = cva("relative flex items-center w-full", {
 });
 
 // Types
-export type DocumentedSelectProps = VariantProps<
-  typeof selectTriggerVariants
-> & {
+export type DocumentedSelectProps = VariantProps<typeof selectTriggerVariants> & {
   leftIcon?: React.ReactNode;
   wrapperClassName?: string;
 };
@@ -63,37 +61,29 @@ const SelectValue = SelectPrimitive.Value;
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> &
-    DocumentedSelectProps
->(
-  (
-    { className, children, variant, leftIcon, wrapperClassName, ...props },
-    ref
-  ) => (
-    <div className={cn(selectWrapperVariants({ variant }), wrapperClassName)}>
-      {leftIcon && (
-        <div className="absolute left-3 flex items-center pointer-events-none">
-          {leftIcon}
-        </div>
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & DocumentedSelectProps
+>(({ className, children, variant, leftIcon, wrapperClassName, ...props }, ref) => (
+  <div className={cn(selectWrapperVariants({ variant }), wrapperClassName)}>
+    {leftIcon && (
+      <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
+    )}
+    <SelectPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        selectTriggerVariants({ variant, className }),
+        "px-3 py-2",
+        leftIcon && "pl-9",
+        "pr-9", // Always have space for the chevron icon
       )}
-      <SelectPrimitive.Trigger
-        ref={ref}
-        className={cn(
-          selectTriggerVariants({ variant, className }),
-          "px-3 py-2",
-          leftIcon && "pl-9",
-          "pr-9" // Always have space for the chevron icon
-        )}
-        {...props}
-      >
-        {children}
-        <SelectPrimitive.Icon asChild>
-          <ChevronDown className="absolute right-3 w-4 h-4 opacity-70" />
-        </SelectPrimitive.Icon>
-      </SelectPrimitive.Trigger>
-    </div>
-  )
-);
+      {...props}
+    >
+      {children}
+      <SelectPrimitive.Icon asChild>
+        <ChevronDown className="absolute right-3 w-4 h-4 opacity-70" />
+      </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
+  </div>
+));
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
 const SelectContent = React.forwardRef<
@@ -109,7 +99,7 @@ const SelectContent = React.forwardRef<
         "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
-        className
+        className,
       )}
       position={position}
       {...props}
@@ -118,7 +108,7 @@ const SelectContent = React.forwardRef<
         className={cn(
           "p-1",
           position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
         )}
       >
         {children}
@@ -134,10 +124,7 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn(
-      "py-1.5 pl-2 pr-2 text-[13px] font-medium text-gray-11",
-      className
-    )}
+    className={cn("py-1.5 pl-2 pr-2 text-[13px] font-medium text-gray-11", className)}
     {...props}
   />
 ));
@@ -152,7 +139,7 @@ const SelectItem = React.forwardRef<
     className={cn(
       "relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-2 pr-8 text-[13px] outline-none",
       "text-gray-12 hover:bg-gray-4 focus:bg-gray-5 data-[disabled]:opacity-50 data-[disabled]:pointer-events-none",
-      className
+      className,
     )}
     {...props}
   >

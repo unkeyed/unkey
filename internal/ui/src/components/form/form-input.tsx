@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { type DocumentedInputProps, Input, type InputProps } from "../input";
-import { FormLabel, FormDescription } from "./form-helpers";
+import { FormDescription, FormLabel } from "./form-helpers";
 
 // Hack to populate fumadocs' AutoTypeTable
 export type DocumentedFormInputProps = DocumentedInputProps & {
@@ -15,29 +15,14 @@ export type DocumentedFormInputProps = DocumentedInputProps & {
 export type FormInputProps = InputProps & DocumentedFormInputProps;
 
 export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
-  (
-    {
-      label,
-      description,
-      error,
-      required,
-      id,
-      className,
-      optional,
-      variant,
-      ...props
-    },
-    ref
-  ) => {
+  ({ label, description, error, required, id, className, optional, variant, ...props }, ref) => {
     const inputVariant = error ? "error" : variant;
     const inputId = id || React.useId();
     const descriptionId = `${inputId}-helper`;
     const errorId = `${inputId}-error`;
 
     return (
-      <fieldset
-        className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}
-      >
+      <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
         <FormLabel
           label={label}
           required={required}
@@ -49,9 +34,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           ref={ref}
           id={inputId}
           variant={inputVariant}
-          aria-describedby={
-            error ? errorId : description ? descriptionId : undefined
-          }
+          aria-describedby={error ? errorId : description ? descriptionId : undefined}
           aria-invalid={!!error}
           aria-required={required}
           {...props}
@@ -65,7 +48,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
         />
       </fieldset>
     );
-  }
+  },
 );
 
 FormInput.displayName = "FormInput";

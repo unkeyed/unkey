@@ -1,9 +1,9 @@
 // Create a shared FormHelper component
 import { CircleInfo, TriangleWarning2 } from "@unkey/icons";
-import { cn } from "../../lib/utils";
 // biome-ignore lint/style/useImportType: Reqired for silencing Biome
 import React from "react";
-import { RequiredTag, OptionalTag } from "./form-tags";
+import { cn } from "../../lib/utils";
+import { OptionalTag, RequiredTag } from "./form-tags";
 
 export type FormHelperProps = {
   description?: string | React.ReactNode;
@@ -27,16 +27,8 @@ export const FormDescription = ({
   return (
     <div className="text-[13px] leading-5">
       {error ? (
-        <div
-          id={errorId}
-          role="alert"
-          className="text-error-11 flex gap-2 items-center"
-        >
-          <TriangleWarning2
-            size="md-regular"
-            className="flex-shrink-0"
-            aria-hidden="true"
-          />
+        <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
+          <TriangleWarning2 size="md-regular" className="flex-shrink-0" aria-hidden="true" />
           <span className="flex-1">{error}</span>
         </div>
       ) : description ? (
@@ -47,8 +39,8 @@ export const FormDescription = ({
             variant === "success"
               ? "text-success-11"
               : variant === "warning"
-              ? "text-warning-11"
-              : ""
+                ? "text-warning-11"
+                : "",
           )}
         >
           {variant === "warning" ? (
@@ -58,11 +50,7 @@ export const FormDescription = ({
               aria-hidden="true"
             />
           ) : (
-            <CircleInfo
-              size="md-regular"
-              className="flex-shrink-0 mt-[3px]"
-              aria-hidden="true"
-            />
+            <CircleInfo size="md-regular" className="flex-shrink-0 mt-[3px]" aria-hidden="true" />
           )}
           <span className="flex-1 text-gray-10">{description}</span>
         </output>
@@ -79,13 +67,7 @@ export type FormLabelProps = {
   htmlFor: string;
 };
 
-export const FormLabel = ({
-  label,
-  required,
-  optional,
-  hasError,
-  htmlFor,
-}: FormLabelProps) => {
+export const FormLabel = ({ label, required, optional, hasError, htmlFor }: FormLabelProps) => {
   if (!label) {
     return null;
   }

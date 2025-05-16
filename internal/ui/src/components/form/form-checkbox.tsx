@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { Checkbox, type CheckboxProps } from "../checkbox";
-import { FormLabel, FormDescription } from "./form-helpers";
+import { FormDescription, FormLabel } from "./form-helpers";
 
 // Hack to populate fumadocs' AutoTypeTable
 export type DocumentedFormCheckboxProps = {
@@ -15,16 +15,10 @@ export type DocumentedFormCheckboxProps = {
   size?: CheckboxProps["size"];
 };
 
-export type FormCheckboxProps = Omit<
-  CheckboxProps,
-  "size" | "variant" | "color"
-> &
+export type FormCheckboxProps = Omit<CheckboxProps, "size" | "variant" | "color"> &
   DocumentedFormCheckboxProps;
 
-export const FormCheckbox = React.forwardRef<
-  HTMLButtonElement,
-  FormCheckboxProps
->(
+export const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
   (
     {
       label,
@@ -39,7 +33,7 @@ export const FormCheckbox = React.forwardRef<
       size = "md",
       ...props
     },
-    ref
+    ref,
   ) => {
     const checkboxVariant = error ? "primary" : variant;
     const checkboxColor = error ? "danger" : color;
@@ -48,9 +42,7 @@ export const FormCheckbox = React.forwardRef<
     const errorId = `${checkboxId}-error`;
 
     return (
-      <fieldset
-        className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}
-      >
+      <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
         <div className="flex items-center gap-3">
           <Checkbox
             ref={ref}
@@ -58,9 +50,7 @@ export const FormCheckbox = React.forwardRef<
             variant={checkboxVariant}
             color={checkboxColor}
             size={size}
-            aria-describedby={
-              error ? errorId : description ? descriptionId : undefined
-            }
+            aria-describedby={error ? errorId : description ? descriptionId : undefined}
             aria-invalid={Boolean(error)}
             aria-required={required}
             {...props}
@@ -84,7 +74,7 @@ export const FormCheckbox = React.forwardRef<
         />
       </fieldset>
     );
-  }
+  },
 );
 
 FormCheckbox.displayName = "FormCheckbox";

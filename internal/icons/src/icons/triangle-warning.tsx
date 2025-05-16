@@ -12,11 +12,8 @@
 
 import type React from "react";
 
-import { sizeMap, type IconProps } from "../props";
-export const TriangleWarning: React.FC<IconProps> = ({
-  size = "xl-thin",
-  ...props
-}) => {
+import { type IconProps, sizeMap } from "../props";
+export const TriangleWarning: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
 
   return (
