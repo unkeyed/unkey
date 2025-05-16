@@ -401,8 +401,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     // Only disable the click behavior, not the visual appearance
     const isClickDisabled = disabled || loading;
-    // Keep separate flag for actual visual disabled state
-    const isVisuallyDisabled = disabled;
 
     // Keyboard handler
     React.useEffect(() => {
@@ -435,7 +433,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           loading ? "min-w-max" : "",
         )}
         onClick={loading ? undefined : props.onClick}
-        disabled={isVisuallyDisabled}
+        disabled={isClickDisabled}
         aria-disabled={isClickDisabled}
         aria-busy={loading}
         ref={ref}
