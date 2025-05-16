@@ -1,6 +1,5 @@
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Button } from "@unkey/ui";
+import { Button, Checkbox } from "@unkey/ui";
 import { useCallback, useEffect } from "react";
 import type { FilterOperator, FilterValue } from "../validation/filter.types";
 import { useCheckboxState } from "./hooks";

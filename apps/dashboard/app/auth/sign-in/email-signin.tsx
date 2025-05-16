@@ -1,5 +1,5 @@
 import { Loading } from "@/components/dashboard/loading";
-import { Input } from "@/components/ui/input";
+import { FormInput } from "@unkey/ui";
 import { type FormEvent, useEffect, useState } from "react";
 import { useSignIn } from "../hooks";
 import { LastUsed, useLastUsed } from "./last_used";
@@ -29,23 +29,25 @@ export function EmailSignIn() {
   };
 
   return (
-    <form className="grid gap-2" onSubmit={handleSubmit}>
-      <div className="grid gap-1">
-        <Input
-          name="email"
-          placeholder="name@example.com"
-          type="email"
-          defaultValue={email}
-          autoCapitalize="none"
-          autoComplete="email"
-          autoCorrect="off"
-          required
-          className="h-10 text-white duration-500 bg-transparent focus:text-black border-white/20 focus:bg-white focus:border-white hover:bg-white/20 hover:border-white/40 placeholder:white/20"
-        />
+    <form className="grid gap-16" onSubmit={handleSubmit}>
+      <div className="grid gap-6">
+        <div className="flex flex-col items-start gap-2">
+          <FormInput
+            label="Email"
+            name="email"
+            placeholder="name@example.com"
+            type="email"
+            defaultValue={email}
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect="off"
+            className="h-10 dark !bg-black w-full"
+          />
+        </div>
       </div>
       <button
         type="submit"
-        className="relative flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+        className="flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
         disabled={isLoading}
       >
         {clientReady && isLoading ? (
