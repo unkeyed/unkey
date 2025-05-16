@@ -2,6 +2,7 @@
 title: "Button"
 description: "A versatile button component with multiple variants, states, and sizes"
 ---
+
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { Button } from "@unkey/ui";
 import { PlusIcon, SearchIcon, TrashIcon } from "lucide-react";
@@ -28,11 +29,11 @@ The default button style with a solid background. Use for primary actions and ma
         <Button>Default</Button>
         <Button className="!bg-accent-12/90">Hover</Button>
         <Button className="!ring-4 !ring-gray-7">Focus</Button>
-        <Button loading>Loading</Button>
+        <Button loading loadingLabel="Loading...">Loading</Button>
         <Button disabled>Disabled</Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -43,6 +44,7 @@ The default button style with a solid background. Use for primary actions and ma
         <Button disabled>Disabled</Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -73,7 +75,7 @@ Button with transparent background and visible border. Ideal for secondary actio
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -95,6 +97,7 @@ Button with transparent background and visible border. Ideal for secondary actio
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -125,7 +128,7 @@ Button with no background or border until interacted with. Perfect for tertiary 
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -147,6 +150,7 @@ Button with no background or border until interacted with. Perfect for tertiary 
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -184,7 +188,7 @@ Solid background danger variant for destructive actions that should be clearly h
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -209,6 +213,7 @@ Solid background danger variant for destructive actions that should be clearly h
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -242,7 +247,7 @@ Danger variant with outline style. Use for destructive actions that require less
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -267,6 +272,7 @@ Danger variant with outline style. Use for destructive actions that require less
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -300,7 +306,7 @@ Minimal danger variant. Suitable for destructive actions in tight UI spaces or a
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -325,6 +331,7 @@ Minimal danger variant. Suitable for destructive actions in tight UI spaces or a
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -340,11 +347,7 @@ Warning variant with solid background for actions that require caution but aren'
         <Button variant="primary" color="warning">
           Default
         </Button>
-        <Button
-          variant="primary"
-          color="warning"
-          className="!bg-warning-8/90"
-        >
+        <Button variant="primary" color="warning" className="!bg-warning-8/90">
           Hover
         </Button>
         <Button
@@ -362,18 +365,14 @@ Warning variant with solid background for actions that require caution but aren'
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
         <Button variant="primary" color="warning">
           Default
         </Button>
-        <Button
-          variant="primary"
-          color="warning"
-          className="!bg-warning-8/90"
-        >
+        <Button variant="primary" color="warning" className="!bg-warning-8/90">
           Hover
         </Button>
         <Button
@@ -391,6 +390,7 @@ Warning variant with solid background for actions that require caution but aren'
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -424,7 +424,7 @@ Warning variant with outline style for secondary cautionary actions.
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -449,6 +449,7 @@ Warning variant with outline style for secondary cautionary actions.
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -482,7 +483,7 @@ Warning variant with ghost style for tertiary cautionary actions.
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -507,6 +508,7 @@ Warning variant with ghost style for tertiary cautionary actions.
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -522,11 +524,7 @@ Success variant with solid background for positive or confirming actions.
         <Button variant="primary" color="success">
           Default
         </Button>
-        <Button
-          variant="primary"
-          color="success"
-          className="!bg-success-9/90"
-        >
+        <Button variant="primary" color="success" className="!bg-success-9/90">
           Hover
         </Button>
         <Button
@@ -544,18 +542,14 @@ Success variant with solid background for positive or confirming actions.
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
         <Button variant="primary" color="success">
           Default
         </Button>
-        <Button
-          variant="primary"
-          color="success"
-          className="!bg-success-9/90"
-        >
+        <Button variant="primary" color="success" className="!bg-success-9/90">
           Hover
         </Button>
         <Button
@@ -573,6 +567,7 @@ Success variant with solid background for positive or confirming actions.
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -606,7 +601,7 @@ Success variant with outline style for secondary positive actions.
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -631,6 +626,7 @@ Success variant with outline style for secondary positive actions.
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -664,7 +660,7 @@ Success variant with ghost style for subtle positive actions.
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -689,6 +685,7 @@ Success variant with ghost style for subtle positive actions.
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -704,11 +701,7 @@ Info variant with solid background for positive or confirming actions.
         <Button variant="primary" color="info">
           Default
         </Button>
-        <Button
-          variant="primary"
-          color="info"
-          className="!bg-info-9/90"
-        >
+        <Button variant="primary" color="info" className="!bg-info-9/90">
           Hover
         </Button>
         <Button
@@ -726,18 +719,14 @@ Info variant with solid background for positive or confirming actions.
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
         <Button variant="primary" color="info">
           Default
         </Button>
-        <Button
-          variant="primary"
-          color="info"
-          className="!bg-info-9/90"
-        >
+        <Button variant="primary" color="info" className="!bg-info-9/90">
           Hover
         </Button>
         <Button
@@ -755,6 +744,7 @@ Info variant with solid background for positive or confirming actions.
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -788,7 +778,7 @@ Info variant with outline style for secondary positive actions.
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -813,6 +803,7 @@ Info variant with outline style for secondary positive actions.
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -846,7 +837,7 @@ Info variant with ghost style for subtle positive actions.
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -871,6 +862,7 @@ Info variant with ghost style for subtle positive actions.
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
@@ -890,7 +882,7 @@ All button variants and color schemes can be combined with different sizes to fi
         <Button size="2xlg">2X Large</Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -901,10 +893,9 @@ All button variants and color schemes can be combined with different sizes to fi
         <Button size="2xlg">2X Large</Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
-
-
 
 ## Special Features
 
@@ -933,7 +924,7 @@ Buttons can include icons from the Lucide library for enhanced visual meaning. I
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
@@ -951,15 +942,13 @@ Buttons can include icons from the Lucide library for enhanced visual meaning. I
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
 
 ### With Keyboard Shortcuts
 
 Buttons can display and respond to keyboard shortcuts for improved accessibility and power-user workflows.
-
-
-
 
 ## Additional Features
 
@@ -968,6 +957,7 @@ The Button component includes some additional features not shown in the examples
 ### Legacy Variant Support
 
 For backward compatibility, the component supports legacy variants:
+
 - `default` will be mapped to `primary` variant
 - `destructive` will be mapped to `primary` variant with `danger` color
 
@@ -991,7 +981,7 @@ For special layouts, buttons can use the `shape` prop:
         </Button>
       </div>
     </div>
-    
+
     <div>
       <h4 className="text-sm font-medium mb-2">Dark</h4>
       <div className="bg-black p-4 rounded-md flex items-center gap-4 dark">
@@ -1006,17 +996,16 @@ For special layouts, buttons can use the `shape` prop:
         </Button>
       </div>
     </div>
+
   </div>
 </RenderComponentWithSnippet>
-
-
 
 ## Props
 
 The Button component accepts all standard HTML button attributes plus the following:
 
 <AutoTypeTable
-  name="ButtonProps"
+  name="DocumentedButtonProps"
   path="../../internal/ui/src/components/button.tsx"
 />
 

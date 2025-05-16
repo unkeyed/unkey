@@ -12,31 +12,33 @@
 
 import type React from "react";
 
-import type { IconProps } from "../props";
-export const TriangleWarning2: React.FC<IconProps> = (props) => {
+import { type IconProps, sizeMap } from "../props";
+export const TriangleWarning2: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
+
   return (
-    <svg {...props} height="12" width="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <g fill="currentColor">
-        <circle cx="6" cy="10.125" fill="currentColor" r=".875" strokeWidth="0" />
-        <line
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.5"
-          x1="6"
-          x2="6"
-          y1="4.75"
-          y2="7.75"
+        <path
+          d="m9,8c0-.552.447-1,1-1s1,.448,1,1v4.5c0,.552-.447,1-1,1s-1-.448-1-1v-4.5Z"
+          fill="currentColor"
+          strokeWidth="0"
         />
         <path
-          d="m8.625,10.25h1.164c1.123,0,1.826-1.216,1.265-2.189L7.265,1.484c-.562-.975-1.969-.975-2.53,0L.946,8.061c-.561.973.142,2.189,1.265,2.189h1.164"
+          d="m13.725,16h1.471c1.54,0,2.502-1.667,1.732-3l-5.196-9c-.77-1.333-2.694-1.333-3.464,0L3.072,13c-.77,1.333.192,3,1.732,3h1.471"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
+        <circle cx="10" cy="15.75" fill="currentColor" r="1.25" strokeWidth="0" />
       </g>
     </svg>
   );
