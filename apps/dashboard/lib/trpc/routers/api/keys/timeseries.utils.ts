@@ -7,7 +7,7 @@ import {
   getTimeseriesGranularity,
 } from "../../utils/granularity";
 export function transformVerificationFilters(params: KeysOverviewQueryTimeseriesPayload): {
-  params: Omit<VerificationTimeseriesParams, "workspaceId" | "keyspaceId" | "keyId">;
+  params: Omit<VerificationTimeseriesParams, "workspaceId" | "keyspaceId" | "keyId" | "apiId">;
   granularity: VerificationTimeseriesGranularity;
 } {
   let timeConfig: TimeseriesConfig<"forVerifications">;

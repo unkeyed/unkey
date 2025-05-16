@@ -61,6 +61,7 @@ import {
   getFiveMinutelyVerificationTimeseries,
   getFourHourlyVerificationTimeseries,
   getHourlyVerificationTimeseries,
+  getKeyDetailsLogs,
   getMinutelyVerificationTimeseries,
   getMonthlyVerificationTimeseries,
   getSixHourlyVerificationTimeseries,
@@ -68,9 +69,6 @@ import {
   getThreeDayVerificationTimeseries,
   getTwelveHourlyVerificationTimeseries,
   getTwoHourlyVerificationTimeseries,
-  getVerificationsPerDay,
-  getVerificationsPerHour,
-  getVerificationsPerMonth,
   getWeeklyVerificationTimeseries,
   insertVerification,
 } from "./verifications";
@@ -112,10 +110,6 @@ export class ClickHouse {
   public get verifications() {
     return {
       insert: insertVerification(this.inserter),
-      logs: getLatestVerifications(this.querier),
-      perHour: getVerificationsPerHour(this.querier),
-      perDay: getVerificationsPerDay(this.querier),
-      perMonth: getVerificationsPerMonth(this.querier),
       latest: getLatestVerifications(this.querier),
       timeseries: {
         // Minute-based granularity
@@ -200,6 +194,9 @@ export class ClickHouse {
       logs: getLogs(this.querier),
       keys: {
         logs: getKeysOverviewLogs(this.querier),
+      },
+      key: {
+        logs: getKeyDetailsLogs(this.querier),
       },
       timeseries: {
         perMinute: getMinutelyLogsTimeseries(this.querier),

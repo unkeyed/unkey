@@ -27,7 +27,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
     <div className="flex gap-6 items-center pl-2">
       <RatelimitOverviewTooltip
         content={
-          <p className="text-sm">
+          <p className="text-xs">
             {isFullyBlocked ? (
               "All requests have been blocked in this timeframe"
             ) : (

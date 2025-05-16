@@ -95,3 +95,4 @@ export * from "./icons/ufo";
 export * from "./icons/user-search";
 export * from "./icons/user";
 export * from "./icons/xmark";
+export * from "./icons/coins";
