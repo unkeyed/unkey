@@ -2,7 +2,7 @@
 
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Code } from "@/components/ui/code";
-import { Button, Loading, CopyButton } from "@unkey/ui";
+import { Button, CopyButton, Loading } from "@unkey/ui";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
