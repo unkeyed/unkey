@@ -5,6 +5,7 @@ export * from "./components/form";
 export * from "./components/id";
 export * from "./components/inline-link";
 export * from "./components/input";
+export * from "./components/loading";
 export * from "./components/select";
 export * from "./components/settings-card";
 export * from "./components/textarea";

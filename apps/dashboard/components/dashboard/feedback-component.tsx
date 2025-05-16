@@ -1,5 +1,4 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@unkey/ui";
+import { Button, Loading } from "@unkey/ui";
 import {
   Select,
   SelectContent,

@@ -41,9 +41,9 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
+import { Loading } from "@unkey/ui/src/components/loading";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Loading } from "../loading";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];

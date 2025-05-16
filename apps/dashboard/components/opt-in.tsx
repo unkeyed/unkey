@@ -10,7 +10,7 @@ import type React from "react";
 
 import { toast } from "@/components/ui/toaster";
 import { PostHogEvent } from "@/providers/PostHogProvider";
-import { Loading } from "./dashboard/loading";
+import { Loading } from "@unkey/ui/src/components/loading";
 type Props = {
   title: string;
   description: string;
