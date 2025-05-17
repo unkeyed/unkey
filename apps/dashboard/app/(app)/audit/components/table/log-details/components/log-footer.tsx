@@ -41,9 +41,7 @@ export const LogFooter = ({ log }: Props) => {
                   <AvatarImage src={user.imageUrl} />
                   <AvatarFallback>{user?.username?.slice(0, 2)}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm text-content whitespace-nowrap">
-                  {`${user.username}`}
-                </span>
+                <span className="text-sm text-content whitespace-nowrap">{`${user.username}`}</span>
               </div>
             ) : log.actor.type === "key" ? (
               <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
