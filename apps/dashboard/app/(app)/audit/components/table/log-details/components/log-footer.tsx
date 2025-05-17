@@ -42,7 +42,7 @@ export const LogFooter = ({ log }: Props) => {
                   <AvatarFallback>{user?.username?.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <span className="text-sm text-content whitespace-nowrap">
-                  {`${user?.firstName ?? ""} ${user?.lastName ?? ""}`}
+                  {`${user.username}`}
                 </span>
               </div>
             ) : log.actor.type === "key" ? (
