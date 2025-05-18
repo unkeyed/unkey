@@ -44,10 +44,7 @@ class StoreWithMetrics<TNamespace extends string, TValue> implements Store<TName
 
   private readonly metrics: Metrics;
 
-  constructor(opts: {
-    store: Store<TNamespace, TValue>;
-    metrics: Metrics;
-  }) {
+  constructor(opts: { store: Store<TNamespace, TValue>; metrics: Metrics }) {
     this.name = opts.store.name;
     this.store = opts.store;
     this.metrics = opts.metrics;
@@ -97,6 +94,20 @@ class StoreWithMetrics<TNamespace extends string, TValue> implements Store<TName
       namespace,
     });
     return res;
+  }
+
+  public async getMany(
+    namespace: TNamespace,
+    keys: string[],
+  ): Promise<Result<Record<string, Entry<TValue> | undefined>, CacheError>> {
+    return Ok();
+  }
+
+  public async setMany(
+    namespace: TNamespace,
+    entries: Record<string, Entry<TValue>>,
+  ): Promise<Result<void, CacheError>> {
+    return Ok();
   }
 
   public async remove(namespace: TNamespace, key: string): Promise<Result<void, CacheError>> {
