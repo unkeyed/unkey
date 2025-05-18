@@ -201,17 +201,13 @@ export enum AuthErrorCode {
 export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.EMAIL_ALREADY_EXISTS]:
     "This email address is already registered. Please sign in instead.",
-  [AuthErrorCode.MISSING_REQUIRED_FIELDS]:
-    "Please fill in all required fields.",
-  [AuthErrorCode.USER_CREATION_FAILED]:
-    "Unable to create your account. Please try again later.",
+  [AuthErrorCode.MISSING_REQUIRED_FIELDS]: "Please fill in all required fields.",
+  [AuthErrorCode.USER_CREATION_FAILED]: "Unable to create your account. Please try again later.",
   [AuthErrorCode.INVALID_EMAIL]: "Please enter a valid email address.",
-  [AuthErrorCode.NETWORK_ERROR]:
-    "Connection error. Please check your internet and try again.",
+  [AuthErrorCode.NETWORK_ERROR]: "Connection error. Please check your internet and try again.",
   [AuthErrorCode.UNKNOWN_ERROR]:
     "Something went wrong. Please try again later, or contact support@unkey.dev",
-  [AuthErrorCode.ACCOUNT_NOT_FOUND]:
-    "Account not found. Would you like to sign up?",
+  [AuthErrorCode.ACCOUNT_NOT_FOUND]: "Account not found. Would you like to sign up?",
   [AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED]:
     "Please choose a workspace to continue authentication.",
   [AuthErrorCode.EMAIL_VERIFICATION_REQUIRED]:
