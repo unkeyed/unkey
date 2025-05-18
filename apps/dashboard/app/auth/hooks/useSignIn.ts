@@ -14,11 +14,15 @@ import { useContext, useEffect, useState } from "react";
 import { resendAuthCode, signInViaEmail, verifyAuthCode } from "../actions";
 import { SignInContext } from "../context/signin-context";
 
-function isAuthErrorResponse(result: VerificationResult): result is AuthErrorResponse {
+function isAuthErrorResponse(
+  result: VerificationResult
+): result is AuthErrorResponse {
   return !result.success && "message" in result;
 }
 
-function isPendingOrgSelection(result: VerificationResult): result is PendingOrgSelectionResponse {
+function isPendingOrgSelection(
+  result: VerificationResult
+): result is PendingOrgSelectionResponse {
   return (
     !result.success &&
     result.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED &&
@@ -101,7 +105,10 @@ export function useSignIn() {
     }
   };
 
-  const handleVerification = async (code: string, invitationToken?: string): Promise<void> => {
+  const handleVerification = async (
+    code: string,
+    invitationToken?: string
+  ): Promise<void> => {
     try {
       const result = await verifyAuthCode({
         email: context.email,
@@ -112,7 +119,9 @@ export function useSignIn() {
       // Determine where to redirect based on the verification result
       const redirectUrl = (() => {
         if (isPendingOrgSelection(result)) {
-          const orgsParam = encodeURIComponent(JSON.stringify(result.organizations));
+          const orgsParam = encodeURIComponent(
+            JSON.stringify(result.organizations)
+          );
           return `${SIGN_IN_URL}?orgs=${orgsParam}`;
         }
 
@@ -143,7 +152,11 @@ export function useSignIn() {
 
   const handleResendCode = async (): Promise<void> => {
     try {
-      await resendAuthCode(context.email);
+      const result = await resendAuthCode(context.email);
+      if (!result.success) {
+        setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
+        return;
+      }
     } catch (error) {
       setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       throw error;

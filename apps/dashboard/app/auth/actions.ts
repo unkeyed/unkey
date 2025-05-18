@@ -1,6 +1,11 @@
 "use server";
 
-import { deleteCookie, getCookie, setCookies, setSessionCookie } from "@/lib/auth/cookies";
+import {
+  deleteCookie,
+  getCookie,
+  setCookies,
+  setSessionCookie,
+} from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import {
   AuthErrorCode,
@@ -17,9 +22,12 @@ import {
 import { requireEmailMatch } from "@/lib/auth/utils";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
+import { Ratelimit } from "@unkey/ratelimit";
+import { env } from "@/lib/env";
 // Authentication Actions
-export async function signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
+export async function signUpViaEmail(
+  params: UserData
+): Promise<EmailAuthResult> {
   return await auth.signUpViaEmail(params);
 }
 
@@ -88,6 +96,23 @@ export async function verifyEmail(code: string): Promise<VerificationResult> {
 }
 
 export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
+  const rl = new Ratelimit({
+    namespace: "resend_code",
+    duration: "5m",
+    limit: 5,
+    rootKey: env().UNKEY_ROOT_KEY!!,
+  });
+
+  const { success } = await rl.limit(email);
+
+  if (!success) {
+    return {
+      success: false,
+      code: AuthErrorCode.RATE_ERROR,
+      message: "Sorry we can't send another code. Please contact support",
+    };
+  }
+
   if (!email.trim()) {
     return {
       success: false,
@@ -98,7 +123,9 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
   return await auth.resendAuthCode(email);
 }
 
-export async function signIntoWorkspace(orgId: string): Promise<VerificationResult> {
+export async function signIntoWorkspace(
+  orgId: string
+): Promise<VerificationResult> {
   const pendingToken = cookies().get("sess-temp")?.value;
 
   if (!pendingToken) {
@@ -126,17 +153,22 @@ export async function signIntoWorkspace(orgId: string): Promise<VerificationResu
     return {
       success: false,
       code: AuthErrorCode.UNKNOWN_ERROR,
-      message: error instanceof Error ? error.message : "Unknown error occurred",
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 }
 
 // OAuth
-export async function signInViaOAuth(options: SignInViaOAuthOptions): Promise<string> {
+export async function signInViaOAuth(
+  options: SignInViaOAuthOptions
+): Promise<string> {
   return await auth.signInViaOAuth(options);
 }
 
-export async function completeOAuthSignIn(request: Request): Promise<OAuthResult> {
+export async function completeOAuthSignIn(
+  request: Request
+): Promise<OAuthResult> {
   try {
     const result = await auth.completeOAuthSignIn(request);
 
@@ -150,14 +182,15 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
     return {
       success: false,
       code: AuthErrorCode.UNKNOWN_ERROR,
-      message: error instanceof Error ? error.message : "Unknown error occurred",
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 }
 
 // Organization Selection
 export async function completeOrgSelection(
-  orgId: string,
+  orgId: string
 ): Promise<NavigationResponse | AuthErrorResponse> {
   const tempSession = cookies().get(PENDING_SESSION_COOKIE);
   if (!tempSession) {
@@ -169,7 +202,10 @@ export async function completeOrgSelection(
   }
 
   // Call auth provider with token and orgId
-  const result = await auth.completeOrgSelection({ pendingAuthToken: tempSession.value, orgId });
+  const result = await auth.completeOrgSelection({
+    pendingAuthToken: tempSession.value,
+    orgId,
+  });
 
   if (result.success) {
     cookies().delete(PENDING_SESSION_COOKIE);
@@ -183,7 +219,9 @@ export async function completeOrgSelection(
 
 // Server-accessible switch org function vs client-side trpc
 // Used in route handlers, like join
-export async function switchOrg(orgId: string): Promise<{ success: boolean; error?: string }> {
+export async function switchOrg(
+  orgId: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     const { newToken, expiresAt } = await auth.switchOrg(orgId);
 
@@ -194,7 +232,10 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
     console.error("Organization switch failed:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to switch organization",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to switch organization",
     };
   }
 }
