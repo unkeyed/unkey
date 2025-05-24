@@ -15,14 +15,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import {
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@unkey/ui";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
