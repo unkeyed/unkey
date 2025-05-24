@@ -17,6 +17,6 @@
     "vitest": "^1.6.1"
   },
   "dependencies": {
-    "base-x": "^4.0.0"
+    "base-x": "^5.0.1"
   }
 }
