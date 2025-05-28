@@ -74,7 +74,7 @@ export const parseAsSortArray = <TColumn extends string>(): Parser<
     try {
       return str.split(",").map((item) => {
         const [column, direction] = item.split(":");
-        if (!column || !direction) {
+        if (!(column && direction)) {
           throw new Error("Invalid sort format");
         }
         if (!VALID_DIRECTIONS.includes(direction as SortDirection)) {

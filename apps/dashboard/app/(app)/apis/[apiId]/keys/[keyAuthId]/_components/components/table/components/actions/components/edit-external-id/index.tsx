@@ -51,7 +51,7 @@ export const EditExternalId = ({
       return;
     }
 
-    if (!isConfirmPopoverOpen && !open) {
+    if (!(isConfirmPopoverOpen || open)) {
       onClose();
     }
   };
@@ -99,7 +99,7 @@ export const EditExternalId = ({
                   className="rounded-lg flex-1"
                   loading={updateKeyOwner.isLoading}
                   onClick={handleSubmit}
-                  disabled={!originalIdentityId && !selectedIdentityId}
+                  disabled={!(originalIdentityId || selectedIdentityId)}
                 >
                   Update External ID
                 </Button>

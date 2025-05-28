@@ -31,7 +31,7 @@ export function useBookmarkedFilters<T extends FilterValue>({
   }, [localStorageName]);
 
   useEffect(() => {
-    if (!filters.length || !isBrowser) {
+    if (!(filters.length && isBrowser)) {
       return;
     }
 

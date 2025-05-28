@@ -64,7 +64,7 @@ export default async function RolePage(props: Props) {
       },
     },
   });
-  if (!role || !role.workspace) {
+  if (!role?.workspace) {
     return notFound();
   }
   if (role.workspace.orgId !== orgId) {

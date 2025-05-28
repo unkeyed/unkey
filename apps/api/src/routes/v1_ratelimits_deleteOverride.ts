@@ -66,7 +66,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.delete_override")),
     );
-    if (!namespaceId && !namespaceName) {
+    if (!(namespaceId || namespaceName)) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
         message: "You must provide a namespaceId or a namespaceName",

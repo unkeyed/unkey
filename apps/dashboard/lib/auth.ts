@@ -32,7 +32,7 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
     redirect("/auth/sign-in");
   }
 
-  if (!authResult.orgId && !authResult.role) {
+  if (!(authResult.orgId || authResult.role)) {
     redirect("/new");
   }
 

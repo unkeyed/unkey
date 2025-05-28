@@ -224,7 +224,7 @@ export async function queryApiKeys({
       });
     });
 
-  if (!combinedResults || !combinedResults?.keyAuth?.id) {
+  if (!combinedResults?.keyAuth?.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "API not found or does not have key authentication enabled",

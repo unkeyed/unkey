@@ -12,8 +12,8 @@ const args = process.argv.slice(2);
 const passedOptions: Record<string, string | boolean> = {};
 
 args.forEach((arg) => {
-  const [key, value] = arg.split("=");
-  passedOptions[key.replace("--", "")] = value || true;
+  const [key, _value] = arg.split("=");
+  passedOptions[key.replace("--", "")] = true;
 });
 
 async function main() {

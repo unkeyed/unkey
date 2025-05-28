@@ -94,7 +94,7 @@ export function LogsTimeseriesBarChart({
       return;
     }
     if (selection.start && selection.end && onSelectionChange) {
-      if (!selection.startTimestamp || !selection.endTimestamp) {
+      if (!(selection.startTimestamp && selection.endTimestamp)) {
         return;
       }
 
@@ -154,7 +154,7 @@ export function LogsTimeseriesBarChart({
                 strokeOpacity: 0.7,
               }}
               content={({ active, payload, label }) => {
-                if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
+                if (!(active && payload?.length) || payload?.[0]?.payload.total === 0) {
                   return null;
                 }
 

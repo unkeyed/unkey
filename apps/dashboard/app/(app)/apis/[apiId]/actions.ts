@@ -20,7 +20,7 @@ export type ApiLayoutData = {
 
 export const fetchApiAndWorkspaceDataFromDb = async (apiId: string): Promise<ApiLayoutData> => {
   const { orgId } = await getAuth();
-  if (!apiId || !orgId) {
+  if (!(apiId && orgId)) {
     console.error("fetchApiLayoutDataFromDb: apiId or orgId is missing");
     notFound();
   }

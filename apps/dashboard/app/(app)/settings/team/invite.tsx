@@ -59,7 +59,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
   });
 
   // If user or organization isn't available yet, return null or a loading state
-  if (!user!.orgId || !organization) {
+  if (!(user!.orgId && organization)) {
     return null;
   }
 

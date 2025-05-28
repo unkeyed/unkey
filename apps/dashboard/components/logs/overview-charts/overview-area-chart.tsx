@@ -79,7 +79,7 @@ export const OverviewAreaChart = ({
   };
 
   const handleMouseMove = (e: any) => {
-    if (!enableSelection || !selection.start) {
+    if (!(enableSelection && selection.start)) {
       return;
     }
     const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
@@ -95,7 +95,7 @@ export const OverviewAreaChart = ({
       return;
     }
     if (selection.start && selection.end && onSelectionChange) {
-      if (!selection.startTimestamp || !selection.endTimestamp) {
+      if (!(selection.startTimestamp && selection.endTimestamp)) {
         return;
       }
       const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
@@ -230,7 +230,7 @@ export const OverviewAreaChart = ({
                   strokeOpacity: 0.7,
                 }}
                 content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) {
+                  if (!(active && payload?.length)) {
                     return null;
                   }
                   return (

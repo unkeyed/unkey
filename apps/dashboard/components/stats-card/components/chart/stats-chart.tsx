@@ -67,7 +67,7 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
               strokeOpacity: 0.7,
             }}
             content={({ active, payload, label }) => {
-              if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
+              if (!(active && payload?.length) || payload?.[0]?.payload.total === 0) {
                 return null;
               }
               return (

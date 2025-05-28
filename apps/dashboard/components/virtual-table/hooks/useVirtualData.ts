@@ -40,7 +40,7 @@ export const useVirtualData = ({
   const handleChange = useCallback(
     (instance: Virtualizer<HTMLDivElement, Element>) => {
       const lastItem = instance.getVirtualItems().at(-1);
-      if (!lastItem || !onLoadMore) {
+      if (!(lastItem && onLoadMore)) {
         return;
       }
 
@@ -53,8 +53,7 @@ export const useVirtualData = ({
       const scrollThreshold = scrollElement.scrollHeight - config.rowHeight * 3;
 
       if (
-        !isLoading &&
-        !isFetchingNextPage &&
+        !(isLoading || isFetchingNextPage) &&
         lastItem.index >= totalDataLength - 1 - instance.options.overscan &&
         scrollOffset >= scrollThreshold
       ) {

@@ -412,7 +412,7 @@ function SortIcon({ direction }: { direction?: SortDirection | null }) {
 function HeaderCell<T>({ column }: { column: Column<T> }) {
   const { direction, onSort, sortable } = column.sort ?? {};
   const handleSort = () => {
-    if (!sortable || !onSort) {
+    if (!(sortable && onSort)) {
       return;
     }
 

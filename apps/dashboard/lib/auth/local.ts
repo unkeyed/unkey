@@ -149,7 +149,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
   // Organization Management
   async createTenant(params: { name: string; userId: string }): Promise<string> {
     const { name, userId } = params;
-    if (!name || !userId) {
+    if (!(name && userId)) {
       throw new Error("Organization name and userId are required.");
     }
 
@@ -182,7 +182,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
   async updateOrg(params: UpdateOrgParams): Promise<Organization> {
     // this will reset to the fixed values when the developer restarts the local development server
     const { id, name } = params;
-    if (!id || !name) {
+    if (!(id && name)) {
       throw new Error("Organization id and name are required.");
     }
 
@@ -262,7 +262,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
 
   async updateMembership(params: UpdateMembershipParams): Promise<Membership> {
     const { membershipId, role } = params;
-    if (!membershipId || !role) {
+    if (!(membershipId && role)) {
       throw new Error("Membership id and role are required.");
     }
 
@@ -289,7 +289,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
   // Invitation Management - No-op methods
   async inviteMember(params: OrgInviteParams): Promise<Invitation> {
     const { orgId, email } = params;
-    if (!orgId || !email) {
+    if (!(orgId && email)) {
       throw new Error("Organization id and email are required.");
     }
 

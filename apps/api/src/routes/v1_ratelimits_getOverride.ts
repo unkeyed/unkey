@@ -72,7 +72,7 @@ export const registerV1RatelimitGetOverride = (app: App) =>
         message: "Missing required permission: ratelimit.*.read_override",
       });
     }
-    if (!namespaceId && !namespaceName) {
+    if (!(namespaceId || namespaceName)) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
         message: "You must provide a namespaceId or a namespaceName",

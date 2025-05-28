@@ -174,7 +174,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     userId: string;
   }): Promise<string> {
     const { name, userId } = params;
-    if (!name || !userId) {
+    if (!(name && userId)) {
       throw new Error("Organization name and userId are required.");
     }
 
@@ -221,7 +221,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   async updateOrg(params: UpdateOrgParams): Promise<Organization> {
     const { id, name } = params;
-    if (!id || !name) {
+    if (!(id && name)) {
       throw new Error("Organization id and name are required.");
     }
 
@@ -256,7 +256,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         organizationId: newOrgId,
       });
 
-      if (!refreshResult.authenticated || !refreshResult.session) {
+      if (!(refreshResult.authenticated && refreshResult.session)) {
         const errMsg = !refreshResult.authenticated ? refreshResult.reason : "";
         throw new Error(`Organization switch failed ${errMsg}`);
       }
@@ -366,7 +366,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   async updateMembership(params: UpdateMembershipParams): Promise<Membership> {
     const { membershipId, role } = params;
-    if (!membershipId || !role) {
+    if (!(membershipId && role)) {
       throw new Error("Membership id and role are required.");
     }
 
@@ -415,7 +415,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   // Invitation Management
   async inviteMember(params: OrgInviteParams): Promise<Invitation> {
     const { orgId, email, role = "basic_member" } = params;
-    if (!orgId || !email) {
+    if (!(orgId && email)) {
       throw new Error("Organization id and email are required.");
     }
 

@@ -12,7 +12,7 @@ export const activeKeysTimeseries = t.procedure
   .input(keysOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
     const api = await getApi(input.apiId, ctx.workspace.id);
-    if (!api || !api.keyAuth?.id) {
+    if (!api?.keyAuth?.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "API not found or does not have key authentication enabled",

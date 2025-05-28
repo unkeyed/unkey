@@ -30,7 +30,7 @@ export const RenderComponentWithSnippet: React.FC<PropsWithChildren<Props>> = (p
       },
       filterProps: (_, key) => {
         // Filter out internal React props
-        return !key.startsWith("_") && !key.startsWith("$");
+        return !(key.startsWith("_") || key.startsWith("$"));
       },
     });
 

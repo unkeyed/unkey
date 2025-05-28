@@ -80,7 +80,7 @@ export const registerV1IdentitiesGetIdentity = (app: App) =>
     const { identityId, externalId } = c.req.valid("query");
     const { db } = c.get("services");
 
-    if (!identityId && !externalId) {
+    if (!(identityId || externalId)) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
         message: "Provide either identityId or externalId",

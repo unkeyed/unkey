@@ -43,7 +43,7 @@ export const NestedNavItem = ({
   const hasChildren = item.items && item.items.length > 0;
 
   useLayoutEffect(() => {
-    if (!hasChildren || !pathname) {
+    if (!(hasChildren && pathname)) {
       return;
     }
 

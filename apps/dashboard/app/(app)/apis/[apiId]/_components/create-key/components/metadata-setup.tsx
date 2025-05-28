@@ -100,7 +100,7 @@ export const MetadataSetup = () => {
           rows={15}
           {...register("metadata.data", {
             validate: (value) => {
-              if (metadataEnabled && (!value || !validateJSON(value))) {
+              if (metadataEnabled && !(value && validateJSON(value))) {
                 return "Must be valid JSON";
               }
               return true;

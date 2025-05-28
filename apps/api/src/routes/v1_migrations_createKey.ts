@@ -402,7 +402,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           });
         }
 
-        if (!key.hash && !key.plaintext) {
+        if (!(key.hash || key.plaintext)) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message: "provide either `hash` or `plaintext`",

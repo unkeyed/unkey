@@ -198,7 +198,7 @@ export const parseShortcutString = (shortcut: string): KeyCombo | null => {
   }
 
   // Final validation: Ensure a key and code were actually assigned
-  if (!keyAssigned || !combo.key || !combo.code) {
+  if (!(keyAssigned && combo.key && combo.code)) {
     console.warn(`[useKeyboardShortcut] No valid key/code identified for shortcut: "${shortcut}"`);
     return null;
   }

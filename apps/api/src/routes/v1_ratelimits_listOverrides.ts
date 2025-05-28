@@ -74,7 +74,7 @@ export const registerV1RatelimitListOverrides = (app: App) =>
   app.openapi(route, async (c) => {
     const { namespaceId, namespaceName, limit, cursor } = c.req.valid("query");
     const { db } = c.get("services");
-    if (!namespaceId && !namespaceName) {
+    if (!(namespaceId || namespaceName)) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
         message: "You must provide a namespaceId or a namespaceName",

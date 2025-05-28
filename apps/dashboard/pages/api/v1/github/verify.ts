@@ -52,7 +52,7 @@ const verifyGitSignature = async (
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
   const { RESEND_API_KEY, GITHUB_KEYS_URI } = env();
 
-  if (!RESEND_API_KEY || !GITHUB_KEYS_URI) {
+  if (!(RESEND_API_KEY && GITHUB_KEYS_URI)) {
     console.error("Missing required environment variables");
     return response.status(500).json({ error: "Internal Server Error" });
   }
@@ -64,7 +64,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
   const rawBody = await getRawBody(request);
   const data = JSON.parse(Buffer.from(rawBody).toString("utf8"));
 
-  if (!signature || !signature || !keyId || !data) {
+  if (!(signature && signature && keyId && data)) {
     return response.status(400).json({ Error: "Invalid webhook request" });
   }
 

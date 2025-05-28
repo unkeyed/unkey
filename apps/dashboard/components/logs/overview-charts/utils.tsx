@@ -23,7 +23,7 @@ export function createTimeIntervalFormatter(data?: TimeseriesData[], timeFormat 
     const formattedCurrentTimestamp = format(new Date(currentTimestamp), timeFormat);
 
     // If we don't have necessary data, fallback to displaying just the current point
-    if (!currentTimestamp || !data?.length) {
+    if (!(currentTimestamp && data?.length)) {
       return (
         <div>
           <span className="font-mono text-accent-9 text-xs px-4">{formattedCurrentTimestamp}</span>

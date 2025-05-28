@@ -52,7 +52,7 @@ export default function TeamPageClient({ team }: { team: boolean }) {
   const [tab, setTab] = useState<Tab>("members");
 
   // make typescript happy
-  if (!user || !organization || !userMemberships || !currentOrgMembership) {
+  if (!(user && organization && userMemberships && currentOrgMembership)) {
     return null;
   }
 

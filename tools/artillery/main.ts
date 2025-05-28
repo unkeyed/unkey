@@ -23,7 +23,7 @@ const regions = [
 ];
 
 const { ARTILLERY_CLOUD_API_KEY, UNKEY_KEY } = process.env;
-if (!ARTILLERY_CLOUD_API_KEY || !UNKEY_KEY) {
+if (!(ARTILLERY_CLOUD_API_KEY && UNKEY_KEY)) {
   console.error("missing env");
   process.exit(1);
 }

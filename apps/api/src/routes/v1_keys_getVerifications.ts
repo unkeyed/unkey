@@ -303,7 +303,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
 function transformData(
   data: VerificationTimeseriesDataPoint[] | undefined,
 ): CacheNamespaces["verificationsByKeyId"] {
-  if (!data || !data.length) {
+  if (!data?.length) {
     return [];
   }
 

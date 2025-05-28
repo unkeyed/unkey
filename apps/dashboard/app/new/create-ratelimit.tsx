@@ -15,7 +15,7 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
   const user = await getCurrentUser();
 
   // make typescript happy
-  if (!user || !user.orgId || !user.role) {
+  if (!(user?.orgId && user.role)) {
     return null;
   }
 

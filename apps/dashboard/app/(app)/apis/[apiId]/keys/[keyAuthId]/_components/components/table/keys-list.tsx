@@ -98,7 +98,7 @@ export const KeysList = ({
               ) : (
                 <>
                   {/* Show icon when not selected and not hovered */}
-                  {!isSelected && !isHovered && (
+                  {!(isSelected || isHovered) && (
                     // biome-ignore lint/complexity/noUselessFragments: <explanation>
                     <>
                       {identity ? (
@@ -279,7 +279,7 @@ export const KeysList = ({
       }
 
       // Early exit if we already found a mix
-      if (!allEnabled && !allDisabled) {
+      if (!(allEnabled || allDisabled)) {
         break;
       }
     }

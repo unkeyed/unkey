@@ -7,7 +7,7 @@ class PostHogClientWrapper {
 
   public static getInstance(): PostHog {
     if (!PostHogClientWrapper.instance) {
-      if (!process.env.NEXT_PUBLIC_POSTHOG_KEY || !process.env.NEXT_PUBLIC_POSTHOG_HOST) {
+      if (!(process.env.NEXT_PUBLIC_POSTHOG_KEY && process.env.NEXT_PUBLIC_POSTHOG_HOST)) {
         console.warn("PostHog key is missing. Analytics data will not be sent.");
         // Return a mock client when the key is not present
         PostHogClientWrapper.instance = {

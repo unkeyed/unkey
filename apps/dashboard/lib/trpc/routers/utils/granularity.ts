@@ -62,7 +62,7 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   const QUARTER_IN_MS = MONTH_IN_MS * 3;
 
   // If both are missing, fallback to an appropriate default for the context
-  if (!startTime && !endTime) {
+  if (!(startTime || endTime)) {
     const defaultGranularity = DEFAULT_GRANULARITY[context];
     const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
     return {

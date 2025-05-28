@@ -24,7 +24,7 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
     };
 
     filters.forEach((filter) => {
-      if (!keysListFilterFieldNames.includes(filter.field) || !params[filter.field]) {
+      if (!(keysListFilterFieldNames.includes(filter.field) && params[filter.field])) {
         return;
       }
 

@@ -38,7 +38,7 @@ class AuthProvider {
   private static initializeWorkOS(environment: ReturnType<typeof env>) {
     const { WORKOS_API_KEY, WORKOS_CLIENT_ID } = environment;
 
-    if (!WORKOS_API_KEY || !WORKOS_CLIENT_ID) {
+    if (!(WORKOS_API_KEY && WORKOS_CLIENT_ID)) {
       throw new Error("WORKOS_API_KEY and WORKOS_CLIENT_ID are required for WorkOS authentication");
     }
 

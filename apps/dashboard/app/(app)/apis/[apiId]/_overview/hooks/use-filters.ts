@@ -46,7 +46,9 @@ export const useFilters = () => {
     const activeFilters: KeysOverviewFilterValue[] = [];
 
     for (const [field, value] of Object.entries(searchParams)) {
-      if (!Array.isArray(value) || !["keyIds", "names", "identities", "outcomes"].includes(field)) {
+      if (
+        !(Array.isArray(value) && ["keyIds", "names", "identities", "outcomes"].includes(field))
+      ) {
         continue;
       }
 

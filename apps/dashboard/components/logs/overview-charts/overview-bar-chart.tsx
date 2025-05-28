@@ -96,7 +96,7 @@ export function OverviewBarChart({
       return;
     }
     if (selection.start && selection.end && onSelectionChange) {
-      if (!selection.startTimestamp || !selection.endTimestamp) {
+      if (!(selection.startTimestamp && selection.endTimestamp)) {
         return;
       }
       const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
@@ -188,7 +188,7 @@ export function OverviewBarChart({
                   strokeOpacity: 0.7,
                 }}
                 content={({ active, payload, label }) => {
-                  if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
+                  if (!(active && payload?.length) || payload?.[0]?.payload.total === 0) {
                     return null;
                   }
                   return (

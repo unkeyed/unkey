@@ -40,7 +40,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
   const [isDisabled, setIsDisabled] = useState(false);
 
   useKeyboardShortcut("q", () => {
-    if (!open && !isDisabled) {
+    if (!(open || isDisabled)) {
       setOpen(true);
       setSelectedQueryIndex(0);
       setFocusedTabIndex(0);

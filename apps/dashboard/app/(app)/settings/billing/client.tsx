@@ -77,8 +77,9 @@ export const Client: React.FC<Props> = (props) => {
     props.subscription &&
     ["active", "trialing"].includes(props.subscription.status) &&
     !props.subscription.cancelAt;
-  const isFreeTier =
-    !props.subscription || !["active", "trialing"].includes(props.subscription.status);
+  const isFreeTier = !(
+    props.subscription && ["active", "trialing"].includes(props.subscription.status)
+  );
   const selectedProductIndex = allowUpdate
     ? props.products.findIndex((p) => p.id === props.currentProductId)
     : -1;

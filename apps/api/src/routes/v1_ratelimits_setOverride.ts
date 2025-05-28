@@ -81,7 +81,7 @@ export type V1RatelimitSetOverrideResponse = z.infer<
 export const registerV1RatelimitSetOverride = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    if (!req.namespaceId && !req.namespaceName) {
+    if (!(req.namespaceId || req.namespaceName)) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
         message: "You must provide a namespaceId or a namespaceName",

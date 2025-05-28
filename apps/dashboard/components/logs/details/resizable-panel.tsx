@@ -38,7 +38,7 @@ export const ResizablePanel = ({
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isDragging || !panelRef.current) {
+      if (!(isDragging && panelRef.current)) {
         return;
       }
 

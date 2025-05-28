@@ -47,8 +47,10 @@ export const Client: React.FC<Props> = ({
   });
   const router = useRouter();
 
-  const disabled =
-    !projectId || !(selectedApis.development || selectedApis.preview || selectedApis.production);
+  const disabled = !(
+    projectId &&
+    (selectedApis.development || selectedApis.preview || selectedApis.production)
+  );
 
   const create = trpc.vercel.setupProject.useMutation({
     onSuccess: () => {

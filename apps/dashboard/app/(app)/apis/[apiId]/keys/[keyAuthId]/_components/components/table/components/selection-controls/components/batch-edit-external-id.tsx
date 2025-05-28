@@ -47,7 +47,7 @@ export const BatchEditExternalId = ({
       return;
     }
 
-    if (!isConfirmPopoverOpen && !open) {
+    if (!(isConfirmPopoverOpen || open)) {
       onClose();
     }
   };

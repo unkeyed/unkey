@@ -9,11 +9,11 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     const payload = req.body;
     const sigHeader = req.headers["workos-signature"] as string | undefined;
     const { RESEND_API_KEY, RESEND_AUDIENCE_ID, WORKOS_API_KEY, WORKOS_WEBHOOK_SECRET } = env();
-    if (!WORKOS_API_KEY || !WORKOS_WEBHOOK_SECRET || !RESEND_API_KEY || !RESEND_AUDIENCE_ID) {
+    if (!(WORKOS_API_KEY && WORKOS_WEBHOOK_SECRET && RESEND_API_KEY && RESEND_AUDIENCE_ID)) {
       return res.status(400).json({ Error: "Missing environment variables" });
     }
 
-    if (!payload || !sigHeader) {
+    if (!(payload && sigHeader)) {
       return res.status(400).json({ Error: "Nope" });
     }
     const workos = new WorkOS(WORKOS_API_KEY);
