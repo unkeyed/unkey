@@ -45,12 +45,12 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
 
   const handleClick = (e: React.MouseEvent) => {
     // Only handle click if it wasn't a long press
-    if (!window.getSelection()?.toString()) {
-      // Programmatically click the CopyButton if text isn't selected
-      copyButtonRef.current?.click();
-    } else {
+    if (window.getSelection()?.toString()) {
       // If text is selected, don't trigger the copy
       e.stopPropagation();
+    } else {
+      // Programmatically click the CopyButton if text isn't selected
+      copyButtonRef.current?.click();
     }
   };
 

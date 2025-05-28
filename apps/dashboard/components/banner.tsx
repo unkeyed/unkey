@@ -29,9 +29,9 @@ export const Banner: React.FC<PropsWithChildren<Props>> = ({
   const bannerHeightRef = useRef<number>(0);
   const bannerRef = useRef<HTMLDivElement>(null);
 
-  const [visible, setVisible] = !persistChoice
-    ? useState(true)
-    : useLocalStorage(`unkey_banner_${persistChoice}`, true, { initializeWithValue: false });
+  const [visible, setVisible] = persistChoice
+    ? useLocalStorage(`unkey_banner_${persistChoice}`, true, { initializeWithValue: false })
+    : useState(true);
 
   useResizeObserver({
     ref: bannerRef,

@@ -172,22 +172,21 @@ export const parseShortcutString = (shortcut: string): KeyCombo | null => {
         break;
       default:
         if (part.length > 0) {
-          if (!keyAssigned) {
-            combo.key = part; // Store original key name
-            combo.code = getKeyNameToCode(part); // Attempt to get the code
-            if (!combo.code) {
-              console.warn(
-                `[useKeyboardShortcut] Failed to map key "${part}" to code for shortcut: "${shortcut}". Please check spelling or expand getKeyNameToCode mapping.`,
-              );
-              return null; // Fail parsing if code cannot be determined
-            }
-            keyAssigned = true;
-          } else {
+          if (keyAssigned) {
             console.warn(
               `[useKeyboardShortcut] Multiple non-modifier keys detected in shortcut: "${shortcut}"`,
             );
             return null;
           }
+          combo.key = part; // Store original key name
+          combo.code = getKeyNameToCode(part); // Attempt to get the code
+          if (!combo.code) {
+            console.warn(
+              `[useKeyboardShortcut] Failed to map key "${part}" to code for shortcut: "${shortcut}". Please check spelling or expand getKeyNameToCode mapping.`,
+            );
+            return null; // Fail parsing if code cannot be determined
+          }
+          keyAssigned = true;
         } else {
           console.warn(
             `[useKeyboardShortcut] Empty part detected in shortcut string: "${shortcut}"`,
