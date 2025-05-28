@@ -6,14 +6,16 @@ import { forwardRef } from "react";
 const badgeVariants = cva("inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs", {
   variants: {
     variant: {
-      primary: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-      secondary:
-        "border-border bg-secondary text-secondary-foreground hover:bg-secondary/80 font-normal",
-      alert: "border-transparent bg-alert text-alert-foreground hover:bg-alert/80",
+      primary: "border-transparent bg-grayA-3 text-grayA-11 hover:bg-grayA-4",
+      secondary: "border-border bg-grayA-2 text-grayA-11 hover:bg-grayA-3 font-normal",
+      success: "border-transparent bg-grayA-3 text-grayA-11 hover:bg-grayA-4",
+      warning: "border-transparent bg-warningA-3 text-warningA-11 hover:bg-warningA-4",
+      blocked: "border-transparent bg-orangeA-3 text-orangeA-11 hover:bg-orangeA-4",
+      error: "border-transparent bg-errorA-3 text-errorA-11 hover:bg-errorA-4",
     },
     size: {
       DEFAULT: "",
-      sm: "px-1 py-0.4",
+      sm: "px-1.5 py-0.5",
     },
     font: {
       mono: "font-mono",

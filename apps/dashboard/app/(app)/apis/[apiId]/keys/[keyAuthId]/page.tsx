@@ -1,8 +1,10 @@
+import dynamic from "next/dynamic";
 import { fetchApiAndWorkspaceDataFromDb } from "../../actions";
-import { ApisNavbar } from "../../api-id-navbar";
 import { KeysClient } from "./_components/keys-client";
 
-export const dynamic = "force-dynamic";
+const ApisNavbar = dynamic(() =>
+  import("@/app/(app)/apis/[apiId]/api-id-navbar").then((mod) => mod.ApisNavbar),
+);
 
 export default async function APIKeysPage(props: {
   params: {

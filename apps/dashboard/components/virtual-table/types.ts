@@ -65,6 +65,14 @@ export type VirtualTableProps<TTableData> = {
     columns: Column<TTableData>[];
     rowHeight: number;
   }) => ReactNode;
+  /**
+   * Callback when mouse enters a row
+   */
+  onRowMouseEnter?: (item: TTableData) => void;
+  /**
+   * Callback when mouse leaves a row
+   */
+  onRowMouseLeave?: () => void;
 };
 
 export type SeparatorItem = {

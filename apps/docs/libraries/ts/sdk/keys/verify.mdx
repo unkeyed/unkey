@@ -3,7 +3,67 @@ title: "Verify"
 description: "Verify a key"
 ---
 
-Verify a key from your users.
+<RequestExample>
+```ts
+import { verifyKey } from "@unkey/api";
+
+const { result, error } = await verifyKey({ key: "key_123", apiId: "api_123" });
+
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+
+if (!result.valid) {
+  // do not grant access
+  return;
+}
+
+// process request
+console.log(result);
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "result": {
+  "keyId": "key_1234",
+  "valid": true,
+  "name": "Customer X",
+  "ownerId": "user_123",
+  "meta": {
+    "roles": [
+      "admin",
+      "user"
+    ],
+    "stripeCustomerId": "cus_1234"
+  },
+  "expires": 123,
+  "ratelimit": {
+    "limit": 10,
+    "remaining": 9,
+    "reset": 3600000
+  },
+  "remaining": 1000,
+  "code": "VALID",
+  "enabled": true,
+  "permissions": [
+    "dns.record.update",
+    "dns.record.delete"
+  ],
+  "environment": "test",
+  "identity": {
+    "id": "<string>",
+    "externalId": "<string>",
+    "meta": {}
+  }
+}
+}
+```
+</ResponseExample>
 
 ## Request
 
@@ -18,7 +78,7 @@ Verify a key from your users.
 
 
 <ParamField body="ratelimit" type="object" >
-  Override the behavior of the ratelimit for this verification. 
+  Override the behavior of the ratelimit for this verification.
 <Expandable title="properties" defaultOpen>
 <ParamField body="cost" type="number" default={1}>
   The cost of this verification. This will be subtracted from the ratelimit.
@@ -107,10 +167,11 @@ Example:
   checks like `IP whitelists`
   - `USAGE_EXCEEDED` - The key has been used up and is no longer valid
   - `RATE_LIMITED` - The verification has been blocked due to ratelimiting
-  - `DISABLED` - the key is disabled
+  - `DISABLED` - The key is disabled
+  - `EXPIRED` - The key has expired
 </ResponseField>
 
- 
+
 <ResponseField name="enabled" type="bool">
     Shows if the key is enabled or disabled.
 </ResponseField>
@@ -128,7 +189,7 @@ Example:
 The associated identity of this key.
  <Expandable title="properties">
   <ParamField body="identity.id" type="string" required />
-  
+
   <ParamField body="identity.externalId" type="string" required/>
   <ParamField body="identity.meta" type="object" required>
   A free form JSON object. You can store any data you want here. As long as its properly formatted JSON.
@@ -140,69 +201,3 @@ The associated identity of this key.
 </ResponseField>
 </Expandable>
 </ResponseField>
-<RequestExample>
-
-```ts
-import { verifyKey } from "@unkey/api";
-
-const { result, error } = await verifyKey({ key: "key_123", apiId: "api_123" });
-
-if (error) {
-  // handle potential network or bad request error
-  // a link to our docs will be in the `error.docs` field
-  console.error(error.message);
-  return;
-}
-
-if (!result.valid) {
-  // do not grant access
-  return;
-}
-
-// process request
-console.log(result);
-```
-
-</RequestExample>
-
-<ResponseExample>
-
-```ts
-{
-  result: {
-  "keyId": "key_1234",
-  "valid": true,
-  "name": "Customer X",
-  "ownerId": "user_123",
-  "meta": {
-    "roles": [
-      "admin",
-      "user"
-    ],
-    "stripeCustomerId": "cus_1234"
-  },
-  "expires": 123,
-  "ratelimit": {
-    "limit": 10,
-    "remaining": 9,
-    "reset": 3600000
-  },
-  "remaining": 1000,
-  "code": "VALID",
-  "enabled": true,
-  "permissions": [
-    "dns.record.update",
-    "dns.record.delete"
-  ],
-  "environment": "test",
-  "identity": {
-    "id": "<string>",
-    "externalId": "<string>",
-    "meta": {}
-  }
-}
-}
-
-```
-
-</ResponseExample>

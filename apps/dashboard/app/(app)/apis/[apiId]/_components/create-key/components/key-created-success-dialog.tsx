@@ -1,12 +1,10 @@
 "use client";
 
 import { ConfirmPopover } from "@/components/confirmation-popover";
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 import { ArrowRight, Check, CircleInfo, Eye, EyeSlash, Key2, Plus } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import { Button, CopyButton, InfoTooltip } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
 import { SecretKey } from "./secret-key";

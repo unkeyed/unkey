@@ -106,11 +106,9 @@ const additionalColumns: Column<Log>[] = [
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" "),
-  width: "1fr",
+  width: "auto",
   render: (log: Log) => (
-    <div className="font-mono whitespace-nowrap truncate max-w-[500px]">
-      {log[key as keyof Log]}
-    </div>
+    <div className="font-mono whitespace-nowrap truncate w-[500px]">{log[key as keyof Log]}</div>
   ),
 }));
 

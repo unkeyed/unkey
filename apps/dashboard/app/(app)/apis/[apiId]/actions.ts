@@ -1,5 +1,7 @@
 import { getAuth } from "@/lib/auth";
 import { and, db, eq, isNull } from "@/lib/db";
+import { getAllKeys } from "@/lib/trpc/routers/api/keys/query-api-keys/get-all-keys";
+import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { apis } from "@unkey/db/src/schema";
 import { notFound } from "next/navigation";
 
@@ -64,3 +66,26 @@ export const fetchApiAndWorkspaceDataFromDb = async (apiId: string): Promise<Api
     workspaceApis,
   };
 };
+
+export async function getKeyDetails(
+  keyId: string,
+  keyspaceId: string,
+  workspaceId: string,
+): Promise<KeyDetails | null> {
+  const result = await getAllKeys({
+    keyspaceId,
+    workspaceId,
+    filters: {
+      keyIds: [{ operator: "is", value: keyId }],
+    },
+    limit: 1,
+  });
+
+  // If no keys found, return null
+  if (result.keys.length === 0) {
+    return null;
+  }
+
+  // Return the first (and only) key
+  return result.keys[0];
+}
