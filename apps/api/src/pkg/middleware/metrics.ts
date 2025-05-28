@@ -10,11 +10,9 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
     const { metrics, analytics } = c.get("services");
 
     let requestBody = await c.req.raw.clone().text();
-    requestBody = requestBody.replaceAll(/"key":\s*"[a-zA-Z0-9_]+"/g, '"key": "<REDACTED>"');
-    requestBody = requestBody.replaceAll(
-      /"plaintext":\s*"[a-zA-Z0-9_]+"/g,
-      '"plaintext": "<REDACTED>"',
-    );
+    // [^"]* matches any character except quotes
+    requestBody = requestBody.replaceAll(/"key":\s*"[^"]*"/g, '"key": "<REDACTED>"');
+    requestBody = requestBody.replaceAll(/"plaintext":\s*"[^"]*"/g, '"plaintext": "<REDACTED>"');
     const start = performance.now();
     const m = {
       isolateId: c.get("isolateId"),
