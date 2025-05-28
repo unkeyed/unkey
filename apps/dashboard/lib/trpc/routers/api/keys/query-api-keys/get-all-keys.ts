@@ -245,7 +245,7 @@ export async function getAllKeys({
         metadata: key.meta,
         key: {
           credits: {
-            enabled: Boolean(key.remaining), // If remaining is bigger than 0 it means user has enabled credits option
+            enabled: key.remaining !== null,
             remaining: key.remaining,
             refillAmount: key.refillAmount,
             refillDay: key.refillDay,
