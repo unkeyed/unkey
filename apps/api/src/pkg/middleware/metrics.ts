@@ -96,9 +96,10 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       });
 
       let responseBody = await c.res.clone().text();
-      responseBody = responseBody.replaceAll(/"key":\s*"[a-zA-Z0-9_]+"/g, '"key": "<REDACTED>"');
+      // [^"]* matches any character except quotes
+      responseBody = responseBody.replaceAll(/"key":\s*"[^"]*"/g, '"key": "<REDACTED>"');
       responseBody = responseBody.replaceAll(
-        /"plaintext":\s*"[a-zA-Z0-9_]+"/g,
+        /"plaintext":\s*"[^"]*"/g,
         '"plaintext": "<REDACTED>"',
       );
 
