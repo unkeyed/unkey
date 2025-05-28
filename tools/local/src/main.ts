@@ -12,8 +12,9 @@ const args = process.argv.slice(2);
 const passedOptions: Record<string, string | boolean> = {};
 
 args.forEach((arg) => {
-  const [key, _value] = arg.split("=");
-  passedOptions[key.replace("--", "")] = true;
+  const [key, value] = arg.split("=");
+  // biome-ignore lint/complexity/useSimplifiedLogicExpression: Let's keep this for now
+  passedOptions[key.replace("--", "")] = value || true;
 });
 
 async function main() {

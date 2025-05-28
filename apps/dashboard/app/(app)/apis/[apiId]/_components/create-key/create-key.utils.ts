@@ -48,13 +48,13 @@ export const formValuesToApiInput = (formValues: FormValues, keyAuthId: string):
 export const isFeatureEnabled = (sectionId: SectionName, values: FormValues): boolean => {
   switch (sectionId) {
     case "metadata":
-      return values.metadata?.enabled;
+      return Boolean(values.metadata?.enabled);
     case "ratelimit":
-      return values.ratelimit?.enabled;
+      return Boolean(values.ratelimit?.enabled);
     case "credits":
-      return values.limit?.enabled;
+      return Boolean(values.limit?.enabled);
     case "expiration":
-      return values.expiration?.enabled;
+      return Boolean(values.expiration?.enabled);
     case "general":
       return true;
     default:
