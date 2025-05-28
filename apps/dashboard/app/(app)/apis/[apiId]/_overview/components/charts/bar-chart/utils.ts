@@ -39,7 +39,7 @@ export function createOutcomeChartConfig(includedOutcomes?: string[]) {
 
     // Convert to the format used in our timeseries data (snake_case)
     const key = outcome.toLowerCase();
-    const colorClass = OUTCOME_BACKGROUND_COLORS[outcome] || "bg-accent-4";
+    const colorClass = OUTCOME_BACKGROUND_COLORS[outcome];
 
     config[key] = {
       label: formatOutcomeName(outcome),

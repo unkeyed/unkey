@@ -1,3 +1,4 @@
+import { revalidate } from "@/app/actions";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { DialogContainer } from "@/components/dialog-container";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
@@ -47,6 +48,7 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
 
   const updateKeyStatus = useUpdateKeyStatus(() => {
     onClose();
+    revalidate(keyDetails.id);
   });
 
   const handleDialogOpenChange = (open: boolean) => {

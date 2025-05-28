@@ -143,7 +143,11 @@ export function useSignIn() {
 
   const handleResendCode = async (): Promise<void> => {
     try {
-      await resendAuthCode(context.email);
+      const result = await resendAuthCode(context.email);
+      if (!result.success) {
+        setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
+        return;
+      }
     } catch (error) {
       setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       throw error;
