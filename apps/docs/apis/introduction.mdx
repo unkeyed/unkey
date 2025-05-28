@@ -44,22 +44,31 @@ async def main() -> None:
 ```
 ```go Golang
 package main
-import (
-	"fmt"
-	unkey "github.com/WilfredAlmeida/unkey-go/features"
+
+import(
+	"context"
+	unkeygo "github.com/unkeyed/unkey-go"
+	"github.com/unkeyed/unkey-go/models/components"
+	"log"
 )
+
 func main() {
-	apiKey := "key_3ZZ7faUrkfv1YAhffAcnKW74"
-	response, err := unkey.KeyVerify(apiKey)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	if response.Valid {
-		fmt.Println("Key is valid")
-	} else {
-		fmt.Println("Key is invalid")
-	}
+    ctx := context.Background()
+
+    s := unkeygo.New(
+        unkeygo.WithSecurity("UNKEY_ROOT_KEY"),
+    )
+
+    res, err := s.Keys.VerifyKey(ctx, components.V1KeysVerifyKeyRequest{
+        APIID: unkeygo.String("api_1234"),
+        Key: "sk_1234",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    if res.V1KeysVerifyKeyResponse != nil {
+        // handle response
+    }
 }
 ```
 ```bash cURL

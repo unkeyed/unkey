@@ -3,6 +3,48 @@ title: "Limit"
 description: "Serverless ratelimiting"
 ---
 
+<RequestExample>
+
+```ts
+const {result, error} = await unkey.ratelimits.limit({
+    duration: 600,
+    identifier: "userId",
+    limit: 2000,
+    namespace: "test"
+  })
+
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+
+if(!result.success){
+  console.log("This is blocked do some logic")
+  return;
+}
+
+console.log(result);
+
+```
+
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "result": {
+    "success": true,
+    "limit": 2000,
+    "reset": 1630000000000,
+    "remaining": 300
+  }
+}
+```
+
+</ResponseExample>
+
 <Note>
 We have a dedicated package for ratelimiting in serverless functions. It's built with Cloudflare workers and Durable Objects to orchestrate low latency ratelimiting at the edge, without sacrificing consistency.
 
@@ -87,30 +129,3 @@ Unix timestamp in milliseconds when the limits are reset.
 </ResponseField>
 </Expandable>
 </ResponseField>
-
-<RequestExample>
-
-```ts
-await unkey.ratelimits.limit({
-    duration: 600,
-    identifier: "userId",
-    limit: 2000,
-    namespace: "test"
-  })
-```
-
-</RequestExample>
-
-<ResponseExample>
-```ts
-{
-  result: {
-    "success": true,
-    "limit": 2000,
-    "reset": 1630000000000,
-    "remaining": 300
-  }
-}
-```
-
-</ResponseExample>

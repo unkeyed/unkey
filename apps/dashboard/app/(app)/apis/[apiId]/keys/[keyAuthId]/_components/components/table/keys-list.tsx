@@ -92,7 +92,9 @@ export const KeysList = ({
               onMouseLeave={() => setHoveredKeyId(null)}
             >
               {isNavigating ? (
-                <AnimatedLoadingSpinner />
+                <div className={cn(identity ? "text-successA-11" : "text-grayA-11")}>
+                  <AnimatedLoadingSpinner />
+                </div>
               ) : (
                 <>
                   {/* Show icon when not selected and not hovered */}

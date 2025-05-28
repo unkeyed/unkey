@@ -3,6 +3,45 @@ title: "List Overrides"
 description: "Lists all overrides"
 ---
 
+<RequestExample>
+
+```ts
+const { result ,error } = await unkey.ratelimits.listOverrides({
+    namespaceName: "email.outbound"
+});
+
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+
+console.log(result);
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "result": {
+    "overrides": [
+       {
+        "id": "rlor_1234",
+        "identifier": "customer_123",
+        "limit": 10,
+        "duration": 50000,
+        "async": false
+      }
+    ],
+    total: 1,
+    cursor: 'eyJrZXkiOiJrZXlfMTIzNCJ9'
+  }
+}
+```
+
+</ResponseExample>
+
 ## Request
 
 <Warning>
@@ -57,39 +96,3 @@ The cursor to use for pagination
  </Expandable>
 
 </ResponseField>
-
-
-<RequestExample>
-
-```ts
-const overrides = await unkey.ratelimits.listOverrides({
-    nameSpaceId:"rlns_12345",
-});
-```
-```ts
-const overrides = await unkey.ratelimits.listOverrides({
-    namespaceName: "email.outbound"
-});
-```
-</RequestExample>
-
-<ResponseExample>
-```ts
-{
-  result: {
-    overrides: [
-       {
-        id: 'rlor_1234',
-        identifier: 'customer_123',
-        limit: 10,
-        duration: 50000,
-        async: false
-      }
-    ],
-    total: 1,
-    cursor: 'rlor_1234'
-  }
-}
-```
-
-</ResponseExample>
