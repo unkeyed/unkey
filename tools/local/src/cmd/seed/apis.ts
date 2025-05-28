@@ -10,7 +10,7 @@ const DEFAULT_BATCH_SIZE = 50_000;
 /**
  * Fetches existing APIs for the workspace
  */
-async function getAPIs(workspaceId: string) {
+async function getApIs(workspaceId: string) {
   return withDatabase(async (db) => {
     return db
       .select({
@@ -207,7 +207,7 @@ async function getExistingKeys(workspaceId: string, keyAuthId: string): Promise<
  */
 export async function seedApiAndKeys(workspaceId: string, count: number) {
   // First, fetch existing APIs
-  const existingApis = await getAPIs(workspaceId);
+  const existingApis = await getApIs(workspaceId);
 
   // API selection logic
   let apiId: string;

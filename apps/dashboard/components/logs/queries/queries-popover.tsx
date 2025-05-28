@@ -40,16 +40,16 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
   const [isDisabled, setIsDisabled] = useState(false);
 
   useKeyboardShortcut("q", () => {
-    if (!(open || isDisabled)) {
-      setOpen(true);
-      setSelectedQueryIndex(0);
-      setFocusedTabIndex(0);
-      setIsDisabled(filters.length === 0);
-    } else {
+    if (open || isDisabled) {
       setIsDisabled(filters.length === 0);
       setOpen(false);
       setFocusedTabIndex(0);
       setSelectedQueryIndex(0);
+    } else {
+      setOpen(true);
+      setSelectedQueryIndex(0);
+      setFocusedTabIndex(0);
+      setIsDisabled(filters.length === 0);
     }
   });
 

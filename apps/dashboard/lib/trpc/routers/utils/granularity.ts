@@ -57,9 +57,9 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   endTime?: number | null,
 ): TimeseriesConfig<TContext> => {
   const now = Date.now();
-  const WEEK_IN_MS = DAY_IN_MS * 7;
-  const MONTH_IN_MS = DAY_IN_MS * 30;
-  const QUARTER_IN_MS = MONTH_IN_MS * 3;
+  const weekInMs = DAY_IN_MS * 7;
+  const monthInMs = DAY_IN_MS * 30;
+  const quarterInMs = monthInMs * 3;
 
   // If both are missing, fallback to an appropriate default for the context
   if (!(startTime || endTime)) {
@@ -82,15 +82,15 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   let granularity: CompoundTimeseriesGranularity;
 
   if (context === "forVerifications") {
-    if (timeRange >= QUARTER_IN_MS) {
+    if (timeRange >= quarterInMs) {
       granularity = "perMonth";
-    } else if (timeRange >= MONTH_IN_MS * 2) {
+    } else if (timeRange >= monthInMs * 2) {
       granularity = "perWeek";
-    } else if (timeRange >= MONTH_IN_MS) {
+    } else if (timeRange >= monthInMs) {
       granularity = "per3Days";
-    } else if (timeRange >= WEEK_IN_MS * 2) {
+    } else if (timeRange >= weekInMs * 2) {
       granularity = "per6Hours";
-    } else if (timeRange >= WEEK_IN_MS) {
+    } else if (timeRange >= weekInMs) {
       granularity = "perHour";
     } else if (timeRange >= DAY_IN_MS * 3) {
       granularity = "perHour";
@@ -145,18 +145,18 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
  */
 export const getTimeBufferForGranularity = (granularity: CompoundTimeseriesGranularity): number => {
   // Constants for commonly used durations
-  const MINUTE_IN_MS = 60 * 1000;
+  const minuteInMs = 60 * 1000;
 
   // Return appropriate buffer based on granularity
   switch (granularity) {
     case "perMinute":
-      return MINUTE_IN_MS;
+      return minuteInMs;
     case "per5Minutes":
-      return 5 * MINUTE_IN_MS;
+      return 5 * minuteInMs;
     case "per15Minutes":
-      return 15 * MINUTE_IN_MS;
+      return 15 * minuteInMs;
     case "per30Minutes":
-      return 30 * MINUTE_IN_MS;
+      return 30 * minuteInMs;
     case "perHour":
       return HOUR_IN_MS;
     case "per2Hours":
@@ -177,6 +177,6 @@ export const getTimeBufferForGranularity = (granularity: CompoundTimeseriesGranu
       return 30 * DAY_IN_MS;
     default:
       // Default to 5 minutes if granularity is unknown
-      return 5 * MINUTE_IN_MS;
+      return 5 * minuteInMs;
   }
 };

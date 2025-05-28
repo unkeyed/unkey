@@ -4,13 +4,13 @@ import {
 } from "@/app/(app)/audit/filters.schema";
 import { TRPCError } from "@trpc/server";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
-import type OpenAI from "openai";
+import type openAi from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
 
 export async function getStructuredAuditSearchFromLLM(
-  openai: OpenAI | null,
+  openai: openAi | null,
   userSearchMsg: string,
-  usersReferenceMS: number,
+  usersReferenceMs: number,
 ) {
   try {
     // Skip LLM processing in development environment when OpenAI API key is not configured
@@ -32,7 +32,7 @@ export async function getStructuredAuditSearchFromLLM(
       messages: [
         {
           role: "system",
-          content: getAuditSystemPrompt(usersReferenceMS),
+          content: getAuditSystemPrompt(usersReferenceMs),
         },
         {
           role: "user",
@@ -83,7 +83,7 @@ export async function getStructuredAuditSearchFromLLM(
   }
 }
 
-export const getAuditSystemPrompt = (usersReferenceMS: number) => {
+export const getAuditSystemPrompt = (usersReferenceMs: number) => {
   const validEventTypes = Object.values(unkeyAuditLogEvents.enum);
   const operatorsByField = Object.entries(auditLogsFilterFieldConfig)
     .map(([field, config]) => {
@@ -92,7 +92,7 @@ export const getAuditSystemPrompt = (usersReferenceMS: number) => {
     })
     .join("\n");
 
-  return `You are an expert at converting natural language queries into audit log filters, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. Use ${usersReferenceMS} timestamp for time-related queries.
+  return `You are an expert at converting natural language queries into audit log filters, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. Use ${usersReferenceMs} timestamp for time-related queries.
 
 You have access to a specific set of audit log event types in the Unkey system. When a user refers to an event, map it to the closest matching event from this set. For example, "set override" should be mapped to "ratelimit.set_override" and "create key" should be mapped to "key.create".
 
@@ -115,14 +115,14 @@ Result: [
     field: "startTime",
     filters: [{ 
       operator: "is", 
-      value: ${usersReferenceMS - 24 * 60 * 60 * 1000}
+      value: ${usersReferenceMs - 24 * 60 * 60 * 1000}
     }]
   },
   {
     field: "endTime",
     filters: [{ 
       operator: "is", 
-      value: ${usersReferenceMS}
+      value: ${usersReferenceMs}
     }]
   }
 ]

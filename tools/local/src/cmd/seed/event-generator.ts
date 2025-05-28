@@ -248,10 +248,10 @@ export function generateRatelimitEvent(
   const reset = Date.now() + 60 * 1000; // Reset in 1 minute
 
   // Generate a request ID if not provided
-  const generated_request_id = requestId || generateUuid();
+  const generatedRequestId = requestId || generateUuid();
 
   return {
-    request_id: generated_request_id,
+    request_id: generatedRequestId,
     time,
     workspace_id: workspaceId,
     namespace_id: namespaceId,

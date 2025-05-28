@@ -4,7 +4,7 @@ import {
 } from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import type OpenAI from "openai";
+import type openAi from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
 
 /**
@@ -18,9 +18,9 @@ import { zodResponseFormat } from "openai/helpers/zod.mjs";
  * @returns Parsed structured search filters or null if OpenAI client is not available
  */
 export async function getKeysStructuredSearchFromLLM(
-  openai: OpenAI | null,
+  openai: openAi | null,
   userSearchMsg: string,
-  usersReferenceMS: number,
+  usersReferenceMs: number,
 ) {
   try {
     if (!openai) {
@@ -37,7 +37,7 @@ export async function getKeysStructuredSearchFromLLM(
       messages: [
         {
           role: "system",
-          content: getKeysSystemPrompt(usersReferenceMS),
+          content: getKeysSystemPrompt(usersReferenceMs),
         },
         {
           role: "user",
@@ -93,7 +93,7 @@ export async function getKeysStructuredSearchFromLLM(
  * @param usersReferenceMS - Reference timestamp in milliseconds
  * @returns System prompt for the OpenAI conversation
  */
-export const getKeysSystemPrompt = (usersReferenceMS: number) => {
+export const getKeysSystemPrompt = (usersReferenceMs: number) => {
   const operatorsByField = Object.entries(keysOverviewFilterFieldConfig)
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
@@ -108,7 +108,7 @@ export const getKeysSystemPrompt = (usersReferenceMS: number) => {
       }${constraints}`;
     })
     .join("\n");
-  return `You are an expert at converting natural language queries into filters for API key searches, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For outcomes, use one of the valid outcome values like "valid", "invalid", etc. Use ${usersReferenceMS} timestamp for time-related queries.
+  return `You are an expert at converting natural language queries into filters for API key searches, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For outcomes, use one of the valid outcome values like "valid", "invalid", etc. Use ${usersReferenceMs} timestamp for time-related queries.
 
 Examples:
 
@@ -130,14 +130,14 @@ Result: [
     field: "startTime",
     filters: [{ 
       operator: "is", 
-      value: ${usersReferenceMS - 24 * 60 * 60 * 1000}
+      value: ${usersReferenceMs - 24 * 60 * 60 * 1000}
     }]
   },
   {
     field: "endTime",
     filters: [{ 
       operator: "is", 
-      value: ${usersReferenceMS}
+      value: ${usersReferenceMs}
     }]
   }
 ]

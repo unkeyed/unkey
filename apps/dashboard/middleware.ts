@@ -12,8 +12,8 @@ export default async function middleware(req: NextRequest, _evt: NextFetchEvent)
     return NextResponse.redirect("https://app.unkey.com/gateway-new");
   }
 
-  const AUTH_PROVIDER = env().AUTH_PROVIDER;
-  const isEnabled = () => AUTH_PROVIDER !== "local";
+  const authProvider = env().AUTH_PROVIDER;
+  const isEnabled = () => authProvider !== "local";
 
   // Define public paths that should bypass authentication
   const publicPaths = [

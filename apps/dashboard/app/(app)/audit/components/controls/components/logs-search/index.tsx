@@ -6,7 +6,7 @@ import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = () => {
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.audit.llmSearch.useMutation({
+  const queryLlmForStructuredOutput = trpc.audit.llmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -49,10 +49,10 @@ export const LogsSearch = () => {
         "Show all ratelimit events",
         "Show all role deletions",
       ]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
+      isLoading={queryLlmForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>
-        queryLLMForStructuredOutput.mutateAsync({
+        queryLlmForStructuredOutput.mutateAsync({
           query,
           timestamp: Date.now(),
         })

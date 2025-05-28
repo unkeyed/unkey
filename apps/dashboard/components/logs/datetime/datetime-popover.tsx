@@ -57,20 +57,20 @@ export const DatetimePopover = ({
   }>({ startTime, endTime });
 
   // Use customOptions if provided, otherwise use DEFAULT_OPTIONS
-  const OPTIONS = customOptions || DEFAULT_OPTIONS;
+  const options = customOptions || DEFAULT_OPTIONS;
   // Find the custom option ID in the provided options
-  const CURRENT_CUSTOM_OPTION_ID = customOptions
+  const currentCustomOptionId = customOptions
     ? customOptions.find((o) => o.value === undefined)?.id || CUSTOM_OPTION_ID
     : CUSTOM_OPTION_ID;
 
   const [suggestions, setSuggestions] = useState<OptionsType>(() => {
     const matchingSuggestion = since
-      ? OPTIONS.find((s) => s.value === since)
+      ? options.find((s) => s.value === since)
       : startTime
-        ? OPTIONS.find((s) => s.id === CURRENT_CUSTOM_OPTION_ID)
+        ? options.find((s) => s.id === currentCustomOptionId)
         : null;
 
-    return OPTIONS.map((s) => ({
+    return options.map((s) => ({
       ...s,
       checked: s.id === matchingSuggestion?.id,
     }));
@@ -78,16 +78,16 @@ export const DatetimePopover = ({
 
   useEffect(() => {
     const newTitle = since
-      ? (OPTIONS.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER)
+      ? (options.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER)
       : startTime
         ? CUSTOM_PLACEHOLDER
         : initialTitle;
 
     onSuggestionChange(newTitle);
-  }, [since, startTime, initialTitle, onSuggestionChange, OPTIONS]);
+  }, [since, startTime, initialTitle, onSuggestionChange, options]);
 
   const handleSuggestionChange = (id: number) => {
-    if (id === CURRENT_CUSTOM_OPTION_ID) {
+    if (id === currentCustomOptionId) {
       return;
     }
 
@@ -106,7 +106,7 @@ export const DatetimePopover = ({
     setSuggestions(
       suggestions.map((s) => ({
         ...s,
-        checked: s.id === CURRENT_CUSTOM_OPTION_ID,
+        checked: s.id === currentCustomOptionId,
       })),
     );
 

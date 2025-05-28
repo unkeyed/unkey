@@ -44,7 +44,7 @@ export const MetadataSetup = () => {
     trigger("metadata");
   };
 
-  const formatJSON = () => {
+  const formatJson = () => {
     try {
       const parsed = JSON.parse(currentMetadata || "{}");
       setValue("metadata.data", JSON.stringify(parsed, null, 2));
@@ -57,7 +57,7 @@ export const MetadataSetup = () => {
     }
   };
 
-  const validateJSON = (jsonString: string): boolean => {
+  const validateJson = (jsonString: string): boolean => {
     try {
       JSON.parse(jsonString);
       return true;
@@ -86,7 +86,7 @@ export const MetadataSetup = () => {
             <Button
               size="sm"
               variant="outline"
-              onClick={formatJSON}
+              onClick={formatJson}
               disabled={!metadataEnabled || Boolean(errors.metadata?.data?.message)}
               type="button"
             >
@@ -100,7 +100,7 @@ export const MetadataSetup = () => {
           rows={15}
           {...register("metadata.data", {
             validate: (value) => {
-              if (metadataEnabled && !(value && validateJSON(value))) {
+              if (metadataEnabled && !(value && validateJson(value))) {
                 return "Must be valid JSON";
               }
               return true;

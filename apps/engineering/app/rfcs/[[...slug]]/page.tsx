@@ -30,7 +30,7 @@ export default async function Page(props: {
     );
   }
 
-  const MDX = page.data.body;
+  const Mdx = page.data.body;
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
@@ -50,7 +50,7 @@ export default async function Page(props: {
       <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
 
       <DocsBody className="font-mono text-sm">
-        <MDX components={{ ...defaultMdxComponents }} />
+        <Mdx components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>
   );

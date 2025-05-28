@@ -17,7 +17,7 @@ export default async function Page(props: {
     notFound();
   }
 
-  const MDX = page.data.body;
+  const Mdx = page.data.body;
 
   return (
     <DocsPage
@@ -40,7 +40,7 @@ export default async function Page(props: {
       <DocsDescription>{page.data.description}</DocsDescription>
 
       <DocsBody>
-        <MDX components={{ ...defaultMdxComponents }} />
+        <Mdx components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>
   );

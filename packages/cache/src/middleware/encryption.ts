@@ -1,5 +1,5 @@
 import { Err, type Result } from "@unkey/error";
-import SuperJSON from "superjson";
+import superJson from "superjson";
 import { CacheError } from "../errors";
 import type { Entry, Store } from "../stores";
 import type { StoreMiddleware } from "./interface";
@@ -64,7 +64,7 @@ export class EncryptedStore<TNamespace extends string, TValue = any>
       const { iv, ciphertext } = res.val.value as { iv: string; ciphertext: string };
       const decrypted = await this.decrypt(iv, ciphertext);
 
-      res.val.value = SuperJSON.parse(decrypted);
+      res.val.value = superJson.parse(decrypted);
     } catch (e) {
       return Err(new CacheError({ tier: this.name, key, message: (e as Error).message }));
     }
@@ -77,7 +77,7 @@ export class EncryptedStore<TNamespace extends string, TValue = any>
     key: string,
     value: Entry<TValue>,
   ): Promise<Result<void, CacheError>> {
-    const { iv, ciphertext } = await this.encrypt(SuperJSON.stringify(value.value));
+    const { iv, ciphertext } = await this.encrypt(superJson.stringify(value.value));
     // @ts-expect-error
     value.value = { iv, ciphertext };
 

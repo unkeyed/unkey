@@ -6,7 +6,7 @@ import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.api.keys.listLlmSearch.useMutation({
+  const queryLlmForStructuredOutput = trpc.api.keys.listLlmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -50,10 +50,10 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
         "Show keys with name 'Temp Key' and ID starting with 'temp_'",
         "Find keys where identity is 'dev_user' or name contains 'debug'",
       ]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
+      isLoading={queryLlmForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>
-        queryLLMForStructuredOutput.mutateAsync({
+        queryLlmForStructuredOutput.mutateAsync({
           keyspaceId,
           query,
         })

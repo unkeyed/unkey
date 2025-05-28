@@ -6,7 +6,7 @@ import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = () => {
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.ratelimit.logs.ratelimitLlmSearch.useMutation({
+  const queryLlmForStructuredOutput = trpc.ratelimit.logs.ratelimitLlmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -49,10 +49,10 @@ export const LogsSearch = () => {
         "Show passed requests from the last 1 hour",
         "Show failed requests that includes cust_ in the identifier",
       ]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
+      isLoading={queryLlmForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>
-        queryLLMForStructuredOutput.mutateAsync({
+        queryLlmForStructuredOutput.mutateAsync({
           query,
           timestamp: Date.now(),
         })

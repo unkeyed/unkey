@@ -38,10 +38,10 @@ export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {
    * significantly higher useful lifetime of around 136 years
    * from 2023-11-14T22:13:20Z to 2159-12-22T04:41:36Z.
    */
-  const EPOCH_TIMESTAMP_SEC = 1_700_000_000; // In seconds
+  const epochTimestampSec = 1_700_000_000; // In seconds
 
   // Calculate seconds since epoch
-  const t = Math.floor(Date.now() / 1000) - EPOCH_TIMESTAMP_SEC;
+  const t = Math.floor(Date.now() / 1000) - epochTimestampSec;
 
   buf[0] = (t >>> 24) & 255;
   buf[1] = (t >>> 16) & 255;

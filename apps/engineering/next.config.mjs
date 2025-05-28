@@ -1,6 +1,6 @@
 import { createMDX } from "fumadocs-mdx/next";
 
-const withMDX = createMDX();
+const withMdx = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -8,4 +8,4 @@ const config = {
   transpilePackages: ["@unkey/ui"],
 };
 
-export default withMDX(config);
+export default withMdx(config);

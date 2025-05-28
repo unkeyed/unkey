@@ -4,11 +4,11 @@ import type { Permission } from "@unkey/db";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 
-interface RBACButtonsProps {
+interface RbacButtonsProps {
   permissions?: Permission[];
 }
 
-export function RBACButtons({ permissions = [] }: RBACButtonsProps) {
+export function RBACButtons({ permissions = [] }: RbacButtonsProps) {
   const [isCreateRoleModalOpen, setIsCreateRoleModalOpen] = useState(false);
   const [isCreatePermissionModalOpen, setIsCreatePermissionModalOpen] = useState(false);
 

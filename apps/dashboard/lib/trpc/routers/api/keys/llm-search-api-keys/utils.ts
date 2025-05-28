@@ -3,7 +3,7 @@ import {
   keysListFilterFieldConfig,
 } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/filters.schema";
 import { TRPCError } from "@trpc/server";
-import type OpenAI from "openai";
+import type openAi from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
 
 /**
@@ -16,7 +16,7 @@ import { zodResponseFormat } from "openai/helpers/zod.mjs";
  * @param usersReferenceMS - Reference timestamp in milliseconds
  * @returns Parsed structured search filters or null if OpenAI client is not available
  */
-export async function getKeysStructuredSearchFromLLM(openai: OpenAI | null, userSearchMsg: string) {
+export async function getKeysStructuredSearchFromLLM(openai: openAi | null, userSearchMsg: string) {
   try {
     if (!openai) {
       return null; // Skip LLM processing in development environment when OpenAI API key is not configured

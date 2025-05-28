@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc/client";
 
 export const LogsSearch = () => {
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.logs.llmSearch.useMutation({
+  const queryLlmForStructuredOutput = trpc.logs.llmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -49,10 +49,10 @@ export const LogsSearch = () => {
         "Show auth errors in the last 3h",
         "Show API calls from a path that includes api/v1/",
       ]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
+      isLoading={queryLlmForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>
-        queryLLMForStructuredOutput.mutateAsync({
+        queryLlmForStructuredOutput.mutateAsync({
           query,
           timestamp: Date.now(),
         })

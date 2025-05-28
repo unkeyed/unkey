@@ -1,5 +1,5 @@
 export async function main() {
-  const WEBHOOK_PAYLOAD = [
+  const webhookPayload = [
     {
       token: "unkey_3Zji53gSycvTL7vJGiCoh7es",
       type: "unkey_root_key",
@@ -9,7 +9,7 @@ export async function main() {
   ];
   const request = await fetch("http://localhost:3000/api/v1/github/verify", {
     method: "POST",
-    body: JSON.stringify(WEBHOOK_PAYLOAD),
+    body: JSON.stringify(webhookPayload),
     headers: {
       "content-type": "application/json",
       "Github-Public-Key-Identifier":

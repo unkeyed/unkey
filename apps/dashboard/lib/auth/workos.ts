@@ -1,8 +1,8 @@
 import { env } from "@/lib/env";
 import {
   WorkOS,
-  type Invitation as WorkOSInvitation,
-  type Organization as WorkOSOrganization,
+  type Invitation as workOsInvitation,
+  type Organization as workOsOrganization,
 } from "@workos-inc/node";
 import { getBaseUrl } from "../utils";
 import { BaseAuthProvider } from "./base-provider";
@@ -257,7 +257,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       });
 
       if (!(refreshResult.authenticated && refreshResult.session)) {
-        const errMsg = !refreshResult.authenticated ? refreshResult.reason : "";
+        const errMsg = refreshResult.authenticated ? "" : refreshResult.reason;
         throw new Error(`Organization switch failed ${errMsg}`);
       }
 
@@ -871,7 +871,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     };
   }
 
-  private transformOrganizationData(providerOrg: WorkOSOrganization): Organization {
+  private transformOrganizationData(providerOrg: workOsOrganization): Organization {
     return {
       id: providerOrg.id,
       name: providerOrg.name,
@@ -881,7 +881,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }
 
   private transformInvitationData(
-    providerInvitation: WorkOSInvitation,
+    providerInvitation: workOsInvitation,
     context?: { orgId: string; inviterId?: string },
   ): Invitation {
     return {

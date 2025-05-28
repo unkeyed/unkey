@@ -2,12 +2,12 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import OpenAI from "openai";
+import openAi from "openai";
 import { z } from "zod";
 import { getKeysStructuredSearchFromLLM } from "./utils";
 
 const openai = env().OPENAI_API_KEY
-  ? new OpenAI({
+  ? new openAi({
       apiKey: env().OPENAI_API_KEY,
     })
   : null;

@@ -8,7 +8,7 @@ import { useCallback, useRef } from "react";
 export const useSearchStrategy = (onSearch: (query: string) => void, debounceTime = 500) => {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSearchTimeRef = useRef<number>(0);
-  const THROTTLE_INTERVAL = 1000;
+  const throttleInterval = 1000;
 
   /**
    * Clears the debounce timer
@@ -68,7 +68,7 @@ export const useSearchStrategy = (onSearch: (query: string) => void, debounceTim
       }
 
       // For subsequent searches, use throttling
-      if (timeElapsed >= THROTTLE_INTERVAL) {
+      if (timeElapsed >= throttleInterval) {
         // Enough time has passed, execute immediately
         executeSearch(search);
       } else if (query) {
@@ -76,7 +76,7 @@ export const useSearchStrategy = (onSearch: (query: string) => void, debounceTim
         clearDebounceTimer();
 
         // Schedule execution after remaining throttle time
-        const remainingTime = THROTTLE_INTERVAL - timeElapsed;
+        const remainingTime = throttleInterval - timeElapsed;
         debounceTimerRef.current = setTimeout(() => {
           throttledSearch(search);
         }, remainingTime);

@@ -1,11 +1,11 @@
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 
-type useFetchRequestDetails = {
+type UseFetchRequestDetails = {
   requestId?: string;
 };
 
-export function useFetchRequestDetails({ requestId }: useFetchRequestDetails) {
+export function useFetchRequestDetails({ requestId }: UseFetchRequestDetails) {
   const { queryTime: timestamp } = useQueryTime();
   const query = trpc.logs.queryLogs.useQuery(
     {

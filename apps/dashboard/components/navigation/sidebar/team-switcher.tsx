@@ -109,7 +109,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
           </Avatar>
           {isUserMembershipsLoading ? (
             <Loading />
-          ) : !isCollapsed ? (
+          ) : isCollapsed ? null : (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="overflow-hidden text-sm font-medium text-ellipsis">
@@ -120,7 +120,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
                 <span className="text-sm font-medium">{props.workspace.name}</span>
               </TooltipContent>
             </Tooltip>
-          ) : null}
+          )}
         </div>
         {!isCollapsed && (
           <ChevronExpandY className="w-5 h-5 shrink-0 md:block [stroke-width:1px] text-gray-9" />

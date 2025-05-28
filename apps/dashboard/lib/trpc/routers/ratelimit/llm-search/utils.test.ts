@@ -33,7 +33,7 @@ describe("getSystemPrompt", () => {
 });
 
 describe("getStructuredSearchFromLLM", () => {
-  const mockOpenAI = {
+  const mockOpenAi = {
     beta: {
       chat: {
         completions: {
@@ -67,10 +67,10 @@ describe("getStructuredSearchFromLLM", () => {
         },
       ],
     };
-    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+    mockOpenAi.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     const result = await getStructuredSearchFromLLM(
-      mockOpenAI as any,
+      mockOpenAi as any,
       "find rejected requests",
       1706024400000,
     );
@@ -97,10 +97,10 @@ describe("getStructuredSearchFromLLM", () => {
         },
       ],
     };
-    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+    mockOpenAi.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     const result = await getStructuredSearchFromLLM(
-      mockOpenAI as any,
+      mockOpenAi as any,
       "find requests containing test with identifier abc-123",
       1706024400000,
     );
@@ -124,20 +124,20 @@ describe("getStructuredSearchFromLLM", () => {
         },
       ],
     };
-    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+    mockOpenAi.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     await expect(
-      getStructuredSearchFromLLM(mockOpenAI as any, "invalid query", 1706024400000),
+      getStructuredSearchFromLLM(mockOpenAi as any, "invalid query", 1706024400000),
     ).rejects.toThrow(TRPCError);
   });
 
   it("should handle rate limit error", async () => {
-    mockOpenAI.beta.chat.completions.parse.mockRejectedValueOnce({
+    mockOpenAi.beta.chat.completions.parse.mockRejectedValueOnce({
       response: { status: 429 },
     });
 
     await expect(
-      getStructuredSearchFromLLM(mockOpenAI as any, "test query", 1706024400000),
+      getStructuredSearchFromLLM(mockOpenAi as any, "test query", 1706024400000),
     ).rejects.toThrowError(
       new TRPCError({
         code: "TOO_MANY_REQUESTS",
@@ -147,10 +147,10 @@ describe("getStructuredSearchFromLLM", () => {
   });
 
   it("should handle general errors", async () => {
-    mockOpenAI.beta.chat.completions.parse.mockRejectedValueOnce(new Error("Unknown error"));
+    mockOpenAi.beta.chat.completions.parse.mockRejectedValueOnce(new Error("Unknown error"));
 
     await expect(
-      getStructuredSearchFromLLM(mockOpenAI as any, "test query", 1706024400000),
+      getStructuredSearchFromLLM(mockOpenAi as any, "test query", 1706024400000),
     ).rejects.toThrowError(
       new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

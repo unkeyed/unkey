@@ -42,7 +42,7 @@ export const ApisNavbar = ({
 }) => {
   const isMobile = useIsMobile();
   const trpcUtils = trpc.useUtils();
-  const [showRBAC, setShowRBAC] = useState(false);
+  const [showRbac, setShowRbac] = useState(false);
 
   const keyId = keyData?.id || "";
   const keyspaceId = api.keyAuthId || "";
@@ -139,7 +139,7 @@ export const ApisNavbar = ({
             <div className="flex gap-3 items-center">
               <Navbar.Actions>
                 <NavbarActionButton
-                  onClick={() => setShowRBAC(true)}
+                  onClick={() => setShowRbac(true)}
                   disabled={!shouldFetchPermissions}
                 >
                   <ShieldKey size="sm-regular" />
@@ -162,8 +162,8 @@ export const ApisNavbar = ({
         </Navbar>
       </div>
       <DialogContainer
-        isOpen={showRBAC}
-        onOpenChange={() => setShowRBAC(false)}
+        isOpen={showRbac}
+        onOpenChange={() => setShowRbac(false)}
         title="Key Permissions & Roles"
         subTitle="Manage access control for this API key with role-based permissions"
         className="max-w-[800px] max-h-[90vh] overflow-y-auto"

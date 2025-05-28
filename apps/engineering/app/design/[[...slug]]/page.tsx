@@ -17,7 +17,7 @@ export default async function Page(props: {
   }
   const { AutoTypeTable } = createTypeTable();
 
-  const MDX = page.data.body;
+  const Mdx = page.data.body;
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
@@ -26,7 +26,7 @@ export default async function Page(props: {
       <DocsDescription>{page.data.description}</DocsDescription>
 
       <DocsBody>
-        <MDX components={{ ...defaultMdxComponents, AutoTypeTable }} />
+        <Mdx components={{ ...defaultMdxComponents, AutoTypeTable }} />
       </DocsBody>
     </DocsPage>
   );
@@ -36,7 +36,11 @@ export async function generateStaticParams() {
   return componentSource.generateParams();
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug?: string[] }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug?: string[] }>;
+}) {
   const page = componentSource.getPage((await params).slug);
   if (!page) {
     notFound();

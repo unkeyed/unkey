@@ -25,7 +25,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
       username: this.env.DATABASE_USERNAME,
       password: this.env.DATABASE_PASSWORD,
     });
-    const BUCKET_NAME = "unkey_mutations";
+    const bucketName = "unkey_mutations";
 
     // If refillDay is after last day of month, refillDay will be today.
     const keys = await step.do(
@@ -69,7 +69,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
           await tx.insert(schema.auditLog).values({
             id: auditLogId,
             workspaceId: key.workspaceId,
-            bucket: BUCKET_NAME,
+            bucket: bucketName,
             bucketId: "dummy",
             time: now.getTime(),
             event: "key.update",
@@ -82,7 +82,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
               type: "workspace",
               id: key.workspaceId,
               workspaceId: key.workspaceId,
-              bucket: BUCKET_NAME,
+              bucket: bucketName,
               bucketId: "dummy",
               auditLogId,
               displayName: `workspace ${key.workspaceId}`,
@@ -91,7 +91,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
               type: "key",
               id: key.id,
               workspaceId: key.workspaceId,
-              bucket: BUCKET_NAME,
+              bucket: bucketName,
               bucketId: "dummy",
               auditLogId,
               displayName: `key ${key.id}`,

@@ -3,7 +3,7 @@ import {
   ratelimitFilterFieldConfig,
 } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import { TRPCError } from "@trpc/server";
-import type OpenAI from "openai";
+import type openAi from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
 
 /**
@@ -24,9 +24,9 @@ import { zodResponseFormat } from "openai/helpers/zod.mjs";
  * });
  */
 export async function getStructuredSearchFromLLM(
-  openai: OpenAI | null,
+  openai: openAi | null,
   userSearchMsg: string,
-  usersReferenceMS: number,
+  usersReferenceMs: number,
 ) {
   try {
     if (!openai) {
@@ -46,7 +46,7 @@ export async function getStructuredSearchFromLLM(
       messages: [
         {
           role: "system",
-          content: getSystemPrompt(usersReferenceMS),
+          content: getSystemPrompt(usersReferenceMs),
         },
         {
           role: "user",
@@ -95,7 +95,7 @@ export async function getStructuredSearchFromLLM(
     });
   }
 }
-export const getSystemPrompt = (usersReferenceMS: number) => {
+export const getSystemPrompt = (usersReferenceMs: number) => {
   const operatorsByField = Object.entries(ratelimitFilterFieldConfig)
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
@@ -108,7 +108,7 @@ export const getSystemPrompt = (usersReferenceMS: number) => {
       }${constraints}`;
     })
     .join("\n");
-  return `You are an expert at converting natural language queries into filters, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For status, use "blocked" or "passed". Use ${usersReferenceMS} timestamp for time-related queries.
+  return `You are an expert at converting natural language queries into filters, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For status, use "blocked" or "passed". Use ${usersReferenceMs} timestamp for time-related queries.
 
 Examples:
 
@@ -130,14 +130,14 @@ Result: [
     field: "startTime",
     filters: [{ 
       operator: "is", 
-      value: ${usersReferenceMS - 24 * 60 * 60 * 1000}
+      value: ${usersReferenceMs - 24 * 60 * 60 * 1000}
     }]
   },
   {
     field: "endTime",
     filters: [{ 
       operator: "is", 
-      value: ${usersReferenceMS}
+      value: ${usersReferenceMs}
     }]
   }
 ]

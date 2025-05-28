@@ -20,12 +20,12 @@ type SessionResult = {
 };
 
 export async function updateSession(request?: NextRequest): Promise<SessionResult> {
-  const UNKEY_SESSION_HEADER = `x-${UNKEY_SESSION_COOKIE}`;
+  const unkeySessionHeader = `x-${UNKEY_SESSION_COOKIE}`;
   const headers = new Headers();
   const environment = env();
 
   // Remove any lingering session headers
-  headers.delete(UNKEY_SESSION_HEADER);
+  headers.delete(unkeySessionHeader);
 
   // Check if we're using local auth provider
   if (environment.AUTH_PROVIDER === "local") {
@@ -33,7 +33,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
     const localSessionToken = "local_session_token";
 
     // Set the header for internal use
-    headers.set(UNKEY_SESSION_HEADER, localSessionToken);
+    headers.set(unkeySessionHeader, localSessionToken);
 
     // set the cookie for local auth
     const sessionToken = await getCookie(UNKEY_SESSION_COOKIE, request);
@@ -86,7 +86,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
       const sessionValidationResult = await auth.validateSession(sessionToken);
 
       if (sessionValidationResult.isValid && sessionValidationResult.userId) {
-        headers.set(UNKEY_SESSION_HEADER, sessionToken);
+        headers.set(unkeySessionHeader, sessionToken);
 
         return {
           session: {
@@ -128,7 +128,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
             }
           }
 
-          headers.set(UNKEY_SESSION_HEADER, refreshedSession.newToken);
+          headers.set(unkeySessionHeader, refreshedSession.newToken);
 
           if (refreshedSession.session) {
             return {

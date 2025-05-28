@@ -3,7 +3,7 @@ import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { ChevronRight } from "lucide-react";
 import { type PropsWithChildren, useState } from "react";
-import reactElementToJSXString from "react-element-to-jsx-string";
+import reactElementToJsxString from "react-element-to-jsx-string";
 
 type Props = {
   customCodeSnippet?: string;
@@ -14,7 +14,7 @@ export const RenderComponentWithSnippet: React.FC<PropsWithChildren<Props>> = (p
 
   const snippet =
     props.customCodeSnippet ??
-    reactElementToJSXString(props.children, {
+    reactElementToJsxString(props.children, {
       showFunctions: true,
       useBooleanShorthandSyntax: true,
       displayName: (node) => {

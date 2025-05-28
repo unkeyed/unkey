@@ -6,7 +6,7 @@ import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = ({ apiId }: { apiId: string }) => {
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.api.keys.llmSearch.useMutation({
+  const queryLlmForStructuredOutput = trpc.api.keys.llmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -49,10 +49,10 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
         "Show identity that starts with test_",
         "Show name that starts with test_ in the last hour",
       ]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
+      isLoading={queryLlmForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>
-        queryLLMForStructuredOutput.mutateAsync({
+        queryLlmForStructuredOutput.mutateAsync({
           apiId,
           query,
           timestamp: Date.now(),
