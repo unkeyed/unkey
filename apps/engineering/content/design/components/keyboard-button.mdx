@@ -1,0 +1,49 @@
+---
+title: 'KeyboardButton'
+description: 'A component for displaying keyboard shortcuts with optional modifier keys'
+---
+import { Default } from "./buttons/keyboard-button.examples"
+
+# KeyboardButton
+
+The `KeyboardButton` component is designed to display keyboard shortcuts in a visually appealing and accessible way. It supports displaying both regular keys and modifier keys (like ⌘, ⇧, CTRL, ⌥) in a consistent format.
+
+## Features
+
+- Displays keyboard shortcuts with optional modifier keys
+- Accessible with proper ARIA attributes
+- Supports both light and dark themes
+- Responsive design with mobile considerations
+- Customizable through className prop
+
+## Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `shortcut` | `string` | The main key of the keyboard shortcut |
+| `modifierKey` | `"⌘" \| "⇧" \| "CTRL" \| "⌥" \| null` | Optional modifier key to be displayed before the main shortcut |
+| `className` | `string` | Additional CSS classes to customize the component |
+
+The component also accepts all standard HTML div element props.
+
+## Usage
+
+Default
+
+<Default />
+
+## Accessibility
+
+The component includes:
+- Proper ARIA labels for screen readers
+- Keyboard focus management
+- Descriptive title attributes for tooltips
+
+## Design
+
+The component features:
+- Consistent padding and sizing
+- Drop shadow effects
+- Hover and focus states
+- Dark mode support
+- Responsive behavior (hidden on mobile devices)

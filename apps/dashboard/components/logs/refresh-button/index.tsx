@@ -1,8 +1,7 @@
 import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
-import { KeyboardButton } from "@/components/keyboard-button";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { Refresh3 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, KeyboardButton } from "@unkey/ui";
 import { useState } from "react";
 
 type RefreshButtonProps = {
